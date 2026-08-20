@@ -170,8 +170,7 @@ class FirebaseAuthApi implements AuthApi {
           status: AuthLinkStatus.failed,
           session: linkedSession,
           errorCode: 'provider-not-linked',
-          errorMessage:
-              'Provider link flow completed without linking the requested provider.',
+          errorMessage: 'Provider link flow completed without linking the requested provider.',
         );
       }
       return AuthLinkResult(
@@ -560,7 +559,7 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     try {
       final current = _auth.currentUser;
       if (current?.isAnonymous ?? false) {
-        return _linkWithPlayGames();
+        return await _linkWithPlayGames();
       }
       final serverAuthCode = await _playGamesAuthCodeSource
           .requestServerAuthCode();

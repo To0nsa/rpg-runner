@@ -30,9 +30,8 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
     final materialDocument = _requireDocument(document);
     final issues = <ValidationIssue>[...materialDocument.loadIssues];
     final structural = decodeTerrainMaterialCatalog(
-      TerrainMaterialCatalog(
-        materials: materialDocument.materials,
-      ).toCanonicalJson(),
+      TerrainMaterialCatalog(materials: materialDocument.materials)
+          .toCanonicalJson(),
       sourcePath: terrainMaterialDefsSourcePath,
     );
     issues.addAll(
@@ -190,14 +189,14 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) async {
     final materialDocument = _requireDocument(document);
-    final blocking = validate(
-      materialDocument,
-    ).where((issue) => issue.severity == ValidationSeverity.error);
+    final blocking = validate(materialDocument)
+        .where((issue) => issue.severity == ValidationSeverity.error);
     if (blocking.isNotEmpty) {
       throw StateError('Cannot apply terrain materials with blocking issues.');
     }
-    final after = _store.canonicalSource(materialDocument);
-    if (after == materialDocument.baseline?.source) {
+    final before = materialDocument.baseline?.source;
+    if (before != null &&
+        _store.sourceMatchesDocument(before, materialDocument)) {
       return ExportResult(applied: false);
     }
     await _store.save(workspace, document: materialDocument);
@@ -222,7 +221,9 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
     final materialDocument = _requireDocument(document);
     final before = materialDocument.baseline?.source ?? '';
     final after = _store.canonicalSource(materialDocument);
-    if (before == after) return PendingChanges.empty;
+    if (_store.sourceMatchesDocument(before, materialDocument)) {
+      return PendingChanges.empty;
+    }
     return PendingChanges(
       changedItemIds: materialDocument.materials
           .map((material) => material.key)

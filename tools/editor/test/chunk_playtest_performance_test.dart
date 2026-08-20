@@ -20,11 +20,14 @@ void main() {
     final document = await ChunkDomainPlugin().loadV2FromRepo(
       EditorWorkspace(rootPath: workspaceRoot),
     );
+    final selectedChunkKey = document.chunks
+        .singleWhere((chunk) => chunk.levelId == 'forest')
+        .chunkKey;
 
     for (var index = 0; index < _warmupCount; index += 1) {
       final input = captureChunkPlaytestPreparationInput(
         document: document,
-        selectedChunkKey: 'forest_early_00',
+        selectedChunkKey: selectedChunkKey,
       );
       expect(prepareChunkPlaytest(input).scenario, isNotNull);
     }
@@ -36,7 +39,7 @@ void main() {
       final captureWatch = Stopwatch()..start();
       input = captureChunkPlaytestPreparationInput(
         document: document,
-        selectedChunkKey: 'forest_early_00',
+        selectedChunkKey: selectedChunkKey,
       );
       captureWatch.stop();
       captureMicros.add(captureWatch.elapsedMicroseconds);

@@ -4,7 +4,7 @@ publish_to: "none"
 version: 0.1.0
 
 environment:
-  sdk: ^3.10.4
+  sdk: ^3.13.1
 
 dependencies:
   _discoveryapis_commons: ^1.0.7
@@ -20,5 +20,5 @@ dependencies:
 
 dev_dependencies:
   lints: ^6.0.0
-  # Keep the service lockfile runnable by the Dart 3.10.4 container toolchain.
-  test: 1.30.0
+  # Keep local, CI, and container resolution on the same supported Dart line.
+  test: ^1.31.2

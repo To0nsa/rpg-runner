@@ -1,4 +1,4 @@
-FROM dart:3.10.4@sha256:e3e80caac67fd6cd94a64e42025a67a747eba5a634055d087c8bd0971b3e12d9 AS build
+FROM dart:3.13.1@sha256:85016bdd10a5799c8f0f4d5bf2b150b46a0db548cc484b4ce87669a53754d6f5 AS build
 
 WORKDIR /workspace
 
@@ -12,7 +12,7 @@ RUN dart pub get
 RUN mkdir -p /workspace/out
 RUN dart compile exe bin/server.dart -o /workspace/out/replay_validator_server
 
-FROM gcr.io/distroless/base-debian12:nonroot@sha256:6c806311d31c11d364a8d13a022af5a48f29e43bd585ad6b51f1bb447f83d239
+FROM gcr.io/distroless/base-nossl-debian12:nonroot@sha256:363001a3ceb82130280f924fb8dd9540861aba152a87974a205bc7aa7062ad99
 
 COPY --from=build --chown=65532:65532 /workspace/out/replay_validator_server /server
 

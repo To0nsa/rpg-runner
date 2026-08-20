@@ -55,10 +55,10 @@ class _ConstValueResolver {
     );
     final anchorXWriteBinding = anchorArgs == null
         ? null
-        : _resolveExpressionRewriteBinding(anchorArgs[0]);
+        : _resolveExpressionRewriteBinding(anchorArgs[0].argumentExpression);
     final anchorYWriteBinding = anchorArgs == null
         ? null
-        : _resolveExpressionRewriteBinding(anchorArgs[1]);
+        : _resolveExpressionRewriteBinding(anchorArgs[1].argumentExpression);
 
     final sourcesExpr = _namedArgumentExpression(arguments, 'sourcesByKey');
     final sourceByAnimKey = sourcesExpr == null
@@ -295,7 +295,7 @@ class _ConstValueResolver {
     return expression;
   }
 
-  NodeList<Expression>? _renderAnimArguments(Expression expression) {
+  NodeList<Argument>? _renderAnimArguments(Expression expression) {
     if (expression is InstanceCreationExpression &&
         expression.constructorName.type.toSource() ==
             'RenderAnimSetDefinition') {
@@ -339,15 +339,15 @@ class _ConstValueResolver {
     if (args == null || args.length < 2) {
       return null;
     }
-    final x = _resolveDouble(args[0]);
-    final y = _resolveDouble(args[1]);
+    final x = _resolveDouble(args[0].argumentExpression);
+    final y = _resolveDouble(args[1].argumentExpression);
     if (x == null || y == null) {
       return null;
     }
     return _ResolvedVec2(x: x, y: y);
   }
 
-  NodeList<Expression>? _vec2Arguments(Expression? expression) {
+  NodeList<Argument>? _vec2Arguments(Expression? expression) {
     if (expression == null) {
       return null;
     }

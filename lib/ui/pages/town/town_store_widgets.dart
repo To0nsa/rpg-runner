@@ -8,6 +8,7 @@ import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
+
 import '../../components/app_button.dart';
 import '../../components/gameIcon/game_icon.dart';
 import '../../components/gold_display.dart';
@@ -134,7 +135,11 @@ class _TownStoreCardState extends State<TownStoreCard> {
                 style: ui.text.body.copyWith(color: ui.colors.textMuted),
               )
             else
-              for (var index = 0; index < widget.activeOffers.length; index++) ...[
+              for (
+                var index = 0;
+                index < widget.activeOffers.length;
+                index++
+              ) ...[
                 _TownOfferRow(
                   offer: widget.activeOffers[index],
                   expanded:
@@ -268,7 +273,7 @@ class _TownOfferRow extends StatelessWidget {
                     opacity: animation,
                     child: SizeTransition(
                       sizeFactor: animation,
-                      axisAlignment: -1,
+                      alignment: Alignment.topLeft,
                       child: child,
                     ),
                   ),
@@ -282,7 +287,9 @@ class _TownOfferRow extends StatelessWidget {
                                 selectedProjectileSourceSpellId,
                           ),
                         )
-                      : const SizedBox.shrink(key: ValueKey<String>('details-hidden')),
+                      : const SizedBox.shrink(
+                          key: ValueKey<String>('details-hidden'),
+                        ),
                 ),
               ],
             ),
@@ -541,19 +548,12 @@ class _GearStatLineRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 4,
-          child: Text(line.label, style: labelStyle),
-        ),
+        Expanded(flex: 4, child: Text(line.label, style: labelStyle)),
         SizedBox(width: ui.space.xs),
         Expanded(
           flex: 5,
           child: semanticValue == null
-              ? Text(
-                  line.value,
-                  style: valueStyle,
-                  textAlign: TextAlign.right,
-                )
+              ? Text(line.value, style: valueStyle, textAlign: TextAlign.right)
               : UiSemanticRichText(
                   semanticText: semanticValue,
                   normalStyleForTone: (_) => valueStyle,
@@ -583,10 +583,7 @@ class _BulletDetailLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '• ',
-          style: ui.text.body.copyWith(color: ui.colors.textMuted),
-        ),
+        Text('• ', style: ui.text.body.copyWith(color: ui.colors.textMuted)),
         Expanded(
           child: Text.rich(
             TextSpan(

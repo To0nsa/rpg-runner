@@ -387,7 +387,6 @@ Future<void> _pumpUntilPhase(
 }
 
 ChunkPlaytestScenario _scenario() {
-  const selectedKey = 'forest_early_00';
   final level = LevelRegistry.byId(LevelId.forest);
   final listSource = switch (level.chunkPatternSource) {
     ChunkPatternListSource source => source,
@@ -399,9 +398,9 @@ ChunkPlaytestScenario _scenario() {
     ...listSource.easyPatterns,
     ...listSource.normalPatterns,
     ...listSource.hardPatterns,
-  ].singleWhere((pattern) => pattern.chunkKey == selectedKey);
+  ].single;
   final draftTerrain = stagedAuthoredTerrain.chunks.singleWhere(
-    (chunk) => chunk.chunkKey == selectedKey,
+    (chunk) => chunk.chunkKey == draftPattern.chunkKey,
   );
   return ChunkPlaytestScenario(
     levelDefinition: level,
@@ -438,7 +437,7 @@ final class _FailingImages extends Images {
   int failedLoadCount = 0;
 
   @override
-  Future<ui.Image> load(String fileName, {String? key}) async {
+  Future<ui.Image> load(String fileName, {String? key, String? package}) async {
     if (fileName.endsWith('entities/player/idle.png')) {
       failedLoadCount += 1;
       await Future<void>.delayed(Duration.zero);
@@ -462,7 +461,11 @@ final class _FixtureImages extends Images {
   int clearCount = 0;
 
   @override
-  Future<ui.Image> load(String fileName, {String? key}) async => image;
+  Future<ui.Image> load(
+    String fileName, {
+    String? key,
+    String? package,
+  }) async => image;
 
   @override
   void clearCache() {

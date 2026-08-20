@@ -6,7 +6,7 @@ import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 
 void main() {
-  test('forest level prewarms authored static prefab sprite snapshots', () {
+  test('forest level reflects its authored empty static prefab set', () {
     final core = GameCore(
       seed: 42,
       levelDefinition: LevelRegistry.byId(LevelId.forest),
@@ -16,12 +16,6 @@ void main() {
     final snapshot = core.buildSnapshot();
 
     expect(snapshot.tick, 0);
-    expect(snapshot.staticPrefabSprites, isNotEmpty);
-    expect(
-      snapshot.staticPrefabSprites.any(
-        (sprite) => sprite.assetPath.startsWith('level/'),
-      ),
-      isTrue,
-    );
+    expect(snapshot.staticPrefabSprites, isEmpty);
   });
 }

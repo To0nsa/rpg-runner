@@ -49,7 +49,9 @@ void main() {
     final prepared = prepareChunkPlaytest(
       captureChunkPlaytestPreparationInput(
         document: repositoryDocument,
-        selectedChunkKey: 'forest_early_00',
+        selectedChunkKey: repositoryDocument.chunks
+            .singleWhere((chunk) => chunk.levelId == 'forest')
+            .chunkKey,
       ),
     );
     repositoryScenario = prepared.scenario!;
@@ -292,9 +294,8 @@ void main() {
         await tester.pump();
         expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
         expect(
-          _pageHandler(
-            tester,
-          ).handlePlaytestShortcut(LogicalKeyboardKey.escape),
+          _pageHandler(tester)
+              .handlePlaytestShortcut(LogicalKeyboardKey.escape),
           isTrue,
         );
         await _pumpUntilHostRemoved(tester);
@@ -596,7 +597,7 @@ Map<String, String> _sourceHashes(String workspaceRoot) {
   const paths = <String>[
     'assets/authoring/level/prefab_defs.json',
     'assets/authoring/level/tile_defs.json',
-    'assets/authoring/level/chunks/forest/forest_early_00.json',
+    'assets/authoring/level/chunks/forest/forest_early_flat.json',
     'packages/runner_core/lib/track/authored_chunk_patterns.dart',
     'packages/runner_core/lib/track/staged_authored_terrain.dart',
     'lib/game/themes/authored_parallax_themes.dart',

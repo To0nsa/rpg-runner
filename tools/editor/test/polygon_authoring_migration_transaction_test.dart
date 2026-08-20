@@ -28,8 +28,11 @@ void main() {
         result.sourceStateBefore,
         PolygonAuthoringMigrationSourceState.legacy,
       );
-      expect(result.files, hasLength(10));
-      expect(result.files.where((file) => file.changed), hasLength(10));
+      expect(result.files, hasLength(legacy.targetFiles.length));
+      expect(
+        result.files.where((file) => file.changed),
+        hasLength(legacy.targetFiles.length),
+      );
       final current = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -49,7 +52,7 @@ void main() {
       expect(report['sourceStateAfter'], 'current');
       expect(
         (report['summary']! as Map<String, Object?>)['changedFileCount'],
-        10,
+        legacy.targetFiles.length,
       );
     } finally {
       fixture.deleteSync(recursive: true);

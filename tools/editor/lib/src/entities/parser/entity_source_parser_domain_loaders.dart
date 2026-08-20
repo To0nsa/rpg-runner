@@ -91,10 +91,10 @@ List<EntityEntry> _parseEnemies(
     final offsetYArg = _namedArgument(colliderArgs, 'offsetY');
     final halfX = halfXArg == null
         ? null
-        : _doubleFromExpression(halfXArg.expression);
+        : _doubleFromExpression(halfXArg.argumentExpression);
     final halfY = halfYArg == null
         ? null
-        : _doubleFromExpression(halfYArg.expression);
+        : _doubleFromExpression(halfYArg.argumentExpression);
     if (halfX == null ||
         halfY == null ||
         halfXArg == null ||
@@ -112,10 +112,10 @@ List<EntityEntry> _parseEnemies(
     }
     final offsetX = offsetXArg == null
         ? 0.0
-        : _doubleFromExpression(offsetXArg.expression) ?? 0.0;
+        : _doubleFromExpression(offsetXArg.argumentExpression) ?? 0.0;
     final offsetY = offsetYArg == null
         ? 0.0
-        : _doubleFromExpression(offsetYArg.expression) ?? 0.0;
+        : _doubleFromExpression(offsetYArg.argumentExpression) ?? 0.0;
     final artFacingDirection =
         _facingFromExpression(
           _namedArgumentExpression(
@@ -130,7 +130,7 @@ List<EntityEntry> _parseEnemies(
     );
     final castOriginOffset = castOriginOffsetArg == null
         ? null
-        : _doubleFromExpression(castOriginOffsetArg.expression);
+        : _doubleFromExpression(castOriginOffsetArg.argumentExpression);
     final castOriginOffsetBinding = _scalarBindingFromNamedArg(
       sourcePath: EntitySourceParser.enemyCatalogPath,
       source: source,
@@ -255,7 +255,7 @@ List<EntityEntry> _parsePlayers(
       }
       for (final variable in list.variables) {
         final initializer = variable.initializer;
-        NodeList<Expression>? args;
+        NodeList<Argument>? args;
         if (initializer is InstanceCreationExpression) {
           final createdType = initializer.constructorName.type.toSource();
           if (createdType != 'PlayerCatalog') {
@@ -291,10 +291,10 @@ List<EntityEntry> _parsePlayers(
           continue;
         }
 
-        final width = _doubleFromExpression(widthArg.expression);
-        final height = _doubleFromExpression(heightArg.expression);
-        final offsetX = _doubleFromExpression(offsetXArg.expression);
-        final offsetY = _doubleFromExpression(offsetYArg.expression);
+        final width = _doubleFromExpression(widthArg.argumentExpression);
+        final height = _doubleFromExpression(heightArg.argumentExpression);
+        final offsetX = _doubleFromExpression(offsetXArg.argumentExpression);
+        final offsetY = _doubleFromExpression(offsetYArg.argumentExpression);
         if (width == null ||
             height == null ||
             offsetX == null ||
@@ -318,7 +318,7 @@ List<EntityEntry> _parsePlayers(
         final castOriginOffsetArg = _namedArgument(args, 'castOriginOffset');
         final castOriginOffset = castOriginOffsetArg == null
             ? null
-            : _doubleFromExpression(castOriginOffsetArg.expression);
+            : _doubleFromExpression(castOriginOffsetArg.argumentExpression);
         final castOriginOffsetBinding = _scalarBindingFromNamedArg(
           sourcePath: relativePath,
           source: source,
@@ -424,8 +424,7 @@ List<EntityEntry> _parseProjectiles(
       const ValidationIssue(
         severity: ValidationSeverity.error,
         code: 'projectile_switch_missing',
-        message:
-            'ProjectileCatalog.get(ProjectileId) does not contain a switch block.',
+        message: 'ProjectileCatalog.get(ProjectileId) does not contain a switch block.',
         sourcePath: EntitySourceParser.projectileCatalogPath,
       ),
     );
@@ -467,8 +466,8 @@ List<EntityEntry> _parseProjectiles(
       continue;
     }
 
-    final sizeX = _doubleFromExpression(sizeXArg.expression);
-    final sizeY = _doubleFromExpression(sizeYArg.expression);
+    final sizeX = _doubleFromExpression(sizeXArg.argumentExpression);
+    final sizeY = _doubleFromExpression(sizeYArg.argumentExpression);
     if (sizeX == null || sizeY == null) {
       issues.add(
         ValidationIssue(
@@ -549,8 +548,7 @@ Map<String, EntityReferenceVisual> _parseProjectileReferenceVisuals(
       const ValidationIssue(
         severity: ValidationSeverity.warning,
         code: 'projectile_render_get_missing',
-        message:
-            'Could not locate ProjectileRenderCatalog.get(ProjectileId) method.',
+        message: 'Could not locate ProjectileRenderCatalog.get(ProjectileId) method.',
         sourcePath: EntitySourceParser.projectileRenderCatalogPath,
       ),
     );
@@ -613,9 +611,8 @@ _ResolvedScalarValue? _parsePlayerRenderScale(EditorWorkspace workspace) {
   if (source == null) {
     return null;
   }
-  final match = RegExp(
-    r'this\.scale\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)',
-  ).firstMatch(source);
+  final match = RegExp(r'this\.scale\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)')
+      .firstMatch(source);
   if (match == null) {
     return null;
   }

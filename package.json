@@ -2,18 +2,12 @@
   "name": "rpg-runner-monorepo",
   "private": true,
   "version": "0.0.0",
-  "packageManager": "pnpm@10.18.3",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "functions:build": "corepack pnpm --filter rpg-runner-functions run build",
     "functions:serve": "corepack pnpm --filter rpg-runner-functions run serve",
     "functions:shell": "corepack pnpm --filter rpg-runner-functions run shell",
     "functions:deploy": "corepack pnpm --filter rpg-runner-functions run deploy",
     "functions:test": "corepack pnpm --filter rpg-runner-functions run test"
-  },
-  "pnpm": {
-    "overrides": {
-      "gaxios@6.7.1>uuid": "11.1.1",
-      "teeny-request@9.0.0>uuid": "11.1.1"
-    }
   }
 }

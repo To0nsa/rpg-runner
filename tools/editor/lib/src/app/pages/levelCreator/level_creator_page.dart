@@ -391,9 +391,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     final themeIds = scene.availableParallaxVisualThemeIds;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: const Color(0x334A6074)),
       ),
@@ -455,8 +454,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 controller: _newVisualThemeIdController,
                 decoration: const InputDecoration(
                   labelText: 'New visual theme ID',
-                  helperText:
-                      'Creates an empty theme. Add its layers in Parallax after apply.',
+                  helperText: 'Creates an empty theme. Add its layers in Parallax after apply.',
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
@@ -566,9 +564,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                     Expanded(
                       child: Text(
                         level.levelId,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                     if (isDirty)
@@ -678,9 +675,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             const SizedBox(height: 8),
             DecoratedBox(
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.errorContainer.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.errorContainer
+                    .withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Theme.of(context).colorScheme.error),
               ),
@@ -802,9 +798,10 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   }
 
   Widget _buildRuntimeMetricsRow() {
-    final lockedFillColor = Theme.of(
-      context,
-    ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.32);
+    final lockedFillColor = Theme.of(context)
+        .colorScheme
+        .surfaceContainerHighest
+        .withValues(alpha: 0.32);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -907,9 +904,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         _cleanupRequiredPaths.isEmpty;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.primaryContainer.withValues(alpha: 0.24),
+        color: Theme.of(context).colorScheme.primaryContainer
+            .withValues(alpha: 0.24),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Theme.of(context).colorScheme.primary),
       ),
@@ -1149,20 +1145,23 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: _assemblyLoopSegments,
-              title: const Text('Loop Segments'),
-              subtitle: const Text(
-                'When disabled, runtime holds on the final authored segment after the ordered run list completes.',
+            Material(
+              type: MaterialType.transparency,
+              child: SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                value: _assemblyLoopSegments,
+                title: const Text('Loop Segments'),
+                subtitle: const Text(
+                  'When disabled, runtime holds on the final authored segment after the ordered run list completes.',
+                ),
+                onChanged: activeLevel == null
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _assemblyLoopSegments = value;
+                        });
+                      },
               ),
-              onChanged: activeLevel == null
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _assemblyLoopSegments = value;
-                      });
-                    },
             ),
             Wrap(
               spacing: 8,
@@ -1337,21 +1336,24 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 ],
               ),
               const SizedBox(height: 8),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _selectedSegmentRequireDistinct,
-                title: const Text('Require Distinct Chunks'),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedSegmentRequireDistinct = value;
-                    _updateSelectedAssemblySegment(
-                      selectedSegment.copyWith(requireDistinctChunks: value),
-                    );
-                  });
-                },
+              Material(
+                type: MaterialType.transparency,
+                child: CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _selectedSegmentRequireDistinct,
+                  title: const Text('Require Distinct Chunks'),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _selectedSegmentRequireDistinct = value;
+                      _updateSelectedAssemblySegment(
+                        selectedSegment.copyWith(requireDistinctChunks: value),
+                      );
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -1425,9 +1427,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
               children: [
                 Text(
                   segment.segmentId,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -1891,9 +1892,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _assemblyDraftDiffersFromLevel(LevelDef level) {

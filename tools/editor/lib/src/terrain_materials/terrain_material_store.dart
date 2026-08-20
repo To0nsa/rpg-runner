@@ -83,6 +83,11 @@ final class TerrainMaterialStore {
   String canonicalSource(TerrainMaterialDocument document) =>
       TerrainMaterialCatalog(materials: document.materials).toCanonicalJson();
 
+  /// Whether [source] represents the document's canonical bytes independent
+  /// of the checkout's platform newline convention.
+  bool sourceMatchesDocument(String source, TerrainMaterialDocument document) =>
+      _normalizeNewlines(source) == canonicalSource(document);
+
   Future<void> save(
     EditorWorkspace workspace, {
     required TerrainMaterialDocument document,

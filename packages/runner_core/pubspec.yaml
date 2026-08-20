@@ -4,11 +4,11 @@ publish_to: 'none'
 version: 0.1.0
 
 environment:
-  sdk: ^3.10.4
+  sdk: ^3.13.1
 
 dependencies:
   crypto: ^3.0.7
 
 dev_dependencies:
-  test: ^1.25.8
-  vm_service: ^15.0.2
+  test: ^1.31.2
+  vm_service: ^15.3.0

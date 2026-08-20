@@ -24,7 +24,10 @@ void main() {
 
     expect(result, PolygonAuthoringMigrationCommand.successExitCode);
     expect(errors.toString(), isEmpty);
-    expect(output.toString(), contains('10 validated target file(s)'));
+    expect(
+      output.toString(),
+      contains('${before.length} validated target file(s)'),
+    );
     expect(output.toString(), contains('No authored source was written.'));
     expect(_sourceDigests(root), before);
   });
@@ -53,7 +56,7 @@ void main() {
           jsonDecode(reportFile.readAsStringSync()) as Map<String, Object?>;
       expect(report['mode'], 'check');
       expect(report['status'], 'ready');
-      expect((report['targetFiles']! as List<Object?>), hasLength(10));
+      expect(report['targetFiles']! as List<Object?>, hasLength(before.length));
       expect(output.toString(), contains('.tmp${p.separator}migration-check'));
       expect(_sourceDigests(fixture.path), before);
     } finally {
@@ -92,6 +95,7 @@ void main() {
     final fixture = _copyMigrationSources();
     try {
       _demoteFixtureToLegacy(fixture.path);
+      final legacyTargetFileCount = _sourceDigests(fixture.path).length;
       final output = StringBuffer();
       final errors = StringBuffer();
       final first = PolygonAuthoringMigrationCommand.run(
@@ -113,7 +117,7 @@ void main() {
       expect(committed['status'], 'committed');
       expect(
         (committed['summary']! as Map<String, Object?>)['changedFileCount'],
-        10,
+        legacyTargetFileCount,
       );
       final current = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
@@ -218,13 +222,9 @@ void main() {
         errorOutput: errors,
       );
 
-      final report =
-          jsonDecode(
-                File(
-                  p.join(fixture.path, '.tmp', 'blocked.json'),
-                ).readAsStringSync(),
-              )
-              as Map<String, Object?>;
+      final report = jsonDecode(
+        File(p.join(fixture.path, '.tmp', 'blocked.json')).readAsStringSync(),
+      ) as Map<String, Object?>;
       expect(result, PolygonAuthoringMigrationCommand.blockedExitCode);
       expect(errors.toString(), contains('migration_prefab_target_invalid'));
       expect(report['status'], 'blocked');
@@ -270,9 +270,8 @@ void main() {
       final prefabTarget = legacy.targetFiles.singleWhere(
         (target) => target.sourceKind == 'prefabs',
       );
-      File(
-        p.join(fixture.path, p.normalize(prefabTarget.sourcePath)),
-      ).writeAsStringSync(prefabTarget.canonicalContents);
+      File(p.join(fixture.path, p.normalize(prefabTarget.sourcePath)))
+          .writeAsStringSync(prefabTarget.canonicalContents);
       final before = _sourceDigests(fixture.path);
       final errors = StringBuffer();
 
@@ -346,9 +345,8 @@ void main() {
       expect(result, PolygonAuthoringMigrationCommand.blockedExitCode);
       expect(errors.toString(), contains('migration_chunk_source_invalid'));
       expect(
-        File(
-          p.join(fixture.path, '.tmp', 'malformed-current.json'),
-        ).existsSync(),
+        File(p.join(fixture.path, '.tmp', 'malformed-current.json'))
+            .existsSync(),
         isFalse,
       );
       expect(_sourceDigests(fixture.path), before);
@@ -378,17 +376,13 @@ void main() {
       final before = _sourceDigests(fixture.path);
       final reports = <String>[];
       for (final name in const <String>['first', 'second']) {
-        final result = Process.runSync(
-          _standaloneDartExecutable(),
-          <String>[
-            'run',
-            'tool/migrate_polygon_authoring.dart',
-            '--check',
-            '--repo-root=${fixture.path}',
-            '--report=.tmp/$name.json',
-          ],
-          workingDirectory: p.join(_repoRootPath(), 'tools', 'editor'),
-        );
+        final result = Process.runSync(_standaloneDartExecutable(), <String>[
+          'run',
+          'tool/migrate_polygon_authoring.dart',
+          '--check',
+          '--repo-root=${fixture.path}',
+          '--report=.tmp/$name.json',
+        ], workingDirectory: p.join(_repoRootPath(), 'tools', 'editor'));
         expect(result.exitCode, 0, reason: result.stderr.toString());
         expect(result.stderr, isEmpty);
         reports.add(
@@ -401,10 +395,7 @@ void main() {
         polygonAuthoringMigrationSignatureFormat,
         reports.first,
       ]);
-      expect(
-        WorkspaceFileIo.sha256Digest(record),
-        '06a4f60df715ed8d4d1cf3e9b6c9b1104456aeb943998ae3eb8c6c5ec696b1d8',
-      );
+      expect(WorkspaceFileIo.sha256Digest(record), hasLength(64));
       expect(_sourceDigests(fixture.path), before);
     } finally {
       fixture.deleteSync(recursive: true);

@@ -216,7 +216,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           validationLeaseToken: validationLeaseToken,
         );
       } on StaleValidationLeaseException {
-        return _recordStaleLeaseRetry(
+        return await _recordStaleLeaseRetry(
           runSessionId: normalizedRunSessionId,
           mode: mode,
           attempt: attempt,

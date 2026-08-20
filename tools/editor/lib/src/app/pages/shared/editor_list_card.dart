@@ -51,7 +51,12 @@ class EditorListCard extends StatelessWidget {
                     leading,
                     const SizedBox(width: EditorUiTokens.rowPreviewGap),
                   ],
-                  Expanded(child: child),
+                  Expanded(
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: child,
+                    ),
+                  ),
                   if (preview case final preview?) ...<Widget>[
                     const SizedBox(width: EditorUiTokens.rowPreviewGap),
                     preview,

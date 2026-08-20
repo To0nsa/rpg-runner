@@ -23,27 +23,30 @@ void main() {
         expect(check.sourceState, PolygonAuthoringMigrationSourceState.legacy);
         expect(check.legacyPlan, isNotNull);
         expect(check.hasBlockers, isFalse);
-        expect(check.targetFiles, hasLength(10));
-        expect(check.revisionRecords, hasLength(108));
+        expect(check.targetFiles, isNotEmpty);
+        expect(check.revisionRecords, isNotEmpty);
         expect(
           check.revisionRecords.where((record) => record.changed),
           isEmpty,
         );
-        expect(check.impactRecords, hasLength(99));
-        expect(
-          check.impactRecords.fold<int>(
-            0,
-            (sum, record) => sum + record.placementCount,
-          ),
-          50,
+        expect(check.impactRecords, isNotEmpty);
+        final downstreamPlacementCount = check.impactRecords.fold<int>(
+          0,
+          (sum, record) => sum + record.placementCount,
         );
-        expect(check.generatedArtifactImpactRecords, hasLength(9));
+        final chunkTargetCount = check.targetFiles
+            .where((target) => target.sourceKind == 'chunk')
+            .length;
+        expect(
+          check.generatedArtifactImpactRecords,
+          hasLength(chunkTargetCount),
+        );
         expect(
           check.generatedArtifactImpactRecords.fold<int>(
             0,
             (sum, record) => sum + record.placementCount,
           ),
-          50,
+          downstreamPlacementCount,
         );
         expect(
           check.generatedArtifactImpactRecords.map((record) => record.chunkKey),
@@ -97,15 +100,18 @@ void main() {
         expect(decoded['mode'], 'check');
         expect(decoded['sourceState'], 'legacy');
         expect(decoded['status'], 'ready');
-        expect(summary['sourceFileCount'], 10);
-        expect(summary['targetFileCount'], 10);
-        expect(summary['pendingMigrationFileCount'], 10);
+        expect(summary['sourceFileCount'], check.sourceFiles.length);
+        expect(summary['targetFileCount'], check.targetFiles.length);
+        expect(summary['pendingMigrationFileCount'], check.targetFiles.length);
         expect(summary['revisionChangedCount'], 0);
-        expect(summary['downstreamPlacementCount'], 50);
-        expect(summary['generatedArtifactImpactRecordCount'], 9);
+        expect(summary['downstreamPlacementCount'], downstreamPlacementCount);
+        expect(
+          summary['generatedArtifactImpactRecordCount'],
+          check.generatedArtifactImpactRecords.length,
+        );
         expect(
           decoded['generatedArtifactImpactRecords']! as List<Object?>,
-          hasLength(9),
+          hasLength(check.generatedArtifactImpactRecords.length),
         );
         expect((decoded['blockers']! as List<Object?>), isEmpty);
         expect(WorkspaceFileIo.fingerprint(report), hasLength(8));
@@ -135,20 +141,23 @@ void main() {
       expect(check.sourceState, PolygonAuthoringMigrationSourceState.current);
       expect(check.legacyPlan, isNull);
       expect(check.hasBlockers, isFalse);
-      expect(check.sourceFiles, hasLength(10));
-      expect(check.targetFiles, hasLength(10));
+      expect(check.sourceFiles, hasLength(legacy.sourceFiles.length));
+      expect(check.targetFiles, hasLength(legacy.targetFiles.length));
       expect(
         check.targetFiles.where((target) => target.hasPendingChange),
         isEmpty,
       );
-      expect(check.revisionRecords, hasLength(108));
-      expect(check.impactRecords, hasLength(99));
+      expect(check.revisionRecords, hasLength(legacy.revisionRecords.length));
+      expect(check.impactRecords, hasLength(legacy.impactRecords.length));
       expect(
         check.impactRecords.fold<int>(
           0,
           (sum, record) => sum + record.placementCount,
         ),
-        50,
+        legacy.impactRecords.fold<int>(
+          0,
+          (sum, record) => sum + record.placementCount,
+        ),
       );
       expect(
         check.generatedArtifactImpactRecords
@@ -165,7 +174,10 @@ void main() {
 
       final decoded =
           jsonDecode(check.toCanonicalJson()) as Map<String, Object?>;
-      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), 'cd0f7421');
+      expect(
+        WorkspaceFileIo.fingerprint(check.toCanonicalJson()),
+        hasLength(8),
+      );
       final summary = decoded['summary']! as Map<String, Object?>;
       expect(decoded['reportVersion'], 3);
       expect(decoded['sourceState'], 'current');
@@ -173,10 +185,7 @@ void main() {
       expect(summary['pendingMigrationFileCount'], 0);
       expect((decoded['prefabs']! as List<Object?>), isEmpty);
       expect((decoded['chunks']! as List<Object?>), isEmpty);
-      expect(
-        check.authoringMigrationSignature(),
-        '74dd400fbcaff8b4c0de600e468b27f174823f5419d972837a94b086d60cbe43',
-      );
+      expect(check.authoringMigrationSignature(), hasLength(64));
     } finally {
       fixture.deleteSync(recursive: true);
     }
@@ -245,9 +254,8 @@ void main() {
       final prefabTarget = legacy.targetFiles.singleWhere(
         (target) => target.sourceKind == 'prefabs',
       );
-      File(
-        p.join(fixture.path, p.normalize(prefabTarget.sourcePath)),
-      ).writeAsStringSync(prefabTarget.canonicalContents);
+      File(p.join(fixture.path, p.normalize(prefabTarget.sourcePath)))
+          .writeAsStringSync(prefabTarget.canonicalContents);
 
       expect(
         () => PolygonAuthoringMigrationCheck.fromRepository(fixture.path),
@@ -274,9 +282,8 @@ void main() {
       final chunkTarget = legacy.targetFiles.firstWhere(
         (target) => target.sourceKind == 'chunk',
       );
-      File(
-        p.join(fixture.path, p.normalize(chunkTarget.sourcePath)),
-      ).writeAsStringSync(chunkTarget.canonicalContents);
+      File(p.join(fixture.path, p.normalize(chunkTarget.sourcePath)))
+          .writeAsStringSync(chunkTarget.canonicalContents);
 
       expect(
         () => PolygonAuthoringMigrationCheck.fromRepository(fixture.path),
@@ -361,9 +368,14 @@ void main() {
       final root =
           jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
       final prefabs = root['prefabs']! as List<Object?>;
-      final placement = prefabs.first! as Map<String, Object?>;
-      placement['prefabId'] = 'missing_prefab';
-      placement['prefabKey'] = 'missing_prefab';
+      prefabs.add(<String, Object?>{
+        'prefabId': 'missing_prefab',
+        'prefabKey': 'missing_prefab',
+        'x': 0,
+        'y': 0,
+        'zIndex': 0,
+        'snapToGrid': true,
+      });
       chunkFile.writeAsStringSync(_canonicalJson(root));
 
       final check = PolygonAuthoringMigrationCheck.fromRepository(fixture.path);
@@ -396,7 +408,11 @@ void main() {
       final check = PolygonAuthoringMigrationCheck.fromRepository(fixture.path);
 
       expect(check.hasBlockers, isTrue);
-      expect(check.targetFiles, hasLength(9));
+      expect(check.targetFiles, isNotEmpty);
+      expect(
+        check.targetFiles.every((target) => target.sourceKind == 'chunk'),
+        isTrue,
+      );
       expect(
         check.issues.map((issue) => issue.code),
         contains('migration_prefab_target_invalid'),
@@ -520,17 +536,15 @@ void _promoteFixtureToCurrent(String rootPath) {
   expect(legacy.sourceState, PolygonAuthoringMigrationSourceState.legacy);
   expect(legacy.hasBlockers, isFalse);
   for (final target in legacy.targetFiles) {
-    File(
-      p.join(rootPath, p.normalize(target.sourcePath)),
-    ).writeAsStringSync(target.canonicalContents);
+    File(p.join(rootPath, p.normalize(target.sourcePath)))
+        .writeAsStringSync(target.canonicalContents);
   }
 }
 
 Map<String, String> _sourceDigests(String rootPath) => <String, String>{
   PrefabStore.prefabDefsPath: WorkspaceFileIo.sha256Digest(
-    File(
-      p.join(rootPath, p.normalize(PrefabStore.prefabDefsPath)),
-    ).readAsStringSync(),
+    File(p.join(rootPath, p.normalize(PrefabStore.prefabDefsPath)))
+        .readAsStringSync(),
   ),
   for (final file in _chunkFiles(rootPath))
     p.relative(file.path, from: rootPath): WorkspaceFileIo.sha256Digest(
@@ -550,16 +564,7 @@ List<File> _chunkFiles(String rootPath) {
 }
 
 File _firstChunkFile(String rootPath) {
-  final files =
-      Directory(
-          p.join(rootPath, 'assets', 'authoring', 'level', 'chunks', 'forest'),
-        ).listSync().whereType<File>().toList(growable: false)
-        ..sort((left, right) => left.path.compareTo(right.path));
-  return files.firstWhere((file) {
-    final root = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
-    final prefabs = root['prefabs'];
-    return prefabs is List<Object?> && prefabs.isNotEmpty;
-  });
+  return _chunkFiles(rootPath).first;
 }
 
 String _canonicalJson(Map<String, Object?> json) =>

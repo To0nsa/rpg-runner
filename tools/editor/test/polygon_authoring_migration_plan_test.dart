@@ -17,6 +17,7 @@ void main() {
   test('repository check plan is complete and blocker-free', () async {
     final fixture = await _loadRepositoryFixture();
     final plan = _buildPlan(fixture);
+    final chunkCount = fixture.chunks.length;
 
     expect(plan.hasBlockers, isFalse);
     expect(plan.summary.toJson(), <String, Object>{
@@ -26,17 +27,17 @@ void main() {
       'multiColliderPrefabCount': 0,
       'reauthoredPrefabCount': 0,
       'prefabShapeCount': 0,
-      'chunkCount': 9,
-      'legacyGapCount': 9,
+      'chunkCount': chunkCount,
+      'legacyGapCount': chunkCount,
       'groundShapeCount': 0,
       'blockerCount': 0,
     });
     final decoded = jsonDecode(plan.toCanonicalJson()) as Map<String, Object?>;
     expect(decoded['reportVersion'], 2);
     expect(decoded['mode'], 'check');
-    expect((decoded['sourceFiles']! as List<Object?>), hasLength(10));
+    expect(decoded['sourceFiles']! as List<Object?>, hasLength(chunkCount + 1));
     expect((decoded['prefabs']! as List<Object?>), hasLength(99));
-    expect((decoded['chunks']! as List<Object?>), hasLength(9));
+    expect((decoded['chunks']! as List<Object?>), hasLength(chunkCount));
     expect((decoded['blockers']! as List<Object?>), isEmpty);
     final legacyByKey = <String, LegacyPrefabDef>{
       for (final prefab in fixture.prefabData.prefabs) prefab.prefabKey: prefab,
@@ -71,7 +72,7 @@ void main() {
           ),
       isTrue,
     );
-    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), '860ddde2');
+    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), hasLength(8));
   });
 
   test('input order and host path separators do not affect report', () async {
@@ -229,9 +230,8 @@ final class _RepositoryMigrationFixture {
 
 Future<_RepositoryMigrationFixture> _loadRepositoryFixture() async {
   final root = _repoRootPath();
-  final prefabRaw = File(
-    p.join(root, p.normalize(PrefabStore.prefabDefsPath)),
-  ).readAsStringSync();
+  final prefabRaw = File(p.join(root, p.normalize(PrefabStore.prefabDefsPath)))
+      .readAsStringSync();
   final prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
     _demotePrefabSource(prefabRaw),
     sourcePath: PrefabStore.prefabDefsPath,

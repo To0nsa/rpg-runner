@@ -84,7 +84,13 @@ void main() {
     await tester.ensureVisible(save);
     await tester.tap(save);
     await tester.pumpAndSettle();
-    expect(controller.pendingChanges.hasChanges, isFalse);
+    expect(
+      controller.pendingChanges.hasChanges,
+      isFalse,
+      reason: controller.pendingChanges.fileDiffs
+          .map((diff) => diff.unifiedDiff)
+          .join('\n'),
+    );
     expect(
       find.textContaining('grass_dirt · rev $initialRevision'),
       findsOneWidget,

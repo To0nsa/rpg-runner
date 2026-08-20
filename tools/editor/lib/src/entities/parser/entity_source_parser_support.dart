@@ -91,12 +91,14 @@ CompilationUnit _parseUnit(
 MethodDeclaration? _findEnemyCatalogGetMethod(CompilationUnit unit) {
   final enemyCatalogClass = unit.declarations
       .whereType<ClassDeclaration>()
-      .where((declaration) => declaration.name.lexeme == 'EnemyCatalog')
+      .where(
+        (declaration) => declaration.namePart.typeName.lexeme == 'EnemyCatalog',
+      )
       .firstOrNull;
   if (enemyCatalogClass == null) {
     return null;
   }
-  return enemyCatalogClass.members
+  return enemyCatalogClass.body.members
       .whereType<MethodDeclaration>()
       .where((method) => method.name.lexeme == 'get')
       .firstOrNull;
@@ -105,12 +107,15 @@ MethodDeclaration? _findEnemyCatalogGetMethod(CompilationUnit unit) {
 MethodDeclaration? _findProjectileCatalogGetMethod(CompilationUnit unit) {
   final projectileCatalogClass = unit.declarations
       .whereType<ClassDeclaration>()
-      .where((declaration) => declaration.name.lexeme == 'ProjectileCatalog')
+      .where(
+        (declaration) =>
+            declaration.namePart.typeName.lexeme == 'ProjectileCatalog',
+      )
       .firstOrNull;
   if (projectileCatalogClass == null) {
     return null;
   }
-  return projectileCatalogClass.members
+  return projectileCatalogClass.body.members
       .whereType<MethodDeclaration>()
       .where((method) => method.name.lexeme == 'get')
       .firstOrNull;
@@ -120,13 +125,14 @@ MethodDeclaration? _findProjectileRenderCatalogGetMethod(CompilationUnit unit) {
   final renderCatalogClass = unit.declarations
       .whereType<ClassDeclaration>()
       .where(
-        (declaration) => declaration.name.lexeme == 'ProjectileRenderCatalog',
+        (declaration) =>
+            declaration.namePart.typeName.lexeme == 'ProjectileRenderCatalog',
       )
       .firstOrNull;
   if (renderCatalogClass == null) {
     return null;
   }
-  return renderCatalogClass.members
+  return renderCatalogClass.body.members
       .whereType<MethodDeclaration>()
       .where((method) => method.name.lexeme == 'get')
       .firstOrNull;
@@ -186,12 +192,12 @@ Expression? _findReturnedExpression(List<Statement> statements) {
   return null;
 }
 
-NamedExpression? _namedArgument(NodeList<Expression> arguments, String name) {
+NamedArgument? _namedArgument(NodeList<Argument> arguments, String name) {
   for (final argument in arguments) {
-    if (argument is! NamedExpression) {
+    if (argument is! NamedArgument) {
       continue;
     }
-    if (argument.name.label.name == name) {
+    if (argument.name.lexeme == name) {
       return argument;
     }
   }
@@ -199,10 +205,10 @@ NamedExpression? _namedArgument(NodeList<Expression> arguments, String name) {
 }
 
 Expression? _namedArgumentExpression(
-  NodeList<Expression> arguments,
+  NodeList<Argument> arguments,
   String name,
 ) {
-  return _namedArgument(arguments, name)?.expression;
+  return _namedArgument(arguments, name)?.argumentExpression;
 }
 
 _ResolvedColliderAabbExpression? _resolveColliderAabbExpression(
@@ -237,7 +243,7 @@ _ResolvedColliderAabbExpression? _resolveColliderAabbExpression(
   return null;
 }
 
-bool _hasNonNullNamedArgument(NodeList<Expression> arguments, String name) {
+bool _hasNonNullNamedArgument(NodeList<Argument> arguments, String name) {
   final expression = _namedArgumentExpression(arguments, name);
   if (expression == null) {
     return false;
@@ -261,9 +267,9 @@ EntitySourceBinding? _scalarBindingFromNamedArg({
   required String sourcePath,
   required String source,
   required EntitySourceBindingKind kind,
-  required NamedExpression? namedArg,
+  required NamedArgument? namedArg,
 }) {
-  final expression = namedArg?.expression;
+  final expression = namedArg?.argumentExpression;
   if (expression == null) {
     return null;
   }
@@ -284,7 +290,7 @@ EntitySourceBinding? _scalarBindingFromNamedArg({
 EntityColliderScalarBinding? _colliderScalarBindingFromNamedArg({
   required String sourcePath,
   required String source,
-  required NamedExpression? namedArg,
+  required NamedArgument? namedArg,
   double sourceUnitsPerEditorUnit = 1.0,
 }) {
   final sourceBinding = _scalarBindingFromNamedArg(
@@ -303,7 +309,7 @@ EntityColliderScalarBinding? _colliderScalarBindingFromNamedArg({
 EntityColliderScalarBinding _requiredColliderScalarBinding({
   required String sourcePath,
   required String source,
-  required NamedExpression namedArg,
+  required NamedArgument namedArg,
   double sourceUnitsPerEditorUnit = 1.0,
 }) => _colliderScalarBindingFromNamedArg(
   sourcePath: sourcePath,
@@ -416,5 +422,5 @@ class _ResolvedColliderAabbExpression {
   });
 
   final Expression expression;
-  final NodeList<Expression> arguments;
+  final NodeList<Argument> arguments;
 }

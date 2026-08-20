@@ -23,7 +23,7 @@ permissions:
 
 env:
   REPLAY_VALIDATOR_IMAGE: replay-validator:ci
-  TRIVY_IMAGE: aquasec/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
+  TRIVY_IMAGE: aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
 
 jobs:
   validate:
@@ -31,11 +31,11 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@v1.8.0
         with:
-          sdk: "3.10.4"
+          sdk: "3.13.1"
 
       - name: Install dependencies
         working-directory: services/replay_validator

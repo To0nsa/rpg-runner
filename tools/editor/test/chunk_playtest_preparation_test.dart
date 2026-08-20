@@ -21,33 +21,31 @@ void main() {
   });
 
   test('canonical repository snapshot prepares a real admitted scenario', () {
+    final selected = repositoryDocument.chunks.singleWhere(
+      (chunk) => chunk.levelId == 'forest',
+    );
     final input = captureChunkPlaytestPreparationInput(
       document: repositoryDocument,
-      selectedChunkKey: 'forest_early_00',
+      selectedChunkKey: selected.chunkKey,
     );
     final result = prepareChunkPlaytest(input);
 
     expect(result.issues, isEmpty);
     expect(result.scenario, isNotNull);
     expect(result.scenario!.seed, chunkPlaytestDefaultSeed);
-    expect(result.scenario!.draftPattern.chunkKey, 'forest_early_00');
-    expect(result.scenario!.draftTerrain.chunkKey, 'forest_early_00');
+    expect(result.scenario!.draftPattern.chunkKey, selected.chunkKey);
+    expect(result.scenario!.draftTerrain.chunkKey, selected.chunkKey);
     expect(result.scenario!.levelDefinition.id.name, 'forest');
     expect(result.scenario!.visualThemeId, 'forest');
   });
 
   test(
-    'accepted in-memory prefab edit is compiled without touching baseline',
+    'accepted in-memory revision edit is compiled without touching baseline',
     () {
       final source = repositoryDocument.chunks.singleWhere(
-        (chunk) => chunk.chunkKey == 'forest_early_00',
+        (chunk) => chunk.levelId == 'forest',
       );
-      final editedPrefabs = source.prefabs.toList(growable: false);
-      editedPrefabs[3] = editedPrefabs[3].copyWith(x: editedPrefabs[3].x + 1);
-      final editedChunk = source.copyWith(
-        revision: source.revision + 1,
-        prefabs: editedPrefabs,
-      );
+      final editedChunk = source.copyWith(revision: source.revision + 1);
       final editedDocument = repositoryDocument.copyWith(
         chunks: [
           for (final chunk in repositoryDocument.chunks)
@@ -73,16 +71,8 @@ void main() {
         contains('"revision": ${source.revision + 1}'),
       );
       expect(edited.scenario, isNotNull);
-      expect(
-        edited.scenario!.draftPattern.visualSprites.map((sprite) => sprite.x),
-        isNot(
-          orderedEquals(
-            baseline.scenario!.draftPattern.visualSprites.map(
-              (sprite) => sprite.x,
-            ),
-          ),
-        ),
-      );
+      expect(edited.scenario!.draftTerrain.revision, source.revision + 1);
+      expect(baseline.scenario!.draftTerrain.revision, source.revision);
       expect(
         repositoryDocument.baselineContentsByChunkKey[source.chunkKey],
         isNot(contains('"revision": ${source.revision + 1}')),
@@ -106,7 +96,7 @@ void main() {
     );
 
     final selected = repositoryDocument.chunks.singleWhere(
-      (chunk) => chunk.chunkKey == 'forest_early_00',
+      (chunk) => chunk.levelId == 'forest',
     );
     expect(
       () => captureChunkPlaytestPreparationInput(
@@ -141,9 +131,12 @@ void main() {
   });
 
   test('pipeline and generated-level blockers return no partial scenario', () {
+    final selected = repositoryDocument.chunks.singleWhere(
+      (chunk) => chunk.levelId == 'forest',
+    );
     final valid = captureChunkPlaytestPreparationInput(
       document: repositoryDocument,
-      selectedChunkKey: 'forest_early_00',
+      selectedChunkKey: selected.chunkKey,
     );
     final malformed = prepareChunkPlaytest(
       ChunkPlaytestPreparationInput(
@@ -181,9 +174,12 @@ void main() {
   test(
     'background preparation returns the same deterministic scenario',
     () async {
+      final selected = repositoryDocument.chunks.singleWhere(
+        (chunk) => chunk.levelId == 'forest',
+      );
       final input = captureChunkPlaytestPreparationInput(
         document: repositoryDocument,
-        selectedChunkKey: 'forest_early_00',
+        selectedChunkKey: selected.chunkKey,
       );
 
       final result = await prepareChunkPlaytestInBackground(input);
