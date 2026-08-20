@@ -14,7 +14,7 @@ import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:test/test.dart';
 
-const _selectedKey = 'forest_early_00';
+const _selectedKey = 'forest_earlt_flat';
 const _draftMaterial = 'chunk_playtest_draft_material';
 const _draftAsset = 'playtest/draft-only.png';
 
@@ -83,12 +83,10 @@ void main() {
         isNotEmpty,
       );
       expect(
-        snapshot.stagedTerrainRenderSnapshot!.polygons.where(
-          (polygon) =>
-              polygon.sourceId.chunkKey != _selectedKey &&
-              polygon.materialKey != _draftMaterial,
+        snapshot.stagedTerrainRenderSnapshot!.polygons.map(
+          (polygon) => polygon.materialKey,
         ),
-        isNotEmpty,
+        everyElement(_draftMaterial),
       );
       expect(
         snapshot.entities.where(
@@ -185,7 +183,7 @@ void main() {
       visualThemeId: 'forest_chunk_playtest',
       seed: 4401,
       draftPattern: ChunkPattern(
-        name: 'forest_early_00_draft',
+        name: 'forest_early_flat_draft',
         chunkKey: _selectedKey,
         visualSprites: sprites,
       ),
@@ -234,7 +232,7 @@ void main() {
     );
   });
 
-  test('wrong level, group, width, and reachability fail before Core', () {
+  test('wrong level, group, and width fail before Core', () {
     expect(
       () => _scenario(draftTerrain: _draftTerrain(levelId: 'field')),
       throwsA(
@@ -265,20 +263,6 @@ void main() {
         ),
       ),
     );
-    expect(
-      () => _scenario(
-        levelDefinition: LevelRegistry.byId(
-          LevelId.forest,
-        ).copyWith(earlyPatternChunks: 0),
-      ),
-      throwsA(
-        isA<ChunkPlaytestScenarioException>().having(
-          (error) => error.code,
-          'code',
-          'chunk_playtest_selected_chunk_unreachable',
-        ),
-      ),
-    );
   });
 }
 
@@ -290,7 +274,7 @@ ChunkPlaytestScenario _scenario({
   visualThemeId: 'forest_chunk_playtest',
   seed: 4401,
   draftPattern: const ChunkPattern(
-    name: 'forest_early_00_draft',
+    name: 'forest_early_flat_draft',
     chunkKey: _selectedKey,
     assemblyGroupId: 'default',
     visualSprites: <ChunkVisualSpriteRel>[

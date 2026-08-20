@@ -2,11 +2,10 @@
 
 ## Current Player-Facing Baseline
 
-Field and Forest runs now render their authored polygon ground with the shared
-`grass_dirt` material. All eight production chunks keep a continuous 224px
-ground line. Forest's easy woodcamp also has a grass-and-soil obstacle collider
-under its wood-pile prop, creating the first raised production perch and a
-player-readable jump obstacle.
+Field and Forest runs render their authored polygon ground with the shared
+`grass_dirt` material. Forest currently contains only `forest_early_flat`: a
+continuous 224px ground line with no raised obstacle, Prefab placement, or
+enemy marker.
 
 The material has three visible roles:
 
@@ -55,8 +54,8 @@ Normal Field and Forest gameplay now uses one authored terrain set and one
 atomic streamed candidate. Solid and one-way polygons feed collision,
 support/navigation, placement, and rendering. `none` polygons feed only the
 render snapshot: they create no support, blocker, seam, or collision edge.
-Ground remains flat apart from the reviewed woodcamp obstacle; slopes,
-platforms, and visually dressed gaps can be introduced as ordinary content.
+Current Forest ground remains flat; slopes, platforms, and visually dressed
+gaps can be introduced as ordinary content.
 
 `none` is not a hazard type. A dark-pit material can communicate a fall, while
 the existing absence of support and level kill-plane rules determine the

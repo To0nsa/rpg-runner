@@ -58,7 +58,32 @@ void main() {
     var enemyCount = 0;
     var collectibleCount = 0;
     var restorationCount = 0;
+    const markerPattern = ChunkPattern(
+      name: 'forest_flat_marker_fixture',
+      chunkKey: 'forest_earlt_flat',
+      spawnMarkers: <SpawnMarker>[
+        SpawnMarker(
+          enemyId: EnemyId.grojib,
+          x: 160,
+          chancePercent: 100,
+          salt: 1,
+        ),
+        SpawnMarker(
+          enemyId: EnemyId.hashash,
+          x: 320,
+          chancePercent: 100,
+          salt: 2,
+        ),
+      ],
+    );
+    const markerSource = ChunkPatternListSource(
+      earlyPatterns: <ChunkPattern>[markerPattern],
+      easyPatterns: <ChunkPattern>[markerPattern],
+      normalPatterns: <ChunkPattern>[markerPattern],
+      hardPatterns: <ChunkPattern>[markerPattern],
+    );
     final level = LevelRegistry.byId(LevelId.forest).copyWith(
+      chunkPatternSource: markerSource,
       earlyPatternChunks: 0,
       easyPatternChunks: 100,
       normalPatternChunks: 0,
@@ -104,10 +129,10 @@ void main() {
     expect(restorationCount, greaterThan(0));
   });
 
-  test('normal construction admits every enemy terrain policy', () {
+  test('normal construction admits current streamed enemy policies', () {
     const pattern = ChunkPattern(
       name: 'all_enemy_policies',
-      chunkKey: 'forest_easy_woodcamp_00',
+      chunkKey: 'forest_earlt_flat',
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,
@@ -126,13 +151,6 @@ void main() {
           x: 360,
           chancePercent: 100,
           salt: 3,
-        ),
-        SpawnMarker(
-          enemyId: EnemyId.derf,
-          x: 432,
-          chancePercent: 100,
-          salt: 4,
-          placement: SpawnPlacementMode.obstacleTop,
         ),
       ],
     );
@@ -170,7 +188,11 @@ void main() {
         .entities
         .where((entity) => entity.kind == EntityKind.enemy)
         .toList(growable: false);
-    for (final enemyId in EnemyId.values) {
+    for (final enemyId in <EnemyId>[
+      EnemyId.grojib,
+      EnemyId.hashash,
+      EnemyId.unocoDemon,
+    ]) {
       expect(
         enemies.where((entity) => entity.enemyId == enemyId),
         isNotEmpty,
