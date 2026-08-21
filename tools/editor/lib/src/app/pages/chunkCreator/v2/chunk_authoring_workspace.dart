@@ -36,6 +36,7 @@ import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
+import 'chunk_actor_terrain_overlay_painter.dart';
 import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
@@ -122,11 +123,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool _showGrid = false;
   bool _showShapeEdges = false;
   bool _visualPreview = false;
+  bool _showActorTerrain = false;
+  ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
   bool _showMarkerPlacements = false;
   bool _terrainCreationSnapToGrid = false;
   bool _terrainEditSnapToGrid = false;
-  ChunkV2CollisionExpansion? _markerTerrainExpansion;
-  ChunkV2ActorTerrainProjection? _markerTerrainProjection;
+  ChunkV2CollisionExpansion? _actorTerrainExpansion;
+  ChunkV2ActorTerrainProjection? _actorTerrainProjection;
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
   ChunkV2FileData? _markerProjectionChunk;
   ChunkV2ActorTerrainProjection? _markerProjectionTerrain;
@@ -860,6 +863,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     },
             ),
             FilterChip(
+              key: const ValueKey<String>('chunk_actor_terrain_toggle'),
+              label: const Text('Actor terrain'),
+              selected: _showActorTerrain,
+              onSelected: _visualPreview
+                  ? null
+                  : (selected) {
+                      setState(() {
+                        _showActorTerrain = selected;
+                        if (selected) _refreshActorTerrainProjection();
+                      });
+                    },
+            ),
+            FilterChip(
               key: const ValueKey<String>('chunk_marker_placement_toggle'),
               label: const Text('Marker placement'),
               selected: _showMarkerPlacements,
@@ -872,6 +888,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           _refreshMarkerPlacementProjection();
                         }
                       });
+                    },
+            ),
+            DropdownButton<ChunkV2TerrainActor>(
+              key: const ValueKey<String>('chunk_actor_terrain_selector'),
+              value: _selectedTerrainActor,
+              items: ChunkV2TerrainActor.values
+                  .map(
+                    (actor) => DropdownMenuItem<ChunkV2TerrainActor>(
+                      value: actor,
+                      child: Text(_terrainActorLabel(actor)),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: _visualPreview || !_showActorTerrain
+                  ? null
+                  : (actor) {
+                      if (actor == null) return;
+                      setState(() => _selectedTerrainActor = actor);
                     },
             ),
             EditorZoomControls(
@@ -889,6 +923,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             ),
           ],
         ),
+        if (!_visualPreview && _showActorTerrain) ...<Widget>[
+          const SizedBox(height: 4),
+          _buildActorTerrainSummary(),
+        ],
         const SizedBox(height: 4),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1048,6 +1086,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               );
               final chunk = authoring.chunk;
               final expansion = _expansionFor(chunk.chunkKey)?.expansion;
+              final actorProjection = (!_visualPreview && _showActorTerrain)
+                  ? _actorTerrainProjection
+                  : null;
               final markerProjection =
                   (!_visualPreview &&
                       (_showMarkerPlacements ||
@@ -1230,6 +1271,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             transform: transform,
                           ),
                         ),
+                      if (actorProjection != null)
+                        CustomPaint(
+                          key: const ValueKey<String>(
+                            'chunk_actor_terrain_overlay',
+                          ),
+                          painter: ChunkActorTerrainOverlayPainter(
+                            projection: actorProjection,
+                            actor: _selectedTerrainActor,
+                            transform: transform,
+                          ),
+                        ),
                       if (markerProjection != null)
                         CustomPaint(
                           key: const ValueKey<String>(
@@ -1390,6 +1442,37 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
+  Widget _buildActorTerrainSummary() {
+    final projection = _actorTerrainProjection;
+    if (projection == null) {
+      return const Text(
+        'Actor terrain evidence is unavailable while accepted compiled '
+        'geometry is unavailable.',
+        key: ValueKey<String>('chunk_actor_terrain_unavailable'),
+        style: TextStyle(color: Color(0xFFFFD166)),
+      );
+    }
+    final text = switch (_selectedTerrainActor) {
+      ChunkV2TerrainActor.eloise =>
+        '${projection.groundedView(ChunkV2TerrainActor.eloise)!.eligibleSurfaces.length} '
+            'Éloïse-walkable surfaces · cyan edges are traversable',
+      ChunkV2TerrainActor.grojib || ChunkV2TerrainActor.hashash =>
+        '${projection.groundedView(_selectedTerrainActor)!.eligibleSurfaces.length} '
+            '${_terrainActorLabel(_selectedTerrainActor)}-walkable surfaces',
+      ChunkV2TerrainActor.unoco =>
+        '${projection.unocoSolidBlockerIds.length} solid blockers · '
+            '${projection.unocoLocalHoverCandidateIds.length} local-hover '
+            'surface candidates',
+      ChunkV2TerrainActor.derf =>
+        '${projection.derfPerches.where((item) => item.perchEligible).length} '
+            'perch-eligible surfaces · 32 px minimum horizontal support span',
+    };
+    return Text(
+      text,
+      key: const ValueKey<String>('chunk_actor_terrain_summary'),
+    );
+  }
+
   Widget _buildShapeCreationPanel(
     ChunkPolygonAuthoringController authoring, {
     required String creationMaterialValue,
@@ -1410,8 +1493,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         'chunk_polygon_creation_panel_toggle',
       ),
       title: 'Create terrain shape',
-      description:
-          'Choose collision and material first, then draw in the terrain scene.',
+      description: 'Choose collision and material first, then draw in the terrain scene.',
       collapsible: true,
       child: Column(
         key: const ValueKey<String>('chunk_polygon_creation_section'),
@@ -2460,8 +2542,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _markerGesture.cancel();
     _selectedChunkKey = chunkKey;
     _sceneCoordinator.bindOwner();
-    _markerTerrainExpansion = null;
-    _markerTerrainProjection = null;
+    _actorTerrainExpansion = null;
+    _actorTerrainProjection = null;
     _markerPlacementProjection = null;
     _markerProjectionChunk = null;
     _markerProjectionTerrain = null;
@@ -2478,6 +2560,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       editSnapToGrid: _terrainEditSnapToGrid,
     )..addListener(_handleAuthoringChanged);
     _authoringUiFingerprint = _buildAuthoringUiFingerprint(_authoring!);
+    if (_showActorTerrain || _showMarkerPlacements) {
+      _refreshActorTerrainProjection();
+    }
     if (_showMarkerPlacements) _refreshMarkerPlacementProjection();
   }
 
@@ -2511,6 +2596,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     setState(() {
       _sceneCoordinator.reconcileComposition(authoring.chunk);
       _sceneCoordinator.selectTerrain(authoring.state.selection);
+      if (_showActorTerrain || _showMarkerPlacements) {
+        _refreshActorTerrainProjection();
+      }
       if (_showMarkerPlacements ||
           _sceneCoordinator.sourceDomain == ChunkSceneDomain.markers) {
         _refreshMarkerPlacementProjection();
@@ -2552,22 +2640,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkV2CollisionExpansionResult? _expansionFor(String chunkKey) =>
       _sceneOrNull?.collisionExpansionByChunkKey[chunkKey];
 
-  void _refreshMarkerTerrainProjection() {
+  void _refreshActorTerrainProjection() {
     final chunkKey = _authoring?.chunkKey;
     final expansion = chunkKey == null
         ? null
         : _expansionFor(chunkKey)?.expansion;
-    if (identical(expansion, _markerTerrainExpansion)) return;
-    _markerTerrainExpansion = expansion;
-    _markerTerrainProjection = expansion == null
+    if (identical(expansion, _actorTerrainExpansion)) return;
+    _actorTerrainExpansion = expansion;
+    _actorTerrainProjection = expansion == null
         ? null
         : ChunkV2ActorTerrainProjection.build(expansion);
   }
 
   void _refreshMarkerPlacementProjection() {
-    _refreshMarkerTerrainProjection();
+    _refreshActorTerrainProjection();
     final authoring = _authoring;
-    final projection = _markerTerrainProjection;
+    final projection = _actorTerrainProjection;
     final scene = _sceneOrNull;
     if (authoring == null || projection == null || scene == null) {
       _markerPlacementProjection = null;
@@ -3295,4 +3383,12 @@ String _markerToolLabel(ChunkMarkerSceneTool tool) => switch (tool) {
   ChunkMarkerSceneTool.select => 'Select',
   ChunkMarkerSceneTool.place => 'Place',
   ChunkMarkerSceneTool.move => 'Move',
+};
+
+String _terrainActorLabel(ChunkV2TerrainActor actor) => switch (actor) {
+  ChunkV2TerrainActor.eloise => 'Éloïse',
+  ChunkV2TerrainActor.grojib => 'Grojib',
+  ChunkV2TerrainActor.hashash => 'Hashash',
+  ChunkV2TerrainActor.unoco => 'Unoco',
+  ChunkV2TerrainActor.derf => 'Derf',
 };

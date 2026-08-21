@@ -125,10 +125,12 @@ workflow without changing the other. Existing repository Chunk source was
 already whole-pixel; the transform compiler fixture was normalized to the
 nearest whole pixels. Prefab-local polygon authoring retains half-pixel support.
 
-The standalone Actor terrain inspection feature is retired from Chunk Creator.
-Its chip, actor selector, summary, and overlay painter are removed. The existing
-Core terrain-policy projection remains private to marker-placement evidence and
-is built only when that evidence is requested.
+Actor terrain inspection is available again in Chunk Creator after authoring
+feedback showed that the overlay is needed while shaping traversable terrain.
+Its default-off chip sits next to **Marker placement**, defaults the selector to
+Éloïse, and paints the existing Core terrain-policy projection without adding
+source or gameplay authority. Marker placement reuses the same cached
+projection.
 
 Core-compiled pink/yellow shape edges are hidden by default and can be enabled
 with a route-local **Shape edges** chip. A separate **Visual preview** mode

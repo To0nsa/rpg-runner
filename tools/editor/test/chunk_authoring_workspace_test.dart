@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_level_visual_source.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
@@ -14,6 +15,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_s
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
@@ -623,16 +625,43 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(
         find.byKey(const ValueKey<String>('chunk_actor_terrain_toggle')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_actor_terrain_selector')),
-        findsNothing,
+        findsOneWidget,
+      );
+      final globalControlsWrap = tester.widget<Wrap>(
+        find.byKey(const ValueKey<String>('chunk_scene_global_controls')),
+      );
+      final actorControlIndex = globalControlsWrap.children.indexWhere(
+        (child) =>
+            child.key == const ValueKey<String>('chunk_actor_terrain_toggle'),
+      );
+      expect(actorControlIndex, greaterThanOrEqualTo(0));
+      expect(
+        globalControlsWrap.children[actorControlIndex + 1].key,
+        const ValueKey<String>('chunk_marker_placement_toggle'),
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_actor_terrain_overlay')),
         findsNothing,
       );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_actor_terrain_toggle')),
+      );
+      await tester.pump();
+      final actorOverlay = find.byKey(
+        const ValueKey<String>('chunk_actor_terrain_overlay'),
+      );
+      expect(actorOverlay, findsOneWidget);
+      final actorPainter = tester.widget<CustomPaint>(actorOverlay).painter;
+      expect(actorPainter, isA<ChunkActorTerrainOverlayPainter>());
+      expect(
+        (actorPainter! as ChunkActorTerrainOverlayPainter).actor,
+        ChunkV2TerrainActor.eloise,
+      );
+      expect(find.textContaining('Éloïse-walkable surfaces'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_marker_placement_toggle')),
       );
@@ -2026,6 +2055,7 @@ void main() {
       'chunk_collision_expansion_summary',
       'chunk_polygon_source_fill_notice',
       'chunk_seam_summary',
+      'chunk_actor_terrain_summary',
       'chunk_marker_placement_summary',
     ]) {
       expect(find.byKey(ValueKey<String>(key)), findsNothing);
@@ -2232,9 +2262,8 @@ void main() {
       MaterialApp(
         theme: ThemeData.dark(),
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: const TextScaler.linear(1.3)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.3)),
           child: child!,
         ),
         home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),

@@ -24,7 +24,8 @@ Implemented authoring domains:
   cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
 - chunk authoring with whole-pixel direct terrain polygons, expanded placed-Prefab
   collision, active-level parallax and terrain-material scene preview,
-  marker-placement previews, scene-based composition, shared
+  Core-backed actor-traversability and marker-placement previews,
+  scene-based composition, shared
   pan/zoom/grid controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, explicit new/existing visual-theme assignment,
@@ -387,10 +388,14 @@ existing `1 px` and `0.5 px` choices.
 
 Core-compiled collision edges are hidden by default. The **Shape edges** chip
 shows their read-only overlay, with solid edges in pink and one-way edges in
-yellow. The default-off **Show grid** chip beside **Visual preview** displays a
+yellow. The default-off **Actor terrain** chip beside **Marker placement**
+highlights Core-eligible surfaces for the selected actor; it starts on Éloïse,
+where cyan edges answer whether the accepted terrain is traversable by her.
+The selector can expose the existing Grojib, Hashash, Unoco, and Derf evidence.
+The default-off **Show grid** chip beside **Visual preview** displays a
 tile-size grid clipped to the Chunk bounds on every domain tab. **Visual
 preview** goes further: it hides that grid, authoring polygons and
-handles, expanded collision, compiled edges, selection/marker previews, Chunk
+handles, expanded collision, compiled edges, actor/marker previews, Chunk
 bounds, and the viewport border. Only parallax, terrain-material rendering, and
 placed Prefab art remain. Preview canvas input is view-only, while pan and zoom
 remain available. These presentation controls do not change source, selection,

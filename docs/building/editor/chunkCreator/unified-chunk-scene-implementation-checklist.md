@@ -795,6 +795,17 @@ performance regression remains.
       dependency when marker-placement evidence is requested.
 - [x] Keep marker-placement evidence and authored marker behavior unchanged.
 
+## Phase 10 Follow-up — Restore Actor-Terrain Inspection
+
+- [x] Restore the default-off **Actor terrain** chip beside **Marker placement**.
+- [x] Restore the actor selector, Éloïse default, summary, and Core-evidence
+      overlay without adding source mutation or gameplay authority.
+- [x] Reuse one cached `ChunkV2ActorTerrainProjection` for actor inspection and
+      marker placement.
+- [x] Suppress the overlay and controls in **Visual preview** while preserving
+      the route-local selection.
+- [x] Restore route-level regression coverage and current README/TDD guidance.
+
 ## Phase 11 — Shape-Edge And Visual Preview Controls
 
 - [x] Add a default-off **Shape edges** chip to the persistent scene controls.

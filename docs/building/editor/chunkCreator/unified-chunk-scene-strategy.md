@@ -82,6 +82,7 @@ though the scene already renders:
 - expanded prefab collision
 - direct terrain polygon previews
 - Core-compiled edges
+- optional Core-backed actor-terrain eligibility
 - optional resolved marker-placement evidence
 
 The viewport is therefore already the natural shared chunk preview. What is

@@ -63,7 +63,7 @@ Final Phase 4 acceptance work remains tracked in
 | Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainMaterialPreviewCatalog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material selector used by both current-schema routes; material choices preview their fill/surface/foreground workspace assets, unknown retained values remain selectable, and owner controllers retain commit authority |
 | Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both current-schema routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both current polygon surfaces |
-| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both current polygon surfaces; the Chunk route layers Core edges and marker-placement diagnostics above it |
+| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both current polygon surfaces; the Chunk route layers Core edges, actor-terrain evidence, and marker-placement diagnostics above it |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler, exact visual-bounds tests, and normal current-schema Prefab commits/export |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target, normal current-schema store/plugin/UI, and model-contract tests |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks plus normal current-source load, transactional save, and exact reload |
@@ -81,9 +81,9 @@ Final Phase 4 acceptance work remains tracked in
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | explicit CLI `--write`, rollback/no-op evidence, and the completed nine-file source cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
 | Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2CompositionOperation` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; owner/revision/snapshot freshness, operation-scoped canonical targeting, ordering, typed polygon/metadata/composition/lifecycle commits, and transactional export |
-| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkSceneCoordinator` / `ChunkSceneSurface` / `ChunkPolygonAuthoringController` | persistent complete-v2 scene and four tab-filtered cards, typed domain routing, direct terrain/prefab/marker tools, mandatory whole-pixel terrain coordinates with optional tile-grid snap, bounds, keyboard, rejection, history, default-off tile-grid/compiled-edge overlays, and an editor-overlay-free visual preview; legacy/missing source selects no ground/gap workflow |
+| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkSceneCoordinator` / `ChunkSceneSurface` / `ChunkPolygonAuthoringController` | persistent complete-v2 scene and four tab-filtered cards, typed domain routing, direct terrain/prefab/marker tools, mandatory whole-pixel terrain coordinates with optional tile-grid snap, bounds, keyboard, rejection, history, default-off tile-grid/compiled-edge/actor-terrain overlays, and an editor-overlay-free visual preview; legacy/missing source selects no ground/gap workflow |
 | Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around persisted or local-preview terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
-| Chunk marker terrain input | editor `ChunkV2ActorTerrainProjection` | internal Core surface/graph and enemy-policy input for marker placement only; the Chunk scene exposes no standalone actor-terrain control, summary, or overlay |
+| Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | shared Core surface/graph and enemy-policy evidence for the default-off actor-terrain overlay and marker placement; Éloïse is the default inspection profile and no source mutation is possible |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
 | Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | live Prefab-v3/Chunk-v2 parsing, render/collision partitioning, Core compilation, placement lineage, and exact triangulation |
@@ -919,12 +919,19 @@ available. Entering or leaving it cannot change selection, source, history,
 pending diffs, or collision authority. The Chunk scene exposes no compiled-edge
 inspection mode.
 
-The Chunk scene exposes no standalone actor-terrain chip, actor selector,
-summary, or overlay. `ChunkV2ActorTerrainProjection` remains an internal marker
-placement dependency because Core placement policies require the version-coherent
-surface set, graphs, solid blockers, local-hover candidates, and Derf perch
-eligibility. The route builds and caches it only when marker evidence is
-requested; it is never painted or exposed as a separate inspection mode.
+The default-off **Actor terrain** chip sits next to **Marker placement**. It
+builds and caches `ChunkV2ActorTerrainProjection` from the accepted compiled
+expansion and paints only Core-owned evidence. Éloïse is selected initially;
+her cyan surface overlay is the exact traversal-profile eligibility answer for
+the current accepted terrain. The selector also exposes Grojib and Hashash
+surface/graph evidence, Unoco blocker and local-hover candidates, and Derf
+perch evidence. Its summary and overlay are read-only and disappear in
+**Visual preview** without changing the stored preference.
+
+Marker placement reuses the same version-coherent surface set, graphs, solid
+blockers, local-hover candidates, and Derf perch eligibility. The projection is
+built when either actor-terrain or marker evidence requires it, and never
+mutates source, history, revision, collision authority, or RNG state.
 
 The opt-in marker layer uses that internal terrain projection and constructs a
 `TerrainSpawnPlacementResolver` over its version-coherent Core geometry, edge
@@ -1615,7 +1622,8 @@ the Core compiler preview adapter. Both current routes install the painter and
 plugin/session wiring. The normal Prefab/Chunk source cutover is complete;
 Core normal-vector drawing remains pending. Core-compiled edges are hidden by
 default and may be shown independently of the clean Visual preview; the Chunk
-workspace has no compiled-edge selection or actor-terrain inspection mode.
+workspace has no compiled-edge selection mode. Actor-terrain inspection is a
+separate default-off Core evidence overlay.
 The default-off Chunk tile grid is a route-local `EditorViewportGridPainter`
 projection clipped to owner bounds. It remains visible across all four domain
 tabs and is suppressed with every other editor overlay in Visual preview; it
