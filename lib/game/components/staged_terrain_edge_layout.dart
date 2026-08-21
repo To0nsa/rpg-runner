@@ -16,6 +16,7 @@ final class StagedTerrainEdgeDecoration {
     required this.orientation,
     required this.drawStartCap,
     required this.drawEndCap,
+    required this.endJoinBackingDepth,
   });
 
   final TerrainEdge edge;
@@ -23,6 +24,9 @@ final class StagedTerrainEdgeDecoration {
   final TerrainMaterialEdgeOrientation orientation;
   final bool drawStartCap;
   final bool drawEndCap;
+
+  /// Radius of the fill-backed generic join owned by this edge's end.
+  final double? endJoinBackingDepth;
 }
 
 /// Maps Core edges to authored render profiles without changing geometry.
@@ -39,29 +43,35 @@ abstract final class StagedTerrainEdgeLayout {
       if (materialKey == null) continue;
       final material = TerrainMaterialRegistry.require(materialKey);
       final orientation = orientationFor(edge);
-      if (_profileFor(material, orientation) == null) continue;
+      final profile = _profileFor(material, orientation);
+      if (profile == null) continue;
       final caps = capsFor(material, orientation);
+      final startTreatment = _endpointTreatment(
+        edge: edge,
+        material: material,
+        profile: profile,
+        orientation: orientation,
+        caps: caps,
+        atStart: true,
+        edgesById: edgesById,
+      );
+      final endTreatment = _endpointTreatment(
+        edge: edge,
+        material: material,
+        profile: profile,
+        orientation: orientation,
+        caps: caps,
+        atStart: false,
+        edgesById: edgesById,
+      );
       decorations.add(
         StagedTerrainEdgeDecoration(
           edge: edge,
           materialKey: materialKey,
           orientation: orientation,
-          drawStartCap: _drawCap(
-            edge: edge,
-            material: material,
-            orientation: orientation,
-            caps: caps,
-            atStart: true,
-            edgesById: edgesById,
-          ),
-          drawEndCap: _drawCap(
-            edge: edge,
-            material: material,
-            orientation: orientation,
-            caps: caps,
-            atStart: false,
-            edgesById: edgesById,
-          ),
+          drawStartCap: startTreatment.drawCap,
+          drawEndCap: endTreatment.drawCap,
+          endJoinBackingDepth: endTreatment.fillBackingDepth,
         ),
       );
     }
@@ -99,19 +109,25 @@ TerrainMaterialEdgeProfileSpec? _profileFor(
   TerrainMaterialEdgeOrientation.underside => material.underside,
 };
 
-bool _drawCap({
+typedef _EndpointTreatment = ({bool drawCap, double? fillBackingDepth});
+
+_EndpointTreatment _endpointTreatment({
   required TerrainEdge edge,
   required TerrainMaterialSpec material,
+  required TerrainMaterialEdgeProfileSpec profile,
   required TerrainMaterialEdgeOrientation orientation,
   required (TerrainMaterialCapSpec?, TerrainMaterialCapSpec?) caps,
   required bool atStart,
   required Map<TerrainEdgeId, TerrainEdge> edgesById,
 }) {
   final cap = atStart ? caps.$1 : caps.$2;
-  if (cap == null) return false;
   final join = atStart ? edge.startJoin : edge.endJoin;
-  if (join == TerrainVertexJoin.exposed) return true;
-  if (join == TerrainVertexJoin.smooth) return false;
+  if (join == TerrainVertexJoin.exposed) {
+    return (drawCap: cap != null, fillBackingDepth: null);
+  }
+  if (join == TerrainVertexJoin.smooth) {
+    return (drawCap: false, fillBackingDepth: null);
+  }
 
   final adjacentId = atStart ? edge.previousId : edge.nextId;
   final adjacent = adjacentId == null ? null : edgesById[adjacentId];
@@ -121,14 +137,15 @@ bool _drawCap({
     );
   }
   if (adjacent.materialKey != edge.materialKey) {
-    return true;
+    return (drawCap: cap != null, fillBackingDepth: null);
   }
 
   final adjacentOrientation = StagedTerrainEdgeLayout.orientationFor(adjacent);
+  final adjacentProfile = _profileFor(material, adjacentOrientation);
   final adjacentCaps = _capsFor(material, adjacentOrientation);
   final incoming = atStart ? adjacent : edge;
   final outgoing = atStart ? edge : adjacent;
-  final owner = terrainMaterialConnectedCornerOwner(
+  final treatment = terrainMaterialConnectedCornerTreatment(
     incomingInwardNormalX: -incoming.outwardNormal.x,
     incomingInwardNormalY: -incoming.outwardNormal.y,
     outgoingTangentX: outgoing.tangent.x,
@@ -142,11 +159,35 @@ bool _drawCap({
         ? caps.$1 != null
         : adjacentCaps.$1 != null,
   );
-  return owner ==
-      (atStart
-          ? TerrainMaterialCornerOwner.outgoingStart
-          : TerrainMaterialCornerOwner.incomingEnd);
+  final selectedCap = atStart
+      ? TerrainMaterialConnectedCornerTreatment.outgoingStartCap
+      : TerrainMaterialConnectedCornerTreatment.incomingEndCap;
+  if (treatment == selectedCap) {
+    return (drawCap: cap != null, fillBackingDepth: null);
+  }
+  if (treatment != TerrainMaterialConnectedCornerTreatment.fillBacking) {
+    return (drawCap: false, fillBackingDepth: null);
+  }
+  final profileDepth = _profileDepth(profile, orientation);
+  final adjacentDepth = adjacentProfile == null
+      ? 0.0
+      : _profileDepth(adjacentProfile, adjacentOrientation);
+  return (
+    drawCap: false,
+    fillBackingDepth: profileDepth > adjacentDepth
+        ? profileDepth
+        : adjacentDepth,
+  );
 }
+
+double _profileDepth(
+  TerrainMaterialEdgeProfileSpec profile,
+  TerrainMaterialEdgeOrientation orientation,
+) => terrainMaterialEdgeTileHeight(
+  orientation: orientation,
+  sourceWidth: profile.base.region.width,
+  sourceHeight: profile.base.region.height,
+).toDouble();
 
 (TerrainMaterialCapSpec?, TerrainMaterialCapSpec?) _capsFor(
   TerrainMaterialSpec material,

@@ -1164,7 +1164,7 @@
     {
       "prefabKey": "anvil_00",
       "id": "anvil_00",
-      "revision": 3,
+      "revision": 5,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1180,19 +1180,59 @@
           "vertices": [
             {
               "x": -24,
-              "y": -19
+              "y": -20
             },
             {
-              "x": 17,
-              "y": -19
+              "x": 18,
+              "y": -20
             },
             {
-              "x": 17,
-              "y": -1
+              "x": 18,
+              "y": -16
+            },
+            {
+              "x": 7,
+              "y": -10
+            },
+            {
+              "x": 7,
+              "y": -6
+            },
+            {
+              "x": 12,
+              "y": -4
+            },
+            {
+              "x": 12,
+              "y": 0
+            },
+            {
+              "x": -13,
+              "y": 0
+            },
+            {
+              "x": -13,
+              "y": -3
+            },
+            {
+              "x": -7,
+              "y": -7
+            },
+            {
+              "x": -7,
+              "y": -9
+            },
+            {
+              "x": -16,
+              "y": -12
+            },
+            {
+              "x": -18,
+              "y": -12
             },
             {
               "x": -24,
-              "y": -1
+              "y": -15
             }
           ]
         }
@@ -1257,7 +1297,7 @@
     {
       "prefabKey": "barrel_01",
       "id": "barrel_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1266,7 +1306,78 @@
       },
       "anchorXPx": 17,
       "anchorYPx": 40,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -13,
+              "y": -23
+            },
+            {
+              "x": -12,
+              "y": -27
+            },
+            {
+              "x": -10,
+              "y": -33
+            },
+            {
+              "x": -8,
+              "y": -35
+            },
+            {
+              "x": 9,
+              "y": -35
+            },
+            {
+              "x": 11,
+              "y": -33
+            },
+            {
+              "x": 13,
+              "y": -27
+            },
+            {
+              "x": 14,
+              "y": -23
+            },
+            {
+              "x": 14,
+              "y": -9
+            },
+            {
+              "x": 13,
+              "y": -6
+            },
+            {
+              "x": 11,
+              "y": -2
+            },
+            {
+              "x": 9,
+              "y": 0
+            },
+            {
+              "x": -8,
+              "y": 0
+            },
+            {
+              "x": -10,
+              "y": -2
+            },
+            {
+              "x": -12,
+              "y": -6
+            },
+            {
+              "x": -13,
+              "y": -9
+            }
+          ]
+        }
+      ],
       "tags": [
         "barrel"
       ]
@@ -1274,7 +1385,7 @@
     {
       "prefabKey": "bench_00",
       "id": "bench_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1283,7 +1394,30 @@
       },
       "anchorXPx": 46,
       "anchorYPx": 49,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -41,
+              "y": -17
+            },
+            {
+              "x": 44,
+              "y": -17
+            },
+            {
+              "x": 44,
+              "y": -1
+            },
+            {
+              "x": -41,
+              "y": -1
+            }
+          ]
+        }
+      ],
       "tags": [
         "bench",
         "obstacle"
@@ -1292,7 +1426,7 @@
     {
       "prefabKey": "boolder_pile_00",
       "id": "boolder_pile_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1301,7 +1435,74 @@
       },
       "anchorXPx": 47,
       "anchorYPx": 49,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -42,
+              "y": -1
+            },
+            {
+              "x": -40,
+              "y": -10
+            },
+            {
+              "x": -25,
+              "y": -21
+            },
+            {
+              "x": -21,
+              "y": -28
+            },
+            {
+              "x": -7,
+              "y": -31
+            },
+            {
+              "x": 1,
+              "y": -41
+            },
+            {
+              "x": 16,
+              "y": -40
+            },
+            {
+              "x": 22,
+              "y": -36
+            },
+            {
+              "x": 27,
+              "y": -26
+            },
+            {
+              "x": 31,
+              "y": -26
+            },
+            {
+              "x": 34,
+              "y": -22
+            },
+            {
+              "x": 35,
+              "y": -19
+            },
+            {
+              "x": 41,
+              "y": -15
+            },
+            {
+              "x": 44,
+              "y": -9
+            },
+            {
+              "x": 45,
+              "y": -1
+            }
+          ]
+        }
+      ],
       "tags": [
         "boulder",
         "light",
@@ -1311,7 +1512,7 @@
     {
       "prefabKey": "boolder_pile_01",
       "id": "boolder_pile_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1320,7 +1521,62 @@
       },
       "anchorXPx": 54,
       "anchorYPx": 48,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -49,
+              "y": 1
+            },
+            {
+              "x": -47,
+              "y": -7
+            },
+            {
+              "x": -35,
+              "y": -14
+            },
+            {
+              "x": -26,
+              "y": -25
+            },
+            {
+              "x": -13,
+              "y": -28
+            },
+            {
+              "x": -4,
+              "y": -39
+            },
+            {
+              "x": 11,
+              "y": -38
+            },
+            {
+              "x": 17,
+              "y": -34
+            },
+            {
+              "x": 22,
+              "y": -24
+            },
+            {
+              "x": 26,
+              "y": -24
+            },
+            {
+              "x": 40,
+              "y": -8
+            },
+            {
+              "x": 40,
+              "y": 1
+            }
+          ]
+        }
+      ],
       "tags": [
         "boulder",
         "light",
@@ -1330,7 +1586,7 @@
     {
       "prefabKey": "boolder_pile_02",
       "id": "boolder_pile_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1339,7 +1595,70 @@
       },
       "anchorXPx": 49,
       "anchorYPx": 48,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -44,
+              "y": -4
+            },
+            {
+              "x": -41,
+              "y": -10
+            },
+            {
+              "x": -31,
+              "y": -16
+            },
+            {
+              "x": -21,
+              "y": -26
+            },
+            {
+              "x": -8,
+              "y": -30
+            },
+            {
+              "x": 0,
+              "y": -40
+            },
+            {
+              "x": 15,
+              "y": -39
+            },
+            {
+              "x": 21,
+              "y": -35
+            },
+            {
+              "x": 26,
+              "y": -25
+            },
+            {
+              "x": 31,
+              "y": -25
+            },
+            {
+              "x": 33,
+              "y": -22
+            },
+            {
+              "x": 44,
+              "y": -10
+            },
+            {
+              "x": 44,
+              "y": 0
+            },
+            {
+              "x": -44,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "boulder",
         "light",
@@ -1369,7 +1688,7 @@
     {
       "prefabKey": "brick_wall_00",
       "id": "brick_wall_00",
-      "revision": 2,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1378,7 +1697,66 @@
       },
       "anchorXPx": 82,
       "anchorYPx": 48,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -69,
+              "y": -7
+            },
+            {
+              "x": -58,
+              "y": -17
+            },
+            {
+              "x": -52,
+              "y": -33
+            },
+            {
+              "x": -26,
+              "y": -34
+            },
+            {
+              "x": -26,
+              "y": -41
+            },
+            {
+              "x": 33,
+              "y": -41
+            },
+            {
+              "x": 39,
+              "y": -37
+            },
+            {
+              "x": 50,
+              "y": -33
+            },
+            {
+              "x": 50,
+              "y": -25
+            },
+            {
+              "x": 57,
+              "y": -25
+            },
+            {
+              "x": 67,
+              "y": -14
+            },
+            {
+              "x": 67,
+              "y": -1
+            },
+            {
+              "x": -69,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "brick",
         "ruin",
@@ -1442,7 +1820,7 @@
     {
       "prefabKey": "cart_00",
       "id": "cart_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1451,7 +1829,50 @@
       },
       "anchorXPx": 48,
       "anchorYPx": 43,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -48,
+              "y": -20
+            },
+            {
+              "x": -46,
+              "y": -39
+            },
+            {
+              "x": 18,
+              "y": -39
+            },
+            {
+              "x": 22,
+              "y": -18
+            },
+            {
+              "x": 48,
+              "y": -18
+            },
+            {
+              "x": 48,
+              "y": -13
+            },
+            {
+              "x": 25,
+              "y": 0
+            },
+            {
+              "x": -32,
+              "y": 0
+            },
+            {
+              "x": -48,
+              "y": -16
+            }
+          ]
+        }
+      ],
       "tags": [
         "cart"
       ]
@@ -1549,7 +1970,7 @@
     {
       "prefabKey": "crate_00",
       "id": "crate_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1558,7 +1979,30 @@
       },
       "anchorXPx": 33,
       "anchorYPx": 51,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -22,
+              "y": -43
+            },
+            {
+              "x": 23,
+              "y": -43
+            },
+            {
+              "x": 23,
+              "y": 2
+            },
+            {
+              "x": -22,
+              "y": 2
+            }
+          ]
+        }
+      ],
       "tags": [
         "crate"
       ]
@@ -1566,7 +2010,7 @@
     {
       "prefabKey": "crate_01",
       "id": "crate_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1575,7 +2019,30 @@
       },
       "anchorXPx": 27,
       "anchorYPx": 42,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -18,
+              "y": -34
+            },
+            {
+              "x": 17,
+              "y": -34
+            },
+            {
+              "x": 17,
+              "y": 1
+            },
+            {
+              "x": -18,
+              "y": 1
+            }
+          ]
+        }
+      ],
       "tags": [
         "crate"
       ]
@@ -1583,7 +2050,7 @@
     {
       "prefabKey": "dark_dead_tree_00",
       "id": "dark_dead_tree_00",
-      "revision": 2,
+      "revision": 6,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1592,7 +2059,78 @@
       },
       "anchorXPx": 58,
       "anchorYPx": 140,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -30,
+              "y": -87
+            },
+            {
+              "x": 1,
+              "y": -87
+            },
+            {
+              "x": 30,
+              "y": -105
+            },
+            {
+              "x": 48,
+              "y": -105
+            },
+            {
+              "x": 47,
+              "y": -95
+            },
+            {
+              "x": 14,
+              "y": -82
+            },
+            {
+              "x": 7,
+              "y": -67
+            },
+            {
+              "x": 10,
+              "y": -58
+            },
+            {
+              "x": 32,
+              "y": -58
+            },
+            {
+              "x": 13,
+              "y": -46
+            },
+            {
+              "x": 10,
+              "y": -30
+            },
+            {
+              "x": 10,
+              "y": -23
+            },
+            {
+              "x": 15,
+              "y": 0
+            },
+            {
+              "x": -20,
+              "y": 0
+            },
+            {
+              "x": -10,
+              "y": -24
+            },
+            {
+              "x": -11,
+              "y": -63
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "tree"
@@ -1601,7 +2139,7 @@
     {
       "prefabKey": "dark_dead_tree_01",
       "id": "dark_dead_tree_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1610,7 +2148,30 @@
       },
       "anchorXPx": 62,
       "anchorYPx": 145,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -39,
+              "y": -32
+            },
+            {
+              "x": 37,
+              "y": -32
+            },
+            {
+              "x": 37,
+              "y": 0
+            },
+            {
+              "x": -39,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "tree"
@@ -1619,7 +2180,7 @@
     {
       "prefabKey": "dark_dead_tree_02",
       "id": "dark_dead_tree_02",
-      "revision": 2,
+      "revision": 15,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1628,7 +2189,46 @@
       },
       "anchorXPx": 118,
       "anchorYPx": 238,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -102,
+              "y": 0
+            },
+            {
+              "x": -65,
+              "y": -131
+            },
+            {
+              "x": 31,
+              "y": -123
+            },
+            {
+              "x": 44,
+              "y": -130
+            },
+            {
+              "x": 101,
+              "y": -130
+            },
+            {
+              "x": 99,
+              "y": -110
+            },
+            {
+              "x": 125,
+              "y": -110
+            },
+            {
+              "x": 81,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "tree"
@@ -1637,7 +2237,7 @@
     {
       "prefabKey": "dark_dead_tree_03",
       "id": "dark_dead_tree_03",
-      "revision": 2,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1646,7 +2246,70 @@
       },
       "anchorXPx": 78,
       "anchorYPx": 264,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -27,
+              "y": 0
+            },
+            {
+              "x": 4,
+              "y": -145
+            },
+            {
+              "x": -16,
+              "y": -169
+            },
+            {
+              "x": -25,
+              "y": -192
+            },
+            {
+              "x": 20,
+              "y": -185
+            },
+            {
+              "x": 52,
+              "y": -186
+            },
+            {
+              "x": 72,
+              "y": -210
+            },
+            {
+              "x": 69,
+              "y": -213
+            },
+            {
+              "x": 65,
+              "y": -218
+            },
+            {
+              "x": 93,
+              "y": -219
+            },
+            {
+              "x": 68,
+              "y": -192
+            },
+            {
+              "x": 52,
+              "y": -168
+            },
+            {
+              "x": 15,
+              "y": -156
+            },
+            {
+              "x": 27,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "tree"
@@ -1655,7 +2318,7 @@
     {
       "prefabKey": "dark_menhir_00",
       "id": "dark_menhir_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1664,7 +2327,42 @@
       },
       "anchorXPx": 28,
       "anchorYPx": 91,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -18,
+              "y": -65
+            },
+            {
+              "x": -8,
+              "y": -85
+            },
+            {
+              "x": 6,
+              "y": -85
+            },
+            {
+              "x": 21,
+              "y": -65
+            },
+            {
+              "x": 24,
+              "y": -18
+            },
+            {
+              "x": 14,
+              "y": 0
+            },
+            {
+              "x": -18,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "menhir",
@@ -1674,7 +2372,7 @@
     {
       "prefabKey": "dark_menhir_01",
       "id": "dark_menhir_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1683,7 +2381,42 @@
       },
       "anchorXPx": 24,
       "anchorYPx": 81,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -15,
+              "y": -68
+            },
+            {
+              "x": -11,
+              "y": -76
+            },
+            {
+              "x": -4,
+              "y": -76
+            },
+            {
+              "x": 2,
+              "y": -65
+            },
+            {
+              "x": 16,
+              "y": -52
+            },
+            {
+              "x": 16,
+              "y": 0
+            },
+            {
+              "x": -15,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "menhir",
@@ -1693,7 +2426,7 @@
     {
       "prefabKey": "dark_menhir_02",
       "id": "dark_menhir_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1702,7 +2435,42 @@
       },
       "anchorXPx": 19,
       "anchorYPx": 62,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -15,
+              "y": -32
+            },
+            {
+              "x": -7,
+              "y": -41
+            },
+            {
+              "x": 3,
+              "y": -59
+            },
+            {
+              "x": 10,
+              "y": -59
+            },
+            {
+              "x": 17,
+              "y": -32
+            },
+            {
+              "x": 17,
+              "y": 0
+            },
+            {
+              "x": -15,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "menhir",
@@ -1712,7 +2480,7 @@
     {
       "prefabKey": "dark_menhir_03",
       "id": "dark_menhir_03",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1721,7 +2489,58 @@
       },
       "anchorXPx": 24,
       "anchorYPx": 43,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -20,
+              "y": -23
+            },
+            {
+              "x": -17,
+              "y": -34
+            },
+            {
+              "x": -11,
+              "y": -39
+            },
+            {
+              "x": -3,
+              "y": -39
+            },
+            {
+              "x": 4,
+              "y": -35
+            },
+            {
+              "x": 12,
+              "y": -30
+            },
+            {
+              "x": 19,
+              "y": -22
+            },
+            {
+              "x": 19,
+              "y": -11
+            },
+            {
+              "x": 16,
+              "y": 0
+            },
+            {
+              "x": -16,
+              "y": 0
+            },
+            {
+              "x": -20,
+              "y": -7
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "menhir",
@@ -1731,7 +2550,7 @@
     {
       "prefabKey": "dark_menhir_04",
       "id": "dark_menhir_04",
-      "revision": 2,
+      "revision": 10,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1740,7 +2559,62 @@
       },
       "anchorXPx": 29,
       "anchorYPx": 43,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -21,
+              "y": -22
+            },
+            {
+              "x": -19,
+              "y": -29
+            },
+            {
+              "x": -18,
+              "y": -34
+            },
+            {
+              "x": 0,
+              "y": -34
+            },
+            {
+              "x": 4,
+              "y": -38
+            },
+            {
+              "x": 20,
+              "y": -38
+            },
+            {
+              "x": 27,
+              "y": -34
+            },
+            {
+              "x": 25,
+              "y": -19
+            },
+            {
+              "x": 21,
+              "y": -16
+            },
+            {
+              "x": 21,
+              "y": -6
+            },
+            {
+              "x": 24,
+              "y": 0
+            },
+            {
+              "x": -21,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "menhir",
@@ -1750,7 +2624,7 @@
     {
       "prefabKey": "dark_rock_00",
       "id": "dark_rock_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1759,7 +2633,58 @@
       },
       "anchorXPx": 66,
       "anchorYPx": 107,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -59,
+              "y": 0
+            },
+            {
+              "x": -38,
+              "y": -32
+            },
+            {
+              "x": -32,
+              "y": -60
+            },
+            {
+              "x": -34,
+              "y": -73
+            },
+            {
+              "x": -28,
+              "y": -92
+            },
+            {
+              "x": -8,
+              "y": -100
+            },
+            {
+              "x": 22,
+              "y": -100
+            },
+            {
+              "x": 34,
+              "y": -92
+            },
+            {
+              "x": 40,
+              "y": -61
+            },
+            {
+              "x": 39,
+              "y": -40
+            },
+            {
+              "x": 55,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -1768,7 +2693,7 @@
     {
       "prefabKey": "dark_rock_01",
       "id": "dark_rock_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1777,7 +2702,66 @@
       },
       "anchorXPx": 68,
       "anchorYPx": 133,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -64,
+              "y": 0
+            },
+            {
+              "x": -48,
+              "y": -18
+            },
+            {
+              "x": -44,
+              "y": -56
+            },
+            {
+              "x": -41,
+              "y": -72
+            },
+            {
+              "x": -44,
+              "y": -108
+            },
+            {
+              "x": -6,
+              "y": -129
+            },
+            {
+              "x": 42,
+              "y": -129
+            },
+            {
+              "x": 50,
+              "y": -108
+            },
+            {
+              "x": 50,
+              "y": -93
+            },
+            {
+              "x": 54,
+              "y": -82
+            },
+            {
+              "x": 56,
+              "y": -57
+            },
+            {
+              "x": 57,
+              "y": -18
+            },
+            {
+              "x": 62,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -1786,7 +2770,7 @@
     {
       "prefabKey": "dark_rock_02",
       "id": "dark_rock_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1795,7 +2779,62 @@
       },
       "anchorXPx": 122,
       "anchorYPx": 138,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -115,
+              "y": -1
+            },
+            {
+              "x": -99,
+              "y": -25
+            },
+            {
+              "x": -90,
+              "y": -51
+            },
+            {
+              "x": -85,
+              "y": -94
+            },
+            {
+              "x": -65,
+              "y": -100
+            },
+            {
+              "x": 8,
+              "y": -101
+            },
+            {
+              "x": 40,
+              "y": -123
+            },
+            {
+              "x": 80,
+              "y": -123
+            },
+            {
+              "x": 84,
+              "y": -94
+            },
+            {
+              "x": 91,
+              "y": -64
+            },
+            {
+              "x": 94,
+              "y": 0
+            },
+            {
+              "x": -85,
+              "y": -1
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -1804,7 +2843,7 @@
     {
       "prefabKey": "dummy_00",
       "id": "dummy_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1813,7 +2852,78 @@
       },
       "anchorXPx": 28,
       "anchorYPx": 73,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -22,
+              "y": -43
+            },
+            {
+              "x": -11,
+              "y": -43
+            },
+            {
+              "x": -5,
+              "y": -44
+            },
+            {
+              "x": -7,
+              "y": -63
+            },
+            {
+              "x": 8,
+              "y": -63
+            },
+            {
+              "x": 6,
+              "y": -45
+            },
+            {
+              "x": 13,
+              "y": -43
+            },
+            {
+              "x": 22,
+              "y": -43
+            },
+            {
+              "x": 22,
+              "y": -40
+            },
+            {
+              "x": 8,
+              "y": -40
+            },
+            {
+              "x": 8,
+              "y": -15
+            },
+            {
+              "x": 2,
+              "y": 0
+            },
+            {
+              "x": -1,
+              "y": 0
+            },
+            {
+              "x": -7,
+              "y": -15
+            },
+            {
+              "x": -7,
+              "y": -40
+            },
+            {
+              "x": -22,
+              "y": -40
+            }
+          ]
+        }
+      ],
       "tags": [
         "dummy",
         "training"
@@ -1822,7 +2932,7 @@
     {
       "prefabKey": "fire_vasque_00",
       "id": "fire_vasque_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1831,7 +2941,30 @@
       },
       "anchorXPx": 27,
       "anchorYPx": 38,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -18,
+              "y": -29
+            },
+            {
+              "x": 19,
+              "y": -29
+            },
+            {
+              "x": 13,
+              "y": 0
+            },
+            {
+              "x": -11,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "feu",
         "vasque"
@@ -1857,7 +2990,7 @@
     {
       "prefabKey": "foin_00",
       "id": "foin_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1866,7 +2999,42 @@
       },
       "anchorXPx": 39,
       "anchorYPx": 40,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -29,
+              "y": 0
+            },
+            {
+              "x": -19,
+              "y": -20
+            },
+            {
+              "x": -12,
+              "y": -28
+            },
+            {
+              "x": 11,
+              "y": -28
+            },
+            {
+              "x": 14,
+              "y": -24
+            },
+            {
+              "x": 20,
+              "y": -18
+            },
+            {
+              "x": 30,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "foin"
       ]
@@ -1874,7 +3042,7 @@
     {
       "prefabKey": "foin_square_00",
       "id": "foin_square_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1883,7 +3051,30 @@
       },
       "anchorXPx": 25,
       "anchorYPx": 34,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -17,
+              "y": -25
+            },
+            {
+              "x": 18,
+              "y": -25
+            },
+            {
+              "x": 18,
+              "y": 0
+            },
+            {
+              "x": -17,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "foin"
       ]
@@ -2200,7 +3391,7 @@
     {
       "prefabKey": "rock_dark_00",
       "id": "rock_dark_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2209,7 +3400,58 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 79,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -25,
+              "y": -10
+            },
+            {
+              "x": -10,
+              "y": -66
+            },
+            {
+              "x": -5,
+              "y": -74
+            },
+            {
+              "x": 5,
+              "y": -74
+            },
+            {
+              "x": 9,
+              "y": -66
+            },
+            {
+              "x": 16,
+              "y": -51
+            },
+            {
+              "x": 21,
+              "y": -34
+            },
+            {
+              "x": 25,
+              "y": -5
+            },
+            {
+              "x": 20,
+              "y": 0
+            },
+            {
+              "x": -10,
+              "y": 0
+            },
+            {
+              "x": -21,
+              "y": -2
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2218,7 +3460,7 @@
     {
       "prefabKey": "rock_dark_01",
       "id": "rock_dark_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2227,7 +3469,62 @@
       },
       "anchorXPx": 16,
       "anchorYPx": 30,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -11,
+              "y": -15
+            },
+            {
+              "x": -8,
+              "y": -21
+            },
+            {
+              "x": -3,
+              "y": -23
+            },
+            {
+              "x": 0,
+              "y": -26
+            },
+            {
+              "x": 5,
+              "y": -26
+            },
+            {
+              "x": 7,
+              "y": -21
+            },
+            {
+              "x": 9,
+              "y": -19
+            },
+            {
+              "x": 11,
+              "y": -10
+            },
+            {
+              "x": 13,
+              "y": -8
+            },
+            {
+              "x": 13,
+              "y": 0
+            },
+            {
+              "x": -8,
+              "y": 0
+            },
+            {
+              "x": -11,
+              "y": -3
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2236,7 +3533,7 @@
     {
       "prefabKey": "rock_dark_02",
       "id": "rock_dark_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2245,7 +3542,54 @@
       },
       "anchorXPx": 31,
       "anchorYPx": 49,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -28,
+              "y": -23
+            },
+            {
+              "x": -26,
+              "y": -35
+            },
+            {
+              "x": 17,
+              "y": -43
+            },
+            {
+              "x": 19,
+              "y": -30
+            },
+            {
+              "x": 26,
+              "y": -30
+            },
+            {
+              "x": 30,
+              "y": -24
+            },
+            {
+              "x": 32,
+              "y": -13
+            },
+            {
+              "x": 30,
+              "y": -1
+            },
+            {
+              "x": -24,
+              "y": -1
+            },
+            {
+              "x": -28,
+              "y": -9
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2254,7 +3598,7 @@
     {
       "prefabKey": "rock_dark_03",
       "id": "rock_dark_03",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2263,7 +3607,58 @@
       },
       "anchorXPx": 15,
       "anchorYPx": 31,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -13,
+              "y": -6
+            },
+            {
+              "x": -11,
+              "y": -8
+            },
+            {
+              "x": -5,
+              "y": -15
+            },
+            {
+              "x": 6,
+              "y": -26
+            },
+            {
+              "x": 10,
+              "y": -27
+            },
+            {
+              "x": 13,
+              "y": -19
+            },
+            {
+              "x": 14,
+              "y": -10
+            },
+            {
+              "x": 14,
+              "y": -7
+            },
+            {
+              "x": 13,
+              "y": 0
+            },
+            {
+              "x": -11,
+              "y": 0
+            },
+            {
+              "x": -13,
+              "y": -3
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2272,7 +3667,7 @@
     {
       "prefabKey": "rock_dark_04",
       "id": "rock_dark_04",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2281,7 +3676,38 @@
       },
       "anchorXPx": 9,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -7,
+              "y": -8
+            },
+            {
+              "x": -5,
+              "y": -13
+            },
+            {
+              "x": -1,
+              "y": -19
+            },
+            {
+              "x": 5,
+              "y": -19
+            },
+            {
+              "x": 5,
+              "y": 0
+            },
+            {
+              "x": -6,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2290,7 +3716,7 @@
     {
       "prefabKey": "rock_dark_05",
       "id": "rock_dark_05",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2299,7 +3725,46 @@
       },
       "anchorXPx": 25,
       "anchorYPx": 46,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -18,
+              "y": -16
+            },
+            {
+              "x": -14,
+              "y": -30
+            },
+            {
+              "x": -5,
+              "y": -42
+            },
+            {
+              "x": 4,
+              "y": -42
+            },
+            {
+              "x": 17,
+              "y": -30
+            },
+            {
+              "x": 19,
+              "y": -1
+            },
+            {
+              "x": -14,
+              "y": -1
+            },
+            {
+              "x": -18,
+              "y": -9
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2308,7 +3773,7 @@
     {
       "prefabKey": "rock_dark_06",
       "id": "rock_dark_06",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2317,7 +3782,66 @@
       },
       "anchorXPx": 16,
       "anchorYPx": 31,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -14,
+              "y": -16
+            },
+            {
+              "x": -10,
+              "y": -24
+            },
+            {
+              "x": -6,
+              "y": -28
+            },
+            {
+              "x": 4,
+              "y": -28
+            },
+            {
+              "x": 10,
+              "y": -24
+            },
+            {
+              "x": 14,
+              "y": -19
+            },
+            {
+              "x": 14,
+              "y": -10
+            },
+            {
+              "x": 12,
+              "y": -7
+            },
+            {
+              "x": 8,
+              "y": -3
+            },
+            {
+              "x": 3,
+              "y": 0
+            },
+            {
+              "x": -5,
+              "y": 0
+            },
+            {
+              "x": -6,
+              "y": -2
+            },
+            {
+              "x": -14,
+              "y": -8
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2326,7 +3850,7 @@
     {
       "prefabKey": "rock_dark_07",
       "id": "rock_dark_07",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2335,7 +3859,62 @@
       },
       "anchorXPx": 25,
       "anchorYPx": 40,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -23,
+              "y": -11
+            },
+            {
+              "x": -22,
+              "y": -20
+            },
+            {
+              "x": -21,
+              "y": -27
+            },
+            {
+              "x": -18,
+              "y": -32
+            },
+            {
+              "x": -11,
+              "y": -37
+            },
+            {
+              "x": 10,
+              "y": -37
+            },
+            {
+              "x": 17,
+              "y": -33
+            },
+            {
+              "x": 22,
+              "y": -26
+            },
+            {
+              "x": 22,
+              "y": -8
+            },
+            {
+              "x": 16,
+              "y": 0
+            },
+            {
+              "x": -15,
+              "y": 0
+            },
+            {
+              "x": -22,
+              "y": -6
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2344,7 +3923,7 @@
     {
       "prefabKey": "rock_dark_08",
       "id": "rock_dark_08",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2353,7 +3932,50 @@
       },
       "anchorXPx": 33,
       "anchorYPx": 30,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -27,
+              "y": -13
+            },
+            {
+              "x": -24,
+              "y": -16
+            },
+            {
+              "x": 3,
+              "y": -25
+            },
+            {
+              "x": 25,
+              "y": -25
+            },
+            {
+              "x": 28,
+              "y": -18
+            },
+            {
+              "x": 28,
+              "y": -6
+            },
+            {
+              "x": 22,
+              "y": -1
+            },
+            {
+              "x": -24,
+              "y": -1
+            },
+            {
+              "x": -27,
+              "y": -4
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2362,7 +3984,7 @@
     {
       "prefabKey": "rock_dark_09",
       "id": "rock_dark_09",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2371,7 +3993,54 @@
       },
       "anchorXPx": 13,
       "anchorYPx": 32,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -8,
+              "y": -11
+            },
+            {
+              "x": -7,
+              "y": -23
+            },
+            {
+              "x": -3,
+              "y": -25
+            },
+            {
+              "x": -2,
+              "y": -30
+            },
+            {
+              "x": 5,
+              "y": -30
+            },
+            {
+              "x": 8,
+              "y": -20
+            },
+            {
+              "x": 10,
+              "y": -15
+            },
+            {
+              "x": 11,
+              "y": -5
+            },
+            {
+              "x": 7,
+              "y": 0
+            },
+            {
+              "x": -8,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "rock"
@@ -2380,7 +4049,7 @@
     {
       "prefabKey": "rock_dark_moss_00",
       "id": "rock_dark_moss_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2389,7 +4058,58 @@
       },
       "anchorXPx": 31,
       "anchorYPx": 77,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -25,
+              "y": -14
+            },
+            {
+              "x": -22,
+              "y": -26
+            },
+            {
+              "x": -19,
+              "y": -37
+            },
+            {
+              "x": -11,
+              "y": -61
+            },
+            {
+              "x": -5,
+              "y": -73
+            },
+            {
+              "x": 7,
+              "y": -73
+            },
+            {
+              "x": 25,
+              "y": -32
+            },
+            {
+              "x": 27,
+              "y": -7
+            },
+            {
+              "x": 22,
+              "y": 0
+            },
+            {
+              "x": -19,
+              "y": 0
+            },
+            {
+              "x": -24,
+              "y": -7
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2399,7 +4119,7 @@
     {
       "prefabKey": "rock_dark_moss_01",
       "id": "rock_dark_moss_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2408,7 +4128,58 @@
       },
       "anchorXPx": 17,
       "anchorYPx": 28,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -12,
+              "y": -12
+            },
+            {
+              "x": -9,
+              "y": -20
+            },
+            {
+              "x": -5,
+              "y": -20
+            },
+            {
+              "x": -3,
+              "y": -22
+            },
+            {
+              "x": -1,
+              "y": -26
+            },
+            {
+              "x": 4,
+              "y": -26
+            },
+            {
+              "x": 8,
+              "y": -17
+            },
+            {
+              "x": 14,
+              "y": -5
+            },
+            {
+              "x": 14,
+              "y": 0
+            },
+            {
+              "x": -10,
+              "y": 0
+            },
+            {
+              "x": -12,
+              "y": -2
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2418,7 +4189,7 @@
     {
       "prefabKey": "rock_dark_moss_02",
       "id": "rock_dark_moss_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2427,7 +4198,50 @@
       },
       "anchorXPx": 30,
       "anchorYPx": 47,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -26,
+              "y": -7
+            },
+            {
+              "x": -25,
+              "y": -28
+            },
+            {
+              "x": -22,
+              "y": -36
+            },
+            {
+              "x": 18,
+              "y": -43
+            },
+            {
+              "x": 21,
+              "y": -31
+            },
+            {
+              "x": 28,
+              "y": -27
+            },
+            {
+              "x": 32,
+              "y": -22
+            },
+            {
+              "x": 31,
+              "y": 0
+            },
+            {
+              "x": -22,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2437,7 +4251,7 @@
     {
       "prefabKey": "rock_dark_moss_03",
       "id": "rock_dark_moss_03",
-      "revision": 2,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2446,7 +4260,42 @@
       },
       "anchorXPx": 16,
       "anchorYPx": 30,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -14,
+              "y": -6
+            },
+            {
+              "x": 5,
+              "y": -26
+            },
+            {
+              "x": 9,
+              "y": -26
+            },
+            {
+              "x": 13,
+              "y": -18
+            },
+            {
+              "x": 13,
+              "y": 0
+            },
+            {
+              "x": -10,
+              "y": 0
+            },
+            {
+              "x": -12,
+              "y": -2
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2456,7 +4305,7 @@
     {
       "prefabKey": "rock_dark_moss_04",
       "id": "rock_dark_moss_04",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2465,7 +4314,50 @@
       },
       "anchorXPx": 27,
       "anchorYPx": 45,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -20,
+              "y": -6
+            },
+            {
+              "x": -18,
+              "y": -21
+            },
+            {
+              "x": -12,
+              "y": -33
+            },
+            {
+              "x": -8,
+              "y": -39
+            },
+            {
+              "x": 6,
+              "y": -39
+            },
+            {
+              "x": 12,
+              "y": -33
+            },
+            {
+              "x": 17,
+              "y": -26
+            },
+            {
+              "x": 19,
+              "y": 0
+            },
+            {
+              "x": -15,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2475,7 +4367,7 @@
     {
       "prefabKey": "rock_dark_moss_05",
       "id": "rock_dark_moss_05",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2484,7 +4376,58 @@
       },
       "anchorXPx": 15,
       "anchorYPx": 33,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -14,
+              "y": -15
+            },
+            {
+              "x": -6,
+              "y": -27
+            },
+            {
+              "x": 4,
+              "y": -27
+            },
+            {
+              "x": 8,
+              "y": -24
+            },
+            {
+              "x": 13,
+              "y": -19
+            },
+            {
+              "x": 13,
+              "y": -6
+            },
+            {
+              "x": 9,
+              "y": -2
+            },
+            {
+              "x": 4,
+              "y": 0
+            },
+            {
+              "x": -5,
+              "y": 0
+            },
+            {
+              "x": -12,
+              "y": -5
+            },
+            {
+              "x": -14,
+              "y": -9
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2494,7 +4437,7 @@
     {
       "prefabKey": "rock_dark_moss_06",
       "id": "rock_dark_moss_06",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2503,7 +4446,58 @@
       },
       "anchorXPx": 25,
       "anchorYPx": 42,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -23,
+              "y": -17
+            },
+            {
+              "x": -21,
+              "y": -28
+            },
+            {
+              "x": -13,
+              "y": -38
+            },
+            {
+              "x": 10,
+              "y": -38
+            },
+            {
+              "x": 17,
+              "y": -34
+            },
+            {
+              "x": 21,
+              "y": -28
+            },
+            {
+              "x": 22,
+              "y": -10
+            },
+            {
+              "x": 18,
+              "y": -3
+            },
+            {
+              "x": 14,
+              "y": 0
+            },
+            {
+              "x": -14,
+              "y": 0
+            },
+            {
+              "x": -21,
+              "y": -6
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2513,7 +4507,7 @@
     {
       "prefabKey": "rock_dark_moss_07",
       "id": "rock_dark_moss_07",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2522,7 +4516,42 @@
       },
       "anchorXPx": 10,
       "anchorYPx": 22,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -8,
+              "y": -9
+            },
+            {
+              "x": -6,
+              "y": -13
+            },
+            {
+              "x": -2,
+              "y": -19
+            },
+            {
+              "x": 4,
+              "y": -19
+            },
+            {
+              "x": 4,
+              "y": 0
+            },
+            {
+              "x": -7,
+              "y": 0
+            },
+            {
+              "x": -8,
+              "y": -3
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2532,7 +4561,7 @@
     {
       "prefabKey": "rock_dark_moss_08",
       "id": "rock_dark_moss_08",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2541,7 +4570,50 @@
       },
       "anchorXPx": 33,
       "anchorYPx": 31,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -27,
+              "y": -12
+            },
+            {
+              "x": -25,
+              "y": -14
+            },
+            {
+              "x": 21,
+              "y": -27
+            },
+            {
+              "x": 27,
+              "y": -20
+            },
+            {
+              "x": 27,
+              "y": -9
+            },
+            {
+              "x": 26,
+              "y": -5
+            },
+            {
+              "x": 20,
+              "y": -2
+            },
+            {
+              "x": -24,
+              "y": -2
+            },
+            {
+              "x": -27,
+              "y": -5
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2551,7 +4623,7 @@
     {
       "prefabKey": "rock_dark_moss_09",
       "id": "rock_dark_moss_09",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2560,7 +4632,46 @@
       },
       "anchorXPx": 13,
       "anchorYPx": 31,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -9,
+              "y": -3
+            },
+            {
+              "x": -8,
+              "y": -19
+            },
+            {
+              "x": -2,
+              "y": -29
+            },
+            {
+              "x": 3,
+              "y": -29
+            },
+            {
+              "x": 7,
+              "y": -19
+            },
+            {
+              "x": 9,
+              "y": -4
+            },
+            {
+              "x": 7,
+              "y": 0
+            },
+            {
+              "x": -7,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark",
         "moss",
@@ -2570,7 +4681,7 @@
     {
       "prefabKey": "rock_moss_00",
       "id": "rock_moss_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2579,7 +4690,46 @@
       },
       "anchorXPx": 56,
       "anchorYPx": 71,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -41,
+              "y": 0
+            },
+            {
+              "x": -32,
+              "y": -13
+            },
+            {
+              "x": -26,
+              "y": -33
+            },
+            {
+              "x": -19,
+              "y": -48
+            },
+            {
+              "x": 26,
+              "y": -48
+            },
+            {
+              "x": 27,
+              "y": -24
+            },
+            {
+              "x": 33,
+              "y": -12
+            },
+            {
+              "x": 45,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "moss",
@@ -2590,7 +4740,7 @@
     {
       "prefabKey": "rock_moss_01",
       "id": "rock_moss_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2599,7 +4749,50 @@
       },
       "anchorXPx": 60,
       "anchorYPx": 73,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -43,
+              "y": 0
+            },
+            {
+              "x": -30,
+              "y": -14
+            },
+            {
+              "x": -24,
+              "y": -25
+            },
+            {
+              "x": -25,
+              "y": -43
+            },
+            {
+              "x": -22,
+              "y": -49
+            },
+            {
+              "x": 18,
+              "y": -49
+            },
+            {
+              "x": 27,
+              "y": -39
+            },
+            {
+              "x": 31,
+              "y": -15
+            },
+            {
+              "x": 42,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "moss",
@@ -2610,7 +4803,7 @@
     {
       "prefabKey": "rock_moss_02",
       "id": "rock_moss_02",
-      "revision": 3,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2619,7 +4812,58 @@
       },
       "anchorXPx": 109,
       "anchorYPx": 88,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -95,
+              "y": 0
+            },
+            {
+              "x": -85,
+              "y": -15
+            },
+            {
+              "x": -69,
+              "y": -31
+            },
+            {
+              "x": -61,
+              "y": -48
+            },
+            {
+              "x": -38,
+              "y": -43
+            },
+            {
+              "x": -3,
+              "y": -29
+            },
+            {
+              "x": 16,
+              "y": -31
+            },
+            {
+              "x": 24,
+              "y": -46
+            },
+            {
+              "x": 68,
+              "y": -46
+            },
+            {
+              "x": 69,
+              "y": -24
+            },
+            {
+              "x": 84,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "moss",
@@ -2630,7 +4874,7 @@
     {
       "prefabKey": "rock_moss_03",
       "id": "rock_moss_03",
-      "revision": 2,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2639,7 +4883,62 @@
       },
       "anchorXPx": 161,
       "anchorYPx": 124,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -127,
+              "y": 0
+            },
+            {
+              "x": -111,
+              "y": -22
+            },
+            {
+              "x": -78,
+              "y": -23
+            },
+            {
+              "x": -77,
+              "y": -60
+            },
+            {
+              "x": -47,
+              "y": -60
+            },
+            {
+              "x": -32,
+              "y": -50
+            },
+            {
+              "x": 2,
+              "y": -51
+            },
+            {
+              "x": 4,
+              "y": -29
+            },
+            {
+              "x": 28,
+              "y": -38
+            },
+            {
+              "x": 57,
+              "y": -25
+            },
+            {
+              "x": 96,
+              "y": -22
+            },
+            {
+              "x": 110,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "moss",
@@ -2650,7 +4949,7 @@
     {
       "prefabKey": "ruin_stone_00",
       "id": "ruin_stone_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2659,7 +4958,42 @@
       },
       "anchorXPx": 34,
       "anchorYPx": 137,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -10,
+              "y": -123
+            },
+            {
+              "x": -2,
+              "y": -123
+            },
+            {
+              "x": 2,
+              "y": -110
+            },
+            {
+              "x": 3,
+              "y": -44
+            },
+            {
+              "x": 7,
+              "y": -38
+            },
+            {
+              "x": 7,
+              "y": 0
+            },
+            {
+              "x": -10,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "ruin",
@@ -2669,7 +5003,7 @@
     {
       "prefabKey": "ruin_stone_01",
       "id": "ruin_stone_01",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2678,7 +5012,46 @@
       },
       "anchorXPx": 38,
       "anchorYPx": 74,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -9,
+              "y": -51
+            },
+            {
+              "x": 2,
+              "y": -51
+            },
+            {
+              "x": 7,
+              "y": -38
+            },
+            {
+              "x": 7,
+              "y": -30
+            },
+            {
+              "x": 5,
+              "y": -27
+            },
+            {
+              "x": 9,
+              "y": -20
+            },
+            {
+              "x": 9,
+              "y": 0
+            },
+            {
+              "x": -9,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "ruin",
@@ -2688,7 +5061,7 @@
     {
       "prefabKey": "ruin_stone_02",
       "id": "ruin_stone_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2697,7 +5070,54 @@
       },
       "anchorXPx": 73,
       "anchorYPx": 138,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -54,
+              "y": 0
+            },
+            {
+              "x": -50,
+              "y": -14
+            },
+            {
+              "x": -52,
+              "y": -92
+            },
+            {
+              "x": -43,
+              "y": -114
+            },
+            {
+              "x": 25,
+              "y": -114
+            },
+            {
+              "x": 38,
+              "y": -100
+            },
+            {
+              "x": 52,
+              "y": -92
+            },
+            {
+              "x": 59,
+              "y": -24
+            },
+            {
+              "x": 75,
+              "y": -11
+            },
+            {
+              "x": 110,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "ruin",
@@ -2707,7 +5127,7 @@
     {
       "prefabKey": "ruin_stone_03",
       "id": "ruin_stone_03",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2716,7 +5136,50 @@
       },
       "anchorXPx": 105,
       "anchorYPx": 137,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -88,
+              "y": 0
+            },
+            {
+              "x": -31,
+              "y": -20
+            },
+            {
+              "x": -2,
+              "y": -64
+            },
+            {
+              "x": -1,
+              "y": -88
+            },
+            {
+              "x": 22,
+              "y": -88
+            },
+            {
+              "x": 29,
+              "y": -71
+            },
+            {
+              "x": 33,
+              "y": -33
+            },
+            {
+              "x": 40,
+              "y": -13
+            },
+            {
+              "x": 87,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "ruin",
@@ -2726,7 +5189,7 @@
     {
       "prefabKey": "ruin_stone_04",
       "id": "ruin_stone_04",
-      "revision": 2,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2735,7 +5198,54 @@
       },
       "anchorXPx": 81,
       "anchorYPx": 73,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -52,
+              "y": 0
+            },
+            {
+              "x": -15,
+              "y": -11
+            },
+            {
+              "x": -10,
+              "y": -17
+            },
+            {
+              "x": -1,
+              "y": -18
+            },
+            {
+              "x": 10,
+              "y": -32
+            },
+            {
+              "x": 18,
+              "y": -32
+            },
+            {
+              "x": 14,
+              "y": -14
+            },
+            {
+              "x": 27,
+              "y": -14
+            },
+            {
+              "x": 22,
+              "y": -4
+            },
+            {
+              "x": 41,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "light",
         "ruin",
@@ -2745,7 +5255,7 @@
     {
       "prefabKey": "statue_00",
       "id": "statue_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2754,7 +5264,70 @@
       },
       "anchorXPx": 45,
       "anchorYPx": 127,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -22,
+              "y": 0
+            },
+            {
+              "x": -21,
+              "y": -21
+            },
+            {
+              "x": -9,
+              "y": -22
+            },
+            {
+              "x": -9,
+              "y": -23
+            },
+            {
+              "x": -11,
+              "y": -60
+            },
+            {
+              "x": -20,
+              "y": -65
+            },
+            {
+              "x": -6,
+              "y": -91
+            },
+            {
+              "x": -8,
+              "y": -108
+            },
+            {
+              "x": 2,
+              "y": -108
+            },
+            {
+              "x": 3,
+              "y": -106
+            },
+            {
+              "x": 17,
+              "y": -86
+            },
+            {
+              "x": 9,
+              "y": -23
+            },
+            {
+              "x": 23,
+              "y": -23
+            },
+            {
+              "x": 24,
+              "y": 0
+            }
+          ]
+        }
+      ],
       "tags": [
         "obstacle",
         "statue"

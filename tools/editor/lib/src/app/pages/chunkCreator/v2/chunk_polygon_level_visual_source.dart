@@ -278,7 +278,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       if (material == null || shape.vertices.length < 3) continue;
       final path = _sourcePath(shape.vertices);
       final edgeKinds = _edgeKinds(shape.vertices);
-      final cornerCaps = resolveTerrainMaterialEdgeCornerCaps(
+      final cornerLayout = resolveTerrainMaterialEdgeCornerLayout(
         shape: shape,
         material: material,
         edgeOrientations: edgeKinds,
@@ -299,8 +299,9 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             orientation: orientation,
             start: start,
             end: end,
-            startCap: cornerCaps[edgeIndex].start ? caps.start : null,
-            endCap: cornerCaps[edgeIndex].end ? caps.end : null,
+            startCap: cornerLayout[edgeIndex].startCap ? caps.start : null,
+            endCap: cornerLayout[edgeIndex].endCap ? caps.end : null,
+            endJoinBackingDepth: cornerLayout[edgeIndex].endJoinBackingDepth,
           ),
         );
       }

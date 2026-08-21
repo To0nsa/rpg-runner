@@ -15,10 +15,10 @@ void main() {
     );
   });
 
-  group('connected corner ownership', () {
-    test('selects the only available cap at a convex corner', () {
+  group('connected corner treatment', () {
+    test('keeps the four cardinal rectangle cap roles', () {
       expect(
-        terrainMaterialConnectedCornerOwner(
+        terrainMaterialConnectedCornerTreatment(
           incomingInwardNormalX: 0,
           incomingInwardNormalY: 1,
           outgoingTangentX: 0,
@@ -28,10 +28,10 @@ void main() {
           incomingEndCapAvailable: true,
           outgoingStartCapAvailable: false,
         ),
-        TerrainMaterialCornerOwner.incomingEnd,
+        TerrainMaterialConnectedCornerTreatment.incomingEndCap,
       );
       expect(
-        terrainMaterialConnectedCornerOwner(
+        terrainMaterialConnectedCornerTreatment(
           incomingInwardNormalX: 1,
           incomingInwardNormalY: 0,
           outgoingTangentX: 1,
@@ -41,42 +41,84 @@ void main() {
           incomingEndCapAvailable: false,
           outgoingStartCapAvailable: true,
         ),
-        TerrainMaterialCornerOwner.outgoingStart,
+        TerrainMaterialConnectedCornerTreatment.outgoingStartCap,
+      );
+      expect(
+        terrainMaterialConnectedCornerTreatment(
+          incomingInwardNormalX: -1,
+          incomingInwardNormalY: 0,
+          outgoingTangentX: -1,
+          outgoingTangentY: 0,
+          incomingOrientation: TerrainMaterialEdgeOrientation.rightWall,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.underside,
+          incomingEndCapAvailable: false,
+          outgoingStartCapAvailable: true,
+        ),
+        TerrainMaterialConnectedCornerTreatment.outgoingStartCap,
+      );
+      expect(
+        terrainMaterialConnectedCornerTreatment(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: -1,
+          outgoingTangentX: 0,
+          outgoingTangentY: -1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.underside,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.leftWall,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: false,
+        ),
+        TerrainMaterialConnectedCornerTreatment.incomingEndCap,
       );
     });
 
-    test('top-facing cap wins and equal-priority ties use incoming end', () {
+    test('uses fill backing for non-cardinal convex turns', () {
       expect(
-        terrainMaterialConnectedCornerOwner(
-          incomingInwardNormalX: 0,
-          incomingInwardNormalY: 1,
-          outgoingTangentX: 1,
-          outgoingTangentY: 1,
-          incomingOrientation: TerrainMaterialEdgeOrientation.underside,
-          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
-          incomingEndCapAvailable: true,
-          outgoingStartCapAvailable: true,
-        ),
-        TerrainMaterialCornerOwner.outgoingStart,
-      );
-      expect(
-        terrainMaterialConnectedCornerOwner(
-          incomingInwardNormalX: 0,
-          incomingInwardNormalY: 1,
-          outgoingTangentX: 1,
+        terrainMaterialConnectedCornerTreatment(
+          incomingInwardNormalX: 1,
+          incomingInwardNormalY: 5,
+          outgoingTangentX: 5,
           outgoingTangentY: 1,
           incomingOrientation: TerrainMaterialEdgeOrientation.top,
           outgoingOrientation: TerrainMaterialEdgeOrientation.top,
           incomingEndCapAvailable: true,
           outgoingStartCapAvailable: true,
         ),
-        TerrainMaterialCornerOwner.incomingEnd,
+        TerrainMaterialConnectedCornerTreatment.fillBacking,
+      );
+      expect(
+        terrainMaterialConnectedCornerTreatment(
+          incomingInwardNormalX: 1,
+          incomingInwardNormalY: 2,
+          outgoingTangentX: 0,
+          outgoingTangentY: 1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.rightWall,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: false,
+        ),
+        TerrainMaterialConnectedCornerTreatment.fillBacking,
+      );
+    });
+
+    test('missing canonical cap falls back to fill backing', () {
+      expect(
+        terrainMaterialConnectedCornerTreatment(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 1,
+          outgoingTangentX: 0,
+          outgoingTangentY: 1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.rightWall,
+          incomingEndCapAvailable: false,
+          outgoingStartCapAvailable: false,
+        ),
+        TerrainMaterialConnectedCornerTreatment.fillBacking,
       );
     });
 
     test('straight and concave joins do not receive outer corners', () {
       expect(
-        terrainMaterialConnectedCornerOwner(
+        terrainMaterialConnectedCornerTreatment(
           incomingInwardNormalX: 0,
           incomingInwardNormalY: 1,
           outgoingTangentX: 1,
@@ -86,10 +128,10 @@ void main() {
           incomingEndCapAvailable: true,
           outgoingStartCapAvailable: true,
         ),
-        isNull,
+        TerrainMaterialConnectedCornerTreatment.none,
       );
       expect(
-        terrainMaterialConnectedCornerOwner(
+        terrainMaterialConnectedCornerTreatment(
           incomingInwardNormalX: 0,
           incomingInwardNormalY: 1,
           outgoingTangentX: 1,
@@ -99,13 +141,13 @@ void main() {
           incomingEndCapAvailable: true,
           outgoingStartCapAvailable: true,
         ),
-        isNull,
+        TerrainMaterialConnectedCornerTreatment.none,
       );
     });
 
     test('invalid corner vectors fail closed', () {
       expect(
-        () => terrainMaterialConnectedCornerOwner(
+        () => terrainMaterialConnectedCornerTreatment(
           incomingInwardNormalX: 0,
           incomingInwardNormalY: 0,
           outgoingTangentX: 1,

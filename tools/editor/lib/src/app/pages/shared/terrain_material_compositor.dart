@@ -15,6 +15,7 @@ final class TerrainMaterialCompositorEdge {
     required this.end,
     this.startCap,
     this.endCap,
+    this.endJoinBackingDepth,
   });
 
   final TerrainMaterialEdgeProfile profile;
@@ -23,15 +24,18 @@ final class TerrainMaterialCompositorEdge {
   final Offset end;
   final TerrainMaterialCap? startCap;
   final TerrainMaterialCap? endCap;
+
+  /// Radius of a fill-backed generic convex join at [end].
+  final double? endJoinBackingDepth;
 }
 
-/// Composes a polygon as fill, ordered edge bands, and ordered corner caps.
+/// Composes a polygon as fill, ordered edge bands, generic joins, and caps.
 ///
 /// All terrain is first rendered into an isolated layer. Base edges and caps
 /// use source replacement, so transparent authored pixels remove lower terrain
 /// art without erasing the scene behind the terrain layer. Detail art overlays
-/// its base normally. Narrow repeat-seam corridors restore fill behind only
-/// transparent base pixels.
+/// its base normally. Narrow repeat-seam corridors and generic convex-join
+/// footprints restore fill behind only transparent base pixels.
 void paintTerrainMaterialComposition(
   Canvas canvas, {
   required Path ownerPath,
@@ -102,6 +106,18 @@ void paintTerrainMaterialComposition(
         clipPath: ownerPath,
       );
     }
+  }
+
+  for (final edge in orderedEdges) {
+    final depth = edge.endJoinBackingDepth;
+    if (depth == null || depth <= 0) continue;
+    canvas.save();
+    canvas.clipPath(ownerPath);
+    final joinPaint = fillImage == null
+        ? _fallbackSeamPaint(fallbackFillPaint)
+        : _repeatedImagePaint(fillImage, blendMode: BlendMode.dstOver);
+    canvas.drawCircle(edge.end, depth, joinPaint);
+    canvas.restore();
   }
 
   for (final edge in orderedEdges) {

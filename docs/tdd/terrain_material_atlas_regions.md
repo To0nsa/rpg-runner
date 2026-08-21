@@ -46,7 +46,7 @@ Material roles use regions as follows:
 | --- | --- | --- |
 | Fill | region | repeats in world X/Y and clips to terrain fill geometry |
 | Edge base/detail | world-facing region plus normalized `anchorY` | normalizes for its role, repeats along the edge tangent, and clips to the owning polygon |
-| Top or underside start/end cap | region plus `anchorX` and `anchorY` | draws once at an exposed endpoint or selected convex connected corner in a final pass and clips to the owning polygon |
+| Top or underside start/end cap | region plus `anchorX` and `anchorY` | draws once at an exposed endpoint or matching cardinal connected corner in a final pass and clips to the owning polygon |
 
 Edge source art is selected in its natural world-facing orientation: top art
 faces up, left/right wall art faces its named side, and underside art faces
@@ -76,11 +76,13 @@ render last. Slopes with an upward-facing outward normal count as top-facing,
 so the playable grass/surface silhouette remains visible at every corner.
 Terrain composition uses one isolated layer per render pass. Fill first covers
 the complete owner polygon. Ordered base edges then use source replacement,
-detail overlays its own base, and caps use source replacement in the final
-pass. Because replacement copies source alpha as well as color, transparent
-pixels clear lower terrain roles while the isolated layer preserves the scene
-behind terrain. Back-to-front order gives the visible priority cap, top band,
-wall/underside band, then fill without complementary path subtraction.
+detail overlays its own base, generic convex joins restore fill with
+destination-over, and caps use source replacement in the final pass. Because
+replacement copies source alpha as well as color, transparent pixels clear
+lower terrain roles while the isolated layer preserves the scene behind
+terrain. Back-to-front order gives the visible priority cap, top band,
+wall/underside band, generic join backing, then fill without complementary path
+subtraction.
 
 Repeating edge bases add a seam-only backing derived from the material fill.
 The shared world-phase math identifies internal repeat boundaries and excludes
@@ -93,10 +95,14 @@ boundary texels and raster cracks without backing the complete edge strip.
 Core join semantics drive non-repeating art. `exposed` endpoints retain their
 configured start/end caps. For a `connected` join, shared pure-Dart math takes
 the dot product of the incoming inward normal and outgoing tangent: positive is
-a convex turn eligible for a corner patch, while zero/negative straight or
-concave turns remain band-only. The resolver chooses exactly one available cap;
-top-facing art wins across different paint priorities and the incoming end wins
-ties. `smooth` joins never draw caps. The Chunk Creator applies the same rule to
+a convex turn, while zero/negative straight or concave turns remain band-only.
+Only the four exact clockwise cardinal transitions represented by the atlas
+caps use authored corner art: left wall to top, top to right wall, right wall
+to underside, and underside to left wall. Every other convex turn suppresses
+endpoint caps and restores the material fill with destination-over inside a
+polygon-clipped join footprint. This prevents a rectangular cap's transparent
+pixels from cutting holes through sloped or irregular polygons. `smooth` joins
+never draw caps or join backing. The Chunk Creator applies the same rule to
 closed source loops and treats only top-facing runs as active for one-way
 terrain.
 

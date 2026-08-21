@@ -5,7 +5,7 @@ import 'package:terrain_materials/terrain_materials.dart';
 
 void main() {
   test('solid rectangle assigns four corners without double painting', () {
-    final caps = resolveTerrainMaterialEdgeCornerCaps(
+    final layout = resolveTerrainMaterialEdgeCornerLayout(
       shape: _shape(
         mode: TerrainSourceCollisionMode.solid,
         vertices: const <TerrainSourceVertexDef>[
@@ -24,16 +24,16 @@ void main() {
       ],
     );
 
-    expect(caps, <TerrainMaterialEdgeCornerCaps>[
-      (start: true, end: true),
-      (start: false, end: false),
-      (start: true, end: true),
-      (start: false, end: false),
+    expect(layout, <TerrainMaterialEdgeCornerLayout>[
+      (startCap: true, endCap: true, endJoinBackingDepth: null),
+      (startCap: false, endCap: false, endJoinBackingDepth: null),
+      (startCap: true, endCap: true, endJoinBackingDepth: null),
+      (startCap: false, endCap: false, endJoinBackingDepth: null),
     ]);
   });
 
   test('one-way rectangle caps only the exposed top run', () {
-    final caps = resolveTerrainMaterialEdgeCornerCaps(
+    final layout = resolveTerrainMaterialEdgeCornerLayout(
       shape: _shape(
         mode: TerrainSourceCollisionMode.oneWay,
         vertices: const <TerrainSourceVertexDef>[
@@ -52,16 +52,16 @@ void main() {
       ],
     );
 
-    expect(caps, <TerrainMaterialEdgeCornerCaps>[
-      (start: true, end: true),
-      (start: false, end: false),
-      (start: false, end: false),
-      (start: false, end: false),
+    expect(layout, <TerrainMaterialEdgeCornerLayout>[
+      (startCap: true, endCap: true, endJoinBackingDepth: null),
+      (startCap: false, endCap: false, endJoinBackingDepth: null),
+      (startCap: false, endCap: false, endJoinBackingDepth: null),
+      (startCap: false, endCap: false, endJoinBackingDepth: null),
     ]);
   });
 
   test('concave indentation remains band-only at its inner vertex', () {
-    final caps = resolveTerrainMaterialEdgeCornerCaps(
+    final layout = resolveTerrainMaterialEdgeCornerLayout(
       shape: _shape(
         mode: TerrainSourceCollisionMode.solid,
         vertices: const <TerrainSourceVertexDef>[
@@ -82,8 +82,36 @@ void main() {
       ],
     );
 
-    expect(caps[2].end, isFalse);
-    expect(caps[3].start, isFalse);
+    expect(layout[2].endCap, isFalse);
+    expect(layout[2].endJoinBackingDepth, isNull);
+    expect(layout[3].startCap, isFalse);
+  });
+
+  test('convex top-to-top bend uses fill backing instead of a cap', () {
+    final layout = resolveTerrainMaterialEdgeCornerLayout(
+      shape: _shape(
+        mode: TerrainSourceCollisionMode.solid,
+        vertices: const <TerrainSourceVertexDef>[
+          TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 100),
+          TerrainSourceVertexDef(xHalfPixels: 80, yHalfPixels: 20),
+          TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 40),
+          TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 120),
+          TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 120),
+        ],
+      ),
+      material: _material,
+      edgeOrientations: const <TerrainMaterialEdgeOrientation>[
+        TerrainMaterialEdgeOrientation.top,
+        TerrainMaterialEdgeOrientation.top,
+        TerrainMaterialEdgeOrientation.rightWall,
+        TerrainMaterialEdgeOrientation.underside,
+        TerrainMaterialEdgeOrientation.leftWall,
+      ],
+    );
+
+    expect(layout[0].endCap, isFalse);
+    expect(layout[1].startCap, isFalse);
+    expect(layout[0].endJoinBackingDepth, 32);
   });
 }
 

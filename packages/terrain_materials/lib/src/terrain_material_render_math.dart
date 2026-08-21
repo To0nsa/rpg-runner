@@ -1,8 +1,18 @@
 /// World-facing role of one authored terrain edge region.
 enum TerrainMaterialEdgeOrientation { top, leftWall, rightWall, underside }
 
-/// Endpoint whose authored cap owns one convex connected terrain corner.
-enum TerrainMaterialCornerOwner { incomingEnd, outgoingStart }
+/// Visual treatment selected for one connected terrain corner.
+///
+/// Authored endpoint caps are safe only at their cardinal atlas roles. Other
+/// convex turns retain a local fill backing so transparent edge pixels cannot
+/// cut a hole through the terrain layer. Straight and concave joins use
+/// [none].
+enum TerrainMaterialConnectedCornerTreatment {
+  none,
+  incomingEndCap,
+  outgoingStartCap,
+  fillBacking,
+}
 
 /// World-space half-width of the fill backing at an internal repeat seam.
 ///
@@ -51,18 +61,20 @@ List<int> terrainMaterialEdgePaintOrder(
   ]);
 }
 
-/// Selects the single authored cap that covers a connected convex corner.
+/// Selects the visual treatment for a connected terrain corner.
 ///
 /// The incoming inward normal and outgoing tangent may use any positive scale,
 /// but must be finite and non-zero. A positive dot product means the boundary
 /// turns into the owning polygon and therefore forms a convex visual corner.
-/// Straight and concave joins return `null` because their clipped bands already
-/// meet without an outer-corner patch.
+/// Straight and concave joins return [TerrainMaterialConnectedCornerTreatment.none]
+/// because their clipped bands already meet without an outer-corner patch.
 ///
-/// When both endpoint caps exist, the top-facing edge wins so the playable
-/// surface remains readable. Equal-priority ties select the incoming end,
-/// guaranteeing one deterministic patch rather than two overlapping caps.
-TerrainMaterialCornerOwner? terrainMaterialConnectedCornerOwner({
+/// Endpoint art is selected only for the four exact clockwise cardinal role
+/// transitions represented by the authored rectangle caps. Every other convex
+/// turn uses [TerrainMaterialConnectedCornerTreatment.fillBacking], preventing
+/// a rotated rectangular cap from clearing arbitrary polygon interiors.
+TerrainMaterialConnectedCornerTreatment
+terrainMaterialConnectedCornerTreatment({
   required double incomingInwardNormalX,
   required double incomingInwardNormalY,
   required double outgoingTangentX,
@@ -86,22 +98,63 @@ TerrainMaterialCornerOwner? terrainMaterialConnectedCornerOwner({
   final interiorTurn =
       incomingInwardNormalX * outgoingTangentX +
       incomingInwardNormalY * outgoingTangentY;
-  if (interiorTurn <= 0 ||
-      (!incomingEndCapAvailable && !outgoingStartCapAvailable)) {
-    return null;
+  if (interiorTurn <= 0) {
+    return TerrainMaterialConnectedCornerTreatment.none;
   }
-  if (!incomingEndCapAvailable) {
-    return TerrainMaterialCornerOwner.outgoingStart;
+
+  final incomingTangentX = incomingInwardNormalY;
+  final incomingTangentY = -incomingInwardNormalX;
+  final canonicalOwner = switch ((incomingOrientation, outgoingOrientation)) {
+    (
+      TerrainMaterialEdgeOrientation.leftWall,
+      TerrainMaterialEdgeOrientation.top,
+    )
+        when _pointsUp(incomingTangentX, incomingTangentY) &&
+            _pointsRight(outgoingTangentX, outgoingTangentY) =>
+      TerrainMaterialConnectedCornerTreatment.outgoingStartCap,
+    (
+      TerrainMaterialEdgeOrientation.top,
+      TerrainMaterialEdgeOrientation.rightWall,
+    )
+        when _pointsRight(incomingTangentX, incomingTangentY) &&
+            _pointsDown(outgoingTangentX, outgoingTangentY) =>
+      TerrainMaterialConnectedCornerTreatment.incomingEndCap,
+    (
+      TerrainMaterialEdgeOrientation.rightWall,
+      TerrainMaterialEdgeOrientation.underside,
+    )
+        when _pointsDown(incomingTangentX, incomingTangentY) &&
+            _pointsLeft(outgoingTangentX, outgoingTangentY) =>
+      TerrainMaterialConnectedCornerTreatment.outgoingStartCap,
+    (
+      TerrainMaterialEdgeOrientation.underside,
+      TerrainMaterialEdgeOrientation.leftWall,
+    )
+        when _pointsLeft(incomingTangentX, incomingTangentY) &&
+            _pointsUp(outgoingTangentX, outgoingTangentY) =>
+      TerrainMaterialConnectedCornerTreatment.incomingEndCap,
+    _ => TerrainMaterialConnectedCornerTreatment.fillBacking,
+  };
+  if (canonicalOwner ==
+          TerrainMaterialConnectedCornerTreatment.incomingEndCap &&
+      incomingEndCapAvailable) {
+    return canonicalOwner;
   }
-  if (!outgoingStartCapAvailable) {
-    return TerrainMaterialCornerOwner.incomingEnd;
+  if (canonicalOwner ==
+          TerrainMaterialConnectedCornerTreatment.outgoingStartCap &&
+      outgoingStartCapAvailable) {
+    return canonicalOwner;
   }
-  if (incomingOrientation != TerrainMaterialEdgeOrientation.top &&
-      outgoingOrientation == TerrainMaterialEdgeOrientation.top) {
-    return TerrainMaterialCornerOwner.outgoingStart;
-  }
-  return TerrainMaterialCornerOwner.incomingEnd;
+  return TerrainMaterialConnectedCornerTreatment.fillBacking;
 }
+
+bool _pointsRight(double x, double y) => x > 0 && y == 0;
+
+bool _pointsDown(double x, double y) => x == 0 && y > 0;
+
+bool _pointsLeft(double x, double y) => x < 0 && y == 0;
+
+bool _pointsUp(double x, double y) => x == 0 && y < 0;
 
 /// Returns the exclusive destination footprint of one terrain cap.
 ///

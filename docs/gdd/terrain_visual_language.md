@@ -11,8 +11,8 @@ The material has three visible roles:
 
 - a repeating dirt fill inside the exact terrain polygon
 - a grass-and-soil surface strip following walkable upward-facing edges
-- start/end caps at compiler-exposed edge endpoints and exactly one authored
-  corner patch at each convex connected turn when that material supplies one
+- start/end caps at compiler-exposed edge endpoints and cardinal rectangle
+  corners, with material-fill joins at other convex turns
 
 The terrain art stays aligned with collision-source geometry and scrolls in
 world space, so seams do not appear to swim under the player. Actors and props
@@ -34,15 +34,17 @@ remain upright and retain their existing visual priority over the ground.
   regions omit that outward-facing row or column in source space, so device
   scaling and clip rasterization cannot reveal it. The visible grass and rock
   silhouette begins cleanly at the collision edge.
-- Exposed endpoints retain their authored caps. A convex connected turn uses
-  exactly one adjacent start/end cap as its corner patch; top-facing art wins
-  when both sides supply one. Concave turns remain band-only, and smooth
-  continuations never acquire a false cliff cue.
+- Exposed endpoints retain their authored caps. Exact cardinal rectangle
+  corners use their matching top or underside cap. Other convex turns use a
+  local material-fill backing rather than rotating rectangular endpoint art,
+  so slope bends cannot expose the sky through transparent cap pixels. Concave
+  turns remain band-only, and smooth continuations never acquire a false cliff
+  cue.
 - Every selected cap and semantic edge base replaces lower terrain art with
   both its color and alpha. Transparent cutouts reveal the scene rather than a
   lower terrain role. Detail remains an overlay within its own base profile.
-  Visible ownership resolves as corner, top-facing edge, wall/underside edge,
-  then fill.
+  Visible ownership resolves as cardinal corner, top-facing edge,
+  wall/underside edge, generic join backing, then fill.
 - Internal edge-tile joins receive a one-pixel material-fill backing on each
   side of the repeat boundary. This closes tiny atlas/raster seams without
   filling the rest of the transparent rocky silhouette or exposed endpoints.

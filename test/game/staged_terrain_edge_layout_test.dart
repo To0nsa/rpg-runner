@@ -140,18 +140,22 @@ void main() {
 
     expect(
       decorations.map(
-        (decoration) => (decoration.drawStartCap, decoration.drawEndCap),
+        (decoration) => (
+          decoration.drawStartCap,
+          decoration.drawEndCap,
+          decoration.endJoinBackingDepth,
+        ),
       ),
-      <(bool, bool)>[
-        (true, true),
-        (false, false),
-        (true, true),
-        (false, false),
+      <(bool, bool, double?)>[
+        (true, true, null),
+        (false, false, null),
+        (true, true, null),
+        (false, false, null),
       ],
     );
   });
 
-  test('same-orientation convex bend selects only the incoming end cap', () {
+  test('same-orientation convex bend uses fill backing instead of a cap', () {
     final firstId = _id(0);
     final secondId = _id(1);
     final snapshot = StagedTerrainRenderSnapshot(
@@ -177,8 +181,9 @@ void main() {
 
     final decorations = StagedTerrainEdgeLayout.build(snapshot);
 
-    expect(decorations.first.drawEndCap, isTrue);
+    expect(decorations.first.drawEndCap, isFalse);
     expect(decorations.last.drawStartCap, isFalse);
+    expect(decorations.first.endJoinBackingDepth, 31);
   });
 
   test('concave connected bend does not receive an outer cap', () {

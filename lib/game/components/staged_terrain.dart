@@ -173,8 +173,22 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         );
       }
     }
-    // Endpoint and convex-corner art is a foreground pass so adjacent bands
-    // cannot obscure the authored join selected by the shared resolver.
+    // Generic convex turns retain fill behind their local edge overlap. This
+    // runs after every band so no later source-replacement pass can reopen the
+    // join, and before authored rectangle caps establish their final shape.
+    for (final edge in _surfaceEdges) {
+      if (!edge.bounds.overlaps(visibleWorldRect) ||
+          edge.endJoinBackingDepth == null) {
+        continue;
+      }
+      _drawConnectedJoinBacking(
+        canvas,
+        edge: edge,
+        fillPaint: _materials[edge.materialKey]!.seamBackingPaint,
+      );
+    }
+    // Endpoint and cardinal-corner art is a foreground pass so adjacent bands
+    // cannot obscure the authored rectangle join selected by the resolver.
     for (final edge in _surfaceEdges) {
       if (!edge.bounds.overlaps(visibleWorldRect) ||
           (!edge.drawStartCap && !edge.drawEndCap)) {
@@ -316,6 +330,19 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     canvas.clipPath(edge.ownerMesh.clipPath);
     canvas.clipPath(edge.seamBackingPath);
     canvas.drawRect(edge.ownerMesh.bounds, fillPaint);
+    canvas.restore();
+  }
+
+  void _drawConnectedJoinBacking(
+    ui.Canvas canvas, {
+    required _CachedTerrainDecoratedEdge edge,
+    required ui.Paint fillPaint,
+  }) {
+    final depth = edge.endJoinBackingDepth;
+    if (depth == null || depth <= 0) return;
+    canvas.save();
+    canvas.clipPath(edge.ownerMesh.clipPath);
+    canvas.drawCircle(edge.end, depth, fillPaint);
     canvas.restore();
   }
 
@@ -689,8 +716,10 @@ final class _CachedTerrainDecoratedEdge {
     required this.drawStartCap,
     required this.drawEndCap,
     required this.start,
+    required this.end,
     required this.length,
     required this.angle,
+    required this.endJoinBackingDepth,
     required this.ownerMesh,
     required this.bounds,
   });
@@ -716,8 +745,10 @@ final class _CachedTerrainDecoratedEdge {
       drawStartCap: decoration.drawStartCap,
       drawEndCap: decoration.drawEndCap,
       start: start,
+      end: end,
       length: math.sqrt(dx * dx + dy * dy),
       angle: math.atan2(dy, dx),
+      endJoinBackingDepth: decoration.endJoinBackingDepth,
       ownerMesh: ownerMesh,
       bounds: ui.Rect.fromLTRB(
         math.min(start.dx, end.dx) - 160,
@@ -733,8 +764,10 @@ final class _CachedTerrainDecoratedEdge {
   final bool drawStartCap;
   final bool drawEndCap;
   final ui.Offset start;
+  final ui.Offset end;
   final double length;
   final double angle;
+  final double? endJoinBackingDepth;
   final _CachedTerrainMesh ownerMesh;
   final ui.Rect bounds;
   ui.Path? _seamBackingPath;

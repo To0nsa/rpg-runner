@@ -4,8 +4,12 @@ import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../terrain_authoring/terrain_source_models.dart';
 
-/// Start/end cap decisions for one authored source edge.
-typedef TerrainMaterialEdgeCornerCaps = ({bool start, bool end});
+/// Corner decoration selected for one authored source edge.
+typedef TerrainMaterialEdgeCornerLayout = ({
+  bool startCap,
+  bool endCap,
+  double? endJoinBackingDepth,
+});
 
 /// Cap pair authored for one world-facing edge orientation.
 typedef TerrainMaterialOrientationCaps = ({
@@ -30,13 +34,14 @@ TerrainMaterialOrientationCaps terrainMaterialCapsForOrientation(
   TerrainMaterialEdgeOrientation.rightWall => (start: null, end: null),
 };
 
-/// Resolves one non-overlapping cap/corner plan for a source polygon loop.
+/// Resolves one non-overlapping cap/backing plan for a source polygon loop.
 ///
 /// Solid and render-only loops treat every neighboring edge pair as connected.
 /// One-way loops treat only top-facing runs as active, so the ends of each run
-/// retain endpoint caps. Convex connected turns delegate to the shared material
-/// resolver; concave and straight turns remain band-only.
-List<TerrainMaterialEdgeCornerCaps> resolveTerrainMaterialEdgeCornerCaps({
+/// retain endpoint caps. Exact cardinal corners use authored rectangle caps;
+/// other convex turns receive local fill backing. Concave and straight turns
+/// remain band-only.
+List<TerrainMaterialEdgeCornerLayout> resolveTerrainMaterialEdgeCornerLayout({
   required TerrainSourceShapeDef shape,
   required TerrainMaterialDefinition material,
   required List<TerrainMaterialEdgeOrientation> edgeOrientations,
@@ -49,6 +54,7 @@ List<TerrainMaterialEdgeCornerCaps> resolveTerrainMaterialEdgeCornerCaps({
   }
   final starts = List<bool>.filled(edgeCount, false);
   final ends = List<bool>.filled(edgeCount, false);
+  final endJoinBackingDepths = List<double?>.filled(edgeCount, null);
   final active = <bool>[
     for (final orientation in edgeOrientations)
       shape.collisionMode != TerrainSourceCollisionMode.oneWay ||
@@ -92,7 +98,7 @@ List<TerrainMaterialEdgeCornerCaps> resolveTerrainMaterialEdgeCornerCaps({
     final incomingInwardNormal = clockwise
         ? Offset(-incomingTangent.dy, incomingTangent.dx)
         : Offset(incomingTangent.dy, -incomingTangent.dx);
-    final owner = terrainMaterialConnectedCornerOwner(
+    final treatment = terrainMaterialConnectedCornerTreatment(
       incomingInwardNormalX: incomingInwardNormal.dx,
       incomingInwardNormalY: incomingInwardNormal.dy,
       outgoingTangentX: outgoingTangent.dx,
@@ -102,21 +108,59 @@ List<TerrainMaterialEdgeCornerCaps> resolveTerrainMaterialEdgeCornerCaps({
       incomingEndCapAvailable: incomingCaps.end != null,
       outgoingStartCapAvailable: outgoingCaps.start != null,
     );
-    switch (owner) {
-      case TerrainMaterialCornerOwner.incomingEnd:
+    switch (treatment) {
+      case TerrainMaterialConnectedCornerTreatment.incomingEndCap:
         ends[incomingIndex] = true;
-      case TerrainMaterialCornerOwner.outgoingStart:
+      case TerrainMaterialConnectedCornerTreatment.outgoingStartCap:
         starts[outgoingIndex] = true;
-      case null:
+      case TerrainMaterialConnectedCornerTreatment.fillBacking:
+        endJoinBackingDepths[incomingIndex] = _joinBackingDepth(
+          material,
+          edgeOrientations[incomingIndex],
+          edgeOrientations[outgoingIndex],
+        );
+      case TerrainMaterialConnectedCornerTreatment.none:
         break;
     }
   }
-  return List<TerrainMaterialEdgeCornerCaps>.unmodifiable(
-    <TerrainMaterialEdgeCornerCaps>[
+  return List<TerrainMaterialEdgeCornerLayout>.unmodifiable(
+    <TerrainMaterialEdgeCornerLayout>[
       for (var index = 0; index < edgeCount; index += 1)
-        (start: starts[index], end: ends[index]),
+        (
+          startCap: starts[index],
+          endCap: ends[index],
+          endJoinBackingDepth: endJoinBackingDepths[index],
+        ),
     ],
   );
+}
+
+double _joinBackingDepth(
+  TerrainMaterialDefinition material,
+  TerrainMaterialEdgeOrientation incoming,
+  TerrainMaterialEdgeOrientation outgoing,
+) {
+  final incomingDepth = _profileDepth(material, incoming);
+  final outgoingDepth = _profileDepth(material, outgoing);
+  return incomingDepth > outgoingDepth ? incomingDepth : outgoingDepth;
+}
+
+double _profileDepth(
+  TerrainMaterialDefinition material,
+  TerrainMaterialEdgeOrientation orientation,
+) {
+  final profile = switch (orientation) {
+    TerrainMaterialEdgeOrientation.top => material.top,
+    TerrainMaterialEdgeOrientation.leftWall => material.leftWall,
+    TerrainMaterialEdgeOrientation.rightWall => material.rightWall,
+    TerrainMaterialEdgeOrientation.underside => material.underside,
+  };
+  if (profile == null) return 0;
+  return terrainMaterialEdgeTileHeight(
+    orientation: orientation,
+    sourceWidth: profile.base.region.width,
+    sourceHeight: profile.base.region.height,
+  ).toDouble();
 }
 
 Offset _vertexOffset(TerrainSourceVertexDef vertex) =>
