@@ -244,6 +244,47 @@ void main() {
     expect(join.b, 0);
     expect(await _colorAt(rendered, 3, 5), const ui.Color(0xFFFF0000));
   });
+
+  test(
+    'positive anchor clips the source outline row outside its owner',
+    () async {
+      final source = await _outlinedEdgeImage();
+      addTearDown(source.dispose);
+      final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(2, 2, 4, 4));
+      final rendered = await _renderEdge(
+        source,
+        orientation: TerrainMaterialEdgeOrientation.top,
+        start: const ui.Offset(2, 2),
+        length: 4,
+        angle: 0,
+        anchorY: 1,
+        clipPath: ownerPath,
+      );
+      addTearDown(rendered.dispose);
+
+      expect(await _alphaAt(rendered, 3, 1), 0);
+      expect(await _colorAt(rendered, 3, 2), const ui.Color(0xFF70A020));
+    },
+  );
+}
+
+Future<ui.Image> _outlinedEdgeImage() async {
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder)
+    ..drawRect(
+      const ui.Rect.fromLTWH(0, 0, 2, 1),
+      ui.Paint()..color = const ui.Color(0xFF302010),
+    )
+    ..drawRect(
+      const ui.Rect.fromLTWH(0, 1, 2, 1),
+      ui.Paint()..color = const ui.Color(0xFF70A020),
+    );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(2, 2);
+  } finally {
+    picture.dispose();
+  }
 }
 
 Future<ui.Image> _sourceImage() async {
@@ -310,6 +351,7 @@ Future<ui.Image> _renderEdge(
   required ui.Offset start,
   required double length,
   required double angle,
+  double anchorY = 0,
   ui.Path? clipPath,
 }) async {
   final recorder = ui.PictureRecorder();
@@ -319,7 +361,7 @@ Future<ui.Image> _renderEdge(
     length: length,
     angle: angle,
     image: source,
-    anchorY: 0,
+    anchorY: anchorY,
     orientation: orientation,
     clipPath: clipPath,
   );

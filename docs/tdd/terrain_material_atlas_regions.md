@@ -2,7 +2,7 @@
 
 Status: Implemented
 
-Last updated: August 19, 2026
+Last updated: August 21, 2026
 
 ## Purpose
 
@@ -56,11 +56,12 @@ two quarter-turns; top art is already normalized. This prevents already
 oriented atlas cells from receiving an extra 90° or 180° rotation on
 axis-aligned polygons while preserving edge-relative rotation for slopes.
 
-The production `grass_dirt` top band and its endpoint/corner caps use
-`anchorY: 0`.
-Their raster therefore starts on the polygon's upper boundary and remains
-inside its filled collision region; terrain art does not visually extend above
-the authored ground surface.
+Every production `grass_dirt` edge band and endpoint/corner cap uses
+`anchorY: 1`. The selected atlas cells contain a one-pixel dark outline on
+their outward-facing row. Placing that row one pixel outside the owner lets the
+existing polygon clip remove it consistently after orientation normalization;
+the remaining authored silhouette starts at the collision boundary. This is a
+material placement rule, not a compositor overlap or sampling correction.
 
 Fill, edge-band, and endpoint-cap pixels are all confined to the exact owning
 polygon loop in both the Chunk Creator preview and `StagedTerrain`. Edge-local

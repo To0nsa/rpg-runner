@@ -25,9 +25,14 @@ void main() {
       'assets/images/terrain/tx_tileset_ground/atlas.png',
     );
     expect(material?.top.detail?.region.assetPath, isNull);
-    expect(material?.top.base.anchorY, 0);
-    expect(material?.topStartCap?.anchorY, 0);
-    expect(material?.topEndCap?.anchorY, 0);
+    expect(material?.top.base.anchorY, 1);
+    expect(material?.leftWall?.base.anchorY, 1);
+    expect(material?.rightWall?.base.anchorY, 1);
+    expect(material?.underside?.base.anchorY, 1);
+    expect(material?.topStartCap?.anchorY, 1);
+    expect(material?.topEndCap?.anchorY, 1);
+    expect(material?.undersideStartCap?.anchorY, 1);
+    expect(material?.undersideEndCap?.anchorY, 1);
     expect(material?.topStartCap?.region.x, 0);
     expect(material?.topEndCap?.region.x, 64);
     expect(material?.undersideStartCap?.region.x, 64);

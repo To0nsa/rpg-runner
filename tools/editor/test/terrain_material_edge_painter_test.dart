@@ -124,6 +124,46 @@ void main() {
     expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
     expect(await _alphaAt(rendered, 5, 2), 0);
   });
+
+  test(
+    'positive anchor clips the source outline row outside its owner',
+    () async {
+      final source = await _outlinedEdgeImage();
+      addTearDown(source.dispose);
+      final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(2, 2, 4, 4));
+      final rendered = await _renderEdge(
+        source,
+        orientation: TerrainMaterialEdgeOrientation.top,
+        start: const ui.Offset(2, 2),
+        end: const ui.Offset(6, 2),
+        anchorY: 1,
+        clipPath: ownerPath,
+      );
+      addTearDown(rendered.dispose);
+
+      expect(await _alphaAt(rendered, 3, 1), 0);
+      expect(await _colorAt(rendered, 3, 2), const ui.Color(0xFF70A020));
+    },
+  );
+}
+
+Future<ui.Image> _outlinedEdgeImage() async {
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder)
+    ..drawRect(
+      const ui.Rect.fromLTWH(0, 0, 2, 1),
+      ui.Paint()..color = const ui.Color(0xFF302010),
+    )
+    ..drawRect(
+      const ui.Rect.fromLTWH(0, 1, 2, 1),
+      ui.Paint()..color = const ui.Color(0xFF70A020),
+    );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(2, 2);
+  } finally {
+    picture.dispose();
+  }
 }
 
 Future<ui.Image> _sourceImage() async {
@@ -156,6 +196,7 @@ Future<ui.Image> _renderEdge(
   required TerrainMaterialEdgeOrientation orientation,
   required ui.Offset start,
   required ui.Offset end,
+  double anchorY = 0,
   ui.Path? clipPath,
 }) async {
   final recorder = ui.PictureRecorder();
@@ -165,7 +206,7 @@ Future<ui.Image> _renderEdge(
     orientation: orientation,
     start: start,
     end: end,
-    anchorY: 0,
+    anchorY: anchorY,
     clipPath: clipPath,
   );
   final picture = recorder.endRecording();
@@ -195,4 +236,15 @@ Future<Uint8List> _rgbaBytes(ui.Image image) async {
 Future<int> _alphaAt(ui.Image image, int x, int y) async {
   final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
   return data!.getUint8(((y * image.width) + x) * 4 + 3);
+}
+
+Future<ui.Color> _colorAt(ui.Image image, int x, int y) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  final offset = ((y * image.width) + x) * 4;
+  return ui.Color.fromARGB(
+    data!.getUint8(offset + 3),
+    data.getUint8(offset),
+    data.getUint8(offset + 1),
+    data.getUint8(offset + 2),
+  );
 }

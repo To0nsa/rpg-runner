@@ -83,7 +83,7 @@ void main() {
     final material = TerrainMaterialRegistry.require('grass_dirt');
 
     expect(material.displayName, 'Grass / Dirt');
-    expect(material.revision, 8);
+    expect(material.revision, 9);
     expect(material.fill.assetPath, 'terrain/tx_tileset_ground/atlas.png');
     expect((material.fill.x, material.fill.y), (224, 192));
     expect(
@@ -91,9 +91,9 @@ void main() {
       'terrain/tx_tileset_ground/atlas.png',
     );
     expect((material.top.base.region.x, material.top.base.region.y), (32, 0));
-    expect(material.top.base.anchorY, 0);
-    expect(material.topStartCap?.anchorY, 0);
-    expect(material.topEndCap?.anchorY, 0);
+    expect(material.top.base.anchorY, 1);
+    expect(material.topStartCap?.anchorY, 1);
+    expect(material.topEndCap?.anchorY, 1);
     expect(material.top.detail, isNull);
     expect(
       (material.topStartCap?.region.x, material.topStartCap?.anchorX),
@@ -107,29 +107,34 @@ void main() {
       (material.leftWall?.base.region.x, material.leftWall?.base.region.y),
       (192, 192),
     );
+    expect(material.leftWall?.base.anchorY, 1);
     expect(
       (material.rightWall?.base.region.x, material.rightWall?.base.region.y),
       (256, 192),
     );
+    expect(material.rightWall?.base.anchorY, 1);
     expect(
       (material.underside?.base.region.x, material.underside?.base.region.y),
       (32, 64),
     );
+    expect(material.underside?.base.anchorY, 1);
     expect(
       (
         material.undersideStartCap?.region.x,
         material.undersideStartCap?.region.y,
         material.undersideStartCap?.anchorX,
+        material.undersideStartCap?.anchorY,
       ),
-      (64, 64, 0),
+      (64, 64, 0, 1),
     );
     expect(
       (
         material.undersideEndCap?.region.x,
         material.undersideEndCap?.region.y,
         material.undersideEndCap?.anchorX,
+        material.undersideEndCap?.anchorY,
       ),
-      (0, 64, 32),
+      (0, 64, 32, 1),
     );
     expect(
       () => TerrainMaterialRegistry.require('missing_material'),

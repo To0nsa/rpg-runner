@@ -30,6 +30,9 @@ remain upright and retain their existing visual priority over the ground.
   behavior explicitly.
 - Atlas packing is an image-storage and authoring concern only. Selecting a
   different cell or rectangle changes the visual role, never collision shape.
+- The `grass_dirt` atlas cells carry a one-pixel export outline. Their edge and
+  cap anchors place that row outside the terrain owner so it is clipped away;
+  the visible grass and rock silhouette begins cleanly at the collision edge.
 - Exposed endpoints retain their authored caps. A convex connected turn uses
   exactly one adjacent start/end cap as its corner patch; top-facing art wins
   when both sides supply one. Concave turns remain band-only, and smooth

@@ -8,7 +8,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
       'grass_dirt': TerrainMaterialSpec(
         key: 'grass_dirt',
         displayName: 'Grass / Dirt',
-        revision: 8,
+        revision: 9,
         fill: TerrainMaterialImageRegionSpec(
           assetPath: 'terrain/tx_tileset_ground/atlas.png',
           x: 224,
@@ -25,7 +25,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
               width: 32,
               height: 32,
             ),
-            anchorY: 0.0,
+            anchorY: 1.0,
           ),
         ),
         leftWall: TerrainMaterialEdgeProfileSpec(
@@ -37,7 +37,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
               width: 32,
               height: 32,
             ),
-            anchorY: 0.0,
+            anchorY: 1.0,
           ),
         ),
         rightWall: TerrainMaterialEdgeProfileSpec(
@@ -49,7 +49,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
               width: 32,
               height: 32,
             ),
-            anchorY: 0.0,
+            anchorY: 1.0,
           ),
         ),
         underside: TerrainMaterialEdgeProfileSpec(
@@ -61,7 +61,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
               width: 32,
               height: 32,
             ),
-            anchorY: 0.0,
+            anchorY: 1.0,
           ),
         ),
         topStartCap: TerrainMaterialCapSpec(
@@ -73,7 +73,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             height: 32,
           ),
           anchorX: 0.0,
-          anchorY: 0.0,
+          anchorY: 1.0,
         ),
         topEndCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
@@ -84,7 +84,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             height: 32,
           ),
           anchorX: 32.0,
-          anchorY: 0.0,
+          anchorY: 1.0,
         ),
         undersideStartCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
@@ -95,7 +95,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             height: 32,
           ),
           anchorX: 0.0,
-          anchorY: 0.0,
+          anchorY: 1.0,
         ),
         undersideEndCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
@@ -106,7 +106,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             height: 32,
           ),
           anchorX: 32.0,
-          anchorY: 0.0,
+          anchorY: 1.0,
         ),
       ),
     };
