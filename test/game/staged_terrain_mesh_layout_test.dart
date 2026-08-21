@@ -83,58 +83,93 @@ void main() {
     final material = TerrainMaterialRegistry.require('grass_dirt');
 
     expect(material.displayName, 'Grass / Dirt');
-    expect(material.revision, 9);
+    expect(material.revision, 10);
     expect(material.fill.assetPath, 'terrain/tx_tileset_ground/atlas.png');
     expect((material.fill.x, material.fill.y), (224, 192));
     expect(
       material.top.base.region.assetPath,
       'terrain/tx_tileset_ground/atlas.png',
     );
-    expect((material.top.base.region.x, material.top.base.region.y), (32, 0));
-    expect(material.top.base.anchorY, 1);
-    expect(material.topStartCap?.anchorY, 1);
-    expect(material.topEndCap?.anchorY, 1);
+    expect(
+      (
+        material.top.base.region.x,
+        material.top.base.region.y,
+        material.top.base.region.width,
+        material.top.base.region.height,
+      ),
+      (32, 1, 32, 31),
+    );
+    expect(material.top.base.anchorY, 0);
     expect(material.top.detail, isNull);
     expect(
-      (material.topStartCap?.region.x, material.topStartCap?.anchorX),
-      (0, 0),
+      (
+        material.topStartCap?.region.x,
+        material.topStartCap?.region.y,
+        material.topStartCap?.region.height,
+        material.topStartCap?.anchorX,
+        material.topStartCap?.anchorY,
+      ),
+      (0, 1, 31, 0, 0),
     );
     expect(
-      (material.topEndCap?.region.x, material.topEndCap?.anchorX),
-      (64, 32),
+      (
+        material.topEndCap?.region.x,
+        material.topEndCap?.region.y,
+        material.topEndCap?.region.height,
+        material.topEndCap?.anchorX,
+        material.topEndCap?.anchorY,
+      ),
+      (64, 1, 31, 32, 0),
     );
     expect(
-      (material.leftWall?.base.region.x, material.leftWall?.base.region.y),
-      (192, 192),
+      (
+        material.leftWall?.base.region.x,
+        material.leftWall?.base.region.y,
+        material.leftWall?.base.region.width,
+        material.leftWall?.base.region.height,
+      ),
+      (193, 192, 31, 32),
     );
-    expect(material.leftWall?.base.anchorY, 1);
+    expect(material.leftWall?.base.anchorY, 0);
     expect(
-      (material.rightWall?.base.region.x, material.rightWall?.base.region.y),
-      (256, 192),
+      (
+        material.rightWall?.base.region.x,
+        material.rightWall?.base.region.y,
+        material.rightWall?.base.region.width,
+        material.rightWall?.base.region.height,
+      ),
+      (256, 192, 31, 32),
     );
-    expect(material.rightWall?.base.anchorY, 1);
+    expect(material.rightWall?.base.anchorY, 0);
     expect(
-      (material.underside?.base.region.x, material.underside?.base.region.y),
-      (32, 64),
+      (
+        material.underside?.base.region.x,
+        material.underside?.base.region.y,
+        material.underside?.base.region.width,
+        material.underside?.base.region.height,
+      ),
+      (32, 64, 32, 31),
     );
-    expect(material.underside?.base.anchorY, 1);
+    expect(material.underside?.base.anchorY, 0);
     expect(
       (
         material.undersideStartCap?.region.x,
         material.undersideStartCap?.region.y,
+        material.undersideStartCap?.region.height,
         material.undersideStartCap?.anchorX,
         material.undersideStartCap?.anchorY,
       ),
-      (64, 64, 0, 1),
+      (64, 64, 31, 0, 0),
     );
     expect(
       (
         material.undersideEndCap?.region.x,
         material.undersideEndCap?.region.y,
+        material.undersideEndCap?.region.height,
         material.undersideEndCap?.anchorX,
         material.undersideEndCap?.anchorY,
       ),
-      (0, 64, 32, 1),
+      (0, 64, 31, 32, 0),
     );
     expect(
       () => TerrainMaterialRegistry.require('missing_material'),

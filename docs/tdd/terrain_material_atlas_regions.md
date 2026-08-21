@@ -56,12 +56,13 @@ two quarter-turns; top art is already normalized. This prevents already
 oriented atlas cells from receiving an extra 90° or 180° rotation on
 axis-aligned polygons while preserving edge-relative rotation for slopes.
 
-Every production `grass_dirt` edge band and endpoint/corner cap uses
-`anchorY: 1`. The selected atlas cells contain a one-pixel dark outline on
-their outward-facing row. Placing that row one pixel outside the owner lets the
-existing polygon clip remove it consistently after orientation normalization;
-the remaining authored silhouette starts at the collision boundary. This is a
-material placement rule, not a compositor overlap or sampling correction.
+The production `grass_dirt` atlas cells contain a one-pixel dark export outline
+on their outward-facing side. Every edge-band and endpoint/corner-cap region
+omits that row or column before orientation normalization and uses `anchorY: 0`.
+The crop changes only the normalized inward dimension: tangent repeat widths
+and cap endpoint anchors remain 32 pixels. Because the outline is absent from
+the extracted image, device scaling and anti-aliased polygon clipping cannot
+sample it back into the terrain boundary.
 
 Fill, edge-band, and endpoint-cap pixels are all confined to the exact owning
 polygon loop in both the Chunk Creator preview and `StagedTerrain`. Edge-local
@@ -189,7 +190,7 @@ source-drift detection, and atomic file replacement.
 
 ```text
 terrain_material_defs.json
-        │ strict v2 decode and source-image validation
+        │ strict v3 decode and source-image validation
         ▼
 terrain material generator
         │ deterministic region literals + unique asset paths

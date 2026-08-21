@@ -4,7 +4,7 @@
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
-      "revision": 9,
+      "revision": 10,
       "fill": {
         "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
         "x": 224,
@@ -17,23 +17,23 @@
           "region": {
             "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
             "x": 32,
-            "y": 0,
+            "y": 1,
             "width": 32,
-            "height": 32
+            "height": 31
           },
-          "anchorY": 1
+          "anchorY": 0
         }
       },
       "leftWall": {
         "base": {
           "region": {
             "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
-            "x": 192,
+            "x": 193,
             "y": 192,
-            "width": 32,
+            "width": 31,
             "height": 32
           },
-          "anchorY": 1
+          "anchorY": 0
         }
       },
       "rightWall": {
@@ -42,10 +42,10 @@
             "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
             "x": 256,
             "y": 192,
-            "width": 32,
+            "width": 31,
             "height": 32
           },
-          "anchorY": 1
+          "anchorY": 0
         }
       },
       "underside": {
@@ -55,32 +55,32 @@
             "x": 32,
             "y": 64,
             "width": 32,
-            "height": 32
+            "height": 31
           },
-          "anchorY": 1
+          "anchorY": 0
         }
       },
       "topStartCap": {
         "region": {
           "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
           "x": 0,
-          "y": 0,
+          "y": 1,
           "width": 32,
-          "height": 32
+          "height": 31
         },
         "anchorX": 0,
-        "anchorY": 1
+        "anchorY": 0
       },
       "topEndCap": {
         "region": {
           "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
           "x": 64,
-          "y": 0,
+          "y": 1,
           "width": 32,
-          "height": 32
+          "height": 31
         },
         "anchorX": 32,
-        "anchorY": 1
+        "anchorY": 0
       },
       "undersideStartCap": {
         "region": {
@@ -88,10 +88,10 @@
           "x": 64,
           "y": 64,
           "width": 32,
-          "height": 32
+          "height": 31
         },
         "anchorX": 0,
-        "anchorY": 1
+        "anchorY": 0
       },
       "undersideEndCap": {
         "region": {
@@ -99,10 +99,10 @@
           "x": 0,
           "y": 64,
           "width": 32,
-          "height": 32
+          "height": 31
         },
         "anchorX": 32,
-        "anchorY": 1
+        "anchorY": 0
       }
     }
   ]

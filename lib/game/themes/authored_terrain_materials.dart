@@ -8,7 +8,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
       'grass_dirt': TerrainMaterialSpec(
         key: 'grass_dirt',
         displayName: 'Grass / Dirt',
-        revision: 9,
+        revision: 10,
         fill: TerrainMaterialImageRegionSpec(
           assetPath: 'terrain/tx_tileset_ground/atlas.png',
           x: 224,
@@ -21,23 +21,23 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             region: TerrainMaterialImageRegionSpec(
               assetPath: 'terrain/tx_tileset_ground/atlas.png',
               x: 32,
-              y: 0,
+              y: 1,
               width: 32,
-              height: 32,
+              height: 31,
             ),
-            anchorY: 1.0,
+            anchorY: 0.0,
           ),
         ),
         leftWall: TerrainMaterialEdgeProfileSpec(
           base: TerrainMaterialEdgeLayerSpec(
             region: TerrainMaterialImageRegionSpec(
               assetPath: 'terrain/tx_tileset_ground/atlas.png',
-              x: 192,
+              x: 193,
               y: 192,
-              width: 32,
+              width: 31,
               height: 32,
             ),
-            anchorY: 1.0,
+            anchorY: 0.0,
           ),
         ),
         rightWall: TerrainMaterialEdgeProfileSpec(
@@ -46,10 +46,10 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
               assetPath: 'terrain/tx_tileset_ground/atlas.png',
               x: 256,
               y: 192,
-              width: 32,
+              width: 31,
               height: 32,
             ),
-            anchorY: 1.0,
+            anchorY: 0.0,
           ),
         ),
         underside: TerrainMaterialEdgeProfileSpec(
@@ -59,32 +59,32 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
               x: 32,
               y: 64,
               width: 32,
-              height: 32,
+              height: 31,
             ),
-            anchorY: 1.0,
+            anchorY: 0.0,
           ),
         ),
         topStartCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
             assetPath: 'terrain/tx_tileset_ground/atlas.png',
             x: 0,
-            y: 0,
+            y: 1,
             width: 32,
-            height: 32,
+            height: 31,
           ),
           anchorX: 0.0,
-          anchorY: 1.0,
+          anchorY: 0.0,
         ),
         topEndCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
             assetPath: 'terrain/tx_tileset_ground/atlas.png',
             x: 64,
-            y: 0,
+            y: 1,
             width: 32,
-            height: 32,
+            height: 31,
           ),
           anchorX: 32.0,
-          anchorY: 1.0,
+          anchorY: 0.0,
         ),
         undersideStartCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
@@ -92,10 +92,10 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             x: 64,
             y: 64,
             width: 32,
-            height: 32,
+            height: 31,
           ),
           anchorX: 0.0,
-          anchorY: 1.0,
+          anchorY: 0.0,
         ),
         undersideEndCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
@@ -103,10 +103,10 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
             x: 0,
             y: 64,
             width: 32,
-            height: 32,
+            height: 31,
           ),
           anchorX: 32.0,
-          anchorY: 1.0,
+          anchorY: 0.0,
         ),
       ),
     };
