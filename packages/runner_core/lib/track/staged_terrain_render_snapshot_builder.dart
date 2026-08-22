@@ -1,4 +1,4 @@
-/// Builds staged terrain render data from the same world geometry as collision.
+/// Builds staged terrain render data paired with published collision geometry.
 library;
 
 import '../collision/terrain/terrain_geometry.dart';
@@ -7,13 +7,14 @@ import '../collision/terrain/terrain_polygon.dart';
 import '../snapshots/staged_terrain_render_snapshot.dart';
 import 'staged_terrain_catalog.dart';
 import 'staged_terrain_data.dart';
+import 'staged_terrain_world_geometry.dart';
 
 /// Converts generated terrain records into an immutable render candidate.
 ///
-/// Collidable polygons must exactly match caller-supplied [TerrainGeometry].
-/// Render-only polygons are translated directly from their generated canonical
-/// vertices and must be absent from that geometry. Edges always come from the
-/// collision geometry, keeping visual-only fills out of every physics surface.
+/// Every collidable polygon must exactly match caller-supplied
+/// [TerrainGeometry]. Direct Chunk polygons become terrain fills, including
+/// render-only roles; placed Prefab polygons are verified for collision but
+/// excluded from fills and material edges because their sprites own visuals.
 final class StagedTerrainRenderSnapshotBuilder {
   const StagedTerrainRenderSnapshotBuilder();
 
@@ -51,6 +52,13 @@ final class StagedTerrainRenderSnapshotBuilder {
         stagedPolygonsById[sourceId] = (binding, polygon);
       }
       for (final triangle in binding.chunk.triangles) {
+        if (triangle.sourceId.placementKey != null) {
+          throw ArgumentError.value(
+            triangle,
+            'triangle',
+            'Placed Prefab collision cannot own terrain render triangles.',
+          );
+        }
         final sourceId = binding.sourceIdentity(triangle.sourceId);
         final staged = stagedPolygonsById[sourceId];
         if (staged == null) {
@@ -102,6 +110,16 @@ final class StagedTerrainRenderSnapshotBuilder {
       }
       final triangles =
           trianglesById[sourceId] ?? const <StagedTerrainTriangleData>[];
+      if (sourceId.placementKey != null) {
+        if (record.collisionMode == StagedTerrainCollisionMode.none ||
+            triangles.isNotEmpty) {
+          throw StateError(
+            'Placed Prefab polygon ${sourceId.chunkKey}/${sourceId.shapeId} '
+            'must be collision-only.',
+          );
+        }
+        continue;
+      }
       if (triangles.length != vertices.length - 2) {
         throw StateError(
           'Staged polygon ${sourceId.chunkKey}/${sourceId.shapeId} has '
@@ -133,10 +151,27 @@ final class StagedTerrainRenderSnapshotBuilder {
         'matching staged render record.',
       );
     }
+    final renderEdges = const StagedTerrainWorldGeometryBuilder()
+        .buildRenderEdges(bindings: bindingList);
+    final renderIds = renderPolygons.map((polygon) => polygon.sourceId).toSet();
+    for (final edge in renderEdges) {
+      final id = edge.id;
+      final sourceId = TerrainSourceIdentity(
+        chunkIndex: id.chunkIndex,
+        chunkKey: id.chunkKey,
+        placementKey: id.placementKey,
+        shapeId: id.shapeId,
+      );
+      if (!renderIds.contains(sourceId)) {
+        throw StateError(
+          'Terrain render edge $id has no matching direct terrain fill.',
+        );
+      }
+    }
     return StagedTerrainRenderSnapshot(
       geometryVersion: geometry.version,
       polygons: renderPolygons,
-      edges: geometry.edges,
+      edges: renderEdges,
     );
   }
 }

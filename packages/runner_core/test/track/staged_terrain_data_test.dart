@@ -76,10 +76,12 @@ void main() {
       authoringPolygonSignature: 'authoring-polygons',
       sourceSignature: 'source',
       edgeSignature: 'edges',
+      renderEdgeSignature: 'render-edges',
       placementSignature: 'placements',
       triangleSignature: 'triangles',
       polygons: polygons,
       edges: const <StagedTerrainEdgeData>[],
+      renderEdges: const <StagedTerrainEdgeData>[],
       triangles: <StagedTerrainTriangleData>[
         StagedTerrainTriangleData(
           sourceId: sourceId,
@@ -99,6 +101,7 @@ void main() {
       authoringSeamSignature: 'seams',
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
+      renderEdgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
       triangleSignatureFormat: 'authoring-triangles-v1',
       chunks: chunks,

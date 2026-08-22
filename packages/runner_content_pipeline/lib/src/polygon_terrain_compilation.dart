@@ -78,6 +78,7 @@ final class PolygonTerrainCompiledChunk {
     required this.chunk,
     required this.geometry,
     required this.renderGeometry,
+    required this.renderEdgeGeometry,
     required Map<TerrainSourceIdentity, TerrainAuthoringPolygonMode>
     modeBySourceIdentity,
     required Iterable<TerrainAuthoringPolygonRecord> authoringPolygons,
@@ -105,8 +106,17 @@ final class PolygonTerrainCompiledChunk {
   /// Gameplay collision geometry. Render-only polygons are absent.
   final TerrainGeometry geometry;
 
-  /// Canonical geometry used for fills. Includes every authored terrain role.
+  /// Canonical direct Chunk geometry used for terrain fills.
+  ///
+  /// Includes every direct authored terrain role and excludes placed Prefab
+  /// collision, whose visual is supplied by the Prefab sprite layer.
   final TerrainGeometry renderGeometry;
+
+  /// Direct Chunk collision geometry used only for terrain edge decoration.
+  ///
+  /// Placed Prefab colliders remain in [geometry], but cannot split or cancel
+  /// the Chunk-authored boundaries that establish the terrain's visual skin.
+  final TerrainGeometry renderEdgeGeometry;
   final Map<TerrainSourceIdentity, TerrainAuthoringPolygonMode>
   modeBySourceIdentity;
   final List<TerrainAuthoringPolygonRecord> authoringPolygons;
@@ -203,7 +213,9 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
 }) {
   sourcePath = canonicalPolygonTerrainSourcePath(sourcePath);
   final issues = <PolygonTerrainGenerationIssue>[];
+  final reviewInputs = <TerrainPolygonInput>[];
   final renderInputs = <TerrainPolygonInput>[];
+  final renderEdgeInputs = <TerrainPolygonInput>[];
   final collisionInputs = <TerrainPolygonInput>[];
   final modeBySourceIdentity =
       <TerrainSourceIdentity, TerrainAuthoringPolygonMode>{};
@@ -222,9 +234,11 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
         shape: shape,
         sourcePath: shapePath,
       );
+      reviewInputs.add(input);
       renderInputs.add(input);
       modeBySourceIdentity[input.identity] = shape.collisionMode;
       if (shape.collisionMode != TerrainAuthoringPolygonMode.none) {
+        renderEdgeInputs.add(input);
         collisionInputs.add(input);
       }
     } on ArgumentError catch (error) {
@@ -311,7 +325,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
           sourcePath: shapePath,
           transform: transform,
         );
-        renderInputs.add(input);
+        reviewInputs.add(input);
         collisionInputs.add(input);
         modeBySourceIdentity[input.identity] = shape.collisionMode;
         placementLineage.add(
@@ -345,9 +359,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   }
 
   TerrainGeometry? renderGeometry;
+  TerrainGeometry? renderEdgeGeometry;
   TerrainGeometry? geometry;
   var coreSourcesAccepted = true;
-  for (final input in renderInputs) {
+  for (final input in reviewInputs) {
     final review = const TerrainSourceCanonicalizer().review(
       input,
       requireCanonical: true,
@@ -369,6 +384,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     try {
       renderGeometry = const TerrainCompiler().compile(
         renderInputs,
+        geometryVersion: 1,
+      );
+      renderEdgeGeometry = const TerrainCompiler().compile(
+        renderEdgeInputs,
         geometryVersion: 1,
       );
       geometry = const TerrainCompiler().compile(
@@ -397,10 +416,16 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     }
   }
 
-  if (renderGeometry != null) {
+  if (geometry != null && renderGeometry != null) {
     final maxX = chunk.width * terrainPhysicsTicksPerWorldUnit;
     final maxY = chunk.height * terrainPhysicsTicksPerWorldUnit;
-    for (final polygon in renderGeometry.polygons) {
+    final polygonsByIdentity = <TerrainSourceIdentity, TerrainPolygon>{
+      for (final polygon in geometry.polygons) polygon.identity: polygon,
+      for (final polygon in renderGeometry.polygons) polygon.identity: polygon,
+    };
+    final polygons = polygonsByIdentity.values.toList()
+      ..sort((left, right) => left.identity.compareTo(right.identity));
+    for (final polygon in polygons) {
       for (final vertex in polygon.vertices.asMap().entries) {
         final point = vertex.value;
         if (point.xTicks >= 0 &&
@@ -428,7 +453,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     }
   }
 
-  if (geometry == null || renderGeometry == null || issues.isNotEmpty) {
+  if (geometry == null ||
+      renderGeometry == null ||
+      renderEdgeGeometry == null ||
+      issues.isNotEmpty) {
     return PolygonTerrainCompilationResult(compiled: null, issues: issues);
   }
 
@@ -489,6 +517,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
       chunk: chunk,
       geometry: geometry,
       renderGeometry: renderGeometry,
+      renderEdgeGeometry: renderEdgeGeometry,
       modeBySourceIdentity: modeBySourceIdentity,
       authoringPolygons: authoringPolygons,
       placementLineage: placementLineage,

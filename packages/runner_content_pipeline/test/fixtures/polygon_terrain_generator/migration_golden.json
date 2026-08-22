@@ -3,8 +3,8 @@
   "edgeSignature": "1e605569926bc2b24c690f19562771929f4cb6df70b2ed0ffff6a2b0bab3a1c6",
   "authoringPolygonSignature": "355242dd5b7b89b7f5ae0620cf91df342730737078bbef46525fe3c53ef7b57c",
   "placementSignature": "edc8b921c30dcc4dc5d2e8a49cb62e918f722bcb70239318a6a02d173bee780f",
-  "triangleSignature": "fcdff3873fc5a71e5e82f43da647ac8d063308aeb97ae447efb7fd9230690ec5",
+  "triangleSignature": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "polygonCount": 4,
   "edgeCount": 20,
-  "triangleCount": 12
+  "triangleCount": 0
 }

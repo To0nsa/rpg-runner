@@ -301,6 +301,7 @@ void main() {
       chunk: compiled.chunk,
       geometry: compiled.geometry,
       renderGeometry: compiled.renderGeometry,
+      renderEdgeGeometry: compiled.renderEdgeGeometry,
       modeBySourceIdentity: compiled.modeBySourceIdentity,
       authoringPolygons: compiled.authoringPolygons.reversed,
       placementLineage: compiled.placementLineage.reversed,
@@ -362,6 +363,61 @@ void main() {
     );
   });
 
+  test('touching prefab collision cannot change direct terrain rendering', () {
+    final ground = _shapeJson('ground', <(num, num)>[
+      (0, 10),
+      (10, 10),
+      (10, 20),
+      (0, 20),
+    ])..['materialKey'] = 'earth';
+    final prefab = _shapeJson('collider', <(num, num)>[
+      (2, 0),
+      (8, 0),
+      (8, 10),
+      (2, 10),
+    ]);
+    final withPrefab = _compileCapacityFixture(
+      directShapes: <Map<String, Object?>>[ground],
+      prefabShapes: <Map<String, Object?>>[prefab],
+      width: 20,
+      height: 20,
+    ).compiled!;
+    final withoutPrefab = _compileCapacityFixture(
+      directShapes: <Map<String, Object?>>[ground],
+      width: 20,
+      height: 20,
+    ).compiled!;
+
+    expect(
+      withPrefab.geometry.polygons.any(
+        (polygon) => polygon.identity.placementKey != null,
+      ),
+      isTrue,
+      reason: 'The placed collider must remain gameplay geometry.',
+    );
+    expect(
+      withPrefab.renderGeometry.canonicalSourceRecords(),
+      withoutPrefab.renderGeometry.canonicalSourceRecords(),
+    );
+    expect(
+      withPrefab.renderEdgeGeometry.canonicalEdgeRecords(),
+      withoutPrefab.renderEdgeGeometry.canonicalEdgeRecords(),
+    );
+    expect(withPrefab.triangleRecords(), withoutPrefab.triangleRecords());
+    expect(
+      withPrefab.renderGeometry.polygons.every(
+        (polygon) => polygon.identity.placementKey == null,
+      ),
+      isTrue,
+    );
+    expect(
+      withPrefab.renderEdgeGeometry.edges.every(
+        (edge) => edge.id.placementKey == null,
+      ),
+      isTrue,
+    );
+  });
+
   test('compiled product rejects duplicate derived identities', () {
     final compiled = _compileFixture();
     expect(
@@ -369,6 +425,7 @@ void main() {
         chunk: compiled.chunk,
         geometry: compiled.geometry,
         renderGeometry: compiled.renderGeometry,
+        renderEdgeGeometry: compiled.renderEdgeGeometry,
         modeBySourceIdentity: compiled.modeBySourceIdentity,
         authoringPolygons: compiled.authoringPolygons,
         placementLineage: <PolygonTerrainPlacementLineage>[
@@ -384,6 +441,7 @@ void main() {
         chunk: compiled.chunk,
         geometry: compiled.geometry,
         renderGeometry: compiled.renderGeometry,
+        renderEdgeGeometry: compiled.renderEdgeGeometry,
         modeBySourceIdentity: compiled.modeBySourceIdentity,
         authoringPolygons: compiled.authoringPolygons,
         placementLineage: compiled.placementLineage,
@@ -1529,6 +1587,7 @@ String _placementSignatureWith(
   chunk: source.chunk,
   geometry: source.geometry,
   renderGeometry: source.renderGeometry,
+  renderEdgeGeometry: source.renderEdgeGeometry,
   modeBySourceIdentity: source.modeBySourceIdentity,
   authoringPolygons: source.authoringPolygons,
   placementLineage: <PolygonTerrainPlacementLineage>[lineage],
@@ -1542,6 +1601,7 @@ String _triangleSignatureWith(
   chunk: source.chunk,
   geometry: source.geometry,
   renderGeometry: source.renderGeometry,
+  renderEdgeGeometry: source.renderEdgeGeometry,
   modeBySourceIdentity: source.modeBySourceIdentity,
   authoringPolygons: source.authoringPolygons,
   placementLineage: source.placementLineage,

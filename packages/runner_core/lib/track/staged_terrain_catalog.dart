@@ -74,6 +74,11 @@ final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
       'artifact.edgeSignatureFormat',
     );
     _requireFormat(
+      artifact.renderEdgeSignatureFormat,
+      stagedTerrainRenderEdgeSignatureFormat,
+      'artifact.renderEdgeSignatureFormat',
+    );
+    _requireFormat(
       artifact.placementSignatureFormat,
       stagedTerrainPlacementSignatureFormat,
       'artifact.placementSignatureFormat',
@@ -217,6 +222,36 @@ final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
         );
       }
     }
+
+    final renderEdgeIds = <StagedTerrainEdgeId>{};
+    for (final edge in chunk.renderEdges) {
+      final sourceMode = modeBySourceId[edge.id.sourceId];
+      if (edge.id.sourceId.placementKey != null ||
+          sourceMode == null ||
+          sourceMode == StagedTerrainCollisionMode.none ||
+          edge.collisionMode == StagedTerrainCollisionMode.none ||
+          edge.collisionMode != sourceMode ||
+          !renderEdgeIds.add(edge.id)) {
+        throw ArgumentError.value(
+          edge,
+          'artifact.chunks',
+          'Terrain render edges must have unique IDs and matching direct '
+              'collidable polygon roles in chunk ${chunk.chunkKey}.',
+        );
+      }
+    }
+    for (final edge in chunk.renderEdges) {
+      if ((edge.previousId != null &&
+              !renderEdgeIds.contains(edge.previousId)) ||
+          (edge.nextId != null && !renderEdgeIds.contains(edge.nextId))) {
+        throw ArgumentError.value(
+          edge,
+          'artifact.chunks',
+          'Terrain render edge adjacency must reference a render edge in '
+              'chunk ${chunk.chunkKey}.',
+        );
+      }
+    }
     for (final edge in chunk.edges) {
       if ((edge.previousId != null && !edgeIds.contains(edge.previousId)) ||
           (edge.nextId != null && !edgeIds.contains(edge.nextId))) {
@@ -237,7 +272,9 @@ final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
         triangle.second,
         triangle.third,
       );
-      if (!sourceIds.contains(triangle.sourceId) || !triangleRecords.add(key)) {
+      if (triangle.sourceId.placementKey != null ||
+          !sourceIds.contains(triangle.sourceId) ||
+          !triangleRecords.add(key)) {
         throw ArgumentError.value(
           triangle,
           'artifact.chunks',
@@ -278,6 +315,7 @@ final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
     );
     _requireDigest(chunk.sourceSignature, 'chunk.sourceSignature');
     _requireDigest(chunk.edgeSignature, 'chunk.edgeSignature');
+    _requireDigest(chunk.renderEdgeSignature, 'chunk.renderEdgeSignature');
     _requireDigest(chunk.placementSignature, 'chunk.placementSignature');
     _requireDigest(chunk.triangleSignature, 'chunk.triangleSignature');
   }

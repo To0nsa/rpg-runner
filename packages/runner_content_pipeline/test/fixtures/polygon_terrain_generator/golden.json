@@ -3,10 +3,10 @@
   "edgeSignature": "20fb3ca94073a78eb43bb3bb3fef171b395350f7cf7b8707f5c629153abc3351",
   "authoringPolygonSignature": "679f918e4180e6192bf6b6285fba332df8c24e7a331b37490628fddb8261e9db",
   "placementSignature": "bacff9da393aaa89d3947024dc25de3eaec17f77561c217af1af9a75143b7211",
-  "triangleSignature": "c1a718727f1a6c2f17cd4498b367a1a96989b4d3f5f455096e3e243bc5bc07d3",
+  "triangleSignature": "412a305cc23bc7d75d9cff6307d6ef8bf7de623d1f106c2001aa6dd3375c4130",
   "isolatedSeamSignature": "c11c965911bb3990c762fc8babb016240b06309c1ecaf7c39b8007b8049f08ab",
-  "stagedArtifactSignature": "f57564480b79445607f7a7e94d2666098f0bad68e17684f2a6c8877f5b132c99",
+  "stagedArtifactSignature": "e9aea5bda3cc7f3ed6a211113e380a48010738c5ebd2cc87d758a544a1f61088",
   "polygonCount": 3,
   "edgeCount": 13,
-  "triangleCount": 10
+  "triangleCount": 8
 }

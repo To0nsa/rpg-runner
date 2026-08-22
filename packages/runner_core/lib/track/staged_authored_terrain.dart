@@ -7,13 +7,14 @@ library;
 import 'package:runner_core/track/staged_terrain_data.dart';
 
 final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactData(
-  formatVersion: 3,
+  formatVersion: 4,
   compilerGeometryVersion: 1,
   authoringPolygonSignatureFormat: "authoring-polygons-v1",
   authoringSeamSignatureFormat: "authoring-seams-v1",
   authoringSeamSignature: "4f44c2fe5105547ee752a71c3c1cfb3e26691e5de2876342ebf3567593861f68",
   sourceSignatureFormat: "source-v1",
   edgeSignatureFormat: "edges-v1",
+  renderEdgeSignatureFormat: "edges-v1",
   placementSignatureFormat: "authoring-placement-v1",
   triangleSignatureFormat: "authoring-triangles-v1",
   chunks: <StagedTerrainChunkData>[
@@ -31,6 +32,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       authoringPolygonSignature: "e9639da88033b9e5f5d2b8760458d794e22fb1aa906dc55c7437fdd1022e88cb",
       sourceSignature: "03dd0a7dc348ce251cb3749e882450f2399c2347044b81678f850bd4e7267196",
       edgeSignature: "968a77175143521a57ab5ecce1010ade8eba6938394815459bb9f6b42cfbaf9f",
+      renderEdgeSignature: "968a77175143521a57ab5ecce1010ade8eba6938394815459bb9f6b42cfbaf9f",
       placementSignature: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       triangleSignature: "61be454042b691983fb700c94d404d9fe01bc80e50653fcfb09ff1004ac0ca49",
       polygons: <StagedTerrainPolygonData>[
@@ -59,6 +61,160 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
       ],
       edges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 227328),
+          end: StagedTerrainPoint(614400, 227328),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 227328),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 227328),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+      ],
+      renderEdges: <StagedTerrainEdgeData>[
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -251,6 +407,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       authoringPolygonSignature: "9d074db80cf0a0d275bf5754df0a4f8ce91fe2389bf1770fd9fffcf0bbfcce59",
       sourceSignature: "fc182a564cb3c4cf7371558001a6c464e01572265759a267f1a0044449cc35ea",
       edgeSignature: "2fa9c8e5d720f6d4625f8debd20be584c9b803429bbbd88f57a64c0a6b67735c",
+      renderEdgeSignature: "2fa9c8e5d720f6d4625f8debd20be584c9b803429bbbd88f57a64c0a6b67735c",
       placementSignature: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       triangleSignature: "858c776f8c5e58e88d097aaddf96eb4a101201588cc8278613a83f8fa1e0e1c4",
       polygons: <StagedTerrainPolygonData>[
@@ -279,6 +436,160 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
       ],
       edges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_earlt_flat",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+      ],
+      renderEdges: <StagedTerrainEdgeData>[
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -471,6 +782,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       authoringPolygonSignature: "c67a8a2f1555d2cb3ae35f08d03370fc7fa510d6c1810b96880d720439e5d5a0",
       sourceSignature: "f1c945b0528e4d0ad5e8d41c110fb589e5bbdf6d21157a3e6a591e6de208b595",
       edgeSignature: "842762f729f6b7829295a1af6cdb865057797cdbfad9428185abe3475c04e031",
+      renderEdgeSignature: "842762f729f6b7829295a1af6cdb865057797cdbfad9428185abe3475c04e031",
       placementSignature: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       triangleSignature: "fb8a0a61137923a3cd53fb12dd100a7095822ea3f5a81730d401ae12ff87aa2e",
       polygons: <StagedTerrainPolygonData>[
@@ -499,6 +811,160 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
       ],
       edges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "new_level_flat",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+      ],
+      renderEdges: <StagedTerrainEdgeData>[
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(

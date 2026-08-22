@@ -1340,6 +1340,24 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate({
 }) {
   const chunkKey = 'terrain_harness';
   final sourceId = StagedTerrainSourceId(chunkKey: chunkKey, shapeId: 'ground');
+  final edge = StagedTerrainEdgeData(
+    id: StagedTerrainEdgeId(
+      sourceId: sourceId,
+      localEdgeIndex: 0,
+      subEdgeIndex: 0,
+    ),
+    start: const StagedTerrainPoint(0, 307200),
+    end: const StagedTerrainPoint(614400, 307200),
+    tangent: const StagedTerrainPoint(1024, 0),
+    outwardNormal: const StagedTerrainPoint(0, -1024),
+    collisionMode: StagedTerrainCollisionMode.solid,
+    surfaceKind: 'ground',
+    materialKey: 'earth',
+    previousId: null,
+    nextId: null,
+    startJoin: StagedTerrainVertexJoin.exposed,
+    endJoin: StagedTerrainVertexJoin.exposed,
+  );
   final catalog = StagedTerrainArtifactCatalog(
     artifact: StagedTerrainArtifactData(
       formatVersion: stagedTerrainArtifactFormatVersion,
@@ -1349,6 +1367,7 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate({
       authoringSeamSignature: _stagedTerrainTestDigest,
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
+      renderEdgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
       triangleSignatureFormat: 'authoring-triangles-v1',
       chunks: <StagedTerrainChunkData>[
@@ -1366,6 +1385,7 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate({
           authoringPolygonSignature: _stagedTerrainTestDigest,
           sourceSignature: _stagedTerrainTestDigest,
           edgeSignature: _stagedTerrainTestDigest,
+          renderEdgeSignature: _stagedTerrainTestDigest,
           placementSignature: _stagedTerrainTestDigest,
           triangleSignature: _stagedTerrainTestDigest,
           polygons: <StagedTerrainPolygonData>[
@@ -1389,26 +1409,8 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate({
               materialKey: 'earth',
             ),
           ],
-          edges: <StagedTerrainEdgeData>[
-            StagedTerrainEdgeData(
-              id: StagedTerrainEdgeId(
-                sourceId: sourceId,
-                localEdgeIndex: 0,
-                subEdgeIndex: 0,
-              ),
-              start: const StagedTerrainPoint(0, 307200),
-              end: const StagedTerrainPoint(614400, 307200),
-              tangent: const StagedTerrainPoint(1024, 0),
-              outwardNormal: const StagedTerrainPoint(0, -1024),
-              collisionMode: StagedTerrainCollisionMode.solid,
-              surfaceKind: 'ground',
-              materialKey: 'earth',
-              previousId: null,
-              nextId: null,
-              startJoin: StagedTerrainVertexJoin.exposed,
-              endJoin: StagedTerrainVertexJoin.exposed,
-            ),
-          ],
+          edges: <StagedTerrainEdgeData>[edge],
+          renderEdges: <StagedTerrainEdgeData>[edge],
           triangles: <StagedTerrainTriangleData>[
             StagedTerrainTriangleData(
               sourceId: sourceId,

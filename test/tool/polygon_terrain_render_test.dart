@@ -10,7 +10,9 @@ import '../fixtures/polygon_terrain_generator/staged_authored_terrain.g.dart'
     as golden;
 import '../../tool/generated_artifact_plan.dart';
 import '../../tool/polygon_terrain_artifact_validation.dart';
+
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+
 import '../../tool/polygon_terrain_render.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
@@ -41,7 +43,7 @@ void main() {
         isEmpty,
       );
       expect(first.content, isNot(contains('chunkIndex')));
-      expect(first.content, contains('formatVersion: 3'));
+      expect(first.content, contains('formatVersion: 4'));
       expect(first.content, contains('compilerGeometryVersion: 1'));
       expect(
         first.content,
@@ -60,6 +62,7 @@ void main() {
       );
       expect(first.content, contains('sourceSignatureFormat: "source-v1"'));
       expect(first.content, contains('edgeSignatureFormat: "edges-v1"'));
+      expect(first.content, contains('renderEdgeSignatureFormat: "edges-v1"'));
       expect(
         first.content,
         contains('placementSignatureFormat: "authoring-placement-v1"'),
@@ -72,8 +75,12 @@ void main() {
       expect(golden.stagedAuthoredTerrain.chunks.single.polygons, hasLength(3));
       expect(golden.stagedAuthoredTerrain.chunks.single.edges, hasLength(13));
       expect(
+        golden.stagedAuthoredTerrain.chunks.single.renderEdges,
+        hasLength(9),
+      );
+      expect(
         golden.stagedAuthoredTerrain.chunks.single.triangles,
-        hasLength(10),
+        hasLength(8),
       );
     },
   );
@@ -98,7 +105,7 @@ void main() {
       _validated(<PolygonTerrainCompiledChunk>[compiled]),
     );
 
-    expect(compiled.renderGeometry.polygons, hasLength(4));
+    expect(compiled.renderGeometry.polygons, hasLength(3));
     expect(compiled.geometry.polygons, hasLength(3));
     expect(output, contains('shapeId: "dark_pit"'));
     expect(output, contains('collisionMode: StagedTerrainCollisionMode.none'));
@@ -180,6 +187,11 @@ void main() {
           (
             'edge_signature_mismatch',
             (chunk) => _copyChunk(chunk, edgeSignature: 'stale-edge'),
+          ),
+          (
+            'render_edge_signature_mismatch',
+            (chunk) =>
+                _copyChunk(chunk, renderEdgeSignature: 'stale-render-edge'),
           ),
           (
             'placement_signature_mismatch',
@@ -282,6 +294,14 @@ void main() {
               artifact,
               chunks: artifact.chunks,
               edgeSignatureFormat: 'stale-edge-format',
+            ),
+          ),
+          (
+            'render_edge_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              renderEdgeSignatureFormat: 'stale-render-edge-format',
             ),
           ),
           (
@@ -403,9 +423,8 @@ void main() {
       'packages/runner_core/lib/game_core.dart',
       'packages/runner_core/lib/playtest/chunk_playtest_scenario.dart',
     ]);
-    final liveGenerator = File(
-      'tool/generate_chunk_runtime_data.dart',
-    ).readAsStringSync();
+    final liveGenerator = File('tool/generate_chunk_runtime_data.dart')
+        .readAsStringSync();
     expect(liveGenerator, contains('polygon_terrain_render.dart'));
     expect(liveGenerator, contains('buildStagedPolygonTerrainArtifact'));
     expect(liveGenerator, isNot(contains('staged_authored_terrain.dart')));
@@ -485,6 +504,7 @@ StagedTerrainArtifactData _copyArtifact(
   String? authoringSeamSignature,
   String? sourceSignatureFormat,
   String? edgeSignatureFormat,
+  String? renderEdgeSignatureFormat,
   String? placementSignatureFormat,
   String? triangleSignatureFormat,
 }) => StagedTerrainArtifactData(
@@ -499,6 +519,8 @@ StagedTerrainArtifactData _copyArtifact(
       authoringSeamSignature ?? source.authoringSeamSignature,
   sourceSignatureFormat: sourceSignatureFormat ?? source.sourceSignatureFormat,
   edgeSignatureFormat: edgeSignatureFormat ?? source.edgeSignatureFormat,
+  renderEdgeSignatureFormat:
+      renderEdgeSignatureFormat ?? source.renderEdgeSignatureFormat,
   placementSignatureFormat:
       placementSignatureFormat ?? source.placementSignatureFormat,
   triangleSignatureFormat:
@@ -512,6 +534,7 @@ StagedTerrainChunkData _copyChunk(
   String? authoringPolygonSignature,
   String? sourceSignature,
   String? edgeSignature,
+  String? renderEdgeSignature,
   String? placementSignature,
   String? triangleSignature,
 }) => StagedTerrainChunkData(
@@ -529,10 +552,12 @@ StagedTerrainChunkData _copyChunk(
       authoringPolygonSignature ?? source.authoringPolygonSignature,
   sourceSignature: sourceSignature ?? source.sourceSignature,
   edgeSignature: edgeSignature ?? source.edgeSignature,
+  renderEdgeSignature: renderEdgeSignature ?? source.renderEdgeSignature,
   placementSignature: placementSignature ?? source.placementSignature,
   triangleSignature: triangleSignature ?? source.triangleSignature,
   polygons: source.polygons,
   edges: source.edges,
+  renderEdges: source.renderEdges,
   triangles: source.triangles,
   placementLineage: source.placementLineage,
 );

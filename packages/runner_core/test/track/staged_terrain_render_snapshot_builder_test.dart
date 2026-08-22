@@ -41,7 +41,7 @@ void main() {
       expect(polygon.triangles.single.second, 1);
       expect(polygon.triangles.single.third, 2);
       final edge = render.edges.single;
-      expect(identical(edge, geometry.edges.single), isTrue);
+      expect(edge.id, geometry.edges.single.id);
       expect(edge.id.chunkIndex, 3);
       expect(edge.id.chunkKey, 'field_flat');
       expect(edge.id.shapeId, 'ground');
@@ -70,6 +70,7 @@ void main() {
       authoringPolygonSignature: base.authoringPolygonSignature,
       sourceSignature: base.sourceSignature,
       edgeSignature: base.edgeSignature,
+      renderEdgeSignature: base.renderEdgeSignature,
       placementSignature: base.placementSignature,
       triangleSignature: base.triangleSignature,
       polygons: <StagedTerrainPolygonData>[
@@ -94,6 +95,7 @@ void main() {
         ),
       ],
       edges: base.edges,
+      renderEdges: base.renderEdges,
       triangles: <StagedTerrainTriangleData>[
         ...base.triangles,
         StagedTerrainTriangleData(
@@ -129,6 +131,110 @@ void main() {
     expect(pit.materialKey, 'dark_pit');
     expect(pit.vertices.first.xTicks, 6144);
     expect(render.edges, hasLength(1));
+  });
+
+  test('placed prefab collision is verified but never rendered as terrain', () {
+    final base = _chunk('prefab_room');
+    final placedId = StagedTerrainSourceId(
+      chunkKey: base.chunkKey,
+      placementKey: 'rock|1|0|0',
+      shapeId: 'collider',
+    );
+    final placedEdgeId = StagedTerrainEdgeId(
+      sourceId: placedId,
+      localEdgeIndex: 0,
+      subEdgeIndex: 0,
+    );
+    final chunk = StagedTerrainChunkData(
+      chunkKey: base.chunkKey,
+      id: base.id,
+      revision: base.revision,
+      status: base.status,
+      levelId: base.levelId,
+      tileSize: base.tileSize,
+      width: base.width,
+      height: base.height,
+      difficulty: base.difficulty,
+      assemblyGroupId: base.assemblyGroupId,
+      authoringPolygonSignature: base.authoringPolygonSignature,
+      sourceSignature: base.sourceSignature,
+      edgeSignature: base.edgeSignature,
+      renderEdgeSignature: base.renderEdgeSignature,
+      placementSignature: base.placementSignature,
+      triangleSignature: base.triangleSignature,
+      polygons: <StagedTerrainPolygonData>[
+        ...base.polygons,
+        StagedTerrainPolygonData(
+          sourcePath: 'prefab_room#placement=rock|1|0|0#shape=collider',
+          id: placedId,
+          sourceVertices: const <StagedTerrainPoint>[
+            StagedTerrainPoint(2, 0),
+            StagedTerrainPoint(4, 0),
+            StagedTerrainPoint(4, 2),
+          ],
+          vertices: const <StagedTerrainPoint>[
+            StagedTerrainPoint(1024, 0),
+            StagedTerrainPoint(2048, 0),
+            StagedTerrainPoint(2048, 1024),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: 'obstacle',
+          materialKey: null,
+        ),
+      ],
+      edges: <StagedTerrainEdgeData>[
+        ...base.edges,
+        StagedTerrainEdgeData(
+          id: placedEdgeId,
+          start: const StagedTerrainPoint(1024, 0),
+          end: const StagedTerrainPoint(2048, 0),
+          tangent: const StagedTerrainPoint(1024, 0),
+          outwardNormal: const StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: 'obstacle',
+          materialKey: null,
+          previousId: null,
+          nextId: null,
+          startJoin: StagedTerrainVertexJoin.exposed,
+          endJoin: StagedTerrainVertexJoin.exposed,
+        ),
+      ],
+      renderEdges: base.renderEdges,
+      triangles: base.triangles,
+      placementLineage: <StagedTerrainPlacementLineageData>[
+        StagedTerrainPlacementLineageData(
+          sourceId: placedId,
+          prefabKey: 'rock',
+          prefabId: 'rock',
+          prefabRevision: 1,
+          placementX: 1,
+          placementY: 0,
+          scaleTenths: 10,
+          flipX: false,
+          flipY: false,
+        ),
+      ],
+    );
+    final catalog = StagedTerrainArtifactCatalog(artifact: _artifact(chunk));
+    final binding = catalog.bind(
+      chunkKey: chunk.chunkKey,
+      chunkIndex: 4,
+      worldOriginXTicks: 0,
+    );
+    final geometry = const StagedTerrainWorldGeometryBuilder().build(
+      bindings: <StagedTerrainChunkBinding>[binding],
+      geometryVersion: 11,
+    );
+    final render = builder.build(
+      bindings: <StagedTerrainChunkBinding>[binding],
+      geometry: geometry,
+    );
+
+    expect(geometry.polygons, hasLength(2));
+    expect(render.polygons, hasLength(1));
+    expect(render.polygons.single.sourceId.placementKey, isNull);
+    expect(render.edges, hasLength(1));
+    expect(render.edges.single.id.placementKey, isNull);
   });
 
   test('fails closed when generated triangles are missing or invalid', () {
@@ -188,6 +294,7 @@ StagedTerrainArtifactData _artifact(StagedTerrainChunkData chunk) =>
       authoringSeamSignature: _digest,
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
+      renderEdgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
       triangleSignatureFormat: 'authoring-triangles-v1',
       chunks: <StagedTerrainChunkData>[chunk],
@@ -198,6 +305,24 @@ StagedTerrainChunkData _chunk(
   List<StagedTerrainTriangleData>? triangles,
 }) {
   final sourceId = StagedTerrainSourceId(chunkKey: chunkKey, shapeId: 'ground');
+  final edge = StagedTerrainEdgeData(
+    id: StagedTerrainEdgeId(
+      sourceId: sourceId,
+      localEdgeIndex: 0,
+      subEdgeIndex: 0,
+    ),
+    start: const StagedTerrainPoint(0, 0),
+    end: const StagedTerrainPoint(1024, 0),
+    tangent: const StagedTerrainPoint(1024, 0),
+    outwardNormal: const StagedTerrainPoint(0, -1024),
+    collisionMode: StagedTerrainCollisionMode.solid,
+    surfaceKind: 'ground',
+    materialKey: 'earth',
+    previousId: null,
+    nextId: null,
+    startJoin: StagedTerrainVertexJoin.exposed,
+    endJoin: StagedTerrainVertexJoin.exposed,
+  );
   return StagedTerrainChunkData(
     chunkKey: chunkKey,
     id: chunkKey,
@@ -212,6 +337,7 @@ StagedTerrainChunkData _chunk(
     authoringPolygonSignature: _digest,
     sourceSignature: _digest,
     edgeSignature: _digest,
+    renderEdgeSignature: _digest,
     placementSignature: _digest,
     triangleSignature: _digest,
     polygons: <StagedTerrainPolygonData>[
@@ -234,26 +360,8 @@ StagedTerrainChunkData _chunk(
         materialKey: 'earth',
       ),
     ],
-    edges: <StagedTerrainEdgeData>[
-      StagedTerrainEdgeData(
-        id: StagedTerrainEdgeId(
-          sourceId: sourceId,
-          localEdgeIndex: 0,
-          subEdgeIndex: 0,
-        ),
-        start: const StagedTerrainPoint(0, 0),
-        end: const StagedTerrainPoint(1024, 0),
-        tangent: const StagedTerrainPoint(1024, 0),
-        outwardNormal: const StagedTerrainPoint(0, -1024),
-        collisionMode: StagedTerrainCollisionMode.solid,
-        surfaceKind: 'ground',
-        materialKey: 'earth',
-        previousId: null,
-        nextId: null,
-        startJoin: StagedTerrainVertexJoin.exposed,
-        endJoin: StagedTerrainVertexJoin.exposed,
-      ),
-    ],
+    edges: <StagedTerrainEdgeData>[edge],
+    renderEdges: <StagedTerrainEdgeData>[edge],
     triangles:
         triangles ??
         <StagedTerrainTriangleData>[

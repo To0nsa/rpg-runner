@@ -22,12 +22,19 @@ StagedTerrainChunkData materializeStagedTerrainChunk(
 ) {
   _validateCompiledChunk(compiled);
   final chunk = compiled.chunk;
-  final polygons = compiled.renderGeometry.polygons.toList()
+  final polygonsById = <TerrainSourceIdentity, TerrainPolygon>{
+    for (final polygon in compiled.geometry.polygons) polygon.identity: polygon,
+    for (final polygon in compiled.renderGeometry.polygons)
+      polygon.identity: polygon,
+  };
+  final polygons = polygonsById.values.toList()
     ..sort((left, right) {
       final order = left.identity.compareTo(right.identity);
       return order != 0 ? order : left.sourcePath.compareTo(right.sourcePath);
     });
   final edges = compiled.geometry.edges.toList()
+    ..sort((left, right) => left.id.compareTo(right.id));
+  final renderEdges = compiled.renderEdgeGeometry.edges.toList()
     ..sort((left, right) => left.id.compareTo(right.id));
   final triangles = compiled.triangles.toList()..sort();
   final placementLineage = compiled.placementLineage.toList()..sort();
@@ -46,6 +53,7 @@ StagedTerrainChunkData materializeStagedTerrainChunk(
     authoringPolygonSignature: compiled.authoringPolygonSignature(),
     sourceSignature: compiled.geometry.sourceSignature(),
     edgeSignature: compiled.geometry.edgeSignature(),
+    renderEdgeSignature: compiled.renderEdgeGeometry.edgeSignature(),
     placementSignature: compiled.placementSignature(),
     triangleSignature: compiled.triangleSignature(),
     polygons: polygons.map(
@@ -55,6 +63,7 @@ StagedTerrainChunkData materializeStagedTerrainChunk(
       ),
     ),
     edges: edges.map(_materializeEdge),
+    renderEdges: renderEdges.map(_materializeEdge),
     triangles: triangles.map(_materializeTriangle),
     placementLineage: placementLineage.map(_materializePlacementLineage),
   );
@@ -88,6 +97,7 @@ StagedTerrainArtifactData materializeStagedTerrainArtifact(
     authoringSeamSignature: batch.seamSignature.digest,
     sourceSignatureFormat: stagedTerrainSourceSignatureFormat,
     edgeSignatureFormat: stagedTerrainEdgeSignatureFormat,
+    renderEdgeSignatureFormat: stagedTerrainRenderEdgeSignatureFormat,
     placementSignatureFormat: stagedTerrainPlacementSignatureFormat,
     triangleSignatureFormat: terrainAuthoringTriangleSignatureFormat,
     chunks: ordered.map(materializeStagedTerrainChunk),
@@ -134,6 +144,10 @@ String renderStagedPolygonTerrainDart(PolygonTerrainValidatedBatch batch) {
       '${_string(artifact.edgeSignatureFormat)},',
     )
     ..line(
+      '  renderEdgeSignatureFormat: '
+      '${_string(artifact.renderEdgeSignatureFormat)},',
+    )
+    ..line(
       '  placementSignatureFormat: '
       '${_string(artifact.placementSignatureFormat)},',
     )
@@ -174,7 +188,15 @@ void _validateChunkKeys(List<PolygonTerrainCompiledChunk> chunks) {
 
 void _validateCompiledChunk(PolygonTerrainCompiledChunk compiled) {
   final chunkKey = compiled.chunk.chunkKey;
-  final polygons = compiled.renderGeometry.polygons;
+  final renderPolygons = compiled.renderGeometry.polygons;
+  final polygons = <TerrainPolygon>[
+    ...compiled.geometry.polygons,
+    ...compiled.renderGeometry.polygons.where(
+      (polygon) => !compiled.geometry.polygons.any(
+        (collision) => collision.identity == polygon.identity,
+      ),
+    ),
+  ];
   final polygonById = <(String?, String), int>{};
   for (final polygon in polygons) {
     _requireLocalIdentity(
@@ -206,6 +228,21 @@ void _validateCompiledChunk(PolygonTerrainCompiledChunk compiled) {
       );
     }
   }
+  final renderIds = renderPolygons.map((polygon) => polygon.identity).toSet();
+  for (final edge in compiled.renderEdgeGeometry.edges) {
+    _requireEdgeLocal(chunkKey, edge.id);
+    final sourceId = TerrainSourceIdentity(
+      chunkIndex: edge.id.chunkIndex,
+      chunkKey: edge.id.chunkKey,
+      placementKey: edge.id.placementKey,
+      shapeId: edge.id.shapeId,
+    );
+    if (!renderIds.contains(sourceId) || edge.id.placementKey != null) {
+      throw StateError(
+        'Render edge in $chunkKey has no direct terrain polygon: ${edge.id}.',
+      );
+    }
+  }
   for (final edge in compiled.geometry.edges) {
     _requireEdgeLocal(chunkKey, edge.id);
     final previous = edge.previousId;
@@ -221,6 +258,7 @@ void _validateCompiledChunk(PolygonTerrainCompiledChunk compiled) {
     );
     final vertexCount = polygonById[(triangle.placementKey, triangle.shapeId)];
     if (vertexCount == null ||
+        triangle.placementKey != null ||
         triangle.first >= vertexCount ||
         triangle.second >= vertexCount ||
         triangle.third >= vertexCount) {
@@ -236,9 +274,16 @@ void _validateCompiledChunk(PolygonTerrainCompiledChunk compiled) {
       actualChunkKey: lineage.chunkKey,
       compilerChunkIndex: _reservedCompilerChunkIndex,
     );
-    if (!polygonById.containsKey((lineage.placementKey, lineage.shapeId))) {
+    if (!collisionIds.contains(
+      TerrainSourceIdentity(
+        chunkIndex: _reservedCompilerChunkIndex,
+        chunkKey: lineage.chunkKey,
+        placementKey: lineage.placementKey,
+        shapeId: lineage.shapeId,
+      ),
+    )) {
       throw StateError(
-        'Placement lineage has no staged polygon in $chunkKey: '
+        'Placement lineage has no collision polygon in $chunkKey: '
         '${lineage.placementKey}/${lineage.shapeId}.',
       );
     }
@@ -394,6 +439,10 @@ void _writeChunk(_DartWriter writer, StagedTerrainChunkData chunk, int indent) {
       '${_string(chunk.edgeSignature)},',
     )
     ..line(
+      '$prefix  renderEdgeSignature: '
+      '${_string(chunk.renderEdgeSignature)},',
+    )
+    ..line(
       '$prefix  placementSignature: '
       '${_string(chunk.placementSignature)},',
     )
@@ -408,6 +457,11 @@ void _writeChunk(_DartWriter writer, StagedTerrainChunkData chunk, int indent) {
   writer.line('$prefix  ],');
   writer.line('$prefix  edges: <StagedTerrainEdgeData>[');
   for (final edge in chunk.edges) {
+    _writeEdge(writer, edge, indent + 4);
+  }
+  writer.line('$prefix  ],');
+  writer.line('$prefix  renderEdges: <StagedTerrainEdgeData>[');
+  for (final edge in chunk.renderEdges) {
     _writeEdge(writer, edge, indent + 4);
   }
   writer.line('$prefix  ],');

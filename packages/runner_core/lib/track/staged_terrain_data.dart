@@ -5,7 +5,7 @@
 library;
 
 /// Schema version of [StagedTerrainArtifactData].
-const int stagedTerrainArtifactFormatVersion = 3;
+const int stagedTerrainArtifactFormatVersion = 4;
 
 /// Terrain compiler output version accepted by the runtime boundary.
 ///
@@ -18,6 +18,10 @@ const String stagedTerrainSourceSignatureFormat = 'source-v1';
 
 /// Canonical exposed-edge signature format retained in staged terrain data.
 const String stagedTerrainEdgeSignatureFormat = 'edges-v1';
+
+/// Canonical direct-terrain render-edge signature format retained in staged
+/// data.
+const String stagedTerrainRenderEdgeSignatureFormat = 'edges-v1';
 
 /// Canonical placed-Prefab lineage signature format retained in staged data.
 const String stagedTerrainPlacementSignatureFormat = 'authoring-placement-v1';
@@ -259,7 +263,11 @@ final class StagedTerrainPlacementLineageData {
   final bool flipY;
 }
 
-/// Complete staged local geometry and provenance for one authored chunk.
+/// Complete staged local gameplay geometry and terrain-render provenance.
+///
+/// [edges] and [edgeSignature] describe complete gameplay collision.
+/// [renderEdges] and [renderEdgeSignature] describe direct Chunk material
+/// boundaries and are required independently in artifact format 4.
 final class StagedTerrainChunkData {
   StagedTerrainChunkData({
     required this.chunkKey,
@@ -275,14 +283,17 @@ final class StagedTerrainChunkData {
     required this.authoringPolygonSignature,
     required this.sourceSignature,
     required this.edgeSignature,
+    required this.renderEdgeSignature,
     required this.placementSignature,
     required this.triangleSignature,
     required Iterable<StagedTerrainPolygonData> polygons,
     required Iterable<StagedTerrainEdgeData> edges,
+    required Iterable<StagedTerrainEdgeData> renderEdges,
     required Iterable<StagedTerrainTriangleData> triangles,
     required Iterable<StagedTerrainPlacementLineageData> placementLineage,
   }) : polygons = List<StagedTerrainPolygonData>.unmodifiable(polygons),
        edges = List<StagedTerrainEdgeData>.unmodifiable(edges),
+       renderEdges = List<StagedTerrainEdgeData>.unmodifiable(renderEdges),
        triangles = List<StagedTerrainTriangleData>.unmodifiable(triangles),
        placementLineage = List<StagedTerrainPlacementLineageData>.unmodifiable(
          placementLineage,
@@ -301,10 +312,17 @@ final class StagedTerrainChunkData {
   final String authoringPolygonSignature;
   final String sourceSignature;
   final String edgeSignature;
+  final String renderEdgeSignature;
   final String placementSignature;
   final String triangleSignature;
   final List<StagedTerrainPolygonData> polygons;
   final List<StagedTerrainEdgeData> edges;
+
+  /// Direct Chunk boundaries used by terrain material decoration.
+  ///
+  /// This list excludes placed Prefab collision so their contact with terrain
+  /// cannot alter its visible edge bands. [edges] remains gameplay authority.
+  final List<StagedTerrainEdgeData> renderEdges;
   final List<StagedTerrainTriangleData> triangles;
   final List<StagedTerrainPlacementLineageData> placementLineage;
 }
@@ -319,6 +337,7 @@ final class StagedTerrainArtifactData {
     required this.authoringSeamSignature,
     required this.sourceSignatureFormat,
     required this.edgeSignatureFormat,
+    required this.renderEdgeSignatureFormat,
     required this.placementSignatureFormat,
     required this.triangleSignatureFormat,
     required Iterable<StagedTerrainChunkData> chunks,
@@ -331,6 +350,9 @@ final class StagedTerrainArtifactData {
   final String authoringSeamSignature;
   final String sourceSignatureFormat;
   final String edgeSignatureFormat;
+
+  /// Format label for each Chunk's direct-terrain render-edge signature.
+  final String renderEdgeSignatureFormat;
   final String placementSignatureFormat;
   final String triangleSignatureFormat;
   final List<StagedTerrainChunkData> chunks;

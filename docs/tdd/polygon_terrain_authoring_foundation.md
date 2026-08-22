@@ -102,23 +102,29 @@ physics mode. `TerrainCollisionMode` therefore remains `solid`/`oneWay` and no
 collision, navigation, support, placement, seam, or blocker consumer needs a
 special-case non-collider.
 
-Chunk validation and generation first map every direct shape into an
-authoring-only review geometry. That pass owns canonical topology, bounds,
+Chunk validation and generation first map every source shape into an
+authoring-only review input. That pass owns canonical topology, bounds,
 positive-area no-overlap, material references, and normalized loops. The
-pipeline then removes direct `none` shapes before compiling the gameplay
-`TerrainGeometry`; placed Prefab collision remains solid/one-way and rejects
-`none`. Triangulation and staged polygon serialization use the all-shape review
-geometry, while staged edges, Core `source-v1`/`edges-v1` signatures, seam
-evidence, traversal caches, and actor projections use only gameplay geometry.
+pipeline compiles three deliberate products: gameplay `TerrainGeometry` from
+direct collidable shapes plus placed Prefab collision, fill geometry from only
+direct Chunk shapes including `none`, and material-edge geometry from only
+direct collidable Chunk shapes. Prefab `none` remains forbidden. Triangulation
+uses the direct fill geometry. Staged polygon serialization retains the union
+of gameplay polygons and direct render-only polygons, while gameplay edges,
+Core `source-v1`/`edges-v1` signatures, seam evidence, traversal caches, and
+actor projections continue to use only gameplay geometry. A separate
+`edges-v1` render-edge signature covers the direct material boundaries.
 `authoring-polygons-v1` still hashes every direct source shape, including its
 `none` role, and `authoring-triangles-v1` covers every rendered fill.
 
-At runtime the staged catalog rejects an edge owned by a `none` polygon. World
-binding omits those polygons entirely, then the render-snapshot builder proves
-all collidable staged loops match that world geometry and all `none` loops are
-absent from it before adding their generated fills. Candidate publication
-remains atomic: simulation receives the filtered geometry while Flame receives
-that geometry's fills plus the render-only fills at the same geometry version.
+At runtime the staged catalog rejects a gameplay edge owned by a `none`
+polygon and rejects any material edge owned by a placed Prefab or `none`
+polygon. World binding omits `none` polygons but retains placed Prefab
+collision. The render-snapshot builder proves every collidable staged loop
+matches that world geometry, then emits fills only for direct Chunk polygons
+and binds the separately compiled direct material edges. Candidate publication
+remains atomic: simulation receives complete gameplay geometry while Flame
+receives Chunk-owned terrain visuals at the same geometry version.
 
 The Chunk authoring workspace loads parallax themes only as preview input. Its
 plugin snapshot resolves the active `LevelDef.visualThemeId` to one theme, then
@@ -1162,9 +1168,9 @@ compiler or runtime-selection flag:
   exact scale tenths, collision metadata, and retained placement fields;
 - `polygon_terrain_compilation.dart` resolves stable prefab references and
   placement ordinals, applies the accepted anchor-relative Core transform,
-  pre-reviews canonical source, compiles an all-shape render geometry and a
-  collidable-only gameplay geometry, enforces closed chunk bounds, and retains
-  prefab key/id/revision lineage;
+  pre-reviews canonical source, compiles complete gameplay geometry plus
+  direct-only fill and material-edge geometry, enforces closed chunk bounds,
+  and retains prefab key/id/revision lineage;
 - `polygon_terrain_seam_manifest.dart` strictly decodes the shared scheduler
   adjacency golden and recalculates its Core-owned record/digest;
 - `polygon_terrain_seam_validation.dart` resolves every directed transition to
@@ -1199,10 +1205,11 @@ Core's `TerrainTriangulator` derives render triangles only from normalized
 select the first valid ear in surviving canonical-index order. Every result
 must contain exactly `vertexCount - 2` positive triangles whose exact
 doubled-area sum equals the Core polygon. Triangle indices reference that same
-normalized loop. The generator triangulates its all-shape render geometry,
-while collision edges continue to come exclusively from the filtered gameplay
-`TerrainGeometry.edges`. Malformed or noncanonical compiled input fails rather
-than producing partial triangles.
+normalized loop. The generator triangulates direct Chunk fill geometry,
+including direct `none` roles. Gameplay edges come from complete collidable
+geometry, while material edges come from direct collidable Chunk geometry.
+Malformed or noncanonical compiled input fails rather than producing partial
+triangles.
 
 Core also owns the immutable `authoring-triangles-v1` record and SHA-256
 contract. Records bind chunk, optional placement, shape, and the three
@@ -1224,10 +1231,13 @@ intent only. The retained `Staged*` names describe the generated artifact and
 publication format, not a disconnected or selectable runtime mode. The
 artifact is self-describing with artifact and
 compiler geometry versions plus `authoring-polygons-v1`, `source-v1`,
-`edges-v1`, `authoring-placement-v1`, `authoring-triangles-v1`, and
+gameplay and render `edges-v1`, `authoring-placement-v1`,
+`authoring-triangles-v1`, and
 `authoring-seams-v1` labels and signatures. Adding the authored-source digest
 advanced the generated artifact schema to format version 2; adding
-the validated reachable-adjacency digest advances it to format version 3.
+the validated reachable-adjacency digest advanced it to format version 3;
+separating direct render edges from placed Prefab collision advances it to
+format version 4.
 Each chunk record retains source revision/metadata, canonical source vertices
 in half-world-unit ticks, transformed vertices and exposed edges in integer
 physics ticks, collision/render metadata, deterministic triangle indices, and
@@ -1235,9 +1245,9 @@ exact prefab placement/revision lineage.
 
 The artifact's declared values are not trusted merely because its Dart types
 construct successfully. `validateStagedPolygonTerrainArtifact` compares the
-artifact/compiler versions, all six signature-format labels, the exact
+artifact/compiler versions, all seven signature-format labels, the exact
 reachable-seam digest, canonical Chunk membership and source metadata, plus
-the authored-polygon, Core source, Core edge, placement, and triangle
+the authored-polygon, Core source, Core edge, render-edge, placement, and triangle
 signatures for every Chunk against a fresh accepted batch. Findings use the
 shared `TerrainAuthoringIssue` severity/owner envelope; a Chunk-local mismatch
 owns that Chunk, while an artifact-global mismatch owns the canonical output
@@ -1272,8 +1282,10 @@ per geometry version and creates `ui.Vertices` with the supplied Core triangle
 indices. It never triangulates, normalizes, stitches, or infers polygon edges.
 `StagedTerrainRenderSnapshotBuilder` requires every solid/one-way staged loop
 to match the published collision polygon exactly. A staged `none` loop must be
-absent from collision geometry and is translated directly into the same render
-snapshot; staged edges can never reference it.
+absent from collision geometry. Direct Chunk loops become terrain fills;
+placed Prefab loops remain collision-only because their sprite layer owns
+their appearance. Material decoration consumes the generated direct-only
+render edges, so exact Prefab contact cannot split or cancel the terrain skin.
 Fill texture phase is world anchored. The generated material registry maps
 top/slope, left-wall, right-wall, and underside profiles onto exact retained
 `TerrainEdge` outward normals; an absent optional profile intentionally leaves

@@ -229,15 +229,16 @@ String _placementSignature(ChunkV2CollisionExpansion expansion) {
 String _triangleSignature(ChunkV2CollisionExpansion expansion) {
   final triangles = <TerrainAuthoringTriangleRecord>[
     for (final polygon in expansion.geometry.polygons)
-      for (final triangle in const TerrainTriangulator().triangulate(polygon))
-        TerrainAuthoringTriangleRecord(
-          chunkKey: polygon.identity.chunkKey,
-          placementKey: polygon.identity.placementKey,
-          shapeId: polygon.identity.shapeId,
-          first: triangle.first,
-          second: triangle.second,
-          third: triangle.third,
-        ),
+      if (polygon.identity.placementKey == null)
+        for (final triangle in const TerrainTriangulator().triangulate(polygon))
+          TerrainAuthoringTriangleRecord(
+            chunkKey: polygon.identity.chunkKey,
+            placementKey: polygon.identity.placementKey,
+            shapeId: polygon.identity.shapeId,
+            first: triangle.first,
+            second: triangle.second,
+            third: triangle.third,
+          ),
   ];
   return terrainAuthoringTriangleSignature(triangles);
 }

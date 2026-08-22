@@ -14,8 +14,10 @@ import 'track_streamer.dart';
 
 /// All immutable Core outputs required to publish staged terrain together.
 ///
-/// [runtimeBundle] and [renderSnapshot] share the exact [geometry] object and
-/// [geometryVersion]. The class has no tick scheduling or gameplay side
+/// [runtimeBundle] and [renderSnapshot] share one [geometryVersion]. The
+/// render snapshot retains direct terrain boundaries separately so placed
+/// Prefab collision cannot alter material decoration. The class has no tick
+/// scheduling or gameplay side
 /// effect. Normal streaming replaces this whole candidate whenever the
 /// scheduler's active selection changes; terrain authority publication retains
 /// the same atomic boundary. The `Staged` type prefix is the retained artifact
@@ -37,7 +39,7 @@ final class StagedTerrainStreamCandidate {
   /// Collision index, support query, and ground-enemy graph views.
   final TerrainRuntimeBundle runtimeBundle;
 
-  /// Generated fills for [geometry] plus any staged render-only polygons.
+  /// Direct Chunk terrain fills and boundaries paired with [geometry].
   final StagedTerrainRenderSnapshot renderSnapshot;
 }
 

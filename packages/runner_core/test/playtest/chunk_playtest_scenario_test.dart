@@ -315,35 +315,8 @@ StagedTerrainChunkData _draftTerrain({
     (chunk) => chunk.chunkKey == _selectedKey,
   );
   final rightBoundaryX = admitted.width * 1024;
-  return StagedTerrainChunkData(
-    chunkKey: admitted.chunkKey,
-    id: '${admitted.id}_draft',
-    revision: admitted.revision + 1,
-    status: status,
-    levelId: levelId ?? admitted.levelId,
-    tileSize: admitted.tileSize,
-    width: width ?? admitted.width,
-    height: admitted.height,
-    difficulty: admitted.difficulty,
-    assemblyGroupId: assemblyGroupId ?? admitted.assemblyGroupId,
-    authoringPolygonSignature: admitted.authoringPolygonSignature,
-    sourceSignature: admitted.sourceSignature,
-    edgeSignature: admitted.edgeSignature,
-    placementSignature: admitted.placementSignature,
-    triangleSignature: admitted.triangleSignature,
-    polygons: admitted.polygons.map(
-      (polygon) => StagedTerrainPolygonData(
-        sourcePath: polygon.sourcePath,
-        id: polygon.id,
-        sourceVertices: polygon.sourceVertices,
-        vertices: polygon.vertices,
-        collisionMode: polygon.collisionMode,
-        surfaceKind: polygon.surfaceKind,
-        materialKey: _draftMaterial,
-      ),
-    ),
-    edges: admitted.edges.map(
-      (edge) => StagedTerrainEdgeData(
+  StagedTerrainEdgeData draftEdge(StagedTerrainEdgeData edge) =>
+      StagedTerrainEdgeData(
         id: edge.id,
         start: _moveRightBoundaryPoint(
           edge.start,
@@ -364,8 +337,37 @@ StagedTerrainChunkData _draftTerrain({
         nextId: edge.nextId,
         startJoin: edge.startJoin,
         endJoin: edge.endJoin,
+      );
+  return StagedTerrainChunkData(
+    chunkKey: admitted.chunkKey,
+    id: '${admitted.id}_draft',
+    revision: admitted.revision + 1,
+    status: status,
+    levelId: levelId ?? admitted.levelId,
+    tileSize: admitted.tileSize,
+    width: width ?? admitted.width,
+    height: admitted.height,
+    difficulty: admitted.difficulty,
+    assemblyGroupId: assemblyGroupId ?? admitted.assemblyGroupId,
+    authoringPolygonSignature: admitted.authoringPolygonSignature,
+    sourceSignature: admitted.sourceSignature,
+    edgeSignature: admitted.edgeSignature,
+    renderEdgeSignature: admitted.renderEdgeSignature,
+    placementSignature: admitted.placementSignature,
+    triangleSignature: admitted.triangleSignature,
+    polygons: admitted.polygons.map(
+      (polygon) => StagedTerrainPolygonData(
+        sourcePath: polygon.sourcePath,
+        id: polygon.id,
+        sourceVertices: polygon.sourceVertices,
+        vertices: polygon.vertices,
+        collisionMode: polygon.collisionMode,
+        surfaceKind: polygon.surfaceKind,
+        materialKey: _draftMaterial,
       ),
     ),
+    edges: admitted.edges.map(draftEdge),
+    renderEdges: admitted.renderEdges.map(draftEdge),
     triangles: admitted.triangles,
     placementLineage: admitted.placementLineage,
   );

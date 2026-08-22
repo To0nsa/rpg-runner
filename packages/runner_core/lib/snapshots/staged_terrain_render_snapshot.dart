@@ -1,4 +1,4 @@
-/// Immutable render data derived from the published terrain geometry.
+/// Immutable render data paired with the published terrain geometry.
 library;
 
 import '../collision/terrain/terrain_edge.dart';
@@ -57,8 +57,9 @@ final class StagedTerrainPolygonRenderSnapshot {
 ///
 /// [GameStateSnapshot] exposes this whole object for normal rendering and
 /// terrain-harness publication. Its [geometryVersion] matches the exact
-/// collision/support/navigation bundle used by normal gameplay; [polygons]
-/// may additionally contain render-only fills omitted from that bundle.
+/// collision/support/navigation bundle used by normal gameplay. [polygons]
+/// contains only direct Chunk terrain fills and may additionally include
+/// render-only roles; placed Prefab collision remains gameplay-only.
 final class StagedTerrainRenderSnapshot {
   StagedTerrainRenderSnapshot({
     required this.geometryVersion,
@@ -75,11 +76,11 @@ final class StagedTerrainRenderSnapshot {
   /// Canonically ordered terrain fill polygons.
   final List<StagedTerrainPolygonRenderSnapshot> polygons;
 
-  /// Canonically ordered exposed collision edges for render diagnostics.
+  /// Canonically ordered direct-terrain edges for material decoration.
   ///
-  /// These are the exact compiler-owned edge objects used by the matching
-  /// collision/navigation bundle. Their IDs retain full chunk, placement, and
-  /// shape lineage; render consumers must not derive substitute boundaries
-  /// from [polygons].
+  /// These edges are compiled without placed Prefab collision, so collider
+  /// contact cannot split or cancel the visible terrain skin. They share the
+  /// matching geometry version and direct source identities; render consumers
+  /// must not derive substitute boundaries from [polygons].
   final List<TerrainEdge> edges;
 }

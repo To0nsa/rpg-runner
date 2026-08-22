@@ -7,13 +7,14 @@ library;
 import 'package:runner_core/track/staged_terrain_data.dart';
 
 final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactData(
-  formatVersion: 3,
+  formatVersion: 4,
   compilerGeometryVersion: 1,
   authoringPolygonSignatureFormat: "authoring-polygons-v1",
   authoringSeamSignatureFormat: "authoring-seams-v1",
   authoringSeamSignature: "c11c965911bb3990c762fc8babb016240b06309c1ecaf7c39b8007b8049f08ab",
   sourceSignatureFormat: "source-v1",
   edgeSignatureFormat: "edges-v1",
+  renderEdgeSignatureFormat: "edges-v1",
   placementSignatureFormat: "authoring-placement-v1",
   triangleSignatureFormat: "authoring-triangles-v1",
   chunks: <StagedTerrainChunkData>[
@@ -31,8 +32,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       authoringPolygonSignature: "679f918e4180e6192bf6b6285fba332df8c24e7a331b37490628fddb8261e9db",
       sourceSignature: "ad2ecbb707c97f430990defaff725bde6cb9ba633807363813d2b61c0b38e635",
       edgeSignature: "20fb3ca94073a78eb43bb3bb3fef171b395350f7cf7b8707f5c629153abc3351",
+      renderEdgeSignature: "a29e8be8cf43941a8d7fa6f9c7e9cf6dfd25baa87a009c4fcf75b5b1a4b06c73",
       placementSignature: "bacff9da393aaa89d3947024dc25de3eaec17f77561c217af1af9a75143b7211",
-      triangleSignature: "c1a718727f1a6c2f17cd4498b367a1a96989b4d3f5f455096e3e243bc5bc07d3",
+      triangleSignature: "412a305cc23bc7d75d9cff6307d6ef8bf7de623d1f106c2001aa6dd3375c4130",
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
           sourcePath: "chunks/forest/fixture_chunk.json#direct=ground",
@@ -592,6 +594,334 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           endJoin: StagedTerrainVertexJoin.connected,
         ),
       ],
+      renderEdges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 20480),
+          end: StagedTerrainPoint(40960, 20480),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(40960, 20480),
+          end: StagedTerrainPoint(40960, 40960),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(40960, 40960),
+          end: StagedTerrainPoint(24576, 40960),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(24576, 40960),
+          end: StagedTerrainPoint(24576, 30720),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(24576, 30720),
+          end: StagedTerrainPoint(16384, 30720),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(16384, 30720),
+          end: StagedTerrainPoint(16384, 40960),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(16384, 40960),
+          end: StagedTerrainPoint(0, 40960),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 40960),
+          end: StagedTerrainPoint(0, 20480),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "earth",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "ground",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "fixture_chunk",
+              placementKey: null,
+              shapeId: "platform",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(51200, 61440),
+          end: StagedTerrainPoint(92160, 61440),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.oneWay,
+          surfaceKind: "platform",
+          materialKey: "wood",
+          previousId: null,
+          nextId: null,
+          startJoin: StagedTerrainVertexJoin.exposed,
+          endJoin: StagedTerrainVertexJoin.exposed,
+        ),
+      ],
       triangles: <StagedTerrainTriangleData>[
         StagedTerrainTriangleData(
           sourceId: StagedTerrainSourceId(
@@ -668,26 +998,6 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             chunkKey: "fixture_chunk",
             placementKey: null,
             shapeId: "platform",
-          ),
-          first: 3,
-          second: 0,
-          third: 1,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "fixture_chunk",
-            placementKey: "prefab_ramp|60|20|0",
-            shapeId: "collision_001",
-          ),
-          first: 1,
-          second: 2,
-          third: 3,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "fixture_chunk",
-            placementKey: "prefab_ramp|60|20|0",
-            shapeId: "collision_001",
           ),
           first: 3,
           second: 0,

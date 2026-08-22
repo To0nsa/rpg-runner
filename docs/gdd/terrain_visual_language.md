@@ -30,6 +30,9 @@ remain upright and retain their existing visual priority over the ground.
   behavior explicitly.
 - Atlas packing is an image-storage and authoring concern only. Selecting a
   different cell or rectangle changes the visual role, never collision shape.
+- Prefab collision never paints or cuts the terrain material. A placed
+  Prefab's sprite owns its appearance, while the Chunk terrain keeps the same
+  fill and surface strip it had before placement, including at exact contact.
 - The `grass_dirt` atlas cells carry a one-pixel export outline. Edge and cap
   regions omit that outward-facing row or column in source space, so device
   scaling and clip rasterization cannot reveal it. The visible grass and rock
@@ -57,9 +60,11 @@ remain upright and retain their existing visual priority over the ground.
 ## Runtime Boundary
 
 Normal Field and Forest gameplay now uses one authored terrain set and one
-atomic streamed candidate. Solid and one-way polygons feed collision,
-support/navigation, placement, and rendering. `none` polygons feed only the
-render snapshot: they create no support, blocker, seam, or collision edge.
+atomic streamed candidate. Direct solid and one-way Chunk polygons feed
+collision, support/navigation, placement, and terrain rendering. Placed Prefab
+polygons join collision, support/navigation, and placement without becoming
+terrain fills or material edges. `none` polygons feed only the render snapshot:
+they create no support, blocker, seam, or collision edge.
 Current Forest ground remains flat; slopes, platforms, and visually dressed
 gaps can be introduced as ordinary content.
 

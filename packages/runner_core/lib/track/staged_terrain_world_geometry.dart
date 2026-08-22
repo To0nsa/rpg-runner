@@ -35,18 +35,7 @@ final class StagedTerrainWorldGeometryBuilder {
         'Must be non-negative.',
       );
     }
-    final orderedBindings = List<StagedTerrainChunkBinding>.of(bindings)
-      ..sort((left, right) => left.chunkIndex.compareTo(right.chunkIndex));
-    for (var index = 1; index < orderedBindings.length; index += 1) {
-      if (orderedBindings[index - 1].chunkIndex ==
-          orderedBindings[index].chunkIndex) {
-        throw ArgumentError.value(
-          bindings,
-          'bindings',
-          'Streamed chunk indices must be unique.',
-        );
-      }
-    }
+    final orderedBindings = _orderedBindings(bindings);
 
     final polygons = <TerrainPolygon>[];
     final localEdges = <TerrainEdge>[];
@@ -65,6 +54,39 @@ final class StagedTerrainWorldGeometryBuilder {
       polygons: polygons,
       edges: edges,
     );
+  }
+
+  /// Builds world-space material boundaries from direct Chunk terrain only.
+  ///
+  /// These edges retain the same streamed identities and seam stitching as
+  /// gameplay edges, but intentionally exclude placed Prefab collision so
+  /// contact cannot punch gaps into terrain decoration.
+  List<TerrainEdge> buildRenderEdges({
+    required Iterable<StagedTerrainChunkBinding> bindings,
+  }) {
+    final orderedBindings = _orderedBindings(bindings);
+    final localEdges = <TerrainEdge>[
+      for (final binding in orderedBindings)
+        for (final edge in binding.chunk.renderEdges) _buildEdge(binding, edge),
+    ];
+    return _stitchEdges(localEdges);
+  }
+
+  List<StagedTerrainChunkBinding> _orderedBindings(
+    Iterable<StagedTerrainChunkBinding> bindings,
+  ) {
+    final ordered = List<StagedTerrainChunkBinding>.of(bindings)
+      ..sort((left, right) => left.chunkIndex.compareTo(right.chunkIndex));
+    for (var index = 1; index < ordered.length; index += 1) {
+      if (ordered[index - 1].chunkIndex == ordered[index].chunkIndex) {
+        throw ArgumentError.value(
+          bindings,
+          'bindings',
+          'Streamed chunk indices must be unique.',
+        );
+      }
+    }
+    return ordered;
   }
 
   /// Removes exact opposing chunk-boundary faces and reconnects their loops.

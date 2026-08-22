@@ -112,6 +112,12 @@ PolygonTerrainArtifactValidationResult validateStagedPolygonTerrainArtifact({
     actualValue: artifact.edgeSignatureFormat,
   );
   globalMismatch(
+    code: 'render_edge_signature_format_mismatch',
+    label: 'Render edge signature format',
+    expectedValue: stagedTerrainRenderEdgeSignatureFormat,
+    actualValue: artifact.renderEdgeSignatureFormat,
+  );
+  globalMismatch(
     code: 'placement_signature_format_mismatch',
     label: 'Placement signature format',
     expectedValue: stagedTerrainPlacementSignatureFormat,
@@ -247,6 +253,12 @@ void _validateChunk({
       'Core edge signature',
       expected.geometry.edgeSignature(),
       actual.edgeSignature,
+    ),
+    (
+      'render_edge_signature_mismatch',
+      'Direct terrain render edge signature',
+      expected.renderEdgeGeometry.edgeSignature(),
+      actual.renderEdgeSignature,
     ),
     (
       'placement_signature_mismatch',
