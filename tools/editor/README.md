@@ -335,9 +335,9 @@ sit below a bounded scene, with owners on the left. Persistent
 visual/viewport controls sit above the **Terrain / Prefabs / Markers / Layers**
 selector, which swaps only the domain card; it never replaces or rebuilds the
 scene or filters Diagnostics. Tab changes preserve the viewport and each
-domain's last selection. Active drafts, gestures, expanded retained editors,
-and retained dialogs lock the tabs until that operation is finished or
-cancelled.
+domain's last selection. Active source gestures and retained dialogs lock the
+tabs until that operation is finished or cancelled. Merely selecting a Prefab
+or expanding its inline editor does not lock the workspace.
 
 The scene tabs make primary input explicit. The Prefabs domain has Select,
 Place, and Move tools backed by a persistent visual library at the top of its
@@ -350,7 +350,9 @@ and inline creation form; it never creates a pending source change by itself.
 Editing an existing placement expands that placement row with the same visual
 browser and transform fields. Its tentative owner and values stay row-local
 until Apply; Cancel collapses the row without changing source or the route
-catalog choice. Place and move drags show a local ghost, then submit one
+catalog choice. Switching domains, owners, or source revision discards the
+un-applied inline draft and keeps navigation available. Place and move drags
+show a local ghost, then submit one
 normal validated composition command on release; Escape cancels without
 changing source. Grid-enabled placements snap to the chunk tile size, while
 exact placement fields remain integer-pixel overrides in the sidebar creation

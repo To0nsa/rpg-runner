@@ -112,9 +112,10 @@ prefab/marker gestures, expanded Prefab edits, and retained Marker/tile-layer
 dialogs share the same composition command and stale-snapshot checks. Prefab
 and marker cards split foldable inline creation from existing records. Prefab
 placement editing expands the selected row with row-local owner and transform
-drafts, while Marker edits keep the validated modal form. Layers remains a
-passive metadata-only domain. The initiative does not change Chunk-v2 source
-or Core placement lineage:
+drafts without locking route navigation; changing domain, owner, or source
+revision discards that un-applied draft. Marker edits keep the validated modal
+form. Layers remains a passive metadata-only domain. The initiative does not
+change Chunk-v2 source or Core placement lineage:
 
 Direct Chunk terrain now uses one hardcoded whole-pixel minimum authoring grid.
 The former `1 px` / `0.5 px` selector is removed, pointer and exact-field edits

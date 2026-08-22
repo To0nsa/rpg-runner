@@ -995,7 +995,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       label: Text(_prefabToolLabel(tool)),
                       selected: _prefabGesture.tool == tool,
                       onSelected:
-                          _prefabGesture.hasActiveOperation ||
+                          _hasActiveOperation ||
                               (tool == ChunkPrefabSceneTool.place &&
                                   _selectedCatalogPrefab(scene) == null)
                           ? null
@@ -1024,7 +1024,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       key: ValueKey<String>('chunk_marker_tool_${tool.name}'),
                       label: Text(_markerToolLabel(tool)),
                       selected: _markerGesture.tool == tool,
-                      onSelected: _markerGesture.hasActiveOperation
+                      onSelected: _hasActiveOperation
                           ? null
                           : (_) => setState(() => _markerGesture.setTool(tool)),
                     ),
@@ -1042,7 +1042,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           ),
                         )
                         .toList(growable: false),
-                    onChanged: _markerGesture.hasActiveOperation
+                    onChanged: _hasActiveOperation
                         ? null
                         : (markerId) => setState(
                             () => _selectedMarkerCatalogId = markerId,
@@ -2734,6 +2734,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     required int pointer,
     required Offset worldPoint,
   }) {
+    if (_hasActiveOperation) return false;
     switch (_sceneCoordinator.domain) {
       case ChunkSceneDomain.prefabs:
         switch (_prefabGesture.tool) {
@@ -2871,10 +2872,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _deleteSceneSelection() {
-    if (_prefabGesture.hasActiveOperation ||
-        _markerGesture.hasActiveOperation) {
-      return;
-    }
+    if (_hasActiveOperation) return;
     final authoring = _authoring;
     if (authoring == null) return;
     switch (_sceneCoordinator.domain) {

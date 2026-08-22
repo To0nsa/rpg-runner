@@ -1293,9 +1293,34 @@ void main() {
       final reloadHandler = routeState as EditorPageReloadHandler;
       final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
       final localDraftState = routeState as EditorPageLocalDraftState;
-      expect(reloadHandler.canReloadEditorPage, isFalse);
+      final domainSelector = find.byKey(
+        const ValueKey<String>('chunk_scene_domain_selector'),
+      );
+      expect(reloadHandler.canReloadEditorPage, isTrue);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
-      expect(localDraftState.hasLocalDraftChanges, isTrue);
+      expect(localDraftState.hasLocalDraftChanges, isFalse);
+      expect(
+        tester
+            .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
+            .onSelectionChanged,
+        isNotNull,
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey<String>('chunk_prefab_tool_move')),
+            )
+            .onSelected,
+        isNotNull,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_placement_inline_close_$placementKey',
+          ),
+        ),
+        findsOneWidget,
+      );
       await tester.enterText(
         find.byKey(
           const ValueKey<String>(
@@ -1329,19 +1354,23 @@ void main() {
         'prefab_rock',
       );
 
-      final cancel = find.descendant(
-        of: inlineEditor,
-        matching: find.widgetWithText(TextButton, 'Cancel'),
-      );
-      await tester.ensureVisible(cancel);
-      await tester.pumpAndSettle();
-      await tester.tap(cancel);
-      await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.markers});
+      await tester.pump();
       expect(inlineEditor, findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_markers_card')),
+        findsOne,
+      );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(reloadHandler.canReloadEditorPage, isTrue);
       expect(localDraftState.hasLocalDraftChanges, isFalse);
 
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+      await tester.pump();
       await tester.ensureVisible(editPlacement);
       await tester.tap(editPlacement);
       await tester.pumpAndSettle();
@@ -1373,6 +1402,36 @@ void main() {
       expect(inlineEditor, findsNothing);
       expect(reloadHandler.canReloadEditorPage, isTrue);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
+
+      final deletePlacement = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_delete_prefab_tree|95|10|0'),
+      );
+      await tester.scrollUntilVisible(
+        deletePlacement,
+        240,
+        scrollable: sidebarScrollable,
+      );
+      await tester.tap(deletePlacement);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey<String>('chunk_prefab_tool_move')),
+            )
+            .onSelected,
+        isNull,
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey<String>('chunk_prefab_tool_move')),
+            )
+            .onSelected,
+        isNotNull,
+      );
     },
   );
 

@@ -33,8 +33,9 @@ tabs. The tabs mount only their matching right-side card and never replace the
 scene. On a narrow
 window, the owner rail and authoring sidebar sit beside each other below a
 bounded scene. The scene remains mounted across tab and expansion changes.
-Viewport state and per-domain selection are retained, while active operations
-lock tab changes.
+Viewport state and per-domain selection are retained, while active source
+operations lock tab changes. Tentative inline Prefab placement editing is not
+an active source operation.
 
 This is a workflow redesign, not a label-only or layout-only change. The
 existing scene already previews most chunk visuals, but its input path authors
@@ -253,7 +254,9 @@ the requested `Chunk creation scene` title. The header continues to own:
 - source-generation and migration status
 
 Owner switching, reload, apply, and route switching remain blocked while any
-domain has an active gesture or unsaved route-local draft.
+domain has an active gesture or guarded route-local draft. The expanded Prefab
+placement form is deliberately non-blocking and discards its un-applied values
+when its domain, owner, or source revision changes.
 
 Because the scene and active card share one operation boundary, the guard is
 route-wide: while one domain has an active operation, tab changes and mutating
@@ -384,8 +387,8 @@ be frozen in this strategy.
 | Active level and chunk owner | Route workspace/coordinator projected over the loaded scene | Switching cannot discard an active domain gesture. |
 | Viewport zoom, pan, and overlay visibility | Route-local scene state | View changes never create document revisions. |
 | Active canvas domain and typed scene selection | A focused Chunk-scene coordinator | At most one of terrain, prefab, or marker owns source-editing primary input. |
-| Route-wide active-operation and undo/redo routing | Chunk-scene coordinator over focused domain controllers | Cross-domain mutations cannot interleave with a local draft or gesture. |
-| Page-level local-draft/shortcut reporting | Route workspace projected through `EditorPageLocalDraftState` and shortcut handlers | Every domain operation participates in reload guards and blocks session history until it commits or cancels. |
+| Route-wide active-operation and undo/redo routing | Chunk-scene coordinator over focused domain controllers | Cross-domain mutations cannot interleave with a guarded draft or gesture; tentative inline Prefab values are discarded on context change instead. |
+| Page-level local-draft/shortcut reporting | Route workspace projected through `EditorPageLocalDraftState` and shortcut handlers | Every source operation participates in reload guards and blocks session history until it commits or cancels. |
 | Terrain polygon draft/gesture | Existing polygon authoring controller | Existing snap, validation, and exactly-once commit rules remain intact. |
 | Prefab placement draft/gesture | Focused prefab-placement interaction state | Pointer movement is preview-only until one accepted commit. |
 | Marker draft/gesture | Focused marker interaction state | Authored anchor and resolved placement evidence remain distinct. |

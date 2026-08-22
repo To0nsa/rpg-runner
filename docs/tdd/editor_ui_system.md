@@ -60,8 +60,8 @@ the visual catalog plus creation and existing-placement sections, Markers
 contains its creation and retained-placement sections, and Layers contains the
 visual stack plus tile-layer metadata. Seam evidence and route diagnostics are
 not separate sidebar sections. Tab changes preserve the scene subtree,
-viewport, and per-domain selection; an active draft or gesture disables tab
-changes.
+viewport, and per-domain selection; an active source gesture or retained dialog
+disables tab changes.
 The Prefabs card starts with one persistent `ChunkPrefabCatalogBrowser`. It
 uses immutable Prefab-v3 and tile/module projections plus a browser-owned,
 workspace-path-scoped image cache for thumbnail rendering, token search across
@@ -70,8 +70,11 @@ stable-key selection feeds the scene Place tool and inline placement form but
 does not enter the plugin document, history, validation, or pending diff. The
 selected retained placement row expands in place and composes the same browser
 with row-local selection and transform drafts. Apply dispatches one captured
-revision-aware composition operation; Cancel collapses the row, unlocks route
-operations, and cannot change the route catalog choice or source.
+revision-aware composition operation. The expanded form is not itself a
+route-wide operation: Cancel or a domain, owner, or source-revision change
+discards its un-applied draft without changing the route catalog choice or
+source. Genuine composition dialogs and scene gestures continue to lock
+conflicting scene tools and route operations.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation

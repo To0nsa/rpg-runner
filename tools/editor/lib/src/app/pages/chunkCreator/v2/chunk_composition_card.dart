@@ -83,6 +83,17 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
       widget.onCatalogPrefabSelected;
 
   @override
+  void didUpdateWidget(covariant ChunkCompositionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_placementEdit == null) return;
+    if (oldWidget.section != widget.section ||
+        oldWidget.chunk.chunkKey != widget.chunk.chunkKey ||
+        oldWidget.chunk.revision != widget.chunk.revision) {
+      _placementEdit = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final (cardKey, expansionKey, title, description) = switch (section) {
       ChunkCompositionSection.prefabs => (
@@ -533,7 +544,6 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
       );
     });
     onPrefabSelected(selection);
-    onOperationChanged(true);
   }
 
   Widget _buildPlacementEditDetails(
@@ -567,11 +577,28 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text('Edit placement', style: Theme.of(context).textTheme.titleSmall),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Edit placement',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              TextButton.icon(
+                key: ValueKey<String>(
+                  'chunk_v2_placement_inline_close_$keySuffix',
+                ),
+                onPressed: _cancelPlacementEdit,
+                icon: const Icon(Icons.close),
+                label: const Text('Close editor'),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           const Text(
             'Choose a prefab and adjust this saved placement. Changes are '
-            'staged only after Apply.',
+            'staged only after Apply. Switching context discards this draft.',
           ),
           const SizedBox(height: 12),
           ChunkPrefabCatalogBrowser(
@@ -585,6 +612,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
             autofocusSearch: true,
             gridHeight: 248,
             keyPrefix: 'chunk_v2_placement_inline_catalog_$keySuffix',
+            enabled: controlsEnabled,
             onSelected: (prefab) {
               setState(() {
                 _placementEdit = edit.copyWith(
@@ -601,6 +629,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
             fieldKeyPrefix: 'chunk_v2_placement_inline_$keySuffix',
             submitKey: 'chunk_v2_placement_inline_apply_$keySuffix',
             submitLabel: 'Apply changes',
+            enabled: controlsEnabled,
             onCancel: _cancelPlacementEdit,
             onSubmit: (candidate) => _applyPlacementEdit(context, candidate),
           ),
@@ -622,7 +651,6 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   void _finishPlacementEdit() {
     if (_placementEdit == null) return;
     setState(() => _placementEdit = null);
-    onOperationChanged(false);
   }
 
   Future<void> _deletePlacement(

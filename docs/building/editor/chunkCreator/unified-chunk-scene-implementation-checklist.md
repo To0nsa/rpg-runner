@@ -390,9 +390,10 @@ reusing the current Chunk-v2 optimistic composition contract.
 - [x] Detect a candidate equal to `before` inside the adapter, close the local
       operation without dispatch, and do not show the generic rejection path.
 - [x] Keep pointer-move preview state outside `EditorSessionController`.
-- [x] Treat an open composition dialog or expanded Prefab placement editor as a
-      route-local operation until it cancels or submits, so shell
-      reload/apply/history shortcuts cannot replace its captured owner state.
+- [x] Treat an open composition dialog as a route-local operation until it
+      cancels or submits. Keep the expanded Prefab placement form non-blocking,
+      discard its un-applied draft on domain/owner/source-revision change, and
+      retain captured-revision validation on Apply.
 - [x] Dispatch through
       `ChunkDomainPlugin.commitChunkCompositionCommandKind`; add no new document
       command or page-level validation path.
@@ -852,6 +853,8 @@ performance regression remains.
       inline creation without creating source history or pending diffs.
 - [x] Expand the selected retained placement row with the same browser and keep
       its tentative owner and transform drafts isolated until Apply.
+- [x] Keep that expanded form non-blocking, provide a visible close action, and
+      disable scene tools consistently only for genuine active operations.
 - [x] Cover filtering, empty results, keyboard selection, route integration,
       and exact ID/key submission with focused widget tests.
 - [x] Keep Chunk-v2 source, canonical ordering, composition validation, and
