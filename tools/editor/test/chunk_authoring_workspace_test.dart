@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_enemy_catalog_browser.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_prefab_catalog_browser.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_level_visual_source.dart';
@@ -1614,6 +1615,137 @@ void main() {
     expect(expanded.placementX, 80);
     expect(expanded.placementY, 16);
   });
+
+  testWidgets(
+    'visual enemy library drives marker creation and scene placement',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.markers});
+      await tester.pump();
+      expect(find.text('Enemy library'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_marker_catalog_selector')),
+        findsNothing,
+      );
+      expect(find.text('Selected: Derf'), findsOneWidget);
+
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_enemy_catalog_section_toggle',
+        bodyKey: 'chunk_enemy_catalog_grid',
+      );
+      expect(find.byType(ChunkEnemyCatalogBrowser), findsOneWidget);
+      expect(find.text('4 of 4 enemies'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_enemy_catalog_search')),
+        'flying',
+      );
+      await tester.pump();
+      expect(find.text('1 of 4 enemies'), findsOneWidget);
+      final unocoCard = find.byKey(
+        const ValueKey<String>('chunk_enemy_catalog_card_unocoDemon'),
+      );
+      await tester.ensureVisible(unocoCard);
+      await tester.tap(unocoCard);
+      await tester.pump();
+      expect(find.text('Selected: Unoco Demon'), findsOneWidget);
+
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_marker_creation_panel_toggle',
+        bodyKey: 'chunk_marker_creation_form_forest_chunk',
+      );
+      final creationForm = tester.widget<ChunkV2MarkerForm>(
+        find.byType(ChunkV2MarkerForm),
+      );
+      expect(creationForm.enemyId, 'unocoDemon');
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_marker_creation_selected_enemy_unocoDemon',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_creation_x_field')),
+        '60',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_creation_y_field')),
+        '5',
+      );
+      final addMarker = find.byKey(
+        const ValueKey<String>('chunk_v2_marker_add'),
+      );
+      await tester.ensureVisible(addMarker);
+      await tester.tap(addMarker);
+      await tester.pump();
+      var edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 5);
+      expect(
+        edited.markers.any(
+          (marker) =>
+              marker.markerId == 'unocoDemon' &&
+              marker.x == 60 &&
+              marker.y == 5,
+        ),
+        isTrue,
+      );
+
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('chunk_marker_tool_place')),
+          )
+          .onSelected!(true);
+      await tester.pump();
+      final surfaceFinder = find.byKey(
+        const ValueKey<String>('chunk_scene_surface'),
+      );
+      final surface = tester.widget<ChunkSceneSurface>(
+        find.ancestor(
+          of: surfaceFinder,
+          matching: find.byType(ChunkSceneSurface),
+        ),
+      );
+      final point =
+          tester.getTopLeft(surfaceFinder) +
+          surface.transform.origin +
+          Offset(70 * surface.transform.zoom, 5 * surface.transform.zoom);
+      final gesture = await tester.startGesture(point);
+      await gesture.up();
+      await tester.pump();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 6);
+      expect(
+        edited.markers.any(
+          (marker) =>
+              marker.markerId == 'unocoDemon' &&
+              marker.x == 70 &&
+              marker.y == 5,
+        ),
+        isTrue,
+      );
+    },
+  );
 
   testWidgets('direct marker placement keeps anchors separate from evidence', (
     tester,
@@ -3273,6 +3405,12 @@ void main() {
       await tapCompositionControl(
         ChunkSceneDomain.markers,
         'chunk_v2_marker_edit_derf|60|5|0',
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_marker_dialog_catalog_grid'),
+        ),
+        findsOneWidget,
       );
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_marker_chance_field')),

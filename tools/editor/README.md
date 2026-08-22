@@ -22,11 +22,11 @@ Implemented authoring domains:
   half-pixel polygon-collision authoring, including tagged atlas/tile slices
   and searchable slice selection; Prefab atlas slicing supports configurable
   cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
-- chunk authoring with whole-pixel direct terrain polygons, expanded placed-Prefab
-  collision, a searchable visual Prefab library, active-level parallax and
-  terrain-material scene preview, Core-backed actor-traversability and
-  marker-placement previews, scene-based composition, shared pan/zoom/grid
-  controls, and Prefab transform editing
+- chunk authoring with whole-pixel direct terrain polygons, expanded
+  placed-Prefab collision, searchable visual Prefab and enemy libraries,
+  active-level parallax and terrain-material scene preview, Core-backed
+  actor-traversability and marker-placement previews, scene-based composition,
+  shared pan/zoom/grid controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, explicit new/existing visual-theme assignment,
   atomic Level-plus-theme pending/apply, repair of unresolved references, and
@@ -384,19 +384,27 @@ never silently rewritten. Prefabs with no collision or no lowest horizontal
 edge retain the full visual-scale range. Surface snap changes no Prefab/Chunk
 schema and never weakens the final positive-area overlap validator.
 
-The Markers domain likewise provides Select, Place, and Move tools. These edit
+The Markers domain likewise provides Select, Place, and Move tools. Its
+foldable **Enemy library** searches Core enemy name, stable ID, and authoritative
+terrain-motion role; role and current-Chunk usage filters narrow the visual
+cards. Each thumbnail crops the first idle frame using Core's runtime animation
+path, frame size, row, and start offset. The selected ID is route-local and
+shared by the scene Place tool and inline creation form; the edit dialog embeds
+the same browser for tentative enemy changes. Missing image files show a safe
+placeholder and do not change the Core-derived catalog. Marker gestures edit
 only the authored query anchor at integer-pixel precision. Core-resolved spawn
 positions and support are read-only evidence: they can be toggled independently
 and are hidden for the record being moved until its accepted source is
-reprojected. Marker ID, chance, salt, placement mode, and exact coordinates stay
-available in the sidebar creation form and existing-record edit dialog.
+reprojected. Chance, salt, placement mode, and exact coordinates stay available
+in the sidebar creation form and existing-record edit dialog.
 
 Direct terrain creation and existing shapes live in the **Terrain** sections.
-The **Prefabs** and **Markers** groups use the same split: a foldable inline
-creation form above a separate foldable existing-record list. Adding a prefab
-or marker submits directly from its section without opening a dialog; Prefab
-selection reveals edit and delete controls below the selected row, while Marker
-records retain their row actions. The **Layers** group
+The **Prefabs** and **Markers** groups each start with a foldable visual library,
+followed by a foldable inline creation form and separate foldable
+existing-record list. Adding a prefab or marker submits directly from its
+section without opening a dialog; Prefab selection reveals edit and delete
+controls below the selected row, while Marker records retain their row actions.
+The **Layers** group
 retains the visual-stack summary and validated tile-layer metadata workflow.
 `TileLayerDef` is metadata-only, so Layers pauses primary scene authoring and
 exposes no tile painting or cell editing. Direct scene gestures, inline adds,

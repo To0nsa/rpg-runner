@@ -780,9 +780,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       selectedPrefabKey: _sceneCoordinator.selectedPrefabKey,
       selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
       selectedCatalogPrefabKey: _selectedPrefabCatalogKey,
+      selectedCatalogMarkerId: _selectedMarkerCatalogId,
       onOpenOwningPrefab: widget.onOpenOwningPrefab,
       onCatalogPrefabSelected: (prefab) =>
           setState(() => _selectedPrefabCatalogKey = prefab.prefabKey),
+      onCatalogMarkerSelected: (enemyId) =>
+          setState(() => _selectedMarkerCatalogId = enemyId),
       onPrefabSelectionChanged: (selection) => setState(() {
         _prefabGesture.setTool(ChunkPrefabSceneTool.select);
         _sceneCoordinator.selectPrefab(selection);
@@ -1048,25 +1051,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           ? null
                           : (_) => setState(() => _markerGesture.setTool(tool)),
                     ),
-                  DropdownButton<String>(
+                  Chip(
                     key: const ValueKey<String>(
-                      'chunk_marker_catalog_selector',
+                      'chunk_marker_catalog_selection',
                     ),
-                    value:
-                        _selectedMarkerCatalogId ?? chunkMarkerEnemyIds.first,
-                    items: chunkMarkerEnemyIds
-                        .map(
-                          (markerId) => DropdownMenuItem<String>(
-                            value: markerId,
-                            child: Text(markerId),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _hasActiveOperation
-                        ? null
-                        : (markerId) => setState(
-                            () => _selectedMarkerCatalogId = markerId,
-                          ),
+                    avatar: const Icon(Icons.person_search_outlined, size: 18),
+                    label: Text(
+                      'Selected: ${_selectedMarkerCatalogEntry().displayName}',
+                    ),
                   ),
                 ],
               ],
@@ -2832,7 +2824,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 pointer: pointer,
                 worldPoint: worldPoint,
                 chunk: chunk,
-                markerId: _selectedMarkerCatalogId ?? chunkMarkerEnemyIds.first,
+                markerId: _selectedMarkerCatalogEntry().markerId,
               );
               if (began) _sceneCoordinator.clearSelection();
             });
@@ -3079,6 +3071,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             .firstOrNull ??
         prefabs.first;
   }
+
+  ChunkMarkerEnemyCatalogEntry _selectedMarkerCatalogEntry() =>
+      chunkMarkerEnemyCatalogEntryFor(_selectedMarkerCatalogId ?? '') ??
+      chunkMarkerEnemyCatalog.first;
 
   ChunkPrefabSurfaceSnapContext? _prefabSurfaceSnapContext(
     ChunkV2FileData chunk, {

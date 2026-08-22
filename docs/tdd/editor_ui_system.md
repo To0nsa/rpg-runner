@@ -58,8 +58,9 @@ scroll owner and mounts only the flat group of sibling `EditorSectionCard`s for
 the active tab; no redundant domain-level `EditorPanelCard` wraps them. Terrain
 contains the creation and existing-shape authoring sections, Prefabs contains
 the visual catalog plus creation and existing-placement sections, Markers
-contains its creation and retained-placement sections, and Layers contains the
-visual stack plus tile-layer metadata. Owner, domain, visual-stack, and
+contains the enemy catalog plus creation and retained-placement sections, and
+Layers contains the visual stack plus tile-layer metadata. Owner, domain,
+visual-stack, and
 Diagnostics sections start collapsed; expansion is presentation-only and each
 mounted section retains it locally. Seam evidence is not a separate sidebar
 section. Tab changes preserve the scene subtree,
@@ -82,6 +83,22 @@ route-wide operation: selecting the row again, Cancel, or a domain, owner, or
 source-revision change discards its un-applied draft without changing the route
 catalog choice or source. Genuine composition dialogs and scene gestures
 continue to lock conflicting scene tools and route operations.
+
+The Markers section group starts with `ChunkEnemyCatalogBrowser`. Its immutable
+entries project `EnemyId`, `EnemyCatalog` render-animation metadata, and the
+catalog-owned `EnemyTerrainMotionKind`; editor labels and filters do not become
+Chunk source. A workspace-scoped decoded-image cache loads each idle source and
+the thumbnail painter applies Core's frame width, height, row, start offset, and
+optional wrapping columns to crop frame zero. Search covers display name,
+protocol-stable ID, and movement role, with role and current-Chunk usage
+filters. The route-local selected ID feeds both `ChunkMarkerSceneGesture` Place
+and the controlled `ChunkV2MarkerForm`. The retained-marker dialog composes the
+same browser with dialog-local tentative selection. Selecting or filtering an
+enemy creates no revision, history entry, validation event, or pending diff.
+Prefab and enemy browsers compose the neutral `EditorVisualCatalogLayout` and
+`EditorVisualCatalogCard` primitives for identical search, filter, count, grid,
+selection, keyboard, semantics, and card chrome; each browser retains only its
+domain filtering, identity, and thumbnail projection.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation

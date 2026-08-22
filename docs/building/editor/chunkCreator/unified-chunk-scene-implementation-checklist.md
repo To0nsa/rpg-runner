@@ -940,6 +940,9 @@ no blocking issues.
       adding from the Create form does not open a modal dialog.
 - [x] Prefab selection uses one searchable visual library shared by scene Place
       and inline creation; no long Prefab dropdown remains in Chunk Creator.
+- [x] Enemy selection uses one searchable Core-backed visual library shared by
+      scene Place, inline creation, and retained-marker editing; no enemy
+      dropdown remains in Chunk Creator.
 - [x] Narrow layouts preserve scene, viewport, focus, selection, and draft state.
 - [x] Existing terrain and composition features remain complete.
 - [x] Active-domain and typed-selection behavior is deterministic and tested.

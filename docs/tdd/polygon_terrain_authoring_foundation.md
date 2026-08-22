@@ -653,7 +653,13 @@ wrapper card. Every owner, authoring, visual-stack, and Diagnostics section
 starts collapsed. On narrow layouts, the same
 scene and sidebar subtrees are repositioned; tab changes replace only the
 sidebar section group. The tabs and section rows share typed per-domain prefab
-and marker selection. Prefab hit testing reverses the exact canonical
+and marker selection. The Prefab and Marker groups each begin with a searchable
+visual library whose route-local selection feeds the matching scene Place tool
+and controlled creation form. The enemy library projects stable `EnemyId`,
+Core terrain-motion role, and the first idle frame from `EnemyCatalog` animation
+metadata; its labels, search, filters, thumbnails, and selection never enter
+Chunk source. Retained Marker edits use the same library with dialog-local
+tentative selection. Prefab hit testing reverses the exact canonical
 paint order, including the source-index tie break; marker anchor hit testing
 reverses canonical source order and never targets resolved placement evidence.
 Selection overlays and section expansion are route-local presentation state and
@@ -710,12 +716,12 @@ The Chunk workspace's right authoring column owns one vertical scroll surface.
 The `Terrain`, `Prefabs`, `Markers`, and `Layers` tabs sit below the persistent
 visual/viewport controls and mount only the matching right-side section group
 while leaving the scene and viewport mounted. Terrain
-contains creation and existing-shape authoring. Prefabs and Markers mirror that
-sidebar structure with foldable inline creation forms above separate existing
-placement lists; add commits no longer require modal navigation, while existing
-Prefab edits render below the selected row and Marker edits retain the shared
-validated form in a dialog. Layers contains the visual stack and tile-layer
-metadata. One shared Diagnostics section follows
+contains creation and existing-shape authoring. Prefabs and Markers each use a
+foldable visual library, inline creation form, and separate existing-placement
+list; add commits no longer require modal navigation, while existing Prefab
+edits render below the selected row and Marker edits retain the shared validated
+form and enemy library in a dialog. Layers contains the visual stack and
+tile-layer metadata. One shared Diagnostics section follows
 the active domain sections and presents the complete session issue projection
 on every tab without owner or domain filtering. Per-domain selection survives
 tab changes, and an active operation locks the tabs. Layers is a passive scene-input

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
+import 'chunk_enemy_catalog_browser.dart';
 import 'chunk_v2_composition_forms.dart';
 
 /// Opens a strict tile-layer form for one Chunk-v2 composition record.
@@ -15,29 +16,86 @@ Future<TileLayerDef?> showChunkV2TileLayerDialog(
 );
 
 /// Opens a strict enemy-marker edit form using Core IDs and accepted intents.
+///
+/// [workspaceRootPath] is used only to resolve Core-declared preview art. Enemy
+/// library selection stays dialog-local until the returned candidate is
+/// accepted; cancellation returns `null` without changing source.
 Future<PlacedMarkerDef?> showChunkV2MarkerEditDialog(
   BuildContext context, {
   required ChunkV2FileData chunk,
   required PlacedMarkerDef marker,
+  required String workspaceRootPath,
 }) => showDialog<PlacedMarkerDef>(
   context: context,
-  builder: (context) => AlertDialog(
+  builder: (context) => _ChunkV2MarkerEditDialog(
+    chunk: chunk,
+    marker: marker,
+    workspaceRootPath: workspaceRootPath,
+  ),
+);
+
+final class _ChunkV2MarkerEditDialog extends StatefulWidget {
+  const _ChunkV2MarkerEditDialog({
+    required this.chunk,
+    required this.marker,
+    required this.workspaceRootPath,
+  });
+
+  final ChunkV2FileData chunk;
+  final PlacedMarkerDef marker;
+  final String workspaceRootPath;
+
+  @override
+  State<_ChunkV2MarkerEditDialog> createState() =>
+      _ChunkV2MarkerEditDialogState();
+}
+
+final class _ChunkV2MarkerEditDialogState
+    extends State<_ChunkV2MarkerEditDialog> {
+  late String _selectedEnemyId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedEnemyId = widget.marker.markerId;
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
     title: const Text('Edit marker'),
     content: SizedBox(
-      width: 500,
+      width: 680,
       child: SingleChildScrollView(
-        child: ChunkV2MarkerForm(
-          chunk: chunk,
-          marker: marker,
-          submitKey: 'chunk_v2_marker_dialog_apply',
-          submitLabel: 'Apply',
-          onCancel: () => Navigator.of(context).pop(),
-          onSubmit: (candidate) => Navigator.of(context).pop(candidate),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            ChunkEnemyCatalogBrowser(
+              workspaceRootPath: widget.workspaceRootPath,
+              selectedEnemyId: _selectedEnemyId,
+              usedEnemyIds: widget.chunk.markers.map(
+                (marker) => marker.markerId,
+              ),
+              gridHeight: 220,
+              keyPrefix: 'chunk_v2_marker_dialog_catalog',
+              onSelected: (enemyId) =>
+                  setState(() => _selectedEnemyId = enemyId),
+            ),
+            const Divider(height: 32),
+            ChunkV2MarkerForm(
+              chunk: widget.chunk,
+              enemyId: _selectedEnemyId,
+              marker: widget.marker,
+              submitKey: 'chunk_v2_marker_dialog_apply',
+              submitLabel: 'Apply',
+              onCancel: () => Navigator.of(context).pop(),
+              onSubmit: (candidate) => Navigator.of(context).pop(candidate),
+            ),
+          ],
         ),
       ),
     ),
-  ),
-);
+  );
+}
 
 final class _ChunkV2TileLayerDialog extends StatefulWidget {
   const _ChunkV2TileLayerDialog({required this.chunk, this.layer});

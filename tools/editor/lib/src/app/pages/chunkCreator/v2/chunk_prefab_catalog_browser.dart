@@ -9,7 +9,7 @@ import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../prefabCreator/shared/prefab_polygon_visual_source.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_ui_tokens.dart';
+import '../../shared/editor_visual_catalog.dart';
 
 /// Searchable visual catalog for choosing a Prefab-v3 owner in Chunk authoring.
 ///
@@ -112,121 +112,84 @@ class _ChunkPrefabCatalogBrowserState extends State<ChunkPrefabCatalogBrowser> {
     final sortedKinds = availableKinds.toList(growable: false)
       ..sort((left, right) => left.jsonValue.compareTo(right.jsonValue));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        TextField(
-          key: ValueKey<String>('${widget.keyPrefix}_search'),
-          controller: _searchController,
-          autofocus: widget.autofocusSearch,
-          enabled: widget.enabled,
-          textInputAction: TextInputAction.search,
-          onSubmitted: widget.enabled
-              ? (_) {
-                  final matches = _filteredPrefabs();
-                  if (matches.isNotEmpty) widget.onSelected(matches.first);
-                }
+    return EditorVisualCatalogLayout(
+      searchController: _searchController,
+      searchKey: ValueKey<String>('${widget.keyPrefix}_search'),
+      searchLabel: 'Search prefabs',
+      searchHint: 'ID, kind, or tags such as rock dark moss',
+      clearSearchKey: ValueKey<String>('${widget.keyPrefix}_clear_search'),
+      clearSearchTooltip: 'Clear prefab search',
+      filters: <Widget>[
+        ChoiceChip(
+          key: ValueKey<String>('${widget.keyPrefix}_kind_all'),
+          label: const Text('All'),
+          selected: _kindFilter == null,
+          onSelected: widget.enabled
+              ? (_) => setState(() => _kindFilter = null)
               : null,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            labelText: 'Search prefabs',
-            hintText: 'ID, kind, or tags such as rock dark moss',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchController.text.isEmpty
-                ? null
-                : IconButton(
-                    key: ValueKey<String>('${widget.keyPrefix}_clear_search'),
-                    tooltip: 'Clear prefab search',
-                    onPressed: widget.enabled ? _searchController.clear : null,
-                    icon: const Icon(Icons.clear),
-                  ),
+        ),
+        for (final kind in sortedKinds)
+          ChoiceChip(
+            key: ValueKey<String>('${widget.keyPrefix}_kind_${kind.jsonValue}'),
+            label: Text(_kindLabel(kind)),
+            selected: _kindFilter == kind,
+            onSelected: widget.enabled
+                ? (_) => setState(() => _kindFilter = kind)
+                : null,
           ),
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        Wrap(
-          spacing: EditorUiTokens.controlGap,
-          runSpacing: EditorUiTokens.controlGap,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            ChoiceChip(
-              key: ValueKey<String>('${widget.keyPrefix}_kind_all'),
-              label: const Text('All'),
-              selected: _kindFilter == null,
-              onSelected: widget.enabled
-                  ? (_) => setState(() => _kindFilter = null)
-                  : null,
-            ),
-            for (final kind in sortedKinds)
-              ChoiceChip(
-                key: ValueKey<String>(
-                  '${widget.keyPrefix}_kind_${kind.jsonValue}',
-                ),
-                label: Text(_kindLabel(kind)),
-                selected: _kindFilter == kind,
-                onSelected: widget.enabled
-                    ? (_) => setState(() => _kindFilter = kind)
-                    : null,
-              ),
-            if (widget.usedPrefabKeys.isNotEmpty)
-              FilterChip(
-                key: ValueKey<String>('${widget.keyPrefix}_used'),
-                avatar: const Icon(Icons.history, size: 18),
-                label: const Text('Used in chunk'),
-                selected: _usedInChunkOnly,
-                onSelected: widget.enabled
-                    ? (selected) => setState(() => _usedInChunkOnly = selected)
-                    : null,
-              ),
-          ],
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        Text(
-          '${filteredPrefabs.length} of ${widget.prefabs.length} prefabs',
-          key: ValueKey<String>('${widget.keyPrefix}_count'),
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        SizedBox(
-          height: widget.gridHeight,
-          child: filteredPrefabs.isEmpty
-              ? Center(
-                  key: ValueKey<String>('${widget.keyPrefix}_empty'),
-                  child: const Text(
-                    'No prefabs match the current search and filters.',
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              : GridView.builder(
-                  key: ValueKey<String>('${widget.keyPrefix}_grid'),
-                  primary: false,
-                  itemCount: filteredPrefabs.length,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 190,
-                    mainAxisExtent: 174,
-                    crossAxisSpacing: EditorUiTokens.controlGap,
-                    mainAxisSpacing: EditorUiTokens.controlGap,
-                  ),
-                  itemBuilder: (context, index) {
-                    final prefab = filteredPrefabs[index];
-                    return _PrefabCatalogCard(
-                      key: ValueKey<String>(
-                        '${widget.keyPrefix}_card_${prefab.prefabKey}',
-                      ),
-                      prefab: prefab,
-                      projection: _projectionsByPrefabKey[prefab.prefabKey]!,
-                      imageCache: _imageCache,
-                      workspaceRootPath: widget.workspaceRootPath,
-                      selected: prefab.prefabKey == widget.selectedPrefabKey,
-                      enabled: widget.enabled,
-                      previewKey: ValueKey<String>(
-                        '${widget.keyPrefix}_preview_${prefab.prefabKey}',
-                      ),
-                      onTap: () => widget.onSelected(prefab),
-                    );
-                  },
-                ),
-        ),
+        if (widget.usedPrefabKeys.isNotEmpty)
+          FilterChip(
+            key: ValueKey<String>('${widget.keyPrefix}_used'),
+            avatar: const Icon(Icons.history, size: 18),
+            label: const Text('Used in chunk'),
+            selected: _usedInChunkOnly,
+            onSelected: widget.enabled
+                ? (selected) => setState(() => _usedInChunkOnly = selected)
+                : null,
+          ),
       ],
+      countKey: ValueKey<String>('${widget.keyPrefix}_count'),
+      countLabel:
+          '${filteredPrefabs.length} of ${widget.prefabs.length} prefabs',
+      gridKey: ValueKey<String>('${widget.keyPrefix}_grid'),
+      emptyKey: ValueKey<String>('${widget.keyPrefix}_empty'),
+      emptyMessage: 'No prefabs match the current search and filters.',
+      itemCount: filteredPrefabs.length,
+      itemBuilder: (context, index) {
+        final prefab = filteredPrefabs[index];
+        final selected = prefab.prefabKey == widget.selectedPrefabKey;
+        final tagText = prefab.tags.isEmpty
+            ? 'No tags'
+            : prefab.tags.join(', ');
+        return EditorVisualCatalogCard(
+          key: ValueKey<String>('${widget.keyPrefix}_card_${prefab.prefabKey}'),
+          semanticsLabel:
+              '${prefab.id}, ${_kindLabel(prefab.kind)}, tags $tagText',
+          tooltipMessage:
+              '${prefab.id}\n${_kindLabel(prefab.kind)} · '
+              '${prefab.sourceRefId}\n$tagText',
+          selected: selected,
+          enabled: widget.enabled,
+          preview: _PrefabCatalogThumbnail(
+            key: ValueKey<String>(
+              '${widget.keyPrefix}_preview_${prefab.prefabKey}',
+            ),
+            projection: _projectionsByPrefabKey[prefab.prefabKey]!,
+            imageCache: _imageCache,
+            workspaceRootPath: widget.workspaceRootPath,
+          ),
+          title: prefab.id,
+          subtitle: '${_kindLabel(prefab.kind)} · $tagText',
+          onTap: () => widget.onSelected(prefab),
+        );
+      },
+      onSearchSubmitted: () {
+        final matches = _filteredPrefabs();
+        if (matches.isNotEmpty) widget.onSelected(matches.first);
+      },
+      enabled: widget.enabled,
+      autofocusSearch: widget.autofocusSearch,
+      gridHeight: widget.gridHeight,
     );
   }
 
@@ -273,106 +236,6 @@ class _ChunkPrefabCatalogBrowserState extends State<ChunkPrefabCatalogBrowser> {
   }
 
   void _handleSearchChanged() => setState(() {});
-}
-
-class _PrefabCatalogCard extends StatelessWidget {
-  const _PrefabCatalogCard({
-    super.key,
-    required this.prefab,
-    required this.projection,
-    required this.imageCache,
-    required this.workspaceRootPath,
-    required this.selected,
-    required this.enabled,
-    required this.previewKey,
-    required this.onTap,
-  });
-
-  final PrefabV3Def prefab;
-  final PrefabPolygonVisualProjection projection;
-  final EditorUiImageCache imageCache;
-  final String workspaceRootPath;
-  final bool selected;
-  final bool enabled;
-  final Key previewKey;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final tagText = prefab.tags.isEmpty ? 'No tags' : prefab.tags.join(', ');
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '${prefab.id}, ${_kindLabel(prefab.kind)}, tags $tagText',
-      child: Tooltip(
-        message:
-            '${prefab.id}\n${_kindLabel(prefab.kind)} · '
-            '${prefab.sourceRefId}\n$tagText',
-        child: Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          color: selected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.32)
-              : colorScheme.surfaceContainerLow,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(
-              color: selected
-                  ? colorScheme.primary
-                  : colorScheme.outlineVariant,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: InkWell(
-            onTap: enabled ? onTap : null,
-            child: Padding(
-              padding: const EdgeInsets.all(EditorUiTokens.controlGap),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Expanded(
-                    child: _PrefabCatalogThumbnail(
-                      key: previewKey,
-                      projection: projection,
-                      imageCache: imageCache,
-                      workspaceRootPath: workspaceRootPath,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          prefab.id,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ),
-                      if (selected)
-                        Icon(
-                          Icons.check_circle,
-                          size: 18,
-                          color: colorScheme.primary,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_kindLabel(prefab.kind)} · $tagText',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _PrefabCatalogThumbnail extends StatefulWidget {

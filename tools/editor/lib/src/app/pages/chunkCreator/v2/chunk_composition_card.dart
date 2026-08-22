@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
+import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_v2_composition_commit.dart';
 import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
@@ -13,6 +14,7 @@ import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_section_card.dart';
+import 'chunk_enemy_catalog_browser.dart';
 import 'chunk_prefab_catalog_browser.dart';
 import 'chunk_v2_composition_dialog.dart';
 import 'chunk_v2_composition_forms.dart';
@@ -37,10 +39,12 @@ class ChunkCompositionCard extends StatefulWidget {
     required this.selectedPrefabKey,
     required this.selectedMarkerKey,
     required this.selectedCatalogPrefabKey,
+    required this.selectedCatalogMarkerId,
     this.onOpenOwningPrefab,
     required this.onPrefabSelectionChanged,
     required this.onMarkerSelected,
     required this.onCatalogPrefabSelected,
+    required this.onCatalogMarkerSelected,
   });
 
   final ChunkCompositionSection section;
@@ -52,10 +56,12 @@ class ChunkCompositionCard extends StatefulWidget {
   final String? selectedPrefabKey;
   final String? selectedMarkerKey;
   final String? selectedCatalogPrefabKey;
+  final String? selectedCatalogMarkerId;
   final ValueChanged<String>? onOpenOwningPrefab;
   final ValueChanged<ChunkPlacedPrefabSelection?> onPrefabSelectionChanged;
   final ValueChanged<ChunkPlacedMarkerSelection> onMarkerSelected;
   final ValueChanged<PrefabV3Def> onCatalogPrefabSelected;
+  final ValueChanged<String> onCatalogMarkerSelected;
 
   @override
   State<ChunkCompositionCard> createState() => _ChunkCompositionCardState();
@@ -73,6 +79,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   String? get selectedPrefabKey => widget.selectedPrefabKey;
   String? get selectedMarkerKey => widget.selectedMarkerKey;
   String? get selectedCatalogPrefabKey => widget.selectedCatalogPrefabKey;
+  String? get selectedCatalogMarkerId => widget.selectedCatalogMarkerId;
   ValueChanged<String>? get onOpenOwningPrefab => widget.onOpenOwningPrefab;
   ValueChanged<ChunkPlacedPrefabSelection?> get onPrefabSelectionChanged =>
       widget.onPrefabSelectionChanged;
@@ -80,6 +87,8 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
       widget.onMarkerSelected;
   ValueChanged<PrefabV3Def> get onCatalogPrefabSelected =>
       widget.onCatalogPrefabSelected;
+  ValueChanged<String> get onCatalogMarkerSelected =>
+      widget.onCatalogMarkerSelected;
 
   @override
   void didUpdateWidget(covariant ChunkCompositionCard oldWidget) {
@@ -342,9 +351,34 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
 
   Widget _buildMarkers(BuildContext context) {
     final markers = buildChunkPlacedMarkerSelections(chunk.markers);
+    final effectiveEnemyId =
+        chunkMarkerEnemyCatalogEntryFor(selectedCatalogMarkerId ?? '')
+            ?.markerId ??
+        chunkMarkerEnemyIds.first;
+    final usedEnemyIds = chunk.markers.map((marker) => marker.markerId).toSet();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_enemy_catalog_section'),
+          title: 'Enemy library',
+          description:
+              'Search by name, ID, or movement role. The selected enemy is '
+              'shared by the scene Place tool and the creation form below.',
+          collapsible: true,
+          initiallyExpanded: false,
+          expansionKey: const ValueKey<String>(
+            'chunk_enemy_catalog_section_toggle',
+          ),
+          child: ChunkEnemyCatalogBrowser(
+            workspaceRootPath: controller.workspacePath,
+            selectedEnemyId: effectiveEnemyId,
+            usedEnemyIds: usedEnemyIds,
+            enabled: controlsEnabled,
+            onSelected: onCatalogMarkerSelected,
+          ),
+        ),
+        const SizedBox(height: 12),
         EditorSectionCard(
           key: const ValueKey<String>('chunk_marker_creation_panel'),
           title: 'Create enemy marker',
@@ -361,6 +395,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               'chunk_marker_creation_form_${chunk.chunkKey}',
             ),
             chunk: chunk,
+            enemyId: effectiveEnemyId,
             fieldKeyPrefix: 'chunk_v2_marker_creation',
             submitKey: 'chunk_v2_marker_add',
             submitLabel: 'Add marker',
@@ -691,6 +726,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
         context,
         chunk: chunk,
         marker: selection.marker,
+        workspaceRootPath: controller.workspacePath,
       );
       if (marker == null || !context.mounted) return;
       _dispatch(context, operation.buildMarker(candidate: marker));

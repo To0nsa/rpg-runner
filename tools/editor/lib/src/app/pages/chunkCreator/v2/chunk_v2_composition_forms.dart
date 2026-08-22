@@ -381,12 +381,17 @@ class _PlacementScaleControlState extends State<_PlacementScaleControl> {
 
 /// Edits one enemy marker without owning persistence or modal navigation.
 ///
+/// The surrounding enemy catalog owns [enemyId] selection so creation, scene
+/// placement, and edit workflows can share the same visual library. Changing
+/// that selection does not reset the remaining marker draft.
+///
 /// Coordinates are constrained to the supplied Chunk bounds and normalized to
 /// the Chunk whole-pixel policy before submission.
 class ChunkV2MarkerForm extends StatefulWidget {
   const ChunkV2MarkerForm({
     super.key,
     required this.chunk,
+    required this.enemyId,
     this.marker,
     required this.submitKey,
     required this.submitLabel,
@@ -397,6 +402,10 @@ class ChunkV2MarkerForm extends StatefulWidget {
   });
 
   final ChunkV2FileData chunk;
+
+  /// Exact Core enemy ID selected by the surrounding catalog browser.
+  final String enemyId;
+
   final PlacedMarkerDef? marker;
   final String submitKey;
   final String submitLabel;
@@ -415,14 +424,12 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
   late final TextEditingController _yController;
   late final TextEditingController _chanceController;
   late final TextEditingController _saltController;
-  late String _markerId;
   late String _placement;
 
   @override
   void initState() {
     super.initState();
     final marker = widget.marker;
-    _markerId = marker?.markerId ?? chunkMarkerEnemyIds.first;
     _placement = marker?.placement ?? markerPlacementGround;
     _xController = TextEditingController(text: '${marker?.x ?? 0}');
     _yController = TextEditingController(text: '${marker?.y ?? 0}');
@@ -448,22 +455,27 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        DropdownButtonFormField<String>(
-          key: ValueKey<String>('${widget.fieldKeyPrefix}_enemy_$_markerId'),
-          initialValue: _markerId,
-          isExpanded: true,
+        InputDecorator(
+          key: ValueKey<String>(
+            '${widget.fieldKeyPrefix}_selected_enemy_${widget.enemyId}',
+          ),
           decoration: const InputDecoration(
-            labelText: 'Enemy ID',
+            labelText: 'Selected enemy',
             border: OutlineInputBorder(),
           ),
-          items: chunkMarkerEnemyIds
-              .map((id) => DropdownMenuItem<String>(value: id, child: Text(id)))
-              .toList(growable: false),
-          onChanged: !widget.enabled
-              ? null
-              : (value) {
-                  if (value != null) setState(() => _markerId = value);
-                },
+          child: Row(
+            children: <Widget>[
+              const Icon(Icons.person_search_outlined, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _selectedEnemyLabel(widget.enemyId),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         _IntegerField(
@@ -541,7 +553,7 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     widget.onSubmit(
       PlacedMarkerDef(
-        markerId: _markerId,
+        markerId: widget.enemyId,
         x: preserveChunkExactPixelCoordinate(
           int.parse(_xController.text.trim()),
         ),
@@ -553,6 +565,13 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
         placement: _placement,
       ),
     );
+  }
+
+  String _selectedEnemyLabel(String markerId) {
+    final entry = chunkMarkerEnemyCatalogEntryFor(markerId);
+    return entry == null
+        ? markerId
+        : '${entry.displayName} · ${entry.roleLabel}';
   }
 }
 
