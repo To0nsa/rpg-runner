@@ -87,9 +87,11 @@ continue to lock conflicting scene tools and route operations.
 The Markers section group starts with `ChunkEnemyCatalogBrowser`. Its immutable
 entries project `EnemyId`, `EnemyCatalog` render-animation metadata, and the
 catalog-owned `EnemyTerrainMotionKind`; editor labels and filters do not become
-Chunk source. A workspace-scoped decoded-image cache loads each idle source and
-the thumbnail painter applies Core's frame width, height, row, start offset, and
-optional wrapping columns to crop frame zero. Search covers display name,
+Chunk source. A shared idle-frame projection applies Core's source path, frame
+width, height, row, start offset, optional wrapping columns, anchor, and uniform
+render scale. Workspace-scoped decoded-image caches feed both the catalog
+thumbnail and marker overlay without introducing editor-owned sprite tuning.
+Search covers display name,
 protocol-stable ID, and movement role, with role and current-Chunk usage
 filters. The route-local selected ID feeds both `ChunkMarkerSceneGesture` Place
 and the controlled `ChunkV2MarkerForm`. The retained-marker dialog composes the
@@ -99,6 +101,14 @@ Prefab and enemy browsers compose the neutral `EditorVisualCatalogLayout` and
 `EditorVisualCatalogCard` primitives for identical search, filter, count, grid,
 selection, keyboard, semantics, and card chrome; each browser retains only its
 domain filtering, identity, and thumbnail projection.
+
+With resolved marker evidence enabled, the marker painter first draws the
+accepted outcome's idle frame so its runtime animation anchor lands on Core's
+resolved body center, then draws support, connection, capsule, and authored
+anchor evidence above it. Only accepted non-deferred outcomes with a decoded,
+in-bounds frame qualify. Hashash remains sprite-free because its runtime spawn
+is chosen later at the visible camera-right Chunk edge; disabled, malformed,
+and rejected outcomes likewise retain diagnostics without a fabricated body.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation

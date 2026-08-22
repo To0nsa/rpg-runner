@@ -26,6 +26,7 @@ void main() {
       expect(unoco.previewSourcePath, 'entities/enemies/unoco/flying.png');
       expect(unoco.renderAnim.frameWidth, 81);
       expect(unoco.renderAnim.frameHeight, 71);
+      expect(unoco.renderScale, 0.5);
 
       expect(chunkMarkerEnemyCatalogEntryFor('UnocoDemon'), isNull);
     },

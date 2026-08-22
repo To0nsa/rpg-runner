@@ -8,22 +8,21 @@ import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/snapshots/enums.dart';
+
 import '../sprite_anim/deterministic_anim_view.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 
-typedef EnemyAnimLoader =
-    Future<SpriteAnimSet> Function(
-      Images images, {
-      required RenderAnimSetDefinition renderAnim,
-      required Set<AnimKey> oneShotKeys,
-    });
+typedef EnemyAnimLoader = Future<SpriteAnimSet> Function(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+  required Set<AnimKey> oneShotKeys,
+});
 
-typedef EnemyViewFactory =
-    DeterministicAnimView Function(
-      SpriteAnimSet animSet,
-      Vector2 renderScale,
-    );
+typedef EnemyViewFactory = DeterministicAnimView Function(
+  SpriteAnimSet animSet,
+  Vector2 renderScale,
+);
 
 enum EnemyDeathAnimPolicy { spawn, none }
 
@@ -104,28 +103,17 @@ class EnemyRenderEntry {
 /// Render registry for enemies (EnemyId -> render wiring).
 class EnemyRenderRegistry {
   EnemyRenderRegistry({EnemyCatalog enemyCatalog = const EnemyCatalog()})
-    : _enemyCatalog = enemyCatalog;
+    : _enemyCatalog = enemyCatalog,
+      _entries = <EnemyId, EnemyRenderEntry>{
+        for (final id in EnemyId.values)
+          id: EnemyRenderEntry(
+            id: id,
+            renderScale: Vector2.all(enemyCatalog.get(id).renderScale),
+          ),
+      };
 
   final EnemyCatalog _enemyCatalog;
-
-  final Map<EnemyId, EnemyRenderEntry> _entries = <EnemyId, EnemyRenderEntry>{
-    EnemyId.unocoDemon: EnemyRenderEntry(
-      id: EnemyId.unocoDemon,
-      renderScale: Vector2.all(0.5),
-    ),
-    EnemyId.grojib: EnemyRenderEntry(
-      id: EnemyId.grojib,
-      renderScale: Vector2.all(1.5),
-    ),
-    EnemyId.hashash: EnemyRenderEntry(
-      id: EnemyId.hashash,
-      renderScale: Vector2.all(1.5),
-    ),
-    EnemyId.derf: EnemyRenderEntry(
-      id: EnemyId.derf,
-      renderScale: Vector2.all(1.5),
-    ),
-  };
+  final Map<EnemyId, EnemyRenderEntry> _entries;
 
   EnemyRenderEntry? entryFor(EnemyId id) {
     final entry = _entries[id];

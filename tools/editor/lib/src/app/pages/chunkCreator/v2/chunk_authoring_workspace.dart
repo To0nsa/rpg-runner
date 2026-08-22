@@ -1304,24 +1304,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           ),
                         ),
                       if (markerProjection != null)
-                        CustomPaint(
-                          key: const ValueKey<String>(
-                            'chunk_marker_placement_overlay',
-                          ),
-                          painter: ChunkMarkerPlacementOverlayPainter(
-                            projection: markerProjection,
-                            transform: transform,
-                            selectedMarkerKey:
-                                _sceneCoordinator.selectedMarkerKey,
-                            suppressedMarkerKey:
-                                _markerGesture.hiddenSourceIndex == null
-                                ? null
-                                : buildChunkPlacedMarkerSelections(
-                                        chunk.markers,
-                                      )[_markerGesture.hiddenSourceIndex!]
-                                      .selectionKey,
-                            showResolvedEvidence: _showMarkerPlacements,
-                          ),
+                        ChunkMarkerPlacementOverlay(
+                          workspaceRootPath: widget.controller.workspacePath,
+                          projection: markerProjection,
+                          transform: transform,
+                          selectedMarkerKey:
+                              _sceneCoordinator.selectedMarkerKey,
+                          suppressedMarkerKey:
+                              _markerGesture.hiddenSourceIndex == null
+                              ? null
+                              : buildChunkPlacedMarkerSelections(
+                                      chunk.markers,
+                                    )[_markerGesture.hiddenSourceIndex!]
+                                    .selectionKey,
+                          showResolvedEvidence: _showMarkerPlacements,
                         ),
                       if (!_visualPreview)
                         if (_markerGesture.candidate case final marker?)

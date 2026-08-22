@@ -52,8 +52,6 @@ class EntitySourceParser {
       'packages/runner_core/lib/projectiles/projectile_catalog.dart';
   static const String projectileRenderCatalogPath =
       'packages/runner_core/lib/projectiles/projectile_render_catalog.dart';
-  static const String enemyRenderRegistryPath =
-      'lib/game/components/enemies/enemy_render_registry.dart';
   static const String projectileRenderRegistryPath =
       'lib/game/components/projectiles/projectile_render_registry.dart';
   static const String playerRenderTuningPath =
@@ -79,13 +77,7 @@ class EntitySourceParser {
       issues,
     );
 
-    entries.addAll(
-      _parseEnemies(
-        workspace,
-        issues,
-        enemyRenderScaleById: renderScaleConfig.enemyById,
-      ),
-    );
+    entries.addAll(_parseEnemies(workspace, issues));
     entries.addAll(
       _parsePlayers(
         workspace,

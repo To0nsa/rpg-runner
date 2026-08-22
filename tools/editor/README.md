@@ -388,15 +388,19 @@ The Markers domain likewise provides Select, Place, and Move tools. Its
 foldable **Enemy library** searches Core enemy name, stable ID, and authoritative
 terrain-motion role; role and current-Chunk usage filters narrow the visual
 cards. Each thumbnail crops the first idle frame using Core's runtime animation
-path, frame size, row, and start offset. The selected ID is route-local and
-shared by the scene Place tool and inline creation form; the edit dialog embeds
-the same browser for tentative enemy changes. Missing image files show a safe
-placeholder and do not change the Core-derived catalog. Marker gestures edit
-only the authored query anchor at integer-pixel precision. Core-resolved spawn
-positions and support are read-only evidence: they can be toggled independently
-and are hidden for the record being moved until its accepted source is
-reprojected. Chance, salt, placement mode, and exact coordinates stay available
-in the sidebar creation form and existing-record edit dialog.
+path, frame size, row, start offset, and render scale. The selected ID is route-
+local and shared by the scene Place tool and inline creation form; the edit
+dialog embeds the same browser for tentative enemy changes. Missing image files
+show a safe placeholder and do not change the Core-derived catalog. Marker
+gestures edit only the authored query anchor at integer-pixel precision.
+Enabling **Marker placement** draws each accepted enemy's first idle frame with
+its Core anchor on the resolved body position, then keeps support/capsule
+evidence above the art. Deferred Hashash spawns, disabled or malformed markers,
+and rejected placements remain diagnostic-only because they have no exact
+static spawn position. The resolved layer is hidden for the record being moved
+until its accepted source is reprojected. Chance, salt, placement mode, and
+exact coordinates stay available in the sidebar creation form and existing-
+record edit dialog.
 
 Direct terrain creation and existing shapes live in the **Terrain** sections.
 The **Prefabs** and **Markers** groups each start with a foldable visual library,

@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 import 'package:runner_core/enemies/enemy_terrain_profile.dart';
 
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_visual_catalog.dart';
+import 'chunk_enemy_idle_frame.dart';
 
 /// Searchable visual library for choosing a Core enemy in marker authoring.
 ///
@@ -209,13 +209,10 @@ class _EnemyCatalogThumbnail extends StatefulWidget {
 class _EnemyCatalogThumbnailState extends State<_EnemyCatalogThumbnail> {
   var _loadEpoch = 0;
 
-  String? get _absolutePath {
-    final sourcePath = widget.enemy.previewSourcePath?.trim();
-    if (sourcePath == null || sourcePath.isEmpty) return null;
-    return p.normalize(
-      p.join(widget.workspaceRootPath, 'assets', 'images', sourcePath),
-    );
-  }
+  ChunkEnemyIdleFrame? get _frame => ChunkEnemyIdleFrame.fromEnemy(
+    enemy: widget.enemy,
+    workspaceRootPath: widget.workspaceRootPath,
+  );
 
   @override
   void initState() {
@@ -235,7 +232,8 @@ class _EnemyCatalogThumbnailState extends State<_EnemyCatalogThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    final absolutePath = _absolutePath;
+    final frame = _frame;
+    final absolutePath = frame?.absoluteSourcePath;
     final image = absolutePath == null
         ? null
         : widget.imageCache.imageFor(absolutePath);
@@ -249,6 +247,7 @@ class _EnemyCatalogThumbnailState extends State<_EnemyCatalogThumbnail> {
         child: CustomPaint(
           painter: _EnemyCatalogThumbnailPainter(
             enemy: widget.enemy,
+            frame: frame,
             image: image,
           ),
         ),
@@ -258,7 +257,7 @@ class _EnemyCatalogThumbnailState extends State<_EnemyCatalogThumbnail> {
 
   void _ensureImageLoaded() {
     final epoch = ++_loadEpoch;
-    final absolutePath = _absolutePath;
+    final absolutePath = _frame?.absoluteSourcePath;
     if (absolutePath == null) return;
     unawaited(() async {
       await widget.imageCache.ensureLoaded(absolutePath);
@@ -268,47 +267,28 @@ class _EnemyCatalogThumbnailState extends State<_EnemyCatalogThumbnail> {
 }
 
 final class _EnemyCatalogThumbnailPainter extends CustomPainter {
-  const _EnemyCatalogThumbnailPainter({required this.enemy, this.image});
+  const _EnemyCatalogThumbnailPainter({
+    required this.enemy,
+    required this.frame,
+    this.image,
+  });
 
   final ChunkMarkerEnemyCatalogEntry enemy;
+  final ChunkEnemyIdleFrame? frame;
   final ui.Image? image;
 
   @override
   void paint(Canvas canvas, Size size) {
     final image = this.image;
-    if (image == null) {
+    final frame = this.frame;
+    if (image == null || frame == null || !frame.fits(image)) {
       _paintMissingPreview(canvas, size);
       return;
     }
-    final columns = enemy.previewGridColumns;
-    final startFrame = enemy.previewStartFrame;
-    final column = columns == null ? startFrame : startFrame % columns;
-    final rowOffset = columns == null ? 0 : startFrame ~/ columns;
-    final source = Rect.fromLTWH(
-      (column * enemy.renderAnim.frameWidth).toDouble(),
-      ((enemy.previewRow + rowOffset) * enemy.renderAnim.frameHeight)
-          .toDouble(),
-      enemy.renderAnim.frameWidth.toDouble(),
-      enemy.renderAnim.frameHeight.toDouble(),
-    );
-    if (source.right > image.width || source.bottom > image.height) {
-      _paintMissingPreview(canvas, size);
-      return;
-    }
-    const padding = 8.0;
-    final available = Size(
-      (size.width - padding * 2).clamp(1, double.infinity),
-      (size.height - padding * 2).clamp(1, double.infinity),
-    );
-    final fitted = applyBoxFit(BoxFit.contain, source.size, available);
-    final destination = Alignment.center.inscribe(
-      fitted.destination,
-      Offset.zero & size,
-    );
     canvas.drawImageRect(
       image,
-      source,
-      destination,
+      frame.sourceRect,
+      frame.thumbnailDestination(Offset.zero & size),
       Paint()..filterQuality = FilterQuality.none,
     );
   }
@@ -330,5 +310,6 @@ final class _EnemyCatalogThumbnailPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EnemyCatalogThumbnailPainter oldDelegate) =>
       oldDelegate.enemy.markerId != enemy.markerId ||
+      oldDelegate.frame?.sourceRect != frame?.sourceRect ||
       oldDelegate.image != image;
 }

@@ -75,6 +75,12 @@ void main() {
       final enemyUnoco = entries.firstWhere(
         (entry) => entry.id == 'enemy.unocoDemon',
       );
+      expect(enemyUnoco.referenceVisual, isNotNull);
+      expect(enemyUnoco.referenceVisual!.renderScale, closeTo(0.5, 0.0001));
+      expect(
+        enemyUnoco.referenceVisual!.renderScaleBinding!.sourcePath,
+        'packages/runner_core/lib/enemies/enemy_catalog.dart',
+      );
       expect(enemyUnoco.artFacingDirection, EntityArtFacingDirection.left);
       expect(enemyUnoco.isCaster, isTrue);
       expect(enemyUnoco.castOriginOffset, closeTo(20.0, 0.0001));
@@ -190,9 +196,9 @@ void main() {
         fixtureRoot.path,
         'packages/runner_core/lib/enemies/enemy_catalog.dart',
       );
-      final drifted = File(
-        enemyPath,
-      ).readAsStringSync().replaceFirst('halfX: 12.0', 'halfX: 99.0');
+      final drifted = File(enemyPath)
+          .readAsStringSync()
+          .replaceFirst('halfX: 12.0', 'halfX: 99.0');
       File(enemyPath).writeAsStringSync(drifted);
 
       await controller.exportDirectWrite();

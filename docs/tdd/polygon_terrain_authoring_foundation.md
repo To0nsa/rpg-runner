@@ -1040,6 +1040,12 @@ authored anchor, intended support, requested or accepted upright capsule, and
 rejection mark; selection exposes every exact ID, point, slope, clamp, and Core
 diagnostic.
 
+For accepted non-deferred outcomes, the same layer also decodes the first idle
+frame and aligns its catalog animation anchor to the accepted body center at
+the catalog-owned uniform render scale. Sprite art is drawn before the support
+and capsule evidence so inspection remains legible. Outcomes without an exact
+accepted static body center never receive a substitute position or sprite.
+
 Hashash markers are not resolved at authored X: an accepted runtime roll adds a
 deferred count and later chooses the visible camera-right chunk edge. The
 projection therefore records guaranteed or conditional deferral without a

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_s
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_v2_composition_forms.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
@@ -1842,6 +1844,45 @@ void main() {
                 .painter!
             as ChunkMarkerPlacementOverlayPainter;
     expect(painter.showResolvedEvidence, isTrue);
+    final repositoryRoot = p.normalize(
+      p.absolute(p.join(Directory.current.path, '..', '..')),
+    );
+    final imagePaths = <String>[
+      p.join(
+        repositoryRoot,
+        'assets',
+        'images',
+        'entities',
+        'enemies',
+        'grojib',
+        'grojib.png',
+      ),
+      p.join(
+        repositoryRoot,
+        'assets',
+        'images',
+        'entities',
+        'enemies',
+        'hashash',
+        'hashash.png',
+      ),
+    ];
+    final imageCache = EditorUiImageCache();
+    final decodedImages = await tester.runAsync(
+      () => Future.wait(imagePaths.map(imageCache.ensureLoaded)),
+    );
+    final spritePainter = ChunkMarkerPlacementOverlayPainter(
+      projection: painter.projection,
+      transform: painter.transform,
+      workspaceRootPath: repositoryRoot,
+      enemyImagesByPath: <String, ui.Image>{
+        for (var index = 0; index < imagePaths.length; index++)
+          imagePaths[index]: decodedImages![index]!,
+      },
+      showResolvedEvidence: true,
+    );
+    expect(spritePainter.resolvedEnemySpriteCount, 1);
+    imageCache.dispose();
 
     tester
         .widget<ChoiceChip>(
@@ -1894,6 +1935,7 @@ void main() {
     expect(_chunk(harness.session, 'forest_chunk').revision, 6);
     expect(_chunk(harness.session, 'forest_chunk').markers, hasLength(2));
     expect(find.textContaining('Marker scene change was rejected'), findsOne);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets(

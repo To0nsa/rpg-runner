@@ -628,6 +628,9 @@ Core-resolved spawn locations.
       and its placement mode.
 - [x] Preserve the existing visually distinct resolved placement evidence and
       anchor-to-outcome connection.
+- [x] Paint the runtime idle sprite behind accepted resolved placement
+      evidence using the Core frame, anchor, and render scale; keep deferred,
+      disabled, malformed, and rejected outcomes diagnostic-only.
 - [x] Use the projection's current derived selection key only within the current
       document projection.
 - [x] Add explicit marker select/place/move tools.
@@ -665,6 +668,8 @@ Core-resolved spawn locations.
 ### Phase 5 tests
 
 - [x] Extend existing authored-anchor versus resolved-outcome rendering tests.
+- [x] Cover runtime-scale/anchor sprite geometry, decoded image loading, and
+      accepted-versus-deferred sprite eligibility.
 - [x] Add ground, highest-surface, and obstacle-top move tests.
 - [x] Add integer-pixel and positive/negative half-tie marker drag tests.
 - [x] Assert drag commits authored coordinates rather than projected spawn

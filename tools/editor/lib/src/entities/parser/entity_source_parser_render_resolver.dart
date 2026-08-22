@@ -467,12 +467,10 @@ class _ConstValueResolver {
 class _RenderScaleConfig {
   const _RenderScaleConfig({
     required this.playerScale,
-    required this.enemyById,
     required this.projectileById,
   });
 
   final _ResolvedScalarValue? playerScale;
-  final Map<String, _ResolvedScalarValue> enemyById;
   final Map<String, _ResolvedScalarValue> projectileById;
 }
 

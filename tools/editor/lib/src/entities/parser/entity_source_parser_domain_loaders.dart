@@ -7,9 +7,8 @@ part of '../entity_source_parser.dart';
 
 List<EntityEntry> _parseEnemies(
   EditorWorkspace workspace,
-  List<ValidationIssue> issues, {
-  required Map<String, _ResolvedScalarValue> enemyRenderScaleById,
-}) {
+  List<ValidationIssue> issues,
+) {
   final source = _readSource(
     workspace,
     EntitySourceParser.enemyCatalogPath,
@@ -173,9 +172,27 @@ List<EntityEntry> _parseEnemies(
     final parsedReferenceVisual = renderAnimExpression == null
         ? null
         : resolver.resolveRenderVisual(renderAnimExpression);
+    final renderScaleArg = _namedArgument(
+      returnExpr.argumentList.arguments,
+      'renderScale',
+    );
+    final renderScaleValue = renderScaleArg == null
+        ? null
+        : _doubleFromExpression(renderScaleArg.argumentExpression);
+    final renderScaleBinding = _scalarBindingFromNamedArg(
+      sourcePath: EntitySourceParser.enemyCatalogPath,
+      source: source,
+      kind: EntitySourceBindingKind.referenceRenderScaleScalar,
+      namedArg: renderScaleArg,
+    );
     final referenceVisual = _withRenderScale(
       parsedReferenceVisual,
-      enemyRenderScaleById[enemyName],
+      renderScaleValue == null || renderScaleBinding == null
+          ? null
+          : _ResolvedScalarValue(
+              value: renderScaleValue,
+              binding: renderScaleBinding,
+            ),
     );
     entries.add(
       EntityEntry(
@@ -584,12 +601,6 @@ Map<String, EntityReferenceVisual> _parseProjectileReferenceVisuals(
 // the game uses today rather than inventing a separate editor-owned config.
 _RenderScaleConfig _parseRenderScaleConfig(EditorWorkspace workspace) {
   final playerScale = _parsePlayerRenderScale(workspace);
-  final enemyById = _parseRegistryRenderScales(
-    workspace,
-    sourcePath: EntitySourceParser.enemyRenderRegistryPath,
-    idPrefix: 'EnemyId',
-    entryCtorName: 'EnemyRenderEntry',
-  );
   final projectileById = _parseRegistryRenderScales(
     workspace,
     sourcePath: EntitySourceParser.projectileRenderRegistryPath,
@@ -598,7 +609,6 @@ _RenderScaleConfig _parseRenderScaleConfig(EditorWorkspace workspace) {
   );
   return _RenderScaleConfig(
     playerScale: playerScale,
-    enemyById: enemyById,
     projectileById: projectileById,
   );
 }

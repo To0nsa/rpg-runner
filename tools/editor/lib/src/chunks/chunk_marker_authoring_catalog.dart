@@ -16,12 +16,14 @@ final class ChunkMarkerEnemyCatalogEntry {
     required this.displayName,
     required this.motionKind,
     required this.renderAnim,
+    required this.renderScale,
   });
 
   final EnemyId enemyId;
   final String displayName;
   final EnemyTerrainMotionKind motionKind;
   final RenderAnimSetDefinition renderAnim;
+  final double renderScale;
 
   String get markerId => enemyId.name;
 
@@ -41,13 +43,7 @@ final List<ChunkMarkerEnemyCatalogEntry> chunkMarkerEnemyCatalog =
     List<ChunkMarkerEnemyCatalogEntry>.unmodifiable(() {
       const catalog = EnemyCatalog();
       final entries = <ChunkMarkerEnemyCatalogEntry>[
-        for (final enemyId in EnemyId.values)
-          ChunkMarkerEnemyCatalogEntry(
-            enemyId: enemyId,
-            displayName: _enemyDisplayName(enemyId),
-            motionKind: catalog.terrainContactProfile(enemyId).motionKind,
-            renderAnim: catalog.get(enemyId).renderAnim,
-          ),
+        for (final enemyId in EnemyId.values) _entryFor(catalog, enemyId),
       ];
       entries.sort((left, right) => left.markerId.compareTo(right.markerId));
       return entries;
@@ -80,6 +76,17 @@ const List<String> chunkMarkerPlacementModes = <String>[
   markerPlacementHighestSurfaceAtX,
   markerPlacementObstacleTop,
 ];
+
+ChunkMarkerEnemyCatalogEntry _entryFor(EnemyCatalog catalog, EnemyId enemyId) {
+  final archetype = catalog.get(enemyId);
+  return ChunkMarkerEnemyCatalogEntry(
+    enemyId: enemyId,
+    displayName: _enemyDisplayName(enemyId),
+    motionKind: catalog.terrainContactProfile(enemyId).motionKind,
+    renderAnim: archetype.renderAnim,
+    renderScale: archetype.renderScale,
+  );
+}
 
 String _enemyDisplayName(EnemyId enemyId) => switch (enemyId) {
   EnemyId.unocoDemon => 'Unoco Demon',

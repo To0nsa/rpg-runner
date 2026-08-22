@@ -1,13 +1,26 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 
+import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
+import 'chunk_enemy_idle_frame.dart';
 
-/// Read-only marker anchors and exact Core placement evidence.
-class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
-  const ChunkMarkerPlacementOverlayPainter({
+/// Loads and paints runtime-faithful enemy sprites behind marker evidence.
+///
+/// Decoded images are scoped to the current repository workspace. Only Core-
+/// accepted placements with a resolved body center request images; deferred or
+/// invalid outcomes retain their diagnostics without a fabricated sprite.
+class ChunkMarkerPlacementOverlay extends StatefulWidget {
+  const ChunkMarkerPlacementOverlay({
+    super.key,
+    required this.workspaceRootPath,
     required this.projection,
     required this.transform,
     this.selectedMarkerKey,
@@ -15,6 +28,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     this.showResolvedEvidence = true,
   });
 
+  final String workspaceRootPath;
   final ChunkV2MarkerPlacementProjection projection;
   final TerrainPolygonViewportTransform transform;
   final String? selectedMarkerKey;
@@ -22,7 +36,134 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
   final bool showResolvedEvidence;
 
   @override
+  State<ChunkMarkerPlacementOverlay> createState() =>
+      _ChunkMarkerPlacementOverlayState();
+}
+
+class _ChunkMarkerPlacementOverlayState
+    extends State<ChunkMarkerPlacementOverlay> {
+  late EditorUiImageCache _imageCache;
+  var _loadEpoch = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageCache = EditorUiImageCache();
+    _ensureImagesLoaded();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChunkMarkerPlacementOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
+      _loadEpoch += 1;
+      _imageCache.dispose();
+      _imageCache = EditorUiImageCache();
+      _ensureImagesLoaded();
+      return;
+    }
+    if (!identical(oldWidget.projection, widget.projection) ||
+        (!oldWidget.showResolvedEvidence && widget.showResolvedEvidence)) {
+      _ensureImagesLoaded();
+    }
+  }
+
+  @override
+  void dispose() {
+    _loadEpoch += 1;
+    _imageCache.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imagesByPath = <String, ui.Image>{};
+    for (final frame in _requiredFrames()) {
+      final image = _imageCache.imageFor(frame.absoluteSourcePath);
+      if (image != null) imagesByPath[frame.absoluteSourcePath] = image;
+    }
+    return CustomPaint(
+      key: const ValueKey<String>('chunk_marker_placement_overlay'),
+      painter: ChunkMarkerPlacementOverlayPainter(
+        projection: widget.projection,
+        transform: widget.transform,
+        workspaceRootPath: widget.workspaceRootPath,
+        enemyImagesByPath: imagesByPath,
+        selectedMarkerKey: widget.selectedMarkerKey,
+        suppressedMarkerKey: widget.suppressedMarkerKey,
+        showResolvedEvidence: widget.showResolvedEvidence,
+      ),
+    );
+  }
+
+  Iterable<ChunkEnemyIdleFrame> _requiredFrames() sync* {
+    final seenPaths = <String>{};
+    for (final outcome in widget.projection.outcomes) {
+      if (!_hasResolvedAcceptedSpawn(outcome)) continue;
+      final enemy = chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name);
+      if (enemy == null) continue;
+      final frame = ChunkEnemyIdleFrame.fromEnemy(
+        enemy: enemy,
+        workspaceRootPath: widget.workspaceRootPath,
+      );
+      if (frame != null && seenPaths.add(frame.absoluteSourcePath)) yield frame;
+    }
+  }
+
+  void _ensureImagesLoaded() {
+    if (!widget.showResolvedEvidence) return;
+    final paths = _requiredFrames()
+        .map((frame) => frame.absoluteSourcePath)
+        .toSet();
+    if (paths.isEmpty) return;
+    final epoch = ++_loadEpoch;
+    unawaited(() async {
+      await Future.wait(paths.map(_imageCache.ensureLoaded));
+      if (mounted && epoch == _loadEpoch) setState(() {});
+    }());
+  }
+}
+
+/// Read-only marker anchors and exact Core placement evidence.
+class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
+  const ChunkMarkerPlacementOverlayPainter({
+    required this.projection,
+    required this.transform,
+    this.workspaceRootPath = '',
+    this.enemyImagesByPath = const <String, ui.Image>{},
+    this.selectedMarkerKey,
+    this.suppressedMarkerKey,
+    this.showResolvedEvidence = true,
+  });
+
+  final ChunkV2MarkerPlacementProjection projection;
+  final TerrainPolygonViewportTransform transform;
+  final String workspaceRootPath;
+  final Map<String, ui.Image> enemyImagesByPath;
+  final String? selectedMarkerKey;
+  final String? suppressedMarkerKey;
+  final bool showResolvedEvidence;
+
+  /// Number of accepted resolved outcomes with a decoded, valid idle frame.
+  ///
+  /// Deferred, disabled, malformed, and rejected markers are excluded because
+  /// they do not have an exact static spawn sprite to paint.
+  int get resolvedEnemySpriteCount {
+    var count = 0;
+    for (final outcome in projection.outcomes) {
+      if (_resolvedEnemySpriteFor(outcome) != null) count += 1;
+    }
+    return count;
+  }
+
+  @override
   void paint(Canvas canvas, Size size) {
+    if (showResolvedEvidence) {
+      for (final outcome in projection.outcomes) {
+        if (outcome.selectionKey == suppressedMarkerKey) continue;
+        _paintResolvedEnemy(canvas, outcome);
+      }
+    }
     for (final outcome in projection.outcomes) {
       if (outcome.selectionKey == suppressedMarkerKey) continue;
       _paintOutcome(
@@ -32,6 +173,42 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
         showResolvedEvidence: showResolvedEvidence,
       );
     }
+  }
+
+  void _paintResolvedEnemy(
+    Canvas canvas,
+    ChunkV2MarkerPlacementOutcome outcome,
+  ) {
+    final sprite = _resolvedEnemySpriteFor(outcome);
+    if (sprite == null) return;
+    canvas.drawImageRect(
+      sprite.image,
+      sprite.frame.sourceRect,
+      sprite.frame.runtimeDestination(
+        bodyPoint: sprite.bodyPoint,
+        sceneZoom: transform.zoom,
+      ),
+      Paint()..filterQuality = FilterQuality.none,
+    );
+  }
+
+  ({ui.Image image, ChunkEnemyIdleFrame frame, Offset bodyPoint})?
+  _resolvedEnemySpriteFor(ChunkV2MarkerPlacementOutcome outcome) {
+    if (!_hasResolvedAcceptedSpawn(outcome)) return null;
+    final enemy = chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name);
+    if (enemy == null) return null;
+    final frame = ChunkEnemyIdleFrame.fromEnemy(
+      enemy: enemy,
+      workspaceRootPath: workspaceRootPath,
+    );
+    if (frame == null) return null;
+    final image = enemyImagesByPath[frame.absoluteSourcePath];
+    if (image == null || !frame.fits(image)) return null;
+    return (
+      image: image,
+      frame: frame,
+      bodyPoint: _toCanvas(outcome.result!.bodyCenter!),
+    );
   }
 
   void _paintOutcome(
@@ -202,8 +379,16 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
       selectedMarkerKey != oldDelegate.selectedMarkerKey ||
       suppressedMarkerKey != oldDelegate.suppressedMarkerKey ||
       showResolvedEvidence != oldDelegate.showResolvedEvidence ||
+      workspaceRootPath != oldDelegate.workspaceRootPath ||
+      !mapEquals(enemyImagesByPath, oldDelegate.enemyImagesByPath) ||
       transform != oldDelegate.transform;
 }
+
+bool _hasResolvedAcceptedSpawn(ChunkV2MarkerPlacementOutcome outcome) =>
+    outcome.accepted &&
+    !outcome.deferred &&
+    outcome.enemyId != null &&
+    outcome.result?.bodyCenter != null;
 
 /// Draws one route-local authored marker anchor without accepted Core evidence.
 final class ChunkMarkerAnchorPreviewPainter extends CustomPainter {

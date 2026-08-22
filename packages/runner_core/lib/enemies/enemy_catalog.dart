@@ -498,6 +498,7 @@ class EnemyArchetype {
     required this.mana,
     required this.stamina,
     required this.renderAnim,
+    required this.renderScale,
     required this.animProfile,
     required this.hitAnimSeconds,
     required this.deathAnimSeconds,
@@ -528,6 +529,12 @@ class EnemyArchetype {
 
   /// Render-only animation metadata (strip paths, frame size, timing).
   final RenderAnimSetDefinition renderAnim;
+
+  /// Positive uniform sprite scale applied by runtime renderers.
+  ///
+  /// Keeping this beside [renderAnim] lets non-Flame consumers reproduce the
+  /// runtime sprite footprint without duplicating presentation tuning.
+  final double renderScale;
 
   /// Core animation profile (movement thresholds and supported keys).
   final AnimProfile animProfile;
@@ -611,6 +618,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 500),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _unocoRenderAnim,
+          renderScale: 0.5,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
@@ -640,6 +648,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _grojibRenderAnim,
+          renderScale: 1.5,
           animProfile: _grojibAnimProfile,
           hitAnimSeconds: _grojibHitAnimSeconds,
           deathAnimSeconds: _grojibDeathAnimSeconds,
@@ -662,6 +671,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _hashashRenderAnim,
+          renderScale: 1.5,
           animProfile: _hashashAnimProfile,
           hitAnimSeconds: _hashashHitAnimSeconds,
           deathAnimSeconds: _hashashDeathAnimSeconds,
@@ -683,6 +693,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 600),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _derfRenderAnim,
+          renderScale: 1.5,
           animProfile: _derfAnimProfile,
           hitAnimSeconds: _derfHitAnimSeconds,
           deathAnimSeconds: _derfDeathAnimSeconds,

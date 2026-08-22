@@ -157,6 +157,12 @@ They are not the per-ability action speed control. Enemy hit, spawn, and death
 durations are configured by their `EnemyCatalog` entries and use their render
 strip timing when available; the enemy `*AnimSeconds` fields are the fallback.
 
+`EnemyArchetype.renderScale` is the positive uniform presentation scale paired
+with `renderAnim`. The Flame enemy registry converts it to its `Vector2` scale,
+and repository tools may use the same value with the frame anchor to reproduce
+the runtime sprite footprint. It is render metadata only and does not enter
+simulation collision, placement, timing, or replay authority.
+
 ## 8) Debug checklist
 
 When animation behavior looks wrong, check in this order:

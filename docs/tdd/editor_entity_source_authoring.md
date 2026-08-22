@@ -24,8 +24,13 @@ The parser reads the current supported shapes from:
 - every Dart file under
   `packages/runner_core/lib/players/characters/`;
 - `packages/runner_core/lib/projectiles/projectile_catalog.dart`;
-- the projectile render catalog and enemy/projectile render registries;
+- the projectile render catalog and projectile render registry;
 - player render tuning and Core spatial-grid tuning.
+
+Enemy uniform render scale lives beside `renderAnim` in each
+`EnemyArchetype`, so the parser captures both the value and writable scalar
+binding from `enemy_catalog.dart`. The Flame registry consumes that same field;
+there is no separate enemy-scale binding in the render registry.
 
 The parser records ordinary unsupported or missing source shapes as validation
 issues. A loaded document may remain inspectable, but any error-severity issue
