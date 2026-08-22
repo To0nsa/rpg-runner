@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
+import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_check.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_target_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
@@ -63,7 +64,8 @@ void main() {
                 record.toJson()['outputPath'] ==
                     'packages/runner_core/lib/track/'
                         'staged_authored_terrain.dart' &&
-                record.toJson()['artifactFormatVersion'] == 3,
+                record.toJson()['artifactFormatVersion'] ==
+                    stagedTerrainArtifactFormatVersion,
           ),
           isTrue,
         );
@@ -210,7 +212,7 @@ void main() {
       'artifactKind': 'stagedTerrainChunk',
       'outputPath':
           'packages/runner_core/lib/track/staged_authored_terrain.dart',
-      'artifactFormatVersion': 3,
+      'artifactFormatVersion': stagedTerrainArtifactFormatVersion,
       'chunkKey': 'chunk_a',
       'chunkSourcePath': 'chunks/chunk_a.json',
       'referencedPrefabKeys': <String>['prefab_a', 'prefab_b'],
