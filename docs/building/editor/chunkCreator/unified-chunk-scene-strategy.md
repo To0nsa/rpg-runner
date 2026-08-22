@@ -18,7 +18,7 @@ separate from terrain and composition inspection:
 
 ```text
 +---------------+-- Terrain | Prefabs | Markers | Layers ---------------+----------------------+
-| Chunk owners  |              Chunk creation scene                    | Active tab card      |
+| Chunk owners  |              Chunk creation scene                    | Active sections      |
 |               |  One persistent viewport for terrain, prefab         |                      |
 |               |  visuals, markers, and previews                      | One of Terrain,      |
 |               |                                                       | Prefabs, Markers,    |
@@ -29,7 +29,8 @@ separate from terrain and composition inspection:
 On a wide window, the scene is the primary surface between a scrollable owner
 rail on its left and a tab-filtered authoring sidebar on its right. Persistent
 visual/viewport controls sit above the Terrain, Prefabs, Markers, and Layers
-tabs. The tabs mount only their matching right-side card and never replace the
+tabs. The tabs mount only their matching flat group of right-side sections and
+never replace the
 scene. On a narrow
 window, the owner rail and authoring sidebar sit beside each other below a
 bounded scene. The scene remains mounted across tab and expansion changes.
@@ -271,7 +272,7 @@ domain has an active gesture or guarded route-local draft. The expanded Prefab
 placement form is deliberately non-blocking and discards its un-applied values
 when its domain, owner, or source revision changes.
 
-Because the scene and active card share one operation boundary, the guard is
+Because the scene and active sections share one operation boundary, the guard is
 route-wide: while one domain has an active operation, tab changes and mutating
 actions in every other domain are disabled. Read-only evidence toggles and
 viewport controls remain available. While a local operation exists, session
@@ -340,17 +341,18 @@ The right-side terrain card contains the direct-collision workflow:
 
 The scene keeps tool guidance only; collision-count, seam-count, source-fill,
 and marker-count summary rows do not compete with the canvas. A shared,
-document-wide diagnostics card appears below the active Terrain, Prefabs,
-Markers, or Layers card and does not filter findings by the selected tab.
+document-wide Diagnostics section appears below the active Terrain, Prefabs,
+Markers, or Layers sections and does not filter findings by the selected tab.
 
 Neither rail may become a second long vertical page. Each is independently
 scrollable; sidebar-internal groups use natural-height `EditorSectionCard` or
 equivalent expansion sections with stable keys rather than nested expanded
-panel cards.
+panel cards. Every owner, domain, visual-stack, and Diagnostics section starts
+collapsed. Expansion remains local presentation state.
 
-### `Prefabs`, `Markers`, and `Layers` cards
+### `Prefabs`, `Markers`, and `Layers` sections
 
-The composition workflow is partitioned into three tab-specific cards:
+The composition workflow is partitioned into three tab-specific section groups:
 
 - Layers: visual-stack summary plus tile-layer metadata list and actions
 - Prefabs: prefab placement list, catalog/add action, selection, and inspector
@@ -362,7 +364,7 @@ may promote coordinates and common transforms into an inline inspector once the
 typed selection and gesture model exists. Both list selection and scene
 selection must converge on the same route-local selection state.
 
-The card and scene must also consume the same per-document selection
+The section group and scene must also consume the same per-document selection
 projection: canonical source index, derived presentation key, and source record
 are computed once for each prefab or marker. Do not independently sort and
 reconstruct equivalent selection rows in the sidebar and hit tester.
@@ -385,7 +387,7 @@ Narrow layout:
   scene in the workspace body
 - use a height-bounded column with the two scroll areas receiving the remaining
   height
-- keep the scene mounted while the tab-specific sidebar card changes
+- keep the scene mounted while the tab-specific sidebar sections change
 - preserve keyboard focus, selection, viewport, and draft state when inspector
   sections open or close
 
@@ -544,14 +546,14 @@ commands. Do not create separate "fast" scene writes.
 Gate: no implementation phase treats a derived selection key as persistent
 source identity or depends on an undefined tile-content model.
 
-### Phase 1 — Persistent scene and sidebar cards
+### Phase 1 — Persistent scene and sidebar sections
 
 - remove the two route-level view chips and `_ChunkV2WorkspaceView`
 - rename the route root from the polygon-specific `ChunkPolygonWorkspace` to
   `ChunkAuthoringWorkspace`, updating its page key and tests in the same phase
 - keep one scene mounted
 - compose the existing owner controls into the left rail and collision and
-  composition controls into the right sidebar cards
+  composition controls into the right sidebar sections
 - extract the retained composition sections and remove the standalone
   `ChunkV2CompositionWorkspace` root rather than leaving a parallel page
 - retain tile-layer and Marker edit dialogs and semantic commands; move Prefab
@@ -747,9 +749,10 @@ Performance coverage:
 - The Chunk route has one persistent `Chunk creation scene` and no mutually
   exclusive terrain/composition workspace selector.
 - `Chunk owners` occupies the left rail on wide layouts; Terrain, Prefabs,
-  Markers, and Layers tabs mount one matching right-side card plus the shared
-  all-issues Diagnostics card without replacing the scene on either wide or
-  narrow layouts.
+  Markers, and Layers tabs mount one matching flat group of right-side sections
+  plus shared all-issues Diagnostics without replacing the scene on either wide
+  or narrow layouts. No redundant domain wrapper card is present, and every
+  sidebar section starts collapsed.
 - Every owner row includes a read-only visual thumbnail, and the scene toolbar
   does not expose a redundant `Place vertex` chip.
 - **Show grid** exposes the owner tile grid on every domain tab, while the

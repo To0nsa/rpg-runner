@@ -52,6 +52,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_polygon_creation_panel_toggle',
+        bodyKey: 'chunk_polygon_creation_section',
+      );
 
       ChunkPolygonLevelVisualSource materialPreview() => tester.widget(
         find.byKey(
@@ -143,8 +148,6 @@ void main() {
         const ValueKey<String>('chunk_polygon_creation_panel_toggle'),
       );
       expect(creationPanelToggle, findsOneWidget);
-      await tester.tap(creationPanelToggle);
-      await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_creation_section')),
         findsNothing,
@@ -305,6 +308,11 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_polygon_creation_name_1')),
         findsOneWidget,
       );
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_polygon_shapes_panel_toggle',
+        bodyKey: 'chunk_polygon_selected_shape_editor',
+      );
       expect(
         find.byKey(
           const ValueKey<String>('chunk_polygon_selected_shape_editor'),
@@ -345,11 +353,15 @@ void main() {
       expect(find.text('Chunk creation scene'), findsOneWidget);
       expect(find.text('Chunk owners'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey<String>('chunk_terrain_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_sections')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_prefabs_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_card')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_prefabs_sections')),
         findsNothing,
       );
       final domainSelectorFinder = find.byKey(
@@ -395,6 +407,11 @@ void main() {
       expect(
         (scene as ChunkV2Scene).activeParallaxTheme?.parallaxThemeId,
         'forest',
+      );
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_owner_section_toggle',
+        bodyKey: 'chunk_v2_owner_create',
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
@@ -605,13 +622,10 @@ void main() {
       final authoringSidebarScrollable = find
           .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
           .first;
-      expect(
-        find.descendant(of: shapeList, matching: find.byType(Scrollable)),
-        findsNothing,
-      );
       final shapePanelToggle = find.byKey(
         const ValueKey<String>('chunk_polygon_shapes_panel_toggle'),
       );
+      expect(shapeList, findsNothing);
       await tester.scrollUntilVisible(
         shapePanelToggle,
         200,
@@ -619,10 +633,11 @@ void main() {
       );
       await tester.tap(shapePanelToggle);
       await tester.pumpAndSettle();
-      expect(shapeList, findsNothing);
-      await tester.tap(shapePanelToggle);
-      await tester.pumpAndSettle();
       expect(shapeList, findsOneWidget);
+      expect(
+        find.descendant(of: shapeList, matching: find.byType(Scrollable)),
+        findsNothing,
+      );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(
@@ -964,6 +979,12 @@ void main() {
     final prefabCreationToggle = find.byKey(
       const ValueKey<String>('chunk_prefab_creation_panel_toggle'),
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_creation_form_forest_chunk'),
+      ),
+      findsNothing,
+    );
     await tester.scrollUntilVisible(
       prefabCreationToggle,
       200,
@@ -975,14 +996,17 @@ void main() {
       find.byKey(
         const ValueKey<String>('chunk_prefab_creation_form_forest_chunk'),
       ),
-      findsNothing,
+      findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey<String>('chunk_prefab_placements_section')),
       findsOneWidget,
     );
-    await tester.tap(prefabCreationToggle);
-    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_prefab_placements_section_toggle',
+      bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
+    );
     final prefabCard = find.byKey(
       const ValueKey<String>('chunk_v2_placement_prefab_rock|95|10|0'),
     );
@@ -1055,6 +1079,12 @@ void main() {
     final markerCreationToggle = find.byKey(
       const ValueKey<String>('chunk_marker_creation_panel_toggle'),
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_marker_creation_form_forest_chunk'),
+      ),
+      findsNothing,
+    );
     await tester.scrollUntilVisible(
       markerCreationToggle,
       200,
@@ -1066,14 +1096,17 @@ void main() {
       find.byKey(
         const ValueKey<String>('chunk_marker_creation_form_forest_chunk'),
       ),
-      findsNothing,
+      findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey<String>('chunk_enemy_markers_section')),
       findsOneWidget,
     );
-    await tester.tap(markerCreationToggle);
-    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_enemy_markers_section_toggle',
+      bodyKey: 'chunk_v2_marker_hashash|40|5|0',
+    );
     final markerCard = find.byKey(
       const ValueKey<String>('chunk_v2_marker_hashash|40|5|0'),
     );
@@ -1235,6 +1268,21 @@ void main() {
           )
           .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
       await tester.pump();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_prefab_catalog_section_toggle',
+        bodyKey: 'chunk_prefab_catalog_grid',
+      );
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_prefab_creation_panel_toggle',
+        bodyKey: 'chunk_prefab_creation_form_forest_chunk',
+      );
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_prefab_placements_section_toggle',
+        bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
+      );
 
       expect(
         find.byKey(const ValueKey<String>('chunk_prefab_catalog_selector')),
@@ -1247,11 +1295,11 @@ void main() {
       );
       await tester.pump();
       expect(find.text('1 of 2 prefabs'), findsOneWidget);
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('chunk_prefab_catalog_card_prefab_tree'),
-        ),
+      final treeCard = find.byKey(
+        const ValueKey<String>('chunk_prefab_catalog_card_prefab_tree'),
       );
+      await tester.ensureVisible(treeCard);
+      await tester.tap(treeCard);
       await tester.pump();
 
       expect(find.text('Selected: tree'), findsOneWidget);
@@ -1360,7 +1408,7 @@ void main() {
       await tester.pump();
       expect(inlineEditor, findsNothing);
       expect(
-        find.byKey(const ValueKey<String>('chunk_markers_card')),
+        find.byKey(const ValueKey<String>('chunk_markers_sections')),
         findsOne,
       );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
@@ -1371,6 +1419,11 @@ void main() {
           .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
           .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
       await tester.pump();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_prefab_placements_section_toggle',
+        bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
+      );
       await tester.ensureVisible(editPlacement);
       await tester.tap(editPlacement);
       await tester.pumpAndSettle();
@@ -1764,6 +1817,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_polygon_shapes_panel_toggle',
+        bodyKey: 'chunk_shape_list',
+      );
 
       final authoringSidebar = find.byKey(
         const ValueKey<String>('chunk_authoring_sidebar'),
@@ -1900,6 +1958,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_shapes_panel_toggle',
+      bodyKey: 'chunk_shape_list',
+    );
 
     final authoringSidebar = find.byKey(
       const ValueKey<String>('chunk_authoring_sidebar'),
@@ -1982,6 +2045,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_shapes_panel_toggle',
+      bodyKey: 'chunk_shape_list',
+    );
 
     final sidebar = find.byKey(
       const ValueKey<String>('chunk_authoring_sidebar'),
@@ -2099,6 +2167,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_owner_section_toggle',
+        bodyKey: 'chunk_v2_owner_edit',
+      );
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_polygon_creation_panel_toggle',
+        bodyKey: 'chunk_polygon_creation_section',
+      );
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_polygon_shapes_panel_toggle',
+        bodyKey: 'chunk_shape_list',
+      );
+
       expect(
         find.byKey(const ValueKey<String>('chunk_workspace_narrow')),
         findsOneWidget,
@@ -2113,11 +2197,11 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_terrain_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_sections')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_prefabs_card')),
+        find.byKey(const ValueKey<String>('chunk_prefabs_sections')),
         findsNothing,
       );
       final sceneSlot = find.byKey(const ValueKey<String>('chunk_scene_slot'));
@@ -2177,10 +2261,6 @@ void main() {
       expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
       expect(tester.widget<FilledButton>(newRectangle).onPressed, isNull);
       expect(find.textContaining('Add at least 3 vertices.'), findsOneWidget);
-      expect(
-        find.textContaining('Finish or cancel the active terrain edit'),
-        findsOneWidget,
-      );
       expect(
         tester
             .widget<SegmentedButton<ChunkSceneDomain>>(
@@ -2271,6 +2351,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_owner_preview_forest_chunk',
+    );
 
     final expectedIssues = harness.session.issues;
     final ownerPreview = find.byKey(
@@ -2318,10 +2403,10 @@ void main() {
       findsNothing,
     );
     final panelKeys = <ChunkSceneDomain, String>{
-      ChunkSceneDomain.terrain: 'chunk_terrain_card',
-      ChunkSceneDomain.prefabs: 'chunk_prefabs_card',
-      ChunkSceneDomain.markers: 'chunk_markers_card',
-      ChunkSceneDomain.layers: 'chunk_layers_card',
+      ChunkSceneDomain.terrain: 'chunk_terrain_sections',
+      ChunkSceneDomain.prefabs: 'chunk_prefabs_sections',
+      ChunkSceneDomain.markers: 'chunk_markers_sections',
+      ChunkSceneDomain.layers: 'chunk_layers_sections',
     };
     for (final entry in panelKeys.entries) {
       tester
@@ -2337,6 +2422,11 @@ void main() {
       );
       expect(activePanel, findsOneWidget);
       expect(diagnostics, findsOneWidget);
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_diagnostics_card_toggle',
+        bodyKey: 'chunk_diagnostics_list',
+      );
       expect(
         tester.getBottomLeft(activePanel).dy,
         lessThan(tester.getTopLeft(diagnostics).dy),
@@ -2372,6 +2462,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_creation_panel_toggle',
+      bodyKey: 'chunk_polygon_creation_section',
+    );
 
     final visualPreview = find.byKey(
       const ValueKey<String>('chunk_visual_preview_toggle'),
@@ -2440,6 +2535,11 @@ void main() {
     final groundShape = find.byKey(
       const ValueKey<String>('chunk_polygon_shape_ground_001'),
     );
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_shapes_panel_toggle',
+      bodyKey: 'chunk_polygon_shape_ground_001',
+    );
     await tester.scrollUntilVisible(
       groundShape,
       160,
@@ -2484,6 +2584,16 @@ void main() {
         )
         .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.terrain});
     await tester.pump();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_creation_panel_toggle',
+      bodyKey: 'chunk_polygon_creation_section',
+    );
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_shapes_panel_toggle',
+      bodyKey: 'chunk_shape_list',
+    );
     expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isFalse);
     expect(tester.widget<SwitchListTile>(editSnapToGrid).value, isTrue);
   });
@@ -2520,7 +2630,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('chunk_terrain_card')),
+      find.byKey(const ValueKey<String>('chunk_terrain_sections')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -2551,11 +2661,24 @@ void main() {
         .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.layers});
     await tester.pump();
     expect(
-      find.byKey(const ValueKey<String>('chunk_layers_card')),
+      find.byKey(const ValueKey<String>('chunk_layers_sections')),
       findsOneWidget,
     );
     expect(find.text('Tile layer metadata'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_v2_layer_background')),
+      findsNothing,
+    );
     expect(find.text('Add layer'), findsOneWidget);
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_layer_metadata_section_toggle',
+      bodyKey: 'chunk_layer_metadata_section_body',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_layer_metadata_section_body')),
+      findsOneWidget,
+    );
     expect(find.text('Paint tiles'), findsNothing);
     expect(find.text('Erase tiles'), findsNothing);
     expect(
@@ -2592,6 +2715,11 @@ void main() {
         )
         .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
     await tester.pump();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_prefab_placements_section_toggle',
+      bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
+    );
     final openOwner = find.byKey(
       const ValueKey<String>('chunk_v2_placement_open_prefab_rock|95|10|0'),
     );
@@ -2622,6 +2750,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_owner_section_toggle',
+        bodyKey: 'chunk_v2_owner_edit',
+      );
 
       final original = _chunk(harness.session, 'forest_chunk');
       await tester.tap(
@@ -2779,11 +2912,11 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_terrain_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_sections')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_layers_card')),
+        find.byKey(const ValueKey<String>('chunk_layers_sections')),
         findsNothing,
       );
       expect(
@@ -2794,7 +2927,9 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_scene_surface')),
       );
       await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_terrain_card_toggle')),
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_creation_panel_toggle'),
+        ),
       );
       await tester.pumpAndSettle();
       expect(
@@ -2817,6 +2952,29 @@ void main() {
         String key,
       ) async {
         await selectDomain(domain);
+        switch (domain) {
+          case ChunkSceneDomain.prefabs:
+            await _openSection(
+              tester,
+              toggleKey: 'chunk_prefab_placements_section_toggle',
+              bodyKey: key,
+            );
+          case ChunkSceneDomain.markers:
+            await _openSection(
+              tester,
+              toggleKey: 'chunk_enemy_markers_section_toggle',
+              bodyKey: key,
+            );
+          case ChunkSceneDomain.layers:
+            await _openSection(
+              tester,
+              toggleKey: 'chunk_layer_metadata_section_toggle',
+              bodyKey: key,
+            );
+          case ChunkSceneDomain.terrain ||
+              ChunkSceneDomain.compiledEdgeInspection:
+            break;
+        }
         final control = find.byKey(ValueKey<String>(key));
         await Scrollable.ensureVisible(tester.element(control), alignment: 0.4);
         await tester.pumpAndSettle();
@@ -2825,6 +2983,11 @@ void main() {
       }
 
       await selectDomain(ChunkSceneDomain.layers);
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_visual_stack_preview_toggle',
+        bodyKey: 'chunk_visual_stack_ground',
+      );
       final groundStackEntry = find.byKey(
         const ValueKey<String>('chunk_visual_stack_ground'),
       );
@@ -2894,6 +3057,11 @@ void main() {
       await selectDomain(ChunkSceneDomain.prefabs);
       expect(find.text('Create prefab placement'), findsOneWidget);
       expect(find.text('Existing prefab placements'), findsOneWidget);
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_prefab_creation_panel_toggle',
+        bodyKey: 'chunk_prefab_creation_form_forest_chunk',
+      );
       await tester.enterText(
         find.byKey(
           const ValueKey<String>('chunk_v2_placement_creation_x_field'),
@@ -2953,6 +3121,11 @@ void main() {
       expect(addedPlacement.scale, 0.6);
       expect(addedPlacement.flipY, isTrue);
       await selectDomain(ChunkSceneDomain.layers);
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_visual_stack_preview_toggle',
+        bodyKey: 'chunk_visual_stack_ground',
+      );
       final addedPrefabStackEntry = find.byKey(
         const ValueKey<String>('chunk_visual_stack_prefab_prefab_rock|80|10|0'),
       );
@@ -2965,6 +3138,11 @@ void main() {
       await selectDomain(ChunkSceneDomain.markers);
       expect(find.text('Create enemy marker'), findsOneWidget);
       expect(find.text('Existing enemy markers'), findsOneWidget);
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_marker_creation_panel_toggle',
+        bodyKey: 'chunk_marker_creation_form_forest_chunk',
+      );
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_marker_creation_x_field')),
         '60',
@@ -3166,6 +3344,11 @@ void main() {
           )
           .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.layers});
       await tester.pump();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_layer_metadata_section_toggle',
+        bodyKey: 'chunk_v2_layer_add',
+      );
       final addLayer = find.byKey(const ValueKey<String>('chunk_v2_layer_add'));
       await Scrollable.ensureVisible(tester.element(addLayer), alignment: 0.4);
       await tester.tap(addLayer);
@@ -3238,6 +3421,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_v2_owner_delete',
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_v2_owner_delete')),
@@ -3270,6 +3458,22 @@ void main() {
     expect(_chunk(harness.session, 'forest_chunk').revision, 4);
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
+}
+
+Future<void> _openSection(
+  WidgetTester tester, {
+  required String toggleKey,
+  required String bodyKey,
+}) async {
+  final body = find.byKey(ValueKey<String>(bodyKey));
+  if (body.evaluate().isNotEmpty) return;
+  final toggle = find.byKey(ValueKey<String>(toggleKey));
+  expect(toggle, findsOneWidget);
+  await tester.ensureVisible(toggle);
+  final toggleBounds = tester.getRect(toggle);
+  await tester.tapAt(Offset(toggleBounds.right - 20, toggleBounds.center.dy));
+  await tester.pumpAndSettle();
+  expect(body, findsOneWidget);
 }
 
 Future<_Harness> _buildHarness({

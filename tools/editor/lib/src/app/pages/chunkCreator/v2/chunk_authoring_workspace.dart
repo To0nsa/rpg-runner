@@ -494,6 +494,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       key: const ValueKey<String>('chunk_owner_section'),
       title: 'Chunk owners',
       collapsible: true,
+      initiallyExpanded: false,
       expansionKey: const ValueKey<String>('chunk_owner_section_toggle'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -634,6 +635,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     expansionKey: expansionKey,
     title: title,
     collapsible: true,
+    initiallyExpanded: false,
     child: Text(message),
   );
 
@@ -641,19 +643,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ChunkV2Document document,
     ChunkPolygonAuthoringController? authoring,
   ) {
-    final controlsEnabled = !_hasActiveOperation && !_visualPreview;
-    final activePanel = switch (_sceneCoordinator.sourceDomain) {
+    final activeSections = switch (_sceneCoordinator.sourceDomain) {
       ChunkSceneDomain.terrain ||
-      ChunkSceneDomain.compiledEdgeInspection => EditorPanelCard(
-        key: const ValueKey<String>('chunk_terrain_card'),
-        title: 'Terrain',
-        description: _visualPreview
-            ? 'Exit Visual preview to edit direct terrain shapes.'
-            : controlsEnabled
-            ? 'Create and edit direct terrain shapes.'
-            : 'Finish or cancel the active terrain edit before changing tabs.',
-        collapsible: true,
-        expansionKey: const ValueKey<String>('chunk_terrain_card_toggle'),
+      ChunkSceneDomain.compiledEdgeInspection => KeyedSubtree(
+        key: const ValueKey<String>('chunk_terrain_sections'),
         child: authoring == null
             ? _buildEmptySidebarPanel(
                 key: const ValueKey<String>('chunk_polygon_shapes_panel'),
@@ -665,17 +658,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               )
             : _buildShapePanel(authoring),
       ),
-      ChunkSceneDomain.prefabs => _buildCompositionSidebarCard(
+      ChunkSceneDomain.prefabs => _buildCompositionSidebarSections(
         document,
         authoring,
         section: ChunkCompositionSection.prefabs,
       ),
-      ChunkSceneDomain.markers => _buildCompositionSidebarCard(
+      ChunkSceneDomain.markers => _buildCompositionSidebarSections(
         document,
         authoring,
         section: ChunkCompositionSection.markers,
       ),
-      ChunkSceneDomain.layers => _buildCompositionSidebarCard(
+      ChunkSceneDomain.layers => _buildCompositionSidebarSections(
         document,
         authoring,
         section: ChunkCompositionSection.layers,
@@ -687,7 +680,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          activePanel,
+          activeSections,
           const SizedBox(height: _gap),
           _buildDiagnosticsCard(),
         ],
@@ -717,6 +710,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       title: 'Diagnostics',
       description: description,
       collapsible: true,
+      initiallyExpanded: false,
       expansionKey: const ValueKey<String>('chunk_diagnostics_card_toggle'),
       child: Column(
         key: const ValueKey<String>('chunk_diagnostics_list'),
@@ -745,38 +739,38 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  Widget _buildCompositionSidebarCard(
+  Widget _buildCompositionSidebarSections(
     ChunkV2Document document,
     ChunkPolygonAuthoringController? authoring, {
     required ChunkCompositionSection section,
   }) {
     if (authoring == null) {
-      final (cardKey, expansionKey, title) = switch (section) {
+      final (sectionKey, expansionKey, title) = switch (section) {
         ChunkCompositionSection.prefabs => (
-          'chunk_prefabs_card',
-          'chunk_prefabs_card_toggle',
+          'chunk_prefabs_sections',
+          'chunk_prefabs_sections_toggle',
           'Prefabs',
         ),
         ChunkCompositionSection.markers => (
-          'chunk_markers_card',
-          'chunk_markers_card_toggle',
+          'chunk_markers_sections',
+          'chunk_markers_sections_toggle',
           'Markers',
         ),
         ChunkCompositionSection.layers => (
-          'chunk_layers_card',
-          'chunk_layers_card_toggle',
+          'chunk_layers_sections',
+          'chunk_layers_sections_toggle',
           'Layers',
         ),
       };
-      return EditorPanelCard(
-        key: ValueKey<String>(cardKey),
-        title: title,
-        collapsible: true,
+      return _buildEmptySidebarPanel(
+        key: ValueKey<String>(sectionKey),
         expansionKey: ValueKey<String>(expansionKey),
-        child: const Text('Select or create a chunk owner first.'),
+        title: title,
+        message: 'Select or create a chunk owner first.',
       );
     }
     return ChunkCompositionCard(
+      key: ValueKey<String>('chunk_${section.name}_sections'),
       section: section,
       controller: widget.controller,
       document: document,
@@ -1424,6 +1418,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               : 'Select a shape to edit its metadata, geometry, or lifecycle.',
           trailing: Text('${shapes.length} total'),
           collapsible: true,
+          initiallyExpanded: false,
           child: Column(
             key: const ValueKey<String>('chunk_shape_list'),
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1530,6 +1525,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       title: 'Create terrain shape',
       description: 'Choose collision and material first, then draw in the terrain scene.',
       collapsible: true,
+      initiallyExpanded: false,
       child: Column(
         key: const ValueKey<String>('chunk_polygon_creation_section'),
         crossAxisAlignment: CrossAxisAlignment.stretch,

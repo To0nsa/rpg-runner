@@ -54,16 +54,20 @@ rail, and right sidebar. Wide layouts place the rail and bounded sidebar around
 the scene; narrow layouts keep all subtrees mounted while placing them below
 the scene. A four-way `Terrain`, `Prefabs`, `Markers`, and `Layers` segmented
 tab strip stays at the top of the scene. The sidebar is the sole vertical
-scroll owner and mounts only the `EditorPanelCard` for the active tab. Terrain
+scroll owner and mounts only the flat group of sibling `EditorSectionCard`s for
+the active tab; no redundant domain-level `EditorPanelCard` wraps them. Terrain
 contains the creation and existing-shape authoring sections, Prefabs contains
 the visual catalog plus creation and existing-placement sections, Markers
 contains its creation and retained-placement sections, and Layers contains the
-visual stack plus tile-layer metadata. Seam evidence and route diagnostics are
-not separate sidebar sections. Tab changes preserve the scene subtree,
+visual stack plus tile-layer metadata. Owner, domain, visual-stack, and
+Diagnostics sections start collapsed; expansion is presentation-only and each
+mounted section retains it locally. Seam evidence is not a separate sidebar
+section. Tab changes preserve the scene subtree,
 viewport, and per-domain selection; an active source gesture or retained dialog
 disables tab changes.
-The Prefabs card starts with one persistent `ChunkPrefabCatalogBrowser`. It
-uses immutable Prefab-v3 and tile/module projections plus a browser-owned,
+The Prefabs section group starts with one persistent
+`ChunkPrefabCatalogBrowser`. It uses immutable Prefab-v3 and tile/module
+projections plus a browser-owned,
 workspace-path-scoped image cache for thumbnail rendering, token search across
 identity/kind/tags, and route-local kind/usage filters. Its
 stable-key selection feeds the scene Place tool and inline placement form but

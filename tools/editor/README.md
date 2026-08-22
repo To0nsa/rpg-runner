@@ -286,7 +286,8 @@ Prefab and Chunk polygon scenes share the same geometry controls:
   diagnosed collinear middle vertices
 
 In the Chunk Creator, terrain creation and existing-shape editing are separate
-sidebar cards. **Create terrain shape** keeps persistent **Collision** and
+sidebar sections. Both start folded. **Create terrain shape** keeps persistent
+**Collision** and
 **Material** dropdowns above **Draw polygon** and **Draw rectangle**. Collision
 offers **Solid**, **One-way**, and **No collision (visual only)**. An optional
 **Shape name** accepts a unique lowercase source ID; leaving it blank uses the
@@ -327,22 +328,26 @@ the only normal file-write action; it always requires confirmation.
 
 The Chunk Creator keeps one **Chunk creation scene** between an owner rail and
 an authoring sidebar. On wide windows, **Chunk owners** sits to the scene's
-left, while one tab-specific authoring card occupies the right-side scroll
-area above a shared, document-wide **Diagnostics** card. Owner rows include a
-read-only thumbnail built from the same background, terrain-material, prefab,
+left, while one tab-specific group of sibling authoring sections occupies the
+right-side scroll area above shared, document-wide **Diagnostics**. There is no
+redundant Terrain, Prefabs, Markers, or Layers wrapper card. Owner rows include
+a read-only thumbnail built from the same background, terrain-material, prefab,
 and foreground projections as the scene. On narrow windows, both scroll areas
 sit below a bounded scene, with owners on the left. Persistent
 visual/viewport controls sit above the **Terrain / Prefabs / Markers / Layers**
-selector, which swaps only the domain card; it never replaces or rebuilds the
-scene or filters Diagnostics. Tab changes preserve the viewport and each
+selector, which swaps only the domain's sections; it never replaces or rebuilds
+the scene or filters Diagnostics. Owner, authoring, visual-stack, and
+Diagnostics sections start folded and retain presentation-only expansion state
+while mounted. Tab changes preserve the viewport and each
 domain's last selection. Active source gestures and retained dialogs lock the
 tabs until that operation is finished or cancelled. Merely selecting a Prefab
 or expanding its inline editor does not lock the workspace.
 
 The scene tabs make primary input explicit. The Prefabs domain has Select,
-Place, and Move tools backed by a persistent visual library at the top of its
-sidebar card. The library searches token-by-token across Prefab ID, stable key,
-kind, and tags, filters by kind or Prefabs already used in the selected Chunk,
+Place, and Move tools backed by a persistent visual-library section at the top
+of its sidebar group. The library searches token-by-token across Prefab ID,
+stable key, kind, and tags, filters by kind or Prefabs already used in the
+selected Chunk,
 and renders atlas-slice or platform-module thumbnails through one browser-owned
 decoded-image cache. Pressing Enter selects the first filtered result. Its
 stable-key selection is route-local and shared by both the canvas Place tool

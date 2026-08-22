@@ -390,6 +390,10 @@ void main() {
       playtestPlatformSupported: true,
     );
     await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_creation_panel_toggle')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
       find.byKey(const ValueKey<String>('chunk_polygon_new_shape')),
     );
     await tester.pump();

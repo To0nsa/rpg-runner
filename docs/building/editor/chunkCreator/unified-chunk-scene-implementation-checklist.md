@@ -18,7 +18,8 @@ The initiative is complete when:
 
 - the Chunk route presents one persistent `Chunk creation scene`
 - Terrain, Prefabs, Markers, and Layers tabs appear at the top of that scene
-- one matching authoring card appears in the right sidebar at a time
+- one matching flat group of authoring sections appears in the right sidebar at
+  a time, with no redundant domain wrapper card
 - wide and narrow layouts keep scene and viewport state mounted across tabs
 - per-domain selection survives tab changes, and active operations lock tabs
 - all existing owner, collision, composition, evidence, validation, undo/redo,
@@ -146,13 +147,14 @@ Objective: remove design ambiguity before reorganizing a stateful workspace.
 - [x] Freeze the wide layout: primary scene plus one bounded right sidebar.
 - [x] Freeze the narrow layout as a bounded scene followed by the same sidebar
       below it, with neither subtree unmounted.
-- [x] Keep one top-level sidebar `EditorPanelCard` mounted for the active scene
-      tab; the scene retains its own panel shell, and sidebar-internal groups
-      use natural-height section/expansion primitives.
+- [x] Mount the active scene tab's natural-height section primitives directly in
+      the sidebar, without a redundant top-level `EditorPanelCard`; the scene
+      retains its own panel shell.
 - [x] Keep the header owner selector and owner-card list synchronized through
       the route's one selected chunk key.
-- [x] Start each tab-specific card expanded and keep expansion state
-      presentation-only with stable keys and out of document state.
+- [x] Start every owner, tab-specific, visual-stack, and Diagnostics section
+      collapsed and keep expansion state presentation-only with stable keys and
+      out of document state.
 - [x] Separate global scene controls from contextual domain tools.
 - [x] Freeze terrain as the initial source-editing domain when a chunk owner
       binds.
@@ -767,8 +769,8 @@ performance regression remains.
 - [x] Move the active-domain selector to a persistent tab strip at the top of
       `Chunk creation scene`.
 - [x] Add the passive Layers domain beside Terrain, Prefabs, and Markers.
-- [x] Mount only the matching Terrain, Prefabs, Markers, or Layers card in the
-      right sidebar.
+- [x] Mount only the matching flat Terrain, Prefabs, Markers, or Layers section
+      group in the right sidebar, without a domain wrapper card.
 - [x] Keep the scene, viewport, tool state, and per-domain selection across tab
       changes.
 - [x] Disable tab changes during a draft, gesture, or retained dialog.
@@ -927,8 +929,9 @@ no blocking issues.
 ## Final Acceptance Checklist
 
 - [x] One persistent Chunk creation scene replaces the two old workspace views.
-- [x] Four tabs beneath the global scene controls select one matching
-      right-side card without replacing the scene.
+- [x] Four tabs beneath the global scene controls select one matching flat group
+      of right-side sections without replacing the scene.
+- [x] Sidebar sections have no redundant domain wrapper and start collapsed.
 - [x] Prefabs and Markers each expose foldable Create and Existing sections;
       adding from the Create form does not open a modal dialog.
 - [x] Prefab selection uses one searchable visual library shared by scene Place

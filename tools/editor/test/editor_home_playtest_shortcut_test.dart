@@ -72,6 +72,10 @@ void main() {
       expect(_playtestHandler(tester).locksEditorShell, isFalse);
 
       await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_owner_section_toggle')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_edit')),
       );
       await tester.pumpAndSettle();

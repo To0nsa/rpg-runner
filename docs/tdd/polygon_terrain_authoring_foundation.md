@@ -648,13 +648,15 @@ When a normal strict `ChunkV2Scene` is loaded, `ChunkCreatorPage` selects
 workspace no longer exist. `Chunk creation scene` stays mounted beside the
 owner rail while persistent visual/viewport controls sit above the
 Terrain/Prefabs/Markers/Layers selector. That selector filters the right sidebar
-to one matching authoring card. On narrow layouts, the same
+to one matching flat group of sibling authoring sections with no domain-level
+wrapper card. Every owner, authoring, visual-stack, and Diagnostics section
+starts collapsed. On narrow layouts, the same
 scene and sidebar subtrees are repositioned; tab changes replace only the
-sidebar card. The tabs and card rows share typed per-domain prefab and marker
-selection. Prefab hit testing reverses the exact canonical
+sidebar section group. The tabs and section rows share typed per-domain prefab
+and marker selection. Prefab hit testing reverses the exact canonical
 paint order, including the source-index tie break; marker anchor hit testing
 reverses canonical source order and never targets resolved placement evidence.
-Selection overlays and card expansion are route-local presentation state and
+Selection overlays and section expansion are route-local presentation state and
 cannot create revisions, history entries, or pending diffs. Composition still
 uses the shared validated forms for exact and non-spatial fields: creation is
 inline in the sidebar, while existing-record edits use those forms in dialogs.
@@ -702,16 +704,16 @@ export are not normal source paths.
 
 The Chunk workspace's right authoring column owns one vertical scroll surface.
 The `Terrain`, `Prefabs`, `Markers`, and `Layers` tabs sit below the persistent
-visual/viewport controls and mount only the matching right-side card while
-leaving the scene and viewport mounted. Terrain
+visual/viewport controls and mount only the matching right-side section group
+while leaving the scene and viewport mounted. Terrain
 contains creation and existing-shape authoring. Prefabs and Markers mirror that
 sidebar structure with foldable inline creation forms above separate existing
 placement lists; add commits no longer require modal navigation, while existing
 record edits retain the shared validated form in a dialog. Layers contains the
-visual stack and tile-layer metadata. One shared Diagnostics card follows the
-active domain card and presents the complete session issue projection on every
-tab without owner or domain filtering. Per-domain selection survives tab
-changes, and an active operation locks the tabs. Layers is a passive scene-input
+visual stack and tile-layer metadata. One shared Diagnostics section follows
+the active domain sections and presents the complete session issue projection
+on every tab without owner or domain filtering. Per-domain selection survives
+tab changes, and an active operation locks the tabs. Layers is a passive scene-input
 domain because tile layers remain metadata-only. Compact owner-row previews
 reuse the scene's background, terrain-material, placed-prefab, and foreground
 visual projections with a fit-to-chunk transform; they remain read-only and do

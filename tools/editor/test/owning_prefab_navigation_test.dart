@@ -68,6 +68,12 @@ void main() {
           .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
       await tester.pump();
 
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_prefab_placements_section_toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
       final openOwner = find.byKey(
         const ValueKey<String>('chunk_v2_placement_open_prefab_target|20|10|0'),
       );

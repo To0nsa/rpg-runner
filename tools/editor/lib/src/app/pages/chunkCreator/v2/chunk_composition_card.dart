@@ -12,7 +12,6 @@ import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../shared/editor_list_card.dart';
-import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_section_card.dart';
 import 'chunk_prefab_catalog_browser.dart';
 import 'chunk_v2_composition_dialog.dart';
@@ -21,7 +20,7 @@ import 'chunk_v2_composition_forms.dart';
 /// User-facing composition section shown by one Chunk workspace tab.
 enum ChunkCompositionSection { prefabs, markers, layers }
 
-/// Sidebar card for one current Chunk-v2 composition section.
+/// Sidebar section group for one current Chunk-v2 composition domain.
 ///
 /// Each accepted action replaces the three canonical composition lists through
 /// one typed plugin command. Identity, metadata, dimensions, and polygons are
@@ -95,48 +94,17 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final (cardKey, expansionKey, title, description) = switch (section) {
-      ChunkCompositionSection.prefabs => (
-        'chunk_prefabs_card',
-        'chunk_prefabs_card_toggle',
-        'Prefabs',
-        'Place and manage reusable visuals and collision owners.',
-      ),
-      ChunkCompositionSection.markers => (
-        'chunk_markers_card',
-        'chunk_markers_card_toggle',
-        'Markers',
-        'Place and manage authored enemy marker anchors.',
-      ),
-      ChunkCompositionSection.layers => (
-        'chunk_layers_card',
-        'chunk_layers_card_toggle',
-        'Layers',
-        'Review visual order and edit tile-layer metadata.',
-      ),
-    };
-    return EditorPanelCard(
-      key: ValueKey<String>(cardKey),
-      title: title,
-      description: controlsEnabled
-          ? description
-          : 'Finish or cancel the active operation before editing $title.',
-      collapsible: _placementEdit == null,
-      expansionKey: ValueKey<String>(expansionKey),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: switch (section) {
-          ChunkCompositionSection.prefabs => <Widget>[
-            _buildPlacements(context),
-          ],
-          ChunkCompositionSection.markers => <Widget>[_buildMarkers(context)],
-          ChunkCompositionSection.layers => <Widget>[
-            _buildVisualStackPreview(context),
-            const SizedBox(height: 12),
-            _buildTileLayers(context),
-          ],
-        },
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: switch (section) {
+        ChunkCompositionSection.prefabs => <Widget>[_buildPlacements(context)],
+        ChunkCompositionSection.markers => <Widget>[_buildMarkers(context)],
+        ChunkCompositionSection.layers => <Widget>[
+          _buildVisualStackPreview(context),
+          const SizedBox(height: 12),
+          _buildTileLayers(context),
+        ],
+      },
     );
   }
 
@@ -161,6 +129,9 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
       description:
           'Preview only: polygon fill and prefab visual order are not '
           'runtime collision authority.',
+      collapsible: true,
+      initiallyExpanded: false,
+      expansionKey: const ValueKey<String>('chunk_visual_stack_preview_toggle'),
       child: SizedBox(
         height: 34,
         child: SingleChildScrollView(
@@ -255,6 +226,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               'Search by name, kind, or tags. The selected prefab is shared '
               'by the scene Place tool and the creation form below.',
           collapsible: true,
+          initiallyExpanded: false,
           expansionKey: const ValueKey<String>(
             'chunk_prefab_catalog_section_toggle',
           ),
@@ -280,6 +252,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               'Choose the prefab and placement values, then add it directly '
               'to this chunk.',
           collapsible: true,
+          initiallyExpanded: false,
           expansionKey: const ValueKey<String>(
             'chunk_prefab_creation_panel_toggle',
           ),
@@ -308,6 +281,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               : 'Edit the expanded placement, then apply or cancel the draft.',
           trailing: Text('${placements.length} total'),
           collapsible: _placementEdit == null,
+          initiallyExpanded: _placementEdit != null,
           expansionKey: const ValueKey<String>(
             'chunk_prefab_placements_section_toggle',
           ),
@@ -390,6 +364,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               'Choose the enemy and spawn values, then add the marker '
               'directly to this chunk.',
           collapsible: true,
+          initiallyExpanded: false,
           expansionKey: const ValueKey<String>(
             'chunk_marker_creation_panel_toggle',
           ),
@@ -414,6 +389,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               : 'Select a marker in the list or scene to manage it.',
           trailing: Text('${markers.length} total'),
           collapsible: true,
+          initiallyExpanded: false,
           expansionKey: const ValueKey<String>(
             'chunk_enemy_markers_section_toggle',
           ),
@@ -805,6 +781,7 @@ final class _CompositionSection extends StatelessWidget {
     key: ValueKey<String>(sectionKey),
     title: title,
     collapsible: true,
+    initiallyExpanded: false,
     expansionKey: ValueKey<String>(expansionKey),
     trailing: FilledButton.icon(
       key: ValueKey<String>(addKey),
@@ -812,12 +789,15 @@ final class _CompositionSection extends StatelessWidget {
       icon: const Icon(Icons.add),
       label: Text(addLabel),
     ),
-    child: children.isEmpty
-        ? Text(emptyMessage)
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
-          ),
+    child: KeyedSubtree(
+      key: ValueKey<String>('${sectionKey}_body'),
+      child: children.isEmpty
+          ? Text(emptyMessage)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+    ),
   );
 }
 
