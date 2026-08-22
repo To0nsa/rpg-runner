@@ -14,9 +14,10 @@ import 'chunk_enemy_idle_frame.dart';
 
 /// Loads and paints runtime-faithful enemy sprites behind marker evidence.
 ///
-/// Decoded images are scoped to the current repository workspace. Only Core-
-/// accepted placements with a resolved body center request images; deferred or
-/// invalid outcomes retain their diagnostics without a fabricated sprite.
+/// Decoded images are scoped to the current repository workspace. Accepted
+/// placements use their exact resolved body center, rejected placements use
+/// the attempted body center, and outcomes without a static body use their
+/// authored marker anchor as a muted reference.
 class ChunkMarkerPlacementOverlay extends StatefulWidget {
   const ChunkMarkerPlacementOverlay({
     super.key,
@@ -99,7 +100,7 @@ class _ChunkMarkerPlacementOverlayState
   Iterable<ChunkEnemyIdleFrame> _requiredFrames() sync* {
     final seenPaths = <String>{};
     for (final outcome in widget.projection.outcomes) {
-      if (!_hasResolvedAcceptedSpawn(outcome)) continue;
+      if (outcome.enemyId == null) continue;
       final enemy = chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name);
       if (enemy == null) continue;
       final frame = ChunkEnemyIdleFrame.fromEnemy(
@@ -144,14 +145,15 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
   final String? suppressedMarkerKey;
   final bool showResolvedEvidence;
 
-  /// Number of accepted resolved outcomes with a decoded, valid idle frame.
+  /// Number of recognized outcomes with a decoded, valid idle frame.
   ///
-  /// Deferred, disabled, malformed, and rejected markers are excluded because
-  /// they do not have an exact static spawn sprite to paint.
-  int get resolvedEnemySpriteCount {
+  /// Accepted sprites use exact resolved bodies. Rejected sprites use their
+  /// attempted bodies; deferred or otherwise body-less sprites use their
+  /// authored anchors as visibly muted references.
+  int get enemySpriteCount {
     var count = 0;
     for (final outcome in projection.outcomes) {
-      if (_resolvedEnemySpriteFor(outcome) != null) count += 1;
+      if (_enemySpriteFor(outcome) != null) count += 1;
     }
     return count;
   }
@@ -161,7 +163,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     if (showResolvedEvidence) {
       for (final outcome in projection.outcomes) {
         if (outcome.selectionKey == suppressedMarkerKey) continue;
-        _paintResolvedEnemy(canvas, outcome);
+        _paintEnemySprite(canvas, outcome);
       }
     }
     for (final outcome in projection.outcomes) {
@@ -175,11 +177,8 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     }
   }
 
-  void _paintResolvedEnemy(
-    Canvas canvas,
-    ChunkV2MarkerPlacementOutcome outcome,
-  ) {
-    final sprite = _resolvedEnemySpriteFor(outcome);
+  void _paintEnemySprite(Canvas canvas, ChunkV2MarkerPlacementOutcome outcome) {
+    final sprite = _enemySpriteFor(outcome);
     if (sprite == null) return;
     canvas.drawImageRect(
       sprite.image,
@@ -188,13 +187,20 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
         bodyPoint: sprite.bodyPoint,
         sceneZoom: transform.zoom,
       ),
-      Paint()..filterQuality = FilterQuality.none,
+      Paint()
+        ..filterQuality = FilterQuality.none
+        ..color = Colors.white.withValues(alpha: sprite.opacity),
     );
   }
 
-  ({ui.Image image, ChunkEnemyIdleFrame frame, Offset bodyPoint})?
-  _resolvedEnemySpriteFor(ChunkV2MarkerPlacementOutcome outcome) {
-    if (!_hasResolvedAcceptedSpawn(outcome)) return null;
+  ({
+    ui.Image image,
+    ChunkEnemyIdleFrame frame,
+    Offset bodyPoint,
+    double opacity,
+  })?
+  _enemySpriteFor(ChunkV2MarkerPlacementOutcome outcome) {
+    if (outcome.enemyId == null) return null;
     final enemy = chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name);
     if (enemy == null) return null;
     final frame = ChunkEnemyIdleFrame.fromEnemy(
@@ -207,8 +213,32 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     return (
       image: image,
       frame: frame,
-      bodyPoint: _toCanvas(outcome.result!.bodyCenter!),
+      bodyPoint: _enemySpriteBodyPoint(outcome),
+      opacity: _enemySpriteOpacity(outcome),
     );
+  }
+
+  Offset _enemySpriteBodyPoint(ChunkV2MarkerPlacementOutcome outcome) {
+    final body =
+        outcome.result?.bodyCenter ?? outcome.result?.requestedBodyCenter;
+    if (body != null) return _toCanvas(body);
+    return _worldToCanvas(
+      outcome.marker.x.toDouble(),
+      outcome.marker.y.toDouble(),
+    );
+  }
+
+  double _enemySpriteOpacity(ChunkV2MarkerPlacementOutcome outcome) {
+    if (outcome.accepted && !outcome.deferred) return 1;
+    return switch (outcome.disposition) {
+      ChunkV2MarkerPlacementDisposition.deferredGuaranteed ||
+      ChunkV2MarkerPlacementDisposition.deferredConditional => 0.68,
+      ChunkV2MarkerPlacementDisposition.guaranteedRejected ||
+      ChunkV2MarkerPlacementDisposition.conditionalRejected => 0.58,
+      ChunkV2MarkerPlacementDisposition.disabled => 0.45,
+      ChunkV2MarkerPlacementDisposition.malformed => 0.52,
+      _ => 1,
+    };
   }
 
   void _paintOutcome(
@@ -383,12 +413,6 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
       !mapEquals(enemyImagesByPath, oldDelegate.enemyImagesByPath) ||
       transform != oldDelegate.transform;
 }
-
-bool _hasResolvedAcceptedSpawn(ChunkV2MarkerPlacementOutcome outcome) =>
-    outcome.accepted &&
-    !outcome.deferred &&
-    outcome.enemyId != null &&
-    outcome.result?.bodyCenter != null;
 
 /// Draws one route-local authored marker anchor without accepted Core evidence.
 final class ChunkMarkerAnchorPreviewPainter extends CustomPainter {

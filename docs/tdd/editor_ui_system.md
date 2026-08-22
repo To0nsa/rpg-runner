@@ -102,13 +102,14 @@ Prefab and enemy browsers compose the neutral `EditorVisualCatalogLayout` and
 selection, keyboard, semantics, and card chrome; each browser retains only its
 domain filtering, identity, and thumbnail projection.
 
-With resolved marker evidence enabled, the marker painter first draws the
-accepted outcome's idle frame so its runtime animation anchor lands on Core's
-resolved body center, then draws support, connection, capsule, and authored
-anchor evidence above it. Only accepted non-deferred outcomes with a decoded,
-in-bounds frame qualify. Hashash remains sprite-free because its runtime spawn
-is chosen later at the visible camera-right Chunk edge; disabled, malformed,
-and rejected outcomes likewise retain diagnostics without a fabricated body.
+With resolved marker evidence enabled, the marker painter first draws every
+recognized outcome's decoded, in-bounds idle frame, then draws support,
+connection, capsule, and authored-anchor evidence above it. Accepted art uses
+Core's exact resolved body center at full opacity. Rejected art is muted at its
+attempted body center. Deferred Hashash and other body-less outcomes use muted
+art at the authored marker anchor as a reference, not as a claim that runtime
+will spawn there; Hashash still chooses the visible camera-right Chunk edge
+later.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation

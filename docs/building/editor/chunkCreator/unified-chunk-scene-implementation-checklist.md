@@ -629,8 +629,9 @@ Core-resolved spawn locations.
 - [x] Preserve the existing visually distinct resolved placement evidence and
       anchor-to-outcome connection.
 - [x] Paint the runtime idle sprite behind accepted resolved placement
-      evidence using the Core frame, anchor, and render scale; keep deferred,
-      disabled, malformed, and rejected outcomes diagnostic-only.
+      evidence using the Core frame, anchor, and render scale; show rejected
+      attempts and body-less outcomes as muted attempted-body or authored-anchor
+      references beneath their diagnostic evidence.
 - [x] Use the projection's current derived selection key only within the current
       document projection.
 - [x] Add explicit marker select/place/move tools.

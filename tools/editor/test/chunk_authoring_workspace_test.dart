@@ -1866,6 +1866,15 @@ void main() {
         'hashash',
         'hashash.png',
       ),
+      p.join(
+        repositoryRoot,
+        'assets',
+        'images',
+        'entities',
+        'enemies',
+        'derf',
+        'derf.png',
+      ),
     ];
     final imageCache = EditorUiImageCache();
     final decodedImages = await tester.runAsync(
@@ -1881,7 +1890,7 @@ void main() {
       },
       showResolvedEvidence: true,
     );
-    expect(spritePainter.resolvedEnemySpriteCount, 1);
+    expect(spritePainter.enemySpriteCount, 3);
     imageCache.dispose();
 
     tester

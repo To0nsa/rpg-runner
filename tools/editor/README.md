@@ -393,14 +393,15 @@ local and shared by the scene Place tool and inline creation form; the edit
 dialog embeds the same browser for tentative enemy changes. Missing image files
 show a safe placeholder and do not change the Core-derived catalog. Marker
 gestures edit only the authored query anchor at integer-pixel precision.
-Enabling **Marker placement** draws each accepted enemy's first idle frame with
-its Core anchor on the resolved body position, then keeps support/capsule
-evidence above the art. Deferred Hashash spawns, disabled or malformed markers,
-and rejected placements remain diagnostic-only because they have no exact
-static spawn position. The resolved layer is hidden for the record being moved
-until its accepted source is reprojected. Chance, salt, placement mode, and
-exact coordinates stay available in the sidebar creation form and existing-
-record edit dialog.
+Enabling **Marker placement** draws each recognized enemy's first idle frame,
+then keeps support/capsule evidence above the art. Accepted enemies use the
+exact Core-resolved body position at full opacity. Rejected enemies use their
+attempted body position with muted art, while deferred Hashash and other
+body-less outcomes use their authored marker anchor as a muted reference; that
+reference is not presented as Hashash's later camera-relative runtime spawn.
+The resolved layer is hidden for the record being moved until its accepted
+source is reprojected. Chance, salt, placement mode, and exact coordinates stay
+available in the sidebar creation form and existing-record edit dialog.
 
 Direct terrain creation and existing shapes live in the **Terrain** sections.
 The **Prefabs** and **Markers** groups each start with a foldable visual library,

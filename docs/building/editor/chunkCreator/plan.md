@@ -165,11 +165,12 @@ runtime-idle-frame thumbnails, and Enter-to-select share one stable enemy ID
 between direct scene placement and inline creation. The retained edit dialog
 uses the same browser with tentative selection. Core remains the enemy and
 animation metadata authority; the library adds no Chunk field or runtime rule.
-When marker evidence is enabled, accepted non-deferred outcomes also paint that
-idle frame at the exact Core-resolved body center using the catalog anchor and
-uniform render scale. Hashash deferral and every outcome without an accepted
-static body center remain evidence-only rather than receiving an invented
-scene position.
+When marker evidence is enabled, recognized outcomes also paint that idle frame
+using the catalog anchor and uniform render scale. Accepted outcomes use the
+exact Core-resolved body center at full opacity; rejected outcomes use a muted
+attempted body center. Deferred Hashash and other body-less outcomes use a
+muted authored-anchor reference, explicitly distinct from Hashash's later
+camera-relative runtime spawn.
 
 Prefab Place/Move now also provides default-on whole-pixel surface contact.
 After normal tile/pixel origin quantization, the editor can refine Y within
