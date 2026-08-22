@@ -30,6 +30,19 @@ void main() {
     expect(result?.commit?.after.markers.single, result?.candidate);
   });
 
+  test('Derf place preview defaults to obstacle-top placement', () {
+    final gesture = ChunkMarkerSceneGesture();
+
+    gesture.beginPlace(
+      pointer: 1,
+      worldPoint: const Offset(40, 20),
+      chunk: _chunk(),
+      markerId: 'derf',
+    );
+
+    expect(gesture.candidate?.placement, markerPlacementObstacleTop);
+  });
+
   for (final mode in const <String>[
     markerPlacementGround,
     markerPlacementHighestSurfaceAtX,

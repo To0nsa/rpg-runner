@@ -111,6 +111,13 @@ art at the authored marker anchor as a reference, not as a claim that runtime
 will spawn there; Hashash still chooses the visible camera-right Chunk edge
 later.
 
+Marker creation owns one shared enemy-aware placement default. Derf initializes
+to `obstacleTop` in the inline form and direct scene Place because Core accepts
+its kinematic perch only through that support intent; all other recognized and
+unknown IDs initialize to `ground`. The form follows enemy-selection changes
+only while its placement is untouched. Manual placement choices and retained
+marker edits preserve their exact stored value.
+
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation
 also chooses `solid`, `oneWay`, or **No collision (visual only)**; the last role

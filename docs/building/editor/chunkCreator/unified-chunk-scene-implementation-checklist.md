@@ -637,9 +637,10 @@ Core-resolved spawn locations.
 - [x] Add explicit marker select/place/move tools.
 - [x] Start marker placement with deterministic defaults for marker ID, chance,
       salt, and placement mode.
-- [x] Preserve the current dialog defaults for a new marker: first canonical
-      supported enemy ID, `100` percent chance, salt `0`, and ground placement,
-      unless the author changes them before placement.
+- [x] Preserve deterministic new-marker defaults: first canonical supported
+      enemy ID, `100` percent chance, salt `0`, and an enemy-aware placement
+      (`obstacleTop` for Derf, `ground` otherwise), unless the author explicitly
+      changes placement before submission.
 - [x] Keep chance, salt, marker ID, placement mode, and exact coordinates
       editable through a typed inspector/dialog.
 - [x] Drag only the authored source anchor; never write the resolved evidence

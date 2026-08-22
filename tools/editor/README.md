@@ -402,6 +402,9 @@ reference is not presented as Hashash's later camera-relative runtime spawn.
 The resolved layer is hidden for the record being moved until its accepted
 source is reprojected. Chance, salt, placement mode, and exact coordinates stay
 available in the sidebar creation form and existing-record edit dialog.
+New Derf selections default Placement to `obstacleTop` in both that form and
+direct scene Place; other enemies default to `ground`. An explicit form choice
+and every saved marker's existing placement remain unchanged.
 
 Direct terrain creation and existing shapes live in the **Terrain** sections.
 The **Prefabs** and **Markers** groups each start with a foldable visual library,

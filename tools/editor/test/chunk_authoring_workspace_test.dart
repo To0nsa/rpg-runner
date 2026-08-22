@@ -1651,6 +1651,20 @@ void main() {
 
       await _openSection(
         tester,
+        toggleKey: 'chunk_marker_creation_panel_toggle',
+        bodyKey: 'chunk_marker_creation_form_forest_chunk',
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_marker_creation_placement_obstacleTop',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      await _openSection(
+        tester,
         toggleKey: 'chunk_enemy_catalog_section_toggle',
         bodyKey: 'chunk_enemy_catalog_grid',
       );
@@ -1669,11 +1683,11 @@ void main() {
       await tester.tap(unocoCard);
       await tester.pump();
       expect(find.text('Selected: Unoco Demon'), findsOneWidget);
-
-      await _openSection(
-        tester,
-        toggleKey: 'chunk_marker_creation_panel_toggle',
-        bodyKey: 'chunk_marker_creation_form_forest_chunk',
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_marker_creation_placement_ground'),
+        ),
+        findsOneWidget,
       );
       final creationForm = tester.widget<ChunkV2MarkerForm>(
         find.byType(ChunkV2MarkerForm),
@@ -3486,7 +3500,7 @@ void main() {
       );
       expect(derf.chancePercent, 75);
       expect(derf.salt, 9);
-      expect(derf.placement, markerPlacementGround);
+      expect(derf.placement, markerPlacementObstacleTop);
       expect(edited.status, original.status);
       expect(edited.levelId, original.levelId);
       expect(edited.tags, original.tags);

@@ -62,6 +62,16 @@ ChunkMarkerEnemyCatalogEntry? chunkMarkerEnemyCatalogEntryFor(String markerId) {
   return null;
 }
 
+/// Returns the creation-only placement default for one exact Core enemy ID.
+///
+/// Derf is authored as an obstacle-top kinematic perch. Unknown IDs retain the
+/// general ground default so this presentation policy never expands identity
+/// acceptance.
+String chunkMarkerDefaultPlacementFor(String markerId) =>
+    chunkMarkerEnemyCatalogEntryFor(markerId)?.enemyId == EnemyId.derf
+    ? markerPlacementObstacleTop
+    : markerPlacementGround;
+
 /// Short editor label for one authoritative Core terrain-motion role.
 String chunkMarkerEnemyRoleLabel(EnemyTerrainMotionKind motionKind) =>
     switch (motionKind) {

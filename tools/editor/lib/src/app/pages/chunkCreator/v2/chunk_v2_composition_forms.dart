@@ -383,7 +383,8 @@ class _PlacementScaleControlState extends State<_PlacementScaleControl> {
 ///
 /// The surrounding enemy catalog owns [enemyId] selection so creation, scene
 /// placement, and edit workflows can share the same visual library. Changing
-/// that selection does not reset the remaining marker draft.
+/// that selection updates an untouched creation draft's placement default but
+/// does not reset its remaining values or overwrite an explicit placement.
 ///
 /// Coordinates are constrained to the supplied Chunk bounds and normalized to
 /// the Chunk whole-pixel policy before submission.
@@ -425,18 +426,30 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
   late final TextEditingController _chanceController;
   late final TextEditingController _saltController;
   late String _placement;
+  var _placementWasEdited = false;
 
   @override
   void initState() {
     super.initState();
     final marker = widget.marker;
-    _placement = marker?.placement ?? markerPlacementGround;
+    _placement =
+        marker?.placement ?? chunkMarkerDefaultPlacementFor(widget.enemyId);
     _xController = TextEditingController(text: '${marker?.x ?? 0}');
     _yController = TextEditingController(text: '${marker?.y ?? 0}');
     _chanceController = TextEditingController(
       text: '${marker?.chancePercent ?? 100}',
     );
     _saltController = TextEditingController(text: '${marker?.salt ?? 0}');
+  }
+
+  @override
+  void didUpdateWidget(covariant ChunkV2MarkerForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.marker == null &&
+        oldWidget.enemyId != widget.enemyId &&
+        !_placementWasEdited) {
+      _placement = chunkMarkerDefaultPlacementFor(widget.enemyId);
+    }
   }
 
   @override
@@ -534,7 +547,12 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
           onChanged: !widget.enabled
               ? null
               : (value) {
-                  if (value != null) setState(() => _placement = value);
+                  if (value != null) {
+                    setState(() {
+                      _placement = value;
+                      _placementWasEdited = true;
+                    });
+                  }
                 },
         ),
         const SizedBox(height: 10),

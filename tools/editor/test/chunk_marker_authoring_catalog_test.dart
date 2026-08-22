@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/enemies/enemy_terrain_profile.dart';
+import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_marker_authoring_catalog.dart';
 
 void main() {
@@ -28,7 +29,16 @@ void main() {
       expect(unoco.renderAnim.frameHeight, 71);
       expect(unoco.renderScale, 0.5);
 
+      expect(
+        chunkMarkerDefaultPlacementFor('derf'),
+        markerPlacementObstacleTop,
+      );
+      for (final markerId in <String>['grojib', 'hashash', 'unocoDemon']) {
+        expect(chunkMarkerDefaultPlacementFor(markerId), markerPlacementGround);
+      }
+
       expect(chunkMarkerEnemyCatalogEntryFor('UnocoDemon'), isNull);
+      expect(chunkMarkerDefaultPlacementFor('unknown'), markerPlacementGround);
     },
   );
 }

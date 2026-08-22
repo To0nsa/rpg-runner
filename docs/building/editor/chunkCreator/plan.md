@@ -171,6 +171,10 @@ exact Core-resolved body center at full opacity; rejected outcomes use a muted
 attempted body center. Deferred Hashash and other body-less outcomes use a
 muted authored-anchor reference, explicitly distinct from Hashash's later
 camera-relative runtime spawn.
+New marker creation applies one shared enemy-aware placement default across the
+inline form and scene Place tool: Derf starts at `obstacleTop`, while every
+other enemy starts at `ground`. Manual placement choices and saved-marker edits
+are preserved.
 
 Prefab Place/Move now also provides default-on whole-pixel surface contact.
 After normal tile/pixel origin quantization, the editor can refine Y within

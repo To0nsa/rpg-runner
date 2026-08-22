@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_scene_coordinate_policy.dart';
 import '../../../../chunks/chunk_v2_composition_commit.dart';
 import '../../../../chunks/chunk_v2_composition_operation.dart';
@@ -50,7 +51,12 @@ final class ChunkMarkerSceneGesture {
     _anchorOffset = Offset.zero;
     _hiddenSourceIndex = null;
     _candidate = _positioned(
-      PlacedMarkerDef(markerId: markerId, x: 0, y: 0),
+      PlacedMarkerDef(
+        markerId: markerId,
+        x: 0,
+        y: 0,
+        placement: chunkMarkerDefaultPlacementFor(markerId),
+      ),
       worldPoint,
     );
     return true;
