@@ -25,55 +25,69 @@ void main() {
       ),
     );
 
-    final field = tester.widget<DropdownButtonFormField<double>>(
-      find.byType(DropdownButtonFormField<double>),
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('chunk_v2_placement_scale_field')),
     );
-    final dropdown = tester.widget<DropdownButton<double>>(
-      find.byType(DropdownButton<double>),
+    final slider = tester.widget<Slider>(
+      find.byKey(const ValueKey<String>('chunk_v2_placement_scale_slider')),
     );
-    expect(field.initialValue, 2.0);
-    expect(dropdown.items!.map((item) => item.value), <double>[2.0]);
-    expect(find.textContaining('1 exact-contact scale shown'), findsOneWidget);
+    expect(field.controller!.text, '2.0');
+    expect(slider.value, 0);
+    expect(slider.onChanged, isNull);
+    expect(find.textContaining('exact-contact'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey<String>('submit')));
     expect(submitted?.scale, 2.0);
   });
 
-  testWidgets('saved incompatible scale is retained and explained', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ChunkV2PlacementForm(
-              prefab: _halfPixelSupportPrefab(),
-              placement: const PlacedPrefabDef(
-                prefabId: 'crate',
-                prefabKey: 'crate',
-                x: 10,
-                y: 20,
-                scale: 1,
+  testWidgets(
+    'saved incompatible scale is retained as a discrete slider stop',
+    (tester) async {
+      PlacedPrefabDef? submitted;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ChunkV2PlacementForm(
+                prefab: _halfPixelSupportPrefab(),
+                placement: const PlacedPrefabDef(
+                  prefabId: 'crate',
+                  prefabKey: 'crate',
+                  x: 10,
+                  y: 20,
+                  scale: 1,
+                ),
+                submitKey: 'submit',
+                submitLabel: 'Apply',
+                onSubmit: (candidate) => submitted = candidate,
               ),
-              submitKey: 'submit',
-              submitLabel: 'Apply',
-              onSubmit: (_) {},
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    final field = tester.widget<DropdownButtonFormField<double>>(
-      find.byType(DropdownButtonFormField<double>),
-    );
-    final dropdown = tester.widget<DropdownButton<double>>(
-      find.byType(DropdownButton<double>),
-    );
-    expect(field.initialValue, 1.0);
-    expect(dropdown.items!.map((item) => item.value), <double>[1.0, 2.0]);
-    expect(find.textContaining('saved scale is retained'), findsOneWidget);
-  });
+      var field = tester.widget<TextField>(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_scale_field')),
+      );
+      final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_scale_slider')),
+      );
+      expect(field.controller!.text, '1.0');
+      expect(slider.value, 0);
+      expect(slider.divisions, 1);
+      expect(find.textContaining('saved scale is retained'), findsNothing);
+
+      slider.onChanged!(1);
+      await tester.pump();
+      field = tester.widget<TextField>(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_scale_field')),
+      );
+      expect(field.controller!.text, '2.0');
+
+      await tester.tap(find.byKey(const ValueKey<String>('submit')));
+      expect(submitted?.scale, 2.0);
+    },
+  );
 }
 
 PrefabV3Def _halfPixelSupportPrefab() => PrefabV3Def(

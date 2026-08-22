@@ -366,15 +366,14 @@ same Core geometry and occupied-area predicate accept exact contact; point-only
 contact, positive-area penetration, another placement, and out-of-bounds
 geometry do not snap.
 
-The placement Scale field offers exact-contact scales when the Prefab has a
-usable support edge. A scale is compatible only when Core's reflected, exact-
-tenth transform leaves that support height on a whole pixel after the one
-`1/1024 px` quantization. A saved incompatible scale remains selectable and is
-identified as the current value so opening an old placement cannot silently
-rewrite it. Prefabs with no collision or no lowest horizontal edge retain the
-full visual-scale range and show why surface contact is unavailable. Surface
-snap changes no Prefab/Chunk schema and never weakens the final positive-area
-overlap validator.
+The placement Scale control pairs a compact numeric field with a discrete
+slider. When the Prefab has a usable support edge, each slider stop is an exact-
+contact scale: Core's reflected, exact-tenth transform leaves that support
+height on a whole pixel after the one `1/1024 px` quantization. A saved
+incompatible scale remains selected when its placement opens so an old value is
+never silently rewritten. Prefabs with no collision or no lowest horizontal
+edge retain the full visual-scale range. Surface snap changes no Prefab/Chunk
+schema and never weakens the final positive-area overlap validator.
 
 The Markers domain likewise provides Select, Place, and Move tools. These edit
 only the authored query anchor at integer-pixel precision. Core-resolved spawn

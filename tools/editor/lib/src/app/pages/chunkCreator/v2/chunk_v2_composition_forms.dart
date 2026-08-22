@@ -103,7 +103,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
       flipY: _flipY,
     );
     final scaleOptions = _scaleOptions(compatibleScales);
-    final scaleHelp = _scaleHelp(compatibleScales);
     return Form(
       key: _formKey,
       child: Column(
@@ -155,31 +154,14 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
             enabled: widget.enabled,
           ),
           const SizedBox(height: 10),
-          DropdownButtonFormField<double>(
-            key: ValueKey<String>('${widget.fieldKeyPrefix}_scale_$_scale'),
-            initialValue: _scale,
-            decoration: InputDecoration(
-              labelText: 'Scale',
-              helperText: scaleHelp,
-              helperMaxLines: 3,
-              border: OutlineInputBorder(),
-            ),
-            items: scaleOptions
-                .map(
-                  (scale) => DropdownMenuItem<double>(
-                    value: scale,
-                    child: Text(
-                      '×${scale.toStringAsFixed(1)}'
-                      '${!compatibleScales.contains(scale) && widget.placement != null ? ' · current' : ''}',
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: !widget.enabled
-                ? null
-                : (value) {
-                    if (value != null) setState(() => _scale = value);
-                  },
+          _PlacementScaleControl(
+            key: ValueKey<String>('${widget.fieldKeyPrefix}_scale_control'),
+            fieldKey: '${widget.fieldKeyPrefix}_scale_field',
+            sliderKey: '${widget.fieldKeyPrefix}_scale_slider',
+            value: _scale,
+            options: scaleOptions,
+            enabled: widget.enabled,
+            onChanged: (value) => setState(() => _scale = value),
           ),
           const SizedBox(height: 4),
           SwitchListTile(
@@ -238,27 +220,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
     return options;
   }
 
-  String _scaleHelp(List<double> compatibleScales) {
-    if (widget.prefab.collisionShapes.isEmpty) {
-      return 'No collider: visual scaling is unrestricted and surface snap '
-          'does not engage.';
-    }
-    if (!ChunkPrefabSurfaceSnap.hasHorizontalSupport(
-      widget.prefab,
-      flipY: _flipY,
-    )) {
-      return 'Surface snap needs a horizontal lowest collider edge; visual '
-          'scaling remains available.';
-    }
-    if (!compatibleScales.contains(_scale)) {
-      return 'This saved scale is retained, but its support edge falls between '
-          'whole pixels. Choose an exact-contact scale.';
-    }
-    return '${compatibleScales.length} exact-contact scale'
-        '${compatibleScales.length == 1 ? '' : 's'} shown; each keeps the '
-        'support edge on a whole pixel.';
-  }
-
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final prefab = widget.prefab;
@@ -278,6 +239,142 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
         flipX: _flipX,
         flipY: _flipY,
       ),
+    );
+  }
+}
+
+/// Compact numeric field and discrete slider for valid placement scales.
+///
+/// Slider positions map to [options] instead of interpolating so filtered
+/// exact-contact scales cannot be crossed accidentally while dragging.
+class _PlacementScaleControl extends StatefulWidget {
+  const _PlacementScaleControl({
+    super.key,
+    required this.fieldKey,
+    required this.sliderKey,
+    required this.value,
+    required this.options,
+    required this.enabled,
+    required this.onChanged,
+  }) : assert(options.length > 0);
+
+  final String fieldKey;
+  final String sliderKey;
+  final double value;
+  final List<double> options;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  @override
+  State<_PlacementScaleControl> createState() => _PlacementScaleControlState();
+}
+
+class _PlacementScaleControlState extends State<_PlacementScaleControl> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _syncText();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlacementScaleControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) _syncText();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = _nearestOptionIndex(widget.value);
+    final lastIndex = widget.options.length - 1;
+    return Row(
+      children: <Widget>[
+        SizedBox(
+          width: 96,
+          child: TextField(
+            key: ValueKey<String>(widget.fieldKey),
+            controller: _controller,
+            enabled: widget.enabled,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.right,
+            decoration: const InputDecoration(
+              isDense: true,
+              labelText: 'Scale',
+              prefixText: '×',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _commit(),
+            onEditingComplete: _commit,
+            onTapOutside: (_) => _commit(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Slider(
+            key: ValueKey<String>(widget.sliderKey),
+            min: 0,
+            max: lastIndex > 0 ? lastIndex.toDouble() : 1,
+            divisions: lastIndex > 0 ? lastIndex : null,
+            value: selectedIndex.toDouble(),
+            label: '×${_formatScale(widget.options[selectedIndex])}',
+            onChanged: widget.enabled && lastIndex > 0
+                ? (index) => widget.onChanged(widget.options[index.round()])
+                : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _commit() {
+    final normalized = _controller.text
+        .trim()
+        .replaceAll('×', '')
+        .replaceAll('x', '')
+        .replaceAll('X', '')
+        .replaceAll(',', '.');
+    final parsed = double.tryParse(normalized);
+    if (parsed == null || !parsed.isFinite) {
+      _syncText();
+      return;
+    }
+    final selected = widget.options[_nearestOptionIndex(parsed)];
+    if (selected == widget.value) {
+      _syncText();
+      return;
+    }
+    widget.onChanged(selected);
+  }
+
+  int _nearestOptionIndex(double value) {
+    var nearestIndex = 0;
+    var nearestDistance = (widget.options.first - value).abs();
+    for (var index = 1; index < widget.options.length; index += 1) {
+      final distance = (widget.options[index] - value).abs();
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    }
+    return nearestIndex;
+  }
+
+  String _formatScale(double value) => value.toStringAsFixed(1);
+
+  void _syncText() {
+    final text = _formatScale(widget.value);
+    if (_controller.text == text) return;
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

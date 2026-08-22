@@ -2915,12 +2915,13 @@ void main() {
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
       final scaleField = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_creation_scale_1.0'),
+        const ValueKey<String>('chunk_v2_placement_creation_scale_field'),
       );
       await tester.ensureVisible(scaleField);
       await tester.tap(scaleField);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('×0.6').last);
+      await tester.enterText(scaleField, '0.6');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
       final flipYField = find.byKey(
         const ValueKey<String>('chunk_v2_placement_creation_flip_y_field'),
       );
