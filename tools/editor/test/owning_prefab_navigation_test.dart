@@ -74,6 +74,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      final placementCard = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_prefab_target|20|10|0'),
+      );
+      await tester.tap(placementCard);
+      await tester.pumpAndSettle();
       final openOwner = find.byKey(
         const ValueKey<String>('chunk_v2_placement_open_prefab_target|20|10|0'),
       );

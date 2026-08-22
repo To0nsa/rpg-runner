@@ -98,6 +98,45 @@ void main() {
     expect(find.byKey(const ValueKey<String>('marker_rows')), findsNothing);
   });
 
+  testWidgets('a section expands when an active editor makes it fixed open', (
+    tester,
+  ) async {
+    var collapsible = true;
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return EditorSectionCard(
+                title: 'Placements',
+                collapsible: collapsible,
+                initiallyExpanded: !collapsible,
+                expansionKey: const ValueKey<String>('placements_toggle'),
+                child: const Text(
+                  'placement editor',
+                  key: ValueKey<String>('placement_editor'),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('placement_editor')),
+      findsNothing,
+    );
+    rebuild(() => collapsible = false);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('placement_editor')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('shared section and selectable cards preserve their slots', (
     tester,
   ) async {

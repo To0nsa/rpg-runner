@@ -943,7 +943,7 @@ void main() {
     },
   );
 
-  testWidgets('scene and composition cards share prefab and marker selection', (
+  testWidgets('scene and sidebar share prefab and marker selection', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1800, 1000);
@@ -1023,6 +1023,14 @@ void main() {
       <ChunkSceneDomain>{ChunkSceneDomain.prefabs},
     );
     expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_editor_prefab_rock|95|10|0',
+        ),
+      ),
+      findsOneWidget,
+    );
     var prefabPainter =
         tester
                 .widget<CustomPaint>(
@@ -1033,6 +1041,22 @@ void main() {
                 .painter!
             as ChunkScenePrefabSelectionPainter;
     expect(prefabPainter.selectedPrefabKey, 'prefab_rock|95|10|0');
+    await tester.tap(prefabCard);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_selection_overlay')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_editor_prefab_rock|95|10|0',
+        ),
+      ),
+      findsNothing,
+    );
+    await tester.tap(prefabCard);
+    await tester.pump();
 
     final surfaceFinder = find.byKey(
       const ValueKey<String>('chunk_scene_surface'),
@@ -1056,6 +1080,14 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_prefab_selection_overlay')),
       findsNothing,
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_editor_prefab_rock|95|10|0',
+        ),
+      ),
+      findsNothing,
+    );
     await tester.tapAt(scenePoint(95, 10));
     await tester.pump();
     prefabPainter =
@@ -1069,6 +1101,14 @@ void main() {
             as ChunkScenePrefabSelectionPainter;
     expect(prefabPainter.selectedPrefabKey, 'prefab_rock|95|10|0');
     expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_editor_prefab_rock|95|10|0',
+        ),
+      ),
+      findsOneWidget,
+    );
 
     tester
         .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
@@ -1318,18 +1358,30 @@ void main() {
       final sidebarScrollable = find
           .descendant(of: sidebar, matching: find.byType(Scrollable))
           .first;
-      final editPlacement = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_edit_prefab_rock|95|10|0'),
+      const placementKey = 'prefab_rock|95|10|0';
+      final placementCard = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_$placementKey'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_edit_$placementKey'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_delete_$placementKey'),
+        ),
+        findsNothing,
       );
       await tester.scrollUntilVisible(
-        editPlacement,
+        placementCard,
         280,
         scrollable: sidebarScrollable,
       );
-      await tester.tap(editPlacement);
+      await tester.tap(placementCard);
       await tester.pumpAndSettle();
 
-      const placementKey = 'prefab_rock|95|10|0';
       final inlineEditor = find.byKey(
         const ValueKey<String>(
           'chunk_v2_placement_inline_editor_$placementKey',
@@ -1363,9 +1415,7 @@ void main() {
       );
       expect(
         find.byKey(
-          const ValueKey<String>(
-            'chunk_v2_placement_inline_close_$placementKey',
-          ),
+          const ValueKey<String>('chunk_v2_placement_delete_$placementKey'),
         ),
         findsOneWidget,
       );
@@ -1424,9 +1474,11 @@ void main() {
         toggleKey: 'chunk_prefab_placements_section_toggle',
         bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
       );
-      await tester.ensureVisible(editPlacement);
-      await tester.tap(editPlacement);
+      expect(inlineEditor, findsNothing);
+      await tester.ensureVisible(placementCard);
+      await tester.tap(placementCard);
       await tester.pumpAndSettle();
+      expect(inlineEditor, findsOneWidget);
       await tester.enterText(
         find.byKey(
           const ValueKey<String>(
@@ -1456,6 +1508,12 @@ void main() {
       expect(reloadHandler.canReloadEditorPage, isTrue);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
 
+      final editedPlacementCard = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_prefab_tree|95|10|0'),
+      );
+      await tester.ensureVisible(editedPlacementCard);
+      await tester.tap(editedPlacementCard);
+      await tester.pumpAndSettle();
       final deletePlacement = find.byKey(
         const ValueKey<String>('chunk_v2_placement_delete_prefab_tree|95|10|0'),
       );
@@ -1466,24 +1524,15 @@ void main() {
       );
       await tester.tap(deletePlacement);
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 6);
+      expect(_chunk(harness.session, 'forest_chunk').prefabs, isEmpty);
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 5);
       expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(const ValueKey<String>('chunk_prefab_tool_move')),
-            )
-            .onSelected,
-        isNull,
-      );
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(const ValueKey<String>('chunk_prefab_tool_move')),
-            )
-            .onSelected,
-        isNotNull,
+        _chunk(harness.session, 'forest_chunk').prefabs.single.prefabKey,
+        'prefab_tree',
       );
     },
   );
@@ -2720,6 +2769,11 @@ void main() {
       toggleKey: 'chunk_prefab_placements_section_toggle',
       bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
     );
+    final placementCard = find.byKey(
+      const ValueKey<String>('chunk_v2_placement_prefab_rock|95|10|0'),
+    );
+    await tester.tap(placementCard);
+    await tester.pumpAndSettle();
     final openOwner = find.byKey(
       const ValueKey<String>('chunk_v2_placement_open_prefab_rock|95|10|0'),
     );
@@ -3008,7 +3062,7 @@ void main() {
 
       await tapCompositionControl(
         ChunkSceneDomain.prefabs,
-        'chunk_v2_placement_edit_prefab_rock|95|10|0',
+        'chunk_v2_placement_prefab_rock|95|10|0',
       );
       final noOpPlacementApply = find.byKey(
         const ValueKey<String>(
@@ -3194,7 +3248,7 @@ void main() {
 
       await tapCompositionControl(
         ChunkSceneDomain.prefabs,
-        'chunk_v2_placement_edit_prefab_rock|80|10|0',
+        'chunk_v2_placement_prefab_rock|80|10|0',
       );
       await tester.enterText(
         find.byKey(
@@ -3264,11 +3318,13 @@ void main() {
 
       await tapCompositionControl(
         ChunkSceneDomain.prefabs,
-        'chunk_v2_placement_delete_prefab_rock|85|10|0',
+        'chunk_v2_placement_prefab_rock|85|10|0',
       );
       await tester.tap(
         find.byKey(
-          const ValueKey<String>('chunk_v2_composition_delete_confirm'),
+          const ValueKey<String>(
+            'chunk_v2_placement_delete_prefab_rock|85|10|0',
+          ),
         ),
       );
       await tester.pumpAndSettle();

@@ -113,9 +113,11 @@ Direct
 prefab/marker gestures, expanded Prefab edits, and retained Marker/tile-layer
 dialogs share the same composition command and stale-snapshot checks. Prefab
 and marker groups split foldable inline creation from existing records. Prefab
-placement editing expands the selected row with row-local owner and transform
-drafts without locking route navigation; changing domain, owner, or source
-revision discards that un-applied draft. Marker edits keep the validated modal
+placement selection from the list or scene reveals a sibling editor below the
+selected row with labeled Open/Delete actions and row-local owner/transform
+drafts. Unselected rows have no Edit/Delete icon cluster. Delete is an immediate
+undoable composition edit; changing domain, owner, or source revision discards
+an un-applied draft. Marker edits keep the validated modal
 form. Layers remains a passive metadata-only domain. The initiative does not
 change Chunk-v2 source or Core placement lineage:
 

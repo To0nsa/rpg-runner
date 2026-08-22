@@ -72,13 +72,16 @@ workspace-path-scoped image cache for thumbnail rendering, token search across
 identity/kind/tags, and route-local kind/usage filters. Its
 stable-key selection feeds the scene Place tool and inline placement form but
 does not enter the plugin document, history, validation, or pending diff. The
-selected retained placement row expands in place and composes the same browser
-with row-local selection and transform drafts. Apply dispatches one captured
-revision-aware composition operation. The expanded form is not itself a
-route-wide operation: Cancel or a domain, owner, or source-revision change
-discards its un-applied draft without changing the route catalog choice or
-source. Genuine composition dialogs and scene gestures continue to lock
-conflicting scene tools and route operations.
+selected retained placement, whether chosen from the list or scene, reveals a
+sibling editor directly below its row and composes the same browser with
+row-local selection and transform drafts. Unselected rows expose no Edit/Delete
+icon cluster. The editor owns labeled Open and Delete actions; Delete dispatches
+one immediately undoable revision-aware composition operation without a modal.
+Apply uses the same captured operation. The expanded form is not itself a
+route-wide operation: selecting the row again, Cancel, or a domain, owner, or
+source-revision change discards its un-applied draft without changing the route
+catalog choice or source. Genuine composition dialogs and scene gestures
+continue to lock conflicting scene tools and route operations.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation

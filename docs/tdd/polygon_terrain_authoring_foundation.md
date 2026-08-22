@@ -659,7 +659,11 @@ reverses canonical source order and never targets resolved placement evidence.
 Selection overlays and section expansion are route-local presentation state and
 cannot create revisions, history entries, or pending diffs. Composition still
 uses the shared validated forms for exact and non-spatial fields: creation is
-inline in the sidebar, while existing-record edits use those forms in dialogs.
+inline in the sidebar, retained Prefab selection reveals an inline sibling
+editor, and Marker/tile-layer edits use those forms in dialogs. Prefab list and
+scene selection share the same selected editor. Its labeled Delete action uses
+the normal immediately undoable composition command without a confirmation
+modal.
 Prefab select, place, and move tools use `ChunkPrefabSceneGesture`:
 pointer-down captures the current composition operation token, pointer movement
 changes only a local candidate, and pointer-up returns at most one existing
@@ -709,8 +713,9 @@ while leaving the scene and viewport mounted. Terrain
 contains creation and existing-shape authoring. Prefabs and Markers mirror that
 sidebar structure with foldable inline creation forms above separate existing
 placement lists; add commits no longer require modal navigation, while existing
-record edits retain the shared validated form in a dialog. Layers contains the
-visual stack and tile-layer metadata. One shared Diagnostics section follows
+Prefab edits render below the selected row and Marker edits retain the shared
+validated form in a dialog. Layers contains the visual stack and tile-layer
+metadata. One shared Diagnostics section follows
 the active domain sections and presents the complete session issue projection
 on every tab without owner or domain filtering. Per-domain selection survives
 tab changes, and an active operation locks the tabs. Layers is a passive scene-input

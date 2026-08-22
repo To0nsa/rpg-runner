@@ -38,7 +38,7 @@ class ChunkCompositionCard extends StatefulWidget {
     required this.selectedMarkerKey,
     required this.selectedCatalogPrefabKey,
     this.onOpenOwningPrefab,
-    required this.onPrefabSelected,
+    required this.onPrefabSelectionChanged,
     required this.onMarkerSelected,
     required this.onCatalogPrefabSelected,
   });
@@ -53,7 +53,7 @@ class ChunkCompositionCard extends StatefulWidget {
   final String? selectedMarkerKey;
   final String? selectedCatalogPrefabKey;
   final ValueChanged<String>? onOpenOwningPrefab;
-  final ValueChanged<ChunkPlacedPrefabSelection> onPrefabSelected;
+  final ValueChanged<ChunkPlacedPrefabSelection?> onPrefabSelectionChanged;
   final ValueChanged<ChunkPlacedMarkerSelection> onMarkerSelected;
   final ValueChanged<PrefabV3Def> onCatalogPrefabSelected;
 
@@ -74,8 +74,8 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   String? get selectedMarkerKey => widget.selectedMarkerKey;
   String? get selectedCatalogPrefabKey => widget.selectedCatalogPrefabKey;
   ValueChanged<String>? get onOpenOwningPrefab => widget.onOpenOwningPrefab;
-  ValueChanged<ChunkPlacedPrefabSelection> get onPrefabSelected =>
-      widget.onPrefabSelected;
+  ValueChanged<ChunkPlacedPrefabSelection?> get onPrefabSelectionChanged =>
+      widget.onPrefabSelectionChanged;
   ValueChanged<ChunkPlacedMarkerSelection> get onMarkerSelected =>
       widget.onMarkerSelected;
   ValueChanged<PrefabV3Def> get onCatalogPrefabSelected =>
@@ -84,11 +84,14 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   @override
   void didUpdateWidget(covariant ChunkCompositionCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_placementEdit == null) return;
     if (oldWidget.section != widget.section ||
         oldWidget.chunk.chunkKey != widget.chunk.chunkKey ||
         oldWidget.chunk.revision != widget.chunk.revision) {
       _placementEdit = null;
+      return;
+    }
+    if (oldWidget.selectedPrefabKey != widget.selectedPrefabKey) {
+      _placementEdit = _placementEditForKey(selectedPrefabKey);
     }
   }
 
@@ -293,44 +296,18 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    for (final selection in placements)
+                    for (final selection in placements) ...<Widget>[
                       EditorListCard(
                         key: ValueKey<String>(
                           'chunk_v2_placement_${selection.selectionKey}',
                         ),
                         isSelected: selection.selectionKey == selectedPrefabKey,
-                        onTap: controlsEnabled && _placementEdit == null
-                            ? () => onPrefabSelected(selection)
-                            : null,
-                        trailing: _EditDeleteActions(
-                          openKey: onOpenOwningPrefab == null
-                              ? null
-                              : 'chunk_v2_placement_open_${selection.selectionKey}',
-                          editKey:
-                              'chunk_v2_placement_edit_${selection.selectionKey}',
-                          deleteKey:
-                              'chunk_v2_placement_delete_${selection.selectionKey}',
-                          onOpen: onOpenOwningPrefab == null
-                              ? null
-                              : controlsEnabled && _placementEdit == null
-                              ? () => onOpenOwningPrefab!(
-                                  selection.prefab.resolvedPrefabRef,
-                                )
-                              : null,
-                          onEdit: controlsEnabled && _placementEdit == null
-                              ? () => _beginPlacementEdit(selection)
-                              : null,
-                          onDelete: controlsEnabled
-                              ? () => _deletePlacement(context, selection)
-                              : null,
-                        ),
-                        details:
-                            _placementEdit?.selectionKey ==
-                                selection.selectionKey
-                            ? _buildPlacementEditDetails(
-                                selection,
-                                usedPrefabKeys,
-                              )
+                        onTap:
+                            controlsEnabled &&
+                                (_placementEdit == null ||
+                                    _placementEdit?.selectionKey ==
+                                        selection.selectionKey)
+                            ? () => _selectOrClosePlacement(selection)
                             : null,
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -345,6 +322,17 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                           ),
                         ),
                       ),
+                      if (_placementEdit?.selectionKey ==
+                          selection.selectionKey)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                          child: _buildPlacementEditDetails(
+                            context,
+                            selection,
+                            usedPrefabKeys,
+                          ),
+                        ),
+                    ],
                   ],
                 ),
         ),
@@ -499,30 +487,53 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     _dispatch(context, operation.buildPrefab(candidate: candidate));
   }
 
+  void _selectOrClosePlacement(ChunkPlacedPrefabSelection selection) {
+    if (_placementEdit?.selectionKey == selection.selectionKey) {
+      _cancelPlacementEdit();
+      return;
+    }
+    _beginPlacementEdit(selection);
+  }
+
   void _beginPlacementEdit(ChunkPlacedPrefabSelection selection) {
+    final edit = _createPlacementEdit(selection);
+    if (edit == null) return;
+    setState(() => _placementEdit = edit);
+    onPrefabSelectionChanged(selection);
+  }
+
+  _InlinePlacementEdit? _placementEditForKey(String? selectionKey) {
+    if (selectionKey == null) return null;
+    final selection = buildChunkPlacedPrefabSelections(chunk.prefabs)
+        .where((selection) => selection.selectionKey == selectionKey)
+        .firstOrNull;
+    return selection == null ? null : _createPlacementEdit(selection);
+  }
+
+  _InlinePlacementEdit? _createPlacementEdit(
+    ChunkPlacedPrefabSelection selection,
+  ) {
     final owner = resolveChunkV2PlacementPrefab(
       document.prefabData.prefabs,
       selection.prefab,
     );
-    if (owner == null) return;
+    if (owner == null) return null;
     final operation = ChunkV2CompositionOperation.replace(
       chunk: chunk,
       target: ChunkV2CompositionTarget.prefabs,
       sourceIndex: selection.sourceIndex,
       presentationKey: selection.selectionKey,
     );
-    setState(() {
-      _placementEdit = _InlinePlacementEdit(
-        selectionKey: selection.selectionKey,
-        placement: selection.prefab,
-        selectedPrefabKey: owner.prefabKey,
-        operation: operation,
-      );
-    });
-    onPrefabSelected(selection);
+    return _InlinePlacementEdit(
+      selectionKey: selection.selectionKey,
+      placement: selection.prefab,
+      selectedPrefabKey: owner.prefabKey,
+      operation: operation,
+    );
   }
 
   Widget _buildPlacementEditDetails(
+    BuildContext context,
     ChunkPlacedPrefabSelection selection,
     Set<String> usedPrefabKeys,
   ) {
@@ -542,75 +553,83 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
       (prefab) => prefab.prefabKey == edit.selectedPrefabKey,
     );
     final keySuffix = selection.selectionKey;
-    return Container(
+    return Column(
       key: ValueKey<String>('chunk_v2_placement_inline_editor_$keySuffix'),
-      padding: const EdgeInsets.only(top: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Edit ${_prefabLabel(selection.prefab)}',
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  'Edit placement',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-              TextButton.icon(
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            if (onOpenOwningPrefab != null)
+              OutlinedButton.icon(
                 key: ValueKey<String>(
-                  'chunk_v2_placement_inline_close_$keySuffix',
+                  'chunk_v2_placement_open_${selection.selectionKey}',
                 ),
-                onPressed: _cancelPlacementEdit,
-                icon: const Icon(Icons.close),
-                label: const Text('Close editor'),
+                onPressed: controlsEnabled
+                    ? () => onOpenOwningPrefab!(
+                        selection.prefab.resolvedPrefabRef,
+                      )
+                    : null,
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Open prefab'),
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Choose a prefab and adjust this saved placement. Changes are '
-            'staged only after Apply. Switching context discards this draft.',
-          ),
-          const SizedBox(height: 12),
-          ChunkPrefabCatalogBrowser(
-            prefabs: selectableOwners,
-            prefabData: document.prefabData,
-            tileData: document.tileData,
-            visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
-            workspaceRootPath: controller.workspacePath,
-            selectedPrefabKey: selectedOwner.prefabKey,
-            usedPrefabKeys: usedPrefabKeys,
-            autofocusSearch: true,
-            gridHeight: 248,
-            keyPrefix: 'chunk_v2_placement_inline_catalog_$keySuffix',
-            enabled: controlsEnabled,
-            onSelected: (prefab) {
-              setState(() {
-                _placementEdit = edit.copyWith(
-                  selectedPrefabKey: prefab.prefabKey,
-                );
-              });
-            },
-          ),
-          const Divider(height: 32),
-          ChunkV2PlacementForm(
-            key: ValueKey<String>('chunk_v2_placement_inline_form_$keySuffix'),
-            prefab: selectedOwner,
-            placement: edit.placement,
-            fieldKeyPrefix: 'chunk_v2_placement_inline_$keySuffix',
-            submitKey: 'chunk_v2_placement_inline_apply_$keySuffix',
-            submitLabel: 'Apply changes',
-            enabled: controlsEnabled,
-            onCancel: _cancelPlacementEdit,
-            onSubmit: (candidate) => _applyPlacementEdit(context, candidate),
-          ),
-        ],
-      ),
+            OutlinedButton.icon(
+              key: ValueKey<String>(
+                'chunk_v2_placement_delete_${selection.selectionKey}',
+              ),
+              onPressed: controlsEnabled
+                  ? () => _deletePlacement(context, selection)
+                  : null,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Choose a prefab and adjust this saved placement. Changes are '
+          'staged only after Apply. Switching context discards this draft.',
+        ),
+        const SizedBox(height: 12),
+        ChunkPrefabCatalogBrowser(
+          prefabs: selectableOwners,
+          prefabData: document.prefabData,
+          tileData: document.tileData,
+          visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+          workspaceRootPath: controller.workspacePath,
+          selectedPrefabKey: selectedOwner.prefabKey,
+          usedPrefabKeys: usedPrefabKeys,
+          autofocusSearch: true,
+          gridHeight: 248,
+          keyPrefix: 'chunk_v2_placement_inline_catalog_$keySuffix',
+          enabled: controlsEnabled,
+          onSelected: (prefab) {
+            setState(() {
+              _placementEdit = edit.copyWith(
+                selectedPrefabKey: prefab.prefabKey,
+              );
+            });
+          },
+        ),
+        const Divider(height: 32),
+        ChunkV2PlacementForm(
+          key: ValueKey<String>('chunk_v2_placement_inline_form_$keySuffix'),
+          prefab: selectedOwner,
+          placement: edit.placement,
+          fieldKeyPrefix: 'chunk_v2_placement_inline_$keySuffix',
+          submitKey: 'chunk_v2_placement_inline_apply_$keySuffix',
+          submitLabel: 'Apply changes',
+          enabled: controlsEnabled,
+          onCancel: _cancelPlacementEdit,
+          onSubmit: (candidate) => _applyPlacementEdit(context, candidate),
+        ),
+      ],
     );
   }
 
@@ -622,28 +641,31 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     _dispatch(context, commit);
   }
 
-  void _cancelPlacementEdit() => _finishPlacementEdit();
+  void _cancelPlacementEdit() {
+    _finishPlacementEdit();
+    onPrefabSelectionChanged(null);
+  }
 
   void _finishPlacementEdit() {
     if (_placementEdit == null) return;
     setState(() => _placementEdit = null);
   }
 
-  Future<void> _deletePlacement(
+  void _deletePlacement(
     BuildContext context,
     ChunkPlacedPrefabSelection selection,
-  ) async {
+  ) {
     final operation = ChunkV2CompositionOperation.delete(
       chunk: chunk,
       target: ChunkV2CompositionTarget.prefabs,
       sourceIndex: selection.sourceIndex,
       presentationKey: selection.selectionKey,
     );
-    await _runOperation(() async {
-      if (!await _confirmDelete(context, 'prefab placement')) return;
-      if (!context.mounted) return;
-      _dispatch(context, operation.buildPrefab());
-    });
+    final commit = operation.buildPrefab();
+    if (commit == null) return;
+    _finishPlacementEdit();
+    onPrefabSelectionChanged(null);
+    _dispatch(context, commit);
   }
 
   void _addMarker(BuildContext context, PlacedMarkerDef candidate) {
@@ -825,18 +847,14 @@ final class _InlinePlacementEdit {
 
 final class _EditDeleteActions extends StatelessWidget {
   const _EditDeleteActions({
-    this.openKey,
     required this.editKey,
     required this.deleteKey,
-    this.onOpen,
     required this.onEdit,
     required this.onDelete,
   });
 
-  final String? openKey;
   final String editKey;
   final String deleteKey;
-  final VoidCallback? onOpen;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -844,13 +862,6 @@ final class _EditDeleteActions extends StatelessWidget {
   Widget build(BuildContext context) => Wrap(
     spacing: 4,
     children: <Widget>[
-      if (openKey case final openKey?)
-        IconButton(
-          key: ValueKey<String>(openKey),
-          tooltip: 'Open prefab',
-          onPressed: onOpen,
-          icon: const Icon(Icons.open_in_new),
-        ),
       IconButton(
         key: ValueKey<String>(editKey),
         tooltip: 'Edit',

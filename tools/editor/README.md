@@ -352,10 +352,14 @@ and renders atlas-slice or platform-module thumbnails through one browser-owned
 decoded-image cache. Pressing Enter selects the first filtered result. Its
 stable-key selection is route-local and shared by both the canvas Place tool
 and inline creation form; it never creates a pending source change by itself.
-Editing an existing placement expands that placement row with the same visual
-browser and transform fields. Its tentative owner and values stay row-local
-until Apply; Cancel collapses the row without changing source or the route
-catalog choice. Switching domains, owners, or source revision discards the
+Selecting an existing placement in the list or scene reveals its editor directly
+below the row, matching existing-terrain-shape editing. Unselected rows have no
+Edit/Delete icon cluster. The selected editor contains labeled **Open prefab**
+and **Delete** actions plus the same visual browser and transform fields. Its
+tentative owner and values stay row-local until Apply; selecting the row again
+or pressing Cancel closes it without changing source or the route catalog
+choice. Delete submits one immediately undoable composition edit without a
+confirmation modal. Switching domains, owners, or source revision discards the
 un-applied inline draft and keeps navigation available. Place and move drags
 show a local ghost, then submit one
 normal validated composition command on release; Escape cancels without
@@ -387,16 +391,17 @@ and are hidden for the record being moved until its accepted source is
 reprojected. Marker ID, chance, salt, placement mode, and exact coordinates stay
 available in the sidebar creation form and existing-record edit dialog.
 
-Direct terrain creation and existing shapes live in the **Terrain** card.
-The **Prefabs** and **Markers** cards use the same split: a foldable inline
+Direct terrain creation and existing shapes live in the **Terrain** sections.
+The **Prefabs** and **Markers** groups use the same split: a foldable inline
 creation form above a separate foldable existing-record list. Adding a prefab
-or marker submits directly from the card without opening a dialog; existing
-records retain their selection, edit, and delete actions. The **Layers** card
+or marker submits directly from its section without opening a dialog; Prefab
+selection reveals edit and delete controls below the selected row, while Marker
+records retain their row actions. The **Layers** group
 retains the visual-stack summary and validated tile-layer metadata workflow.
 `TileLayerDef` is metadata-only, so Layers pauses primary scene authoring and
 exposes no tile painting or cell editing. Direct scene gestures, inline adds,
-expanded Prefab edits, and retained Marker/tile-layer edit or delete dialogs
-all dispatch the canonical Chunk composition command.
+expanded Prefab edits/deletes, and retained Marker/tile-layer edit or delete
+dialogs all dispatch the canonical Chunk composition command.
 
 Direct-terrain rectangle, vertex, insertion, and whole-shape gestures cannot
 enter another direct terrain shape or expanded prefab collision. This
@@ -436,8 +441,8 @@ remain available. These presentation controls do not change source, selection,
 collision, or history. Render-only shapes have no compiled-edge overlay by
 definition.
 
-When an all-current workspace loads the Chunk-v2 polygon workflow, each placed
-prefab row exposes **Open prefab**. The action goes through the editor shell's
+When an all-current workspace loads the Chunk-v2 polygon workflow, the selected
+placement editor exposes **Open prefab**. The action goes through the editor shell's
 unsaved-work guard, loads the current Prefab-v3 document, and selects the exact
 stable source owner for shape editing. Chunk placements continue to own
 transforms only; the editor does not create per-instance polygon overrides.

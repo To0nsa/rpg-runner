@@ -855,8 +855,12 @@ performance regression remains.
       inline creation without creating source history or pending diffs.
 - [x] Expand the selected retained placement row with the same browser and keep
       its tentative owner and transform drafts isolated until Apply.
-- [x] Keep that expanded form non-blocking, provide a visible close action, and
-      disable scene tools consistently only for genuine active operations.
+- [x] Use terrain-style select-to-reveal UX for retained placements: list or
+      scene selection reveals a sibling editor, unselected rows omit Edit/Delete
+      icons, and labeled Open/Delete actions live in the selected editor.
+- [x] Keep that expanded form non-blocking, close it by row re-selection or
+      Cancel, make Delete immediately undoable without a modal, and disable scene
+      tools consistently only for genuine active operations.
 - [x] Cover filtering, empty results, keyboard selection, route integration,
       and exact ID/key submission with focused widget tests.
 - [x] Keep Chunk-v2 source, canonical ordering, composition validation, and

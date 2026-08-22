@@ -783,7 +783,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       onOpenOwningPrefab: widget.onOpenOwningPrefab,
       onCatalogPrefabSelected: (prefab) =>
           setState(() => _selectedPrefabCatalogKey = prefab.prefabKey),
-      onPrefabSelected: (selection) => setState(() {
+      onPrefabSelectionChanged: (selection) => setState(() {
         _prefabGesture.setTool(ChunkPrefabSceneTool.select);
         _sceneCoordinator.selectPrefab(selection);
       }),

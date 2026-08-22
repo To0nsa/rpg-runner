@@ -45,6 +45,12 @@ class _EditorSectionCardState extends State<EditorSectionCard> {
   }
 
   @override
+  void didUpdateWidget(covariant EditorSectionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.collapsible) _expanded = true;
+  }
+
+  @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     decoration: BoxDecoration(
