@@ -1,7 +1,7 @@
 # Unified Chunk Scene Strategy
 
 Date: August 14, 2026
-Updated: August 18, 2026
+Updated: August 22, 2026
 Status: Implemented; manual UX/accessibility acceptance remains
 
 Related documents:
@@ -214,6 +214,19 @@ and the prefab inspector:
   strict source validity
 - the complete candidate still passes existing Chunk plugin validation; the
   scene does not create a weaker or competing bounds rule
+
+The implemented follow-up adds a default-on, route-local **Surface snap** pass
+after this coordinate policy. It keeps X on the selected tile/pixel grid and
+may refine only Y to another whole-pixel origin when the Prefab's transformed
+lowest horizontal collision edge can share an exact interval with an exposed
+upward-facing direct-terrain edge within eight screen pixels. Compatible Scale
+choices are derived from Core's reflected exact-tenth transform: the support Y
+must land on a whole pixel after the authoritative `1/1024 px` quantization.
+The candidate must remain in bounds and pass the exact positive-area predicate
+against direct terrain and every other placement. Edge contact stays legal;
+penetration does not. Existing incompatible saved scales are retained and
+explained, and unsupported/no-collision Prefabs keep unrestricted visual scale.
+No authored schema, runtime geometry contract, or final compiler rule changes.
 
 Phase 0 still scans current authored sources and fixtures so the baseline is
 known. The planning audit found no `snapToGrid: true` prefab mismatch in

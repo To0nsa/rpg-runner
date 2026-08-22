@@ -356,7 +356,25 @@ show a local ghost, then submit one
 normal validated composition command on release; Escape cancels without
 changing source. Grid-enabled placements snap to the chunk tile size, while
 exact placement fields remain integer-pixel overrides in the sidebar creation
-form and expanded existing-placement row.
+form and expanded existing-placement row. The Prefabs toolbar also has a
+default-on **Surface snap** chip. Within eight canvas pixels, Place and Move
+may refine only the candidate Y so the transformed lowest horizontal collider
+edge shares a positive-length interval with an exposed upward-facing direct
+terrain edge. X stays on its normal tile/pixel grid and the final X/Y origin
+remains whole-pixel. The orange collision preview becomes green only after the
+same Core geometry and occupied-area predicate accept exact contact; point-only
+contact, positive-area penetration, another placement, and out-of-bounds
+geometry do not snap.
+
+The placement Scale field offers exact-contact scales when the Prefab has a
+usable support edge. A scale is compatible only when Core's reflected, exact-
+tenth transform leaves that support height on a whole pixel after the one
+`1/1024 px` quantization. A saved incompatible scale remains selectable and is
+identified as the current value so opening an old placement cannot silently
+rewrite it. Prefabs with no collision or no lowest horizontal edge retain the
+full visual-scale range and show why surface contact is unavailable. Surface
+snap changes no Prefab/Chunk schema and never weakens the final positive-area
+overlap validator.
 
 The Markers domain likewise provides Select, Place, and Move tools. These edit
 only the authored query anchor at integer-pixel precision. Core-resolved spawn

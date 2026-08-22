@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 4 completed on April 11, 2026; Phase 5 completed on April 11, 2026; Phase 6 completed on April 11, 2026; Phase 7 completed on April 11, 2026; Phase 10 completed on April 10, 2026; Phases 8-9 and 11 remain open)
+Status: Active (core authoring and unified-scene follow-ups through Phase 14 are implemented; remaining roadmap slices retain their own gates)
 
 ## 1) Mission
 
@@ -150,6 +150,16 @@ selection between direct scene placement and inline creation. Retained edits
 compose the same browser with dialog-local tentative selection. This is an
 editor-only selection improvement: Chunk-v2 source, Prefab identity, placement
 commands, validation, and generated runtime data are unchanged.
+
+Prefab Place/Move now also provides default-on whole-pixel surface contact.
+After normal tile/pixel origin quantization, the editor can refine Y within
+eight screen pixels so a Core-transformed lowest horizontal collider edge
+exactly shares an exposed direct-terrain edge. Scale choices for supported
+colliders are filtered to values whose support height remains whole-pixel;
+saved incompatible values are retained and explained. Candidate bounds and
+positive-area overlap are checked against the accepted Core geometry before
+the preview turns green, while final compilation remains authoritative. This
+adds no source field, runtime transform, or weakened collision rule.
 
 - [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
 - [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)

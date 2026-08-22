@@ -9,6 +9,7 @@ import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
+import '../../../../chunks/chunk_prefab_surface_snap.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_lifecycle_commit.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
@@ -129,6 +130,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool _showMarkerPlacements = false;
   bool _terrainCreationSnapToGrid = false;
   bool _terrainEditSnapToGrid = false;
+  bool _prefabSurfaceSnapEnabled = true;
   ChunkV2CollisionExpansion? _actorTerrainExpansion;
   ChunkV2ActorTerrainProjection? _actorTerrainProjection;
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
@@ -1001,6 +1003,30 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           ? null
                           : (_) => setState(() => _prefabGesture.setTool(tool)),
                     ),
+                  Tooltip(
+                    message:
+                        _prefabGesture.surfaceSnapMessage ??
+                        'Snap a compatible collider support edge to exposed '
+                            'terrain without occupied-area overlap.',
+                    child: FilterChip(
+                      key: const ValueKey<String>(
+                        'chunk_prefab_surface_snap_toggle',
+                      ),
+                      avatar: Icon(
+                        _prefabGesture.isSurfaceSnapped
+                            ? Icons.check_circle_outline
+                            : Icons.vertical_align_bottom,
+                        size: 18,
+                      ),
+                      label: const Text('Surface snap'),
+                      selected: _prefabSurfaceSnapEnabled,
+                      onSelected: _hasActiveOperation
+                          ? null
+                          : (value) => setState(
+                              () => _prefabSurfaceSnapEnabled = value,
+                            ),
+                    ),
+                  ),
                   if (_selectedCatalogPrefab(scene) case final prefab?)
                     Chip(
                       key: const ValueKey<String>(
@@ -1060,8 +1086,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
                     'zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
-              ? 'Primary input selects the topmost prefab visual. Ctrl+drag '
-                    'pans and Ctrl+scroll zooms.'
+              ? 'Place and Move keep whole-pixel origins. Surface snap can '
+                    'refine Y to exact non-overlapping terrain-edge contact. '
+                    'Ctrl+drag pans and Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.markers
               ? 'Primary input selects the topmost authored marker anchor. '
                     'Ctrl+drag pans and Ctrl+scroll zooms.'
@@ -1214,6 +1241,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                               painter: ChunkExpandedCollisionOverlayPainter(
                                 expansion: expansion,
                                 transform: transform,
+                                hiddenPlacementKey:
+                                    _prefabGesture.previewCollisionLoops.isEmpty
+                                    ? null
+                                    : _prefabGesture.hiddenPlacementKey,
+                                previewCollisionLoops:
+                                    _prefabGesture.previewCollisionLoops,
+                                previewTouchesTerrain:
+                                    _prefabGesture.isSurfaceSnapped,
                               ),
                             ),
                           ),
@@ -2751,6 +2786,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 worldPoint: worldPoint,
                 chunk: chunk,
                 prefab: prefab,
+                surfaceSnapContext: _prefabSurfaceSnapContext(chunk),
+                surfaceSnapRadiusWorld: chunkPrefabSurfaceSnapRadiusPx / _zoom,
+                surfaceSnapEnabled: _prefabSurfaceSnapEnabled,
               );
               if (began) _sceneCoordinator.clearSelection();
             });
@@ -2764,11 +2802,23 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             setState(() {
               _sceneCoordinator.selectPrefab(selection);
               if (selection != null) {
+                final prefab = _resolvePlacedPrefab(
+                  scene.prefabData.prefabs,
+                  selection.prefab,
+                );
                 began = _prefabGesture.beginMove(
                   pointer: pointer,
                   worldPoint: worldPoint,
                   chunk: chunk,
                   selection: selection,
+                  prefab: prefab,
+                  surfaceSnapContext: _prefabSurfaceSnapContext(
+                    chunk,
+                    excludedPlacementKey: selection.selectionKey,
+                  ),
+                  surfaceSnapRadiusWorld:
+                      chunkPrefabSurfaceSnapRadiusPx / _zoom,
+                  surfaceSnapEnabled: _prefabSurfaceSnapEnabled,
                 );
               }
             });
@@ -3032,6 +3082,34 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             .where((prefab) => prefab.prefabKey == _selectedPrefabCatalogKey)
             .firstOrNull ??
         prefabs.first;
+  }
+
+  ChunkPrefabSurfaceSnapContext? _prefabSurfaceSnapContext(
+    ChunkV2FileData chunk, {
+    String? excludedPlacementKey,
+  }) {
+    final expansion = _expansionFor(chunk.chunkKey)?.expansion;
+    if (expansion == null) return null;
+    return ChunkPrefabSurfaceSnapContext.fromGeometry(
+      geometry: expansion.geometry,
+      excludedPlacementKey: excludedPlacementKey,
+    );
+  }
+
+  PrefabV3Def? _resolvePlacedPrefab(
+    Iterable<PrefabV3Def> prefabs,
+    PlacedPrefabDef placement,
+  ) {
+    if (placement.prefabKey.isNotEmpty) {
+      final keyMatch = prefabs
+          .where((prefab) => prefab.prefabKey == placement.prefabKey)
+          .firstOrNull;
+      if (keyMatch != null) return keyMatch;
+    }
+    if (placement.prefabId.isEmpty) return null;
+    return prefabs
+        .where((prefab) => prefab.id == placement.prefabId)
+        .firstOrNull;
   }
 
   void _setZoom(double value) {

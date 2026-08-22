@@ -1,7 +1,7 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Updated: August 18, 2026
+Updated: August 22, 2026
 Status: Implementation complete; manual UX/accessibility acceptance remains
 
 Source strategy:
@@ -860,13 +860,40 @@ performance regression remains.
 - [x] Keep Chunk-v2 source, canonical ordering, composition validation, and
       runtime-generation contracts unchanged.
 
+## Phase 14 — Whole-Pixel Prefab Surface Contact
+
+- [x] Keep every authored Prefab placement origin on the existing integer-pixel
+      contract; do not add fractional placement coordinates or schema fields.
+- [x] Derive the post-reflection/scale lowest horizontal Prefab collision edge
+      through the authoritative Core transform and one physics-grid
+      quantization.
+- [x] Offer only scales whose derived support height can meet a whole-pixel
+      terrain line, while retaining and explaining an incompatible saved value
+      instead of silently rewriting existing source.
+- [x] Add a default-on route-local **Surface snap** policy after normal
+      tile/pixel quantization, with an eight-screen-pixel reach and unchanged X.
+- [x] Target only exposed upward-facing direct-terrain horizontal edges and
+      require a positive-length shared interval rather than point-only contact.
+- [x] Exclude the moved placement by captured placement key, then reject every
+      proposal that leaves Chunk bounds or overlaps direct/other placed
+      collision in positive area.
+- [x] Draw the exact transformed candidate collision orange, or green after
+      accepted terrain contact, without adding a preview write path.
+- [x] Preserve the final Core compiler rule: shared boundary is legal and
+      positive-area overlap remains blocking.
+- [x] Cover compatible half-pixel/scaled support, unsupported colliders,
+      blocker rejection, direct gesture commit, edit-form legacy retention,
+      and final compiler parity.
+- [x] Update README, TDD, active strategy, and high-level Chunk plan without
+      changing Prefab-v3, Chunk-v2, or generated runtime contracts.
+
 ## Required Validation Commands
 
 Minimum editor validation for every implementation phase:
 
 - [x] `cd tools/editor && dart analyze`
 - [x] focused tests for the touched phase
-- [x] `cd tools/editor && flutter test` (530 pass on August 22, 2026)
+- [x] `cd tools/editor && flutter test` (538 pass on August 22, 2026)
 
 Required focused coverage across the initiative:
 

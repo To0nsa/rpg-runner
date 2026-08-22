@@ -59,6 +59,7 @@ Final Phase 4 acceptance work remains tracked in
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and normal current-schema Prefab/Chunk routes |
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus normal current-schema Prefab and Chunk routes |
 | Chunk contact-constrained terrain input | editor `TerrainPolygonContactConstraint` / `ChunkPolygonAuthoringController` | direct rectangle, vertex, insertion, and whole-shape previews against direct and expanded prefab collision |
+| Chunk prefab-to-terrain surface contact | editor `ChunkPrefabSurfaceSnap` / `ChunkPrefabSceneGesture` | whole-pixel Place/Move origins, exact compatible-scale support projection, exposed direct-terrain targets, and overlap-free edge-contact preview |
 | Exact grid-aware inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path; Prefab accepts half pixels while direct Chunk editing requires whole pixels |
 | Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainMaterialPreviewCatalog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material selector used by both current-schema routes; material choices preview their fill/surface/foreground workspace assets, unknown retained values remain selectable, and owner controllers retain commit authority |
 | Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both current-schema routes; exact owner validation remains final authority |
@@ -657,8 +658,15 @@ changes only a local candidate, and pointer-up returns at most one existing
 `ChunkV2CompositionCommit`. Grid-enabled anchors quantize to the current
 chunk's tile size; free anchors quantize to integer pixels; exact form fields
 preserve entered integer pixels. Both policies use deterministic half ties away
-from zero. Rejection restores the accepted projection without revision,
-history, or pending-diff changes.
+from zero. A default-on route-local surface-contact pass may then refine only Y
+to another whole-pixel origin. It derives the Prefab's post-reflection/scale
+lowest horizontal collision edge, requires a positive-length horizontal
+interval against a Core-exposed upward-facing direct-terrain edge within eight
+screen pixels, and accepts the candidate only when every transformed loop stays
+inside Chunk bounds and Core's exact predicate finds no occupied-area overlap
+with direct terrain or another placement. The moved source placement is omitted
+from that gesture snapshot by its captured placement key. Rejection restores
+the accepted projection without revision, history, or pending-diff changes.
 
 Marker Select, Place, and Move tools follow the same operation-token and
 exactly-once command boundary through `ChunkMarkerSceneGesture`, but quantize
@@ -859,6 +867,50 @@ quantization, transformed canonicalization, occupied-area overlap, shape/vertex
 limits, exposed-edge construction, and edge limits. Direct and expanded shapes
 enter the same compile call, so a placed polygon cannot overlap direct terrain
 or another placement unnoticed.
+
+### Whole-pixel prefab surface contact
+
+`ChunkPrefabSurfaceSnap` is an editor-only projection over accepted Core
+geometry; it does not alter `PlacedPrefabDef`, Prefab-v3, Chunk-v2, or runtime
+generation. Its terrain targets are compiled edges with no placement lineage,
+zero vertical delta, non-zero length, and an upward Y-down outward normal. Its
+moving support is derived after Core's exact reflection and tenth-scale
+transform at zero translation: all non-render-only Prefab collision vertices
+must lie on or above the global support Y, and at least one non-zero horizontal
+edge must lie on that Y.
+
+The gesture context recompiles only the already-accepted direct collision
+polygons once at pointer-down. This preserves a terrain interval that the
+combined compiler correctly canceled as an internal edge beneath the currently
+accepted placement. Occupied-area obstacles still come from the complete
+accepted geometry; only the captured moved placement is removed from them.
+
+All authored placement origins remain integer pixels. A scale is contact-
+compatible only when the derived support Y is divisible by
+`terrainPhysicsTicksPerWorldUnit`; this is why forcing an integer origin alone
+cannot make every half-pixel/scaled collider touch an integer terrain line.
+Creation chooses the compatible scale nearest `1.0`, with the smaller scale as
+the deterministic equal-distance tie. The Scale field lists compatible values
+for a supported collider/flip state. It retains an already-saved incompatible
+value as an explicitly explained current option, while Prefabs without
+collision or without a derived support keep unrestricted visual scales.
+
+Gesture resolution first applies the existing tile/integer quantizer. It keeps
+X unchanged, searches terrain surfaces within `8 / zoom` world units, derives
+the only whole-pixel Y that makes the support lines equal, and requires strict
+horizontal interval overlap so a corner touch cannot masquerade as supported
+edge contact. Candidate loops are translated from the same Core-quantized
+profile and checked against closed Chunk bounds and
+`TerrainPolygonOverlap.physicsLoops` for every accepted polygon except the
+moved source. Deterministic choice orders by vertical distance, Core edge ID,
+and support-edge index. Exact shared boundary remains legal; positive-area
+penetration remains blocking in both preview and the unchanged final Chunk
+compiler.
+
+The expanded-collision painter suppresses the accepted loop being moved and
+draws candidate Core ticks orange, or green after exact contact succeeds. The
+preview owns no hit test or write path. Disabling **Surface snap** restores the
+original grid/pixel gesture policy without changing persisted source.
 
 Every transformed vertex is checked against the chunk's closed bounds in Core
 physics ticks. A bounds issue retains source path, placement key, local shape
@@ -1723,6 +1775,9 @@ The foundation is covered by:
   translation, stable placement/prefab/shape lineage, combined direct/placed
   overlap, post-quantization chunk bounds, ambiguous/missing reference and
   scale rejection, Core prefab-shape capacity, and input-order signature parity
+- whole-pixel Prefab surface-scale filtering, exact direct-terrain shared-edge
+  contact, point/penetration/blocker rejection, moved-source exclusion, local
+  gesture preview/commit, and retained incompatible edit values
 - a read-only quantized Chunk overlay with locked lineage rows, separate
   direct/expanded shape and exposed-edge capacity counts, and unchanged direct
   polygon interaction/history behavior

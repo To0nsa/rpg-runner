@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
+import '../../../../chunks/chunk_prefab_surface_snap.dart';
 import '../../../../chunks/chunk_scene_coordinate_policy.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../prefabs/models/models.dart';
@@ -9,8 +10,10 @@ import '../../../../prefabs/models/models.dart';
 /// Edits one prefab placement without owning persistence or modal navigation.
 ///
 /// The surrounding catalog owns Prefab selection; changing that selection does
-/// not reset this form's transform draft. Submitted coordinates use the Chunk
-/// whole-pixel policy before the candidate is returned to the caller.
+/// not reset coordinates, z-index, grid preference, or reflection. Scale alone
+/// reconciles to the nearest exact-contact option when the new collision owner
+/// cannot use the retained value. Submitted coordinates use the Chunk whole-
+/// pixel policy before the candidate is returned to the caller.
 class ChunkV2PlacementForm extends StatefulWidget {
   const ChunkV2PlacementForm({
     super.key,
@@ -26,8 +29,9 @@ class ChunkV2PlacementForm extends StatefulWidget {
 
   /// Stable owner selected by the surrounding Prefab catalog browser.
   ///
-  /// Changing this record preserves the placement-value draft while ensuring
-  /// submission writes the new owner's exact ID and stable key together.
+  /// Changing this record preserves the placement draft except for an
+  /// incompatible contact scale, while submission writes the new owner's exact
+  /// ID and stable key together.
   final PrefabV3Def prefab;
   final PlacedPrefabDef? placement;
   final String submitKey;
@@ -60,10 +64,28 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
     _zIndexController = TextEditingController(
       text: '${placement?.zIndex ?? 0}',
     );
-    _scale = placement?.scale ?? defaultPrefabPlacementScale;
     _snapToGrid = placement?.snapToGrid ?? true;
     _flipX = placement?.flipX ?? false;
     _flipY = placement?.flipY ?? false;
+    final requestedScale = placement?.scale ?? defaultPrefabPlacementScale;
+    _scale = placement == null
+        ? ChunkPrefabSurfaceSnap.preferredCompatibleScale(
+            widget.prefab,
+            flipY: _flipY,
+            preferred: requestedScale,
+          )
+        : requestedScale;
+  }
+
+  @override
+  void didUpdateWidget(covariant ChunkV2PlacementForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.prefab.prefabKey == widget.prefab.prefabKey) return;
+    _scale = ChunkPrefabSurfaceSnap.preferredCompatibleScale(
+      widget.prefab,
+      flipY: _flipY,
+      preferred: _scale,
+    );
   }
 
   @override
@@ -75,117 +97,167 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
   }
 
   @override
-  Widget build(BuildContext context) => Form(
-    key: _formKey,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        InputDecorator(
-          key: ValueKey<String>(
-            '${widget.fieldKeyPrefix}_selected_prefab_'
-            '${widget.prefab.prefabKey}',
-          ),
-          decoration: const InputDecoration(
-            labelText: 'Selected prefab',
-            border: OutlineInputBorder(),
-          ),
-          child: Row(
-            children: <Widget>[
-              const Icon(Icons.inventory_2_outlined, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${widget.prefab.id} · ${widget.prefab.kind.jsonValue}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+  Widget build(BuildContext context) {
+    final compatibleScales = ChunkPrefabSurfaceSnap.compatibleScales(
+      widget.prefab,
+      flipY: _flipY,
+    );
+    final scaleOptions = _scaleOptions(compatibleScales);
+    final scaleHelp = _scaleHelp(compatibleScales);
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          InputDecorator(
+            key: ValueKey<String>(
+              '${widget.fieldKeyPrefix}_selected_prefab_'
+              '${widget.prefab.prefabKey}',
+            ),
+            decoration: const InputDecoration(
+              labelText: 'Selected prefab',
+              border: OutlineInputBorder(),
+            ),
+            child: Row(
+              children: <Widget>[
+                const Icon(Icons.inventory_2_outlined, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${widget.prefab.id} · ${widget.prefab.kind.jsonValue}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        _IntegerField(
-          fieldKey: '${widget.fieldKeyPrefix}_x_field',
-          label: 'X (px)',
-          controller: _xController,
-          enabled: widget.enabled,
-        ),
-        const SizedBox(height: 10),
-        _IntegerField(
-          fieldKey: '${widget.fieldKeyPrefix}_y_field',
-          label: 'Y (px)',
-          controller: _yController,
-          enabled: widget.enabled,
-        ),
-        const SizedBox(height: 10),
-        _IntegerField(
-          fieldKey: '${widget.fieldKeyPrefix}_z_field',
-          label: 'Z-index',
-          controller: _zIndexController,
-          enabled: widget.enabled,
-        ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<double>(
-          key: ValueKey<String>('${widget.fieldKeyPrefix}_scale_$_scale'),
-          initialValue: _scale,
-          decoration: const InputDecoration(
-            labelText: 'Scale',
-            border: OutlineInputBorder(),
+          const SizedBox(height: 10),
+          _IntegerField(
+            fieldKey: '${widget.fieldKeyPrefix}_x_field',
+            label: 'X (px)',
+            controller: _xController,
+            enabled: widget.enabled,
           ),
-          items: _placementScales
-              .map(
-                (scale) => DropdownMenuItem<double>(
-                  value: scale,
-                  child: Text('×${scale.toStringAsFixed(1)}'),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: !widget.enabled
-              ? null
-              : (value) {
-                  if (value != null) setState(() => _scale = value);
-                },
-        ),
-        const SizedBox(height: 4),
-        SwitchListTile(
-          key: ValueKey<String>('${widget.fieldKeyPrefix}_snap_field'),
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Snap to grid'),
-          value: _snapToGrid,
-          onChanged: widget.enabled
-              ? (value) => setState(() => _snapToGrid = value)
-              : null,
-        ),
-        CheckboxListTile(
-          key: ValueKey<String>('${widget.fieldKeyPrefix}_flip_x_field'),
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Flip X'),
-          value: _flipX,
-          onChanged: widget.enabled
-              ? (value) => setState(() => _flipX = value ?? false)
-              : null,
-        ),
-        CheckboxListTile(
-          key: ValueKey<String>('${widget.fieldKeyPrefix}_flip_y_field'),
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Flip Y'),
-          value: _flipY,
-          onChanged: widget.enabled
-              ? (value) => setState(() => _flipY = value ?? false)
-              : null,
-        ),
-        const SizedBox(height: 8),
-        _FormActions(
-          submitKey: widget.submitKey,
-          submitLabel: widget.submitLabel,
-          enabled: widget.enabled,
-          onCancel: widget.onCancel,
-          onSubmit: _submit,
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 10),
+          _IntegerField(
+            fieldKey: '${widget.fieldKeyPrefix}_y_field',
+            label: 'Y (px)',
+            controller: _yController,
+            enabled: widget.enabled,
+          ),
+          const SizedBox(height: 10),
+          _IntegerField(
+            fieldKey: '${widget.fieldKeyPrefix}_z_field',
+            label: 'Z-index',
+            controller: _zIndexController,
+            enabled: widget.enabled,
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<double>(
+            key: ValueKey<String>('${widget.fieldKeyPrefix}_scale_$_scale'),
+            initialValue: _scale,
+            decoration: InputDecoration(
+              labelText: 'Scale',
+              helperText: scaleHelp,
+              helperMaxLines: 3,
+              border: OutlineInputBorder(),
+            ),
+            items: scaleOptions
+                .map(
+                  (scale) => DropdownMenuItem<double>(
+                    value: scale,
+                    child: Text(
+                      '×${scale.toStringAsFixed(1)}'
+                      '${!compatibleScales.contains(scale) && widget.placement != null ? ' · current' : ''}',
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: !widget.enabled
+                ? null
+                : (value) {
+                    if (value != null) setState(() => _scale = value);
+                  },
+          ),
+          const SizedBox(height: 4),
+          SwitchListTile(
+            key: ValueKey<String>('${widget.fieldKeyPrefix}_snap_field'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Snap to grid'),
+            value: _snapToGrid,
+            onChanged: widget.enabled
+                ? (value) => setState(() => _snapToGrid = value)
+                : null,
+          ),
+          CheckboxListTile(
+            key: ValueKey<String>('${widget.fieldKeyPrefix}_flip_x_field'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Flip X'),
+            value: _flipX,
+            onChanged: widget.enabled
+                ? (value) => setState(() => _flipX = value ?? false)
+                : null,
+          ),
+          CheckboxListTile(
+            key: ValueKey<String>('${widget.fieldKeyPrefix}_flip_y_field'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Flip Y'),
+            value: _flipY,
+            onChanged: widget.enabled
+                ? (value) => setState(() {
+                    _flipY = value ?? false;
+                    _scale = ChunkPrefabSurfaceSnap.preferredCompatibleScale(
+                      widget.prefab,
+                      flipY: _flipY,
+                      preferred: _scale,
+                    );
+                  })
+                : null,
+          ),
+          const SizedBox(height: 8),
+          _FormActions(
+            submitKey: widget.submitKey,
+            submitLabel: widget.submitLabel,
+            enabled: widget.enabled,
+            onCancel: widget.onCancel,
+            onSubmit: _submit,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<double> _scaleOptions(List<double> compatibleScales) {
+    final options = compatibleScales.isEmpty
+        ? List<double>.of(_placementScales)
+        : List<double>.of(compatibleScales);
+    if (!options.contains(_scale)) options.add(_scale);
+    options.sort();
+    return options;
+  }
+
+  String _scaleHelp(List<double> compatibleScales) {
+    if (widget.prefab.collisionShapes.isEmpty) {
+      return 'No collider: visual scaling is unrestricted and surface snap '
+          'does not engage.';
+    }
+    if (!ChunkPrefabSurfaceSnap.hasHorizontalSupport(
+      widget.prefab,
+      flipY: _flipY,
+    )) {
+      return 'Surface snap needs a horizontal lowest collider edge; visual '
+          'scaling remains available.';
+    }
+    if (!compatibleScales.contains(_scale)) {
+      return 'This saved scale is retained, but its support edge falls between '
+          'whole pixels. Choose an exact-contact scale.';
+    }
+    return '${compatibleScales.length} exact-contact scale'
+        '${compatibleScales.length == 1 ? '' : 's'} shown; each keeps the '
+        'support edge on a whole pixel.';
+  }
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
