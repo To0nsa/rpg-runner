@@ -838,14 +838,31 @@ performance regression remains.
 - [x] Cover toggle defaults/persistence/preview suppression plus creation,
       rectangle, and committed-vertex quantization.
 
+## Phase 13 — Searchable Visual Prefab Library
+
+- [x] Replace the scene-toolbar and creation-form Prefab dropdowns with one
+      persistent visual library in the Prefabs sidebar.
+- [x] Search token-by-token across Prefab ID, stable key, kind, and tags; add
+      kind and current-Chunk usage filters plus Enter-to-select.
+- [x] Render atlas-slice and platform-module thumbnails through one
+      browser-owned, workspace-path-scoped decoded-image cache and a bounded
+      lazy grid.
+- [x] Share the stable-key catalog selection between direct scene placement and
+      inline creation without creating source history or pending diffs.
+- [x] Reuse the browser in retained placement edits while keeping tentative
+      dialog selection isolated until Apply.
+- [x] Cover filtering, empty results, keyboard selection, route integration,
+      and exact ID/key submission with focused widget tests.
+- [x] Keep Chunk-v2 source, canonical ordering, composition validation, and
+      runtime-generation contracts unchanged.
+
 ## Required Validation Commands
 
 Minimum editor validation for every implementation phase:
 
 - [x] `cd tools/editor && dart analyze`
 - [x] focused tests for the touched phase
-- [ ] `cd tools/editor && flutter test` (500 pass; the unrelated Terrain
-      Materials no-op pending-change assertion remains failing)
+- [x] `cd tools/editor && flutter test` (530 pass on August 22, 2026)
 
 Required focused coverage across the initiative:
 
@@ -872,9 +889,9 @@ Unchanged source/runtime seam gate:
       `flutter test test/tool/polygon_terrain_signature_probe_test.dart` from
       the repository root
 
-Validation closure recorded August 18, 2026: the normal dry-run validates nine
-chunks, three levels, three parallax themes, and one terrain material with no
-blocking issues.
+Validation closure refreshed August 22, 2026: the normal dry-run validates
+three chunks, three levels, three parallax themes, and one terrain material with
+no blocking issues.
 
 ## Final Acceptance Checklist
 
@@ -883,6 +900,8 @@ blocking issues.
       right-side card without replacing the scene.
 - [x] Prefabs and Markers each expose foldable Create and Existing sections;
       adding from the Create form does not open a modal dialog.
+- [x] Prefab selection uses one searchable visual library shared by scene Place
+      and inline creation; no long Prefab dropdown remains in Chunk Creator.
 - [x] Narrow layouts preserve scene, viewport, focus, selection, and draft state.
 - [x] Existing terrain and composition features remain complete.
 - [x] Active-domain and typed-selection behavior is deterministic and tested.

@@ -8,13 +8,13 @@ import '../../../../prefabs/models/models.dart';
 
 /// Edits one prefab placement without owning persistence or modal navigation.
 ///
-/// The caller must provide at least one active Prefab-v3 owner, or the retained
-/// owner of [placement]. Submitted coordinates use the Chunk whole-pixel
-/// policy before the candidate is returned to the caller.
+/// The surrounding catalog owns Prefab selection; changing that selection does
+/// not reset this form's transform draft. Submitted coordinates use the Chunk
+/// whole-pixel policy before the candidate is returned to the caller.
 class ChunkV2PlacementForm extends StatefulWidget {
-  ChunkV2PlacementForm({
+  const ChunkV2PlacementForm({
     super.key,
-    required Iterable<PrefabV3Def> prefabs,
+    required this.prefab,
     this.placement,
     required this.submitKey,
     required this.submitLabel,
@@ -22,9 +22,13 @@ class ChunkV2PlacementForm extends StatefulWidget {
     this.fieldKeyPrefix = 'chunk_v2_placement',
     this.onCancel,
     this.enabled = true,
-  }) : prefabs = List<PrefabV3Def>.unmodifiable(prefabs);
+  });
 
-  final List<PrefabV3Def> prefabs;
+  /// Stable owner selected by the surrounding Prefab catalog browser.
+  ///
+  /// Changing this record preserves the placement-value draft while ensuring
+  /// submission writes the new owner's exact ID and stable key together.
+  final PrefabV3Def prefab;
   final PlacedPrefabDef? placement;
   final String submitKey;
   final String submitLabel;
@@ -39,11 +43,9 @@ class ChunkV2PlacementForm extends StatefulWidget {
 
 class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  late final List<PrefabV3Def> _availablePrefabs;
   late final TextEditingController _xController;
   late final TextEditingController _yController;
   late final TextEditingController _zIndexController;
-  late String _prefabKey;
   late double _scale;
   late bool _snapToGrid;
   late bool _flipX;
@@ -52,23 +54,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
   @override
   void initState() {
     super.initState();
-    final current = widget.placement == null
-        ? null
-        : resolveChunkV2PlacementPrefab(widget.prefabs, widget.placement!);
-    _availablePrefabs =
-        widget.prefabs
-            .where(
-              (prefab) =>
-                  prefab.status == PrefabStatus.active ||
-                  prefab.prefabKey == current?.prefabKey,
-            )
-            .toList(growable: false)
-          ..sort(_comparePrefabs);
-    assert(
-      _availablePrefabs.isNotEmpty,
-      'A placement form needs an active or retained prefab owner.',
-    );
-    _prefabKey = current?.prefabKey ?? _availablePrefabs.first.prefabKey;
     final placement = widget.placement;
     _xController = TextEditingController(text: '${placement?.x ?? 0}');
     _yController = TextEditingController(text: '${placement?.y ?? 0}');
@@ -96,27 +81,28 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        DropdownButtonFormField<String>(
-          key: ValueKey<String>('${widget.fieldKeyPrefix}_prefab_$_prefabKey'),
-          initialValue: _prefabKey,
-          isExpanded: true,
+        InputDecorator(
+          key: ValueKey<String>(
+            '${widget.fieldKeyPrefix}_selected_prefab_'
+            '${widget.prefab.prefabKey}',
+          ),
           decoration: const InputDecoration(
-            labelText: 'Prefab',
+            labelText: 'Selected prefab',
             border: OutlineInputBorder(),
           ),
-          items: _availablePrefabs
-              .map(
-                (prefab) => DropdownMenuItem<String>(
-                  value: prefab.prefabKey,
-                  child: Text('${prefab.id} · ${prefab.kind.jsonValue}'),
+          child: Row(
+            children: <Widget>[
+              const Icon(Icons.inventory_2_outlined, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${widget.prefab.id} · ${widget.prefab.kind.jsonValue}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              )
-              .toList(growable: false),
-          onChanged: !widget.enabled
-              ? null
-              : (value) {
-                  if (value != null) setState(() => _prefabKey = value);
-                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         _IntegerField(
@@ -203,9 +189,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final prefab = _availablePrefabs.singleWhere(
-      (prefab) => prefab.prefabKey == _prefabKey,
-    );
+    final prefab = widget.prefab;
     widget.onSubmit(
       PlacedPrefabDef(
         prefabId: prefab.id,
@@ -489,13 +473,6 @@ PrefabV3Def? resolveChunkV2PlacementPrefab(
   }
   if (placement.prefabId.isEmpty) return null;
   return prefabs.where((prefab) => prefab.id == placement.prefabId).firstOrNull;
-}
-
-int _comparePrefabs(PrefabV3Def left, PrefabV3Def right) {
-  final kindOrder = left.kind.jsonValue.compareTo(right.kind.jsonValue);
-  if (kindOrder != 0) return kindOrder;
-  final idOrder = left.id.compareTo(right.id);
-  return idOrder != 0 ? idOrder : left.prefabKey.compareTo(right.prefabKey);
 }
 
 final List<double> _placementScales = List<double>.unmodifiable(

@@ -9,10 +9,12 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
+import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_section_card.dart';
+import 'chunk_prefab_catalog_browser.dart';
 import 'chunk_v2_composition_dialog.dart';
 import 'chunk_v2_composition_forms.dart';
 
@@ -35,9 +37,11 @@ class ChunkCompositionCard extends StatelessWidget {
     required this.onOperationChanged,
     required this.selectedPrefabKey,
     required this.selectedMarkerKey,
+    required this.selectedCatalogPrefabKey,
     this.onOpenOwningPrefab,
     required this.onPrefabSelected,
     required this.onMarkerSelected,
+    required this.onCatalogPrefabSelected,
   });
 
   final ChunkCompositionSection section;
@@ -48,9 +52,11 @@ class ChunkCompositionCard extends StatelessWidget {
   final ValueChanged<bool> onOperationChanged;
   final String? selectedPrefabKey;
   final String? selectedMarkerKey;
+  final String? selectedCatalogPrefabKey;
   final ValueChanged<String>? onOpenOwningPrefab;
   final ValueChanged<ChunkPlacedPrefabSelection> onPrefabSelected;
   final ValueChanged<ChunkPlacedMarkerSelection> onMarkerSelected;
+  final ValueChanged<PrefabV3Def> onCatalogPrefabSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -185,12 +191,53 @@ class ChunkCompositionCard extends StatelessWidget {
 
   Widget _buildPlacements(BuildContext context) {
     final placements = buildChunkPlacedPrefabSelections(chunk.prefabs);
-    final activePrefabs = document.prefabData.prefabs
-        .where((prefab) => prefab.status == PrefabStatus.active)
-        .toList(growable: false);
+    final activePrefabs = PrefabDeterminism.sortPrefabV3ByIdThenKey(
+      document.prefabData.prefabs.where(
+        (prefab) => prefab.status == PrefabStatus.active,
+      ),
+    );
+    final selectedCatalogPrefab = activePrefabs
+        .where((prefab) => prefab.prefabKey == selectedCatalogPrefabKey)
+        .firstOrNull;
+    final effectiveCatalogPrefab =
+        selectedCatalogPrefab ?? activePrefabs.firstOrNull;
+    final usedPrefabKeys = <String>{
+      for (final placement in chunk.prefabs)
+        if (resolveChunkV2PlacementPrefab(
+              document.prefabData.prefabs,
+              placement,
+            )
+            case final prefab?)
+          prefab.prefabKey,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_prefab_catalog_section'),
+          title: 'Prefab library',
+          description:
+              'Search by name, kind, or tags. The selected prefab is shared '
+              'by the scene Place tool and the creation form below.',
+          collapsible: true,
+          expansionKey: const ValueKey<String>(
+            'chunk_prefab_catalog_section_toggle',
+          ),
+          child: activePrefabs.isEmpty
+              ? const Text('No active prefab owners are available.')
+              : ChunkPrefabCatalogBrowser(
+                  prefabs: activePrefabs,
+                  prefabData: document.prefabData,
+                  tileData: document.tileData,
+                  visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+                  workspaceRootPath: controller.workspacePath,
+                  selectedPrefabKey: effectiveCatalogPrefab?.prefabKey,
+                  usedPrefabKeys: usedPrefabKeys,
+                  enabled: controlsEnabled,
+                  onSelected: onCatalogPrefabSelected,
+                ),
+        ),
+        const SizedBox(height: 12),
         EditorSectionCard(
           key: const ValueKey<String>('chunk_prefab_creation_panel'),
           title: 'Create prefab placement',
@@ -201,13 +248,13 @@ class ChunkCompositionCard extends StatelessWidget {
           expansionKey: const ValueKey<String>(
             'chunk_prefab_creation_panel_toggle',
           ),
-          child: activePrefabs.isEmpty
+          child: effectiveCatalogPrefab == null
               ? const Text('No active prefab owners are available.')
               : ChunkV2PlacementForm(
                   key: ValueKey<String>(
                     'chunk_prefab_creation_form_${chunk.chunkKey}',
                   ),
-                  prefabs: activePrefabs,
+                  prefab: effectiveCatalogPrefab,
                   fieldKeyPrefix: 'chunk_v2_placement_creation',
                   submitKey: 'chunk_v2_placement_add',
                   submitLabel: 'Add placement',
@@ -442,7 +489,8 @@ class ChunkCompositionCard extends StatelessWidget {
     await _runOperation(() async {
       final placement = await showChunkV2PlacementEditDialog(
         context,
-        prefabs: document.prefabData.prefabs,
+        document: document,
+        workspaceRootPath: controller.workspacePath,
         placement: selection.prefab,
       );
       if (placement == null || !context.mounted) return;

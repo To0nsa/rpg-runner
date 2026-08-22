@@ -8,10 +8,12 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_prefab_catalog_browser.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_level_visual_source.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_v2_composition_forms.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.dart';
@@ -1194,6 +1196,129 @@ void main() {
     expect(harness.session.pendingChanges.hasChanges, isFalse);
     expect(find.textContaining('Prefab scene change was rejected'), findsOne);
   });
+
+  testWidgets(
+    'visual prefab library drives canvas, creation, and retained edit selection',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final tree = PrefabV3Def(
+        prefabKey: 'prefab_tree',
+        id: 'tree',
+        revision: 1,
+        status: PrefabStatus.active,
+        kind: PrefabKind.decoration,
+        visualSource: const PrefabVisualSource.atlasSlice('tree_slice'),
+        anchorXPx: 8,
+        anchorYPx: 12,
+        collisionShapes: const <TerrainSourceShapeDef>[],
+        tags: const <String>['dark', 'foliage'],
+      );
+      final harness = await _buildHarness(
+        additionalPrefabs: <PrefabV3Def>[tree],
+      );
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey<String>('chunk_prefab_catalog_selector')),
+        findsNothing,
+      );
+      expect(find.byType(ChunkPrefabCatalogBrowser), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_prefab_catalog_search')),
+        'dark foliage',
+      );
+      await tester.pump();
+      expect(find.text('1 of 2 prefabs'), findsOneWidget);
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_prefab_catalog_card_prefab_tree'),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Selected: tree'), findsOneWidget);
+      expect(
+        tester
+            .widget<ChunkV2PlacementForm>(
+              find.byType(ChunkV2PlacementForm).first,
+            )
+            .prefab,
+        same(tree),
+      );
+
+      final sidebar = find.byKey(
+        const ValueKey<String>('chunk_authoring_sidebar'),
+      );
+      final sidebarScrollable = find
+          .descendant(of: sidebar, matching: find.byType(Scrollable))
+          .first;
+      final editPlacement = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_edit_prefab_rock|95|10|0'),
+      );
+      await tester.scrollUntilVisible(
+        editPlacement,
+        280,
+        scrollable: sidebarScrollable,
+      );
+      await tester.tap(editPlacement);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_dialog_catalog_search'),
+        ),
+        'foliage',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_placement_dialog_catalog_card_prefab_tree',
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester
+            .widget<ChunkV2PlacementForm>(
+              find.byType(ChunkV2PlacementForm).last,
+            )
+            .prefab,
+        same(tree),
+      );
+
+      final apply = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      final edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 5);
+      expect(edited.prefabs.single.prefabKey, 'prefab_tree');
+      expect(edited.prefabs.single.prefabId, 'tree');
+    },
+  );
 
   testWidgets('direct prefab move cancels cleanly then accepts one drag', (
     tester,
@@ -3025,6 +3150,7 @@ void main() {
 
 Future<_Harness> _buildHarness({
   List<ValidationIssue> additionalIssues = const <ValidationIssue>[],
+  List<PrefabV3Def> additionalPrefabs = const <PrefabV3Def>[],
 }) async {
   final root = Directory.systemTemp.createTempSync('chunk_stage_page_');
   final manifest = File(
@@ -3112,6 +3238,7 @@ Future<_Harness> _buildHarness({
           ],
           tags: const <String>[],
         ),
+        ...additionalPrefabs,
       ],
     ),
     tileData: PrefabTileFileData(

@@ -42,8 +42,10 @@ Plugins and `EditorSessionController` remain the only repository write path.
 Expanded and scrollable modes require a bounded parent height. Collapsible
 cards require natural-height bodies and delegate overflow to their containing
 sidebar; this prevents nested vertical scroll views from competing for pointer
-input. Expansion is local presentation state and never changes authoring
-selection, source history, validation, or pending diffs.
+input. Bounded catalog grids may own their local item scroll inside a natural
+section, but they do not become a second sidebar scroll owner. Expansion is
+local presentation state and never changes authoring selection, source history,
+validation, or pending diffs.
 
 ## Current adoption
 
@@ -58,6 +60,14 @@ Markers contain their retained placement forms, and Layers contains the visual
 stack plus tile-layer metadata. Seam evidence and route diagnostics are not
 separate sidebar sections. Tab changes preserve the scene subtree, viewport,
 and per-domain selection; an active draft or gesture disables tab changes.
+The Prefabs card starts with one persistent `ChunkPrefabCatalogBrowser`. It
+uses immutable Prefab-v3 and tile/module projections plus a browser-owned,
+workspace-path-scoped image cache for thumbnail rendering, token search across
+identity/kind/tags, and route-local kind/usage filters. Its
+stable-key selection feeds the scene Place tool and inline placement form but
+does not enter the plugin document, history, validation, or pending diff. The
+retained placement dialog composes the same browser with dialog-local selection
+so Cancel cannot change the route catalog choice or source.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation

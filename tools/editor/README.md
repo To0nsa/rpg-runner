@@ -23,10 +23,10 @@ Implemented authoring domains:
   and searchable slice selection; Prefab atlas slicing supports configurable
   cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
 - chunk authoring with whole-pixel direct terrain polygons, expanded placed-Prefab
-  collision, active-level parallax and terrain-material scene preview,
-  Core-backed actor-traversability and marker-placement previews,
-  scene-based composition, shared
-  pan/zoom/grid controls, and Prefab transform editing
+  collision, a searchable visual Prefab library, active-level parallax and
+  terrain-material scene preview, Core-backed actor-traversability and
+  marker-placement previews, scene-based composition, shared pan/zoom/grid
+  controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, explicit new/existing visual-theme assignment,
   atomic Level-plus-theme pending/apply, repair of unresolved references, and
@@ -338,13 +338,20 @@ scene or filters Diagnostics. Tab changes preserve the viewport and each
 domain's last selection. Active drafts, gestures, and retained dialogs lock the
 tabs until that operation is finished or cancelled.
 
-The scene tabs make primary input explicit. The Prefabs domain has
-Select, Place, and Move tools backed by the active prefab catalog. Place and
-move drags show a local ghost, then submit one normal validated composition
-command on release; Escape cancels without changing source. Grid-enabled
-placements snap to the chunk tile size, while exact placement fields remain
-integer-pixel overrides in the sidebar creation form and existing-record edit
-dialog.
+The scene tabs make primary input explicit. The Prefabs domain has Select,
+Place, and Move tools backed by a persistent visual library at the top of its
+sidebar card. The library searches token-by-token across Prefab ID, stable key,
+kind, and tags, filters by kind or Prefabs already used in the selected Chunk,
+and renders atlas-slice or platform-module thumbnails through one browser-owned
+decoded-image cache. Pressing Enter selects the first filtered result. Its
+stable-key selection is route-local and shared by both the canvas Place tool
+and inline creation form; it never creates a pending source change by itself. The retained
+placement-edit dialog uses the same browser but keeps its tentative selection
+local until Apply. Place and move drags show a local ghost, then submit one
+normal validated composition command on release; Escape cancels without
+changing source. Grid-enabled placements snap to the chunk tile size, while
+exact placement fields remain integer-pixel overrides in the sidebar creation
+form and existing-record edit dialog.
 
 The Markers domain likewise provides Select, Place, and Move tools. These edit
 only the authored query anchor at integer-pixel precision. Core-resolved spawn

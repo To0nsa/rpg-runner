@@ -16,6 +16,7 @@ import '../../../../chunks/chunk_v2_metadata_commit.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
+import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
@@ -782,7 +783,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       onOperationChanged: _setCompositionOperationActive,
       selectedPrefabKey: _sceneCoordinator.selectedPrefabKey,
       selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
+      selectedCatalogPrefabKey: _selectedPrefabCatalogKey,
       onOpenOwningPrefab: widget.onOpenOwningPrefab,
+      onCatalogPrefabSelected: (prefab) =>
+          setState(() => _selectedPrefabCatalogKey = prefab.prefabKey),
       onPrefabSelected: (selection) => setState(() {
         _prefabGesture.setTool(ChunkPrefabSceneTool.select);
         _sceneCoordinator.selectPrefab(selection);
@@ -997,26 +1001,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           ? null
                           : (_) => setState(() => _prefabGesture.setTool(tool)),
                     ),
-                  DropdownButton<String>(
-                    key: const ValueKey<String>(
-                      'chunk_prefab_catalog_selector',
+                  if (_selectedCatalogPrefab(scene) case final prefab?)
+                    Chip(
+                      key: const ValueKey<String>(
+                        'chunk_prefab_catalog_selection',
+                      ),
+                      avatar: const Icon(Icons.inventory_2_outlined, size: 18),
+                      label: Text('Selected: ${prefab.id}'),
+                    )
+                  else
+                    const Chip(
+                      key: ValueKey<String>(
+                        'chunk_prefab_catalog_selection_empty',
+                      ),
+                      avatar: Icon(Icons.inventory_2_outlined, size: 18),
+                      label: Text('No active prefab'),
                     ),
-                    value: _selectedCatalogPrefab(scene)?.prefabKey,
-                    hint: const Text('No active prefab'),
-                    items: _activePrefabCatalog(scene)
-                        .map(
-                          (prefab) => DropdownMenuItem<String>(
-                            value: prefab.prefabKey,
-                            child: Text(prefab.id),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _prefabGesture.hasActiveOperation
-                        ? null
-                        : (prefabKey) => setState(
-                            () => _selectedPrefabCatalogKey = prefabKey,
-                          ),
-                  ),
                 ] else if (_sceneCoordinator.sourceDomain ==
                     ChunkSceneDomain.markers) ...<Widget>[
                   for (final tool in ChunkMarkerSceneTool.values)
@@ -3021,10 +3021,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   List<PrefabV3Def> _activePrefabCatalog(ChunkV2Scene scene) =>
-      scene.prefabData.prefabs
-          .where((prefab) => prefab.status == PrefabStatus.active)
-          .toList(growable: false)
-        ..sort((left, right) => left.id.compareTo(right.id));
+      PrefabDeterminism.sortPrefabV3ByIdThenKey(
+        scene.prefabData.prefabs.where(
+          (prefab) => prefab.status == PrefabStatus.active,
+        ),
+      );
 
   PrefabV3Def? _selectedCatalogPrefab(ChunkV2Scene scene) {
     final prefabs = _activePrefabCatalog(scene);

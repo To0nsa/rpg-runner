@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
+import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../prefabs/models/models.dart';
+import 'chunk_prefab_catalog_browser.dart';
 import 'chunk_v2_composition_forms.dart';
 
 /// Opens a strict tile-layer form for one Chunk-v2 composition record.
@@ -20,31 +22,110 @@ Future<TileLayerDef?> showChunkV2TileLayerDialog(
 /// Returns null without opening when the placement's owner no longer exists.
 Future<PlacedPrefabDef?> showChunkV2PlacementEditDialog(
   BuildContext context, {
-  required Iterable<PrefabV3Def> prefabs,
+  required ChunkV2Document document,
+  required String workspaceRootPath,
   required PlacedPrefabDef placement,
 }) {
-  final owners = List<PrefabV3Def>.unmodifiable(prefabs);
+  final owners = List<PrefabV3Def>.unmodifiable(document.prefabData.prefabs);
   final current = resolveChunkV2PlacementPrefab(owners, placement);
   if (current == null) return Future<PlacedPrefabDef?>.value();
+  final selectableOwners = owners
+      .where(
+        (prefab) =>
+            prefab.status == PrefabStatus.active ||
+            prefab.prefabKey == current.prefabKey,
+      )
+      .toList(growable: false);
   return showDialog<PlacedPrefabDef>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => _ChunkV2PlacementEditDialog(
+      document: document,
+      workspaceRootPath: workspaceRootPath,
+      selectableOwners: selectableOwners,
+      initialOwner: current,
+      placement: placement,
+    ),
+  );
+}
+
+final class _ChunkV2PlacementEditDialog extends StatefulWidget {
+  const _ChunkV2PlacementEditDialog({
+    required this.document,
+    required this.workspaceRootPath,
+    required this.selectableOwners,
+    required this.initialOwner,
+    required this.placement,
+  });
+
+  final ChunkV2Document document;
+  final String workspaceRootPath;
+  final List<PrefabV3Def> selectableOwners;
+  final PrefabV3Def initialOwner;
+  final PlacedPrefabDef placement;
+
+  @override
+  State<_ChunkV2PlacementEditDialog> createState() =>
+      _ChunkV2PlacementEditDialogState();
+}
+
+final class _ChunkV2PlacementEditDialogState
+    extends State<_ChunkV2PlacementEditDialog> {
+  late String _selectedPrefabKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPrefabKey = widget.initialOwner.prefabKey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedOwner = widget.selectableOwners.singleWhere(
+      (prefab) => prefab.prefabKey == _selectedPrefabKey,
+    );
+    return AlertDialog(
       title: const Text('Edit placement'),
       content: SizedBox(
-        width: 500,
+        width: 760,
         child: SingleChildScrollView(
-          child: ChunkV2PlacementForm(
-            prefabs: owners,
-            placement: placement,
-            submitKey: 'chunk_v2_placement_dialog_apply',
-            submitLabel: 'Apply',
-            onCancel: () => Navigator.of(context).pop(),
-            onSubmit: (candidate) => Navigator.of(context).pop(candidate),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(
+                'Choose the prefab visually, then adjust this placement.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              ChunkPrefabCatalogBrowser(
+                prefabs: widget.selectableOwners,
+                prefabData: widget.document.prefabData,
+                tileData: widget.document.tileData,
+                visualBoundsByPrefabKey:
+                    widget.document.visualBoundsByPrefabKey,
+                workspaceRootPath: widget.workspaceRootPath,
+                selectedPrefabKey: _selectedPrefabKey,
+                usedPrefabKeys: const <String>[],
+                autofocusSearch: true,
+                gridHeight: 248,
+                keyPrefix: 'chunk_v2_placement_dialog_catalog',
+                onSelected: (prefab) =>
+                    setState(() => _selectedPrefabKey = prefab.prefabKey),
+              ),
+              const Divider(height: 32),
+              ChunkV2PlacementForm(
+                prefab: selectedOwner,
+                placement: widget.placement,
+                submitKey: 'chunk_v2_placement_dialog_apply',
+                submitLabel: 'Apply',
+                onCancel: () => Navigator.of(context).pop(),
+                onSubmit: (candidate) => Navigator.of(context).pop(candidate),
+              ),
+            ],
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Opens a strict enemy-marker edit form using Core IDs and accepted intents.

@@ -140,6 +140,14 @@ and sidebar authoring while preserving pan/zoom and all route/source state.
 The adjacent default-off **Show grid** chip renders the selected owner's tile
 grid across every domain tab and is suppressed by Visual preview.
 
+The Prefabs tab now replaces both long Prefab dropdowns with one searchable
+visual library. ID/kind/tag search, kind filters, a current-Chunk usage filter,
+atlas/module thumbnails, and Enter-to-select share one stable-key route
+selection between direct scene placement and inline creation. Retained edits
+compose the same browser with dialog-local tentative selection. This is an
+editor-only selection improvement: Chunk-v2 source, Prefab identity, placement
+commands, validation, and generated runtime data are unchanged.
+
 - [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
 - [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)
 
