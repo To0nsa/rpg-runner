@@ -55,19 +55,23 @@ the scene; narrow layouts keep all subtrees mounted while placing them below
 the scene. A four-way `Terrain`, `Prefabs`, `Markers`, and `Layers` segmented
 tab strip stays at the top of the scene. The sidebar is the sole vertical
 scroll owner and mounts only the `EditorPanelCard` for the active tab. Terrain
-contains the creation and existing-shape authoring sections, Prefabs and
-Markers contain their retained placement forms, and Layers contains the visual
-stack plus tile-layer metadata. Seam evidence and route diagnostics are not
-separate sidebar sections. Tab changes preserve the scene subtree, viewport,
-and per-domain selection; an active draft or gesture disables tab changes.
+contains the creation and existing-shape authoring sections, Prefabs contains
+the visual catalog plus creation and existing-placement sections, Markers
+contains its creation and retained-placement sections, and Layers contains the
+visual stack plus tile-layer metadata. Seam evidence and route diagnostics are
+not separate sidebar sections. Tab changes preserve the scene subtree,
+viewport, and per-domain selection; an active draft or gesture disables tab
+changes.
 The Prefabs card starts with one persistent `ChunkPrefabCatalogBrowser`. It
 uses immutable Prefab-v3 and tile/module projections plus a browser-owned,
 workspace-path-scoped image cache for thumbnail rendering, token search across
 identity/kind/tags, and route-local kind/usage filters. Its
 stable-key selection feeds the scene Place tool and inline placement form but
 does not enter the plugin document, history, validation, or pending diff. The
-retained placement dialog composes the same browser with dialog-local selection
-so Cancel cannot change the route catalog choice or source.
+selected retained placement row expands in place and composes the same browser
+with row-local selection and transform drafts. Apply dispatches one captured
+revision-aware composition operation; Cancel collapses the row, unlocks route
+operations, and cannot change the route catalog choice or source.
 
 Chunk terrain creation may reserve an optional designer-supplied shape name
 before drawing; blank input delegates to deterministic ID allocation. Creation
@@ -90,13 +94,14 @@ registry have been removed.
 
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
 composition is partitioned by the active Chunk workspace tab. Its rows and
-retained dialogs share typed selection and the same validated composition
-command with the scene's direct prefab and marker gestures. Terrain, Prefabs,
-and Markers own explicit primary-input domains. Layers is deliberately passive
-because `TileLayerDef` is metadata-only; compiled edges remain a non-interactive
-visual reference. Chunk and Prefab owner and shape rows, plus Chunk composition
-records, use `EditorListCard`; evidence and diagnostic cards remain
-route-specific because they communicate status instead of list ownership.
+expanded editors or retained dialogs share typed selection and the same
+validated composition command with the scene's direct prefab and marker
+gestures. Terrain, Prefabs, and Markers own explicit primary-input domains.
+Layers is deliberately passive because `TileLayerDef` is metadata-only;
+compiled edges remain a non-interactive visual reference. Chunk and Prefab
+owner and shape rows, plus Chunk composition records, use `EditorListCard`;
+evidence and diagnostic cards remain route-specific because they communicate
+status instead of list ownership.
 Explanatory route-intro cards compose the same panel shell. The fail-closed
 polygon-migration route keeps its specialized warning content inside the shared
 workspace surface.

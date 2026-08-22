@@ -106,11 +106,13 @@ markers.
 The workspace-unification follow-on has consolidated the route into one
 persistent Chunk creation scene, a left owner rail, and a tab-filtered right
 sidebar. Persistent visual/viewport controls sit above the Terrain, Prefabs,
-Markers, and Layers tabs. Only the matching authoring card is mounted, while viewport and per-domain selection
-state survive tab changes. Direct prefab/marker gestures and retained dialogs
-share the same composition command and stale-snapshot checks. Prefab and marker
-cards now split foldable inline creation from existing records, so add commits
-need no dialog while edits keep the validated modal form. Layers remains a
+Markers, and Layers tabs. Only the matching authoring card is mounted, while
+viewport and per-domain selection state survive tab changes. Direct
+prefab/marker gestures, expanded Prefab edits, and retained Marker/tile-layer
+dialogs share the same composition command and stale-snapshot checks. Prefab
+and marker cards split foldable inline creation from existing records. Prefab
+placement editing expands the selected row with row-local owner and transform
+drafts, while Marker edits keep the validated modal form. Layers remains a
 passive metadata-only domain. The initiative does not change Chunk-v2 source
 or Core placement lineage:
 

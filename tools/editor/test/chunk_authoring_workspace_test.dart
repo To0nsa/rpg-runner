@@ -1198,7 +1198,7 @@ void main() {
   });
 
   testWidgets(
-    'visual prefab library drives canvas, creation, and retained edit selection',
+    'visual prefab library drives creation and inline placement editing',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -1281,21 +1281,39 @@ void main() {
       await tester.tap(editPlacement);
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      const placementKey = 'prefab_rock|95|10|0';
+      final inlineEditor = find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_editor_$placementKey',
+        ),
+      );
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(inlineEditor, findsOneWidget);
+      final routeState = tester.state(find.byType(ChunkCreatorPage));
+      final reloadHandler = routeState as EditorPageReloadHandler;
+      final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
+      final localDraftState = routeState as EditorPageLocalDraftState;
+      expect(reloadHandler.canReloadEditorPage, isFalse);
+      expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
+      expect(localDraftState.hasLocalDraftChanges, isTrue);
       await tester.enterText(
         find.byKey(
-          const ValueKey<String>('chunk_v2_placement_dialog_catalog_search'),
+          const ValueKey<String>(
+            'chunk_v2_placement_inline_catalog_${placementKey}_search',
+          ),
         ),
         'foliage',
       );
       await tester.pump();
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>(
-            'chunk_v2_placement_dialog_catalog_card_prefab_tree',
-          ),
+      final inlineTreeCard = find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_catalog_'
+          '${placementKey}_card_prefab_tree',
         ),
       );
+      await tester.ensureVisible(inlineTreeCard);
+      await tester.pumpAndSettle();
+      await tester.tap(inlineTreeCard);
       await tester.pump();
       expect(
         tester
@@ -1305,9 +1323,44 @@ void main() {
             .prefab,
         same(tree),
       );
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(
+        _chunk(harness.session, 'forest_chunk').prefabs.single.prefabKey,
+        'prefab_rock',
+      );
+
+      final cancel = find.descendant(
+        of: inlineEditor,
+        matching: find.widgetWithText(TextButton, 'Cancel'),
+      );
+      await tester.ensureVisible(cancel);
+      await tester.pumpAndSettle();
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(inlineEditor, findsNothing);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(reloadHandler.canReloadEditorPage, isTrue);
+      expect(localDraftState.hasLocalDraftChanges, isFalse);
+
+      await tester.ensureVisible(editPlacement);
+      await tester.tap(editPlacement);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_placement_inline_catalog_${placementKey}_search',
+          ),
+        ),
+        'foliage',
+      );
+      await tester.pump();
+      await tester.ensureVisible(inlineTreeCard);
+      await tester.pumpAndSettle();
+      await tester.tap(inlineTreeCard);
+      await tester.pump();
 
       final apply = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+        const ValueKey<String>('chunk_v2_placement_inline_apply_$placementKey'),
       );
       await tester.ensureVisible(apply);
       await tester.tap(apply);
@@ -1317,6 +1370,9 @@ void main() {
       expect(edited.revision, 5);
       expect(edited.prefabs.single.prefabKey, 'prefab_tree');
       expect(edited.prefabs.single.prefabId, 'tree');
+      expect(inlineEditor, findsNothing);
+      expect(reloadHandler.canReloadEditorPage, isTrue);
+      expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
     },
   );
 
@@ -2733,7 +2789,9 @@ void main() {
         'chunk_v2_placement_edit_prefab_rock|95|10|0',
       );
       final noOpPlacementApply = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_apply_prefab_rock|95|10|0',
+        ),
       );
       await tester.ensureVisible(noOpPlacementApply);
       await tester.tap(noOpPlacementApply);
@@ -2901,11 +2959,17 @@ void main() {
         'chunk_v2_placement_edit_prefab_rock|80|10|0',
       );
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_placement_x_field')),
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_placement_inline_prefab_rock|80|10|0_x_field',
+          ),
+        ),
         '85',
       );
       final editPlacementApply = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+        const ValueKey<String>(
+          'chunk_v2_placement_inline_apply_prefab_rock|80|10|0',
+        ),
       );
       await tester.ensureVisible(editPlacementApply);
       await tester.tap(editPlacementApply);

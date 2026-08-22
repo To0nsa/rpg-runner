@@ -92,9 +92,9 @@ implemented or explicitly closed.
   commands.
 - Rejected candidates do not alter the document, revision, history, or pending
   diff.
-- Prefab and marker dialog edits and direct gestures use the existing
-  `ChunkV2CompositionCommit`, extended with expected owner key/revision; this
-  initiative adds no parallel document command.
+- Expanded Prefab edits, Marker dialog edits, and direct gestures use the
+  existing `ChunkV2CompositionCommit`, extended with expected owner
+  key/revision; this initiative adds no parallel document command.
 - `Ctrl+drag` pans and `Ctrl+scroll` zooms in every scene domain.
 - Only one source-editing domain owns primary input at a time.
 - Evidence overlays are read-only and cannot silently mutate source selection.
@@ -249,8 +249,9 @@ adding direct non-terrain manipulation.
       compatibility wrapper.
 - [x] Keep tile-layer, prefab, and marker actions on the existing typed
       composition commit path.
-- [x] Keep tile-layer and existing-record edit dialogs operational; prefab and
-      marker creation forms now live inline in their tab cards.
+- [x] Keep tile-layer and Marker edit dialogs operational; Prefab and Marker
+      creation forms live inline, and existing Prefab placement editing expands
+      its selected row.
 - [x] Move the visual-stack preview into the composition card as a compact
       section.
 - [x] Avoid copying layer, prefab, marker, equality, sorting, or dispatch logic
@@ -389,9 +390,9 @@ reusing the current Chunk-v2 optimistic composition contract.
 - [x] Detect a candidate equal to `before` inside the adapter, close the local
       operation without dispatch, and do not show the generic rejection path.
 - [x] Keep pointer-move preview state outside `EditorSessionController`.
-- [x] Treat an open composition add/edit dialog as a route-local operation until
-      it cancels or submits, so shell reload/apply/history shortcuts cannot
-      replace its captured owner state.
+- [x] Treat an open composition dialog or expanded Prefab placement editor as a
+      route-local operation until it cancels or submits, so shell
+      reload/apply/history shortcuts cannot replace its captured owner state.
 - [x] Dispatch through
       `ChunkDomainPlugin.commitChunkCompositionCommandKind`; add no new document
       command or page-level validation path.
@@ -849,8 +850,8 @@ performance regression remains.
       lazy grid.
 - [x] Share the stable-key catalog selection between direct scene placement and
       inline creation without creating source history or pending diffs.
-- [x] Reuse the browser in retained placement edits while keeping tentative
-      dialog selection isolated until Apply.
+- [x] Expand the selected retained placement row with the same browser and keep
+      its tentative owner and transform drafts isolated until Apply.
 - [x] Cover filtering, empty results, keyboard selection, route integration,
       and exact ID/key submission with focused widget tests.
 - [x] Keep Chunk-v2 source, canonical ordering, composition validation, and

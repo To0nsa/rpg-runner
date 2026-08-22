@@ -335,8 +335,9 @@ sit below a bounded scene, with owners on the left. Persistent
 visual/viewport controls sit above the **Terrain / Prefabs / Markers / Layers**
 selector, which swaps only the domain card; it never replaces or rebuilds the
 scene or filters Diagnostics. Tab changes preserve the viewport and each
-domain's last selection. Active drafts, gestures, and retained dialogs lock the
-tabs until that operation is finished or cancelled.
+domain's last selection. Active drafts, gestures, expanded retained editors,
+and retained dialogs lock the tabs until that operation is finished or
+cancelled.
 
 The scene tabs make primary input explicit. The Prefabs domain has Select,
 Place, and Move tools backed by a persistent visual library at the top of its
@@ -345,13 +346,15 @@ kind, and tags, filters by kind or Prefabs already used in the selected Chunk,
 and renders atlas-slice or platform-module thumbnails through one browser-owned
 decoded-image cache. Pressing Enter selects the first filtered result. Its
 stable-key selection is route-local and shared by both the canvas Place tool
-and inline creation form; it never creates a pending source change by itself. The retained
-placement-edit dialog uses the same browser but keeps its tentative selection
-local until Apply. Place and move drags show a local ghost, then submit one
+and inline creation form; it never creates a pending source change by itself.
+Editing an existing placement expands that placement row with the same visual
+browser and transform fields. Its tentative owner and values stay row-local
+until Apply; Cancel collapses the row without changing source or the route
+catalog choice. Place and move drags show a local ghost, then submit one
 normal validated composition command on release; Escape cancels without
 changing source. Grid-enabled placements snap to the chunk tile size, while
 exact placement fields remain integer-pixel overrides in the sidebar creation
-form and existing-record edit dialog.
+form and expanded existing-placement row.
 
 The Markers domain likewise provides Select, Place, and Move tools. These edit
 only the authored query anchor at integer-pixel precision. Core-resolved spawn
@@ -368,8 +371,8 @@ records retain their selection, edit, and delete actions. The **Layers** card
 retains the visual-stack summary and validated tile-layer metadata workflow.
 `TileLayerDef` is metadata-only, so Layers pauses primary scene authoring and
 exposes no tile painting or cell editing. Direct scene gestures, inline adds,
-and retained edit/delete dialogs all dispatch the canonical Chunk composition
-command.
+expanded Prefab edits, and retained Marker/tile-layer edit or delete dialogs
+all dispatch the canonical Chunk composition command.
 
 Direct-terrain rectangle, vertex, insertion, and whole-shape gestures cannot
 enter another direct terrain shape or expanded prefab collision. This

@@ -500,15 +500,15 @@ collision.
   changing the composition snapshot during a local gesture; optimistic stale
   checking remains the final fail-closed defense.
 
-Prefab and marker dialogs and direct manipulation both use the existing
-full-list `ChunkV2CompositionCommit`, extended with expected owner key and
-revision. Pointer-down captures both plus the complete composition `before`
-snapshot; pointer-up changes only the affected canonical list in `after`. The
-policy must reject an owner or revision mismatch before checking structure,
-then retain its composition stale check, strict structure checks, full-document
-validation, and exactly-one revision behavior. All stale cases retain the
-existing `chunk_v2_composition_commit_stale` diagnostic family so the route has
-one actionable retry path. Extract a shared route adapter for
+Expanded Prefab edits, Marker dialogs, and direct manipulation all use the
+existing full-list `ChunkV2CompositionCommit`, extended with expected owner key
+and revision. Operation start captures both plus the complete composition
+`before` snapshot; submission changes only the affected canonical list in
+`after`. The policy must reject an owner or revision mismatch before checking
+structure, then retain its composition stale check, strict structure checks,
+full-document validation, and exactly-one revision behavior. All stale cases
+retain the existing `chunk_v2_composition_commit_stale` diagnostic family so
+the route has one actionable retry path. Extract a shared route adapter for
 constructing this commit rather than adding prefab- or marker-specific document
 commands. Do not create separate "fast" scene writes.
 
@@ -538,8 +538,9 @@ source identity or depends on an undefined tile-content model.
   composition controls into the right sidebar cards
 - extract the retained composition sections and remove the standalone
   `ChunkV2CompositionWorkspace` root rather than leaving a parallel page
-- retain tile-layer and existing-record edit dialogs and semantic commands;
-  prefab/marker creation may move inline without adding a second write path
+- retain tile-layer and Marker edit dialogs and semantic commands; move Prefab
+  creation and existing-placement editing inline without adding a second write
+  path
 - rename the visible panel to `Chunk creation scene`
 - rename the route badge to `Chunk v2 authoring`
 - label layers as metadata and expose no spatial tile controls
