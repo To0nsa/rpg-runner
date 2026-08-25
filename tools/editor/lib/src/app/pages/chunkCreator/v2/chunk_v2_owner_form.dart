@@ -343,3 +343,23 @@ List<String> _canonicalTags(Iterable<String> tags) {
   canonical.sort();
   return canonical;
 }
+
+/// Returns the user-facing Chunk-v2 owner ID validation error, if any.
+String? validateChunkV2OwnerId(
+  String raw, {
+  required ChunkV2Document document,
+  String? exceptChunkKey,
+}) {
+  final id = raw.trim();
+  if (id != raw || !_stableChunkOwnerId.hasMatch(id)) {
+    return 'Use a lowercase ID beginning with a letter; digits and underscores are allowed.';
+  }
+  if (document.chunks.any(
+    (chunk) => chunk.chunkKey != exceptChunkKey && chunk.id == id,
+  )) {
+    return 'Enter a unique chunk ID.';
+  }
+  return null;
+}
+
+final RegExp _stableChunkOwnerId = RegExp(r'^[a-z][a-z0-9_]*$');

@@ -214,10 +214,10 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
               controller: _idController,
               autofocus: widget.autofocusId,
               decoration: const InputDecoration(labelText: 'Human ID'),
-              validator: (value) =>
-                  _validOwnerId(value ?? '', document: widget.document) == null
-                  ? 'Enter a unique trimmed ID.'
-                  : null,
+              validator: (value) => validatePrefabV3OwnerId(
+                value ?? '',
+                document: widget.document,
+              ),
             ),
             const SizedBox(height: 12),
           ] else ...<Widget>[
@@ -456,22 +456,23 @@ List<PrefabKind> _resolveAvailableKinds(
   return <PrefabKind>[prefab?.kind ?? PrefabKind.decoration];
 }
 
-String? _validOwnerId(
+/// Returns the user-facing Prefab-v3 owner ID validation error, if any.
+String? validatePrefabV3OwnerId(
   String raw, {
   required PrefabV3Document document,
   String? exceptPrefabKey,
 }) {
   final id = raw.trim();
-  if (id.isEmpty || id != raw) return null;
+  if (id.isEmpty || id != raw) return 'Enter a unique trimmed ID.';
   final folded = id.toLowerCase();
   if (document.data.prefabs.any(
     (prefab) =>
         prefab.prefabKey != exceptPrefabKey &&
         prefab.id.toLowerCase() == folded,
   )) {
-    return null;
+    return 'Enter a unique trimmed ID.';
   }
-  return id;
+  return null;
 }
 
 String? _integerValidator(String? value) =>

@@ -138,44 +138,44 @@ modal navigation.
 
 ### Contextual actions
 
-- [ ] Move Prefab Rename, Duplicate, and Delete into the expanded owner editor.
-- [ ] Move Chunk Rename, Duplicate, and Delete into the expanded owner editor.
-- [ ] Keep labels and tooltips explicit; do not expose icon-only destructive
+- [x] Move Prefab Rename, Duplicate, and Delete into the expanded owner editor.
+- [x] Move Chunk Rename, Duplicate, and Delete into the expanded owner editor.
+- [x] Keep labels and tooltips explicit; do not expose icon-only destructive
       clusters on unselected rows.
-- [ ] Ensure every action captures and targets the expanded stable owner key.
-- [ ] Keep downstream/reference impact visible before owner deletion.
-- [ ] Clear or rebind selection deterministically after duplicate/delete.
+- [x] Ensure every action captures and targets the expanded stable owner key.
+- [x] Keep downstream/reference impact visible before owner deletion.
+- [x] Clear or rebind selection deterministically after duplicate/delete.
 
 ### Inline rename
 
-- [ ] Add stable-key-preserving inline human-ID editing for Prefab owners.
-- [ ] Add stable-key-preserving inline human-ID editing for Chunk owners.
-- [ ] Validate trimmed unique IDs before command dispatch.
-- [ ] Keep metadata and rename command/revision semantics explicit when both are
+- [x] Add stable-key-preserving inline human-ID editing for Prefab owners.
+- [x] Add stable-key-preserving inline human-ID editing for Chunk owners.
+- [x] Validate trimmed unique IDs before command dispatch.
+- [x] Keep metadata and rename command/revision semantics explicit when both are
       changed.
-- [ ] Remove Prefab and Chunk rename dialogs and their detached buttons.
+- [x] Remove Prefab and Chunk rename dialogs and their detached buttons.
 
 ### Inline creation
 
-- [ ] Add a collapsed **Create prefab owner** section.
-- [ ] Reuse the Prefab owner field widget for kind, source, anchor, and tags.
-- [ ] Show human ID and create-specific validation only in create mode.
-- [ ] Apply one existing Prefab lifecycle create command and select the result.
-- [ ] Add a collapsed **Create chunk owner** section.
-- [ ] Explain locked level dimensions/tile size and deprecated initial status.
-- [ ] Apply one existing Chunk lifecycle create command and select the result.
-- [ ] Cancel/reset creation without source or history changes.
-- [ ] Remove Prefab and Chunk create-owner dialogs and detached New actions.
+- [x] Add a collapsed **Create prefab owner** section.
+- [x] Reuse the Prefab owner field widget for kind, source, anchor, and tags.
+- [x] Show human ID and create-specific validation only in create mode.
+- [x] Apply one existing Prefab lifecycle create command and select the result.
+- [x] Add a collapsed **Create chunk owner** section.
+- [x] Explain locked level dimensions/tile size and deprecated initial status.
+- [x] Apply one existing Chunk lifecycle create command and select the result.
+- [x] Cancel/reset creation without source or history changes.
+- [x] Remove Prefab and Chunk create-owner dialogs and detached New actions.
 
 ### Phase 2 tests and validation
 
-- [ ] Cover contextual targeting for rename, duplicate, and delete.
-- [ ] Cover unique-ID errors and stable-key preservation.
-- [ ] Cover inline create Apply/Cancel and deterministic new selection.
-- [ ] Cover reference-aware owner delete confirmation.
-- [ ] Update README/TDD and this checklist.
-- [ ] Run analyzer, focused tests, and full editor tests.
-- [ ] Commit Phase 2 as one validated logical milestone.
+- [x] Cover contextual targeting for rename, duplicate, and delete.
+- [x] Cover unique-ID errors and stable-key preservation.
+- [x] Cover inline create Apply/Cancel and deterministic new selection.
+- [x] Cover reference-aware owner delete confirmation.
+- [x] Update README/TDD and this checklist.
+- [x] Run analyzer, focused tests, and full editor tests.
+- [x] Commit Phase 2 as one validated logical milestone.
 
 ## Phase 3 — Searchable Visual Prefab Owner Library
 

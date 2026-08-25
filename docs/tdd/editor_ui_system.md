@@ -149,8 +149,14 @@ values, and diagnostic intact. Dirty owner forms participate in
 reach session history, disable redo, and guard Prefab workspace-view changes.
 An active Prefab polygon gesture also blocks
 owner replacement, so route-controller disposal cannot discard authored work.
-Owner creation and rename remain separate lifecycle dialogs during this first
-migration milestone.
+Owner creation mounts in an independently collapsed inline section and reuses
+the typed Prefab field form or the shared human-ID lifecycle form. Rename,
+Duplicate, and Delete are available only inside the expanded owner context and
+capture that owner's stable key. Rename is deliberately separate from metadata
+Apply: entering rename mode replaces the metadata form, dispatches one
+lifecycle command, and preserves the stable key. Dirty create and rename forms
+join the same local-draft guard. Destructive deletion remains a contextual but
+reference-aware confirmation rather than becoming an unguarded icon action.
 
 Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
 section, list-row, and token primitives. Prefab-specific widgets remain only

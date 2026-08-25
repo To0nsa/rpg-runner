@@ -15,10 +15,11 @@ class EditorSectionCard extends StatefulWidget {
     this.trailing,
     this.collapsible = false,
     this.initiallyExpanded = true,
+    this.expanded,
     this.expansionKey,
     this.onExpansionChanged,
   }) : assert(
-         collapsible || initiallyExpanded,
+         collapsible || expanded == true || initiallyExpanded,
          'Non-collapsible sections must start expanded.',
        );
 
@@ -28,6 +29,7 @@ class EditorSectionCard extends StatefulWidget {
   final Widget? trailing;
   final bool collapsible;
   final bool initiallyExpanded;
+  final bool? expanded;
   final Key? expansionKey;
   final ValueChanged<bool>? onExpansionChanged;
 
@@ -41,13 +43,17 @@ class _EditorSectionCardState extends State<EditorSectionCard> {
   @override
   void initState() {
     super.initState();
-    _expanded = widget.initiallyExpanded;
+    _expanded = widget.expanded ?? widget.initiallyExpanded;
   }
 
   @override
   void didUpdateWidget(covariant EditorSectionCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.collapsible) _expanded = true;
+    if (widget.expanded case final expanded?) {
+      _expanded = expanded;
+    } else if (!widget.collapsible) {
+      _expanded = true;
+    }
   }
 
   @override
@@ -123,7 +129,7 @@ class _EditorSectionCardState extends State<EditorSectionCard> {
 
   void _toggleExpanded() {
     final next = !_expanded;
-    setState(() => _expanded = next);
+    if (widget.expanded == null) setState(() => _expanded = next);
     widget.onExpansionChanged?.call(next);
   }
 }

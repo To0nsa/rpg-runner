@@ -176,9 +176,11 @@ reaching session history: undo cancels the local form first and redo remains
 unavailable. Owner, level, or Prefab-workspace navigation must resolve the
 draft through Save, Discard, or Cancel.
 Active Prefab polygon operations receive the same owner-switch protection.
-Normal owner metadata editing no longer opens a modal; owner creation and
-rename retain their current dialogs until their dedicated inline lifecycle
-migration is complete.
+Owner creation is a collapsed inline section. Rename, Duplicate, and Delete
+are labeled contextual actions inside the expanded owner editor; Rename uses a
+separate inline stable-key-preserving lifecycle form. Creation and rename no
+longer open routine modals. Their dirty values use the same Save/Discard/Cancel
+navigation guard, and deletion retains its reference-aware confirmation.
 
 Polygon metadata uses selectors for supported surface semantics and terrain
 materials loaded from the canonical terrain-material manifest. Prefab polygon

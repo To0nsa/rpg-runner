@@ -487,15 +487,28 @@ void main() {
       expect(_prefab(harness.session, 'obstacle').revision, 2);
 
       await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+      );
+      await tester.pump();
+      await tester.tap(
         find.byKey(const ValueKey<String>('prefab_v3_owner_rename')),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
       await tester.enterText(
-        find.byKey(const ValueKey<String>('prefab_v3_rename_id_field')),
+        find.byKey(const ValueKey<String>('prefab_v3_inline_rename_id')),
+        'platform',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_inline_rename_apply')),
+      );
+      await tester.pump();
+      expect(find.text('Enter a unique trimmed ID.'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_inline_rename_id')),
         'obstacle_renamed',
       );
       await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_rename_apply')),
+        find.byKey(const ValueKey<String>('prefab_v3_inline_rename_apply')),
       );
       await tester.pumpAndSettle();
       obstacle = _prefab(harness.session, 'obstacle');
@@ -503,6 +516,10 @@ void main() {
       expect(obstacle.revision, 3);
       expect(obstacle.collisionShapes, originalShapes);
 
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+      );
+      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('prefab_v3_owner_duplicate')),
       );
@@ -514,8 +531,16 @@ void main() {
       expect(duplicate.collisionShapes, originalShapes);
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_delete')),
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_owner_obstacle_renamed_copy'),
+        ),
       );
+      await tester.pump();
+      final deleteOwner = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_delete'),
+      );
+      await tester.ensureVisible(deleteOwner);
+      await tester.tap(deleteOwner);
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey<String>('prefab_v3_owner_delete_confirm')),
@@ -528,10 +553,11 @@ void main() {
         isFalse,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_create')),
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_v3_owner_create_section_toggle',
+        bodyKey: 'prefab_v3_owner_id_field',
       );
-      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey<String>('prefab_v3_owner_id_field')),
         'flower',
@@ -546,7 +572,9 @@ void main() {
         'flora, art, flora',
       );
       await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_dialog_apply')),
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_create_apply'),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -632,7 +660,7 @@ void main() {
       await tester.pump();
       expect(
         find.textContaining(
-          'Apply or cancel the prefab metadata draft before switching views',
+          'Apply or cancel the prefab owner draft before switching views',
         ),
         findsOneWidget,
       );
@@ -682,6 +710,85 @@ void main() {
         findsOneWidget,
       );
       expect(_prefab(harness.session, 'obstacle').tags, <String>['test']);
+    },
+  );
+
+  testWidgets(
+    'inline prefab creation cancels safely and guards owner changes',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final beforeDocument = harness.session.document;
+
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_v3_owner_create_section_toggle',
+        bodyKey: 'prefab_v3_owner_id_field',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_id_field')),
+        'draft_owner',
+      );
+      await tester.pump();
+      expect(
+        (tester.state(
+          find.byType(PrefabCreatorPage),
+        ) as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isTrue,
+      );
+
+      final platformOwner = find.byKey(
+        const ValueKey<String>('prefab_polygon_owner_platform'),
+      );
+      tester.widget<EditorListCard>(platformOwner).onTap!();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_unsaved_create_dialog'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_unsaved_create_cancel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_id_field')),
+        findsOneWidget,
+      );
+
+      final cancel = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_inline_create_cancel'),
+      );
+      await tester.ensureVisible(cancel);
+      await tester.tap(cancel);
+      await tester.pump();
+      expect(harness.session.document, same(beforeDocument));
+      expect(harness.session.canUndo, isFalse);
+      expect(
+        (harness.session.document! as PrefabV3Document).data.prefabs.any(
+          (prefab) => prefab.id == 'draft_owner',
+        ),
+        isFalse,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_id_field')),
+        findsNothing,
+      );
     },
   );
 
@@ -1397,6 +1504,21 @@ TerrainSourceShapeDef _smallRectangle() => TerrainSourceShapeDef(
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),
   ],
 );
+
+Future<void> _openPrefabSection(
+  WidgetTester tester, {
+  required String toggleKey,
+  required String bodyKey,
+}) async {
+  final body = find.byKey(ValueKey<String>(bodyKey));
+  if (body.evaluate().isNotEmpty) return;
+  final toggle = find.byKey(ValueKey<String>(toggleKey));
+  expect(toggle, findsOneWidget);
+  await tester.ensureVisible(toggle);
+  await tester.tap(toggle);
+  await tester.pumpAndSettle();
+  expect(body, findsOneWidget);
+}
 
 final class _Harness {
   const _Harness({required this.root, required this.session});

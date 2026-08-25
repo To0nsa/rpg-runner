@@ -137,6 +137,44 @@ void main() {
     );
   });
 
+  testWidgets('a controlled section follows its route-owned expansion state', (
+    tester,
+  ) async {
+    var expanded = false;
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return EditorSectionCard(
+                title: 'Create owner',
+                collapsible: true,
+                initiallyExpanded: false,
+                expanded: expanded,
+                expansionKey: const ValueKey<String>('create_owner_toggle'),
+                onExpansionChanged: (value) => rebuild(() => expanded = value),
+                child: const Text(
+                  'owner form',
+                  key: ValueKey<String>('owner_form'),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey<String>('owner_form')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('create_owner_toggle')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('owner_form')), findsOneWidget);
+    rebuild(() => expanded = false);
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('owner_form')), findsNothing);
+  });
+
   testWidgets('shared section and selectable cards preserve their slots', (
     tester,
   ) async {

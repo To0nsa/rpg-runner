@@ -25,6 +25,7 @@ import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
 import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
+import '../../shared/editor_inline_id_form.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_section_card.dart';
@@ -51,7 +52,6 @@ import 'chunk_scene_coordinator.dart';
 import 'chunk_scene_surface.dart';
 import 'chunk_scene_visual_source.dart';
 import 'chunk_composition_card.dart';
-import 'chunk_v2_owner_dialog.dart';
 import 'chunk_v2_owner_form.dart';
 
 enum _PendingShapeEditAction { save, discard, cancel }
@@ -125,9 +125,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkPolygonAuthoringController? _authoring;
   final GlobalKey<ChunkV2OwnerFormState> _ownerEditFormKey =
       GlobalKey<ChunkV2OwnerFormState>();
+  final GlobalKey<EditorInlineIdFormState> _ownerRenameFormKey =
+      GlobalKey<EditorInlineIdFormState>();
+  final GlobalKey<EditorInlineIdFormState> _ownerCreateFormKey =
+      GlobalKey<EditorInlineIdFormState>();
   String? _selectedChunkKey;
   ChunkV2FileData? _ownerEditSource;
   bool _ownerEditDirty = false;
+  bool _ownerRenameActive = false;
+  bool _ownerCreateExpanded = false;
+  bool _ownerCreateDirty = false;
+  ChunkV2Document? _ownerCreateSource;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
   bool _showGrid = false;
@@ -200,7 +208,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     }
     if (_hasActiveOperation ||
         _hasPendingSelectedShapeEdit ||
-        _ownerEditDirty) {
+        _ownerEditDirty ||
+        _ownerCreateDirty) {
       return ChunkPlaytestWorkspaceReadiness(
         code: 'activeLocalOperationOrDraft',
         message:
@@ -228,11 +237,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool get hasLocalDraftChanges =>
       _hasActiveOperation ||
       _ownerEditDirty ||
+      _ownerCreateDirty ||
       _hasPendingSelectedShapeEdit ||
       widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
       _ownerEditDirty ||
+      _ownerCreateDirty ||
       _prefabGesture.hasActiveOperation ||
       _markerGesture.hasActiveOperation ||
       (!_compositionOperationActive &&
@@ -240,6 +251,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   bool get canRedo =>
       !_ownerEditDirty &&
+      !_ownerCreateDirty &&
       !_prefabGesture.hasActiveOperation &&
       !_markerGesture.hasActiveOperation &&
       !_compositionOperationActive &&
@@ -250,6 +262,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       widget.controller.pendingChanges.hasChanges &&
       !_hasActiveOperation &&
       !_ownerEditDirty &&
+      !_ownerCreateDirty &&
       !_hasPendingSelectedShapeEdit &&
       !widget.controller.isLoading &&
       !widget.controller.isExporting;
@@ -264,6 +277,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool handleUndoShortcut() {
+    if (_ownerCreateDirty) {
+      _closeOwnerCreateSection();
+      return true;
+    }
     if (_ownerEditDirty) {
       _closeOwnerEditor();
       return true;
@@ -287,6 +304,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   bool handleRedoShortcut() {
     if (_ownerEditDirty ||
+        _ownerCreateDirty ||
         _prefabGesture.hasActiveOperation ||
         _markerGesture.hasActiveOperation) {
       return false;
@@ -314,6 +332,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (oldWidget.controller == widget.controller) return;
     _disposeAuthoring();
     _clearOwnerEditorState();
+    _clearOwnerCreateState();
     _selectedChunkKey = null;
     _reloadMaterialCatalog();
     _selectInitialOwner();
@@ -514,20 +533,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
     return EditorSectionCard(
       key: const ValueKey<String>('chunk_owner_section'),
-      title: 'Chunk owners',
+      title: 'Existing chunk owners',
       collapsible: true,
       initiallyExpanded: false,
       expansionKey: const ValueKey<String>('chunk_owner_section_toggle'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _buildOwnerActions(
-            document,
-            scene,
-            selectedChunk: selectedChunk,
-            controlsEnabled: controlsEnabled,
-          ),
-          const Divider(height: 28),
           if (chunks.isEmpty)
             const Text(
               'No chunk owners remain in this level. Creation requires one '
@@ -586,54 +598,54 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  Widget _buildOwnerActions(
+  Widget _buildOwnerCreateSection(
     ChunkV2Document document,
     ChunkV2Scene scene, {
-    required ChunkV2FileData? selectedChunk,
     required bool controlsEnabled,
   }) {
     final canCreate = controlsEnabled && scene.chunks.isNotEmpty;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
-        Tooltip(
-          message: scene.chunks.isEmpty
-              ? 'Creation needs an existing owner in this level to provide '
-                    'locked dimensions.'
-              : 'Create an empty deprecated owner.',
-          child: FilledButton.icon(
-            key: const ValueKey<String>('chunk_v2_owner_create'),
-            onPressed: canCreate ? () => _createOwner(document) : null,
-            icon: const Icon(Icons.add),
-            label: const Text('New'),
-          ),
+    final source = _ownerCreateSource ?? document;
+    final template = scene.chunks.firstOrNull;
+    return EditorSectionCard(
+      key: const ValueKey<String>('chunk_owner_create_section'),
+      title: 'Create chunk owner',
+      description: template == null
+          ? 'Creation needs an existing owner in this level to provide locked dimensions.'
+          : 'Creates an empty deprecated owner at '
+                '${template.width}×${template.height} px with '
+                '${template.tileSize} px tiles.',
+      collapsible: !_ownerCreateDirty,
+      initiallyExpanded: false,
+      expanded: _ownerCreateExpanded || _ownerCreateDirty,
+      expansionKey: const ValueKey<String>('chunk_owner_create_section_toggle'),
+      onExpansionChanged: (expanded) => unawaited(
+        _setOwnerCreateExpanded(
+          expanded,
+          document: document,
+          controlsEnabled: canCreate,
         ),
-        OutlinedButton.icon(
-          key: const ValueKey<String>('chunk_v2_owner_duplicate'),
-          onPressed: controlsEnabled && selectedChunk != null
-              ? () => _duplicateOwner(document, selectedChunk)
-              : null,
-          icon: const Icon(Icons.copy_outlined),
-          label: const Text('Duplicate'),
-        ),
-        OutlinedButton.icon(
-          key: const ValueKey<String>('chunk_v2_owner_rename'),
-          onPressed: controlsEnabled && selectedChunk != null
-              ? () => _renameOwner(document, selectedChunk)
-              : null,
-          icon: const Icon(Icons.drive_file_rename_outline),
-          label: const Text('Rename'),
-        ),
-        OutlinedButton.icon(
-          key: const ValueKey<String>('chunk_v2_owner_delete'),
-          onPressed: controlsEnabled && selectedChunk != null
-              ? () => _deleteOwner(document, scene, selectedChunk)
-              : null,
-          icon: const Icon(Icons.delete_outline),
-          label: const Text('Delete'),
-        ),
-      ],
+      ),
+      child: template == null
+          ? const Text(
+              'Undo an owner deletion or switch to a level with an existing '
+              'dimension template.',
+            )
+          : EditorInlineIdForm(
+              key: _ownerCreateFormKey,
+              initialValue: '',
+              fieldKey: const ValueKey<String>('chunk_v2_inline_create_id'),
+              submitKey: const ValueKey<String>('chunk_v2_inline_create_apply'),
+              cancelKey: const ValueKey<String>(
+                'chunk_v2_inline_create_cancel',
+              ),
+              submitLabel: 'Create owner',
+              helperText: 'The owner starts deprecated with locked dimensions and an empty composition.',
+              validator: (value) =>
+                  validateChunkV2OwnerId(value, document: source),
+              onDirtyChanged: _setOwnerCreateDirty,
+              onCancel: _closeOwnerCreateSection,
+              onSubmit: _createOwner,
+            ),
     );
   }
 
@@ -657,20 +669,79 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           '${source.prefabs.length} prefab(s) · ${source.markers.length} marker(s)',
         ),
         const SizedBox(height: 12),
-        ChunkV2OwnerForm(
-          key: _ownerEditFormKey,
-          document: document,
-          chunk: source,
-          submitKey: ValueKey<String>(
-            'chunk_v2_owner_inline_apply_${source.chunkKey}',
-          ),
-          cancelKey: ValueKey<String>(
-            'chunk_v2_owner_inline_cancel_${source.chunkKey}',
-          ),
-          onDirtyChanged: _setOwnerEditDirty,
-          onCancel: _closeOwnerEditor,
-          onSubmit: _applyOwnerEdit,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            Tooltip(
+              message: 'Rename ${source.id} while preserving its chunk key.',
+              child: OutlinedButton.icon(
+                key: const ValueKey<String>('chunk_v2_owner_rename'),
+                onPressed: !_ownerEditDirty && !_ownerRenameActive
+                    ? _beginOwnerRename
+                    : null,
+                icon: const Icon(Icons.drive_file_rename_outline),
+                label: const Text('Rename'),
+              ),
+            ),
+            Tooltip(
+              message: 'Duplicate ${source.id} with a new stable chunk key.',
+              child: OutlinedButton.icon(
+                key: const ValueKey<String>('chunk_v2_owner_duplicate'),
+                onPressed: !_ownerEditDirty && !_ownerRenameActive
+                    ? () => _duplicateOwner(document, source)
+                    : null,
+                icon: const Icon(Icons.copy_outlined),
+                label: const Text('Duplicate'),
+              ),
+            ),
+            Tooltip(
+              message: 'Delete ${source.id} and its authored composition.',
+              child: OutlinedButton.icon(
+                key: const ValueKey<String>('chunk_v2_owner_delete'),
+                onPressed: !_ownerEditDirty && !_ownerRenameActive
+                    ? () => _deleteOwner(document, _sceneOrNull!, source)
+                    : null,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete'),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 12),
+        if (_ownerRenameActive)
+          EditorInlineIdForm(
+            key: _ownerRenameFormKey,
+            initialValue: source.id,
+            fieldKey: const ValueKey<String>('chunk_v2_inline_rename_id'),
+            submitKey: const ValueKey<String>('chunk_v2_inline_rename_apply'),
+            cancelKey: const ValueKey<String>('chunk_v2_inline_rename_cancel'),
+            submitLabel: 'Rename owner',
+            helperText: 'The stable chunk key is preserved.',
+            validator: (value) => validateChunkV2OwnerId(
+              value,
+              document: document,
+              exceptChunkKey: source.chunkKey,
+            ),
+            onDirtyChanged: _setOwnerEditDirty,
+            onCancel: _cancelOwnerRename,
+            onSubmit: _renameOwner,
+          )
+        else
+          ChunkV2OwnerForm(
+            key: _ownerEditFormKey,
+            document: document,
+            chunk: source,
+            submitKey: ValueKey<String>(
+              'chunk_v2_owner_inline_apply_${source.chunkKey}',
+            ),
+            cancelKey: ValueKey<String>(
+              'chunk_v2_owner_inline_cancel_${source.chunkKey}',
+            ),
+            onDirtyChanged: _setOwnerEditDirty,
+            onCancel: _closeOwnerEditor,
+            onSubmit: _applyOwnerEdit,
+          ),
       ],
     );
   }
@@ -871,14 +942,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       child: SingleChildScrollView(
         key: const ValueKey<String>('chunk_owner_sidebar'),
         primary: false,
-        child: _buildOwnerPanel(
-          document,
-          scene,
-          selectedChunk,
-          controlsEnabled:
-              !_hasActiveOperation &&
-              !_visualPreview &&
-              _ownerEditSource == null,
+        child: Column(
+          children: <Widget>[
+            _buildOwnerCreateSection(
+              document,
+              scene,
+              controlsEnabled: !_hasActiveOperation && !_visualPreview,
+            ),
+            const SizedBox(height: _gap),
+            _buildOwnerPanel(
+              document,
+              scene,
+              selectedChunk,
+              controlsEnabled:
+                  !_hasActiveOperation &&
+                  !_visualPreview &&
+                  _ownerEditSource == null,
+            ),
+          ],
         ),
       ),
     ),
@@ -2372,17 +2453,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  Future<void> _createOwner(ChunkV2Document document) async {
-    final id = await showChunkV2CreateDialog(context, document: document);
-    if (id == null || !mounted) return;
+  bool _createOwner(String id) {
+    final document = _ownerCreateSource;
+    if (document == null) return false;
     final beforeKeys = document.chunks.map((chunk) => chunk.chunkKey).toSet();
     final next = _dispatchLifecycle(document, ChunkV2CreateOperation(id: id));
-    if (next == null) return;
+    if (next == null) return false;
     final createdKeys = next.chunks
         .map((chunk) => chunk.chunkKey)
         .where((key) => !beforeKeys.contains(key))
         .toList(growable: false);
+    _clearOwnerCreateState();
     _syncOwnerAfterSessionMutation(preferredChunkKey: createdKeys.firstOrNull);
+    return true;
   }
 
   bool _applyOwnerEdit(ChunkV2OwnerFormValue edit) {
@@ -2431,28 +2514,28 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         .map((owner) => owner.chunkKey)
         .where((key) => !beforeKeys.contains(key))
         .toList(growable: false);
+    _clearOwnerEditorState();
     _syncOwnerAfterSessionMutation(
       preferredChunkKey: duplicateKeys.firstOrNull,
     );
   }
 
-  Future<void> _renameOwner(
-    ChunkV2Document document,
-    ChunkV2FileData chunk,
-  ) async {
-    final nextId = await showChunkV2RenameDialog(
-      context,
-      document: document,
-      chunk: chunk,
-    );
-    if (nextId == null || !mounted || nextId == chunk.id) return;
+  bool _renameOwner(String nextId) {
+    final document = _documentOrNull;
+    final chunk = _ownerEditSource;
+    if (document == null || chunk == null) return false;
+    if (nextId == chunk.id) {
+      _closeOwnerEditor();
+      return true;
+    }
     final next = _dispatchLifecycle(
       document,
       ChunkV2RenameOperation(chunkKey: chunk.chunkKey, nextId: nextId),
     );
-    if (next != null) {
-      _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
-    }
+    if (next == null) return false;
+    _clearOwnerEditorState();
+    _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
+    return true;
   }
 
   Future<void> _deleteOwner(
@@ -2488,7 +2571,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       document,
       ChunkV2DeleteOperation(chunkKey: chunk.chunkKey),
     );
-    if (next != null) _syncOwnerAfterSessionMutation();
+    if (next != null) {
+      _clearOwnerEditorState();
+      _syncOwnerAfterSessionMutation();
+    }
   }
 
   ChunkV2Document? _dispatchLifecycle(
@@ -2585,6 +2671,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _showOwnerSwitchBlocked();
       return;
     }
+    if (!await _resolveOwnerCreateDraft() || !mounted) return;
     if (_ownerEditSource?.chunkKey == target.chunkKey) {
       await _resolveOwnerEditor();
       return;
@@ -2612,6 +2699,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _beginOwnerEditor(ChunkV2FileData chunk) {
     _ownerEditSource = chunk;
     _ownerEditDirty = false;
+    _ownerRenameActive = false;
+  }
+
+  void _beginOwnerRename() {
+    if (_ownerEditSource == null || _ownerEditDirty) return;
+    setState(() => _ownerRenameActive = true);
+  }
+
+  void _cancelOwnerRename() {
+    if (!_ownerRenameActive) return;
+    setState(() {
+      _ownerRenameActive = false;
+      _ownerEditDirty = false;
+    });
   }
 
   void _setOwnerEditDirty(bool dirty) {
@@ -2627,6 +2728,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _clearOwnerEditorState() {
     _ownerEditSource = null;
     _ownerEditDirty = false;
+    _ownerRenameActive = false;
   }
 
   Future<bool> _resolveOwnerEditor() async {
@@ -2640,7 +2742,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         key: const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog'),
-        title: const Text('Save chunk metadata changes?'),
+        title: const Text('Save chunk owner changes?'),
         content: Text(
           'Save the pending changes to ${_ownerEditSource!.id} before closing '
           'its editor?',
@@ -2670,7 +2772,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (!mounted) return false;
     return switch (action) {
       _PendingOwnerEditAction.save =>
-        await (_ownerEditFormKey.currentState?.submit() ??
+        await ((_ownerRenameActive
+                ? _ownerRenameFormKey.currentState?.submit()
+                : _ownerEditFormKey.currentState?.submit()) ??
             Future<bool>.value(false)),
       _PendingOwnerEditAction.discard => () {
         _closeOwnerEditor();
@@ -2686,6 +2790,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _showOwnerSwitchBlocked();
       return;
     }
+    if (!await _resolveOwnerCreateDraft() || !mounted) return;
     if (!await _resolveOwnerEditor() || !mounted) return;
     final authoring = _authoring;
     if (authoring != null &&
@@ -2704,6 +2809,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _showOwnerSwitchBlocked();
       return;
     }
+    if (!await _resolveOwnerCreateDraft() || !mounted) return;
     if (!await _resolveOwnerEditor() || !mounted) return;
     final authoring = _authoring;
     if (authoring != null &&
@@ -2717,6 +2823,100 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       ),
     );
     _syncOwnerAfterSessionMutation();
+  }
+
+  Future<void> _setOwnerCreateExpanded(
+    bool expanded, {
+    required ChunkV2Document document,
+    required bool controlsEnabled,
+  }) async {
+    if (!expanded) {
+      if (_ownerCreateDirty) return;
+      _closeOwnerCreateSection();
+      return;
+    }
+    if (!controlsEnabled) {
+      _showOwnerSwitchBlocked();
+      return;
+    }
+    if (!await _resolveOwnerEditor() || !mounted) return;
+    final authoring = _authoring;
+    if (authoring != null &&
+        (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
+      return;
+    }
+    setState(() {
+      _ownerCreateExpanded = true;
+      _ownerCreateSource = document;
+    });
+  }
+
+  void _setOwnerCreateDirty(bool dirty) {
+    if (!mounted || dirty == _ownerCreateDirty) return;
+    setState(() => _ownerCreateDirty = dirty);
+  }
+
+  void _closeOwnerCreateSection() {
+    if (!_ownerCreateExpanded && _ownerCreateSource == null) return;
+    setState(_clearOwnerCreateState);
+  }
+
+  void _clearOwnerCreateState() {
+    _ownerCreateExpanded = false;
+    _ownerCreateDirty = false;
+    _ownerCreateSource = null;
+  }
+
+  Future<bool> _resolveOwnerCreateDraft() async {
+    if (!_ownerCreateExpanded) return true;
+    if (!_ownerCreateDirty) {
+      _closeOwnerCreateSection();
+      return true;
+    }
+    final action = await showDialog<_PendingOwnerEditAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        key: const ValueKey<String>('chunk_v2_owner_unsaved_create_dialog'),
+        title: const Text('Create this chunk owner?'),
+        content: const Text(
+          'Save the pending chunk owner before leaving the creation form?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            key: const ValueKey<String>('chunk_v2_owner_unsaved_create_cancel'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingOwnerEditAction.cancel),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            key: const ValueKey<String>(
+              'chunk_v2_owner_unsaved_create_discard',
+            ),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingOwnerEditAction.discard),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('chunk_v2_owner_unsaved_create_save'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingOwnerEditAction.save),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return false;
+    return switch (action) {
+      _PendingOwnerEditAction.save =>
+        await (_ownerCreateFormKey.currentState?.submit() ??
+            Future<bool>.value(false)),
+      _PendingOwnerEditAction.discard => () {
+        _closeOwnerCreateSection();
+        return true;
+      }(),
+      _PendingOwnerEditAction.cancel || null => false,
+    };
   }
 
   void _showOwnerSwitchBlocked() {

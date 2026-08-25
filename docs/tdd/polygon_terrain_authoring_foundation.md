@@ -189,6 +189,21 @@ also unavailable while the polygon controller owns an active draw or gesture
 operation. This prevents replacing the route-local controller from silently
 discarding unfinished collision work.
 
+Prefab and Chunk lifecycle creation is also route-local. A collapsed creation
+section captures the document snapshot used by the existing lifecycle command;
+Prefab creation reuses the owner source/kind/anchor/tag form, while Chunk
+creation exposes only its validated human ID and explains the locked template
+dimensions and deprecated initial status. Cancel or Discard removes the draft
+without source/history changes, and a stale rejection keeps it mounted.
+
+Rename, Duplicate, and Delete are contextual to the expanded stable owner key.
+Rename uses a dedicated inline human-ID form and cannot run concurrently with
+a dirty metadata form, keeping its separate revision-producing lifecycle
+command explicit. Duplicate deterministically selects the new key. Delete
+retains the owner-impact confirmation and rebinds to the deterministic
+remaining owner. The old create/edit/rename owner dialog entry points are not
+part of either normal current-schema route.
+
 ## Chunk V2 Existing-Owner Composition Contract
 
 `ChunkV2CompositionCommit` is the complementary immutable before/after

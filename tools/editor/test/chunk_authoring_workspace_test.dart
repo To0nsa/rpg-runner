@@ -354,7 +354,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Chunk creation scene'), findsOneWidget);
-      expect(find.text('Chunk owners'), findsOneWidget);
+      expect(find.text('Existing chunk owners'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('chunk_terrain_sections')),
         findsOneWidget,
@@ -414,7 +414,7 @@ void main() {
       await _openSection(
         tester,
         toggleKey: 'chunk_owner_section_toggle',
-        bodyKey: 'chunk_v2_owner_create',
+        bodyKey: 'chunk_polygon_owner_forest_chunk',
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
@@ -3137,23 +3137,42 @@ void main() {
       await tester.pump();
       expect(_chunk(harness.session, 'forest_chunk').revision, 5);
 
+      final forestOwner = find.byKey(
+        const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
+      );
+      await tester.ensureVisible(forestOwner);
+      await tester.tap(forestOwner);
+      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_rename')),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_rename_id_field')),
+        find.byKey(const ValueKey<String>('chunk_v2_inline_rename_id')),
+        'meadow_chunk',
+      );
+      final renameApply = find.byKey(
+        const ValueKey<String>('chunk_v2_inline_rename_apply'),
+      );
+      await tester.ensureVisible(renameApply);
+      await tester.tap(renameApply);
+      await tester.pump();
+      expect(find.text('Enter a unique chunk ID.'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_inline_rename_id')),
         'forest_renamed',
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_rename_apply')),
-      );
+      await tester.ensureVisible(renameApply);
+      await tester.tap(renameApply);
       await tester.pumpAndSettle();
       edited = _chunk(harness.session, 'forest_chunk');
       expect(edited.id, 'forest_renamed');
       expect(edited.chunkKey, 'forest_chunk');
       expect(edited.revision, 6);
 
+      await tester.ensureVisible(forestOwner);
+      await tester.tap(forestOwner);
+      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_duplicate')),
       );
@@ -3168,17 +3187,20 @@ void main() {
       expect(duplicate.markers, edited.markers);
       expect(duplicate.collisionShapes, edited.collisionShapes);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_create')),
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_owner_create_section_toggle',
+        bodyKey: 'chunk_v2_inline_create_id',
       );
-      await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_create_id_field')),
+        find.byKey(const ValueKey<String>('chunk_v2_inline_create_id')),
         'forest_empty',
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_create_apply')),
+      final createApply = find.byKey(
+        const ValueKey<String>('chunk_v2_inline_create_apply'),
       );
+      await tester.ensureVisible(createApply);
+      await tester.tap(createApply);
       await tester.pumpAndSettle();
       final created = _chunk(harness.session, 'forest_empty');
       expect(created.revision, 1);
@@ -3192,9 +3214,17 @@ void main() {
       expect(created.markers, isEmpty);
       expect(created.collisionShapes, isEmpty);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_delete')),
+      final createdOwner = find.byKey(
+        const ValueKey<String>('chunk_polygon_owner_forest_empty'),
       );
+      await tester.ensureVisible(createdOwner);
+      await tester.tap(createdOwner);
+      await tester.pump();
+      final deleteOwner = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_delete'),
+      );
+      await tester.ensureVisible(deleteOwner);
+      await tester.tap(deleteOwner);
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_delete_confirm')),
@@ -3323,6 +3353,85 @@ void main() {
       findsNothing,
     );
     expect(_chunk(harness.session, 'forest_chunk').tags, <String>['forest']);
+  });
+
+  testWidgets('inline chunk creation cancels safely and guards level changes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final beforeDocument = harness.session.document;
+
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_create_section_toggle',
+      bodyKey: 'chunk_v2_inline_create_id',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('chunk_v2_inline_create_id')),
+      'draft_chunk',
+    );
+    await tester.pump();
+    expect(
+      (tester.state(
+        find.byType(ChunkCreatorPage),
+      ) as EditorPageLocalDraftState).hasLocalDraftChanges,
+      isTrue,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_level_selector')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('meadow').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_unsaved_create_dialog'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_unsaved_create_cancel'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (harness.session.document! as ChunkV2Document).activeLevelId,
+      'forest',
+    );
+
+    final cancel = find.byKey(
+      const ValueKey<String>('chunk_v2_inline_create_cancel'),
+    );
+    await tester.ensureVisible(cancel);
+    await tester.tap(cancel);
+    await tester.pump();
+    expect(harness.session.document, same(beforeDocument));
+    expect(harness.session.canUndo, isFalse);
+    expect(
+      (harness.session.document! as ChunkV2Document).chunks.any(
+        (chunk) => chunk.id == 'draft_chunk',
+      ),
+      isFalse,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_v2_inline_create_id')),
+      findsNothing,
+    );
   });
 
   testWidgets('stale chunk metadata stays mounted with its local values', (
@@ -3969,9 +4078,13 @@ void main() {
     await _openSection(
       tester,
       toggleKey: 'chunk_owner_section_toggle',
-      bodyKey: 'chunk_v2_owner_delete',
+      bodyKey: 'chunk_polygon_owner_forest_chunk',
     );
 
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
+    );
+    await tester.pump();
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_v2_owner_delete')),
     );
@@ -3986,10 +4099,10 @@ void main() {
       find.textContaining('No chunk owners remain in this level'),
       findsOneWidget,
     );
-    final createButton = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('chunk_v2_owner_create')),
+    expect(
+      find.textContaining('Creation needs an existing owner in this level'),
+      findsOneWidget,
     );
-    expect(createButton.onPressed, isNull);
     final routeState = tester.state(find.byType(ChunkCreatorPage));
     final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
     expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
