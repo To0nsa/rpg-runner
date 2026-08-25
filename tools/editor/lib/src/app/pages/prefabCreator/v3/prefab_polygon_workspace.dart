@@ -33,6 +33,7 @@ import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import 'prefab_v3_atlas_catalog_workspace.dart';
 import 'prefab_v3_module_catalog_workspace.dart';
 import 'prefab_v3_owner_form.dart';
+import 'prefab_owner_catalog_browser.dart';
 
 /// Normal prefab-v3 polygon authoring workspace.
 ///
@@ -255,6 +256,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         .expand((impact) => impact.referencingChunkKeys)
         .toSet()
         .length;
+    final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
+      ..sort(_comparePrefabs);
+    final selectedPrefab = prefabs
+        .where((prefab) => prefab.prefabKey == _selectedPrefabKey)
+        .firstOrNull;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -278,6 +284,24 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 '$affectedPlacementCount placement(s) in '
                 '$affectedChunkCount chunk(s) affected; chunk revisions stay '
                 'unchanged.',
+              ),
+            if (selectedPrefab != null)
+              DropdownButton<String>(
+                key: const ValueKey<String>('prefab_v3_owner_selector'),
+                value: selectedPrefab.prefabKey,
+                hint: const Text('Select prefab owner'),
+                onChanged: (prefabKey) {
+                  if (prefabKey != null) {
+                    unawaited(_selectOwnerFromHeader(prefabKey));
+                  }
+                },
+                items: <DropdownMenuItem<String>>[
+                  for (final prefab in prefabs)
+                    DropdownMenuItem<String>(
+                      value: prefab.prefabKey,
+                      child: Text(prefab.id),
+                    ),
+                ],
               ),
           ],
         ),
@@ -402,66 +426,35 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     PrefabV3Def selectedPrefab,
     PrefabPolygonAuthoringController authoring,
   ) {
-    final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
-      ..sort(_comparePrefabs);
     return EditorPanelCard(
-      title: 'Prefab owners',
+      title: 'Prefab owner library',
       bodyMode: EditorPanelBodyMode.scrollable,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _buildOwnerCreateSection(
-            document,
-            controlsEnabled: !authoring.hasActiveOperation,
-          ),
-          const Divider(height: 28),
-          for (final prefab in prefabs) ...<Widget>[
-            Builder(
-              builder: (context) {
-                final impact = document.downstreamImpacts
-                    .where((entry) => entry.prefabKey == prefab.prefabKey)
-                    .firstOrNull;
-                return EditorListCard(
-                  key: ValueKey<String>(
-                    'prefab_polygon_owner_${prefab.prefabKey}',
-                  ),
-                  isSelected: prefab.prefabKey == selectedPrefab.prefabKey,
-                  onTap: () => _selectOrOpenOwner(prefab),
-                  trailing:
-                      document.changedPrefabKeys.contains(prefab.prefabKey)
-                      ? const Tooltip(
-                          message: 'Pending prefab changed',
-                          child: Icon(Icons.circle, size: 12),
-                        )
-                      : null,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    selected: prefab.prefabKey == selectedPrefab.prefabKey,
-                    title: Text(prefab.id),
-                    subtitle: Text(
-                      '${prefab.kind.jsonValue} · rev ${prefab.revision} · '
-                      '${prefab.visualSource.type.jsonValue}:'
-                      '${prefab.sourceRefId}\n${prefab.status.jsonValue}'
-                      '${prefab.tags.isEmpty ? '' : ' · ${prefab.tags.join(', ')}'}'
-                      '\n${impact?.placementCount ?? 0} downstream '
-                      'placement(s) in '
-                      '${impact?.referencingChunkKeys.length ?? 0} chunk(s)',
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
-              },
+      child: PrefabOwnerCatalogBrowser(
+        prefabs: document.data.prefabs,
+        prefabData: document.data,
+        tileData: document.tileData,
+        visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+        workspaceRootPath: widget.controller.workspacePath,
+        selectedPrefabKey: selectedPrefab.prefabKey,
+        expandedPrefabKey: _ownerEditSource?.prefabKey,
+        changedPrefabKeys: document.changedPrefabKeys,
+        downstreamImpacts: document.downstreamImpacts,
+        enabled: true,
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _buildOwnerCreateSection(
+              document,
+              controlsEnabled: !authoring.hasActiveOperation,
             ),
-            if (_ownerEditSource?.prefabKey == prefab.prefabKey)
-              Padding(
-                key: ValueKey<String>(
-                  'prefab_v3_owner_inline_editor_${prefab.prefabKey}',
-                ),
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                child: _buildOwnerEditDetails(document, prefab),
-              ),
+            const Divider(height: 28),
           ],
-        ],
+        ),
+        onSelected: (prefab) => unawaited(_selectOrOpenOwner(prefab)),
+        selectedDetailsBuilder: (context, prefab) => Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+          child: _buildOwnerEditDetails(document, prefab),
+        ),
       ),
     );
   }
@@ -655,6 +648,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             runSpacing: EditorUiTokens.controlGap,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
+              Chip(
+                key: const ValueKey<String>('prefab_scene_owner_context'),
+                avatar: const Icon(Icons.inventory_2_outlined, size: 18),
+                label: Text('${prefab.id} · ${prefab.kind.jsonValue}'),
+              ),
               EditorZoomControls(
                 value: _zoom,
                 min: _minZoom,
@@ -1377,6 +1375,28 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         _resetViewportValues();
       }
       _beginOwnerEditor(current);
+    });
+  }
+
+  Future<void> _selectOwnerFromHeader(String prefabKey) async {
+    if (prefabKey == _selectedPrefabKey) return;
+    if (_authoring?.hasActiveOperation ?? false) {
+      _showWorkspaceSwitchBlocked(
+        'Finish or cancel the active polygon operation before switching '
+        'prefab owners.',
+      );
+      return;
+    }
+    if (!await _resolveOwnerCreateDraft() || !mounted) return;
+    if (!await _resolveOwnerEditor() || !mounted) return;
+    final document = _documentOrNull;
+    final target = document?.data.prefabs
+        .where((prefab) => prefab.prefabKey == prefabKey)
+        .firstOrNull;
+    if (target == null) return;
+    setState(() {
+      _bindOwner(target.prefabKey);
+      _resetViewportValues();
     });
   }
 

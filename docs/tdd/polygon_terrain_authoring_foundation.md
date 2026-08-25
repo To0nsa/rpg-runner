@@ -204,6 +204,14 @@ retains the owner-impact confirmation and rebinds to the deterministic
 remaining owner. The old create/edit/rename owner dialog entry points are not
 part of either normal current-schema route.
 
+Normal Prefab-v3 owner navigation is a visual projection over the immutable
+Prefab and tile documents. Atlas-slice and platform-module thumbnails share a
+workspace-scoped image cache with Chunk prefab selection; filtering and search
+never enter source, history, validation, or export. Header, library, scene, and
+inline-editor context all retain the same stable owner key. Selecting through
+either the library or compact header rebinds the collision controller only
+after local owner drafts and active polygon operations have been resolved.
+
 ## Chunk V2 Existing-Owner Composition Contract
 
 `ChunkV2CompositionCommit` is the complementary immutable before/after

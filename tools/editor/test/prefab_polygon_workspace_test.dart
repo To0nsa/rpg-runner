@@ -51,6 +51,21 @@ void main() {
     );
     expect(tester.widget<ListTile>(requestedOwnerTile).selected, isTrue);
     expect(find.textContaining('platform_module:module_a'), findsWidgets);
+    expect(
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey<String>('prefab_v3_owner_selector')),
+          )
+          .value,
+      'platform',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+        matching: find.textContaining('platform'),
+      ),
+      findsOneWidget,
+    );
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
 
@@ -287,9 +302,11 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
+    final platformOwner = find.byKey(
+      const ValueKey<String>('prefab_polygon_owner_platform'),
     );
+    await tester.ensureVisible(platformOwner);
+    await tester.tap(platformOwner);
     await tester.pump();
     expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
     expect(
@@ -302,9 +319,8 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_cancel_draft')),
     );
     await tester.pump();
-    await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
-    );
+    await tester.ensureVisible(platformOwner);
+    await tester.tap(platformOwner);
     await tester.pump();
     expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
     expect(find.textContaining('platform_module:module_a'), findsWidgets);
@@ -442,9 +458,12 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_status_field')),
+      final statusField = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_status_field'),
       );
+      await tester.ensureVisible(statusField);
+      await tester.pump();
+      await tester.tap(statusField);
       await tester.pumpAndSettle();
       await tester.tap(find.text('deprecated').last);
       await tester.enterText(
@@ -459,7 +478,7 @@ void main() {
         const ValueKey<String>('prefab_v3_owner_inline_apply_obstacle'),
       );
       await tester.ensureVisible(applyOwnerMetadata);
-      await tester.pump();
+      await tester.pumpAndSettle();
       await tester.tap(applyOwnerMetadata);
       await tester.pumpAndSettle();
 
@@ -486,13 +505,17 @@ void main() {
       await tester.pump();
       expect(_prefab(harness.session, 'obstacle').revision, 2);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+      final obstacleOwner = find.byKey(
+        const ValueKey<String>('prefab_polygon_owner_obstacle'),
       );
+      await tester.ensureVisible(obstacleOwner);
+      await tester.tap(obstacleOwner);
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_rename')),
+      final renameOwner = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_rename'),
       );
+      await tester.ensureVisible(renameOwner);
+      await tester.tap(renameOwner);
       await tester.pump();
       await tester.enterText(
         find.byKey(const ValueKey<String>('prefab_v3_inline_rename_id')),

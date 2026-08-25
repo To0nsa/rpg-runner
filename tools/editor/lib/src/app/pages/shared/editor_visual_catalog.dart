@@ -2,6 +2,80 @@ import 'package:flutter/material.dart';
 
 import 'editor_ui_tokens.dart';
 
+/// Shared search, clear, filter, and result-count controls for visual catalogs.
+class EditorVisualCatalogControls extends StatelessWidget {
+  const EditorVisualCatalogControls({
+    super.key,
+    required this.searchController,
+    required this.searchKey,
+    required this.searchLabel,
+    required this.searchHint,
+    required this.clearSearchKey,
+    required this.clearSearchTooltip,
+    required this.filters,
+    required this.countKey,
+    required this.countLabel,
+    required this.onSearchSubmitted,
+    this.enabled = true,
+    this.autofocusSearch = false,
+  });
+
+  final TextEditingController searchController;
+  final Key searchKey;
+  final String searchLabel;
+  final String searchHint;
+  final Key clearSearchKey;
+  final String clearSearchTooltip;
+  final List<Widget> filters;
+  final Key countKey;
+  final String countLabel;
+  final VoidCallback onSearchSubmitted;
+  final bool enabled;
+  final bool autofocusSearch;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      TextField(
+        key: searchKey,
+        controller: searchController,
+        autofocus: autofocusSearch,
+        enabled: enabled,
+        textInputAction: TextInputAction.search,
+        onSubmitted: enabled ? (_) => onSearchSubmitted() : null,
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          labelText: searchLabel,
+          hintText: searchHint,
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  key: clearSearchKey,
+                  tooltip: clearSearchTooltip,
+                  onPressed: enabled ? searchController.clear : null,
+                  icon: const Icon(Icons.clear),
+                ),
+        ),
+      ),
+      const SizedBox(height: EditorUiTokens.controlGap),
+      Wrap(
+        spacing: EditorUiTokens.controlGap,
+        runSpacing: EditorUiTokens.controlGap,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: filters,
+      ),
+      const SizedBox(height: EditorUiTokens.controlGap),
+      Text(
+        countLabel,
+        key: countKey,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ],
+  );
+}
+
 /// Shared search, filters, count, and grid shell for visual authoring catalogs.
 ///
 /// Callers retain domain filtering and selection state. This widget standardizes
@@ -52,40 +126,19 @@ class EditorVisualCatalogLayout extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
-      TextField(
-        key: searchKey,
-        controller: searchController,
-        autofocus: autofocusSearch,
+      EditorVisualCatalogControls(
+        searchController: searchController,
+        searchKey: searchKey,
+        searchLabel: searchLabel,
+        searchHint: searchHint,
+        clearSearchKey: clearSearchKey,
+        clearSearchTooltip: clearSearchTooltip,
+        filters: filters,
+        countKey: countKey,
+        countLabel: countLabel,
+        onSearchSubmitted: onSearchSubmitted,
         enabled: enabled,
-        textInputAction: TextInputAction.search,
-        onSubmitted: enabled ? (_) => onSearchSubmitted() : null,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          labelText: searchLabel,
-          hintText: searchHint,
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: searchController.text.isEmpty
-              ? null
-              : IconButton(
-                  key: clearSearchKey,
-                  tooltip: clearSearchTooltip,
-                  onPressed: enabled ? searchController.clear : null,
-                  icon: const Icon(Icons.clear),
-                ),
-        ),
-      ),
-      const SizedBox(height: EditorUiTokens.controlGap),
-      Wrap(
-        spacing: EditorUiTokens.controlGap,
-        runSpacing: EditorUiTokens.controlGap,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: filters,
-      ),
-      const SizedBox(height: EditorUiTokens.controlGap),
-      Text(
-        countLabel,
-        key: countKey,
-        style: Theme.of(context).textTheme.bodySmall,
+        autofocusSearch: autofocusSearch,
       ),
       const SizedBox(height: EditorUiTokens.controlGap),
       SizedBox(

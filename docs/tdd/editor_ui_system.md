@@ -158,6 +158,22 @@ lifecycle command, and preserves the stable key. Dirty create and rename forms
 join the same local-draft guard. Destructive deletion remains a contextual but
 reference-aware confirmation rather than becoming an unguarded icon action.
 
+The Prefab owner rail composes the same neutral visual-catalog controls and
+thumbnail renderer as Chunk prefab selection. One owner-neutral token filter
+searches ID, stable key, kind, status, source type/reference, and tags, while
+each route retains its own filters and usage labels. A browser-owned decoded-
+image cache projects both atlas-slice and platform-module sources and degrades
+to a deterministic missing-image preview. Search text, kind/status filters,
+and expansion are presentation-only. Deterministic ID/key ordering and Enter
+selection return the exact immutable owner record.
+
+Prefab selection is synchronized exclusively by `prefabKey`: the compact
+header selector, visual card, collision-scene context chip, polygon controller,
+and inline owner editor cannot diverge. The selected editor occupies the card's
+detail slot, so lifecycle and metadata actions remain visually attached to
+their target. An active polygon operation still routes attempted card or header
+navigation through the workspace guard rather than replacing the controller.
+
 Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
 section, list-row, and token primitives. Prefab-specific widgets remain only
 where they encode domain semantics such as create/edit banners, scene controls,

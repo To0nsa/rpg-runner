@@ -182,6 +182,16 @@ separate inline stable-key-preserving lifecycle form. Creation and rename no
 longer open routine modals. Their dirty values use the same Save/Discard/Cancel
 navigation guard, and deletion retains its reference-aware confirmation.
 
+Prefab owners are selected through a searchable visual library rather than a
+plain text list. Atlas slices and platform modules share the same workspace-
+cached thumbnail projection used by Chunk prefab selection. Token search covers
+the owner ID, stable key, kind, visual source, and tags; kind and status filters
+remain presentation-only, and Enter selects the first deterministic result.
+Each card shows revision, collision count, source, tags, and downstream Chunk
+usage. The header owner selector, selected library card, collision-scene context
+chip, and expanded inline editor all resolve the same stable `prefabKey` without
+creating a revision or pending change.
+
 Polygon metadata uses selectors for supported surface semantics and terrain
 materials loaded from the canonical terrain-material manifest. Prefab polygon
 dialogs retain thumbnail selectors and an editable preview. Chunk Creator puts

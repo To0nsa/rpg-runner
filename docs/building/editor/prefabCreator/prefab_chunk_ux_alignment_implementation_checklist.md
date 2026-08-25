@@ -184,40 +184,41 @@ selection model used by Chunk prefab and enemy libraries.
 
 ### Shared catalog foundation
 
-- [ ] Audit `ChunkPrefabCatalogBrowser` for owner-neutral image, thumbnail,
+- [x] Audit `ChunkPrefabCatalogBrowser` for owner-neutral image, thumbnail,
       token-search, filter, keyboard, and selection behavior.
-- [ ] Extract only genuinely shared primitives under the shared editor surface.
-- [ ] Keep source-specific labels and usage semantics in their owning routes.
-- [ ] Avoid duplicate image caches, tokenizers, and thumbnail projections.
+- [x] Extract only genuinely shared primitives under the shared editor surface.
+- [x] Keep source-specific labels and usage semantics in their owning routes.
+- [x] Avoid duplicate image caches, tokenizers, and thumbnail projections.
 
 ### Prefab owner library
 
-- [ ] Render atlas-slice and platform-module previews for every owner.
-- [ ] Search ID, stable key, kind, source reference, and tags token-by-token.
-- [ ] Filter by kind and active/deprecated status.
-- [ ] Show collision-shape count, revision, source, and downstream usage.
-- [ ] Provide deterministic ordering and clear empty/no-result states.
-- [ ] Support Enter to select the first filtered result.
-- [ ] Preserve route-local selection without creating source changes.
-- [ ] Expand the selected owner's editor below its visual card.
-- [ ] Remove the legacy plain owner list.
+- [x] Render atlas-slice and platform-module previews for every owner.
+- [x] Search ID, stable key, kind, source reference, and tags token-by-token.
+- [x] Filter by kind and active/deprecated status.
+- [x] Show collision-shape count, revision, source, and downstream usage.
+- [x] Provide deterministic ordering and clear empty/no-result states.
+- [x] Support Enter to select the first filtered result.
+- [x] Preserve route-local selection without creating source changes.
+- [x] Expand the selected owner's editor below its visual card.
+- [x] Remove the legacy plain owner list.
 
 ### Selected-owner synchronization
 
-- [ ] Add a compact Prefab header owner selector.
-- [ ] Synchronize header, library card, scene context, and editor by stable key.
-- [ ] Preserve viewport and selection where safe across filtering and expansion.
-- [ ] Show selected owner ID/source in the scene heading or summary.
+- [x] Add a compact Prefab header owner selector.
+- [x] Synchronize header, library card, scene context, and editor by stable key.
+- [x] Preserve viewport and selection where safe across filtering and expansion.
+- [x] Show selected owner ID/source in the scene heading or summary.
 
 ### Phase 3 tests and validation
 
-- [ ] Cover search tokens, kind/status filters, clear, no-results, and Enter.
-- [ ] Cover atlas, platform-module, missing-image, and deprecated previews.
-- [ ] Cover header/library/scene synchronization and no-op presentation state.
-- [ ] Add a representative expanded-catalog performance fixture.
-- [ ] Update README/TDD and this checklist.
-- [ ] Run analyzer, focused tests, and full editor tests.
-- [ ] Commit Phase 3 as one validated logical milestone.
+- [x] Cover search tokens, kind/status filters, clear, no-results, and Enter.
+- [x] Cover atlas, platform-module, missing-image, and deprecated previews.
+- [x] Cover header/library/scene synchronization and no-op presentation state.
+- [x] Add a representative expanded-catalog performance fixture.
+- [x] Update README/TDD and this checklist.
+- [x] Run analyzer, focused tests, and full editor tests (analyzer clean; 554
+      complete editor tests pass on August 26, 2026).
+- [x] Commit Phase 3 as one validated logical milestone.
 
 ## Phase 4 — Prefab Collision Shape Alignment
 
