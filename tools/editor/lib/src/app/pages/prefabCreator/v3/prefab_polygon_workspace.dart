@@ -250,15 +250,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     _reconcileReloadedOwner(document);
     final authoring = _authoring;
     final prefab = authoring?.prefab;
-    final issues = prefab == null
-        ? const <PrefabValidationIssue>[]
-        : _ownerIssues(document, prefab, authoring!.issues);
+    final issues = authoring == null
+        ? widget.controller.issues
+        : _sessionIssues(authoring);
     final ownerWorkspace = prefab == null || authoring == null
         ? _buildEmptyOwnerState(document)
         : PrefabEditorThreePanelLayout(
             inspector: _buildOwnerPanel(document, prefab, authoring),
             scene: _buildScenePanel(document, prefab, authoring),
-            display: _buildShapePanel(authoring, issues),
+            display: _buildShapePanel(document, authoring, issues),
           );
 
     return EditorWorkspaceCard(
@@ -483,50 +483,67 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     PrefabV3Def selectedPrefab,
     PrefabPolygonAuthoringController authoring,
   ) {
-    return EditorPanelCard(
-      title: 'Prefab owner library',
-      bodyMode: EditorPanelBodyMode.scrollable,
-      child: PrefabOwnerCatalogBrowser(
-        prefabs: document.data.prefabs,
-        prefabData: document.data,
-        tileData: document.tileData,
-        visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
-        workspaceRootPath: widget.controller.workspacePath,
-        selectedPrefabKey: selectedPrefab.prefabKey,
-        expandedPrefabKey: _ownerEditSource?.prefabKey,
-        changedPrefabKeys: document.changedPrefabKeys,
-        downstreamImpacts: document.downstreamImpacts,
-        enabled: true,
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildOwnerCreateSection(
-              document,
-              controlsEnabled: !authoring.hasActiveOperation,
+    final ownerEditorOpen = _ownerEditSource != null;
+    return SingleChildScrollView(
+      key: const ValueKey<String>('prefab_owner_sidebar'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _buildOwnerCreateSection(
+            document,
+            controlsEnabled: !authoring.hasActiveOperation,
+          ),
+          const SizedBox(height: EditorUiTokens.sectionGap),
+          EditorSectionCard(
+            key: const ValueKey<String>('prefab_owner_library_section'),
+            expansionKey: const ValueKey<String>(
+              'prefab_owner_library_section_toggle',
             ),
-            const Divider(height: 28),
-          ],
-        ),
-        onSelected: (prefab) => unawaited(_selectOrOpenOwner(prefab)),
-        selectedDetailsBuilder: (context, prefab) => Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-          child: _buildOwnerEditDetails(document, prefab),
-        ),
+            title: 'Prefab owner library',
+            description: 'Search, filter, select, and edit prefab owners.',
+            trailing: Text('${document.data.prefabs.length} total'),
+            collapsible: !ownerEditorOpen,
+            initiallyExpanded: false,
+            expanded: ownerEditorOpen ? true : null,
+            child: PrefabOwnerCatalogBrowser(
+              prefabs: document.data.prefabs,
+              prefabData: document.data,
+              tileData: document.tileData,
+              visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+              workspaceRootPath: widget.controller.workspacePath,
+              selectedPrefabKey: selectedPrefab.prefabKey,
+              expandedPrefabKey: _ownerEditSource?.prefabKey,
+              changedPrefabKeys: document.changedPrefabKeys,
+              downstreamImpacts: document.downstreamImpacts,
+              enabled: true,
+              onSelected: (prefab) => unawaited(_selectOrOpenOwner(prefab)),
+              selectedDetailsBuilder: (context, prefab) => Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                child: _buildOwnerEditDetails(document, prefab),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildEmptyOwnerState(PrefabV3Document document) {
-    return EditorPanelCard(
-      title: 'Prefab owners',
+    return SingleChildScrollView(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           _buildOwnerCreateSection(document, controlsEnabled: true),
           const SizedBox(height: EditorUiTokens.sectionGap),
-          const Text(
-            'No prefab owners remain. Create one from a retained atlas slice '
-            'or platform module.',
+          const EditorSectionCard(
+            title: 'Prefab owner library',
+            description: '0 total',
+            collapsible: true,
+            initiallyExpanded: false,
+            child: Text(
+              'No prefab owners remain. Create one from a retained atlas '
+              'slice or platform module.',
+            ),
           ),
         ],
       ),
@@ -828,15 +845,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   Widget _buildShapePanel(
+    PrefabV3Document document,
     PrefabPolygonAuthoringController authoring,
-    List<PrefabValidationIssue> issues,
+    List<ValidationIssue> issues,
   ) {
     final shapes = List<TerrainSourceShapeDef>.of(authoring.state.visibleShapes)
       ..sort((left, right) => left.shapeId.compareTo(right.shapeId));
     final selectedShapeId = authoring.state.selection?.shapeId;
-    return EditorPanelCard(
-      title: 'Collision authoring',
-      bodyMode: EditorPanelBodyMode.scrollable,
+    return SingleChildScrollView(
+      key: const ValueKey<String>('prefab_collision_sidebar'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -852,8 +869,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 ? 'Saved collision shapes will appear here.'
                 : 'Select a row to edit metadata, geometry, or lifecycle.',
             trailing: Text('${shapes.length} total'),
-            collapsible: true,
+            collapsible: selectedShapeId == null,
             initiallyExpanded: false,
+            expanded: selectedShapeId == null ? null : true,
             child: Column(
               key: const ValueKey<String>('prefab_shape_list'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -906,7 +924,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
           ),
           const SizedBox(height: EditorUiTokens.sectionGap),
-          _buildDiagnosticsSection(authoring, issues),
+          _buildDiagnosticsSection(document, authoring, issues),
         ],
       ),
     );
@@ -1292,13 +1310,17 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   Widget _buildDiagnosticsSection(
+    PrefabV3Document document,
     PrefabPolygonAuthoringController authoring,
-    List<PrefabValidationIssue> issues,
+    List<ValidationIssue> issues,
   ) {
     final errors = issues
-        .where((issue) => issue.severity == PrefabValidationSeverity.error)
+        .where((issue) => issue.severity == ValidationSeverity.error)
         .length;
-    final warnings = issues.length - errors;
+    final warnings = issues
+        .where((issue) => issue.severity == ValidationSeverity.warning)
+        .length;
+    final infos = issues.length - errors - warnings;
     return EditorSectionCard(
       key: const ValueKey<String>('prefab_polygon_diagnostics_panel'),
       expansionKey: const ValueKey<String>(
@@ -1306,35 +1328,43 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       ),
       title: 'Diagnostics',
       description: issues.isEmpty
-          ? 'No issues for this owner.'
-          : '$errors error(s) · $warnings warning(s)',
+          ? 'No issues in the current Prefab session.'
+          : '$errors error(s) · $warnings warning(s) · $infos info',
       trailing: Text('${issues.length} total'),
       collapsible: true,
       initiallyExpanded: false,
       child: issues.isEmpty
-          ? const Text('No issues for this owner.')
+          ? const Text('No issues in the current Prefab session.')
           : Column(
               children: <Widget>[
-                for (final issue in issues)
+                for (final entry in issues.indexed)
                   ListTile(
                     key: ValueKey<String>(
-                      'prefab_polygon_issue_${issue.code}_'
-                      '${issue.shapeId}_${issue.elementIndex}',
+                      'prefab_polygon_issue_${entry.$2.code}_'
+                      '${entry.$2.ownerKey}_${entry.$2.shapeId}_'
+                      '${entry.$2.elementIndex}_${entry.$1}',
                     ),
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
-                      issue.severity == PrefabValidationSeverity.error
-                          ? Icons.error_outline
-                          : Icons.warning_amber_outlined,
-                      color: issue.severity == PrefabValidationSeverity.error
-                          ? const Color(0xFFFF7F7F)
-                          : const Color(0xFFFFD166),
+                      switch (entry.$2.severity) {
+                        ValidationSeverity.error => Icons.error_outline,
+                        ValidationSeverity.warning =>
+                          Icons.warning_amber_outlined,
+                        ValidationSeverity.info => Icons.info_outline,
+                      },
+                      color: switch (entry.$2.severity) {
+                        ValidationSeverity.error => const Color(0xFFFF7F7F),
+                        ValidationSeverity.warning => const Color(0xFFFFD166),
+                        ValidationSeverity.info => null,
+                      },
                     ),
-                    title: Text(issue.code),
-                    subtitle: Text(issue.message),
-                    onTap: issue.shapeId.isEmpty
+                    title: Text(entry.$2.code),
+                    subtitle: Text(_diagnosticSubtitle(document, entry.$2)),
+                    onTap: _diagnosticOwnerKey(document, entry.$2) == null
                         ? null
-                        : () => _focusIssue(authoring, issue),
+                        : () => unawaited(
+                            _focusIssue(document, authoring, entry.$2),
+                          ),
                   ),
               ],
             ),
@@ -1639,19 +1669,45 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     );
   }
 
-  void _focusIssue(
+  Future<void> _focusIssue(
+    PrefabV3Document document,
     PrefabPolygonAuthoringController authoring,
-    PrefabValidationIssue issue,
-  ) {
-    final shape = _findShape(authoring.state.visibleShapes, issue.shapeId);
+    ValidationIssue issue,
+  ) async {
+    final ownerKey = _diagnosticOwnerKey(document, issue);
+    if (ownerKey == null) return;
+    if (ownerKey != _selectedPrefabKey) {
+      await _selectOwnerFromHeader(ownerKey);
+      if (!mounted || _selectedPrefabKey != ownerKey) return;
+    }
+
+    final shapeId = issue.shapeId;
+    if (shapeId == null) {
+      if (_ownerEditSource?.prefabKey == ownerKey) return;
+      final owner = _documentOrNull?.data.prefabs
+          .where((prefab) => prefab.prefabKey == ownerKey)
+          .firstOrNull;
+      if (owner != null) await _selectOrOpenOwner(owner);
+      return;
+    }
+
+    final currentAuthoring = _authoring;
+    if (currentAuthoring == null || currentAuthoring.prefabKey != ownerKey) {
+      return;
+    }
+    final shape = _findShape(currentAuthoring.state.visibleShapes, shapeId);
     if (shape == null) return;
-    final index = issue.elementIndex;
+    final index = issue.elementIndex ?? 0;
     if (issue.code.contains('vertex') && index < shape.vertices.length) {
-      authoring.select(TerrainPolygonSelection.vertex(shape.shapeId, index));
+      currentAuthoring.select(
+        TerrainPolygonSelection.vertex(shape.shapeId, index),
+      );
     } else if (issue.code.contains('edge') && index < shape.vertices.length) {
-      authoring.select(TerrainPolygonSelection.edge(shape.shapeId, index));
+      currentAuthoring.select(
+        TerrainPolygonSelection.edge(shape.shapeId, index),
+      );
     } else {
-      authoring.select(TerrainPolygonSelection.shape(shape.shapeId));
+      currentAuthoring.select(TerrainPolygonSelection.shape(shape.shapeId));
     }
     final minX = shape.vertices
         .map((vertex) => vertex.xHalfPixels)
@@ -1673,47 +1729,62 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     });
   }
 
-  List<PrefabValidationIssue> _ownerIssues(
-    PrefabV3Document document,
-    PrefabV3Def prefab,
-    Iterable<PrefabValidationIssue> localIssues,
+  List<ValidationIssue> _sessionIssues(
+    PrefabPolygonAuthoringController authoring,
   ) {
-    final bounds = document.visualBoundsByPrefabKey[prefab.prefabKey];
-    final combined = <PrefabValidationIssue>[
-      ...localIssues,
-      ...validatePrefabCollisionShapes(
-        prefabId: prefab.id,
-        prefabKey: prefab.prefabKey,
-        kind: prefab.kind,
-        anchorXPx: prefab.anchorXPx,
-        anchorYPx: prefab.anchorYPx,
-        collisionShapes: prefab.collisionShapes,
-        sourceWidthPx: bounds?.widthPx,
-        sourceHeightPx: bounds?.heightPx,
-        sourcePath:
-            'assets/authoring/level/prefab_defs.json:${prefab.prefabKey}',
-      ),
+    final combined = <ValidationIssue>[
+      ...widget.controller.issues,
+      for (final issue in authoring.issues)
+        ValidationIssue(
+          severity: switch (issue.severity) {
+            PrefabValidationSeverity.warning => ValidationSeverity.warning,
+            PrefabValidationSeverity.error => ValidationSeverity.error,
+          },
+          code: issue.code,
+          message: issue.message,
+          sourcePath: issue.sourcePath,
+          ownerKey: issue.ownerKey ?? authoring.prefabKey,
+          shapeId: issue.shapeId.isEmpty ? null : issue.shapeId,
+          elementIndex: issue.shapeId.isEmpty ? null : issue.elementIndex,
+        ),
     ];
     final seen = <String>{};
-    final unique =
-        combined
-            .where((issue) {
-              return seen.add(
-                '${issue.code}|${issue.sourcePath}|${issue.shapeId}|'
-                '${issue.elementIndex}|${issue.message}',
-              );
-            })
-            .toList(growable: false)
-          ..sort((left, right) {
-            var order = left.sourcePath.compareTo(right.sourcePath);
-            if (order != 0) return order;
-            order = left.shapeId.compareTo(right.shapeId);
-            if (order != 0) return order;
-            order = left.elementIndex.compareTo(right.elementIndex);
-            if (order != 0) return order;
-            return left.code.compareTo(right.code);
-          });
-    return unique;
+    return List<ValidationIssue>.unmodifiable(
+      combined.where(
+        (issue) => seen.add(
+          '${issue.severity}|${issue.code}|${issue.sourcePath}|'
+          '${issue.ownerKey}|${issue.shapeId}|${issue.elementIndex}|'
+          '${issue.message}',
+        ),
+      ),
+    );
+  }
+
+  String _diagnosticSubtitle(PrefabV3Document document, ValidationIssue issue) {
+    final ownerKey = _diagnosticOwnerKey(document, issue);
+    if (ownerKey == null) return issue.message;
+    final owner = document.data.prefabs
+        .where((prefab) => prefab.prefabKey == ownerKey)
+        .firstOrNull;
+    final ownerLabel = owner?.id ?? ownerKey;
+    return '$ownerLabel · ${issue.message}';
+  }
+
+  String? _diagnosticOwnerKey(
+    PrefabV3Document document,
+    ValidationIssue issue,
+  ) {
+    final direct = issue.ownerKey;
+    if (direct != null &&
+        document.data.prefabs.any((prefab) => prefab.prefabKey == direct)) {
+      return direct;
+    }
+    final sourcePath = issue.sourcePath;
+    if (sourcePath == null) return null;
+    return document.data.prefabs
+        .where((prefab) => sourcePath.endsWith(':${prefab.prefabKey}'))
+        .firstOrNull
+        ?.prefabKey;
   }
 
   bool _createOwner(PrefabV3OwnerFormValue edit) {

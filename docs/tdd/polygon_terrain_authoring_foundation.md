@@ -222,6 +222,15 @@ retain exact vertex editing. Pending identity/coordinate text is guarded across
 row, owner, and workspace-view navigation. The former Prefab metadata dialog
 has no production entry point.
 
+Prefab collision sections are mounted as flat, independently collapsed sidebar
+siblings. The active draft or selected shape forces only its owning section
+open. Session Diagnostics remains independent of owner selection: it includes
+catalog and collision findings for every owner, uses stable owner/shape fields
+to navigate through the same draft guards as direct selection, and treats
+expansion/focus as source-neutral presentation state. Narrow layouts preserve
+the mounted scene above both sidebars, so a responsive resize cannot replace
+the polygon controller or discard viewport, selection, or exact-field drafts.
+
 ## Chunk V2 Existing-Owner Composition Contract
 
 `ChunkV2CompositionCommit` is the complementary immutable before/after

@@ -275,39 +275,40 @@ Objective: remove remaining layout drift while keeping the Prefab scene primary.
 
 ### Panel organization and defaults
 
-- [ ] Use flat sibling `EditorSectionCard`s in sidebars without redundant
+- [x] Use flat sibling `EditorSectionCard`s in sidebars without redundant
       wrapper cards.
 - [ ] Make owner, creation, existing, atlas/module authoring, and Diagnostics
       sections independently collapsible.
-- [ ] Start every inactive sidebar section collapsed.
-- [ ] Keep a section expanded and non-collapsible while it owns an active draft.
-- [ ] Preserve expansion as presentation-only state while mounted.
+- [x] Start every inactive sidebar section collapsed.
+- [x] Keep a section expanded and non-collapsible while it owns an active draft.
+- [x] Preserve expansion as presentation-only state while mounted.
 
 ### Diagnostics
 
-- [ ] Show complete session issue projection with error/warning/info counts.
-- [ ] Keep owner/shape focus actions where a stable target resolves.
-- [ ] Preserve issues for non-selected owners instead of hiding them.
-- [ ] Ensure expansion/focus creates no source change.
+- [x] Show complete session issue projection with error/warning/info counts.
+- [x] Keep owner/shape focus actions where a stable target resolves.
+- [x] Preserve issues for non-selected owners instead of hiding them.
+- [x] Ensure expansion/focus creates no source change.
 
 ### Responsive scene-preserving layout
 
-- [ ] Replace exclusive narrow Owners/Scene/Shapes tabs.
-- [ ] Keep the scene subtree mounted on wide and narrow layouts.
-- [ ] Place owner and authoring sidebars below the bounded scene when narrow.
-- [ ] Preserve viewport, selected owner, selected shape, and drafts during
+- [x] Replace exclusive narrow Owners/Scene/Shapes tabs.
+- [x] Keep the scene subtree mounted on wide and narrow layouts.
+- [x] Place owner and authoring sidebars below the bounded scene when narrow.
+- [x] Preserve viewport, selected owner, selected shape, and drafts during
       responsive changes.
-- [ ] Verify keyboard traversal and semantics order in both layouts.
+- [x] Verify keyboard traversal and semantics order in both layouts.
 
 ### Phase 5 tests and validation
 
-- [ ] Cover default collapsed state and expansion retention.
-- [ ] Cover active-editor forced expansion.
-- [ ] Cover complete Diagnostics counts/focus/no-op behavior.
-- [ ] Cover wide/narrow layout keys, scene identity, viewport, and selection.
-- [ ] Update README/TDD and this checklist.
-- [ ] Run analyzer, focused tests, and full editor tests.
-- [ ] Commit Phase 5 as one validated logical milestone.
+- [x] Cover default collapsed state and expansion retention.
+- [x] Cover active-editor forced expansion.
+- [x] Cover complete Diagnostics counts/focus/no-op behavior.
+- [x] Cover wide/narrow layout keys, scene identity, viewport, and selection.
+- [x] Update README/TDD and this checklist.
+- [x] Run analyzer, focused tests, and full editor tests (analyzer clean,
+      16 focused tests and all 556 editor tests pass on August 26, 2026).
+- [x] Commit Phase 5 as one validated logical milestone.
 
 ## Phase 6 — Atlas/Module Consistency And Closeout
 

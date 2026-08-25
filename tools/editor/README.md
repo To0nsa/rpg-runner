@@ -210,6 +210,20 @@ unsaved identity or exact-coordinate fields. Axis-aligned four-vertex polygons
 use the compact X/Bottom/Width/Height editor, arbitrary polygons retain vertex
 editing, and identity plus exact geometry save as one collision command.
 
+Prefab owner and collision sidebars are flat groups of independently
+collapsible sections; inactive sections start minimized and a section stays
+open while it owns an active form, shape editor, or drawing draft. Diagnostics
+projects the complete Prefab session, including issues owned by non-selected
+prefabs, with error/warning/info counts and stable owner/shape focus where the
+issue carries a resolvable target. Expanding, filtering, or focusing these
+views does not author source changes.
+
+At narrow desktop widths the collision scene remains mounted and visible above
+the owner and authoring sidebars. Crossing the responsive breakpoint reparents
+the same scene, owner, and authoring subtrees, preserving viewport, selection,
+filters, expansion state, and local drafts; Prefab workspaces do not use
+exclusive Owners/Scene/Shapes tabs.
+
 The **Terrain Materials** route creates, duplicates, edits, validates, and
 reference-safely deletes those definitions. Each material owns a stable key,
 fill region, required top/slope profile, optional left/right wall and underside

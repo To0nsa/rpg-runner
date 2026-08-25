@@ -29,7 +29,6 @@ class PrefabOwnerCatalogBrowser extends StatefulWidget {
     required this.onSelected,
     required this.selectedDetailsBuilder,
     this.enabled = true,
-    this.header,
   }) : prefabs = List<PrefabV3Def>.unmodifiable(prefabs),
        visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
@@ -52,8 +51,6 @@ class PrefabOwnerCatalogBrowser extends StatefulWidget {
   final Widget Function(BuildContext context, PrefabV3Def prefab)
   selectedDetailsBuilder;
   final bool enabled;
-
-  final Widget? header;
 
   @override
   State<PrefabOwnerCatalogBrowser> createState() =>
@@ -191,7 +188,6 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
       key: const ValueKey<String>('prefab_owner_catalog_list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (widget.header case final Widget header) header,
         controls,
         const SizedBox(height: EditorUiTokens.sectionGap),
         if (filteredPrefabs.isEmpty)

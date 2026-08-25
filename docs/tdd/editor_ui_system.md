@@ -198,6 +198,29 @@ the shared polygon reducer, producing at most one owner-reviewed collision
 commit, revision increment, and undo entry. Collision, surface, and material
 selectors remain immediate semantic metadata edits, matching Chunk behavior.
 
+The Prefab owner/collision workspace presents flat sibling
+`EditorSectionCard`s rather than placing section cards inside redundant panel
+cards. Inactive owner creation, owner library, shape creation, retained shapes,
+and Diagnostics sections start collapsed. Controlled expansion is reserved for
+the section that owns an active owner form, drawing operation, or selected
+shape editor; presentation-only expansion remains in the mounted section state
+and never enters the session command/history stream.
+
+Prefab Diagnostics consumes the session controller's complete validation
+projection and merges only transient interaction findings from the active
+polygon controller. It counts all three generic severities and retains issues
+for non-selected owners. A focus action resolves `ownerKey`, falling back to a
+stable owner suffix in `sourcePath`, then uses the guarded owner navigation
+path before selecting and centering a retained shape. Unresolvable catalog
+issues remain visible without a misleading focus action.
+
+`PrefabEditorThreePanelLayout` owns the Prefab-specific responsive contract.
+The wide layout is `1:2:1`; the narrow layout keeps the scene above two bounded
+sidebars. Global-keyed panel hosts reparent the existing inspector, scene, and
+display elements across the breakpoint, so responsive changes do not reset
+viewport or route-local draft state. The generic three-panel component retains
+its tabbed contract for non-Prefab callers.
+
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
 composition is partitioned by the active Chunk workspace tab. Its rows and
 expanded editors or retained dialogs share typed selection and the same

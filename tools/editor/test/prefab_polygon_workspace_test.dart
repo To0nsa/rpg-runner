@@ -41,6 +41,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openOwnerLibrary(tester);
 
     final requestedOwner = find.byKey(
       const ValueKey<String>('prefab_polygon_owner_platform'),
@@ -91,8 +92,20 @@ void main() {
       find.byKey(const ValueKey<String>('editor_three_panel_narrow')),
       findsOneWidget,
     );
-    await tester.tap(find.widgetWithText(Tab, 'Shapes'));
-    await tester.pumpAndSettle();
+    expect(find.byType(TabBar), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_owner_catalog_search')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+      findsNothing,
+    );
+
     await _openPrefabSection(
       tester,
       toggleKey: 'prefab_polygon_creation_panel_toggle',
@@ -112,8 +125,6 @@ void main() {
       const ValueKey<String>('prefab_polygon_save_draft'),
     );
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
-    await tester.tap(find.widgetWithText(Tab, 'Scene'));
-    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('prefab_polygon_tool_createRectangle')),
       findsNothing,
@@ -128,21 +139,24 @@ void main() {
         isNull,
       );
     }
-    await tester.tap(find.widgetWithText(Tab, 'Shapes'));
-    await tester.pumpAndSettle();
-    await _openPrefabSection(
-      tester,
-      toggleKey: 'prefab_polygon_creation_panel_toggle',
-      bodyKey: 'prefab_polygon_creation_name_0',
+    final sceneElement = tester.element(
+      find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_polygon_creation_panel_toggle'),
+      ),
+      findsNothing,
+    );
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
     expect(tester.widget<FilledButton>(newRectangle).onPressed, isNull);
-    await tester.tap(find.widgetWithText(Tab, 'Scene'));
-    await tester.pumpAndSettle();
     expect(
       tester
           .widget<ChoiceChip>(
@@ -196,8 +210,105 @@ void main() {
           .onSelected,
       isNotNull,
     );
+
+    tester.view.physicalSize = const Size(1400, 900);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('editor_three_panel_wide')),
+      findsOneWidget,
+    );
+    expect(
+      identical(
+        sceneElement,
+        tester.element(
+          find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_creation_name_0')),
+      findsOneWidget,
+    );
+    expect(find.text('Place vertex'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'diagnostics project all owners and focus a non-selected shape safely',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: PrefabCreatorPage(
+              controller: harness.session,
+              initialPrefabKey: 'platform',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final issues = harness.session.issues;
+      final errors = issues
+          .where((issue) => issue.severity == ValidationSeverity.error)
+          .length;
+      final warnings = issues
+          .where((issue) => issue.severity == ValidationSeverity.warning)
+          .length;
+      final infos = issues.length - errors - warnings;
+      expect(issues, isNotEmpty);
+      expect(
+        find.text('$errors error(s) · $warnings warning(s) · $infos info'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('prefab_collision_shape_outside_visual_bounds'),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_diagnostics_panel_toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final diagnostic = find.text(
+        'prefab_collision_shape_outside_visual_bounds',
+      );
+      expect(diagnostic, findsOneWidget);
+      expect(find.textContaining('obstacle ·'), findsOneWidget);
+      await tester.ensureVisible(diagnostic);
+      await tester.tap(diagnostic);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DropdownButton<String>>(
+              find.byKey(const ValueKey<String>('prefab_v3_owner_selector')),
+            )
+            .value,
+        'obstacle',
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_shape_collision_001'),
+        ),
+        findsOneWidget,
+      );
+      expect(diagnostic, findsOneWidget);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      expect(harness.session.canUndo, isFalse);
+    },
+  );
 
   testWidgets(
     'collider-free editable prefabs disable committed-shape scene tools',
@@ -443,6 +554,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openOwnerLibrary(tester);
 
     expect(
       find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
@@ -655,6 +767,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
 
       final originalShapes = _prefab(
         harness.session,
@@ -849,6 +962,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
 
       final obstacleOwner = find.byKey(
         const ValueKey<String>('prefab_polygon_owner_obstacle'),
@@ -965,6 +1079,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
       final beforeDocument = harness.session.document;
 
       await _openPrefabSection(
@@ -1044,6 +1159,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openOwnerLibrary(tester);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
@@ -1125,6 +1241,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
@@ -1353,6 +1470,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('prefab_v3_view_platform_modules')),
@@ -1754,6 +1872,12 @@ Future<void> _openPrefabSection(
   await tester.pumpAndSettle();
   expect(body, findsOneWidget);
 }
+
+Future<void> _openOwnerLibrary(WidgetTester tester) => _openPrefabSection(
+  tester,
+  toggleKey: 'prefab_owner_library_section_toggle',
+  bodyKey: 'prefab_owner_catalog_search',
+);
 
 final class _Harness {
   const _Harness({required this.root, required this.session});

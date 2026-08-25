@@ -95,6 +95,12 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
         findsOneWidget,
       );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_owner_library_section_toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
       final targetOwner = find.byKey(
         const ValueKey<String>('prefab_polygon_owner_prefab_target'),
       );
