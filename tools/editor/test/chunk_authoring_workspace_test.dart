@@ -1165,6 +1165,11 @@ void main() {
       <ChunkSceneDomain>{ChunkSceneDomain.markers},
     );
     expect(tester.widget<EditorListCard>(markerCard).isSelected, isTrue);
+    final markerInlineEditor = find.byKey(
+      const ValueKey<String>('chunk_v2_marker_inline_editor_hashash|40|5|0'),
+    );
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(markerInlineEditor, findsOneWidget);
     final markerPainter =
         tester
                 .widget<CustomPaint>(
@@ -1175,6 +1180,63 @@ void main() {
                 .painter!
             as ChunkMarkerPlacementOverlayPainter;
     expect(markerPainter.selectedMarkerKey, 'hashash|40|5|0');
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+    await tester.tap(markerCard);
+    await tester.pump();
+    expect(tester.widget<EditorListCard>(markerCard).isSelected, isFalse);
+    expect(markerInlineEditor, findsNothing);
+    final clearedMarkerPainter =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(
+                    const ValueKey<String>('chunk_marker_placement_overlay'),
+                  ),
+                )
+                .painter!
+            as ChunkMarkerPlacementOverlayPainter;
+    expect(clearedMarkerPainter.selectedMarkerKey, isNull);
+    await tester.tap(markerCard);
+    await tester.pump();
+    expect(markerInlineEditor, findsOneWidget);
+    final inlineMarkerSearch = find.byKey(
+      const ValueKey<String>(
+        'chunk_v2_marker_inline_catalog_hashash|40|5|0_search',
+      ),
+    );
+    await tester.enterText(inlineMarkerSearch, 'derf');
+    await tester.pump();
+    final inlineDerfCard = find.byKey(
+      const ValueKey<String>(
+        'chunk_v2_marker_inline_catalog_hashash|40|5|0_card_derf',
+      ),
+    );
+    await tester.scrollUntilVisible(
+      inlineDerfCard,
+      240,
+      scrollable: sidebarScrollable,
+    );
+    await tester.tap(inlineDerfCard);
+    await tester.pump();
+    expect(
+      tester
+          .widget<ChunkV2MarkerForm>(find.byType(ChunkV2MarkerForm).last)
+          .enemyId,
+      'derf',
+    );
+    expect(
+      _chunk(harness.session, 'forest_chunk').markers
+          .singleWhere((marker) => marker.x == 40 && marker.y == 5)
+          .markerId,
+      'hashash',
+    );
+    final cancelMarkerEdit = find.descendant(
+      of: markerInlineEditor,
+      matching: find.widgetWithText(TextButton, 'Cancel'),
+    );
+    await tester.ensureVisible(cancelMarkerEdit);
+    await tester.tap(cancelMarkerEdit);
+    await tester.pump();
+    expect(markerInlineEditor, findsNothing);
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
 
@@ -3469,26 +3531,37 @@ void main() {
 
       await tapCompositionControl(
         ChunkSceneDomain.markers,
-        'chunk_v2_marker_edit_derf|60|5|0',
+        'chunk_v2_marker_derf|60|5|0',
       );
+      expect(find.byType(AlertDialog), findsNothing);
       expect(
         find.byKey(
-          const ValueKey<String>('chunk_v2_marker_dialog_catalog_grid'),
+          const ValueKey<String>(
+            'chunk_v2_marker_inline_catalog_derf|60|5|0_grid',
+          ),
         ),
         findsOneWidget,
       );
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_marker_chance_field')),
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_marker_inline_derf|60|5|0_chance_field',
+          ),
+        ),
         '75',
       );
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_marker_salt_field')),
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_marker_inline_derf|60|5|0_salt_field',
+          ),
+        ),
         '9',
       );
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
       final editMarkerApply = find.byKey(
-        const ValueKey<String>('chunk_v2_marker_dialog_apply'),
+        const ValueKey<String>('chunk_v2_marker_inline_apply_derf|60|5|0'),
       );
       await tester.ensureVisible(editMarkerApply);
       await tester.tap(editMarkerApply);
@@ -3541,14 +3614,15 @@ void main() {
 
       await tapCompositionControl(
         ChunkSceneDomain.markers,
-        'chunk_v2_marker_delete_derf|60|5|0',
+        'chunk_v2_marker_derf|60|5|0',
       );
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('chunk_v2_composition_delete_confirm'),
-        ),
+      final deleteMarker = find.byKey(
+        const ValueKey<String>('chunk_v2_marker_delete_derf|60|5|0'),
       );
+      await tester.ensureVisible(deleteMarker);
+      await tester.tap(deleteMarker);
       await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
       edited = _chunk(harness.session, 'forest_chunk');
       expect(
         edited.markers.where((marker) => marker.markerId == 'derf'),

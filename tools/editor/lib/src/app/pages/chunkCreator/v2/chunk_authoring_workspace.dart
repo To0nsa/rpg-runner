@@ -790,7 +790,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         _prefabGesture.setTool(ChunkPrefabSceneTool.select);
         _sceneCoordinator.selectPrefab(selection);
       }),
-      onMarkerSelected: (selection) => setState(() {
+      onMarkerSelectionChanged: (selection) => setState(() {
         _markerGesture.setTool(ChunkMarkerSceneTool.select);
         _sceneCoordinator.selectMarker(selection);
         _refreshMarkerPlacementProjection();

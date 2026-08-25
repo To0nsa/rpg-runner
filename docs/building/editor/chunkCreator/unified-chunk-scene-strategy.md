@@ -556,9 +556,9 @@ source identity or depends on an undefined tile-content model.
   composition controls into the right sidebar sections
 - extract the retained composition sections and remove the standalone
   `ChunkV2CompositionWorkspace` root rather than leaving a parallel page
-- retain tile-layer and Marker edit dialogs and semantic commands; move Prefab
-  creation and existing-placement editing inline without adding a second write
-  path
+- retain tile-layer dialogs and semantic commands; keep Prefab and Marker
+  creation inline, and expand existing Prefab/Marker rows for editing without
+  adding a second write path
 - rename the visible panel to `Chunk creation scene`
 - rename the route badge to `Chunk v2 authoring`
 - label layers as metadata and expose no spatial tile controls

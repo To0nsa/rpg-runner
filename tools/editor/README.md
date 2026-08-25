@@ -389,9 +389,10 @@ foldable **Enemy library** searches Core enemy name, stable ID, and authoritativ
 terrain-motion role; role and current-Chunk usage filters narrow the visual
 cards. Each thumbnail crops the first idle frame using Core's runtime animation
 path, frame size, row, start offset, and render scale. The selected ID is route-
-local and shared by the scene Place tool and inline creation form; the edit
-dialog embeds the same browser for tentative enemy changes. Missing image files
-show a safe placeholder and do not change the Core-derived catalog. Marker
+local and shared by the scene Place tool and inline creation form; selecting an
+existing marker expands the same browser and form below its row for tentative
+enemy changes. Missing image files show a safe placeholder and do not change
+the Core-derived catalog. Marker
 gestures edit only the authored query anchor at integer-pixel precision.
 Enabling **Marker placement** draws each recognized enemy's first idle frame,
 then keeps support/capsule evidence above the art. Accepted enemies use the
@@ -401,7 +402,7 @@ body-less outcomes use their authored marker anchor as a muted reference; that
 reference is not presented as Hashash's later camera-relative runtime spawn.
 The resolved layer is hidden for the record being moved until its accepted
 source is reprojected. Chance, salt, placement mode, and exact coordinates stay
-available in the sidebar creation form and existing-record edit dialog.
+available in the sidebar creation form and expanded existing-record editor.
 New Derf selections default Placement to `obstacleTop` in both that form and
 direct scene Place; other enemies default to `ground`. An explicit form choice
 and every saved marker's existing placement remain unchanged.
@@ -410,14 +411,14 @@ Direct terrain creation and existing shapes live in the **Terrain** sections.
 The **Prefabs** and **Markers** groups each start with a foldable visual library,
 followed by a foldable inline creation form and separate foldable
 existing-record list. Adding a prefab or marker submits directly from its
-section without opening a dialog; Prefab selection reveals edit and delete
-controls below the selected row, while Marker records retain their row actions.
-The **Layers** group
+section without opening a dialog; selecting a Prefab or Marker row reveals its
+edit and delete controls below that row. Re-click and Cancel close the editor
+and clear the matching scene selection. The **Layers** group
 retains the visual-stack summary and validated tile-layer metadata workflow.
 `TileLayerDef` is metadata-only, so Layers pauses primary scene authoring and
 exposes no tile painting or cell editing. Direct scene gestures, inline adds,
-expanded Prefab edits/deletes, and retained Marker/tile-layer edit or delete
-dialogs all dispatch the canonical Chunk composition command.
+expanded Prefab/Marker edits and deletes, and retained tile-layer dialogs all
+dispatch the canonical Chunk composition command.
 
 Direct-terrain rectangle, vertex, insertion, and whole-shape gestures cannot
 enter another direct terrain shape or expanded prefab collision. This

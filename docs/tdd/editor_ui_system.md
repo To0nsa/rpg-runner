@@ -94,13 +94,19 @@ thumbnail and marker overlay without introducing editor-owned sprite tuning.
 Search covers display name,
 protocol-stable ID, and movement role, with role and current-Chunk usage
 filters. The route-local selected ID feeds both `ChunkMarkerSceneGesture` Place
-and the controlled `ChunkV2MarkerForm`. The retained-marker dialog composes the
-same browser with dialog-local tentative selection. Selecting or filtering an
-enemy creates no revision, history entry, validation event, or pending diff.
+and the controlled `ChunkV2MarkerForm`. The expanded retained-marker editor
+composes the same browser with row-local tentative selection. Selecting or
+filtering an enemy creates no revision, history entry, validation event, or
+pending diff.
 Prefab and enemy browsers compose the neutral `EditorVisualCatalogLayout` and
 `EditorVisualCatalogCard` primitives for identical search, filter, count, grid,
 selection, keyboard, semantics, and card chrome; each browser retains only its
-domain filtering, identity, and thumbnail projection.
+domain filtering, identity, and thumbnail projection. Selecting an existing
+marker in the list or scene opens one row-local draft. Apply dispatches the
+captured stale-checked replacement; Cancel, re-click, domain changes, and Delete
+close the draft and clear marker selection. Delete follows the same immediate,
+undoable composition commit used by Prefab and terrain inline editors. Tile
+layers retain their dialog workflow.
 
 With resolved marker evidence enabled, the marker painter first draws every
 recognized outcome's decoded, in-bounds idle frame, then draws support,

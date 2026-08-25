@@ -155,16 +155,18 @@ The Prefabs tab now replaces both long Prefab dropdowns with one searchable
 visual library. ID/kind/tag search, kind filters, a current-Chunk usage filter,
 atlas/module thumbnails, and Enter-to-select share one stable-key route
 selection between direct scene placement and inline creation. Retained edits
-compose the same browser with dialog-local tentative selection. This is an
-editor-only selection improvement: Chunk-v2 source, Prefab identity, placement
-commands, validation, and generated runtime data are unchanged.
+compose the same browser below the selected row with tentative selection. This
+is an editor-only selection improvement: Chunk-v2 source, Prefab identity,
+placement commands, validation, and generated runtime data are unchanged.
 
 The Markers tab uses the parallel searchable enemy library. Name/ID/role
 search, Core terrain-motion role filters, a current-Chunk usage filter,
 runtime-idle-frame thumbnails, and Enter-to-select share one stable enemy ID
-between direct scene placement and inline creation. The retained edit dialog
-uses the same browser with tentative selection. Core remains the enemy and
-animation metadata authority; the library adds no Chunk field or runtime rule.
+between direct scene placement and inline creation. The expanded retained-row
+editor uses the same browser and form with tentative selection. Apply, Cancel,
+re-click, and Delete match existing Prefab and terrain record ergonomics without
+a marker modal. Core remains the enemy and animation metadata authority; the
+library adds no Chunk field or runtime rule.
 When marker evidence is enabled, recognized outcomes also paint that idle frame
 using the catalog anchor and uniform render scale. Accepted outcomes use the
 exact Core-resolved body center at full opacity; rejected outcomes use a muted

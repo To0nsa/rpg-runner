@@ -42,7 +42,7 @@ class ChunkCompositionCard extends StatefulWidget {
     required this.selectedCatalogMarkerId,
     this.onOpenOwningPrefab,
     required this.onPrefabSelectionChanged,
-    required this.onMarkerSelected,
+    required this.onMarkerSelectionChanged,
     required this.onCatalogPrefabSelected,
     required this.onCatalogMarkerSelected,
   });
@@ -59,7 +59,7 @@ class ChunkCompositionCard extends StatefulWidget {
   final String? selectedCatalogMarkerId;
   final ValueChanged<String>? onOpenOwningPrefab;
   final ValueChanged<ChunkPlacedPrefabSelection?> onPrefabSelectionChanged;
-  final ValueChanged<ChunkPlacedMarkerSelection> onMarkerSelected;
+  final ValueChanged<ChunkPlacedMarkerSelection?> onMarkerSelectionChanged;
   final ValueChanged<PrefabV3Def> onCatalogPrefabSelected;
   final ValueChanged<String> onCatalogMarkerSelected;
 
@@ -69,6 +69,7 @@ class ChunkCompositionCard extends StatefulWidget {
 
 final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   _InlinePlacementEdit? _placementEdit;
+  _InlineMarkerEdit? _markerEdit;
 
   ChunkCompositionSection get section => widget.section;
   EditorSessionController get controller => widget.controller;
@@ -83,8 +84,8 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   ValueChanged<String>? get onOpenOwningPrefab => widget.onOpenOwningPrefab;
   ValueChanged<ChunkPlacedPrefabSelection?> get onPrefabSelectionChanged =>
       widget.onPrefabSelectionChanged;
-  ValueChanged<ChunkPlacedMarkerSelection> get onMarkerSelected =>
-      widget.onMarkerSelected;
+  ValueChanged<ChunkPlacedMarkerSelection?> get onMarkerSelectionChanged =>
+      widget.onMarkerSelectionChanged;
   ValueChanged<PrefabV3Def> get onCatalogPrefabSelected =>
       widget.onCatalogPrefabSelected;
   ValueChanged<String> get onCatalogMarkerSelected =>
@@ -97,10 +98,14 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
         oldWidget.chunk.chunkKey != widget.chunk.chunkKey ||
         oldWidget.chunk.revision != widget.chunk.revision) {
       _placementEdit = null;
+      _markerEdit = null;
       return;
     }
     if (oldWidget.selectedPrefabKey != widget.selectedPrefabKey) {
       _placementEdit = _placementEditForKey(selectedPrefabKey);
+    }
+    if (oldWidget.selectedMarkerKey != widget.selectedMarkerKey) {
+      _markerEdit = _markerEditForKey(selectedMarkerKey);
     }
   }
 
@@ -409,10 +414,12 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
           title: 'Existing enemy markers',
           description: markers.isEmpty
               ? 'Saved enemy markers will appear here.'
-              : 'Select a marker in the list or scene to manage it.',
+              : _markerEdit == null
+              ? 'Select a marker in the list or scene to manage it.'
+              : 'Edit the expanded marker, then apply or cancel the draft.',
           trailing: Text('${markers.length} total'),
-          collapsible: true,
-          initiallyExpanded: false,
+          collapsible: _markerEdit == null,
+          initiallyExpanded: _markerEdit != null,
           expansionKey: const ValueKey<String>(
             'chunk_enemy_markers_section_toggle',
           ),
@@ -424,27 +431,19 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    for (final selection in markers)
+                    for (final selection in markers) ...<Widget>[
                       EditorListCard(
                         key: ValueKey<String>(
                           'chunk_v2_marker_${selection.selectionKey}',
                         ),
                         isSelected: selection.selectionKey == selectedMarkerKey,
-                        onTap: controlsEnabled
-                            ? () => onMarkerSelected(selection)
+                        onTap:
+                            controlsEnabled &&
+                                (_markerEdit == null ||
+                                    _markerEdit?.selectionKey ==
+                                        selection.selectionKey)
+                            ? () => _selectOrCloseMarker(selection)
                             : null,
-                        trailing: _EditDeleteActions(
-                          editKey:
-                              'chunk_v2_marker_edit_${selection.selectionKey}',
-                          deleteKey:
-                              'chunk_v2_marker_delete_${selection.selectionKey}',
-                          onEdit: controlsEnabled
-                              ? () => _editMarker(context, selection)
-                              : null,
-                          onDelete: controlsEnabled
-                              ? () => _deleteMarker(context, selection)
-                              : null,
-                        ),
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(selection.marker.markerId),
@@ -457,6 +456,16 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                           ),
                         ),
                       ),
+                      if (_markerEdit?.selectionKey == selection.selectionKey)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                          child: _buildMarkerEditDetails(
+                            context,
+                            selection,
+                            usedEnemyIds,
+                          ),
+                        ),
+                    ],
                   ],
                 ),
         ),
@@ -711,43 +720,142 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     _dispatch(context, operation.buildMarker(candidate: candidate));
   }
 
-  Future<void> _editMarker(
-    BuildContext context,
-    ChunkPlacedMarkerSelection selection,
-  ) async {
-    final operation = ChunkV2CompositionOperation.replace(
-      chunk: chunk,
-      target: ChunkV2CompositionTarget.markers,
-      sourceIndex: selection.sourceIndex,
-      presentationKey: selection.selectionKey,
-    );
-    await _runOperation(() async {
-      final marker = await showChunkV2MarkerEditDialog(
-        context,
-        chunk: chunk,
-        marker: selection.marker,
-        workspaceRootPath: controller.workspacePath,
-      );
-      if (marker == null || !context.mounted) return;
-      _dispatch(context, operation.buildMarker(candidate: marker));
-    });
+  void _selectOrCloseMarker(ChunkPlacedMarkerSelection selection) {
+    if (_markerEdit?.selectionKey == selection.selectionKey) {
+      _cancelMarkerEdit();
+      return;
+    }
+    _beginMarkerEdit(selection);
   }
 
-  Future<void> _deleteMarker(
+  void _beginMarkerEdit(ChunkPlacedMarkerSelection selection) {
+    setState(() => _markerEdit = _createMarkerEdit(selection));
+    onMarkerSelectionChanged(selection);
+  }
+
+  _InlineMarkerEdit? _markerEditForKey(String? selectionKey) {
+    if (selectionKey == null) return null;
+    final selection = buildChunkPlacedMarkerSelections(chunk.markers)
+        .where((selection) => selection.selectionKey == selectionKey)
+        .firstOrNull;
+    return selection == null ? null : _createMarkerEdit(selection);
+  }
+
+  _InlineMarkerEdit _createMarkerEdit(ChunkPlacedMarkerSelection selection) =>
+      _InlineMarkerEdit(
+        selectionKey: selection.selectionKey,
+        marker: selection.marker,
+        selectedEnemyId: selection.marker.markerId,
+        operation: ChunkV2CompositionOperation.replace(
+          chunk: chunk,
+          target: ChunkV2CompositionTarget.markers,
+          sourceIndex: selection.sourceIndex,
+          presentationKey: selection.selectionKey,
+        ),
+      );
+
+  Widget _buildMarkerEditDetails(
     BuildContext context,
     ChunkPlacedMarkerSelection selection,
-  ) async {
+    Set<String> usedEnemyIds,
+  ) {
+    final edit = _markerEdit!;
+    final keySuffix = selection.selectionKey;
+    return Column(
+      key: ValueKey<String>('chunk_v2_marker_inline_editor_$keySuffix'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Edit ${selection.marker.markerId}',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            OutlinedButton.icon(
+              key: ValueKey<String>(
+                'chunk_v2_marker_delete_${selection.selectionKey}',
+              ),
+              onPressed: controlsEnabled
+                  ? () => _deleteMarker(context, selection)
+                  : null,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Choose an enemy and adjust this saved marker. Changes are staged '
+          'only after Apply. Switching context discards this draft.',
+        ),
+        const SizedBox(height: 12),
+        ChunkEnemyCatalogBrowser(
+          workspaceRootPath: controller.workspacePath,
+          selectedEnemyId: edit.selectedEnemyId,
+          usedEnemyIds: usedEnemyIds,
+          autofocusSearch: true,
+          gridHeight: 248,
+          keyPrefix: 'chunk_v2_marker_inline_catalog_$keySuffix',
+          enabled: controlsEnabled,
+          onSelected: (enemyId) {
+            setState(() {
+              _markerEdit = edit.copyWith(selectedEnemyId: enemyId);
+            });
+          },
+        ),
+        const Divider(height: 32),
+        ChunkV2MarkerForm(
+          key: ValueKey<String>('chunk_v2_marker_inline_form_$keySuffix'),
+          chunk: chunk,
+          enemyId: edit.selectedEnemyId,
+          marker: edit.marker,
+          fieldKeyPrefix: 'chunk_v2_marker_inline_$keySuffix',
+          submitKey: 'chunk_v2_marker_inline_apply_$keySuffix',
+          submitLabel: 'Apply changes',
+          enabled: controlsEnabled,
+          onCancel: _cancelMarkerEdit,
+          onSubmit: (candidate) => _applyMarkerEdit(context, candidate),
+        ),
+      ],
+    );
+  }
+
+  void _applyMarkerEdit(BuildContext context, PlacedMarkerDef candidate) {
+    final edit = _markerEdit;
+    if (edit == null) return;
+    final commit = edit.operation.buildMarker(candidate: candidate);
+    _finishMarkerEdit();
+    _dispatch(context, commit);
+  }
+
+  void _cancelMarkerEdit() {
+    _finishMarkerEdit();
+    onMarkerSelectionChanged(null);
+  }
+
+  void _finishMarkerEdit() {
+    if (_markerEdit == null) return;
+    setState(() => _markerEdit = null);
+  }
+
+  void _deleteMarker(
+    BuildContext context,
+    ChunkPlacedMarkerSelection selection,
+  ) {
     final operation = ChunkV2CompositionOperation.delete(
       chunk: chunk,
       target: ChunkV2CompositionTarget.markers,
       sourceIndex: selection.sourceIndex,
       presentationKey: selection.selectionKey,
     );
-    await _runOperation(() async {
-      if (!await _confirmDelete(context, 'enemy marker')) return;
-      if (!context.mounted) return;
-      _dispatch(context, operation.buildMarker());
-    });
+    final commit = operation.buildMarker();
+    if (commit == null) return;
+    _finishMarkerEdit();
+    onMarkerSelectionChanged(null);
+    _dispatch(context, commit);
   }
 
   Future<bool> _confirmDelete(BuildContext context, String label) async {
@@ -877,6 +985,28 @@ final class _InlinePlacementEdit {
         selectionKey: selectionKey,
         placement: placement,
         selectedPrefabKey: selectedPrefabKey,
+        operation: operation,
+      );
+}
+
+final class _InlineMarkerEdit {
+  const _InlineMarkerEdit({
+    required this.selectionKey,
+    required this.marker,
+    required this.selectedEnemyId,
+    required this.operation,
+  });
+
+  final String selectionKey;
+  final PlacedMarkerDef marker;
+  final String selectedEnemyId;
+  final ChunkV2CompositionOperation operation;
+
+  _InlineMarkerEdit copyWith({required String selectedEnemyId}) =>
+      _InlineMarkerEdit(
+        selectionKey: selectionKey,
+        marker: marker,
+        selectedEnemyId: selectedEnemyId,
         operation: operation,
       );
 }

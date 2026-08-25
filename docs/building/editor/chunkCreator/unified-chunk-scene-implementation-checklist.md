@@ -251,9 +251,9 @@ adding direct non-terrain manipulation.
       compatibility wrapper.
 - [x] Keep tile-layer, prefab, and marker actions on the existing typed
       composition commit path.
-- [x] Keep tile-layer and Marker edit dialogs operational; Prefab and Marker
-      creation forms live inline, and existing Prefab placement editing expands
-      its selected row.
+- [x] Keep tile-layer edit dialogs operational; Prefab and Marker creation
+      forms live inline, and existing Prefab placements and enemy markers
+      expand their selected row for edit and delete.
 - [x] Move the visual-stack preview into the composition card as a compact
       section.
 - [x] Avoid copying layer, prefab, marker, equality, sorting, or dispatch logic
@@ -948,8 +948,8 @@ no blocking issues.
 - [x] Prefab selection uses one searchable visual library shared by scene Place
       and inline creation; no long Prefab dropdown remains in Chunk Creator.
 - [x] Enemy selection uses one searchable Core-backed visual library shared by
-      scene Place, inline creation, and retained-marker editing; no enemy
-      dropdown remains in Chunk Creator.
+      scene Place, inline creation, and expanded retained-marker editing; no
+      enemy dropdown or marker edit modal remains in Chunk Creator.
 - [x] Narrow layouts preserve scene, viewport, focus, selection, and draft state.
 - [x] Existing terrain and composition features remain complete.
 - [x] Active-domain and typed-selection behavior is deterministic and tested.
