@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
@@ -13,6 +14,7 @@ import '../../../../prefabs/validation/prefab_validation.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
+import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_inline_id_form.dart';
@@ -23,7 +25,9 @@ import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_ui_tokens.dart';
 import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_zoom_controls.dart';
-import '../../shared/terrain_polygon_metadata_dialog.dart';
+import '../../shared/terrain_material_preview_catalog.dart';
+import '../../shared/terrain_polygon_exact_edit_controller.dart';
+import '../../shared/terrain_polygon_rectangle_editor.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
 import '../shared/prefab_polygon_authoring_controller.dart';
@@ -74,6 +78,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       GlobalKey<PrefabV3OwnerFormState>();
   final GlobalKey<EditorInlineIdFormState> _ownerRenameFormKey =
       GlobalKey<EditorInlineIdFormState>();
+  final Map<String, String> _shapeNameDrafts = <String, String>{};
+  final TerrainPolygonExactEditController _exactEditController =
+      TerrainPolygonExactEditController();
   String? _selectedPrefabKey;
   PrefabV3Def? _ownerEditSource;
   bool _ownerEditDirty = false;
@@ -84,9 +91,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   _PrefabV3WorkspaceView _workspaceView = _PrefabV3WorkspaceView.owners;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
+  TerrainMaterialCatalog? _materialCatalog;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
+      _hasPendingSelectedShapeEdit ||
       _ownerEditDirty ||
       _ownerCreateDirty ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
@@ -94,6 +103,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
+      _hasPendingSelectedShapeEdit ||
       _ownerEditDirty ||
       _ownerCreateDirty ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
@@ -101,6 +111,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       (_authoring?.canUndo ?? widget.controller.canUndo);
 
   bool get canRedo =>
+      !_hasPendingSelectedShapeEdit &&
       !_ownerEditDirty &&
       !_ownerCreateDirty &&
       !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
@@ -111,6 +122,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   bool get canApplyToFiles =>
       widget.controller.pendingChanges.hasChanges &&
       !(_authoring?.hasActiveOperation ?? false) &&
+      !_hasPendingSelectedShapeEdit &&
       !_ownerEditDirty &&
       !_ownerCreateDirty &&
       !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
@@ -128,6 +140,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       return true;
     }
     if (_ownerEditSource != null) _closeOwnerEditor();
+    if (_hasPendingSelectedShapeEdit) {
+      _discardSelectedShapeEdit();
+      return true;
+    }
     if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
         (_atlasWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
       return true;
@@ -161,6 +177,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   @override
   void initState() {
     super.initState();
+    _exactEditController.addListener(_handleExactEditChanged);
+    _reloadMaterialCatalog();
     _selectInitialOwner();
   }
 
@@ -172,6 +190,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _clearOwnerEditorState();
       _clearOwnerCreateState();
       _selectedPrefabKey = null;
+      _reloadMaterialCatalog();
       _selectInitialOwner();
       return;
     }
@@ -187,7 +206,37 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   @override
   void dispose() {
     _disposeAuthoring();
+    _exactEditController
+      ..removeListener(_handleExactEditChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  bool get _hasPendingSelectedShapeEdit {
+    final authoring = _authoring;
+    final selection = authoring?.state.selection;
+    if (authoring == null || selection == null) return false;
+    final shape = _findShape(authoring.state.shapes, selection.shapeId);
+    return shape != null &&
+        (_hasPendingShapeName(shape) || _exactEditController.hasChanges);
+  }
+
+  void _handleExactEditChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _discardSelectedShapeEdit() {
+    final authoring = _authoring;
+    final selection = authoring?.state.selection;
+    _exactEditController.discard();
+    if (selection != null) _shapeNameDrafts.remove(selection.shapeId);
+    if (mounted) setState(() {});
+  }
+
+  void _reloadMaterialCatalog() {
+    _materialCatalog = loadTerrainMaterialPreviewCatalog(
+      widget.controller.workspacePath,
+    ).catalog;
   }
 
   @override
@@ -321,23 +370,26 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               key: const ValueKey<String>('prefab_v3_view_owners'),
               label: const Text('Prefab owners & collision'),
               selected: _workspaceView == _PrefabV3WorkspaceView.owners,
-              onSelected: (_) =>
-                  _selectWorkspaceView(_PrefabV3WorkspaceView.owners),
+              onSelected: (_) => unawaited(
+                _selectWorkspaceView(_PrefabV3WorkspaceView.owners),
+              ),
             ),
             ChoiceChip(
               key: const ValueKey<String>('prefab_v3_view_atlas_slices'),
               label: const Text('Atlas & tile slices'),
               selected: _workspaceView == _PrefabV3WorkspaceView.atlasSlices,
-              onSelected: (_) =>
-                  _selectWorkspaceView(_PrefabV3WorkspaceView.atlasSlices),
+              onSelected: (_) => unawaited(
+                _selectWorkspaceView(_PrefabV3WorkspaceView.atlasSlices),
+              ),
             ),
             ChoiceChip(
               key: const ValueKey<String>('prefab_v3_view_platform_modules'),
               label: const Text('Platform modules'),
               selected:
                   _workspaceView == _PrefabV3WorkspaceView.platformModules,
-              onSelected: (_) =>
-                  _selectWorkspaceView(_PrefabV3WorkspaceView.platformModules),
+              onSelected: (_) => unawaited(
+                _selectWorkspaceView(_PrefabV3WorkspaceView.platformModules),
+              ),
             ),
           ],
         ),
@@ -345,7 +397,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     );
   }
 
-  void _selectWorkspaceView(_PrefabV3WorkspaceView view) {
+  Future<void> _selectWorkspaceView(_PrefabV3WorkspaceView view) async {
     if (view == _workspaceView) return;
     if (_ownerEditDirty || _ownerCreateDirty) {
       _showWorkspaceSwitchBlocked(
@@ -357,6 +409,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _showWorkspaceSwitchBlocked(
         'Finish or cancel the active polygon operation before switching.',
       );
+      return;
+    }
+    final authoring = _authoring;
+    if (authoring != null &&
+        (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
       return;
     }
     if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
@@ -777,14 +834,223 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final shapes = List<TerrainSourceShapeDef>.of(authoring.state.visibleShapes)
       ..sort((left, right) => left.shapeId.compareTo(right.shapeId));
     final selectedShapeId = authoring.state.selection?.shapeId;
-    final selectedShape = _findShape(shapes, selectedShapeId);
-    final draft = authoring.state.draft;
     return EditorPanelCard(
-      title: 'Shapes and diagnostics',
+      title: 'Collision authoring',
       bodyMode: EditorPanelBodyMode.scrollable,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          _buildShapeCreationSection(authoring),
+          const SizedBox(height: EditorUiTokens.sectionGap),
+          EditorSectionCard(
+            key: const ValueKey<String>('prefab_polygon_shapes_panel'),
+            expansionKey: const ValueKey<String>(
+              'prefab_polygon_shapes_panel_toggle',
+            ),
+            title: 'Existing collision shapes',
+            description: shapes.isEmpty
+                ? 'Saved collision shapes will appear here.'
+                : 'Select a row to edit metadata, geometry, or lifecycle.',
+            trailing: Text('${shapes.length} total'),
+            collapsible: true,
+            initiallyExpanded: false,
+            child: Column(
+              key: const ValueKey<String>('prefab_shape_list'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (shapes.isEmpty)
+                  const Text(
+                    'No committed collision shapes. Use the creation section '
+                    'above to draw the first one.',
+                  )
+                else
+                  for (final shape in shapes)
+                    EditorListCard(
+                      key: ValueKey<String>(
+                        'prefab_polygon_shape_${shape.shapeId}',
+                      ),
+                      isSelected: selectedShapeId == shape.shapeId,
+                      onTap: () =>
+                          unawaited(_selectOrCloseShape(authoring, shape)),
+                      details: selectedShapeId == shape.shapeId
+                          ? Padding(
+                              key: ValueKey<String>(
+                                'prefab_polygon_selected_shape_editor_'
+                                '${shape.shapeId}',
+                              ),
+                              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                              child: _buildSelectedShapeEditor(
+                                authoring,
+                                shape,
+                              ),
+                            )
+                          : null,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        selected: selectedShapeId == shape.shapeId,
+                        leading: Icon(
+                          shape.collisionMode ==
+                                  TerrainSourceCollisionMode.oneWay
+                              ? Icons.horizontal_rule
+                              : Icons.square_outlined,
+                        ),
+                        title: Text(shape.shapeId),
+                        subtitle: Text(
+                          '${_collisionModeLabel(shape.collisionMode)} · '
+                          '${shape.vertices.length} vertices · '
+                          '${_shapeExtent(shape)}',
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+          const SizedBox(height: EditorUiTokens.sectionGap),
+          _buildDiagnosticsSection(authoring, issues),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShapeCreationSection(
+    PrefabPolygonAuthoringController authoring,
+  ) {
+    final draft = authoring.state.draft;
+    final gesture = authoring.state.gesture;
+    final materialValue = authoring.newShapeMaterialKey?.trim() ?? '';
+    final surfaceValue = authoring.newShapeSurfaceKind?.trim() ?? '';
+    final materialOptions = terrainMetadataSelectorOptions(
+      current: materialValue,
+      known:
+          _materialCatalog?.materials.map((material) => material.key) ??
+          const <String>[],
+    );
+    final surfaceOptions = terrainMetadataSelectorOptions(
+      current: surfaceValue,
+      known: terrainSurfaceKindOptions,
+    );
+    return EditorSectionCard(
+      key: const ValueKey<String>('prefab_polygon_creation_panel'),
+      expansionKey: const ValueKey<String>(
+        'prefab_polygon_creation_panel_toggle',
+      ),
+      title: 'Create collision shape',
+      description: authoring.prefab.kind == PrefabKind.decoration
+          ? 'Decoration owners remain collider-free.'
+          : 'Choose identity and metadata, then draw in the scene.',
+      collapsible: !authoring.hasActiveOperation,
+      initiallyExpanded: false,
+      expanded: authoring.hasActiveOperation ? true : null,
+      child: Column(
+        key: const ValueKey<String>('prefab_polygon_creation_section'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          TextFormField(
+            key: ValueKey<String>(
+              'prefab_polygon_creation_name_'
+              '${authoring.newShapeNameGeneration}',
+            ),
+            initialValue: authoring.newShapeNameInput,
+            enabled: !authoring.hasActiveOperation,
+            decoration: InputDecoration(
+              labelText: 'Shape name (optional)',
+              hintText: 'Automatic: ${authoring.resolvedNewShapeName}',
+              helperText:
+                  'Lowercase letters, numbers, and underscores. Blank uses '
+                  'the automatic name.',
+              errorText: authoring.newShapeNameError,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: authoring.setNewShapeNameInput,
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          _buildMetadataDropdown<TerrainSourceCollisionMode>(
+            keyName: 'prefab_polygon_creation_mode_selector',
+            label: 'Collision',
+            value: authoring.newShapeCollisionMode,
+            items:
+                const <TerrainSourceCollisionMode>[
+                      TerrainSourceCollisionMode.solid,
+                      TerrainSourceCollisionMode.oneWay,
+                    ]
+                    .map(
+                      (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
+                        value: mode,
+                        child: Text(_collisionModeLabel(mode)),
+                      ),
+                    )
+                    .toList(growable: false),
+            onChanged: authoring.hasActiveOperation
+                ? null
+                : (mode) {
+                    if (mode != null) authoring.setNewShapeCollisionMode(mode);
+                  },
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          _buildMetadataDropdown<String>(
+            keyName: 'prefab_polygon_creation_surface_selector',
+            label: 'Surface kind',
+            value: surfaceValue,
+            items: surfaceOptions
+                .map(
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(terrainMetadataSelectorLabel(value)),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: authoring.hasActiveOperation
+                ? null
+                : (value) {
+                    if (value != null) {
+                      authoring.setNewShapeSurfaceKind(
+                        nullableTerrainMetadataSelection(value),
+                      );
+                    }
+                  },
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          _buildMetadataDropdown<String>(
+            keyName: 'prefab_polygon_creation_material_selector',
+            label: 'Material key',
+            value: materialValue,
+            items: materialOptions
+                .map(
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(
+                      terrainMaterialSelectorLabel(_materialCatalog, value),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: authoring.hasActiveOperation
+                ? null
+                : (value) {
+                    if (value != null) {
+                      authoring.setNewShapeMaterialKey(
+                        nullableTerrainMetadataSelection(value),
+                      );
+                    }
+                  },
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          _buildPrefabSnapSelector(
+            authoring,
+            keyName: 'prefab_polygon_creation_snap_selector',
+          ),
+          if (draft != null || gesture != null) ...<Widget>[
+            const SizedBox(height: EditorUiTokens.controlGap),
+            Text(
+              draft == null
+                  ? 'Drawing rectangle · release to keep the local preview.'
+                  : '${draft.isClosed ? 'Rectangle' : 'Polygon'} draft · '
+                        '${draft.vertices.length} vertices · '
+                        '${draft.vertices.length < 3 ? 'add at least 3 vertices' : 'ready to save'}',
+              key: const ValueKey<String>('prefab_polygon_creation_status'),
+            ),
+          ],
+          const SizedBox(height: EditorUiTokens.controlGap),
           Wrap(
             spacing: EditorUiTokens.controlGap,
             runSpacing: EditorUiTokens.controlGap,
@@ -793,140 +1059,345 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 key: const ValueKey<String>('prefab_polygon_new_shape'),
                 onPressed:
                     authoring.prefab.kind == PrefabKind.decoration ||
-                        draft != null
+                        authoring.hasActiveOperation ||
+                        !authoring.canBeginNewShape
                     ? null
                     : () {
                         authoring.setTool(TerrainPolygonTool.createPolygon);
                         authoring.beginCreatePolygon();
                       },
-                icon: const Icon(Icons.add),
-                label: const Text('New polygon'),
+                icon: const Icon(Icons.polyline),
+                label: const Text('Draw polygon'),
               ),
-              OutlinedButton.icon(
+              FilledButton.tonalIcon(
                 key: const ValueKey<String>('prefab_polygon_new_rectangle'),
                 onPressed:
                     authoring.prefab.kind == PrefabKind.decoration ||
-                        draft != null
+                        authoring.hasActiveOperation ||
+                        !authoring.canBeginNewShape
                     ? null
                     : () =>
                           authoring.setTool(TerrainPolygonTool.createRectangle),
                 icon: const Icon(Icons.crop_square),
-                label: const Text('New rectangle'),
+                label: const Text('Draw rectangle'),
               ),
               OutlinedButton.icon(
                 key: const ValueKey<String>('prefab_polygon_save_draft'),
-                onPressed: draft == null ? null : authoring.saveDraft,
+                onPressed: draft == null || draft.vertices.length < 3
+                    ? null
+                    : authoring.saveDraft,
                 icon: const Icon(Icons.save_outlined),
-                label: const Text('Save'),
+                label: const Text('Save shape'),
               ),
-              OutlinedButton(
+              TextButton(
                 key: const ValueKey<String>('prefab_polygon_cancel_draft'),
                 onPressed:
-                    !authoring.hasActiveOperation &&
-                        authoring.state.tool !=
+                    authoring.hasActiveOperation ||
+                        authoring.state.tool ==
                             TerrainPolygonTool.createRectangle
-                    ? null
-                    : authoring.cancelActiveOperation,
+                    ? authoring.cancelActiveOperation
+                    : null,
                 child: const Text('Cancel'),
               ),
             ],
           ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          if (shapes.isEmpty)
-            const Text('No committed collision shapes.')
-          else
-            for (final shape in shapes)
-              EditorListCard(
-                key: ValueKey<String>('prefab_polygon_shape_${shape.shapeId}'),
-                isSelected: selectedShapeId == shape.shapeId,
-                onTap: () => authoring.select(
-                  TerrainPolygonSelection.shape(shape.shapeId),
-                ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  selected: selectedShapeId == shape.shapeId,
-                  title: Text(shape.shapeId),
-                  subtitle: Text(
-                    '${shape.collisionMode.name} · '
-                    '${shape.vertices.length} vertices\n${_shapeExtent(shape)}',
-                  ),
-                  isThreeLine: true,
-                ),
-              ),
-          if (selectedShape != null) ...<Widget>[
-            const SizedBox(height: EditorUiTokens.controlGap),
-            Wrap(
-              spacing: EditorUiTokens.controlGap,
-              runSpacing: EditorUiTokens.controlGap,
-              children: <Widget>[
-                OutlinedButton.icon(
-                  onPressed: authoring.hasActiveOperation
-                      ? null
-                      : () => _duplicateSelectedShape(authoring, selectedShape),
-                  icon: const Icon(Icons.copy_outlined),
-                  label: const Text('Duplicate'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: authoring.normalizeSelectedShape,
-                  icon: const Icon(Icons.auto_fix_high),
-                  label: const Text('Normalize'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _editMetadata(authoring, selectedShape),
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Metadata'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: authoring.deleteSelection,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Delete'),
-                ),
-              ],
-            ),
-            const SizedBox(height: EditorUiTokens.controlGap),
-            _buildVertexInspector(authoring, selectedShape),
-          ],
-          const Divider(height: 32),
-          Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: EditorUiTokens.controlGap),
-          if (issues.isEmpty)
-            const Text('No issues for this owner.')
-          else
-            for (final issue in issues)
-              ListTile(
-                key: ValueKey<String>(
-                  'prefab_polygon_issue_${issue.code}_${issue.shapeId}_${issue.elementIndex}',
-                ),
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  issue.severity == PrefabValidationSeverity.error
-                      ? Icons.error_outline
-                      : Icons.warning_amber_outlined,
-                  color: issue.severity == PrefabValidationSeverity.error
-                      ? const Color(0xFFFF7F7F)
-                      : const Color(0xFFFFD166),
-                ),
-                title: Text(issue.code),
-                subtitle: Text(issue.message),
-                onTap: issue.shapeId.isEmpty
-                    ? null
-                    : () => _focusIssue(authoring, issue),
-              ),
         ],
       ),
     );
   }
 
+  Widget _buildSelectedShapeEditor(
+    PrefabPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    final hasPendingExactEdit =
+        _hasPendingShapeName(shape) || _exactEditController.hasChanges;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Edit ${shape.shapeId}',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        _buildPrefabSnapSelector(
+          authoring,
+          keyName: 'prefab_polygon_edit_snap_selector',
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        Wrap(
+          spacing: EditorUiTokens.controlGap,
+          runSpacing: EditorUiTokens.controlGap,
+          children: <Widget>[
+            OutlinedButton.icon(
+              key: const ValueKey<String>('prefab_polygon_duplicate_shape'),
+              onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+                  ? null
+                  : () => _duplicateSelectedShape(authoring, shape),
+              icon: const Icon(Icons.copy_outlined),
+              label: const Text('Duplicate'),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>('prefab_polygon_normalize_shape'),
+              onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+                  ? null
+                  : authoring.normalizeSelectedShape,
+              icon: const Icon(Icons.auto_fix_high),
+              label: const Text('Normalize'),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>('prefab_polygon_delete_shape'),
+              onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+                  ? null
+                  : authoring.deleteSelection,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+            ),
+          ],
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        _buildShapeMetadataInspector(authoring, shape),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        _buildVertexInspector(authoring, shape),
+      ],
+    );
+  }
+
+  Widget _buildShapeMetadataInspector(
+    PrefabPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    final shapeNameInput = _shapeNameDrafts[shape.shapeId] ?? shape.shapeId;
+    final shapeNameError = authoring.validateShapeName(
+      shapeNameInput,
+      excludingShapeId: shape.shapeId,
+    );
+    final surfaceValue = shape.surfaceKind?.trim() ?? '';
+    final materialValue = shape.materialKey?.trim() ?? '';
+    final surfaceOptions = terrainMetadataSelectorOptions(
+      current: surfaceValue,
+      known: terrainSurfaceKindOptions,
+    );
+    final materialOptions = terrainMetadataSelectorOptions(
+      current: materialValue,
+      known:
+          _materialCatalog?.materials.map((material) => material.key) ??
+          const <String>[],
+    );
+    final controlsEnabled =
+        !authoring.hasActiveOperation &&
+        !_hasPendingShapeName(shape) &&
+        !_exactEditController.hasChanges;
+    return Column(
+      key: const ValueKey<String>('prefab_polygon_metadata_section'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        TextFormField(
+          key: ValueKey<String>('prefab_polygon_shape_name_${shape.shapeId}'),
+          initialValue: shapeNameInput,
+          enabled: !authoring.hasActiveOperation,
+          decoration: InputDecoration(
+            labelText: 'Shape name',
+            helperText:
+                'Lowercase letters, numbers, and underscores; unique in '
+                'this prefab.',
+            errorText: shapeNameError,
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            setState(() => _shapeNameDrafts[shape.shapeId] = value);
+          },
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        _buildMetadataDropdown<TerrainSourceCollisionMode>(
+          keyName: 'prefab_polygon_metadata_mode',
+          label: 'Collision mode',
+          value: shape.collisionMode,
+          items: TerrainSourceCollisionMode.values
+              .where(
+                (mode) =>
+                    mode != TerrainSourceCollisionMode.none ||
+                    mode == shape.collisionMode,
+              )
+              .map(
+                (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
+                  value: mode,
+                  child: Text(_collisionModeLabel(mode)),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: controlsEnabled
+              ? (mode) {
+                  if (mode == null || mode == shape.collisionMode) return;
+                  authoring.editSelectedShapeMetadata(
+                    collisionMode: mode,
+                    surfaceKind: shape.surfaceKind,
+                    materialKey: shape.materialKey,
+                  );
+                }
+              : null,
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        _buildMetadataDropdown<String>(
+          keyName: 'prefab_polygon_metadata_surface_selector',
+          label: 'Surface kind',
+          value: surfaceValue,
+          items: surfaceOptions
+              .map(
+                (value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(terrainMetadataSelectorLabel(value)),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: controlsEnabled
+              ? (value) {
+                  if (value == null || value == surfaceValue) return;
+                  authoring.editSelectedShapeMetadata(
+                    collisionMode: shape.collisionMode,
+                    surfaceKind: nullableTerrainMetadataSelection(value),
+                    materialKey: shape.materialKey,
+                  );
+                }
+              : null,
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        _buildMetadataDropdown<String>(
+          keyName: 'prefab_polygon_metadata_material_selector',
+          label: 'Material key',
+          value: materialValue,
+          items: materialOptions
+              .map(
+                (value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    terrainMaterialSelectorLabel(_materialCatalog, value),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: controlsEnabled
+              ? (value) {
+                  if (value == null || value == materialValue) return;
+                  authoring.editSelectedShapeMetadata(
+                    collisionMode: shape.collisionMode,
+                    surfaceKind: shape.surfaceKind,
+                    materialKey: nullableTerrainMetadataSelection(value),
+                  );
+                }
+              : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDiagnosticsSection(
+    PrefabPolygonAuthoringController authoring,
+    List<PrefabValidationIssue> issues,
+  ) {
+    final errors = issues
+        .where((issue) => issue.severity == PrefabValidationSeverity.error)
+        .length;
+    final warnings = issues.length - errors;
+    return EditorSectionCard(
+      key: const ValueKey<String>('prefab_polygon_diagnostics_panel'),
+      expansionKey: const ValueKey<String>(
+        'prefab_polygon_diagnostics_panel_toggle',
+      ),
+      title: 'Diagnostics',
+      description: issues.isEmpty
+          ? 'No issues for this owner.'
+          : '$errors error(s) · $warnings warning(s)',
+      trailing: Text('${issues.length} total'),
+      collapsible: true,
+      initiallyExpanded: false,
+      child: issues.isEmpty
+          ? const Text('No issues for this owner.')
+          : Column(
+              children: <Widget>[
+                for (final issue in issues)
+                  ListTile(
+                    key: ValueKey<String>(
+                      'prefab_polygon_issue_${issue.code}_'
+                      '${issue.shapeId}_${issue.elementIndex}',
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      issue.severity == PrefabValidationSeverity.error
+                          ? Icons.error_outline
+                          : Icons.warning_amber_outlined,
+                      color: issue.severity == PrefabValidationSeverity.error
+                          ? const Color(0xFFFF7F7F)
+                          : const Color(0xFFFFD166),
+                    ),
+                    title: Text(issue.code),
+                    subtitle: Text(issue.message),
+                    onTap: issue.shapeId.isEmpty
+                        ? null
+                        : () => _focusIssue(authoring, issue),
+                  ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildMetadataDropdown<T>({
+    required String keyName,
+    required String label,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+  }) => InputDecorator(
+    decoration: InputDecoration(labelText: label),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<T>(
+        key: ValueKey<String>(keyName),
+        value: value,
+        isDense: true,
+        isExpanded: true,
+        items: items,
+        onChanged: onChanged,
+      ),
+    ),
+  );
+
+  Widget _buildPrefabSnapSelector(
+    PrefabPolygonAuthoringController authoring, {
+    required String keyName,
+  }) => SegmentedButton<int>(
+    key: ValueKey<String>(keyName),
+    segments: const <ButtonSegment<int>>[
+      ButtonSegment<int>(value: 2, label: Text('1 px grid')),
+      ButtonSegment<int>(value: 1, label: Text('0.5 px')),
+    ],
+    selected: <int>{authoring.snapPolicy.stepHalfPixels},
+    onSelectionChanged: authoring.hasActiveOperation
+        ? null
+        : (selection) {
+            final step = selection.single;
+            authoring.setSnapPolicy(
+              step == 1
+                  ? const TerrainPolygonSnapPolicy.halfPixel()
+                  : TerrainPolygonSnapPolicy.ownerGridPixels(1),
+            );
+          },
+  );
+
   Widget _buildVertexInspector(
     PrefabPolygonAuthoringController authoring,
     TerrainSourceShapeDef shape,
   ) {
+    final rectangle = TerrainAxisAlignedRectangle.tryFromShape(shape);
     final selection = authoring.state.selection;
     final selectedVertexIndex =
         selection?.shapeId == shape.shapeId &&
             selection?.kind == TerrainPolygonSelectionKind.vertex
         ? selection?.elementIndex
         : null;
+    final shapeNameError = authoring.validateShapeName(
+      _pendingShapeName(shape),
+      excludingShapeId: shape.shapeId,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -962,38 +1433,189 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             shapeId: shape.shapeId,
             vertexIndex: selectedVertexIndex,
             vertex: shape.vertices[selectedVertexIndex],
+            applyButtonKey: const ValueKey<String>('prefab_polygon_save_edit'),
+            applyLabel: 'Save edit',
+            applyEnabled: shapeNameError == null,
+            coordinateStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+            editController: _exactEditController,
+            onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
             onApply: (xHalfPixels, yHalfPixels) {
-              return authoring.editSelectedVertex(
+              final saved = authoring.editSelectedVertex(
                 TerrainSourceVertexDef(
                   xHalfPixels: xHalfPixels,
                   yHalfPixels: yHalfPixels,
                 ),
+                shapeId: _pendingShapeName(shape),
               );
+              if (saved) {
+                _shapeNameDrafts.remove(shape.shapeId);
+                _scheduleShapeEditorRefresh();
+              }
+              return saved;
             },
             controlGap: EditorUiTokens.controlGap,
+          ),
+        ] else if (rectangle != null) ...<Widget>[
+          const SizedBox(height: EditorUiTokens.controlGap),
+          TerrainPolygonRectangleEditor(
+            key: ValueKey<String>(
+              'prefab_polygon_rectangle_editor_${shape.shapeId}_'
+              '${rectangle.xHalfPixels}_${rectangle.yHalfPixels}_'
+              '${rectangle.widthHalfPixels}_${rectangle.heightHalfPixels}',
+            ),
+            keyPrefix: 'prefab_polygon',
+            rectangle: rectangle,
+            applyButtonKey: const ValueKey<String>('prefab_polygon_save_edit'),
+            applyLabel: 'Save edit',
+            applyEnabled: shapeNameError == null,
+            coordinateStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+            editController: _exactEditController,
+            onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
+            onApply:
+                ({
+                  required xHalfPixels,
+                  required bottomYHalfPixels,
+                  required widthHalfPixels,
+                  required heightHalfPixels,
+                }) {
+                  final saved = authoring.editSelectedAxisAlignedRectangle(
+                    xHalfPixels: xHalfPixels,
+                    yHalfPixels: bottomYHalfPixels - heightHalfPixels,
+                    widthHalfPixels: widthHalfPixels,
+                    heightHalfPixels: heightHalfPixels,
+                    shapeId: _pendingShapeName(shape),
+                  );
+                  if (saved) {
+                    _shapeNameDrafts.remove(shape.shapeId);
+                    _scheduleShapeEditorRefresh();
+                  }
+                  return saved;
+                },
+            controlGap: EditorUiTokens.controlGap,
+          ),
+        ] else ...<Widget>[
+          const SizedBox(height: EditorUiTokens.controlGap),
+          FilledButton.icon(
+            key: const ValueKey<String>('prefab_polygon_save_edit'),
+            onPressed: shapeNameError == null && _hasPendingShapeName(shape)
+                ? () => _saveShapeName(authoring, shape)
+                : null,
+            icon: const Icon(Icons.check),
+            label: const Text('Save edit'),
           ),
         ],
       ],
     );
   }
 
-  Future<void> _editMetadata(
+  String _pendingShapeName(TerrainSourceShapeDef shape) =>
+      (_shapeNameDrafts[shape.shapeId] ?? shape.shapeId).trim();
+
+  bool _hasPendingShapeName(TerrainSourceShapeDef shape) =>
+      _pendingShapeName(shape) != shape.shapeId;
+
+  bool _pendingShapeNameIsValid(
     PrefabPolygonAuthoringController authoring,
     TerrainSourceShapeDef shape,
-  ) async {
-    final edit = await showTerrainPolygonMetadataDialog(
-      context,
-      keyPrefix: 'prefab_polygon',
-      shape: shape,
-      workspaceRootPath: widget.controller.workspacePath,
-    );
-    if (edit != null && mounted) {
-      authoring.editSelectedShapeMetadata(
-        collisionMode: edit.collisionMode,
-        surfaceKind: edit.surfaceKind,
-        materialKey: edit.materialKey,
-      );
+  ) =>
+      authoring.validateShapeName(
+        _pendingShapeName(shape),
+        excludingShapeId: shape.shapeId,
+      ) ==
+      null;
+
+  bool _saveShapeName(
+    PrefabPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    if (!_pendingShapeNameIsValid(authoring, shape)) {
+      setState(() {});
+      return false;
     }
+    if (!_hasPendingShapeName(shape)) return true;
+    final saved = authoring.renameSelectedShape(_pendingShapeName(shape));
+    if (saved) _shapeNameDrafts.remove(shape.shapeId);
+    return saved;
+  }
+
+  void _scheduleShapeEditorRefresh() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _selectOrCloseShape(
+    PrefabPolygonAuthoringController authoring,
+    TerrainSourceShapeDef target,
+  ) async {
+    if (authoring.hasActiveOperation) return;
+    final currentSelection = authoring.state.selection;
+    final closingCurrent = currentSelection?.shapeId == target.shapeId;
+    if (currentSelection != null) {
+      final canLeave = await _resolvePendingShapeEdit(authoring);
+      if (!canLeave || !mounted || !identical(authoring, _authoring)) return;
+    }
+    authoring.select(
+      closingCurrent ? null : TerrainPolygonSelection.shape(target.shapeId),
+    );
+  }
+
+  Future<bool> _resolvePendingShapeEdit(
+    PrefabPolygonAuthoringController authoring,
+  ) async {
+    final selection = authoring.state.selection;
+    if (selection == null) return true;
+    final shape = _findShape(authoring.state.shapes, selection.shapeId);
+    if (shape == null) return true;
+    if (!_hasPendingShapeName(shape) && !_exactEditController.hasChanges) {
+      _shapeNameDrafts.remove(shape.shapeId);
+      return true;
+    }
+    final action = await showDialog<_PendingShapeEditAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        key: const ValueKey<String>('prefab_polygon_unsaved_edit_dialog'),
+        title: const Text('Save collision shape changes?'),
+        content: Text(
+          'Save the pending changes to ${shape.shapeId} before closing its '
+          'editor?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            key: const ValueKey<String>('prefab_polygon_unsaved_edit_cancel'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingShapeEditAction.cancel),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            key: const ValueKey<String>('prefab_polygon_unsaved_edit_discard'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingShapeEditAction.discard),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('prefab_polygon_unsaved_edit_save'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingShapeEditAction.save),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || !identical(authoring, _authoring)) return false;
+    return switch (action) {
+      _PendingShapeEditAction.save =>
+        _exactEditController.hasEditor
+            ? _exactEditController.save()
+            : _saveShapeName(authoring, shape),
+      _PendingShapeEditAction.discard => () {
+        _exactEditController.discard();
+        setState(() => _shapeNameDrafts.remove(shape.shapeId));
+        return true;
+      }(),
+      _PendingShapeEditAction.cancel || null => false,
+    };
   }
 
   void _duplicateSelectedShape(
@@ -1358,6 +1980,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       );
       return;
     }
+    final authoring = _authoring;
+    if (authoring != null &&
+        (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
+      return;
+    }
     if (!await _resolveOwnerCreateDraft() || !mounted) return;
     if (_ownerEditSource?.prefabKey == target.prefabKey) {
       await _resolveOwnerEditor();
@@ -1385,6 +2012,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         'Finish or cancel the active polygon operation before switching '
         'prefab owners.',
       );
+      return;
+    }
+    final authoring = _authoring;
+    if (authoring != null &&
+        (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
       return;
     }
     if (!await _resolveOwnerCreateDraft() || !mounted) return;
@@ -1504,6 +2136,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       );
       return;
     }
+    final authoring = _authoring;
+    if (authoring != null &&
+        (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
+      return;
+    }
     if (!await _resolveOwnerEditor() || !mounted) return;
     setState(() {
       _ownerCreateExpanded = true;
@@ -1583,10 +2220,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   void _bindOwner(String prefabKey) {
     _disposeAuthoring();
+    _exactEditController.discard();
+    _shapeNameDrafts.clear();
     _selectedPrefabKey = prefabKey;
     _authoring = PrefabPolygonAuthoringController(
       session: widget.controller,
       prefabKey: prefabKey,
+      newShapeSurfaceKind: terrainSurfaceKindOptions.first,
+      newShapeMaterialKey: _materialCatalog?.materials.firstOrNull?.key,
       snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
     )..addListener(_handleAuthoringChanged);
   }
@@ -1631,6 +2272,8 @@ enum _PrefabV3WorkspaceView { owners, atlasSlices, platformModules }
 
 enum _PendingOwnerEditAction { save, discard, cancel }
 
+enum _PendingShapeEditAction { save, discard, cancel }
+
 int _comparePrefabs(PrefabV3Def left, PrefabV3Def right) {
   final kindOrder = _kindOrder(left.kind).compareTo(_kindOrder(right.kind));
   if (kindOrder != 0) return kindOrder;
@@ -1652,6 +2295,12 @@ String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.translateShape => 'Move shape',
   TerrainPolygonTool.insertVertex => 'Insert vertex',
+};
+
+String _collisionModeLabel(TerrainSourceCollisionMode mode) => switch (mode) {
+  TerrainSourceCollisionMode.solid => 'Solid',
+  TerrainSourceCollisionMode.oneWay => 'One-way',
+  TerrainSourceCollisionMode.none => 'No collision (visual only)',
 };
 
 String _shapeExtent(TerrainSourceShapeDef shape) {

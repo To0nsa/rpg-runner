@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../domain/authoring_types.dart';
@@ -23,12 +25,19 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   PrefabPolygonAuthoringController({
     required EditorSessionController session,
     required String prefabKey,
+    String? newShapeSurfaceKind,
+    String? newShapeMaterialKey,
+    TerrainSourceCollisionMode newShapeCollisionMode =
+        TerrainSourceCollisionMode.solid,
     TerrainPolygonSnapPolicy snapPolicy =
         const TerrainPolygonSnapPolicy.halfPixel(),
     PrefabV3CollisionCommitPolicy commitPolicy =
         const PrefabV3CollisionCommitPolicy(),
   }) : _session = session,
        _prefabKey = prefabKey,
+       _newShapeSurfaceKind = _normalizeOptionalKey(newShapeSurfaceKind),
+       _newShapeMaterialKey = _normalizeOptionalKey(newShapeMaterialKey),
+       _newShapeCollisionMode = newShapeCollisionMode,
        _snapPolicy = snapPolicy,
        _commitPolicy = commitPolicy,
        _reducer = TerrainPolygonInteractionReducer(
@@ -45,6 +54,11 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   final EditorSessionController _session;
   final String _prefabKey;
+  String? _newShapeSurfaceKind;
+  String? _newShapeMaterialKey;
+  TerrainSourceCollisionMode _newShapeCollisionMode;
+  String _newShapeNameInput = '';
+  int _newShapeNameGeneration = 0;
   TerrainPolygonSnapPolicy _snapPolicy;
   final PrefabV3CollisionCommitPolicy _commitPolicy;
   final TerrainPolygonInteractionReducer _reducer;
@@ -60,6 +74,19 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
       TerrainPolygonSceneProjection.fromInteraction(_state);
   List<PrefabValidationIssue> get issues => _issues;
   TerrainPolygonSnapPolicy get snapPolicy => _snapPolicy;
+  String? get newShapeMaterialKey => _newShapeMaterialKey;
+  String? get newShapeSurfaceKind => _newShapeSurfaceKind;
+  TerrainSourceCollisionMode get newShapeCollisionMode =>
+      _newShapeCollisionMode;
+  String get newShapeNameInput => _newShapeNameInput;
+  int get newShapeNameGeneration => _newShapeNameGeneration;
+  String get resolvedNewShapeName => _newShapeNameInput.trim().isEmpty
+      ? _reducer.allocateShapeId(_state)
+      : _newShapeNameInput.trim();
+  String? get newShapeNameError => _newShapeNameInput.trim().isEmpty
+      ? null
+      : validateShapeName(_newShapeNameInput);
+  bool get canBeginNewShape => newShapeNameError == null;
   bool get hasActiveOperation => _state.hasActiveOperation;
   bool get canUndo {
     if (_state.gesture != null) return true;
@@ -84,6 +111,49 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   void setTool(TerrainPolygonTool tool) {
     _replaceLocalState(_reducer.setTool(_state, tool));
+  }
+
+  void setNewShapeCollisionMode(TerrainSourceCollisionMode collisionMode) {
+    if (_state.hasActiveOperation || collisionMode == _newShapeCollisionMode) {
+      return;
+    }
+    _newShapeCollisionMode = collisionMode;
+    notifyListeners();
+  }
+
+  void setNewShapeMaterialKey(String? materialKey) {
+    if (_state.hasActiveOperation) return;
+    final normalized = _normalizeOptionalKey(materialKey);
+    if (normalized == _newShapeMaterialKey) return;
+    _newShapeMaterialKey = normalized;
+    notifyListeners();
+  }
+
+  void setNewShapeSurfaceKind(String? surfaceKind) {
+    if (_state.hasActiveOperation) return;
+    final normalized = _normalizeOptionalKey(surfaceKind);
+    if (normalized == _newShapeSurfaceKind) return;
+    _newShapeSurfaceKind = normalized;
+    notifyListeners();
+  }
+
+  void setNewShapeNameInput(String value) {
+    if (_state.hasActiveOperation || value == _newShapeNameInput) return;
+    _newShapeNameInput = value;
+    _issues = const <PrefabValidationIssue>[];
+    notifyListeners();
+  }
+
+  String? validateShapeName(String value, {String? excludingShapeId}) {
+    final shapeId = value.trim();
+    final syntaxError = terrainSourceShapeIdValidationError(shapeId);
+    if (syntaxError != null) return syntaxError;
+    final duplicate = _state.shapes.any(
+      (shape) =>
+          shape.shapeId != excludingShapeId &&
+          shape.shapeId.toLowerCase() == shapeId.toLowerCase(),
+    );
+    return duplicate ? 'Another collision shape already uses this name.' : null;
   }
 
   /// Changes the page-local authoring grid without creating session history.
@@ -121,29 +191,38 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
-  void beginCreatePolygon({
-    TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
+  bool beginCreatePolygon({
+    TerrainSourceCollisionMode? collisionMode,
     String? surfaceKind,
     String? materialKey,
   }) {
+    if (!canBeginNewShape) return false;
+    final before = _state;
     _replaceLocalState(
       _reducer.beginCreatePolygon(
         _state,
-        collisionMode: collisionMode,
-        surfaceKind: surfaceKind,
-        materialKey: materialKey,
+        shapeId: resolvedNewShapeName,
+        collisionMode: collisionMode ?? _newShapeCollisionMode,
+        surfaceKind: surfaceKind ?? newShapeSurfaceKind,
+        materialKey: materialKey ?? _newShapeMaterialKey,
       ),
     );
+    return !identical(before, _state);
   }
 
   bool beginCreateRectangle({
     required int pointer,
     required TerrainPolygonScenePoint point,
   }) {
+    if (!canBeginNewShape) return false;
     final next = _reducer.beginCreateRectangle(
       _state,
       pointer: pointer,
       startPointer: _snapPoint(point),
+      shapeId: resolvedNewShapeName,
+      collisionMode: _newShapeCollisionMode,
+      surfaceKind: newShapeSurfaceKind,
+      materialKey: _newShapeMaterialKey,
     );
     final started = !identical(next, _state);
     _replaceLocalState(next);
@@ -162,10 +241,16 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   bool saveDraft() {
     final attemptedState = _state;
-    return _applyInteractionResult(
+    final saved = _applyInteractionResult(
       _reducer.saveDraft(attemptedState),
       attemptedState: attemptedState,
     );
+    if (saved) {
+      _newShapeNameInput = '';
+      _newShapeNameGeneration += 1;
+      notifyListeners();
+    }
+    return saved;
   }
 
   bool beginDraftGesture({
@@ -303,10 +388,40 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     return _applyInteractionResult(result, attemptedState: attemptedState);
   }
 
-  bool editSelectedVertex(TerrainSourceVertexDef vertex) {
+  bool editSelectedVertex(TerrainSourceVertexDef vertex, {String? shapeId}) {
     final attemptedState = _state;
     return _applyInteractionResult(
-      _reducer.editSelectedVertex(attemptedState, vertex: vertex),
+      _reducer.editSelectedVertex(
+        attemptedState,
+        vertex: vertex,
+        shapeId: shapeId,
+      ),
+      attemptedState: attemptedState,
+    );
+  }
+
+  bool editSelectedAxisAlignedRectangle({
+    required int xHalfPixels,
+    required int yHalfPixels,
+    required int widthHalfPixels,
+    required int heightHalfPixels,
+    String? shapeId,
+  }) {
+    final attemptedState = _state;
+    final left = _snapPolicy.snapCoordinate(xHalfPixels);
+    final top = _snapPolicy.snapCoordinate(yHalfPixels);
+    final right = _snapPolicy.snapCoordinate(xHalfPixels + widthHalfPixels);
+    final bottom = _snapPolicy.snapCoordinate(yHalfPixels + heightHalfPixels);
+    final minimumSize = _snapPolicy.stepHalfPixels;
+    return _applyInteractionResult(
+      _reducer.editSelectedAxisAlignedRectangle(
+        attemptedState,
+        xHalfPixels: left,
+        yHalfPixels: top,
+        widthHalfPixels: math.max(minimumSize, right - left),
+        heightHalfPixels: math.max(minimumSize, bottom - top),
+        shapeId: shapeId,
+      ),
       attemptedState: attemptedState,
     );
   }
@@ -330,6 +445,14 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     final attemptedState = _state;
     return _applyInteractionResult(
       _reducer.normalizeSelectedShape(attemptedState),
+      attemptedState: attemptedState,
+    );
+  }
+
+  bool renameSelectedShape(String shapeId) {
+    final attemptedState = _state;
+    return _applyInteractionResult(
+      _reducer.renameSelectedShape(attemptedState, shapeId: shapeId.trim()),
       attemptedState: attemptedState,
     );
   }
@@ -598,4 +721,9 @@ List<PrefabValidationIssue> _sortedIssues(
       return order != 0 ? order : left.message.compareTo(right.message);
     });
   return List<PrefabValidationIssue>.unmodifiable(sorted);
+}
+
+String? _normalizeOptionalKey(String? value) {
+  final normalized = value?.trim() ?? '';
+  return normalized.isEmpty ? null : normalized;
 }

@@ -93,6 +93,11 @@ void main() {
     );
     await tester.tap(find.widgetWithText(Tab, 'Shapes'));
     await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
 
     expect(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
@@ -102,7 +107,7 @@ void main() {
       const ValueKey<String>('prefab_polygon_new_rectangle'),
     );
     expect(newRectangle, findsOneWidget);
-    expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNotNull);
+    expect(tester.widget<FilledButton>(newRectangle).onPressed, isNotNull);
     final saveDraft = find.byKey(
       const ValueKey<String>('prefab_polygon_save_draft'),
     );
@@ -125,12 +130,17 @@ void main() {
     }
     await tester.tap(find.widgetWithText(Tab, 'Shapes'));
     await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNotNull);
-    expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
+    expect(tester.widget<FilledButton>(newRectangle).onPressed, isNull);
     await tester.tap(find.widgetWithText(Tab, 'Scene'));
     await tester.pumpAndSettle();
     expect(
@@ -214,6 +224,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_polygon_creation_panel_toggle',
+        bodyKey: 'prefab_polygon_creation_name_0',
+      );
+
       expect(
         tester
             .widget<FilledButton>(
@@ -236,6 +252,177 @@ void main() {
           isNull,
         );
       }
+    },
+  );
+
+  testWidgets(
+    'collision sections edit rectangle identity and metadata below its row',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_creation_panel_toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_shapes_panel_toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_diagnostics_panel_toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('prefab_polygon_metadata_dialog')),
+        findsNothing,
+      );
+
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_polygon_shapes_panel_toggle',
+        bodyKey: 'prefab_shape_list',
+      );
+      final shapeRow = find.byKey(
+        const ValueKey<String>('prefab_polygon_shape_collision_001'),
+      );
+      await tester.tap(shapeRow);
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_polygon_selected_shape_editor_collision_001',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_rectangle_width_field'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('prefab_polygon_duplicate_shape')),
+        findsOneWidget,
+      );
+
+      final nameField = find.byKey(
+        const ValueKey<String>('prefab_polygon_shape_name_collision_001'),
+      );
+      await tester.ensureVisible(nameField);
+      await tester.enterText(nameField, 'collision_pending');
+      expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
+      tester.widget<EditorListCard>(shapeRow).onTap!();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_unsaved_edit_dialog'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_unsaved_edit_cancel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('collision_pending'), findsOneWidget);
+
+      tester.widget<EditorListCard>(shapeRow).onTap!();
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_unsaved_edit_discard'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_polygon_selected_shape_editor_collision_001',
+          ),
+        ),
+        findsNothing,
+      );
+      expect(_prefab(harness.session, 'obstacle').revision, 1);
+
+      await tester.tap(shapeRow);
+      await tester.pump();
+      await tester.enterText(nameField, 'collision_main');
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_polygon_rectangle_x_field')),
+        '-4',
+      );
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_rectangle_bottom_field'),
+        ),
+        '4',
+      );
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_rectangle_width_field'),
+        ),
+        '8',
+      );
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('prefab_polygon_rectangle_height_field'),
+        ),
+        '8',
+      );
+      final saveEdit = find.byKey(
+        const ValueKey<String>('prefab_polygon_save_edit'),
+      );
+      await tester.ensureVisible(saveEdit);
+      await tester.tap(saveEdit);
+      await tester.pumpAndSettle();
+
+      var obstacle = _prefab(harness.session, 'obstacle');
+      expect(obstacle.revision, 2);
+      expect(obstacle.collisionShapes.single.shapeId, 'collision_main');
+      expect(
+        obstacle.collisionShapes.single.vertices.first,
+        const TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: -8),
+      );
+
+      final modeSelector = find.byKey(
+        const ValueKey<String>('prefab_polygon_metadata_mode'),
+      );
+      await tester.ensureVisible(modeSelector);
+      await tester.tap(modeSelector);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('One-way').last);
+      await tester.pumpAndSettle();
+      obstacle = _prefab(harness.session, 'obstacle');
+      expect(obstacle.revision, 3);
+      expect(
+        obstacle.collisionShapes.single.collisionMode,
+        TerrainSourceCollisionMode.oneWay,
+      );
     },
   );
 
@@ -264,6 +451,12 @@ void main() {
     expect(find.text('Save Definitions'), findsNothing);
     expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
 
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
+
     final saveDraftFinder = find.byKey(
       const ValueKey<String>('prefab_polygon_save_draft'),
     );
@@ -272,7 +465,7 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
     final surface = find.byKey(
       const ValueKey<String>('prefab_polygon_scene_surface'),
     );
@@ -285,7 +478,7 @@ void main() {
     expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
     expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
     expect(shortcutHandler.canHandleRedoSessionShortcut, isTrue);
     expect(shortcutHandler.handleRedoSessionShortcut(), isTrue);
     await tester.pump();
@@ -308,7 +501,7 @@ void main() {
     await tester.ensureVisible(platformOwner);
     await tester.tap(platformOwner);
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
     expect(
       find.textContaining(
         'Finish or cancel the active polygon operation before switching',
@@ -329,7 +522,12 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
     );
     await tester.pump();
-    await tester.tap(find.text('0.5 px'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('prefab_polygon_snap_selector')),
+        matching: find.text('0.5 px'),
+      ),
+    );
     await tester.pump();
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
@@ -372,6 +570,12 @@ void main() {
     obstacle = _prefab(harness.session, 'obstacle');
     expect(obstacle.revision, 2);
 
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_shapes_panel_toggle',
+      bodyKey: 'prefab_shape_list',
+    );
+
     final editedShapeRow = find.byKey(
       const ValueKey<String>('prefab_polygon_shape_collision_002'),
     );
@@ -394,7 +598,7 @@ void main() {
     await tester.enterText(xField, '5');
     await tester.enterText(yField, '5.5');
     await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_polygon_apply_vertex')),
+      find.byKey(const ValueKey<String>('prefab_polygon_save_edit')),
     );
     await tester.pump();
     obstacle = _prefab(harness.session, 'obstacle');
@@ -406,6 +610,12 @@ void main() {
     expect(editedVertex.xHalfPixels, 10);
     expect(editedVertex.yHalfPixels, 11);
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('prefab_polygon_diagnostics_panel_toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     final diagnostic = find.text(
       'prefab_collision_shape_outside_visual_bounds',
     );
@@ -413,12 +623,14 @@ void main() {
     await tester.tap(diagnostic);
     await tester.pump();
     final shapeTile = tester.widget<ListTile>(
-      find.descendant(
-        of: find.byKey(
-          const ValueKey<String>('prefab_polygon_shape_collision_001'),
-        ),
-        matching: find.byType(ListTile),
-      ),
+      find
+          .descendant(
+            of: find.byKey(
+              const ValueKey<String>('prefab_polygon_shape_collision_001'),
+            ),
+            matching: find.byType(ListTile),
+          )
+          .first,
     );
     expect(shapeTile.selected, isTrue);
 

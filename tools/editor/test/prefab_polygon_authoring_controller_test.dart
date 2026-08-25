@@ -180,6 +180,68 @@ void main() {
     );
   });
 
+  test(
+    'creation metadata stays local and rectangle identity saves atomically',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+      final session = harness.session;
+
+      controller.setNewShapeNameInput('collision_002');
+      controller.setNewShapeCollisionMode(TerrainSourceCollisionMode.oneWay);
+      controller.setNewShapeSurfaceKind('obstacle');
+      controller.setNewShapeMaterialKey('stone');
+      expect(controller.beginCreatePolygon(), isTrue);
+      expect(controller.state.draft!.shapeId, 'collision_002');
+      expect(
+        controller.state.draft!.collisionMode,
+        TerrainSourceCollisionMode.oneWay,
+      );
+      expect(controller.state.draft!.surfaceKind, 'obstacle');
+      expect(controller.state.draft!.materialKey, 'stone');
+      expect(session.canUndo, isFalse);
+      expect(controller.prefab.revision, 4);
+      controller.cancelActiveOperation();
+
+      controller.select(TerrainPolygonSelection.shape('collision_001'));
+      expect(
+        controller.editSelectedAxisAlignedRectangle(
+          xHalfPixels: -6,
+          yHalfPixels: -6,
+          widthHalfPixels: 12,
+          heightHalfPixels: 12,
+          shapeId: 'collision_main',
+        ),
+        isTrue,
+      );
+      expect(controller.prefab.revision, 5);
+      expect(session.canUndo, isTrue);
+      expect(
+        controller.state.selection,
+        TerrainPolygonSelection.shape('collision_main'),
+      );
+      final edited = controller.prefab.collisionShapes.single;
+      expect(edited.shapeId, 'collision_main');
+      expect(edited.vertices, const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: -6, yHalfPixels: -6),
+        TerrainSourceVertexDef(xHalfPixels: 6, yHalfPixels: -6),
+        TerrainSourceVertexDef(xHalfPixels: 6, yHalfPixels: 6),
+        TerrainSourceVertexDef(xHalfPixels: -6, yHalfPixels: 6),
+      ]);
+      expect(
+        controller.validateShapeName('collision_main'),
+        contains('already uses'),
+      );
+      expect(
+        controller.validateShapeName(
+          'collision_main',
+          excludingShapeId: 'collision_main',
+        ),
+        isNull,
+      );
+    },
+  );
+
   test('controller requires a current prefab-v3 session', () {
     final session = EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(

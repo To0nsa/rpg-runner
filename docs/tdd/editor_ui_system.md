@@ -180,6 +180,24 @@ where they encode domain semantics such as create/edit banners, scene controls,
 or fixed three-panel labels; the former prefab-only card shells and spacing
 registry have been removed.
 
+Prefab collision authoring projects three sibling section contracts inside the
+authoring sidebar: creation, retained shapes, and diagnostics. Creation state
+owns optional identity, collision mode, surface/material defaults, snap policy,
+and the local polygon/rectangle draft. Retained shapes use `EditorListCard`'s
+detail slot for contextual metadata, lifecycle actions, and exact geometry; no
+Prefab collision-metadata modal remains. The mounted exact editor and route-
+local shape-name draft report pending state through
+`TerrainPolygonExactEditController`. Re-click, owner/view navigation, and
+source apply must resolve Save/Discard/Cancel before the selection/controller
+can change.
+
+An axis-aligned four-corner loop uses `TerrainPolygonRectangleEditor` with
+X/Bottom/Width/Height in exact half-pixel ticks. Other loops keep individual
+vertex editing. Identity and one exact geometry change are passed together to
+the shared polygon reducer, producing at most one owner-reviewed collision
+commit, revision increment, and undo entry. Collision, surface, and material
+selectors remain immediate semantic metadata edits, matching Chunk behavior.
+
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
 composition is partitioned by the active Chunk workspace tab. Its rows and
 expanded editors or retained dialogs share typed selection and the same

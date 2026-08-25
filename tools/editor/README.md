@@ -193,12 +193,22 @@ chip, and expanded inline editor all resolve the same stable `prefabKey` without
 creating a revision or pending change.
 
 Polygon metadata uses selectors for supported surface semantics and terrain
-materials loaded from the canonical terrain-material manifest. Prefab polygon
-dialogs retain thumbnail selectors and an editable preview. Chunk Creator puts
-the three selectors directly in the Shapes card; each selection is one
-validated history edit, and its Material **Preview** button opens the composed
+materials loaded from the canonical terrain-material manifest. Prefab and
+Chunk collision creation and retained-shape editors place those selectors
+inline; the former Prefab metadata dialog is no longer part of the workflow.
+Each accepted metadata selection is one validated history edit, and Chunk's
+Material **Preview** button opens the composed
 fill, top/detail bands, convex corner/endpoint caps, source assets, and explicit
 wall/underside coverage in a read-only dialog.
+
+Prefab collision authoring is split into collapsed **Create collision shape**,
+**Existing collision shapes**, and **Diagnostics** sections. Creation owns an
+optional validated shape name, collision/surface/material defaults, snap grid,
+draft readiness, and Save/Cancel. A retained shape expands its editor inside
+its selected row; re-clicking closes it, with Save/Discard/Cancel protection for
+unsaved identity or exact-coordinate fields. Axis-aligned four-vertex polygons
+use the compact X/Bottom/Width/Height editor, arbitrary polygons retain vertex
+editing, and identity plus exact geometry save as one collision command.
 
 The **Terrain Materials** route creates, duplicates, edits, validates, and
 reference-safely deletes those definitions. Each material owns a stable key,

@@ -212,6 +212,16 @@ inline-editor context all retain the same stable owner key. Selecting through
 either the library or compact header rebinds the collision controller only
 after local owner drafts and active polygon operations have been resolved.
 
+Prefab collision creation now supplies the shared reducer with an optional
+validated shape ID plus the selected collision mode, surface, material, and
+half/whole-pixel snap policy. These values remain local until the draft is
+saved. Retained shapes expand below their row. The shared exact rectangle view
+recognizes axis-aligned four-corner polygons; Prefab routes can then replace all
+four corners and the shape ID in one reducer result while arbitrary polygons
+retain exact vertex editing. Pending identity/coordinate text is guarded across
+row, owner, and workspace-view navigation. The former Prefab metadata dialog
+has no production entry point.
+
 ## Chunk V2 Existing-Owner Composition Contract
 
 `ChunkV2CompositionCommit` is the complementary immutable before/after

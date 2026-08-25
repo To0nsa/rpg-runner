@@ -227,45 +227,46 @@ editing model without changing Prefab geometry rules.
 
 ### Section split
 
-- [ ] Add a collapsed **Create collision shape** section.
-- [ ] Add a collapsed **Existing collision shapes** section with a total count.
-- [ ] Move Diagnostics into its own collapsed section in Phase 5-ready form.
-- [ ] Remove the combined **Shapes and diagnostics** panel.
+- [x] Add a collapsed **Create collision shape** section.
+- [x] Add a collapsed **Existing collision shapes** section with a total count.
+- [x] Move Diagnostics into its own collapsed section in Phase 5-ready form.
+- [x] Remove the combined **Shapes and diagnostics** panel.
 
 ### Creation workflow
 
-- [ ] Add optional/validated shape identity before drawing.
-- [ ] Add permitted collision mode, surface, and material controls.
-- [ ] Preserve Prefab kind restrictions and half-pixel/whole-pixel snap choice.
-- [ ] Show polygon/rectangle draft status and minimum-vertex readiness.
-- [ ] Keep Save and Cancel in the creation section.
+- [x] Add optional/validated shape identity before drawing.
+- [x] Add permitted collision mode, surface, and material controls.
+- [x] Preserve Prefab kind restrictions and half-pixel/whole-pixel snap choice.
+- [x] Show polygon/rectangle draft status and minimum-vertex readiness.
+- [x] Keep Save and Cancel in the creation section.
 
 ### Existing-shape workflow
 
-- [ ] Expand the selected shape directly below its row.
-- [ ] Re-click closes the selected shape editor.
-- [ ] Resolve Save/Discard/Cancel before leaving dirty exact fields.
-- [ ] Move collision mode, surface kind, material, and shape identity inline.
-- [ ] Keep Duplicate, Normalize, and Delete contextual.
-- [ ] Remove the Prefab collision metadata modal and dead code.
-- [ ] Keep list and scene shape/vertex selection synchronized.
+- [x] Expand the selected shape directly below its row.
+- [x] Re-click closes the selected shape editor.
+- [x] Resolve Save/Discard/Cancel before leaving dirty exact fields.
+- [x] Move collision mode, surface kind, material, and shape identity inline.
+- [x] Keep Duplicate, Normalize, and Delete contextual.
+- [x] Remove the Prefab collision metadata modal and dead code.
+- [x] Keep list and scene shape/vertex selection synchronized.
 
 ### Exact geometry
 
-- [ ] Reuse the shared compact rectangle editor for axis-aligned rectangles.
-- [ ] Preserve arbitrary polygon vertex editing.
-- [ ] Preserve Prefab half-pixel display and validation where allowed.
-- [ ] Ensure accepted exact edits create one collision command/revision/undo.
+- [x] Reuse the shared compact rectangle editor for axis-aligned rectangles.
+- [x] Preserve arbitrary polygon vertex editing.
+- [x] Preserve Prefab half-pixel display and validation where allowed.
+- [x] Ensure accepted exact edits create one collision command/revision/undo.
 
 ### Phase 4 tests and validation
 
-- [ ] Cover creation defaults, polygon/rectangle drafts, Save, and Cancel.
-- [ ] Cover row-local metadata and lifecycle actions.
-- [ ] Cover rectangle and arbitrary polygon exact editing.
-- [ ] Cover list/scene synchronization and unsaved-edit resolution.
-- [ ] Update README/TDD and this checklist.
-- [ ] Run analyzer, focused tests, full editor tests, and generator dry-run when
-      the runtime seam is touched.
+- [x] Cover creation defaults, polygon/rectangle drafts, Save, and Cancel.
+- [x] Cover row-local metadata and lifecycle actions.
+- [x] Cover rectangle and arbitrary polygon exact editing.
+- [x] Cover list/scene synchronization and unsaved-edit resolution.
+- [x] Update README/TDD and this checklist.
+- [x] Run analyzer, focused tests, full editor tests, and generator dry-run when
+      the runtime seam is touched (analyzer clean and all 555 editor tests pass
+      on August 26, 2026; no runtime seam changed).
 - [ ] Commit Phase 4 as one validated logical milestone.
 
 ## Phase 5 — Panels, Diagnostics, And Responsive Layout
