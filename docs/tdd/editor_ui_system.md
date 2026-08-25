@@ -137,6 +137,21 @@ has changed. Save dispatches the pending identity and geometry as one semantic
 owner edit; Discard clears both local drafts; Cancel preserves the open editor.
 Pending inspector text prevents source apply until it is resolved.
 
+Existing Prefab-v3 and Chunk-v2 owner metadata uses the same row-local draft
+contract. Selecting an owner expands a reusable typed form directly beneath
+that owner's `EditorListCard`; opening, closing, or editing the form is
+presentation state until Apply dispatches the existing metadata command with
+the captured stable key and before snapshot. A clean re-selection closes the
+editor immediately. A dirty re-selection or owner/level change requests
+Save/Discard/Cancel, while a rejected or stale command leaves the mounted form,
+values, and diagnostic intact. Dirty owner forms participate in
+`EditorPageLocalDraftState`, block source apply, consume undo before it can
+reach session history, disable redo, and guard Prefab workspace-view changes.
+An active Prefab polygon gesture also blocks
+owner replacement, so route-controller disposal cannot discard authored work.
+Owner creation and rename remain separate lifecycle dialogs during this first
+migration milestone.
+
 Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
 section, list-row, and token primitives. Prefab-specific widgets remain only
 where they encode domain semantics such as create/edit banners, scene controls,

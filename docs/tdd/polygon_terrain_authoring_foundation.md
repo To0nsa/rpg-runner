@@ -171,6 +171,24 @@ source crosses the same complete validation, ownership plan, drift audit, and
 rollback-safe transaction as polygon edits. Legacy or missing Chunk source
 resolves to the migration-required document before any v1 command can run.
 
+The Prefab and Chunk routes project their owner metadata contracts through
+row-local forms rather than edit modals. Each form captures the stable owner
+key and immutable metadata snapshot when opened. Apply submits that captured
+snapshot through `PrefabV3MetadataCommit` or `ChunkV2MetadataCommit`; it never
+reconstructs protected geometry, composition, dimensions, or identity from
+widget state. Accepted commands close the editor after the canonical session
+document arrives. Rejected or stale commands retain the local field values and
+surface the command diagnostic inline. Cancel and clean closure do not create
+a revision, history entry, or pending diff.
+
+Dirty owner forms are part of the route's local-draft projection. Source apply
+and session undo/redo cannot bypass them: undo cancels the local form before
+session history and redo is unavailable. Owner, level, or Prefab workspace
+navigation must resolve Save/Discard/Cancel first. Prefab owner selection is
+also unavailable while the polygon controller owns an active draw or gesture
+operation. This prevents replacing the route-local controller from silently
+discarding unfinished collision work.
+
 ## Chunk V2 Existing-Owner Composition Contract
 
 `ChunkV2CompositionCommit` is the complementary immutable before/after

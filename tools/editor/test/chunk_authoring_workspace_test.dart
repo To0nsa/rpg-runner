@@ -2478,7 +2478,7 @@ void main() {
       await _openSection(
         tester,
         toggleKey: 'chunk_owner_section_toggle',
-        bodyKey: 'chunk_v2_owner_edit',
+        bodyKey: 'chunk_polygon_owner_forest_chunk',
       );
       await _openSection(
         tester,
@@ -2577,13 +2577,16 @@ void main() {
             .onSelectionChanged,
         isNull,
       );
+      final ownerRow = find.byKey(
+        const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
+      );
+      tester.widget<EditorListCard>(ownerRow).onTap?.call();
+      await tester.pump();
       expect(
-        tester
-            .widget<OutlinedButton>(
-              find.byKey(const ValueKey<String>('chunk_v2_owner_edit')),
-            )
-            .onPressed,
-        isNull,
+        find.byKey(
+          const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+        ),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_v2_layer_add')),
@@ -3066,14 +3069,20 @@ void main() {
       await _openSection(
         tester,
         toggleKey: 'chunk_owner_section_toggle',
-        bodyKey: 'chunk_v2_owner_edit',
+        bodyKey: 'chunk_polygon_owner_forest_chunk',
       );
 
       final original = _chunk(harness.session, 'forest_chunk');
       await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_edit')),
+        find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_status_active')),
       );
@@ -3098,7 +3107,7 @@ void main() {
       await tester.ensureVisible(groundBandField);
       await tester.enterText(groundBandField, '-3');
       final applyMetadata = find.byKey(
-        const ValueKey<String>('chunk_v2_owner_dialog_apply'),
+        const ValueKey<String>('chunk_v2_owner_inline_apply_forest_chunk'),
       );
       await tester.ensureVisible(applyMetadata);
       await tester.tap(applyMetadata);
@@ -3200,6 +3209,209 @@ void main() {
       expect(harness.plugin.loadCount, 1);
     },
   );
+
+  testWidgets('inline chunk metadata protects dirty owner navigation', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_polygon_owner_forest_chunk',
+    );
+
+    final ownerRow = find.byKey(
+      const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
+    );
+    await tester.ensureVisible(ownerRow);
+    await tester.pump();
+    await tester.tap(ownerRow);
+    await tester.pump();
+    expect(find.textContaining('Edit forest_chunk metadata'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+      ),
+      findsOneWidget,
+    );
+    tester.widget<EditorListCard>(ownerRow).onTap!();
+    await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+      ),
+      findsNothing,
+    );
+    tester.widget<EditorListCard>(ownerRow).onTap!();
+    await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+      ),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_tags_field')),
+      'unsaved',
+    );
+    await tester.pump();
+    final routeState = tester.state(find.byType(ChunkCreatorPage));
+    expect(
+      (routeState as EditorPageLocalDraftState).hasLocalDraftChanges,
+      isTrue,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_level_selector')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('meadow').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_cancel')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (harness.session.document! as ChunkV2Document).activeLevelId,
+      'forest',
+    );
+
+    tester.widget<EditorListCard>(ownerRow).onTap!();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_cancel')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+      ),
+      findsOneWidget,
+    );
+
+    tester.widget<EditorListCard>(ownerRow).onTap!();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_discard')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+      ),
+      findsNothing,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').tags, <String>['forest']);
+  });
+
+  testWidgets('stale chunk metadata stays mounted with its local values', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_polygon_owner_forest_chunk',
+    );
+
+    final ownerRow = find.byKey(
+      const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
+    );
+    await tester.ensureVisible(ownerRow);
+    await tester.tap(ownerRow);
+    await tester.pump();
+    final tagsField = find.byKey(
+      const ValueKey<String>('chunk_v2_owner_tags_field'),
+    );
+    await tester.enterText(tagsField, 'local');
+    await tester.pump();
+
+    final original = _chunk(harness.session, 'forest_chunk');
+    final before = ChunkV2MetadataSnapshot.fromChunk(original);
+    harness.session.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': original.chunkKey,
+          'commit': ChunkV2MetadataCommit(
+            before: before,
+            after: ChunkV2MetadataSnapshot(
+              status: chunkStatusDeprecated,
+              levelId: before.levelId,
+              difficulty: before.difficulty,
+              assemblyGroupId: before.assemblyGroupId,
+              tags: before.tags,
+              groundBandZIndex: before.groundBandZIndex,
+            ),
+          ),
+        },
+      ),
+    );
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+
+    final apply = find.byKey(
+      const ValueKey<String>('chunk_v2_owner_inline_apply_forest_chunk'),
+    );
+    await tester.ensureVisible(apply);
+    await tester.tap(apply);
+    await tester.pump();
+
+    expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_form_error')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: tagsField, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      'local',
+    );
+  });
 
   testWidgets(
     'chunk-v2 composition forms edit canonical layers placements and markers',

@@ -4,11 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/domain/prefab_v3_metadata_commit.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_tile_file_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
@@ -48,7 +50,7 @@ void main() {
       matching: find.byType(ListTile),
     );
     expect(tester.widget<ListTile>(requestedOwnerTile).selected, isTrue);
-    expect(find.textContaining('platform_module:module_a'), findsOneWidget);
+    expect(find.textContaining('platform_module:module_a'), findsWidgets);
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
 
@@ -289,8 +291,23 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
     );
     await tester.pump();
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
+    expect(
+      find.textContaining(
+        'Finish or cancel the active polygon operation before switching',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_cancel_draft')),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
+    );
+    await tester.pump();
     expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
-    expect(find.textContaining('platform_module:module_a'), findsOneWidget);
+    expect(find.textContaining('platform_module:module_a'), findsWidgets);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
@@ -416,9 +433,15 @@ void main() {
         'obstacle',
       ).collisionShapes;
       await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
+        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(
         find.byKey(const ValueKey<String>('prefab_v3_owner_status_field')),
       );
@@ -432,9 +455,12 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_v3_owner_tags_field')),
         'test, boss, test',
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_dialog_apply')),
+      final applyOwnerMetadata = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_inline_apply_obstacle'),
       );
+      await tester.ensureVisible(applyOwnerMetadata);
+      await tester.pump();
+      await tester.tap(applyOwnerMetadata);
       await tester.pumpAndSettle();
 
       var obstacle = _prefab(harness.session, 'obstacle');
@@ -542,6 +568,203 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+
+  testWidgets(
+    'inline prefab metadata protects dirty owner and workspace navigation',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final obstacleOwner = find.byKey(
+        const ValueKey<String>('prefab_polygon_owner_obstacle'),
+      );
+      await tester.tap(obstacleOwner);
+      await tester.pump();
+      expect(find.text('Edit prefab metadata'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+        ),
+        findsOneWidget,
+      );
+      tester.widget<EditorListCard>(obstacleOwner).onTap!();
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+        ),
+        findsNothing,
+      );
+      tester.widget<EditorListCard>(obstacleOwner).onTap!();
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_tags_field')),
+        'unsaved',
+      );
+      await tester.pump();
+      final routeState = tester.state(find.byType(PrefabCreatorPage));
+      expect(
+        (routeState as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isTrue,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      );
+      await tester.pump();
+      expect(
+        find.textContaining(
+          'Apply or cancel the prefab metadata draft before switching views',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+        ),
+        findsOneWidget,
+      );
+
+      final platformOwner = find.byKey(
+        const ValueKey<String>('prefab_polygon_owner_platform'),
+      );
+      tester.widget<EditorListCard>(platformOwner).onTap!();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_unsaved_edit_dialog'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_unsaved_edit_cancel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+        ),
+        findsOneWidget,
+      );
+
+      tester.widget<EditorListCard>(platformOwner).onTap!();
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_unsaved_edit_discard'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_inline_editor_platform'),
+        ),
+        findsOneWidget,
+      );
+      expect(_prefab(harness.session, 'obstacle').tags, <String>['test']);
+    },
+  );
+
+  testWidgets('stale prefab metadata stays mounted with its local values', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+    );
+    await tester.pump();
+    final tagsField = find.byKey(
+      const ValueKey<String>('prefab_v3_owner_tags_field'),
+    );
+    await tester.enterText(tagsField, 'local');
+    await tester.pump();
+
+    final original = _prefab(harness.session, 'obstacle');
+    final before = PrefabV3MetadataSnapshot.fromPrefab(original);
+    harness.session.applyCommand(
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3MetadataCommandKind,
+        payload: <String, Object?>{
+          'prefabKey': original.prefabKey,
+          'commit': PrefabV3MetadataCommit(
+            before: before,
+            after: PrefabV3MetadataSnapshot(
+              status: PrefabStatus.deprecated,
+              kind: before.kind,
+              visualSource: before.visualSource,
+              anchorXPx: before.anchorXPx,
+              anchorYPx: before.anchorYPx,
+              tags: before.tags,
+            ),
+          ),
+        },
+      ),
+    );
+    await tester.pump();
+    expect(_prefab(harness.session, 'obstacle').revision, 2);
+
+    final apply = find.byKey(
+      const ValueKey<String>('prefab_v3_owner_inline_apply_obstacle'),
+    );
+    await tester.ensureVisible(apply);
+    await tester.tap(apply);
+    await tester.pump();
+
+    expect(_prefab(harness.session, 'obstacle').revision, 2);
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_v3_owner_inline_editor_obstacle'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_v3_owner_form_error')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: tagsField, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      'local',
+    );
+  });
 
   testWidgets(
     'current atlas form commits slices and protects local drafts and references',
@@ -764,7 +987,7 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
+        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
         findsOneWidget,
       );
       expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
@@ -979,7 +1202,7 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
+        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
         findsOneWidget,
       );
       expect(_prefabApplyHandler(tester).canApplyEditorPage, isTrue);

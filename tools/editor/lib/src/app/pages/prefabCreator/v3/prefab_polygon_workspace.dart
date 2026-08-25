@@ -30,6 +30,7 @@ import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import 'prefab_v3_atlas_catalog_workspace.dart';
 import 'prefab_v3_module_catalog_workspace.dart';
 import 'prefab_v3_owner_dialog.dart';
+import 'prefab_v3_owner_form.dart';
 
 /// Normal prefab-v3 polygon authoring workspace.
 ///
@@ -64,23 +65,30 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       GlobalKey<PrefabV3AtlasCatalogWorkspaceState>();
   final GlobalKey<PrefabV3ModuleCatalogWorkspaceState> _moduleWorkspaceKey =
       GlobalKey<PrefabV3ModuleCatalogWorkspaceState>();
+  final GlobalKey<PrefabV3OwnerFormState> _ownerEditFormKey =
+      GlobalKey<PrefabV3OwnerFormState>();
   String? _selectedPrefabKey;
+  PrefabV3Def? _ownerEditSource;
+  bool _ownerEditDirty = false;
   _PrefabV3WorkspaceView _workspaceView = _PrefabV3WorkspaceView.owners;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
+      _ownerEditDirty ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
+      _ownerEditDirty ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       (_authoring?.canUndo ?? widget.controller.canUndo);
 
   bool get canRedo =>
+      !_ownerEditDirty &&
       !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       (_authoring?.canRedo ?? widget.controller.canRedo);
@@ -89,12 +97,18 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   bool get canApplyToFiles =>
       widget.controller.pendingChanges.hasChanges &&
       !(_authoring?.hasActiveOperation ?? false) &&
+      !_ownerEditDirty &&
       !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       !widget.controller.isLoading &&
       !widget.controller.isExporting;
 
   bool handleUndoShortcut() {
+    if (_ownerEditDirty) {
+      _closeOwnerEditor();
+      return true;
+    }
+    if (_ownerEditSource != null) _closeOwnerEditor();
     if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
         (_atlasWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
       return true;
@@ -111,10 +125,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   bool handleRedoShortcut() {
-    if ((_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
+    if (_ownerEditDirty ||
+        (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
         (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
       return false;
     }
+    if (_ownerEditSource != null) _closeOwnerEditor();
     final authoring = _authoring;
     if (authoring != null) return authoring.redo();
     if (!widget.controller.canRedo) return false;
@@ -133,6 +149,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       _disposeAuthoring();
+      _clearOwnerEditorState();
       _selectedPrefabKey = null;
       _selectInitialOwner();
       return;
@@ -286,6 +303,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   void _selectWorkspaceView(_PrefabV3WorkspaceView view) {
     if (view == _workspaceView) return;
+    if (_ownerEditDirty) {
+      _showWorkspaceSwitchBlocked(
+        'Apply or cancel the prefab metadata draft before switching views.',
+      );
+      return;
+    }
     if (_authoring?.hasActiveOperation ?? false) {
       _showWorkspaceSwitchBlocked(
         'Finish or cancel the active polygon operation before switching.',
@@ -310,9 +333,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   void _showWorkspaceSwitchBlocked(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Confirms and applies the current source through the shared session.
@@ -371,10 +393,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           _buildOwnerActions(
             document,
             selectedPrefab: selectedPrefab,
-            controlsEnabled: !authoring.hasActiveOperation,
+            controlsEnabled:
+                !authoring.hasActiveOperation && _ownerEditSource == null,
           ),
           const Divider(height: 28),
-          for (final prefab in prefabs)
+          for (final prefab in prefabs) ...<Widget>[
             Builder(
               builder: (context) {
                 final impact = document.downstreamImpacts
@@ -385,7 +408,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     'prefab_polygon_owner_${prefab.prefabKey}',
                   ),
                   isSelected: prefab.prefabKey == selectedPrefab.prefabKey,
-                  onTap: () => _selectOwner(prefab.prefabKey),
+                  onTap: () => _selectOrOpenOwner(prefab),
                   trailing:
                       document.changedPrefabKeys.contains(prefab.prefabKey)
                       ? const Tooltip(
@@ -411,6 +434,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 );
               },
             ),
+            if (_ownerEditSource?.prefabKey == prefab.prefabKey)
+              Padding(
+                key: ValueKey<String>(
+                  'prefab_v3_owner_inline_editor_${prefab.prefabKey}',
+                ),
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                child: _buildOwnerEditDetails(document, prefab),
+              ),
+          ],
         ],
       ),
     );
@@ -458,14 +490,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           label: const Text('New'),
         ),
         OutlinedButton.icon(
-          key: const ValueKey<String>('prefab_v3_owner_edit'),
-          onPressed: controlsEnabled && selectedPrefab != null
-              ? () => _editOwner(document, selectedPrefab)
-              : null,
-          icon: const Icon(Icons.tune),
-          label: const Text('Edit'),
-        ),
-        OutlinedButton.icon(
           key: const ValueKey<String>('prefab_v3_owner_duplicate'),
           onPressed: controlsEnabled && selectedPrefab != null
               ? () => _duplicateOwner(document, selectedPrefab)
@@ -488,6 +512,48 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               : null,
           icon: const Icon(Icons.delete_outline),
           label: const Text('Delete'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOwnerEditDetails(
+    PrefabV3Document document,
+    PrefabV3Def currentPrefab,
+  ) {
+    final source = _ownerEditSource!;
+    final impact = document.downstreamImpacts
+        .where((entry) => entry.prefabKey == source.prefabKey)
+        .firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Edit ${currentPrefab.id}',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        Text(
+          'prefabKey: ${source.prefabKey} · revision ${source.revision}\n'
+          '${source.visualSource.type.jsonValue}:${source.sourceRefId} · '
+          '${source.collisionShapes.length} collision shape(s) · '
+          '${impact?.placementCount ?? 0} downstream placement(s)',
+        ),
+        const SizedBox(height: EditorUiTokens.sectionGap),
+        PrefabV3OwnerForm(
+          key: _ownerEditFormKey,
+          document: document,
+          prefab: source,
+          submitLabel: 'Apply changes',
+          submitKey: ValueKey<String>(
+            'prefab_v3_owner_inline_apply_${source.prefabKey}',
+          ),
+          cancelKey: ValueKey<String>(
+            'prefab_v3_owner_inline_cancel_${source.prefabKey}',
+          ),
+          onDirtyChanged: _setOwnerEditDirty,
+          onCancel: _closeOwnerEditor,
+          onSubmit: _applyOwnerEdit,
         ),
       ],
     );
@@ -957,7 +1023,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   Future<void> _createOwner(PrefabV3Document document) async {
-    final edit = await showPrefabV3OwnerDialog(context, document: document);
+    final edit = await showPrefabV3CreateDialog(context, document: document);
     if (edit == null || !mounted) return;
     final beforeKeys = document.data.prefabs
         .map((prefab) => prefab.prefabKey)
@@ -981,13 +1047,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     _syncOwnerAfterSessionMutation(preferredPrefabKey: createdKeys.firstOrNull);
   }
 
-  Future<void> _editOwner(PrefabV3Document document, PrefabV3Def prefab) async {
-    final edit = await showPrefabV3OwnerDialog(
-      context,
-      document: document,
-      prefab: prefab,
-    );
-    if (edit == null || !mounted) return;
+  bool _applyOwnerEdit(PrefabV3OwnerFormValue edit) {
+    final prefab = _ownerEditSource;
+    if (prefab == null) return false;
     final before = PrefabV3MetadataSnapshot.fromPrefab(prefab);
     final after = PrefabV3MetadataSnapshot(
       status: edit.status,
@@ -997,7 +1059,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       anchorYPx: edit.anchorYPx,
       tags: edit.tags,
     );
-    if (before == after) return;
+    if (before == after) {
+      _closeOwnerEditor();
+      return true;
+    }
     final beforeDocument = widget.controller.document;
     widget.controller.applyCommand(
       AuthoringCommand(
@@ -1010,9 +1075,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     );
     if (identical(widget.controller.document, beforeDocument)) {
       _showOwnerMutationRejected();
-      return;
+      return false;
     }
+    _clearOwnerEditorState();
     _syncOwnerAfterSessionMutation(preferredPrefabKey: prefab.prefabKey);
+    return true;
   }
 
   void _duplicateOwner(PrefabV3Document document, PrefabV3Def prefab) {
@@ -1173,6 +1240,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       return;
     }
     _disposeAuthoring();
+    _clearOwnerEditorState();
     _selectedPrefabKey = null;
     final nextKey = _preferredOwnerKey(document);
     if (nextKey != null) {
@@ -1205,12 +1273,102 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         : null;
   }
 
-  void _selectOwner(String prefabKey) {
-    if (prefabKey == _selectedPrefabKey) return;
+  Future<void> _selectOrOpenOwner(PrefabV3Def target) async {
+    if (_authoring?.hasActiveOperation ?? false) {
+      _showWorkspaceSwitchBlocked(
+        'Finish or cancel the active polygon operation before switching '
+        'prefab owners.',
+      );
+      return;
+    }
+    if (_ownerEditSource?.prefabKey == target.prefabKey) {
+      await _resolveOwnerEditor();
+      return;
+    }
+    if (!await _resolveOwnerEditor() || !mounted) return;
+    final document = _documentOrNull;
+    final current = document?.data.prefabs
+        .where((prefab) => prefab.prefabKey == target.prefabKey)
+        .firstOrNull;
+    if (current == null) return;
     setState(() {
-      _bindOwner(prefabKey);
-      _resetViewportValues();
+      if (current.prefabKey != _selectedPrefabKey) {
+        _bindOwner(current.prefabKey);
+        _resetViewportValues();
+      }
+      _beginOwnerEditor(current);
     });
+  }
+
+  void _beginOwnerEditor(PrefabV3Def prefab) {
+    _ownerEditSource = prefab;
+    _ownerEditDirty = false;
+  }
+
+  void _setOwnerEditDirty(bool dirty) {
+    if (!mounted || dirty == _ownerEditDirty) return;
+    setState(() => _ownerEditDirty = dirty);
+  }
+
+  void _closeOwnerEditor() {
+    if (_ownerEditSource == null) return;
+    setState(_clearOwnerEditorState);
+  }
+
+  void _clearOwnerEditorState() {
+    _ownerEditSource = null;
+    _ownerEditDirty = false;
+  }
+
+  Future<bool> _resolveOwnerEditor() async {
+    if (_ownerEditSource == null) return true;
+    if (!_ownerEditDirty) {
+      _closeOwnerEditor();
+      return true;
+    }
+    final action = await showDialog<_PendingOwnerEditAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_dialog'),
+        title: const Text('Save prefab metadata changes?'),
+        content: Text(
+          'Save the pending changes to ${_ownerEditSource!.id} before closing '
+          'its editor?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_cancel'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingOwnerEditAction.cancel),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_discard'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingOwnerEditAction.discard),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_save'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingOwnerEditAction.save),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return false;
+    return switch (action) {
+      _PendingOwnerEditAction.save =>
+        await (_ownerEditFormKey.currentState?.submit() ??
+            Future<bool>.value(false)),
+      _PendingOwnerEditAction.discard => () {
+        _closeOwnerEditor();
+        return true;
+      }(),
+      _PendingOwnerEditAction.cancel || null => false,
+    };
   }
 
   void _bindOwner(String prefabKey) {
@@ -1260,6 +1418,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 }
 
 enum _PrefabV3WorkspaceView { owners, atlasSlices, platformModules }
+
+enum _PendingOwnerEditAction { save, discard, cancel }
 
 int _comparePrefabs(PrefabV3Def left, PrefabV3Def right) {
   final kindOrder = _kindOrder(left.kind).compareTo(_kindOrder(right.kind));

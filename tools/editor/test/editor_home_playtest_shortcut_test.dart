@@ -76,16 +76,41 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_edit')),
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_owner_forest_early_00'),
+        ),
       );
-      await tester.pumpAndSettle();
-      expect(find.text('Edit forest_early_00 metadata'), findsOneWidget);
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_owner_inline_editor_forest_early_00',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_tags_field')),
+        'unsaved',
+      );
       await tester.sendKeyEvent(LogicalKeyboardKey.f5);
       await tester.pump();
-      expect(find.text('Edit forest_early_00 metadata'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_owner_inline_editor_forest_early_00',
+          ),
+        ),
+        findsOneWidget,
+      );
       expect(_playtestHandler(tester).locksEditorShell, isFalse);
-      await tester.tap(find.text('Cancel').last);
-      await tester.pumpAndSettle();
+      final cancelOwnerEdit = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_inline_cancel_forest_early_00'),
+      );
+      await tester.ensureVisible(cancelOwnerEdit);
+      await tester.pump();
+      await tester.tap(cancelOwnerEdit);
+      await tester.pump();
 
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.sendKeyEvent(LogicalKeyboardKey.f5);

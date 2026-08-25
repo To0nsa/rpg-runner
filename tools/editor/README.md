@@ -167,6 +167,19 @@ and all eight chunks with a continuous `ground_001` polygon carrying `ground`
 for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 
+Selecting an existing Prefab-v3 or Chunk-v2 owner row expands its metadata
+editor directly below that row. These mounted forms are route-local drafts:
+Apply dispatches the existing stale-checked metadata command, Cancel changes no
+source or history, and a rejected command keeps the entered values and error
+visible. Dirty owner forms block Apply-to-files and prevent undo/redo from
+reaching session history: undo cancels the local form first and redo remains
+unavailable. Owner, level, or Prefab-workspace navigation must resolve the
+draft through Save, Discard, or Cancel.
+Active Prefab polygon operations receive the same owner-switch protection.
+Normal owner metadata editing no longer opens a modal; owner creation and
+rename retain their current dialogs until their dedicated inline lifecycle
+migration is complete.
+
 Polygon metadata uses selectors for supported surface semantics and terrain
 materials loaded from the canonical terrain-material manifest. Prefab polygon
 dialogs retain thumbnail selectors and an editable preview. Chunk Creator puts
