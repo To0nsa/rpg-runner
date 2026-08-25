@@ -924,7 +924,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
           ),
           const SizedBox(height: EditorUiTokens.sectionGap),
-          _buildDiagnosticsSection(document, authoring, issues),
+          _buildDiagnosticsSection(document, issues),
         ],
       ),
     );
@@ -1311,7 +1311,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   Widget _buildDiagnosticsSection(
     PrefabV3Document document,
-    PrefabPolygonAuthoringController authoring,
     List<ValidationIssue> issues,
   ) {
     final errors = issues
@@ -1362,9 +1361,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     subtitle: Text(_diagnosticSubtitle(document, entry.$2)),
                     onTap: _diagnosticOwnerKey(document, entry.$2) == null
                         ? null
-                        : () => unawaited(
-                            _focusIssue(document, authoring, entry.$2),
-                          ),
+                        : () => unawaited(_focusIssue(document, entry.$2)),
                   ),
               ],
             ),
@@ -1671,7 +1668,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   Future<void> _focusIssue(
     PrefabV3Document document,
-    PrefabPolygonAuthoringController authoring,
     ValidationIssue issue,
   ) async {
     final ownerKey = _diagnosticOwnerKey(document, issue);

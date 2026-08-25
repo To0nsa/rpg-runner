@@ -230,6 +230,10 @@ to navigate through the same draft guards as direct selection, and treats
 expansion/focus as source-neutral presentation state. Narrow layouts preserve
 the mounted scene above both sidebars, so a responsive resize cannot replace
 the polygon controller or discard viewport, selection, or exact-field drafts.
+The scene retains keyboard parity with the shared authoring reducer: Enter
+saves a ready polygon draft and Escape cancels an active operation without a
+source command. Row and section semantics preserve scene-first reading order
+in the narrow Prefab layout.
 
 ## Chunk V2 Existing-Owner Composition Contract
 

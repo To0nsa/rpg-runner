@@ -884,21 +884,26 @@ Asset sync when new level assets are added:
 
 ## 11) Immediate Next Slice
 
-1. Complete the hardening and closure gates of the
+1. Keep the completed
+   [Prefab and Chunk Creator UX alignment](../../archived/editor/prefabCreator/prefab_chunk_ux_alignment_strategy.md)
+   green; owner metadata, visual libraries, contextual collision editing,
+   collapsed panels, session Diagnostics, and scene-preserving responsive
+   behavior are closed scope.
+2. Complete the hardening and closure gates of the
    [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md).
    The persistent layout and direct prefab/marker manipulation are implemented;
    tile painting remains a separate future plan until its source contract and
    consumer exist.
-2. Keep completed Phases 3-6 green with regression verification only (do not
+3. Keep completed Phases 3-6 green with regression verification only (do not
    reopen completed scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-3. Keep completed Phase 7 assembly/theme sequencing green while the remaining
+4. Keep completed Phase 7 assembly/theme sequencing green while the remaining
    chunk/runtime phases land.
-4. Start Phase 8 simulation preview + validation hardening.
-5. Start Phase 9 first playable end-to-end chunk pipeline.
-6. Keep Phase 10 parallax parity and determinism coverage green while the
+5. Start Phase 8 simulation preview + validation hardening.
+6. Start Phase 9 first playable end-to-end chunk pipeline.
+7. Keep Phase 10 parallax parity and determinism coverage green while the
    remaining chunk/runtime phases land.
-7. Start Phase 11 CI drift gate + remaining hardening.
+8. Start Phase 11 CI drift gate + remaining hardening.
    Runtime chunk collision adapter removal is complete; the open work is CI
    drift enforcement and future contract cleanup around new content families.

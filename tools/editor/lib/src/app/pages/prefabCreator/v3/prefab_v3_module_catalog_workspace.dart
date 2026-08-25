@@ -114,6 +114,7 @@ class PrefabV3ModuleCatalogWorkspaceState
       onDeleteModule: (id) => _deleteModule(document, id),
       onDeleteModuleCell: (id, index) =>
           _deleteCell(document, moduleId: id, cellIndex: index),
+      hasLocalDraftChanges: _hasDraftChanges,
     );
   }
 
@@ -170,8 +171,19 @@ class PrefabV3ModuleCatalogWorkspaceState
     if (id == null) return;
     final tileSize = _validatedTileSize();
     if (tileSize == null) return;
-    final current = _findModule(document, id);
-    final operation = current == null
+    final selected = _selectedModule(document);
+    if (selected != null && id != selected.id) {
+      _showMessage(
+        'Use Rename to change the selected module ID, or start a new empty '
+        'module before creating another.',
+      );
+      return;
+    }
+    if (selected == null && _findModule(document, id) != null) {
+      _showMessage('Module $id already exists. Select its visual row to edit.');
+      return;
+    }
+    final operation = selected == null
         ? PrefabV3CreateModuleOperation(
             id: id,
             status: TileModuleStatus.deprecated,
@@ -179,12 +191,12 @@ class PrefabV3ModuleCatalogWorkspaceState
             cells: const <TileModuleCellDef>[],
           )
         : PrefabV3UpdateModuleOperation(
-            moduleId: current.id,
-            status: current.status,
+            moduleId: selected.id,
+            status: selected.status,
             tileSize: tileSize,
-            cells: current.cells,
+            cells: selected.cells,
           );
-    if (current != null && current.tileSize == tileSize) {
+    if (selected != null && selected.tileSize == tileSize) {
       setState(() => _hasDraftChanges = false);
       return;
     }
@@ -539,9 +551,8 @@ class PrefabV3ModuleCatalogWorkspaceState
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

@@ -165,6 +165,7 @@ class PrefabV3AtlasCatalogWorkspaceState
         },
         onSaveSlice: () => _saveSlice(document),
         onDeleteSlice: (sliceId) => _deleteSlice(document, kind, sliceId),
+        hasLocalDraftChanges: _hasDraftChanges,
         onSelectionChanged: (rect) {
           setState(() {
             _atlasState = _atlasState.withRect(rect);
@@ -524,9 +525,8 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

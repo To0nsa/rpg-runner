@@ -224,6 +224,21 @@ the same scene, owner, and authoring subtrees, preserving viewport, selection,
 filters, expansion state, and local drafts; Prefab workspaces do not use
 exclusive Owners/Scene/Shapes tabs.
 
+Atlas slices and platform modules use the same responsive and panel language.
+Their authoring, palette/action, and existing-record libraries start collapsed;
+a dirty slice or module form forces its owning authoring section open until it
+is applied or undone. Selected visual rows state which synchronized inspector
+and scene they control. Platform-module creation begins only after **New Empty
+Module**, while selected modules use the explicit edit/lifecycle context.
+Reference-aware slice/module deletion and atlas source-bounds validation are
+unchanged.
+
+Catalog rows expose button/selection semantics and complete spoken labels while
+retaining visible text or tooltips for every action. Long IDs, tags, and source
+references wrap at sidebar widths. Enter activates the focused scene/row action
+and Escape cancels active polygon authoring; responsive panel movement follows
+reading order without resetting focusable subtrees.
+
 The **Terrain Materials** route creates, duplicates, edits, validates, and
 reference-safely deletes those definitions. Each material owns a stable key,
 fill region, required top/slope profile, optional left/right wall and underside

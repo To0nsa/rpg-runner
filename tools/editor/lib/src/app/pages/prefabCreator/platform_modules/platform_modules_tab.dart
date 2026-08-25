@@ -44,6 +44,7 @@ class PlatformModulesTab extends StatelessWidget {
     required this.onMoveCell,
     required this.onDeleteModule,
     required this.onDeleteModuleCell,
+    required this.hasLocalDraftChanges,
   });
 
   final TextEditingController moduleIdController;
@@ -74,6 +75,7 @@ class PlatformModulesTab extends StatelessWidget {
   onMoveCell;
   final ValueChanged<String> onDeleteModule;
   final void Function(String moduleId, int cellIndex) onDeleteModuleCell;
+  final bool hasLocalDraftChanges;
 
   @override
   Widget build(BuildContext context) {
@@ -84,12 +86,12 @@ class PlatformModulesTab extends StatelessWidget {
       inspector: _PlatformModuleInspectorPanel(
         moduleIdController: moduleIdController,
         moduleTileSizeController: moduleTileSizeController,
-        modules: modules,
         selectedModule: selectedModule,
         tileSlices: tileSlices,
         selectedTileSliceId: selectedTileSliceId,
         workspaceRootPath: workspaceRootPath,
         isSelectedDeprecated: isSelectedDeprecated,
+        hasLocalDraftChanges: hasLocalDraftChanges,
         onUpsertModule: onUpsertModule,
         onStartNewEmptyModule: onStartNewEmptyModule,
         onRenameSelectedModule: onRenameSelectedModule,
@@ -182,12 +184,12 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
   const _PlatformModuleInspectorPanel({
     required this.moduleIdController,
     required this.moduleTileSizeController,
-    required this.modules,
     required this.selectedModule,
     required this.tileSlices,
     required this.selectedTileSliceId,
     required this.workspaceRootPath,
     required this.isSelectedDeprecated,
+    required this.hasLocalDraftChanges,
     required this.onUpsertModule,
     required this.onStartNewEmptyModule,
     required this.onRenameSelectedModule,
@@ -198,12 +200,12 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
 
   final TextEditingController moduleIdController;
   final TextEditingController moduleTileSizeController;
-  final List<TileModuleDef> modules;
   final TileModuleDef? selectedModule;
   final List<AtlasSliceDef> tileSlices;
   final String? selectedTileSliceId;
   final String workspaceRootPath;
   final bool isSelectedDeprecated;
+  final bool hasLocalDraftChanges;
   final VoidCallback onUpsertModule;
   final VoidCallback onStartNewEmptyModule;
   final VoidCallback onRenameSelectedModule;
@@ -213,59 +215,41 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TileModuleDef? draftTargetModule() {
-      final draftId = moduleIdController.text.trim();
-      if (draftId.isEmpty) {
-        return null;
-      }
-      for (final module in modules) {
-        if (module.id == draftId) {
-          return module;
-        }
-      }
-      return null;
-    }
-
-    return EditorPanelCard(
-      key: const ValueKey<String>('platform_module_inspector_card'),
-      title: 'Platform Module Controls',
-      bodyMode: EditorPanelBodyMode.scrollable,
+    return SingleChildScrollView(
+      key: const ValueKey<String>('platform_module_authoring_sidebar'),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ListenableBuilder(
-            listenable: moduleIdController,
-            builder: (context, _) {
-              final editingModule = draftTargetModule();
-              final isEditingExistingModule = editingModule != null;
-              final modeBannerTitle = isEditingExistingModule
-                  ? 'Editing platform module "${editingModule.id}"'
-                  : 'Creating new platform module';
-              final modeBannerDetails = isEditingExistingModule
-                  ? 'rev=${editingModule.revision} '
-                        'status=${editingModule.status.jsonValue} '
-                        'tileSize=${editingModule.tileSize} '
-                        'cells=${editingModule.cells.length}'
-                  : 'Saving will create a new empty module for the current ID.';
-
-              return PrefabEditorModeBanner(
-                bannerKey: const ValueKey<String>(
-                  'platform_module_mode_banner',
-                ),
-                title: modeBannerTitle,
-                details: modeBannerDetails,
-                tone: isEditingExistingModule
-                    ? PrefabEditorModeTone.edit
-                    : PrefabEditorModeTone.create,
-              );
-            },
+          PrefabEditorModeBanner(
+            bannerKey: const ValueKey<String>('platform_module_mode_banner'),
+            title: selectedModule == null
+                ? 'Creating new platform module'
+                : 'Editing platform module "${selectedModule!.id}"',
+            details: selectedModule == null
+                ? 'Saving will create a new empty module for the current ID.'
+                : 'rev=${selectedModule!.revision} '
+                      'status=${selectedModule!.status.jsonValue} '
+                      'tileSize=${selectedModule!.tileSize} '
+                      'cells=${selectedModule!.cells.length}',
+            tone: selectedModule == null
+                ? PrefabEditorModeTone.create
+                : PrefabEditorModeTone.edit,
           ),
           const SizedBox(height: EditorUiTokens.controlGap),
           EditorSectionCard(
             key: const ValueKey<String>('platform_module_advanced_controls'),
-            title: 'ID, Tile Size & Actions',
-            description:
-                'Create, rename, duplicate, deprecate, and select modules.',
+            expansionKey: const ValueKey<String>(
+              'platform_module_advanced_controls_toggle',
+            ),
+            title: selectedModule == null
+                ? 'Create platform module'
+                : 'Edit selected module',
+            description: selectedModule == null
+                ? 'Create a new empty module with a unique ID and tile size.'
+                : 'Update metadata or use contextual lifecycle actions.',
+            collapsible: !hasLocalDraftChanges,
+            initiallyExpanded: false,
+            expanded: hasLocalDraftChanges ? true : null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -290,70 +274,71 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: EditorUiTokens.controlGap),
-                ListenableBuilder(
-                  listenable: moduleIdController,
-                  builder: (context, _) {
-                    final isEditingExistingModule = draftTargetModule() != null;
-
-                    return PrefabEditorActionRow(
-                      children: [
-                        FilledButton.icon(
-                          key: const ValueKey<String>(
-                            'platform_module_upsert_button',
-                          ),
-                          onPressed: onUpsertModule,
-                          icon: Icon(
-                            isEditingExistingModule
-                                ? Icons.save_outlined
-                                : Icons.add_box_outlined,
-                          ),
-                          label: Text(
-                            isEditingExistingModule
-                                ? 'Update Module'
-                                : 'Create Module',
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          key: const ValueKey<String>(
-                            'platform_module_new_empty_button',
-                          ),
-                          onPressed: onStartNewEmptyModule,
-                          icon: const Icon(Icons.post_add_outlined),
-                          label: const Text('New Empty Module'),
-                        ),
-                        OutlinedButton.icon(
-                          key: const ValueKey<String>(
-                            'platform_module_rename_button',
-                          ),
-                          onPressed: onRenameSelectedModule,
-                          icon: const Icon(Icons.drive_file_rename_outline),
-                          label: const Text('Rename'),
-                        ),
-                        OutlinedButton.icon(
-                          key: const ValueKey<String>(
-                            'platform_module_duplicate_button',
-                          ),
-                          onPressed: onDuplicateSelectedModule,
-                          icon: const Icon(Icons.copy_outlined),
-                          label: const Text('Duplicate'),
-                        ),
-                        OutlinedButton.icon(
-                          key: const ValueKey<String>(
-                            'platform_module_status_button',
-                          ),
-                          onPressed: onToggleDeprecateSelectedModule,
-                          icon: Icon(
-                            isSelectedDeprecated
-                                ? Icons.unarchive_outlined
-                                : Icons.archive_outlined,
-                          ),
-                          label: Text(
-                            isSelectedDeprecated ? 'Reactivate' : 'Deprecate',
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                PrefabEditorActionRow(
+                  children: [
+                    FilledButton.icon(
+                      key: const ValueKey<String>(
+                        'platform_module_upsert_button',
+                      ),
+                      onPressed: onUpsertModule,
+                      icon: Icon(
+                        selectedModule != null
+                            ? Icons.save_outlined
+                            : Icons.add_box_outlined,
+                      ),
+                      label: Text(
+                        selectedModule != null
+                            ? 'Update Module'
+                            : 'Create Module',
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'platform_module_new_empty_button',
+                      ),
+                      onPressed: selectedModule == null
+                          ? null
+                          : onStartNewEmptyModule,
+                      icon: const Icon(Icons.post_add_outlined),
+                      label: const Text('New Empty Module'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'platform_module_rename_button',
+                      ),
+                      onPressed: selectedModule == null
+                          ? null
+                          : onRenameSelectedModule,
+                      icon: const Icon(Icons.drive_file_rename_outline),
+                      label: const Text('Rename'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'platform_module_duplicate_button',
+                      ),
+                      onPressed: selectedModule == null
+                          ? null
+                          : onDuplicateSelectedModule,
+                      icon: const Icon(Icons.copy_outlined),
+                      label: const Text('Duplicate'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'platform_module_status_button',
+                      ),
+                      onPressed: selectedModule == null
+                          ? null
+                          : onToggleDeprecateSelectedModule,
+                      icon: Icon(
+                        isSelectedDeprecated
+                            ? Icons.unarchive_outlined
+                            : Icons.archive_outlined,
+                      ),
+                      label: Text(
+                        isSelectedDeprecated ? 'Reactivate' : 'Deprecate',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: EditorUiTokens.sectionGap),
                 Text(
@@ -368,7 +353,14 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
           ),
           const SizedBox(height: EditorUiTokens.sectionGap),
           EditorSectionCard(
+            key: const ValueKey<String>('platform_module_palette_section'),
+            expansionKey: const ValueKey<String>(
+              'platform_module_palette_section_toggle',
+            ),
             title: 'Tile Slice Palette',
+            description: 'Choose the tile painted by the scene tool.',
+            collapsible: true,
+            initiallyExpanded: false,
             child: tileSlices.isEmpty
                 ? const Text(
                     'No tile slices yet. Create tile slices in Atlas Slicer first.',
@@ -389,8 +381,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     workspaceRootPath: workspaceRootPath,
                     labelText: 'Tile Slice',
                     hintText: 'Search tile slices by id or tag',
-                    emptyStateMessage:
-                        'No tile slices yet. Create tile slices in Atlas Slicer first.',
+                    emptyStateMessage: 'No tile slices yet. Create tile slices in Atlas Slicer first.',
                   ),
           ),
         ],
@@ -490,90 +481,93 @@ class _PlatformModuleDisplayPanelState
       for (final slice in widget.tileSlices) slice.id: slice,
     };
 
-    return EditorPanelCard(
-      key: const ValueKey<String>('platform_module_display_card'),
-      title: 'Platform Modules List',
-      bodyMode: EditorPanelBodyMode.expanded,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PrefabEditorPanelSummary(
-            secondaryText:
-                'Selected Module: ${widget.selectedModuleId ?? 'none'}',
-          ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          Expanded(
-            child: widget.modules.isEmpty
-                ? const PrefabEditorEmptyState(
-                    message: 'No platform modules yet.',
-                  )
-                : ListView.builder(
-                    itemCount: widget.modules.length,
-                    itemBuilder: (context, index) {
-                      final module = widget.modules[index];
-                      final isSelected = widget.selectedModuleId == module.id;
-                      return EditorListCard(
-                        key: ValueKey<String>(
-                          'platform_module_row_${module.id}',
-                        ),
-                        isSelected: isSelected,
-                        onTap: () => widget.onSelectedModuleChanged(module.id),
-                        preview: PlatformModulePreviewTile(
-                          key: ValueKey<String>(
-                            'platform_module_preview_${module.id}',
-                          ),
-                          imageCache: _previewImageCache,
-                          workspaceRootPath: widget.workspaceRootPath,
-                          module: module,
-                          tileSlicesById: tileSlicesById,
-                        ),
-                        trailing: PrefabEditorDeleteButton(
-                          onPressed: () => widget.onDeleteModule(module.id),
-                        ),
-                        details: !isSelected
-                            ? null
-                            : module.cells.isEmpty
-                            ? const Text('No cells yet.')
-                            : Column(
-                                children: [
-                                  for (
-                                    var i = 0;
-                                    i < module.cells.length;
-                                    i += 1
-                                  )
-                                    ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      dense: true,
-                                      title: Text(module.cells[i].sliceId),
-                                      subtitle: Text(
-                                        'x=${module.cells[i].gridX} '
-                                        'y=${module.cells[i].gridY}',
-                                      ),
-                                      trailing: PrefabEditorDeleteButton(
-                                        onPressed: () => widget
-                                            .onDeleteModuleCell(module.id, i),
-                                      ),
-                                    ),
-                                ],
+    return SingleChildScrollView(
+      key: const ValueKey<String>('platform_module_display_sidebar'),
+      child: EditorSectionCard(
+        key: const ValueKey<String>('platform_module_library_section'),
+        expansionKey: const ValueKey<String>(
+          'platform_module_library_section_toggle',
+        ),
+        title: 'Existing platform modules',
+        description: 'Select a visual row to synchronize its inline editor.',
+        trailing: Text('${widget.modules.length} total'),
+        collapsible: true,
+        initiallyExpanded: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PrefabEditorPanelSummary(
+              secondaryText:
+                  'Selected Module: ${widget.selectedModuleId ?? 'none'}',
+            ),
+            const SizedBox(height: EditorUiTokens.sectionGap),
+            if (widget.modules.isEmpty)
+              const PrefabEditorEmptyState(message: 'No platform modules yet.')
+            else
+              for (final module in widget.modules)
+                EditorListCard(
+                  key: ValueKey<String>('platform_module_row_${module.id}'),
+                  isSelected: widget.selectedModuleId == module.id,
+                  onTap: () => widget.onSelectedModuleChanged(module.id),
+                  semanticLabel:
+                      '${module.id}, ${module.status.jsonValue}, '
+                      '${module.cells.length} cells, '
+                      '${module.tileSize} pixel tiles',
+                  preview: PlatformModulePreviewTile(
+                    key: ValueKey<String>(
+                      'platform_module_preview_${module.id}',
+                    ),
+                    imageCache: _previewImageCache,
+                    workspaceRootPath: widget.workspaceRootPath,
+                    module: module,
+                    tileSlicesById: tileSlicesById,
+                  ),
+                  trailing: PrefabEditorDeleteButton(
+                    onPressed: () => widget.onDeleteModule(module.id),
+                  ),
+                  details: widget.selectedModuleId != module.id
+                      ? null
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Selected for editing in Edit selected '
+                              'module and the scene.',
+                            ),
+                            if (module.cells.isEmpty)
+                              const Text('No cells yet.'),
+                            for (var i = 0; i < module.cells.length; i += 1)
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                title: Text(module.cells[i].sliceId),
+                                subtitle: Text(
+                                  'x=${module.cells[i].gridX} '
+                                  'y=${module.cells[i].gridY}',
+                                ),
+                                trailing: PrefabEditorDeleteButton(
+                                  onPressed: () =>
+                                      widget.onDeleteModuleCell(module.id, i),
+                                ),
                               ),
-                        child: PrefabEditorRowMetadata(
-                          title: module.id,
-                          isSelected: isSelected,
-                          metadataLines: [
-                            'status=${module.status.jsonValue} '
-                                'rev=${module.revision} '
-                                'tileSize=${module.tileSize} '
-                                'cells=${module.cells.length}',
-                            module.cells.isEmpty
-                                ? 'No components yet.'
-                                : 'Tap to edit and expand components.',
                           ],
                         ),
-                      );
-                    },
+                  child: PrefabEditorRowMetadata(
+                    title: module.id,
+                    isSelected: widget.selectedModuleId == module.id,
+                    metadataLines: [
+                      'status=${module.status.jsonValue} '
+                          'rev=${module.revision} '
+                          'tileSize=${module.tileSize} '
+                          'cells=${module.cells.length}',
+                      module.cells.isEmpty
+                          ? 'No components yet.'
+                          : 'Tap to edit and expand components.',
+                    ],
                   ),
-          ),
-        ],
+                ),
+          ],
+        ),
       ),
     );
   }

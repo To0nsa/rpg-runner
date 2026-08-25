@@ -17,6 +17,7 @@ class EditorListCard extends StatelessWidget {
     this.preview,
     this.details,
     this.trailing,
+    this.semanticLabel,
     this.margin = const EdgeInsets.only(bottom: EditorUiTokens.controlGap),
   });
 
@@ -27,51 +28,58 @@ class EditorListCard extends StatelessWidget {
   final Widget? preview;
   final Widget? details;
   final Widget? trailing;
+  final String? semanticLabel;
   final EdgeInsetsGeometry margin;
 
   @override
-  Widget build(BuildContext context) => Card.outlined(
-    margin: margin,
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Ink(
-        color: isSelected
-            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.09)
-            : null,
-        child: Padding(
-          padding: EditorUiTokens.panelInsets,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  if (leading case final leading?) ...<Widget>[
-                    leading,
-                    const SizedBox(width: EditorUiTokens.rowPreviewGap),
-                  ],
-                  Expanded(
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: child,
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    button: onTap != null,
+    selected: isSelected,
+    label: semanticLabel,
+    child: Card.outlined(
+      margin: margin,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Ink(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.09)
+              : null,
+          child: Padding(
+            padding: EditorUiTokens.panelInsets,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    if (leading case final leading?) ...<Widget>[
+                      leading,
+                      const SizedBox(width: EditorUiTokens.rowPreviewGap),
+                    ],
+                    Expanded(
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: child,
+                      ),
                     ),
-                  ),
-                  if (preview case final preview?) ...<Widget>[
-                    const SizedBox(width: EditorUiTokens.rowPreviewGap),
-                    preview,
+                    if (preview case final preview?) ...<Widget>[
+                      const SizedBox(width: EditorUiTokens.rowPreviewGap),
+                      preview,
+                    ],
+                    if (trailing case final trailing?) ...<Widget>[
+                      const SizedBox(width: EditorUiTokens.rowTrailingGap),
+                      trailing,
+                    ],
                   ],
-                  if (trailing case final trailing?) ...<Widget>[
-                    const SizedBox(width: EditorUiTokens.rowTrailingGap),
-                    trailing,
-                  ],
+                ),
+                if (details case final details?) ...<Widget>[
+                  const SizedBox(height: EditorUiTokens.controlGap),
+                  details,
                 ],
-              ),
-              if (details case final details?) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
-                details,
               ],
-            ],
+            ),
           ),
         ),
       ),

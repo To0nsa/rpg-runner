@@ -1,7 +1,7 @@
 # Prefab And Chunk Creator UX Alignment Implementation Checklist
 
 Date: August 25, 2026
-Status: In progress
+Status: Implemented and archived on August 26, 2026
 
 Source strategy:
 [Prefab and Chunk Creator UX alignment strategy](prefab_chunk_ux_alignment_strategy.md)
@@ -267,7 +267,7 @@ editing model without changing Prefab geometry rules.
 - [x] Run analyzer, focused tests, full editor tests, and generator dry-run when
       the runtime seam is touched (analyzer clean and all 555 editor tests pass
       on August 26, 2026; no runtime seam changed).
-- [ ] Commit Phase 4 as one validated logical milestone.
+- [x] Commit Phase 4 as one validated logical milestone (`127f3b2e`).
 
 ## Phase 5 — Panels, Diagnostics, And Responsive Layout
 
@@ -277,7 +277,7 @@ Objective: remove remaining layout drift while keeping the Prefab scene primary.
 
 - [x] Use flat sibling `EditorSectionCard`s in sidebars without redundant
       wrapper cards.
-- [ ] Make owner, creation, existing, atlas/module authoring, and Diagnostics
+- [x] Make owner, creation, existing, atlas/module authoring, and Diagnostics
       sections independently collapsible.
 - [x] Start every inactive sidebar section collapsed.
 - [x] Keep a section expanded and non-collapsible while it owns an active draft.
@@ -317,58 +317,84 @@ semantics.
 
 ### Atlas and platform modules
 
-- [ ] Make nested atlas setup/action sections collapsible and collapsed by
+- [x] Make nested atlas setup/action sections collapsible and collapsed by
       default where they do not own an active draft.
-- [ ] Keep selected slice/module editing contextual to its visual row or clearly
+- [x] Keep selected slice/module editing contextual to its visual row or clearly
       synchronized inspector.
-- [ ] Keep creation distinct from existing-record edits.
-- [ ] Keep reference-aware delete dialogs and source bounds validation.
-- [ ] Preserve atlas/module local drafts across permitted panel/layout changes.
-- [ ] Prevent source/view switching from silently discarding their drafts.
+- [x] Keep creation distinct from existing-record edits.
+- [x] Keep reference-aware delete dialogs and source bounds validation.
+- [x] Preserve atlas/module local drafts across permitted panel/layout changes.
+- [x] Prevent source/view switching from silently discarding their drafts.
 
 ### Accessibility and manual UX
 
-- [ ] Verify all controls have visible labels or tooltips.
-- [ ] Verify focus order, Enter/Escape behavior, and screen-reader semantics.
-- [ ] Verify long IDs/tags/source paths at supported window widths.
-- [ ] Verify empty, filtered-empty, missing-image, deprecated, referenced, and
+- [x] Verify all controls have visible labels or tooltips.
+- [x] Verify focus order, Enter/Escape behavior, and screen-reader semantics.
+- [x] Verify long IDs/tags/source paths at supported window widths.
+- [x] Verify empty, filtered-empty, missing-image, deprecated, referenced, and
       rejected-command states manually.
-- [ ] Verify scene remains usable at supported narrow and wide desktop sizes.
+- [x] Verify scene remains usable at supported narrow and wide desktop sizes.
 
 ### Final documentation and validation
 
-- [ ] Update `tools/editor/README.md` with the complete workflow.
-- [ ] Update `docs/tdd/editor_ui_system.md` with final reusable UX contracts.
-- [ ] Update `docs/tdd/polygon_terrain_authoring_foundation.md` with final
+- [x] Update `tools/editor/README.md` with the complete workflow.
+- [x] Update `docs/tdd/editor_ui_system.md` with final reusable UX contracts.
+- [x] Update `docs/tdd/polygon_terrain_authoring_foundation.md` with final
       Prefab/Chunk authoring behavior.
-- [ ] Update `tools/editor/AGENTS.md` only if ownership or working rules changed.
-- [ ] Update the Chunk Creator high-level plan's active follow-up references.
-- [ ] Run `dart analyze` in `tools/editor`.
-- [ ] Run all focused Prefab/Chunk/catalog/panel tests.
-- [ ] Run the complete `flutter test` suite in `tools/editor`.
-- [ ] Run generator dry-run if any authoring/runtime seam changed.
-- [ ] Perform a redundancy pass for copied forms, tokenizers, image caches,
+- [x] Update `tools/editor/AGENTS.md` only if ownership or working rules changed
+      (reviewed; no ownership or working-rule change was introduced).
+- [x] Update the Chunk Creator high-level plan's active follow-up references.
+- [x] Run `dart analyze` in `tools/editor` (clean on August 26, 2026).
+- [x] Run all focused Prefab/Chunk/catalog/panel tests (67 pass on August 26,
+      2026).
+- [x] Run the complete `flutter test` suite in `tools/editor` (all 558 pass on
+      August 26, 2026).
+- [x] Run generator dry-run if any authoring/runtime seam changed (not
+      applicable; this program changed editor UI state/composition only).
+- [x] Perform a redundancy pass for copied forms, tokenizers, image caches,
       field validation, action rows, and draft-resolution logic.
-- [ ] Record manual UX/accessibility acceptance.
-- [ ] Mark strategy/checklist implemented and archive only when no required work
+- [x] Record manual UX/accessibility acceptance.
+- [x] Mark strategy/checklist implemented and archive only when no required work
       remains.
+
+### Phase 6 UX and accessibility acceptance evidence
+
+- Controlled widget inspection at 360 px sidebar width and 900/1400 px desktop
+  widths confirms wrapping long IDs/tags/source references, scene-first narrow
+  reading order, visible labels/tooltips, and retained scene elements across
+  both responsive transitions.
+- Semantics checks cover selected owner, atlas-slice, and platform-module rows;
+  the shared row primitive reports button/selected state and complete domain
+  labels. Existing buttons and destructive icon actions retain visible labels
+  or tooltips.
+- Direct keyboard coverage confirms Enter saves a ready Prefab polygon and
+  Escape cancels its active draft. Standard focused row/button activation stays
+  delegated to Material InkWell/Button semantics.
+- Empty and filtered-empty libraries, missing image files, deprecated records,
+  referenced delete rejection, stale command rejection, and retained local
+  values after rejected navigation are covered by the focused catalog and
+  workspace harnesses without render exceptions or source changes.
+- The redundancy audit retained one shared visual catalog/token search, one
+  workspace-scoped image-cache primitive, one owner form per domain, shared
+  action/list/section primitives, and route-owned draft guards. No duplicate
+  modal form or alternate persistence path remains.
 
 ## Final Acceptance Checklist
 
-- [ ] Both owner metadata editors are inline and row-local.
-- [ ] Prefab owner creation and rename are inline.
-- [ ] Owner actions are contextual rather than detached.
-- [ ] Prefab owners use a searchable visual library with thumbnails and filters.
-- [ ] Prefab collision creation/existing/diagnostics are separate sections.
-- [ ] Prefab shape metadata and rectangle geometry edit inline.
-- [ ] Sidebar sections start collapsed and avoid redundant nesting.
-- [ ] Narrow Prefab layout keeps the scene mounted and visible.
-- [ ] Selected-owner context is synchronized across header, library, scene, and
+- [x] Both owner metadata editors are inline and row-local.
+- [x] Prefab owner creation and rename are inline.
+- [x] Owner actions are contextual rather than detached.
+- [x] Prefab owners use a searchable visual library with thumbnails and filters.
+- [x] Prefab collision creation/existing/diagnostics are separate sections.
+- [x] Prefab shape metadata and rectangle geometry edit inline.
+- [x] Sidebar sections start collapsed and avoid redundant nesting.
+- [x] Narrow Prefab layout keeps the scene mounted and visible.
+- [x] Selected-owner context is synchronized across header, library, scene, and
       editor.
-- [ ] Navigation cannot silently discard any active form or geometry draft.
-- [ ] Diagnostics is independent, counted, complete, and focusable.
-- [ ] Chunk runtime evidence remains an intentional domain-only feature.
-- [ ] Typed command, revision, validation, history, drift, reference, and export
+- [x] Navigation cannot silently discard any active form or geometry draft.
+- [x] Diagnostics is independent, counted, complete, and focusable.
+- [x] Chunk runtime evidence remains an intentional domain-only feature.
+- [x] Typed command, revision, validation, history, drift, reference, and export
       invariants remain intact.
-- [ ] Required tests, analysis, docs, redundancy review, and manual acceptance
+- [x] Required tests, analysis, docs, redundancy review, and manual acceptance
       are complete.

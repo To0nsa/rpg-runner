@@ -221,6 +221,26 @@ display elements across the breakpoint, so responsive changes do not reset
 viewport or route-local draft state. The generic three-panel component retains
 its tabbed contract for non-Prefab callers.
 
+Atlas and platform-module views use that same mounted layout and flat sidebar
+contract. Atlas source/setup and rectangle/actions are separate collapsed
+sections; both are controlled open while their shared slice draft is dirty.
+The existing-slice visual library is a separate collapsed section whose
+selected row explicitly names the synchronized form. Platform modules expose
+one create-or-edit section based on stable selection: **New Empty Module**
+enters creation, while a selected module permits Update, Rename, Duplicate,
+and status changes. Typing a new ID in edit mode cannot silently create a
+parallel module. The tile palette and existing-module visual library remain
+independent collapsed sections, and selected module rows expand their cell
+context.
+
+`EditorListCard` is the reusable semantics boundary for owner, atlas, module,
+and composition rows. It reports button and selected state and accepts a
+complete domain label, while nested icon actions retain tooltips. InkWell and
+button traversal provide standard Enter/Space activation; polygon scene
+shortcuts retain Enter-to-save and Escape-to-cancel. Text content wraps inside
+bounded row columns, and full catalog metadata remains available through
+semantic labels or retained tooltips at narrow sidebar widths.
+
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
 composition is partitioned by the active Chunk workspace tab. Its rows and
 expanded editors or retained dialogs share typed selection and the same

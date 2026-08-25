@@ -1,14 +1,14 @@
 # Prefab And Chunk Creator UX Alignment Strategy
 
 Date: August 25, 2026
-Status: In progress
+Status: Implemented and archived on August 26, 2026
 
 Related documents:
 
 - [Implementation checklist](prefab_chunk_ux_alignment_implementation_checklist.md)
-- [Chunk Creator plan](../chunkCreator/plan.md)
-- [Editor UI system](../../../tdd/editor_ui_system.md)
-- [Polygon terrain authoring foundation](../../../tdd/polygon_terrain_authoring_foundation.md)
+- [Chunk Creator plan](../../../editor/chunkCreator/plan.md)
+- [Editor UI system](../../../../tdd/editor_ui_system.md)
+- [Polygon terrain authoring foundation](../../../../tdd/polygon_terrain_authoring_foundation.md)
 
 ## Decision Summary
 

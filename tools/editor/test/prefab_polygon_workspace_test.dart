@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
@@ -311,6 +312,109 @@ void main() {
   );
 
   testWidgets(
+    'atlas and module scenes remain mounted above collapsed narrow sidebars',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('editor_three_panel_narrow')),
+        findsOneWidget,
+      );
+      expect(find.byType(TabBar), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('atlas_scene_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_setup_section_toggle')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('atlas_slice_library_section_toggle'),
+        ),
+        findsOneWidget,
+      );
+      final atlasScene = tester.element(
+        find.byKey(const ValueKey<String>('atlas_scene_card')),
+      );
+
+      tester.view.physicalSize = const Size(1400, 1000);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('editor_three_panel_wide')),
+        findsOneWidget,
+      );
+      expect(
+        identical(
+          atlasScene,
+          tester.element(
+            find.byKey(const ValueKey<String>('atlas_scene_card')),
+          ),
+        ),
+        isTrue,
+      );
+
+      tester.view.physicalSize = const Size(900, 1000);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_platform_modules')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_scene_canvas')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('platform_module_advanced_controls_toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('platform_module_library_section_toggle'),
+        ),
+        findsOneWidget,
+      );
+      final moduleScene = tester.element(
+        find.byKey(const ValueKey<String>('platform_module_scene_canvas')),
+      );
+
+      tester.view.physicalSize = const Size(1400, 1000);
+      await tester.pumpAndSettle();
+      expect(
+        identical(
+          moduleScene,
+          tester.element(
+            find.byKey(const ValueKey<String>('platform_module_scene_canvas')),
+          ),
+        ),
+        isTrue,
+      );
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'collider-free editable prefabs disable committed-shape scene tools',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
@@ -596,9 +700,7 @@ void main() {
     await tester.pump();
     expect(harness.session.canUndo, isFalse);
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_polygon_cancel_draft')),
-    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
 
@@ -651,7 +753,7 @@ void main() {
     await tester.tapAt(center + const Offset(34, 22));
     await tester.tapAt(center + const Offset(22, 34));
     await tester.pump();
-    await tester.tap(saveDraftFinder);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
 
     var obstacle = _prefab(harness.session, 'obstacle');
@@ -1249,12 +1351,53 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_id_field')),
+        findsNothing,
+      );
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'atlas_slice_library_section_toggle',
+        bodyKey: 'atlas_slice_row_decoration_slice',
+      );
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'atlas_slice_setup_section_toggle',
+        bodyKey: 'atlas_slice_id_field',
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Selected for editing in Source & Slice Setup'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('decoration_slice, 12 by 12 pixels, no tags'),
         findsOneWidget,
       );
 
       await tester.enterText(
         find.byKey(const ValueKey<String>('atlas_slice_id_field')),
         'bonus_slice',
+      );
+      await tester.pump();
+      expect(
+        find.textContaining('Creating a new prefab slice'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_setup_section_toggle')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('atlas_slice_selection_section_toggle'),
+        ),
+        findsNothing,
       );
       await tester.enterText(
         find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
@@ -1478,6 +1621,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('platform_module_row_module_a')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_id_field')),
+        findsNothing,
+      );
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'platform_module_library_section_toggle',
+        bodyKey: 'platform_module_row_module_a',
+      );
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'platform_module_advanced_controls_toggle',
+        bodyKey: 'platform_module_id_field',
+      );
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_row_module_a')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Selected for editing in Edit selected module'),
+        findsOneWidget,
+      );
+      expect(find.text('Editing platform module "module_a"'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('module_a, active, 1 cells, 16 pixel tiles'),
         findsOneWidget,
       );
 
@@ -1499,6 +1669,13 @@ void main() {
       await tester.enterText(
         find.byKey(const ValueKey<String>('platform_module_tile_size_field')),
         '20',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>('platform_module_advanced_controls_toggle'),
+        ),
+        findsNothing,
       );
       final upsert = find.byKey(
         const ValueKey<String>('platform_module_upsert_button'),
@@ -1579,6 +1756,17 @@ void main() {
       await tester.pump();
       await tester.tap(newEmpty);
       await tester.pump();
+      expect(find.text('Create platform module'), findsOneWidget);
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.byKey(
+                const ValueKey<String>('platform_module_rename_button'),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
       await tester.enterText(
         find.byKey(const ValueKey<String>('platform_module_id_field')),
         'scratch_module',

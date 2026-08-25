@@ -18,6 +18,7 @@ import '../../shared/editor_zoom_controls.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
+import '../shared/ui/prefab_editor_mode_banner.dart';
 import '../shared/ui/prefab_editor_panel_summary.dart';
 import '../shared/ui/prefab_editor_row_metadata.dart';
 import '../shared/ui/prefab_editor_scene_header.dart';
@@ -62,6 +63,7 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.onSaveSlice,
     required this.onDeleteSlice,
     required this.onSelectionChanged,
+    required this.hasLocalDraftChanges,
   });
 
   final List<String> atlasImagePaths;
@@ -99,6 +101,7 @@ class AtlasSlicerTab extends StatefulWidget {
   final VoidCallback onSaveSlice;
   final ValueChanged<String> onDeleteSlice;
   final ValueChanged<AtlasPixelRect> onSelectionChanged;
+  final bool hasLocalDraftChanges;
 
   @override
   State<AtlasSlicerTab> createState() => _AtlasSlicerTabState();
@@ -123,16 +126,44 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   }
 
   Widget _buildInspectorCard(BuildContext context) {
-    return EditorPanelCard(
-      title: 'Atlas Slicer Controls',
-      bodyMode: EditorPanelBodyMode.scrollable,
+    return SingleChildScrollView(
+      key: const ValueKey<String>('atlas_slice_authoring_sidebar'),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.sliceIdController,
+            builder: (context, value, _) {
+              final id = value.text.trim();
+              final editing = widget.existingSliceIds.contains(id);
+              return PrefabEditorModeBanner(
+                bannerKey: const ValueKey<String>('atlas_slice_mode_banner'),
+                title: editing
+                    ? 'Editing ${_sliceKindDisplayName.toLowerCase()} slice '
+                          '"$id"'
+                    : 'Creating a new '
+                          '${_sliceKindDisplayName.toLowerCase()} slice',
+                details: editing
+                    ? 'The visual row, atlas overlay, and fields share this '
+                          'slice selection.'
+                    : 'Choose a unique ID and source rectangle before saving.',
+                tone: editing
+                    ? PrefabEditorModeTone.edit
+                    : PrefabEditorModeTone.create,
+              );
+            },
+          ),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           EditorSectionCard(
+            key: const ValueKey<String>('atlas_slice_setup_section'),
+            expansionKey: const ValueKey<String>(
+              'atlas_slice_setup_section_toggle',
+            ),
             title: 'Source & Slice Setup',
-            description:
-                'Choose the atlas image, slice kind, target slice id, and tags.',
+            description: 'Choose the atlas image, slice kind, target slice id, and tags.',
+            collapsible: !widget.hasLocalDraftChanges,
+            initiallyExpanded: false,
+            expanded: widget.hasLocalDraftChanges ? true : null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -206,9 +237,15 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           ),
           const SizedBox(height: EditorUiTokens.controlGap),
           EditorSectionCard(
+            key: const ValueKey<String>('atlas_slice_selection_section'),
+            expansionKey: const ValueKey<String>(
+              'atlas_slice_selection_section_toggle',
+            ),
             title: 'Selection & Actions',
-            description:
-                'Adjust the selection rectangle numerically and save it back to the slice list.',
+            description: 'Adjust the selection rectangle numerically and save it back to the slice list.',
+            collapsible: !widget.hasLocalDraftChanges,
+            initiallyExpanded: false,
+            expanded: widget.hasLocalDraftChanges ? true : null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -294,6 +331,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               '(${widget.slices.length} visible).';
 
     return EditorPanelCard(
+      key: const ValueKey<String>('atlas_scene_card'),
       title: 'Atlas Slicer View',
       bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
@@ -318,44 +356,47 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
         selectedSlice.sourceImagePath.trim() ==
             widget.selectedAtlasPath!.trim();
 
-    return EditorPanelCard(
-      key: const ValueKey<String>('atlas_slice_display_card'),
-      title: '$_sliceKindDisplayName Slices',
-      bodyMode: EditorPanelBodyMode.expanded,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PrefabEditorPanelSummary(
-            primaryText: widget.selectedAtlasPath == null
-                ? 'Select an atlas/tileset image to inspect slices.'
-                : 'Source: ${p.basename(widget.selectedAtlasPath!)}',
-            secondaryText:
-                '$_selectedSliceDisplayLabel: ${widget.selectedSliceId ?? 'none'}',
-            noticeText:
-                widget.selectedSliceId != null &&
-                    selectedSlice != null &&
-                    !selectionBelongsToCurrentSource
-                ? 'The current selection belongs to another source.'
-                : null,
-          ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          Expanded(
-            child: widget.slices.isEmpty
-                ? PrefabEditorEmptyState(
-                    message: widget.selectedAtlasPath == null
-                        ? 'Select an atlas/tileset image first.'
-                        : 'No ${_sliceKindDisplayName.toLowerCase()} '
-                              'slices for this source yet.',
-                  )
-                : ListView.builder(
-                    itemCount: widget.slices.length,
-                    itemBuilder: (context, index) {
-                      final slice = widget.slices[index];
-                      return _buildSliceRow(context, slice);
-                    },
-                  ),
-          ),
-        ],
+    return SingleChildScrollView(
+      key: const ValueKey<String>('atlas_slice_display_sidebar'),
+      child: EditorSectionCard(
+        key: const ValueKey<String>('atlas_slice_library_section'),
+        expansionKey: const ValueKey<String>(
+          'atlas_slice_library_section_toggle',
+        ),
+        title: 'Existing $_sliceKindDisplayName slices',
+        description: 'Select a visual row to synchronize its inline editor.',
+        trailing: Text('${widget.slices.length} total'),
+        collapsible: true,
+        initiallyExpanded: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PrefabEditorPanelSummary(
+              primaryText: widget.selectedAtlasPath == null
+                  ? 'Select an atlas/tileset image to inspect slices.'
+                  : 'Source: ${p.basename(widget.selectedAtlasPath!)}',
+              secondaryText:
+                  '$_selectedSliceDisplayLabel: '
+                  '${widget.selectedSliceId ?? 'none'}',
+              noticeText:
+                  widget.selectedSliceId != null &&
+                      selectedSlice != null &&
+                      !selectionBelongsToCurrentSource
+                  ? 'The current selection belongs to another source.'
+                  : null,
+            ),
+            const SizedBox(height: EditorUiTokens.sectionGap),
+            if (widget.slices.isEmpty)
+              PrefabEditorEmptyState(
+                message: widget.selectedAtlasPath == null
+                    ? 'Select an atlas/tileset image first.'
+                    : 'No ${_sliceKindDisplayName.toLowerCase()} '
+                          'slices for this source yet.',
+              )
+            else
+              for (final slice in widget.slices) _buildSliceRow(context, slice),
+          ],
+        ),
       ),
     );
   }
@@ -367,6 +408,9 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       key: ValueKey<String>('atlas_slice_row_${slice.id}'),
       isSelected: isSelected,
       onTap: () => widget.onSelectedSliceChanged(slice.id),
+      semanticLabel:
+          '${slice.id}, ${slice.width} by ${slice.height} pixels, '
+          '${slice.tags.isEmpty ? 'no tags' : slice.tags.join(', ')}',
       preview: AtlasRegionPreviewTile(
         key: ValueKey<String>('atlas_slice_preview_${slice.id}'),
         imageCache: _previewImageCache,
@@ -382,6 +426,12 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       trailing: PrefabEditorDeleteButton(
         onPressed: () => widget.onDeleteSlice(slice.id),
       ),
+      details: isSelected
+          ? const Text(
+              'Selected for editing in Source & Slice Setup and Selection & '
+              'Actions.',
+            )
+          : null,
       child: PrefabEditorRowMetadata(
         title: slice.id,
         isSelected: isSelected,

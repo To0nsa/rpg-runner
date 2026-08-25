@@ -203,6 +203,83 @@ void main() {
     expect(builtPreviewCount, 180);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('long owner metadata remains readable at sidebar width', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const sourceId =
+        'ancient_forest_ruins_obstacle_source_with_a_long_repository_name';
+    const ownerId =
+        'ancient_forest_ruins_obstacle_with_a_long_descriptive_owner_id';
+    const ownerKey = 'owner_with_a_long_stable_repository_identity_001';
+    const slice = AtlasSliceDef(
+      id: sourceId,
+      sourceImagePath:
+          'assets/levels/ancient_forest/props/very_long_missing_source.png',
+      x: 0,
+      y: 0,
+      width: 32,
+      height: 32,
+    );
+    final owner = PrefabV3Def(
+      prefabKey: ownerKey,
+      id: ownerId,
+      revision: 1,
+      status: PrefabStatus.deprecated,
+      kind: PrefabKind.obstacle,
+      visualSource: const PrefabVisualSource.atlasSlice(sourceId),
+      anchorXPx: 16,
+      anchorYPx: 16,
+      collisionShapes: const [],
+      tags: const <String>[
+        'ancient_forest_ruins',
+        'environmental_obstacle',
+        'deprecated_reference_fixture',
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(8),
+            child: PrefabOwnerCatalogBrowser(
+              prefabs: <PrefabV3Def>[owner],
+              prefabData: PrefabV3FileData(
+                slices: const <AtlasSliceDef>[slice],
+                prefabs: <PrefabV3Def>[owner],
+              ),
+              tileData: PrefabTileFileData(
+                tileSlices: <AtlasSliceDef>[],
+                platformModules: <TileModuleDef>[],
+              ),
+              visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
+                ownerKey: PrefabV3VisualBounds(widthPx: 32, heightPx: 32),
+              },
+              workspaceRootPath: 'missing_workspace',
+              selectedPrefabKey: ownerKey,
+              expandedPrefabKey: null,
+              changedPrefabKeys: const <String>[],
+              downstreamImpacts: const <PrefabV3DownstreamImpact>[],
+              onSelected: (_) {},
+              selectedDetailsBuilder: (_, _) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(ownerId), findsOneWidget);
+    expect(find.textContaining(sourceId), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('^$ownerId,')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 const List<AtlasSliceDef> _slices = <AtlasSliceDef>[

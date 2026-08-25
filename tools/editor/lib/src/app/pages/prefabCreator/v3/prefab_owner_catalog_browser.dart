@@ -226,51 +226,47 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
         '${_statusLabel(prefab.status)} · ${prefab.collisionShapes.length} '
         'collision shape(s) · ${impact?.placementCount ?? 0} placement(s) '
         'in ${impact?.referencingChunkKeys.length ?? 0} chunk(s)\n$tagText';
-    return Semantics(
-      button: true,
-      selected: selected,
-      label:
+    return EditorListCard(
+      key: ValueKey<String>('prefab_polygon_owner_${prefab.prefabKey}'),
+      isSelected: selected,
+      onTap: widget.enabled ? () => widget.onSelected(prefab) : null,
+      semanticLabel:
           '${prefab.id}, ${prefabCatalogKindLabel(prefab.kind)}, '
           '${_statusLabel(prefab.status)}, $tagText',
-      child: EditorListCard(
-        key: ValueKey<String>('prefab_polygon_owner_${prefab.prefabKey}'),
-        isSelected: selected,
-        onTap: widget.enabled ? () => widget.onSelected(prefab) : null,
-        preview: SizedBox(
-          key: ValueKey<String>(
-            'prefab_owner_catalog_preview_${prefab.prefabKey}',
-          ),
-          width: 96,
-          height: 76,
-          child: PrefabCatalogThumbnail(
-            projection: _projectionsByPrefabKey[prefab.prefabKey]!,
-            imageCache: _imageCache,
-            workspaceRootPath: widget.workspaceRootPath,
-          ),
+      preview: SizedBox(
+        key: ValueKey<String>(
+          'prefab_owner_catalog_preview_${prefab.prefabKey}',
         ),
-        trailing: widget.changedPrefabKeys.contains(prefab.prefabKey)
-            ? const Tooltip(
-                message: 'Pending prefab changed',
-                child: Icon(Icons.circle, size: 12),
-              )
-            : null,
-        details: expanded
-            ? KeyedSubtree(
-                key: ValueKey<String>(
-                  'prefab_v3_owner_inline_editor_${prefab.prefabKey}',
-                ),
-                child: widget.selectedDetailsBuilder(context, prefab),
-              )
-            : null,
-        child: Tooltip(
-          message: '${prefab.id}\n$subtitle',
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            selected: selected,
-            title: Text(prefab.id),
-            subtitle: Text(subtitle),
-            isThreeLine: true,
-          ),
+        width: 96,
+        height: 76,
+        child: PrefabCatalogThumbnail(
+          projection: _projectionsByPrefabKey[prefab.prefabKey]!,
+          imageCache: _imageCache,
+          workspaceRootPath: widget.workspaceRootPath,
+        ),
+      ),
+      trailing: widget.changedPrefabKeys.contains(prefab.prefabKey)
+          ? const Tooltip(
+              message: 'Pending prefab changed',
+              child: Icon(Icons.circle, size: 12),
+            )
+          : null,
+      details: expanded
+          ? KeyedSubtree(
+              key: ValueKey<String>(
+                'prefab_v3_owner_inline_editor_${prefab.prefabKey}',
+              ),
+              child: widget.selectedDetailsBuilder(context, prefab),
+            )
+          : null,
+      child: Tooltip(
+        message: '${prefab.id}\n$subtitle',
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          selected: selected,
+          title: Text(prefab.id),
+          subtitle: Text(subtitle),
+          isThreeLine: true,
         ),
       ),
     );
