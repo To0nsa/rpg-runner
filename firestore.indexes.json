@@ -117,6 +117,24 @@
       ]
     },
     {
+      "collectionGroup": "ghost_manifests",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "exposed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "runSessionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "run_sessions",
       "queryScope": "COLLECTION",
       "fields": [
