@@ -13,6 +13,15 @@ import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../atlas_slicer/atlas_slicer_tab.dart';
 
+typedef _AtlasSliceDraft = ({
+  String id,
+  String tags,
+  String x,
+  String y,
+  String width,
+  String height,
+});
+
 /// Adapts the retained atlas-slicer UI to typed Prefab-v3 commands.
 ///
 /// Selection and form drafts remain local. Only a validated slice upsert or an
@@ -55,7 +64,8 @@ class PrefabV3AtlasCatalogWorkspaceState
   String? _selectedPrefabSliceId;
   String? _selectedTileSliceId;
   int _formEpoch = 0;
-  bool _syncingDraft = false;
+  int _draftSyncDepth = 0;
+  _AtlasSliceDraft? _draftBaseline;
   bool _hasDraftChanges = false;
 
   bool get hasLocalDraftChanges => _hasDraftChanges;
@@ -170,7 +180,7 @@ class PrefabV3AtlasCatalogWorkspaceState
           setState(() {
             _atlasState = _atlasState.withRect(rect);
             _syncSelectionInputs(rect);
-            _hasDraftChanges = true;
+            _hasDraftChanges = _currentDraft != _draftBaseline;
           });
         },
       ),
@@ -185,6 +195,15 @@ class PrefabV3AtlasCatalogWorkspaceState
     _widthController,
     _heightController,
   ];
+
+  _AtlasSliceDraft get _currentDraft => (
+    id: _idController.text,
+    tags: _tagsController.text,
+    x: _xController.text,
+    y: _yController.text,
+    width: _widthController.text,
+    height: _heightController.text,
+  );
 
   void _initialize(PrefabV3Document document) {
     _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
@@ -266,7 +285,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   void _applySelectionInputs(PrefabV3Document document) {
-    _hasDraftChanges = true;
+    _refreshDraftChanged();
     final path = _atlasState.selectedSourcePath;
     final size = path == null ? null : document.atlasImageSizes[path];
     if (size == null) return;
@@ -332,7 +351,10 @@ class PrefabV3AtlasCatalogWorkspaceState
       id,
     );
     if (current != null && _slicesEqual(current, slice)) {
-      setState(() => _hasDraftChanges = false);
+      setState(() {
+        _draftBaseline = _currentDraft;
+        _hasDraftChanges = false;
+      });
       return;
     }
     final next = _dispatch(
@@ -463,8 +485,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   void _syncDraft(AtlasSliceDef? slice) {
-    _syncingDraft = true;
-    try {
+    _runDraftSync(() {
       _idController.text = slice?.id ?? '';
       _tagsController.text = slice?.tags.join(', ') ?? '';
       final rect = slice == null
@@ -479,27 +500,38 @@ class PrefabV3AtlasCatalogWorkspaceState
           ? _atlasState.clearedSelection()
           : _atlasState.withRect(rect);
       _syncSelectionInputs(rect);
+      _draftBaseline = _currentDraft;
       _hasDraftChanges = false;
-    } finally {
-      _syncingDraft = false;
-    }
+    });
   }
 
   void _syncSelectionInputs(AtlasPixelRect? rect) {
-    _syncingDraft = true;
-    try {
+    _runDraftSync(() {
       _xController.text = rect?.x.toString() ?? '';
       _yController.text = rect?.y.toString() ?? '';
       _widthController.text = rect?.width.toString() ?? '';
       _heightController.text = rect?.height.toString() ?? '';
+    });
+  }
+
+  void _runDraftSync(VoidCallback action) {
+    _draftSyncDepth += 1;
+    try {
+      action();
     } finally {
-      _syncingDraft = false;
+      _draftSyncDepth -= 1;
     }
   }
 
   void _markDraftChanged() {
-    if (_syncingDraft || _hasDraftChanges) return;
-    setState(() => _hasDraftChanges = true);
+    _refreshDraftChanged();
+  }
+
+  void _refreshDraftChanged() {
+    if (_draftSyncDepth > 0) return;
+    final hasChanges = _currentDraft != _draftBaseline;
+    if (hasChanges == _hasDraftChanges) return;
+    setState(() => _hasDraftChanges = hasChanges);
   }
 
   bool _canNavigateCatalog() {

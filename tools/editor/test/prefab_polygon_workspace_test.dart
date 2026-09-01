@@ -1326,6 +1326,77 @@ void main() {
     );
   });
 
+  testWidgets('current atlas form ignores semantic no-op input callbacks', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openOwnerLibrary(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+    );
+    await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'atlas_slice_selection_section_toggle',
+      bodyKey: 'atlas_selection_w_field',
+    );
+
+    final routeState = tester.state(find.byType(PrefabCreatorPage));
+    final localDraftState = routeState as EditorPageLocalDraftState;
+    final widthField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+    );
+    final loadedWidth = widthField.controller!.text;
+    widthField.onChanged?.call(loadedWidth);
+    await tester.pump();
+
+    expect(localDraftState.hasLocalDraftChanges, isFalse);
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+      '${int.parse(loadedWidth) + 1}',
+    );
+    await tester.pump();
+    expect(localDraftState.hasLocalDraftChanges, isTrue);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+      loadedWidth,
+    );
+    await tester.pump();
+    expect(localDraftState.hasLocalDraftChanges, isFalse);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Apply the slice form or undo its local draft before switching.',
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets(
     'current atlas form commits slices and protects local drafts and references',
     (tester) async {

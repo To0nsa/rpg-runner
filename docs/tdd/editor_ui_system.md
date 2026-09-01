@@ -224,6 +224,10 @@ its tabbed contract for non-Prefab callers.
 Atlas and platform-module views use that same mounted layout and flat sidebar
 contract. Atlas source/setup and rectangle/actions are separate collapsed
 sections; both are controlled open while their shared slice draft is dirty.
+Atlas slice dirty state is derived from the current form values against the
+loaded slice baseline. Mounting fields, synchronizing a retained slice, or
+receiving a semantic no-op input callback therefore cannot block view or owner
+navigation; restoring every edited value to the baseline clears the draft.
 The existing-slice visual library is a separate collapsed section whose
 selected row explicitly names the synchronized form. Platform modules expose
 one create-or-edit section based on stable selection: **New Empty Module**
