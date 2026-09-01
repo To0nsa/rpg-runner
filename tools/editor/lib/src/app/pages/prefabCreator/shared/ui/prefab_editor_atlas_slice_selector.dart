@@ -6,6 +6,14 @@ import '../../../../../prefabs/models/models.dart';
 import '../../../shared/atlas_region_preview_tile.dart';
 import '../../../shared/editor_scene_view_utils.dart';
 import '../../../shared/editor_ui_tokens.dart';
+import '../../../shared/editor_visual_catalog.dart';
+
+/// Presentation contract for the shared slice selector.
+///
+/// [autocomplete] keeps dense paint-palette workflows compact, while
+/// [visualCatalog] exposes persistent thumbnails and filters for large source
+/// catalogs where selection context matters.
+enum PrefabEditorAtlasSliceSelectorPresentation { autocomplete, visualCatalog }
 
 /// Shared searchable atlas-slice selector for prefab and module authoring.
 ///
@@ -27,6 +35,10 @@ class PrefabEditorAtlasSliceSelector extends StatefulWidget {
     this.optionKeyPrefix = 'prefab_editor_atlas_slice_option',
     this.optionPreviewKeyPrefix = 'prefab_editor_atlas_slice_option_preview',
     this.selectedPreviewKey,
+    this.presentation = PrefabEditorAtlasSliceSelectorPresentation.autocomplete,
+    this.prefabOwnerIdsBySliceId = const <String, List<String>>{},
+    this.showUsageFilters = false,
+    this.gridHeight = 300,
   });
 
   final List<AtlasSliceDef> slices;
@@ -42,6 +54,21 @@ class PrefabEditorAtlasSliceSelector extends StatefulWidget {
   final String optionPreviewKeyPrefix;
   final Key? selectedPreviewKey;
 
+  /// Chooses between a compact autocomplete and a persistent visual catalog.
+  final PrefabEditorAtlasSliceSelectorPresentation presentation;
+
+  /// Human owner IDs referencing each slice, used only for search and display.
+  ///
+  /// The selector never treats usage as exclusivity; callers retain authority
+  /// over whether a referenced slice may be selected again.
+  final Map<String, List<String>> prefabOwnerIdsBySliceId;
+
+  /// Exposes All, Unused, and Used filters even when every slice is unused.
+  final bool showUsageFilters;
+
+  /// Fixed visual-catalog viewport height in logical pixels.
+  final double gridHeight;
+
   @override
   State<PrefabEditorAtlasSliceSelector> createState() =>
       _PrefabEditorAtlasSliceSelectorState();
@@ -51,20 +78,40 @@ class _PrefabEditorAtlasSliceSelectorState
     extends State<PrefabEditorAtlasSliceSelector> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
-  final EditorUiImageCache _previewImageCache = EditorUiImageCache();
+  late EditorUiImageCache _previewImageCache;
+  _AtlasSliceUsageFilter _usageFilter = _AtlasSliceUsageFilter.all;
+  String? _sourcePathFilter;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
     _focusNode = FocusNode();
+    _previewImageCache = EditorUiImageCache();
     _controller.addListener(_handleControllerChanged);
-    _syncTextFromSelection(force: true);
+    if (_usesAutocomplete) _syncTextFromSelection(force: true);
   }
 
   @override
   void didUpdateWidget(covariant PrefabEditorAtlasSliceSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
+      _previewImageCache.dispose();
+      _previewImageCache = EditorUiImageCache();
+    }
+    if (_sourcePathFilter != null &&
+        !widget.slices.any(
+          (slice) => slice.sourceImagePath == _sourcePathFilter,
+        )) {
+      _sourcePathFilter = null;
+    }
+    if (oldWidget.presentation != widget.presentation) {
+      if (_usesAutocomplete) {
+        _syncTextFromSelection(force: true);
+      } else {
+        _controller.clear();
+      }
+    }
     final selectionChanged =
         oldWidget.selectedSliceId != widget.selectedSliceId;
     final oldHasSelected = _containsSliceId(
@@ -76,7 +123,7 @@ class _PrefabEditorAtlasSliceSelectorState
       widget.selectedSliceId,
     );
     final selectedVisibilityChanged = oldHasSelected != newHasSelected;
-    if (selectionChanged || selectedVisibilityChanged) {
+    if (_usesAutocomplete && (selectionChanged || selectedVisibilityChanged)) {
       _syncTextFromSelection();
     }
   }
@@ -103,8 +150,17 @@ class _PrefabEditorAtlasSliceSelectorState
     return null;
   }
 
+  bool get _usesAutocomplete =>
+      widget.presentation ==
+      PrefabEditorAtlasSliceSelectorPresentation.autocomplete;
+
   @override
   Widget build(BuildContext context) {
+    if (!_usesAutocomplete) return _buildVisualCatalog(context);
+    return _buildAutocomplete(context);
+  }
+
+  Widget _buildAutocomplete(BuildContext context) {
     final hasSelectableSlices = widget.slices.isNotEmpty;
     final selectedSlice = _selectedSlice;
     final scopedHint = widget.defaultScopeTags.isEmpty
@@ -240,6 +296,178 @@ class _PrefabEditorAtlasSliceSelectorState
     );
   }
 
+  Widget _buildVisualCatalog(BuildContext context) {
+    final filteredSlices = _filteredCatalogSlices();
+    final sourcePaths =
+        widget.slices
+            .map((slice) => slice.sourceImagePath)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
+    return EditorVisualCatalogLayout(
+      searchController: _controller,
+      searchKey:
+          widget.fieldKey ??
+          ValueKey<String>('${widget.optionKeyPrefix}_search'),
+      searchLabel: widget.labelText,
+      searchHint: widget.hintText,
+      clearSearchKey: ValueKey<String>(
+        '${widget.optionKeyPrefix}_clear_search',
+      ),
+      clearSearchTooltip: 'Clear atlas-slice search',
+      filters: <Widget>[
+        if (widget.showUsageFilters) ...<Widget>[
+          ChoiceChip(
+            key: ValueKey<String>('${widget.optionKeyPrefix}_usage_all'),
+            label: const Text('All'),
+            selected: _usageFilter == _AtlasSliceUsageFilter.all,
+            onSelected: (_) =>
+                setState(() => _usageFilter = _AtlasSliceUsageFilter.all),
+          ),
+          ChoiceChip(
+            key: ValueKey<String>('${widget.optionKeyPrefix}_usage_unused'),
+            avatar: const Icon(Icons.fiber_new_outlined, size: 18),
+            label: const Text('Unused'),
+            selected: _usageFilter == _AtlasSliceUsageFilter.unused,
+            onSelected: (_) =>
+                setState(() => _usageFilter = _AtlasSliceUsageFilter.unused),
+          ),
+          ChoiceChip(
+            key: ValueKey<String>('${widget.optionKeyPrefix}_usage_used'),
+            avatar: const Icon(Icons.link, size: 18),
+            label: const Text('Used'),
+            selected: _usageFilter == _AtlasSliceUsageFilter.used,
+            onSelected: (_) =>
+                setState(() => _usageFilter = _AtlasSliceUsageFilter.used),
+          ),
+        ],
+        if (sourcePaths.length > 1)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Atlas source',
+                isDense: true,
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  key: ValueKey<String>(
+                    '${widget.optionKeyPrefix}_source_filter',
+                  ),
+                  value: _sourcePathFilter ?? _allSourcePathsValue,
+                  isDense: true,
+                  isExpanded: true,
+                  items: <DropdownMenuItem<String>>[
+                    const DropdownMenuItem<String>(
+                      value: _allSourcePathsValue,
+                      child: Text('All atlases'),
+                    ),
+                    for (final sourcePath in sourcePaths)
+                      DropdownMenuItem<String>(
+                        value: sourcePath,
+                        child: Tooltip(
+                          message: sourcePath,
+                          child: Text(
+                            p.basename(sourcePath),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _sourcePathFilter = value == _allSourcePathsValue
+                        ? null
+                        : value;
+                  }),
+                ),
+              ),
+            ),
+          ),
+      ],
+      countKey: ValueKey<String>('${widget.optionKeyPrefix}_count'),
+      countLabel:
+          '${filteredSlices.length} of ${widget.slices.length} atlas slices',
+      gridKey: ValueKey<String>('${widget.optionKeyPrefix}_grid'),
+      emptyKey: ValueKey<String>('${widget.optionKeyPrefix}_empty'),
+      emptyMessage: widget.slices.isEmpty
+          ? widget.emptyStateMessage
+          : 'No atlas slices match the current search and filters.',
+      itemCount: filteredSlices.length,
+      itemBuilder: (context, index) {
+        final slice = filteredSlices[index];
+        final prefabIds = _prefabOwnerIds(slice.id);
+        final usageDescription = _usageDescription(prefabIds);
+        return EditorVisualCatalogCard(
+          key: ValueKey<String>('${widget.optionKeyPrefix}_card_${slice.id}'),
+          semanticsLabel:
+              '${slice.id}, ${slice.width} by ${slice.height} pixels, '
+              '$usageDescription',
+          tooltipMessage:
+              '${slice.id}\n'
+              '${slice.width}x${slice.height} px · '
+              '${p.basename(slice.sourceImagePath)}\n'
+              '${slice.tags.isEmpty ? 'No tags' : 'Tags: ${slice.tags.join(', ')}'}\n'
+              '$usageDescription',
+          selected: slice.id == widget.selectedSliceId,
+          enabled: true,
+          preview: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              AtlasRegionPreviewTile(
+                key: ValueKey<String>(
+                  '${widget.optionPreviewKeyPrefix}_${slice.id}',
+                ),
+                imageCache: _previewImageCache,
+                workspaceRootPath: widget.workspaceRootPath,
+                sourceImagePath: slice.sourceImagePath,
+                region: _regionFor(slice),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: _AtlasSliceUsageBadge(prefabCount: prefabIds.length),
+              ),
+            ],
+          ),
+          title: slice.id,
+          subtitle: '${slice.width}x${slice.height} · $usageDescription',
+          onTap: () => widget.onSelectedSliceChanged(slice.id),
+        );
+      },
+      onSearchSubmitted: () {
+        if (filteredSlices.isNotEmpty) {
+          widget.onSelectedSliceChanged(filteredSlices.first.id);
+        }
+      },
+      gridHeight: widget.gridHeight,
+    );
+  }
+
+  List<AtlasSliceDef> _filteredCatalogSlices() {
+    final query = _controller.text.trim().toLowerCase();
+    final selectedSlice = _selectedSlice;
+    final filtered =
+        widget.slices
+            .where((slice) {
+              final used = _prefabOwnerIds(slice.id).isNotEmpty;
+              if (_usageFilter == _AtlasSliceUsageFilter.used && !used) {
+                return false;
+              }
+              if (_usageFilter == _AtlasSliceUsageFilter.unused && used) {
+                return false;
+              }
+              if (_sourcePathFilter != null &&
+                  slice.sourceImagePath != _sourcePathFilter) {
+                return false;
+              }
+              return query.isEmpty || _matchesQuery(slice, query);
+            })
+            .toList(growable: false)
+          ..sort((a, b) => _compareOptions(a, b, selectedSlice));
+    return filtered;
+  }
+
   Iterable<AtlasSliceDef> _buildOptions(TextEditingValue textEditingValue) {
     final query = textEditingValue.text.trim().toLowerCase();
     final selectedSlice = _selectedSlice;
@@ -302,12 +530,24 @@ class _PrefabEditorAtlasSliceSelectorState
   }
 
   String _searchText(AtlasSliceDef slice) {
+    final prefabIds = _prefabOwnerIds(slice.id);
     return [
       slice.id,
       slice.sourceImagePath,
       '${slice.width}x${slice.height}',
       ...slice.tags,
+      ...prefabIds,
+      prefabIds.isEmpty ? 'unused' : 'used',
     ].join(' ').toLowerCase();
+  }
+
+  List<String> _prefabOwnerIds(String sliceId) =>
+      widget.prefabOwnerIdsBySliceId[sliceId] ?? const <String>[];
+
+  String _usageDescription(List<String> prefabIds) {
+    if (prefabIds.isEmpty) return 'Unused';
+    if (prefabIds.length == 1) return 'Used by ${prefabIds.single}';
+    return 'Used by ${prefabIds.length} prefabs: ${prefabIds.join(', ')}';
   }
 
   String _sliceSubtitle(AtlasSliceDef slice) {
@@ -350,9 +590,8 @@ class _PrefabEditorAtlasSliceSelectorState
         break;
       }
     }
-    final matches = _buildOptions(
-      TextEditingValue(text: raw),
-    ).toList(growable: false);
+    final matches = _buildOptions(TextEditingValue(text: raw))
+        .toList(growable: false);
     exactMatch ??= matches.isEmpty ? null : matches.first;
     if (exactMatch == null) {
       return;
@@ -394,4 +633,49 @@ class _PrefabEditorAtlasSliceSelectorState
     width: slice.width,
     height: slice.height,
   );
+}
+
+const String _allSourcePathsValue = '__all_atlas_sources__';
+
+enum _AtlasSliceUsageFilter { all, unused, used }
+
+class _AtlasSliceUsageBadge extends StatelessWidget {
+  const _AtlasSliceUsageBadge({required this.prefabCount});
+
+  final int prefabCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final used = prefabCount > 0;
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: used
+            ? colorScheme.tertiaryContainer.withValues(alpha: 0.94)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: used ? colorScheme.tertiary : colorScheme.outlineVariant,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(used ? Icons.link : Icons.fiber_new_outlined, size: 13),
+            const SizedBox(width: 3),
+            Text(
+              used
+                  ? prefabCount == 1
+                        ? 'Used'
+                        : 'Used $prefabCount'
+                  : 'Unused',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

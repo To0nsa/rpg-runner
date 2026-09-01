@@ -1021,11 +1021,11 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_v3_owner_tags_field')),
         'flora, art, flora',
       );
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('prefab_v3_owner_inline_create_apply'),
-        ),
+      final createOwner = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_inline_create_apply'),
       );
+      await tester.ensureVisible(createOwner);
+      await tester.tap(createOwner);
       await tester.pumpAndSettle();
 
       final flower = _prefab(harness.session, 'flower');
@@ -1044,6 +1044,143 @@ void main() {
       expect(find.text('Apply Prefab-v3 Changes'), findsOneWidget);
       await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'owner atlas catalog filters usage and creates from a visual slice card',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness(
+        document: _currentDocumentWithUnusedSlice(),
+      );
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_v3_owner_create_section_toggle',
+        bodyKey: 'prefab_v3_owner_id_field',
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_search'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('12x12 · Used by decoration'), findsOneWidget);
+      expect(find.text('20x20 · Used by obstacle'), findsOneWidget);
+      expect(find.text('8x6 · Unused'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_source_filter'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_search'),
+        ),
+        'flora',
+      );
+      await tester.pump();
+      expect(find.text('1 of 3 atlas slices'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_v3_owner_atlas_slice_card_unused_slice',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_clear_search'),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('3 of 3 atlas slices'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_usage_used'),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_v3_owner_atlas_slice_card_unused_slice',
+          ),
+        ),
+        findsNothing,
+      );
+      expect(find.text('2 of 3 atlas slices'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_usage_unused'),
+        ),
+      );
+      await tester.pump();
+      final unusedCard = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_atlas_slice_card_unused_slice'),
+      );
+      expect(unusedCard, findsOneWidget);
+      expect(find.text('1 of 3 atlas slices'), findsOneWidget);
+      await tester.tap(unusedCard);
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(
+                const ValueKey<String>('prefab_v3_owner_anchor_x_field'),
+              ),
+            )
+            .controller!
+            .text,
+        '4',
+      );
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(
+                const ValueKey<String>('prefab_v3_owner_anchor_y_field'),
+              ),
+            )
+            .controller!
+            .text,
+        '3',
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_id_field')),
+        'unused_owner',
+      );
+      final create = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_inline_create_apply'),
+      );
+      await tester.ensureVisible(create);
+      await tester.tap(create);
+      await tester.pumpAndSettle();
+
+      final created = _prefab(harness.session, 'unused_owner');
+      expect(created.sliceId, 'unused_slice');
+      expect(created.anchorXPx, 4);
+      expect(created.anchorYPx, 3);
     },
   );
 
@@ -2068,6 +2205,28 @@ PrefabV3Document _currentDocumentWithColliderFreeObstacle() {
           ? prefab.copyWith(collisionShapes: const <TerrainSourceShapeDef>[])
           : prefab,
     ),
+  );
+  return document.copyWith(
+    data: data,
+    prefabBaselineContents: PrefabV3FileCodec.encode(data),
+  );
+}
+
+PrefabV3Document _currentDocumentWithUnusedSlice() {
+  final document = _currentDocument();
+  final data = document.data.copyWith(
+    slices: <AtlasSliceDef>[
+      ...document.data.slices,
+      const AtlasSliceDef(
+        id: 'unused_slice',
+        sourceImagePath: 'assets/decorations.png',
+        x: 0,
+        y: 0,
+        width: 8,
+        height: 6,
+        tags: <String>['flora'],
+      ),
+    ],
   );
   return document.copyWith(
     data: data,

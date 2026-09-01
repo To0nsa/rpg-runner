@@ -7,6 +7,7 @@ import '../../../../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
+import '../shared/ui/prefab_editor_atlas_slice_selector.dart';
 
 /// Validated fields owned by Prefab-v3 creation or metadata editing.
 ///
@@ -46,6 +47,7 @@ class PrefabV3OwnerForm extends StatefulWidget {
   const PrefabV3OwnerForm({
     super.key,
     required this.document,
+    required this.workspaceRootPath,
     required this.onSubmit,
     required this.onCancel,
     required this.submitLabel,
@@ -57,6 +59,9 @@ class PrefabV3OwnerForm extends StatefulWidget {
   });
 
   final PrefabV3Document document;
+
+  /// Repository root used only to decode visual-source thumbnails.
+  final String workspaceRootPath;
   final PrefabV3Def? prefab;
   final PrefabV3OwnerFormSubmit onSubmit;
   final VoidCallback onCancel;
@@ -272,33 +277,45 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
             },
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            key: ValueKey<String>(
-              'prefab_v3_owner_source_${_kind.name}_$_sourceId',
+          if (_kind == PrefabKind.platform)
+            DropdownButtonFormField<String>(
+              key: ValueKey<String>(
+                'prefab_v3_owner_source_${_kind.name}_$_sourceId',
+              ),
+              initialValue: _sourceId,
+              decoration: const InputDecoration(labelText: 'Platform module'),
+              items: sourceIds
+                  .map(
+                    (id) =>
+                        DropdownMenuItem<String>(value: id, child: Text(id)),
+                  )
+                  .toList(growable: false),
+              onChanged: _selectSource,
+              validator: (value) =>
+                  value == null ? 'Choose a visual source.' : null,
+            )
+          else
+            PrefabEditorAtlasSliceSelector(
+              slices: widget.document.data.slices,
+              selectedSliceId: _sourceId,
+              onSelectedSliceChanged: _selectSource,
+              workspaceRootPath: widget.workspaceRootPath,
+              labelText: 'Search atlas slices',
+              hintText: 'Slice ID, atlas, dimensions, tags, or prefab owner',
+              emptyStateMessage:
+                  'Create an atlas slice before creating this owner.',
+              defaultScopeTags: <String>[_kind.jsonValue],
+              fieldKey: const ValueKey<String>(
+                'prefab_v3_owner_atlas_slice_search',
+              ),
+              optionKeyPrefix: 'prefab_v3_owner_atlas_slice',
+              optionPreviewKeyPrefix: 'prefab_v3_owner_atlas_slice_preview',
+              presentation:
+                  PrefabEditorAtlasSliceSelectorPresentation.visualCatalog,
+              prefabOwnerIdsBySliceId: _prefabOwnerIdsBySliceId,
+              showUsageFilters: true,
+              gridHeight: 310,
             ),
-            initialValue: _sourceId,
-            decoration: InputDecoration(
-              labelText: _kind == PrefabKind.platform
-                  ? 'Platform module'
-                  : 'Atlas slice',
-            ),
-            items: sourceIds
-                .map(
-                  (id) => DropdownMenuItem<String>(value: id, child: Text(id)),
-                )
-                .toList(growable: false),
-            onChanged: (value) {
-              if (value == null || value == _sourceId) return;
-              setState(() {
-                _sourceId = value;
-                _centerAnchorOnSelectedSource();
-                _submissionError = null;
-              });
-              _reportDirty();
-            },
-            validator: (value) =>
-                value == null ? 'Choose a visual source.' : null,
-          ),
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
@@ -401,6 +418,30 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
               .map((slice) => slice.id)
               .toList(growable: false);
     return ids..sort();
+  }
+
+  Map<String, List<String>> get _prefabOwnerIdsBySliceId {
+    final ownerIdsBySliceId = <String, List<String>>{};
+    for (final prefab in widget.document.data.prefabs) {
+      if (!prefab.usesAtlasSlice) continue;
+      ownerIdsBySliceId
+          .putIfAbsent(prefab.sliceId, () => <String>[])
+          .add(prefab.id);
+    }
+    for (final ownerIds in ownerIdsBySliceId.values) {
+      ownerIds.sort();
+    }
+    return ownerIdsBySliceId;
+  }
+
+  void _selectSource(String? value) {
+    if (value == null || value == _sourceId) return;
+    setState(() {
+      _sourceId = value;
+      _centerAnchorOnSelectedSource();
+      _submissionError = null;
+    });
+    _reportDirty();
   }
 
   PrefabV3VisualBounds? get _selectedBounds {

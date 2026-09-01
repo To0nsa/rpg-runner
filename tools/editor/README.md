@@ -20,7 +20,8 @@ Implemented authoring domains:
   with runtime-faithful capsule and broad-phase previews
 - prefab (obstacle/platform/decoration), tile-slice, platform-module, and exact
   half-pixel polygon-collision authoring, including tagged atlas/tile slices
-  and searchable slice selection; Prefab atlas slicing supports configurable
+  and visual slice selection with search, source/usage filters, thumbnails, and
+  existing-Prefab usage indicators; Prefab atlas slicing supports configurable
   cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
 - chunk authoring with whole-pixel direct terrain polygons, expanded
   placed-Prefab collision, searchable visual Prefab and enemy libraries,

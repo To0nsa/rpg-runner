@@ -581,6 +581,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           ? PrefabV3OwnerForm(
               key: _ownerCreateFormKey,
               document: source,
+              workspaceRootPath: widget.controller.workspacePath,
               autofocusId: true,
               submitLabel: 'Create owner',
               submitKey: const ValueKey<String>(
@@ -684,6 +685,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           PrefabV3OwnerForm(
             key: _ownerEditFormKey,
             document: document,
+            workspaceRootPath: widget.controller.workspacePath,
             prefab: source,
             submitLabel: 'Apply changes',
             submitKey: ValueKey<String>(
