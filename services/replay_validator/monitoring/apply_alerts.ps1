@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $metricRoot = Join-Path $PSScriptRoot "metrics"
 $policyRoot = Join-Path $PSScriptRoot "policies"
+$dashboardPath = Join-Path $PSScriptRoot "dashboard.json"
 $monitoringRoot = "https://monitoring.googleapis.com/v3/projects/$ProjectId"
 
 function Invoke-Gcloud {
@@ -148,6 +149,56 @@ function Ensure-AlertPolicy {
   return "updated"
 }
 
+function Ensure-Dashboard {
+  param([Parameter(Mandatory = $true)][string]$ConfigPath)
+
+  $dashboardJson = (Get-Content -Raw $ConfigPath).Replace(
+    "projects/rpg-runner-d7add",
+    "projects/$ProjectId"
+  )
+  $dashboard = $dashboardJson | ConvertFrom-Json -AsHashtable
+  $dashboardsJson = @(& gcloud monitoring dashboards list `
+    "--project=$ProjectId" "--format=json")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Unable to list existing dashboards."
+  }
+  $existingDashboards = @(($dashboardsJson -join [Environment]::NewLine) |
+    ConvertFrom-Json)
+  $existing = @($existingDashboards | Where-Object {
+    $_.displayName -eq $dashboard.displayName
+  } | Select-Object -First 1)
+
+  $temporaryPath = New-TemporaryFile
+  try {
+    if ($existing.Count -gt 0) {
+      $currentJson = @(& gcloud monitoring dashboards describe $existing[0].name `
+        "--project=$ProjectId" "--format=json")
+      if ($LASTEXITCODE -ne 0) {
+        throw "Unable to load existing dashboard $($existing[0].name)."
+      }
+      $current = ($currentJson -join [Environment]::NewLine) |
+        ConvertFrom-Json -AsHashtable
+      $dashboard.etag = $current.etag
+      $dashboard | ConvertTo-Json -Depth 30 | Set-Content -NoNewline $temporaryPath
+      Invoke-Gcloud @(
+        "monitoring", "dashboards", "update", $existing[0].name,
+        "--project=$ProjectId",
+        "--config-from-file=$temporaryPath"
+      )
+      return
+    }
+
+    $dashboard | ConvertTo-Json -Depth 30 | Set-Content -NoNewline $temporaryPath
+    Invoke-Gcloud @(
+      "monitoring", "dashboards", "create",
+      "--project=$ProjectId",
+      "--config-from-file=$temporaryPath"
+    )
+  } finally {
+    Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
 Get-ChildItem -Path $metricRoot -Filter "*.yaml" | Sort-Object Name |
   ForEach-Object {
     Ensure-LogMetric -Name $_.BaseName -ConfigPath $_.FullName
@@ -171,6 +222,7 @@ Get-ChildItem -Path $policyRoot -Filter "*.json" | Sort-Object Name |
       -ExistingPolicies $existingPolicies
     $results += "$outcome`: $($_.Name)"
   }
+Ensure-Dashboard -ConfigPath $dashboardPath
 
 Write-Output "Applied replay-validator monitoring to $ProjectId."
 Write-Output "Notification channel: $channel"

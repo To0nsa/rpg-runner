@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - projection retained-board release limit",
+  "documentation": {
+    "content": "Projection reconciliation observed at least 80 retained boards. The default four-board hourly page reaches its 24-hour repair limit at 96 boards. Before that limit, approve archival, a measured larger bounded page, or a due/dirty-board index.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Retained board count reached 80",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/replay_projection_retained_board_limit\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "3600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "replay-projection",
+    "severity": "warning"
+  }
+}

@@ -26,6 +26,8 @@ export interface ProjectionReconciliationResult {
   cursorCommitted: boolean;
   schedule: typeof projectionReconciliationSchedule;
   effectiveBatchSize: number;
+  retainedBoardCount: number;
+  completedCycleDurationMs: number | null;
 }
 
 /** Task boundary used to make cursor advancement testable and all-or-nothing. */
@@ -53,10 +55,19 @@ export async function reconcileLeaderboardBoardProjections(args: {
   const stateRef = args.db
     .collection(maintenanceCollection)
     .doc(maintenanceDocument);
-  const observedState = await stateRef.get();
-  const cursor = readCursor(observedState.data()?.cursor);
-  let query = args.db
-    .collection(boardsCollection)
+  const boards = args.db.collection(boardsCollection);
+  const [observedState, retainedBoardCountSnapshot] = await Promise.all([
+    stateRef.get(),
+    boards.count().get(),
+  ]);
+  const retainedBoardCount = retainedBoardCountSnapshot.data().count;
+  const observedData = observedState.data();
+  const cursor = readCursor(observedData?.cursor);
+  const cycleStartedAtMs =
+    cursor == null
+      ? nowMs
+      : readNonNegativeInteger(observedData?.cycleStartedAtMs);
+  let query = boards
     .orderBy(FieldPath.documentId())
     .limit(batchSize + 1);
   if (cursor != null) {
@@ -68,6 +79,10 @@ export async function reconcileLeaderboardBoardProjections(args: {
   const nextCursor = completedPage
     ? null
     : (selected.at(-1)?.id ?? null);
+  const completedCycleDurationMs =
+    completedPage && cycleStartedAtMs != null
+      ? Math.max(0, nowMs - cycleStartedAtMs)
+      : null;
 
   let tasksClient: CloudTasksClient | null = null;
   try {
@@ -105,6 +120,11 @@ export async function reconcileLeaderboardBoardProjections(args: {
             queriedCount: page.size,
             selectedCount: selected.length,
             enqueuedCount: selected.length,
+            retainedBoardCount,
+            cycleStartedAtMs: completedPage ? null : cycleStartedAtMs,
+            ...(completedCycleDurationMs == null
+              ? {}
+              : { lastCompletedCycleDurationMs: completedCycleDurationMs }),
             ...(completedPage ? { completedAtMs: nowMs } : {}),
           },
           { merge: true },
@@ -122,6 +142,10 @@ export async function reconcileLeaderboardBoardProjections(args: {
       cursorCommitted,
       schedule: projectionReconciliationSchedule,
       effectiveBatchSize: batchSize,
+      retainedBoardCount,
+      completedCycleDurationMs: cursorCommitted
+        ? completedCycleDurationMs
+        : null,
     };
   } finally {
     await tasksClient?.close();
@@ -170,5 +194,13 @@ function sameSnapshotVersion(
 function readCursor(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
+    : null;
+}
+
+function readNonNegativeInteger(value: unknown): number | null {
+  return typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0
+    ? value
     : null;
 }

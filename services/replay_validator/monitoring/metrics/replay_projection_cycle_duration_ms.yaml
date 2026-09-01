@@ -1,0 +1,17 @@
+description: Wall-clock milliseconds between the first and final successful pages of a projection reconciliation cursor cycle.
+filter: |-
+  resource.type="cloud_run_revision"
+  resource.labels.service_name="runprojectionreconciliation"
+  jsonPayload.message="runProjectionReconciliation"
+  jsonPayload.cursorCommitted=true
+  jsonPayload.completedCycleDurationMs>=0
+metricDescriptor:
+  metricKind: DELTA
+  valueType: DISTRIBUTION
+  unit: "ms"
+valueExtractor: EXTRACT(jsonPayload.completedCycleDurationMs)
+bucketOptions:
+  linearBuckets:
+    numFiniteBuckets: 48
+    width: 3600000
+    offset: 0

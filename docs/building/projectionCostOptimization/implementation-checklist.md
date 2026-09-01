@@ -195,7 +195,8 @@ Functions changes:
   to `null` without a separate empty invocation.
 - [x] Include effective cadence, batch size, queried count including lookahead,
   selected count, enqueued count, and cursor-commit outcome in the structured
-  result.
+  result, plus retained-board count and completed-cycle duration for the
+  operational guardrail.
 
 Functions tests:
 
@@ -235,35 +236,36 @@ Gate:
 
 Objective:
 
-- retain actionable failure evidence while reducing successful background log
-  volume
+- retain actionable failure evidence while reducing high-volume background
+  operation logs
 
 Tasks:
 
 - [ ] Inventory queue-level, request-level, validator, and log-metric output for
   one successful board task.
-- [ ] Keep application error, retry, resource rejection, and internal-error
+- [x] Keep application error, retry, resource rejection, and internal-error
   logs unsampled.
-- [ ] Change successful Cloud Tasks queue log sampling from `1.0` to `0.1` in
-  checked-in deployment tooling.
-- [ ] Verify queue retry and backlog alerts do not depend on sampled success
+- [x] Change projection Cloud Tasks queue operation-log sampling from `1.0` to
+  `0.1` in checked-in deployment tooling.
+- [x] Verify queue retry and backlog alerts do not depend on sampled queue
   logs.
 - [ ] Verify all 11 existing user-defined log metrics still receive the events
   required by their policies.
-- [ ] Add or update a dashboard view for:
-  - [ ] changed versus unchanged reconciliation;
-  - [ ] tasks per reconciliation invocation;
-  - [ ] full cursor-cycle duration;
-  - [ ] daily Firestore reads and writes;
-  - [ ] projection request time;
-  - [ ] retained-board count.
-- [ ] Add an operator threshold at 80 retained boards.
-- [ ] Document the decision required before 96 retained boards.
+- [x] Add or update a dashboard view for:
+  - [x] changed versus unchanged reconciliation;
+  - [x] tasks per reconciliation invocation;
+  - [x] full cursor-cycle duration;
+  - [x] daily Firestore reads and writes;
+  - [x] projection request time;
+  - [x] retained-board count.
+- [x] Add an automated operator alert at 80 retained boards.
+- [x] Document the decision required before 96 retained boards.
 - [ ] Confirm a Cloud Billing budget alert and notification channel are active.
 
 Gate:
 
-- [ ] success logging is sampled, failure evidence is complete, and board-count
+- [ ] queue operation logs are sampled, independent failure evidence is
+  complete, and board-count
   growth cannot silently violate the repair SLO
 
 ---
@@ -279,20 +281,20 @@ Tasks:
 - [x] Update `docs/tdd/replay_validator_worker.md`.
 - [x] Update `docs/tdd/firebase_cloud_functions_overview.md`.
 - [x] Update `docs/tdd/ghost_run_flow.md`.
-- [ ] Update `services/replay_validator/README.md` deployment and rollback
+- [x] Update `services/replay_validator/README.md` deployment and rollback
   guidance.
-- [ ] Update Functions monitoring/runbook documentation for the new cadence and
+- [x] Update Functions monitoring/runbook documentation for the new cadence and
   page limit.
 - [x] Update `functions/AGENTS.md` if its reconciliation guidance needs the
   bounded-page/no-op invariants.
 - [x] Update `services/replay_validator/AGENTS.md` if its projection guidance
   needs the materialized-revision invariant.
 - [x] Confirm no GDD text changes because player-facing behavior is unchanged.
-- [ ] Record current official pricing links and the date they were checked.
+- [x] Record current official pricing links and the date they were checked.
 
 Gate:
 
-- [ ] no active document still claims that every retained board is reconciled
+- [x] no active document still claims that every retained board is reconciled
   every 15 minutes or that unchanged views are rewritten
 
 ---
@@ -323,13 +325,13 @@ Gate:
 
 Commit sequence:
 
-- [ ] Commit validator tests, implementation, and required validator docs as
+- [x] Commit validator tests, implementation, and required validator docs as
   one independently validated milestone.
-- [ ] Commit Functions cursor/schedule tests, implementation, and required
+- [x] Commit Functions cursor/schedule tests, implementation, and required
   Functions docs as a separate independently validated milestone.
-- [ ] Commit logging/monitoring configuration and operational docs as a
+- [x] Commit logging/monitoring configuration and operational docs as a
   separate independently validated milestone.
-- [ ] Confirm each commit excludes unrelated pre-existing worktree changes.
+- [x] Confirm each commit excludes unrelated pre-existing worktree changes.
 
 ---
 
@@ -372,7 +374,7 @@ Authorization gate:
 
 ### Logging last
 
-- [ ] Set successful projection queue logging to `0.1`.
+- [ ] Set projection queue operation-log sampling to `0.1`.
 - [ ] Verify retry/error logs and alert delivery remain observable.
 - [ ] Confirm both queues are running and empty after canary completion.
 

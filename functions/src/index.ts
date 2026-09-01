@@ -603,7 +603,7 @@ export const runProjectionReconciliation = onSchedule(
       db,
       batchSize: projectionReconciliationBatchSize,
     });
-    console.log("runProjectionReconciliation", result);
+    logger.info("runProjectionReconciliation", result);
   },
 );
 

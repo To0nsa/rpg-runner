@@ -387,7 +387,11 @@ Why:
   selected page, and wraps partial or exact-size final pages without requiring
   a later empty invocation. At 54 retained boards a complete cursor cycle takes
   14 successful invocations; the release policy covers up to 96 boards within
-  the 24-hour repair SLO.
+  the 24-hour repair SLO. One aggregate count per invocation supplies the exact
+  retained-board metric used by the checked-in warning at 80 boards. The
+  maintenance state also records cycle start and completion duration so the
+  recovery dashboard measures actual cursor progress rather than inferring it
+  only from the schedule.
 - Reconciliation task names are deterministic inside their hourly bucket. One
   Cloud Tasks client is reused for the complete invocation and closed on either
   success or enqueue failure. Cursor state advances only after the selected

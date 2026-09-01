@@ -1,0 +1,284 @@
+{
+  "displayName": "RPG Runner - Projection cost and recovery",
+  "labels": {
+    "component": "replay-projection",
+    "managed_by": "repository"
+  },
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "xPos": 0,
+        "yPos": 0,
+        "width": 12,
+        "height": 2,
+        "widget": {
+          "text": {
+            "format": "MARKDOWN",
+            "content": "# Projection cost and recovery\n\nNormal accepted-run projection is event-driven. The scheduled recovery page runs hourly, selects four boards by default, warns at 80 retained boards, and reaches its release limit at 96."
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 2,
+        "width": 6,
+        "height": 5,
+        "widget": {
+          "title": "Projection duration",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "yAxis": {
+              "label": "milliseconds",
+              "scale": "LINEAR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "p50",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "300s",
+                "timeSeriesQuery": {
+                  "unitOverride": "ms",
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/replay_validator_projection_duration_ms\" resource.type=\"cloud_run_revision\"",
+                    "aggregation": {
+                      "alignmentPeriod": "300s",
+                      "perSeriesAligner": "ALIGN_DELTA",
+                      "crossSeriesReducer": "REDUCE_PERCENTILE_50"
+                    }
+                  }
+                }
+              },
+              {
+                "legendTemplate": "p95",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "300s",
+                "timeSeriesQuery": {
+                  "unitOverride": "ms",
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/replay_validator_projection_duration_ms\" resource.type=\"cloud_run_revision\"",
+                    "aggregation": {
+                      "alignmentPeriod": "300s",
+                      "perSeriesAligner": "ALIGN_DELTA",
+                      "crossSeriesReducer": "REDUCE_PERCENTILE_95"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 2,
+        "width": 6,
+        "height": 5,
+        "widget": {
+          "title": "Boards selected per hourly invocation",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "thresholds": [
+              {
+                "label": "Default page limit",
+                "value": 4
+              }
+            ],
+            "yAxis": {
+              "label": "boards",
+              "scale": "LINEAR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "p99",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "3600s",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/replay_projection_selected_boards\" resource.type=\"cloud_run_revision\"",
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "perSeriesAligner": "ALIGN_DELTA",
+                      "crossSeriesReducer": "REDUCE_PERCENTILE_99"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 7,
+        "width": 6,
+        "height": 5,
+        "widget": {
+          "title": "Completed cursor-cycle duration",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "thresholds": [
+              {
+                "label": "24-hour repair SLO",
+                "value": 86400000
+              }
+            ],
+            "yAxis": {
+              "label": "milliseconds",
+              "scale": "LINEAR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "p99",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "86400s",
+                "timeSeriesQuery": {
+                  "unitOverride": "ms",
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/replay_projection_cycle_duration_ms\" resource.type=\"cloud_run_revision\"",
+                    "aggregation": {
+                      "alignmentPeriod": "86400s",
+                      "perSeriesAligner": "ALIGN_DELTA",
+                      "crossSeriesReducer": "REDUCE_PERCENTILE_99"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 7,
+        "width": 6,
+        "height": 5,
+        "widget": {
+          "title": "Retained leaderboard boards",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "thresholds": [
+              {
+                "label": "Operator review",
+                "value": 80
+              },
+              {
+                "label": "24-hour release limit",
+                "value": 96
+              }
+            ],
+            "yAxis": {
+              "label": "boards",
+              "scale": "LINEAR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "p99",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "3600s",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/replay_projection_retained_board_count\" resource.type=\"cloud_run_revision\"",
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "perSeriesAligner": "ALIGN_DELTA",
+                      "crossSeriesReducer": "REDUCE_PERCENTILE_99"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 12,
+        "width": 12,
+        "height": 5,
+        "widget": {
+          "title": "Daily Firestore document operations",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "yAxis": {
+              "label": "operations/day",
+              "scale": "LINEAR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "reads",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "86400s",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"firestore.googleapis.com/document/read_count\" resource.type=\"firestore_instance\"",
+                    "aggregation": {
+                      "alignmentPeriod": "86400s",
+                      "perSeriesAligner": "ALIGN_SUM",
+                      "crossSeriesReducer": "REDUCE_SUM"
+                    }
+                  }
+                }
+              },
+              {
+                "legendTemplate": "writes",
+                "plotType": "LINE",
+                "minAlignmentPeriod": "86400s",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"firestore.googleapis.com/document/write_count\" resource.type=\"firestore_instance\"",
+                    "aggregation": {
+                      "alignmentPeriod": "86400s",
+                      "perSeriesAligner": "ALIGN_SUM",
+                      "crossSeriesReducer": "REDUCE_SUM"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 17,
+        "width": 6,
+        "height": 5,
+        "widget": {
+          "title": "Changed, unchanged, and ghost-only outcomes",
+          "logsPanel": {
+            "resourceNames": [
+              "projects/rpg-runner-d7add"
+            ],
+            "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"replay-validator\" AND jsonPayload.event=\"replay_validator.dispatch\" AND jsonPayload.phase=~\"^projection(_reconciliation)?_(changed|unchanged|ghost_only_change)$\""
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 17,
+        "width": 6,
+        "height": 5,
+        "widget": {
+          "title": "Scheduled reconciliation pages",
+          "logsPanel": {
+            "resourceNames": [
+              "projects/rpg-runner-d7add"
+            ],
+            "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"runprojectionreconciliation\" AND jsonPayload.message=\"runProjectionReconciliation\""
+          }
+        }
+      }
+    ]
+  }
+}

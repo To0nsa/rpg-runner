@@ -232,8 +232,12 @@ cheap when nothing changed.
 
 ## Observability and cost controls
 
-Retain error and retry telemetry at full fidelity. Reduce successful Cloud
-Tasks queue logging from `1.0` to `0.1` after the new flow is verified.
+Retain validator and scheduled-Function error/retry telemetry at full fidelity,
+along with native queue backlog/attempt and Cloud Run error metrics. Reduce the
+projection queue's Cloud Tasks operation-log sampling from `1.0` to `0.1` after
+the new flow is verified. Queue sampling is not assumed to be success-only, so
+alerts must not rely on an individual Cloud Tasks operation log surviving the
+sample.
 
 The reconciliation result must report:
 
@@ -243,7 +247,13 @@ The reconciliation result must report:
 - completed-page state;
 - next cursor;
 - whether cursor advancement was committed or rejected as stale;
-- scheduler cadence and effective batch size.
+- scheduler cadence and effective batch size;
+- exact retained-board count from one aggregate query per invocation;
+- completed full cursor-cycle duration when the final page commits.
+
+The checked-in warning policy matches retained-board values at or above 80,
+leaving capacity to choose an archival or scaling action before the default
+page reaches its 96-board repair limit.
 
 The validator must distinguish:
 
@@ -265,6 +275,17 @@ Release monitoring records daily:
 
 A Cloud Billing budget alert remains required, but it is an alert rather than
 a hard spending cap.
+
+Official pricing references checked on September 1, 2026:
+
+- [Cloud Scheduler pricing](https://cloud.google.com/scheduler/pricing)
+- [Cloud Tasks pricing](https://cloud.google.com/tasks/pricing)
+- [Cloud Run pricing](https://cloud.google.com/run/pricing)
+- [Cloud Logging pricing](https://cloud.google.com/logging/pricing)
+- [Firestore pricing](https://firebase.google.com/docs/firestore/pricing)
+- [Artifact Registry pricing](https://cloud.google.com/artifact-registry/pricing)
+- [Cloud Storage pricing](https://cloud.google.com/storage/pricing)
+- [Firebase plans and pricing](https://firebase.google.com/pricing)
 
 ## Expected early-release envelope
 
@@ -311,7 +332,7 @@ cause, a separately tested active-manifest query/index or retention change.
     and hourly task-key bucket.
 11. Verify the live Scheduler job, Functions environment, queue, and Cloud Run
    minimum-instance settings.
-12. Reduce successful queue log sampling to `0.1`.
+12. Reduce projection queue operation-log sampling to `0.1`.
 13. Observe one complete cursor cycle and then a full 24-hour idle window.
 14. Run an authorized missed-event recovery drill and confirm repair within the
    SLO.

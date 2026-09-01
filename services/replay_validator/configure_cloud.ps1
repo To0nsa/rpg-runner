@@ -223,7 +223,7 @@ Invoke-Gcloud @(
   "--max-doublings=7",
   "--max-dispatches-per-second=5",
   "--max-concurrent-dispatches=5",
-  "--log-sampling-ratio=1.0",
+  "--log-sampling-ratio=0.1",
   "--http-uri-override=scheme:https,host:$($runUri.Host),path:/tasks/project",
   "--http-oidc-service-account-email-override=$TaskDispatchServiceAccount",
   "--http-oidc-token-audience-override=$runUrl"

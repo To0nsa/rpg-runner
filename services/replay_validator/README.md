@@ -121,7 +121,8 @@ The script is idempotent for existing queues and fixes the release policy at:
 - validation queue: 8 attempts, 24-hour retry duration, 30-second minimum and
   4-hour maximum backoff, 5 dispatches/second, 5 concurrent dispatches
 - projection queue: independent retry/URI policy; it never targets
-  `/tasks/validate`
+  `/tasks/validate`; Cloud Tasks operation-log sampling is `0.1`, while the
+  validation queue remains at `1.0`
 - validation lease: 10 minutes
 - orphaned-task repair eligibility: 15 minutes
 - compressed/expanded replay limits: 8 MiB / 32 MiB; JSON nesting depth: 64
@@ -172,6 +173,70 @@ or credit wallets itself. Eventarc and scheduled repair remain fallback
 delivery paths when immediate dispatch fails or times out.
 Leaderboard and ghost projection are enqueued only after accepted validation;
 their retries use `${PROJECTION_QUEUE_NAME}` and never affect reward settlement.
+
+## Projection Cost Rollout And Rollback
+
+The early-release recovery policy is one scheduled invocation per hour, four
+selected boards by default, one lookahead document, and a maximum batch override
+of 64. Normal accepted-run projection remains event-driven; the hourly sweep is
+only the missed-delivery repair path. At the release limit of 96 retained boards,
+one successful cursor cycle takes 24 hours.
+
+Apply this change only after explicit production authorization, in this order:
+
+1. Deploy an immutable validator image containing versioned no-op Top-10
+   materialization.
+2. Reconcile an empty and populated canary board twice and prove the second pass
+   performs no materialization writes.
+3. Deploy `runProjectionReconciliation`, then confirm its Scheduler job is
+   hourly and its structured log reports `effectiveBatchSize: 4` and the
+   expected `retainedBoardCount`.
+4. Set the projection queue operation-log sampling ratio to `0.1`. Keep the
+   validation queue at `1.0`.
+5. Observe a complete cursor cycle before treating the rollout as healthy.
+
+The narrow queue-policy command for step 4 is:
+
+```powershell
+gcloud tasks queues update replay-projection `
+  --project=rpg-runner-d7add `
+  --location=europe-west1 `
+  --log-sampling-ratio=0.1
+```
+
+Cloud Tasks operation sampling applies to the queue's operation-log stream; it
+is not a success-only filter. Validator retry/internal-error logs, scheduled
+Function error logs, Cloud Run 5xx metrics, and native Cloud Tasks backlog and
+attempt metrics remain independent and unsampled. No checked-in retry or
+backlog alert depends on successful Cloud Tasks operation logs.
+
+Useful post-deploy checks:
+
+```powershell
+gcloud scheduler jobs list `
+  --project=rpg-runner-d7add `
+  --location=europe-west1 `
+  --filter='name~runprojectionreconciliation' `
+  --format='table(name,schedule,state)'
+
+gcloud tasks queues describe replay-projection `
+  --project=rpg-runner-d7add `
+  --location=europe-west1 `
+  --format='yaml(state,stackdriverLoggingConfig,rateLimits,retryConfig)'
+
+gcloud logging read `
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="runprojectionreconciliation" AND jsonPayload.message="runProjectionReconciliation"' `
+  --project=rpg-runner-d7add `
+  --limit=24 `
+  --format=json
+```
+
+Rollback uses the last verified immutable validator digest and Functions source.
+Restore projection queue sampling to `1.0` when full queue-operation evidence is
+needed for an incident. Restore the former cadence/batch only when the repair
+SLO fails; never disable the immediate projection trigger, Cloud Tasks retry,
+settlement, or account-deletion fencing. Cursor state is forward- and
+backward-tolerant and must not be deleted during rollback.
 
 After deploying `runSettlementImmediate`, grant its underlying Cloud Run
 service invoker role explicitly and verify that no public principal is present:

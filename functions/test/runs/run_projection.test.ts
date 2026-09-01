@@ -708,6 +708,8 @@ test("empty reconciliation commits a completed cycle without a task client", asy
   assert.equal(result.cursorCommitted, true);
   assert.equal(result.schedule, "every 60 minutes");
   assert.equal(result.effectiveBatchSize, 4);
+  assert.equal(result.retainedBoardCount, 0);
+  assert.equal(result.completedCycleDurationMs, 0);
   const state = await db
     .collection("system_maintenance")
     .doc("replay_projection_reconciliation")
@@ -738,6 +740,7 @@ test("default reconciliation selects four boards and keeps lookahead queued", as
   assert.equal(result.selectedCount, 4);
   assert.equal(result.enqueuedCount, 4);
   assert.equal(result.nextCursor, "board_d");
+  assert.equal(result.retainedBoardCount, 5);
   assert.deepEqual(enqueued, ["board_a", "board_b", "board_c", "board_d"]);
 });
 
@@ -772,6 +775,7 @@ test("96 boards complete and wrap in exactly 24 hourly invocations", async () =>
 
   assert.equal(lastResult?.completedPage, true);
   assert.equal(lastResult?.nextCursor, null);
+  assert.equal(lastResult?.completedCycleDurationMs, 23 * 60 * 60 * 1000);
   assert.equal(enqueued.length, 96);
   assert.equal(new Set(enqueued).size, 96);
 
@@ -817,6 +821,7 @@ test("54 boards complete one cycle in 14 hourly invocations", async () => {
   assert.equal(lastResult?.selectedCount, 2);
   assert.equal(lastResult?.completedPage, true);
   assert.equal(lastResult?.nextCursor, null);
+  assert.equal(lastResult?.completedCycleDurationMs, 13 * 60 * 60 * 1000);
 });
 
 test("board inserted before the cursor is selected after wrap", async () => {
@@ -893,6 +898,7 @@ test("stale overlapping reconciliation cannot overwrite newer cursor state", asy
 
   assert.equal(result.cursorCommitted, false);
   assert.equal(result.nextCursor, "board_b");
+  assert.equal(result.completedCycleDurationMs, null);
   const persisted = await stateRef.get();
   assert.equal(persisted.get("cursor"), "board_c");
 });
