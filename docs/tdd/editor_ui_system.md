@@ -161,11 +161,13 @@ reference-aware confirmation rather than becoming an unguarded icon action.
 Obstacle and decoration owner forms choose their atlas slice through an inline
 visual catalog rather than a text dropdown. Token search covers slice identity,
 source path, dimensions, tags, usage state, and referencing owner IDs. All,
-Unused, Used, and atlas-source filters remain presentation-only; every card
-shows its exact region and whether existing Prefab owners reference it. Usage
-is informative rather than exclusive because multiple owners may intentionally
-share one authored visual source. Selecting a card remains part of the local
-owner draft and recenters its anchor from the chosen slice bounds.
+Unused, and Used filters remain presentation-only. Atlas-source filtering uses
+a compact file-explorer popover that groups repository paths by directory,
+shows per-file slice counts, and preserves an explicit all-sources root. Every
+card shows its exact region and whether existing Prefab owners reference it.
+Usage is informative rather than exclusive because multiple owners may
+intentionally share one authored visual source. Selecting a card remains part
+of the local owner draft and recenters its anchor from the chosen slice bounds.
 
 The Prefab owner rail composes the same neutral visual-catalog controls and
 thumbnail renderer as Chunk prefab selection. One owner-neutral token filter

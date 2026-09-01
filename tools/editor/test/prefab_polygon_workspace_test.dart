@@ -1082,12 +1082,42 @@ void main() {
       expect(find.text('12x12 · Used by decoration'), findsOneWidget);
       expect(find.text('20x20 · Used by obstacle'), findsOneWidget);
       expect(find.text('8x6 · Unused'), findsOneWidget);
+      final sourceExplorer = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_atlas_slice_source_filter'),
+      );
+      expect(sourceExplorer, findsOneWidget);
+      await tester.tap(sourceExplorer);
+      await tester.pumpAndSettle();
       expect(
         find.byKey(
-          const ValueKey<String>('prefab_v3_owner_atlas_slice_source_filter'),
+          const ValueKey<String>('atlas_source_explorer_folder_assets'),
         ),
         findsOneWidget,
       );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>(
+            'atlas_source_explorer_file_assets/obstacles.png',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('1 of 3 atlas slices'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_v3_owner_atlas_slice_card_obstacle_slice',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(sourceExplorer);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_source_explorer_all')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('3 of 3 atlas slices'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(

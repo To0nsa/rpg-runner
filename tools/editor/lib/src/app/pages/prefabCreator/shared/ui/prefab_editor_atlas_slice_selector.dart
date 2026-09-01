@@ -304,6 +304,14 @@ class _PrefabEditorAtlasSliceSelectorState
             .toSet()
             .toList(growable: false)
           ..sort();
+    final sliceCountBySourcePath = <String, int>{};
+    for (final slice in widget.slices) {
+      sliceCountBySourcePath.update(
+        slice.sourceImagePath,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
     return EditorVisualCatalogLayout(
       searchController: _controller,
       searchKey:
@@ -342,47 +350,13 @@ class _PrefabEditorAtlasSliceSelectorState
           ),
         ],
         if (sourcePaths.length > 1)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Atlas source',
-                isDense: true,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  key: ValueKey<String>(
-                    '${widget.optionKeyPrefix}_source_filter',
-                  ),
-                  value: _sourcePathFilter ?? _allSourcePathsValue,
-                  isDense: true,
-                  isExpanded: true,
-                  items: <DropdownMenuItem<String>>[
-                    const DropdownMenuItem<String>(
-                      value: _allSourcePathsValue,
-                      child: Text('All atlases'),
-                    ),
-                    for (final sourcePath in sourcePaths)
-                      DropdownMenuItem<String>(
-                        value: sourcePath,
-                        child: Tooltip(
-                          message: sourcePath,
-                          child: Text(
-                            p.basename(sourcePath),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) => setState(() {
-                    _sourcePathFilter = value == _allSourcePathsValue
-                        ? null
-                        : value;
-                  }),
-                ),
-              ),
-            ),
+          _AtlasSourceExplorer(
+            key: ValueKey<String>('${widget.optionKeyPrefix}_source_filter'),
+            sourcePaths: sourcePaths,
+            sliceCountBySourcePath: sliceCountBySourcePath,
+            selectedSourcePath: _sourcePathFilter,
+            onSelected: (sourcePath) =>
+                setState(() => _sourcePathFilter = sourcePath),
           ),
       ],
       countKey: ValueKey<String>('${widget.optionKeyPrefix}_count'),
@@ -638,6 +612,150 @@ class _PrefabEditorAtlasSliceSelectorState
 const String _allSourcePathsValue = '__all_atlas_sources__';
 
 enum _AtlasSliceUsageFilter { all, unused, used }
+
+class _AtlasSourceExplorer extends StatelessWidget {
+  const _AtlasSourceExplorer({
+    super.key,
+    required this.sourcePaths,
+    required this.sliceCountBySourcePath,
+    required this.selectedSourcePath,
+    required this.onSelected,
+  });
+
+  final List<String> sourcePaths;
+  final Map<String, int> sliceCountBySourcePath;
+  final String? selectedSourcePath;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final pathsByDirectory = <String, List<String>>{};
+    for (final sourcePath in sourcePaths) {
+      pathsByDirectory
+          .putIfAbsent(p.dirname(sourcePath), () => <String>[])
+          .add(sourcePath);
+    }
+    final directories = pathsByDirectory.keys.toList(growable: false)..sort();
+    final totalSlices = sliceCountBySourcePath.values.fold<int>(
+      0,
+      (total, count) => total + count,
+    );
+    final selectedLabel = selectedSourcePath == null
+        ? 'All atlas sources'
+        : p.basename(selectedSourcePath!);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 240),
+      child: PopupMenuButton<String>(
+        tooltip: 'Browse atlas sources',
+        initialValue: selectedSourcePath ?? _allSourcePathsValue,
+        position: PopupMenuPosition.under,
+        constraints: const BoxConstraints(
+          minWidth: 300,
+          maxWidth: 430,
+          maxHeight: 480,
+        ),
+        onSelected: (value) =>
+            onSelected(value == _allSourcePathsValue ? null : value),
+        itemBuilder: (context) => <PopupMenuEntry<String>>[
+          PopupMenuItem<String>(
+            key: const ValueKey<String>('atlas_source_explorer_all'),
+            value: _allSourcePathsValue,
+            child: _AtlasSourceExplorerRow(
+              icon: Icons.inventory_2_outlined,
+              label: 'All atlas sources',
+              sliceCount: totalSlices,
+              selected: selectedSourcePath == null,
+            ),
+          ),
+          const PopupMenuDivider(),
+          for (final directory in directories) ...<PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              key: ValueKey<String>('atlas_source_explorer_folder_$directory'),
+              enabled: false,
+              height: 36,
+              child: _AtlasSourceExplorerRow(
+                icon: Icons.folder_outlined,
+                label: p.basename(directory),
+                sliceCount: pathsByDirectory[directory]!.fold<int>(
+                  0,
+                  (total, sourcePath) =>
+                      total + (sliceCountBySourcePath[sourcePath] ?? 0),
+                ),
+              ),
+            ),
+            for (final sourcePath in pathsByDirectory[directory]!)
+              PopupMenuItem<String>(
+                key: ValueKey<String>('atlas_source_explorer_file_$sourcePath'),
+                value: sourcePath,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 18),
+                  child: Tooltip(
+                    message: sourcePath,
+                    child: _AtlasSourceExplorerRow(
+                      icon: Icons.image_outlined,
+                      label: p.basename(sourcePath),
+                      sliceCount: sliceCountBySourcePath[sourcePath] ?? 0,
+                      selected: selectedSourcePath == sourcePath,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ],
+        child: InputDecorator(
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Atlas source',
+            isDense: true,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Icon(Icons.folder_open_outlined, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(selectedLabel, overflow: TextOverflow.ellipsis),
+              ),
+              const Icon(Icons.arrow_drop_down, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AtlasSourceExplorerRow extends StatelessWidget {
+  const _AtlasSourceExplorerRow({
+    required this.icon,
+    required this.label,
+    required this.sliceCount,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final int sliceCount;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: <Widget>[
+      Icon(icon, size: 18),
+      const SizedBox(width: 8),
+      Expanded(child: Text(label, overflow: TextOverflow.ellipsis)),
+      Text('$sliceCount', style: Theme.of(context).textTheme.bodySmall),
+      if (selected) ...<Widget>[
+        const SizedBox(width: 8),
+        Icon(
+          Icons.check,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ],
+    ],
+  );
+}
 
 class _AtlasSliceUsageBadge extends StatelessWidget {
   const _AtlasSliceUsageBadge({required this.prefabCount});
