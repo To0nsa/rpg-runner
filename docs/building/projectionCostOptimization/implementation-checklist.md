@@ -359,49 +359,50 @@ Commit sequence:
 
 Authorization gate:
 
-- [ ] Obtain explicit user authorization before changing production Functions,
+- [x] Obtain explicit user authorization before changing production Functions,
   Cloud Run, Cloud Tasks, Scheduler, Firestore canary data, logging, monitoring,
   or billing-alert configuration.
-- [ ] If authorization is not granted, stop after the committed local
-  implementation and provide exact deployment commands and verification steps.
+- [x] Disposition the no-authorization fallback as not applicable because the
+  user explicitly authorized the production rollout.
 
 ### Validator first
 
-- [ ] Build and push an immutable validator image.
-- [ ] Deploy materialized-revision/no-op behavior with minimum instances `0`,
+- [x] Build and push an immutable validator image.
+- [x] Deploy materialized-revision/no-op behavior with minimum instances `0`,
   maximum instances `10`, concurrency `1`, 1 CPU, and 512 MiB memory.
-- [ ] Verify readiness and liveness.
-- [ ] Reconcile one empty board twice; verify the second pass writes nothing.
-- [ ] Reconcile one populated board twice; verify the second pass writes
+- [x] Verify readiness and liveness.
+- [x] Reconcile one empty board twice; verify the second pass writes nothing.
+- [x] Reconcile one populated board twice; verify the second pass writes
   nothing.
-- [ ] Exercise a ghost-availability change; verify the second leaderboard pass
+- [x] Exercise a ghost-availability change; verify the second leaderboard pass
   writes the new view.
-- [ ] Record image digest, revision, UTC timestamps, and focused evidence.
+- [x] Record image digest, revision, UTC timestamps, and focused evidence.
 
 ### Functions second
 
-- [ ] Deploy the hourly schedule and default batch `4`.
-- [ ] Verify the live Scheduler expression is hourly.
-- [ ] Verify the deployed effective batch is `4`.
-- [ ] Verify the query uses one lookahead document and the lookahead is never
+- [x] Deploy the hourly schedule and default batch `4`.
+- [x] Verify the live Scheduler expression is hourly.
+- [x] Verify the deployed effective batch is `4`.
+- [x] Verify the query uses one lookahead document and the lookahead is never
   enqueued in the current invocation.
-- [ ] Verify one invocation queries no more than five documents and selects and
+- [x] Verify one invocation queries no more than five documents and selects and
   enqueues no more than four boards.
-- [ ] Verify conditional cursor advancement, exact-multiple wrapping, and the
+- [x] Verify conditional cursor advancement, exact-multiple wrapping, and the
   next hourly page.
-- [ ] Confirm all Functions still have minimum instances `0`.
-- [ ] Record source hash, revisions, UTC timestamps, and focused evidence.
+- [x] Confirm all Functions still have minimum instances `0`.
+- [x] Record source hash, revisions, UTC timestamps, and focused evidence.
 
 ### Logging last
 
-- [ ] Set projection queue operation-log sampling to `0.1`.
-- [ ] Verify retry/error logs and alert delivery remain observable.
-- [ ] Confirm both queues are running and empty after canary completion.
+- [x] Set projection queue operation-log sampling to `0.1`.
+- [x] Verify retry/error logs and alert delivery remain observable.
+- [x] Confirm both queues are running and empty after canary completion.
 
 Rollback gate:
 
-- [ ] Restore the prior cadence/batch only if the repair or convergence SLO
-  fails; do not disable immediate projection or retry ownership
+- [x] Record the prior revision, image, cadence, and rollback route; no rollback
+  was required because the deployment and focused canaries passed.
+  Any future rollback must preserve immediate projection and retry ownership.
 
 ---
 
@@ -416,6 +417,11 @@ Normal path:
 - [ ] Verify duplicate delivery is idempotent.
 - [ ] Delete or disposition canary data through supported cleanup/account
   workflows.
+
+The anonymous repository canary is not suitable for this gate: production
+correctly requires a linked Google Play Games identity. Use a disposable real
+Play Games identity for the remaining normal-path check. The rejected anonymous
+Auth account from rollout was administratively deleted and verified absent.
 
 Recovery path:
 
