@@ -51,7 +51,7 @@ Final Phase 4 acceptance work remains tracked in
 
 | Contract | Owner | Implemented consumer |
 | --- | --- | --- |
-| Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | Prefab authoring, shared editor geometry, model/codec tests, and the Core adapter; direct Chunk codecs admit only even ticks |
+| Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | Shared editor geometry, model tests, migration/transform support, and the Core adapter; normal Prefab and direct Chunk codecs admit only even ticks |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
 | Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, editor Prefab/Chunk polygon validation, and Chunk-v2 collision expansion |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler` and editor owner validation |
@@ -60,7 +60,7 @@ Final Phase 4 acceptance work remains tracked in
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus normal current-schema Prefab and Chunk routes |
 | Chunk contact-constrained terrain input | editor `TerrainPolygonContactConstraint` / `ChunkPolygonAuthoringController` | direct rectangle, vertex, insertion, and whole-shape previews against direct and expanded prefab collision |
 | Chunk prefab-to-terrain surface contact | editor `ChunkPrefabSurfaceSnap` / `ChunkPrefabSceneGesture` | whole-pixel Place/Move origins, exact compatible-scale support projection, exposed direct-terrain targets, and overlap-free edge-contact preview |
-| Exact grid-aware inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path; Prefab accepts half pixels while direct Chunk editing requires whole pixels |
+| Exact grid-aware inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path; current Prefab and direct Chunk editing both require whole pixels |
 | Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainMaterialPreviewCatalog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material selector used by both current-schema routes; material choices preview their fill/surface/foreground workspace assets, unknown retained values remain selectable, and owner controllers retain commit authority |
 | Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both current-schema routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both current polygon surfaces |
@@ -352,10 +352,11 @@ changes in this contract.
 ## Source Coordinates And Canonicalization
 
 Editor terrain coordinates are stored as integer half-pixel ticks: two source
-ticks equal one world unit. Prefab JSON accepts finite integer or `.5` values.
-Direct Chunk terrain accepts only whole-pixel coordinates, represented by even
-source ticks. Serialization emits canonical integer/one-decimal values for the
-domain being written.
+ticks equal one world unit. Normal Prefab and direct Chunk JSON accept only
+whole-pixel collision coordinates, represented by even source ticks. The
+shared representation retains half-pixel precision for migration, exact
+transforms, and other internal geometry contracts. Serialization emits the
+canonical numeric form for the domain being written.
 
 Core reviews each source loop without mutating it. The exact review:
 
@@ -618,10 +619,10 @@ structural authorities in their normal domain layers.
 `PolygonAuthoringTargetCodec` delegates both formats to them and adds no
 compatibility behavior. Both require exact target versions and field sets,
 canonical list/ID/tag ordering, exact integer fields, known enums, and accepted
-placement-scale steps. Prefab coordinates may use exact half pixels; direct
-Chunk coordinates must be whole pixels. Unknown and legacy fields reject
-rather than default. Geometry/topology acceptance remains Core-owned and is not
-duplicated in structural codecs.
+placement-scale steps. Prefab collision and direct Chunk coordinates must be
+whole pixels. Unknown and legacy fields reject rather than default.
+Geometry/topology acceptance remains Core-owned and is not duplicated in
+structural codecs.
 
 All planned current repository output—99 prefab records and 8 chunk files—has
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
@@ -896,28 +897,28 @@ and draws deterministic fallback cells for unavailable files. It paints only
 visual evidence, bounds, grid, and anchor beneath the shared collision painter;
 it never derives or mutates collision authority.
 
-The Prefab staging page shows `1 px` owner-grid and exact `0.5 px` snap choices. A
-snap-policy change cancels any active preview locally, and the selected policy
-performs the only pointer-to-source rounding. Shape rows sort by stable shape
-ID. Diagnostics retain shape/edge/vertex identity where available and focus the
-corresponding element without creating history. Geometry is painted outside
-the visual-source outline rather than clipped to it. Decoration owners remain
-selectable for inspection but disable collision creation and retain empty
-collision source.
+The Prefab staging page uses one fixed `1 px` collision grid and exposes no
+precision selector. The fixed policy performs the only pointer-to-source
+rounding. Shape rows sort by stable shape ID. Diagnostics retain
+shape/edge/vertex identity where available and focus the corresponding element
+without creating history. Geometry is painted outside the visual-source
+outline rather than clipped to it. Decoration owners remain selectable for
+inspection but disable collision creation and retain empty collision source.
 
 Numeric vertex fields use `TerrainHalfPixelText`, which converts signed
 integer, `.0`, or `.5` pixel strings directly to integer source ticks without a
 floating-point intermediate. Comma decimal input is normalized for editor
 ergonomics; other fractions, malformed text, and values beyond Core's authored
-coordinate range remain field-local errors. The Chunk route additionally
-rejects parsed odd ticks with a whole-pixel field error. A parsed coordinate is an explicit
-numeric override, so it does not pass through the pointer snap selector. The
-shared reducer replaces the selected vertex, re-runs Core canonicalization and
-cross-shape overlap checks, preserves the selected vertex by exact value after
-canonical reordering, and emits at most one semantic commit. The prefab route
-then applies the usual owner visual-bounds and revision policy before session
-history. Rejected geometry leaves both the committed document and typed field
-state unchanged while exposing actionable diagnostics.
+coordinate range remain field-local errors. Both current Prefab and Chunk
+routes reject parsed odd ticks with a whole-pixel field error. A parsed
+coordinate is an explicit numeric override, so it does not pass through pointer
+snapping. The shared reducer replaces the selected vertex, re-runs Core
+canonicalization and cross-shape overlap checks, preserves the selected vertex
+by exact value after canonical reordering, and emits at most one semantic
+commit. The prefab route then applies the usual owner visual-bounds and
+revision policy before session history. Rejected geometry leaves both the
+committed document and typed field state unchanged while exposing actionable
+diagnostics.
 
 The source-apply action is enabled only for committed current-schema changes
 with no transient catalog draft. Confirmation routes through complete plugin
@@ -1247,7 +1248,7 @@ compiler or runtime-selection flag:
 
 - `polygon_terrain_source.dart` strictly parses prefab-v3 and chunk-v2
   structures as written, including field sets, exact types, canonical list
-  order, Prefab half-pixel coordinates, direct Chunk whole-pixel coordinates,
+  order, Prefab and direct Chunk whole-pixel coordinates,
   exact scale tenths, collision metadata, and retained placement fields;
 - `polygon_terrain_compilation.dart` resolves stable prefab references and
   placement ordinals, applies the accepted anchor-relative Core transform,
@@ -1654,12 +1655,13 @@ to remain inside the closed owner rectangle. This search only chooses a useful d
 the shared reducer and exact Prefab/Chunk owner policy still validate the
 actual translated polygon and allocate its lowest-free stable shape ID.
 
-All stored and preview edit coordinates remain integer half-pixel ticks. The
-Prefab half-pixel snap preserves each tick, while its owner-grid snap uses an
-integer pixel step with exact ties away from zero. Direct Chunk terrain
-hardcodes a whole-pixel minimum and exposes no half-pixel selector. Independent
-default-off route-local creation and saved-shape tile-snap settings change their
-respective steps to the current owner's positive `tileSize`. Creation owns
+All stored and preview edit coordinates remain integer half-pixel ticks, but
+normal Prefab and direct Chunk collision authoring admit only even ticks.
+Prefab authoring hardcodes a whole-pixel step with exact ties away from zero.
+Direct Chunk terrain hardcodes the same minimum and exposes no half-pixel
+selector. Independent default-off route-local creation and saved-shape
+tile-snap settings change their respective steps to the current owner's
+positive `tileSize`. Creation owns
 polygon/rectangle drafts and draft vertex insertion/movement; saved-shape
 editing owns committed gestures, duplication spacing, and exact
 vertex/rectangle commits. Both settings are locked during an active draft or
@@ -1812,9 +1814,8 @@ The foundation is covered by:
 - asymmetric anchor/reflection/scale/translation and symmetric rounding tests
 - post-transform short-edge rejection
 - shared polygon selection/draft/gesture cancellation and one-commit history
-- explicit Prefab staged-scene routing, owner-local draft isolation, visible
-  snap selection, exact half-pixel creation, route shortcuts, undo/redo, and
-  diagnostic focus
+- explicit Prefab staged-scene routing, owner-local draft isolation, fixed
+  whole-pixel creation, route shortcuts, undo/redo, and diagnostic focus
 - exact numeric vertex parsing, canonical formatting, range/fraction rejection,
   canonical-selection retention, and one-commit owner dispatch
 - anchor-relative atlas and negative-cell platform-module visual projection
@@ -1857,10 +1858,9 @@ The foundation is covered by:
 - Chunk current-scene routing without a legacy reload, active-level owner
   isolation, guarded reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and fail-closed legacy route tests
-- shared Prefab/Chunk exact-coordinate fields, malformed-fraction rejection,
-  accepted Prefab half-pixel edits, rejected odd-tick Chunk edits, retained
-  out-of-bounds text/diagnostics, and no history or pending diff for either
-  rejection class
+- shared Prefab/Chunk exact-coordinate fields, malformed-fraction and odd-tick
+  rejection in both domains, retained out-of-bounds text/diagnostics, and no
+  history or pending diff for either rejection class
 - shared collision metadata dialog lifecycle, trimmed optional fields, one-way
   mode commit, exactly-once revision/pending projection, and undo restoration
 - deterministic duplicate placement across owner-order permutations, outward

@@ -71,4 +71,26 @@ abstract final class StrictTerrainSourceCodec {
     );
     return canonicalTerrainSourceShapes(shapes);
   }
+
+  /// Rejects polygon coordinates that do not lie on whole source pixels.
+  ///
+  /// Source models use half-pixel ticks, so accepted coordinates must be even.
+  /// Domain codecs call this after structural decoding when their authored
+  /// contract is stricter than the shared source representation.
+  static void requireWholePixelCoordinates(
+    Iterable<TerrainSourceShapeDef> shapes, {
+    required String sourcePath,
+  }) {
+    for (final (shapeIndex, shape) in shapes.indexed) {
+      for (final (vertexIndex, vertex) in shape.vertices.indexed) {
+        final vertexPath = '$sourcePath[$shapeIndex].vertices[$vertexIndex]';
+        if (vertex.xHalfPixels.isOdd) {
+          throw FormatException('$vertexPath.x must be a whole-pixel value.');
+        }
+        if (vertex.yHalfPixels.isOdd) {
+          throw FormatException('$vertexPath.y must be a whole-pixel value.');
+        }
+      }
+    }
+  }
 }

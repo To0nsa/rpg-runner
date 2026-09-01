@@ -47,9 +47,8 @@ void main() {
     ];
 
     expect(
-      _validate(<TerrainSourceShapeDef>[
-        noncanonical,
-      ]).map((issue) => issue.code),
+      _validate(<TerrainSourceShapeDef>[noncanonical])
+          .map((issue) => issue.code),
       contains('noncanonical_start'),
     );
     expect(
@@ -68,6 +67,20 @@ void main() {
       issues.map((issue) => issue.code),
       isNot(contains('polygon_area_overlap')),
     );
+  });
+
+  test('rejects prefab collision vertices outside the whole-pixel grid', () {
+    final issues = _validate(<TerrainSourceShapeDef>[
+      _rectangle('collision_001', left: -7, top: -8, right: 7, bottom: 8),
+    ]);
+
+    final issue = issues.singleWhere(
+      (issue) => issue.code == 'prefab_collision_shape_not_whole_pixel',
+    );
+    expect(issue.severity, PrefabValidationSeverity.error);
+    expect(issue.ownerKey, 'test_prefab');
+    expect(issue.shapeId, 'collision_001');
+    expect(issue.message, contains('4 vertex/vertices'));
   });
 
   test(

@@ -3,6 +3,10 @@
 Date: August 25, 2026
 Status: Implemented and archived on August 26, 2026
 
+Current-contract note (September 1, 2026): Prefab collision authoring now uses
+one mandatory whole-pixel grid. Completed half-pixel items below record the
+historical implementation and have been superseded.
+
 Source strategy:
 [Prefab and Chunk Creator UX alignment strategy](prefab_chunk_ux_alignment_strategy.md)
 

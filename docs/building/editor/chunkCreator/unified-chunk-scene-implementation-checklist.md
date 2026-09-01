@@ -796,7 +796,9 @@ performance regression remains.
       and staged-generator boundaries without adding migration behavior.
 - [x] Normalize the only direct Chunk half-pixel compiler fixture and refresh
       its exact edge and signature expectations.
-- [x] Keep Prefab-local half-pixel source and authoring behavior unchanged.
+- [x] Prefab-local collision authoring was subsequently tightened to the same
+      whole-pixel minimum; its selector was removed and its validation/codecs
+      reject odd half-pixel ticks without requiring a source migration.
 
 ## Phase 10 — Retire Standalone Actor-Terrain Inspection
 

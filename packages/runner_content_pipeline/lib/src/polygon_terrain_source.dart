@@ -237,6 +237,9 @@ final class PolygonTerrainChunkSource {
 }
 
 /// Strict prefab-v3 parser for the staged generator boundary.
+///
+/// Collision vertices must use whole source pixels. The shared point type keeps
+/// half-pixel ticks so exact placement transforms remain integer-only.
 PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
   String raw, {
   String sourcePath = 'prefab_defs.json',
@@ -384,7 +387,7 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
           json['collisionShapes'],
           '$path.collisionShapes',
           allowRenderOnly: false,
-          requireWholePixels: false,
+          requireWholePixels: true,
         ),
       ),
     );

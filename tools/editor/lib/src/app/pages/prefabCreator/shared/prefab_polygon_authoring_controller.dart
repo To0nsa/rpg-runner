@@ -14,11 +14,15 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 
+final TerrainPolygonSnapPolicy _prefabCollisionSnapPolicy =
+    TerrainPolygonSnapPolicy.ownerGridPixels(1);
+
 /// Prefab-route state for one polygon collision owner.
 ///
 /// Selection, tools, drafts, gesture previews, and rejected diagnostics remain
 /// local. Only an accepted owner-reviewed semantic commit is dispatched to the
 /// plugin/session boundary, producing one undo entry and one revision bump.
+/// All pointer-authored collision coordinates snap to whole source pixels.
 /// The controller requires the current Prefab-v3 document; fail-closed legacy
 /// or missing-source sessions cannot activate polygon authoring.
 final class PrefabPolygonAuthoringController extends ChangeNotifier {
@@ -29,8 +33,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     String? newShapeMaterialKey,
     TerrainSourceCollisionMode newShapeCollisionMode =
         TerrainSourceCollisionMode.solid,
-    TerrainPolygonSnapPolicy snapPolicy =
-        const TerrainPolygonSnapPolicy.halfPixel(),
     PrefabV3CollisionCommitPolicy commitPolicy =
         const PrefabV3CollisionCommitPolicy(),
   }) : _session = session,
@@ -38,7 +40,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
        _newShapeSurfaceKind = _normalizeOptionalKey(newShapeSurfaceKind),
        _newShapeMaterialKey = _normalizeOptionalKey(newShapeMaterialKey),
        _newShapeCollisionMode = newShapeCollisionMode,
-       _snapPolicy = snapPolicy,
        _commitPolicy = commitPolicy,
        _reducer = TerrainPolygonInteractionReducer(
          sourcePath: PrefabStore.prefabDefsPath,
@@ -59,7 +60,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   TerrainSourceCollisionMode _newShapeCollisionMode;
   String _newShapeNameInput = '';
   int _newShapeNameGeneration = 0;
-  TerrainPolygonSnapPolicy _snapPolicy;
   final PrefabV3CollisionCommitPolicy _commitPolicy;
   final TerrainPolygonInteractionReducer _reducer;
 
@@ -73,7 +73,9 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   TerrainPolygonSceneProjection get sceneProjection =>
       TerrainPolygonSceneProjection.fromInteraction(_state);
   List<PrefabValidationIssue> get issues => _issues;
-  TerrainPolygonSnapPolicy get snapPolicy => _snapPolicy;
+
+  /// Fixed Prefab collision step in half-pixel ticks; `2` is one source pixel.
+  int get coordinateStepHalfPixels => _prefabCollisionSnapPolicy.stepHalfPixels;
   String? get newShapeMaterialKey => _newShapeMaterialKey;
   String? get newShapeSurfaceKind => _newShapeSurfaceKind;
   TerrainSourceCollisionMode get newShapeCollisionMode =>
@@ -156,20 +158,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     return duplicate ? 'Another collision shape already uses this name.' : null;
   }
 
-  /// Changes the page-local authoring grid without creating session history.
-  ///
-  /// An active preview is cancelled first so a gesture cannot start under one
-  /// grid and commit under another.
-  void setSnapPolicy(TerrainPolygonSnapPolicy snapPolicy) {
-    if (snapPolicy.stepHalfPixels == _snapPolicy.stepHalfPixels) return;
-    if (_state.hasActiveOperation) {
-      _state = _reducer.cancelActiveOperation(_state);
-    }
-    _snapPolicy = snapPolicy;
-    _issues = const <PrefabValidationIssue>[];
-    notifyListeners();
-  }
-
   void select(TerrainPolygonSelection? selection) {
     _replaceLocalState(_reducer.select(_state, selection));
   }
@@ -234,7 +222,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
       _reducer.addDraftVertex(
         _state,
         rawVertex: _snapPoint(point),
-        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        snap: _prefabCollisionSnapPolicy,
       ),
     );
   }
@@ -290,7 +278,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
             pointer: pointer,
             edgeIndex: edgeIndex,
             rawVertex: sourcePoint,
-            snap: const TerrainPolygonSnapPolicy.halfPixel(),
+            snap: _prefabCollisionSnapPolicy,
           );
         }
         break;
@@ -336,7 +324,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
           shapeId: selection.shapeId,
           edgeIndex: selection.elementIndex!,
           rawVertex: sourcePoint,
-          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+          snap: _prefabCollisionSnapPolicy,
         ),
       _ => _state,
     };
@@ -354,7 +342,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
         _state,
         pointer: pointer,
         currentPointer: _snapPoint(point),
-        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        snap: _prefabCollisionSnapPolicy,
       ),
     );
   }
@@ -408,11 +396,15 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     String? shapeId,
   }) {
     final attemptedState = _state;
-    final left = _snapPolicy.snapCoordinate(xHalfPixels);
-    final top = _snapPolicy.snapCoordinate(yHalfPixels);
-    final right = _snapPolicy.snapCoordinate(xHalfPixels + widthHalfPixels);
-    final bottom = _snapPolicy.snapCoordinate(yHalfPixels + heightHalfPixels);
-    final minimumSize = _snapPolicy.stepHalfPixels;
+    final left = _prefabCollisionSnapPolicy.snapCoordinate(xHalfPixels);
+    final top = _prefabCollisionSnapPolicy.snapCoordinate(yHalfPixels);
+    final right = _prefabCollisionSnapPolicy.snapCoordinate(
+      xHalfPixels + widthHalfPixels,
+    );
+    final bottom = _prefabCollisionSnapPolicy.snapCoordinate(
+      yHalfPixels + heightHalfPixels,
+    );
+    final minimumSize = _prefabCollisionSnapPolicy.stepHalfPixels;
     return _applyInteractionResult(
       _reducer.editSelectedAxisAlignedRectangle(
         attemptedState,
@@ -506,7 +498,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   }
 
   TerrainSourceVertexDef _snapPoint(TerrainPolygonScenePoint point) =>
-      _snapPolicy.snapFractionalVertex(
+      _prefabCollisionSnapPolicy.snapFractionalVertex(
         xHalfPixels: point.xHalfPixels,
         yHalfPixels: point.yHalfPixels,
       );

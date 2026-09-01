@@ -74,16 +74,14 @@ void main() {
   );
 
   test('strict decode rejects legacy, unknown, and noncanonical source', () {
-    final canonical =
-        jsonDecode(
-              PrefabV3FileCodec.encode(
-                PrefabV3FileData(
-                  slices: const <AtlasSliceDef>[],
-                  prefabs: <PrefabV3Def>[_prefab(prefabKey: 'prefab_a')],
-                ),
-              ),
-            )
-            as Map<String, Object?>;
+    final canonical = jsonDecode(
+      PrefabV3FileCodec.encode(
+        PrefabV3FileData(
+          slices: const <AtlasSliceDef>[],
+          prefabs: <PrefabV3Def>[_prefab(prefabKey: 'prefab_a')],
+        ),
+      ),
+    ) as Map<String, Object?>;
 
     expect(
       () => PrefabV3FileCodec.decode(
@@ -108,6 +106,49 @@ void main() {
         }),
       ),
       throwsA(_formatMessage(contains('strictly ordered'))),
+    );
+  });
+
+  test('strict decode and encode reject half-pixel collision vertices', () {
+    final canonical = jsonDecode(
+      PrefabV3FileCodec.encode(
+        PrefabV3FileData(
+          slices: const <AtlasSliceDef>[],
+          prefabs: <PrefabV3Def>[_prefab(prefabKey: 'prefab_a')],
+        ),
+      ),
+    ) as Map<String, Object?>;
+
+    expect(
+      () => PrefabV3FileCodec.decode(
+        _mutated(canonical, (root) {
+          final prefab = _firstPrefab(root);
+          final shape =
+              (prefab['collisionShapes']! as List<Object?>).first!
+                  as Map<String, Object?>;
+          final vertex =
+              (shape['vertices']! as List<Object?>).first!
+                  as Map<String, Object?>;
+          vertex['x'] = 0.5;
+        }),
+      ),
+      throwsA(_formatMessage(contains('x must be a whole-pixel value'))),
+    );
+    expect(
+      () => PrefabV3FileCodec.encode(
+        PrefabV3FileData(
+          slices: const <AtlasSliceDef>[],
+          prefabs: <PrefabV3Def>[
+            _prefab(
+              prefabKey: 'prefab_a',
+              collisionShapes: <TerrainSourceShapeDef>[
+                _shape('collision_001', xOffset: 1),
+              ],
+            ),
+          ],
+        ),
+      ),
+      throwsA(_formatMessage(contains('x must be a whole-pixel value'))),
     );
   });
 

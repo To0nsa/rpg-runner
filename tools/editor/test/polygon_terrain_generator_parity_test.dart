@@ -68,7 +68,7 @@ void main() {
         PrefabColliderDef(offsetX: -10, offsetY: 0, width: 4, height: 4),
       ],
       'prefab_migration_rectangle': <PrefabColliderDef>[
-        PrefabColliderDef(offsetX: 0, offsetY: 0, width: 3, height: 5),
+        PrefabColliderDef(offsetX: 0, offsetY: 0, width: 4, height: 6),
       ],
     };
 

@@ -36,6 +36,26 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
   }
   if (issues.isNotEmpty) return _sortedPolygonIssues(issues);
 
+  for (final shape in shapes) {
+    final offGrid = shape.vertices.where(
+      (vertex) => vertex.xHalfPixels.isOdd || vertex.yHalfPixels.isOdd,
+    );
+    if (offGrid.isNotEmpty) {
+      issues.add(
+        PrefabValidationIssue(
+          code: 'prefab_collision_shape_not_whole_pixel',
+          message:
+              'Prefab $prefabId shape ${shape.shapeId} has '
+              '${offGrid.length} vertex/vertices outside the whole-pixel '
+              'collision grid.',
+          sourcePath: sourcePath,
+          ownerKey: prefabKey,
+          shapeId: shape.shapeId,
+        ),
+      );
+    }
+  }
+
   if (kind == PrefabKind.decoration) {
     if (shapes.isNotEmpty) {
       issues.add(

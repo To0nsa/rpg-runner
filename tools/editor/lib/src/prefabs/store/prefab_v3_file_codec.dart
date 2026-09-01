@@ -127,6 +127,14 @@ PrefabV3Def _decodePrefab(
     'platform',
     'decoration',
   }, sourcePath: '$sourcePath.kind');
+  final collisionShapes = StrictTerrainSourceCodec.decodeShapes(
+    json['collisionShapes'],
+    sourcePath: '$sourcePath.collisionShapes',
+  );
+  StrictTerrainSourceCodec.requireWholePixelCoordinates(
+    collisionShapes,
+    sourcePath: '$sourcePath.collisionShapes',
+  );
   return PrefabV3Def(
     prefabKey: StrictAuthoringJson.nonEmptyString(
       json['prefabKey'],
@@ -154,10 +162,7 @@ PrefabV3Def _decodePrefab(
       json['anchorYPx'],
       sourcePath: '$sourcePath.anchorYPx',
     ),
-    collisionShapes: StrictTerrainSourceCodec.decodeShapes(
-      json['collisionShapes'],
-      sourcePath: '$sourcePath.collisionShapes',
-    ),
+    collisionShapes: collisionShapes,
     tags: StrictAuthoringJson.canonicalTags(
       json['tags'],
       sourcePath: '$sourcePath.tags',

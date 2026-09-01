@@ -134,7 +134,10 @@ weakening that source invariant. Independent settings live in the terrain
 creation section and selected-existing-shape editor, so authors can snap one
 workflow without changing the other. Existing repository Chunk source was
 already whole-pixel; the transform compiler fixture was normalized to the
-nearest whole pixels. Prefab-local polygon authoring retains half-pixel support.
+nearest whole pixels. Prefab-local collision authoring now follows the same
+mandatory whole-pixel minimum: its precision selector is removed, pointer and
+exact-field edits share the fixed step, and Prefab validation/codecs reject odd
+half-pixel ticks. Existing repository Prefab source required no migration.
 
 Actor terrain inspection is available again in Chunk Creator after authoring
 feedback showed that the overlay is needed while shaping traversable terrain.

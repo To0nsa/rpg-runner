@@ -102,16 +102,16 @@ void main() {
         },
         <String, Set<(int, int)>>{
           'prefab_asymmetric|30|30|0': <(int, int)>{
-            (29184, 30259),
-            (31488, 30259),
-            (31488, 31334),
+            (29184, 30106),
+            (31642, 30106),
+            (31642, 31334),
             (29184, 31334),
           },
           'prefab_asymmetric|80|50|0': <(int, int)>{
-            (74240, 45056),
+            (72704, 45056),
             (97280, 45056),
-            (97280, 55808),
-            (74240, 55808),
+            (97280, 57344),
+            (72704, 57344),
           },
         },
       );
@@ -119,7 +119,7 @@ void main() {
         compiled.geometry.polygons
             .expand((polygon) => polygon.sourceVertices)
             .any((vertex) => vertex.xTicks.isOdd || vertex.yTicks.isOdd),
-        isTrue,
+        isFalse,
       );
       expect(
         compiled.geometry.edges.any(
@@ -594,6 +594,14 @@ void main() {
               (shape['vertices']! as List<Object?>).first!
                   as Map<String, Object?>;
           vertex['x'] = 0.5;
+        }),
+      ),
+      throwsA(_formatMessage(contains('whole-pixel coordinate'))),
+    );
+    expect(
+      () => decodePolygonTerrainPrefabs(
+        _mutated(prefab, (root) {
+          _firstPrefabCollisionVertex(root)['x'] = 0.5;
         }),
       ),
       throwsA(_formatMessage(contains('whole-pixel coordinate'))),
@@ -1474,6 +1482,15 @@ Map<String, Object?> _firstCollisionShape(Map<String, Object?> root) =>
 Map<String, Object?> _firstVertex(Map<String, Object?> root) =>
     (_firstCollisionShape(root)['vertices']! as List<Object?>).first!
         as Map<String, Object?>;
+
+Map<String, Object?> _firstPrefabCollisionVertex(Map<String, Object?> root) {
+  final prefab =
+      (root['prefabs']! as List<Object?>).first! as Map<String, Object?>;
+  final shape =
+      (prefab['collisionShapes']! as List<Object?>).first!
+          as Map<String, Object?>;
+  return (shape['vertices']! as List<Object?>).first! as Map<String, Object?>;
+}
 
 Map<String, Object?> _shapeJson(String shapeId, List<(num, num)> vertices) =>
     <String, Object?>{

@@ -68,13 +68,16 @@ abstract final class ChunkV2FileCodec {
       const <String>{chunkStatusActive, chunkStatusDeprecated},
       sourcePath: '$sourcePath.status',
     );
-    final difficulty =
-        StrictAuthoringJson.enumString(root['difficulty'], const <String>{
-          chunkDifficultyEarly,
-          chunkDifficultyEasy,
-          chunkDifficultyNormal,
-          chunkDifficultyHard,
-        }, sourcePath: '$sourcePath.difficulty');
+    final difficulty = StrictAuthoringJson.enumString(
+      root['difficulty'],
+      const <String>{
+        chunkDifficultyEarly,
+        chunkDifficultyEasy,
+        chunkDifficultyNormal,
+        chunkDifficultyHard,
+      },
+      sourcePath: '$sourcePath.difficulty',
+    );
     final tileLayers = StrictAuthoringJson.objectList(
       root['tileLayers'],
       sourcePath: '$sourcePath.tileLayers',
@@ -108,7 +111,7 @@ abstract final class ChunkV2FileCodec {
       root['collisionShapes'],
       sourcePath: '$sourcePath.collisionShapes',
     );
-    _requireWholePixelCoordinates(
+    StrictTerrainSourceCodec.requireWholePixelCoordinates(
       collisionShapes,
       sourcePath: '$sourcePath.collisionShapes',
     );
@@ -185,23 +188,6 @@ abstract final class ChunkV2FileCodec {
     final encoded = StrictAuthoringJson.encode(canonical.toJson());
     decode(encoded);
     return encoded;
-  }
-}
-
-void _requireWholePixelCoordinates(
-  Iterable<TerrainSourceShapeDef> shapes, {
-  required String sourcePath,
-}) {
-  for (final (shapeIndex, shape) in shapes.indexed) {
-    for (final (vertexIndex, vertex) in shape.vertices.indexed) {
-      final vertexPath = '$sourcePath[$shapeIndex].vertices[$vertexIndex]';
-      if (vertex.xHalfPixels.isOdd) {
-        throw FormatException('$vertexPath.x must be a whole-pixel value.');
-      }
-      if (vertex.yHalfPixels.isOdd) {
-        throw FormatException('$vertexPath.y must be a whole-pixel value.');
-      }
-    }
   }
 }
 

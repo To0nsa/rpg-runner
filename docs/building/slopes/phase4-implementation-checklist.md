@@ -1241,26 +1241,27 @@ strict generator reproduce `authoring-polygons-v1`, `source-v1`, `edges-v1`,
 `authoring-placement-v1`, and Core-owned `authoring-triangles-v1`. The emitted
 local records and typed Dart artifact remain exact.
 
-A separate canonical transform/terrain fixture exercises odd half-pixel source
-ticks, independent X-only and Y-only reflections, exact `0.3` and `3.0` scale
+A separate canonical transform/terrain fixture exercises whole-pixel Prefab
+source, independent X-only and Y-only reflections, exact `0.3` and `3.0` scale
 limits, one-quantization transformed vertices, a surviving flat-to-slope edge,
 finite ground on both sides of a pit, and an exact shared solid boundary whose
 internal edge cancels. Generator and editor reproduce source
-`6e5e8bbf…fe8`, edge `ed707fc7…d31`, authored polygon `60ca88ca…c3f`,
-placement `4f07473d…1c2`, and triangle `41ee501d…f36` signatures for six
-polygons, 21 exposed edges, and 14 triangles. The original reviewed artifact
-fixture and its bytes remain unchanged.
+`209a5946…1a21`, edge `b0b6e6cf…8939`, authored polygon `c2ca26bd…68e2`,
+placement `4f07473d…71c2`, and triangle `2ca31582…0e8` signatures for six
+polygons, 21 exposed edges, and 10 triangles. Lower-level source and transform
+tests retain exact half-pixel arithmetic coverage independently of the normal
+Prefab-v3 source restriction.
 
 The migration-origin fixture binds the real `LegacyPrefabColliderUnion`
-planner to the same cross-stage contract. It covers an isolated odd-sized
+planner to the same cross-stage contract. It covers an isolated whole-pixel
 rectangle, the concave union of two overlapping rectangles, and two
 edge-disconnected components. Reversing every legacy collider list preserves
 the exact planned loops and `collision_001`/`collision_002` derived IDs; those
 loops equal the canonical Prefab-v3 source before editor and generator compile
-them. Both consumers reproduce four polygons, 20 exposed edges, 12 triangles,
-and source `8b70a09b…bd96`, edge `1e605569…a1c6`, authored polygon
-`355242dd…b57c`, placement `edc8b921…780f`, and triangle
-`fcdff387…0ec5` signatures. Only the broad major-blocking-diagnostic fixture
+them. Both consumers reproduce four polygons, 20 exposed edges, zero triangles,
+and source `bae7db82…d280`, edge `dbc2e39e…ec82`, authored polygon
+`a44775f5…3757`, placement `edc8b921…780f`, and empty triangle
+`e3b0c442…b855` signatures. Only the broad major-blocking-diagnostic fixture
 gate remains open in this section.
 
 ## 23) Determinism And Golden Signatures

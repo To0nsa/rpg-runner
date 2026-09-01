@@ -6,10 +6,11 @@ import 'prefab_visual_source.dart';
 
 /// Normal prefab-schema-v3 record with polygon collision source.
 ///
-/// Collision coordinates are exact half-pixel ticks relative to the existing
-/// whole-pixel prefab anchor. Construction snapshots but does not reorder the
-/// supplied shapes or vertices; strict codecs and validation must diagnose
-/// noncanonical source instead of silently normalizing it.
+/// Collision coordinates are whole pixels represented as even half-pixel ticks
+/// relative to the existing whole-pixel prefab anchor. Construction snapshots
+/// but does not reorder the supplied shapes or vertices; strict codecs and
+/// validation must diagnose noncanonical source instead of silently
+/// normalizing it.
 @immutable
 final class PrefabV3Def {
   PrefabV3Def({

@@ -193,21 +193,23 @@ registry have been removed.
 
 Prefab collision authoring projects three sibling section contracts inside the
 authoring sidebar: creation, retained shapes, and diagnostics. Creation state
-owns optional identity, collision mode, surface/material defaults, snap policy,
-and the local polygon/rectangle draft. Retained shapes use `EditorListCard`'s
-detail slot for contextual metadata, lifecycle actions, and exact geometry; no
-Prefab collision-metadata modal remains. The mounted exact editor and route-
-local shape-name draft report pending state through
+owns optional identity, collision mode, surface/material defaults, and the
+local polygon/rectangle draft. Pointer input and exact fields share one fixed
+whole-pixel grid, so no precision selector is exposed. Retained shapes use
+`EditorListCard`'s detail slot for contextual metadata, lifecycle actions, and
+exact geometry; no Prefab collision-metadata modal remains. The mounted exact
+editor and route-local shape-name draft report pending state through
 `TerrainPolygonExactEditController`. Re-click, owner/view navigation, and
 source apply must resolve Save/Discard/Cancel before the selection/controller
 can change.
 
 An axis-aligned four-corner loop uses `TerrainPolygonRectangleEditor` with
-X/Bottom/Width/Height in exact half-pixel ticks. Other loops keep individual
-vertex editing. Identity and one exact geometry change are passed together to
-the shared polygon reducer, producing at most one owner-reviewed collision
-commit, revision increment, and undo entry. Collision, surface, and material
-selectors remain immediate semantic metadata edits, matching Chunk behavior.
+whole-pixel X/Bottom/Width/Height values. Other loops keep individual
+whole-pixel vertex editing. Identity and one exact geometry change are passed
+together to the shared polygon reducer, producing at most one owner-reviewed
+collision commit, revision increment, and undo entry. Collision, surface, and
+material selectors remain immediate semantic metadata edits, matching Chunk
+behavior.
 
 The Prefab owner/collision workspace presents flat sibling
 `EditorSectionCard`s rather than placing section cards inside redundant panel

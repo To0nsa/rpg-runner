@@ -742,22 +742,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 icon: const Icon(Icons.center_focus_strong),
                 label: const Text('Reset view'),
               ),
-              SegmentedButton<int>(
-                key: const ValueKey<String>('prefab_polygon_snap_selector'),
-                segments: const <ButtonSegment<int>>[
-                  ButtonSegment<int>(value: 2, label: Text('1 px grid')),
-                  ButtonSegment<int>(value: 1, label: Text('0.5 px')),
-                ],
-                selected: <int>{authoring.snapPolicy.stepHalfPixels},
-                onSelectionChanged: (selection) {
-                  final step = selection.single;
-                  authoring.setSnapPolicy(
-                    step == 1
-                        ? const TerrainPolygonSnapPolicy.halfPixel()
-                        : TerrainPolygonSnapPolicy.ownerGridPixels(1),
-                  );
-                },
-              ),
             ],
           ),
           const SizedBox(height: EditorUiTokens.controlGap),
@@ -1054,11 +1038,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     }
                   },
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
-          _buildPrefabSnapSelector(
-            authoring,
-            keyName: 'prefab_polygon_creation_snap_selector',
-          ),
           if (draft != null || gesture != null) ...<Widget>[
             const SizedBox(height: EditorUiTokens.controlGap),
             Text(
@@ -1139,12 +1118,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           'Edit ${shape.shapeId}',
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        _buildPrefabSnapSelector(
-          authoring,
-          keyName: 'prefab_polygon_edit_snap_selector',
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
         Wrap(
           spacing: EditorUiTokens.controlGap,
           runSpacing: EditorUiTokens.controlGap,
@@ -1390,28 +1363,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     ),
   );
 
-  Widget _buildPrefabSnapSelector(
-    PrefabPolygonAuthoringController authoring, {
-    required String keyName,
-  }) => SegmentedButton<int>(
-    key: ValueKey<String>(keyName),
-    segments: const <ButtonSegment<int>>[
-      ButtonSegment<int>(value: 2, label: Text('1 px grid')),
-      ButtonSegment<int>(value: 1, label: Text('0.5 px')),
-    ],
-    selected: <int>{authoring.snapPolicy.stepHalfPixels},
-    onSelectionChanged: authoring.hasActiveOperation
-        ? null
-        : (selection) {
-            final step = selection.single;
-            authoring.setSnapPolicy(
-              step == 1
-                  ? const TerrainPolygonSnapPolicy.halfPixel()
-                  : TerrainPolygonSnapPolicy.ownerGridPixels(1),
-            );
-          },
-  );
-
   Widget _buildVertexInspector(
     PrefabPolygonAuthoringController authoring,
     TerrainSourceShapeDef shape,
@@ -1465,7 +1416,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             applyButtonKey: const ValueKey<String>('prefab_polygon_save_edit'),
             applyLabel: 'Save edit',
             applyEnabled: shapeNameError == null,
-            coordinateStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+            coordinateStepHalfPixels: authoring.coordinateStepHalfPixels,
             editController: _exactEditController,
             onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
             onApply: (xHalfPixels, yHalfPixels) {
@@ -1497,7 +1448,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             applyButtonKey: const ValueKey<String>('prefab_polygon_save_edit'),
             applyLabel: 'Save edit',
             applyEnabled: shapeNameError == null,
-            coordinateStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+            coordinateStepHalfPixels: authoring.coordinateStepHalfPixels,
             editController: _exactEditController,
             onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
             onApply:
@@ -1654,7 +1605,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final offset = findTerrainPolygonDuplicateOffset(
       selectedShape: shape,
       ownerShapes: authoring.state.shapes,
-      snapStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+      snapStepHalfPixels: authoring.coordinateStepHalfPixels,
     );
     if (offset == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2297,7 +2248,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       prefabKey: prefabKey,
       newShapeSurfaceKind: terrainSurfaceKindOptions.first,
       newShapeMaterialKey: _materialCatalog?.materials.firstOrNull?.key,
-      snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
     )..addListener(_handleAuthoringChanged);
   }
 

@@ -160,6 +160,33 @@ void main() {
     expect(result.issues.single.severity, PrefabValidationSeverity.warning);
   });
 
+  test('half-pixel collision edit rejects without changing the owner', () {
+    final before = <TerrainSourceShapeDef>[
+      _rectangle('collision_001', left: -8, top: -8, right: 8, bottom: 8),
+    ];
+    final after = <TerrainSourceShapeDef>[
+      _rectangle('collision_001', left: -7, top: -8, right: 7, bottom: 8),
+    ];
+    final data = _data(before);
+
+    final result = policy.apply(
+      data: data,
+      prefabKey: 'target',
+      commit: _commit(before: before, after: after),
+      sourceWidthPx: 10,
+      sourceHeightPx: 10,
+    );
+
+    expect(result.accepted, isFalse);
+    expect(result.changed, isFalse);
+    expect(result.data, same(data));
+    expect(result.data.prefabs.last.revision, 7);
+    expect(
+      result.issues.map((issue) => issue.code),
+      contains('prefab_collision_shape_not_whole_pixel'),
+    );
+  });
+
   test(
     'missing owner and noncanonical shape order reject deterministically',
     () {

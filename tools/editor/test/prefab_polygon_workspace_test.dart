@@ -641,7 +641,7 @@ void main() {
     },
   );
 
-  testWidgets('current route isolates owners and commits half-pixel polygons', (
+  testWidgets('route isolates owners and commits whole-pixel polygons', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1800, 1000);
@@ -736,13 +736,7 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
     );
     await tester.pump();
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('prefab_polygon_snap_selector')),
-        matching: find.text('0.5 px'),
-      ),
-    );
-    await tester.pump();
+    expect(find.text('0.5 px'), findsNothing);
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
@@ -765,7 +759,7 @@ void main() {
           .vertices
           .first
           .xHalfPixels,
-      11,
+      12,
     );
     final impactText = tester.widget<Text>(
       find.byKey(const ValueKey<String>('prefab_polygon_downstream_impact')),
@@ -816,13 +810,22 @@ void main() {
     );
     await tester.pump();
     obstacle = _prefab(harness.session, 'obstacle');
+    expect(obstacle.revision, 2);
+    expect(find.text('Use a whole-pixel value.'), findsOneWidget);
+
+    await tester.enterText(yField, '6');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_save_edit')),
+    );
+    await tester.pump();
+    obstacle = _prefab(harness.session, 'obstacle');
     expect(obstacle.revision, 3);
     final editedVertex = obstacle.collisionShapes
         .singleWhere((shape) => shape.shapeId == 'collision_002')
         .vertices
         .first;
     expect(editedVertex.xHalfPixels, 10);
-    expect(editedVertex.yHalfPixels, 11);
+    expect(editedVertex.yHalfPixels, 12);
 
     await tester.tap(
       find.byKey(

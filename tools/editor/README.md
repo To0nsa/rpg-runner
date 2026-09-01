@@ -18,8 +18,8 @@ Implemented authoring domains:
 
 - entity collider/source-bound authoring for players, enemies, and projectiles,
   with runtime-faithful capsule and broad-phase previews
-- prefab (obstacle/platform/decoration), tile-slice, platform-module, and exact
-  half-pixel polygon-collision authoring, including tagged atlas/tile slices
+- prefab (obstacle/platform/decoration), tile-slice, platform-module, and
+  whole-pixel polygon-collision authoring, including tagged atlas/tile slices
   and visual slice selection with search, source/usage filters, thumbnails, and
   existing-Prefab usage indicators; Prefab atlas slicing supports configurable
   cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
@@ -504,8 +504,8 @@ affects only new drafts, while the second affects only saved-shape edits. Each
 route-local choice is locked during an active operation. Moving or inserting a
 vertex may refine exact collision contact to the mandatory whole-pixel terrain
 lattice when a neighboring boundary falls between tile intersections; free
-movement remains tile-snapped. Prefab-local collision authoring retains its
-existing `1 px` and `0.5 px` choices.
+movement remains tile-snapped. Prefab-local collision authoring also uses one
+mandatory whole-pixel grid for pointer and exact-field edits.
 
 Core-compiled collision edges are hidden by default. The **Shape edges** chip
 shows their read-only overlay, with solid edges in pink and one-way edges in

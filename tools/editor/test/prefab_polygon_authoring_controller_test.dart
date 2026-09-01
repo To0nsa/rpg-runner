@@ -28,6 +28,7 @@ void main() {
       final controller = harness.authoring;
       final session = harness.session;
       final loadedDocument = session.document;
+      expect(controller.coordinateStepHalfPixels, 2);
 
       controller.select(TerrainPolygonSelection.vertex('collision_001', 1));
       controller.setTool(TerrainPolygonTool.moveVertex);
