@@ -297,7 +297,8 @@ final class PrefabV3CatalogCommitPolicy {
           code: 'prefab_v3_slice_referenced',
           message:
               'Prefab slice ${operation.sliceId} is referenced by '
-              '${referencing.length} prefab owner(s).',
+              '${referencing.length} '
+              '${referencing.length == 1 ? 'prefab' : 'prefabs'}.',
         );
       }
       final removedKeys = referencing.map((prefab) => prefab.prefabKey);
@@ -540,7 +541,8 @@ final class PrefabV3CatalogCommitPolicy {
         code: 'prefab_v3_module_referenced',
         message:
             'Cannot delete module ${operation.moduleId}: $referenceCount '
-            'prefab owner(s) still reference it.',
+            '${referenceCount == 1 ? 'prefab still references' : 'prefabs still reference'} '
+            'it.',
       );
     }
     return _withCatalog(

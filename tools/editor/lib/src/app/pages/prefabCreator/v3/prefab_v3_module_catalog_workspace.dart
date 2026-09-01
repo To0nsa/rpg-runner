@@ -434,7 +434,7 @@ class PrefabV3ModuleCatalogWorkspaceState
         builder: (context) => AlertDialog(
           title: Text('Cannot delete $moduleId'),
           content: Text(
-            'Reassign or remove these prefab owners first: '
+            'Reassign or remove these prefabs first: '
             '${references.join(', ')}.',
           ),
           actions: <Widget>[

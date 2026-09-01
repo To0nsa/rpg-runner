@@ -158,6 +158,11 @@ lifecycle command, and preserves the stable key. Dirty create and rename forms
 join the same local-draft guard. Destructive deletion remains a contextual but
 reference-aware confirmation rather than becoming an unguarded icon action.
 
+The Prefab Creator presents these records simply as **prefabs**. Labels such as
+**Prefab library**, **Create prefab**, and **Prefabs & collision** keep the
+internal owner/`ownerKey` vocabulary out of the authoring workflow; owner terms
+remain implementation language for stable diagnostic and mutation contracts.
+
 Obstacle and decoration owner forms choose their atlas slice through an inline
 visual catalog rather than a text dropdown. Token search covers slice identity,
 source path, dimensions, tags, usage state, and referencing owner IDs. All,

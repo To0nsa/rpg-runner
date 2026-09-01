@@ -137,7 +137,7 @@ final class PrefabV3LifecycleCommitPolicy {
         document,
         code: 'prefab_v3_lifecycle_commit_stale',
         message:
-            'Prefab ownership changed after this lifecycle edit began; '
+            'The prefab catalog changed after this lifecycle edit began; '
             'reload the current source set before committing.',
       );
     }

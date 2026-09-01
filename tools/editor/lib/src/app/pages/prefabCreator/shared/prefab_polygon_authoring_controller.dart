@@ -572,7 +572,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
         const PrefabValidationIssue(
           code: 'prefab_polygon_plugin_command_rejected',
           message:
-              'The prefab plugin rejected an owner-reviewed polygon commit; '
+              'The prefab plugin rejected the validated polygon commit; '
               'reload the current document before retrying.',
           sourcePath: PrefabStore.prefabDefsPath,
         ),

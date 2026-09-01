@@ -124,12 +124,12 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
     final controls = EditorVisualCatalogControls(
       searchController: _searchController,
       searchKey: const ValueKey<String>('prefab_owner_catalog_search'),
-      searchLabel: 'Search prefab owners',
+      searchLabel: 'Search prefabs',
       searchHint: 'ID, key, kind, source, or tags',
       clearSearchKey: const ValueKey<String>(
         'prefab_owner_catalog_clear_search',
       ),
-      clearSearchTooltip: 'Clear prefab owner search',
+      clearSearchTooltip: 'Clear prefab search',
       filters: <Widget>[
         ChoiceChip(
           key: const ValueKey<String>('prefab_owner_catalog_kind_all'),
@@ -177,7 +177,7 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
       ],
       countKey: const ValueKey<String>('prefab_owner_catalog_count'),
       countLabel:
-          '${filteredPrefabs.length} of ${widget.prefabs.length} owners',
+          '${filteredPrefabs.length} of ${widget.prefabs.length} prefabs',
       onSearchSubmitted: () {
         final matches = _filteredPrefabs();
         if (matches.isNotEmpty) widget.onSelected(matches.first);
@@ -197,7 +197,7 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
               vertical: EditorUiTokens.panelPadding,
             ),
             child: Text(
-              'No prefab owners match the current search and filters.',
+              'No prefabs match the current search and filters.',
               textAlign: TextAlign.center,
             ),
           )

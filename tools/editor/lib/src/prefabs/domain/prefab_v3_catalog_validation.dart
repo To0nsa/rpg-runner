@@ -58,7 +58,7 @@ List<PrefabValidationIssue> validatePrefabV3CatalogDocument(
     issues.add(
       const PrefabValidationIssue(
         code: 'prefab_v3_owner_order_noncanonical',
-        message: 'Prefab owners must be ordered by human ID and stable key.',
+        message: 'Prefabs must be ordered by human ID and stable key.',
         sourcePath: _prefabSourcePath,
       ),
     );

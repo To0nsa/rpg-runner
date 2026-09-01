@@ -20,9 +20,7 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  testWidgets('current route honors a requested stable prefab owner', (
-    tester,
-  ) async {
+  testWidgets('current route honors a requested stable prefab', (tester) async {
     tester.view.physicalSize = const Size(1800, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -43,6 +41,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _openOwnerLibrary(tester);
+
+    expect(find.text('Prefabs & collision'), findsOneWidget);
+    expect(find.text('Create prefab'), findsOneWidget);
+    expect(find.text('Prefab library'), findsOneWidget);
+    expect(find.text('Search prefabs'), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'\bowners?\b', caseSensitive: false)),
+      findsNothing,
+    );
 
     final requestedOwner = find.byKey(
       const ValueKey<String>('prefab_polygon_owner_platform'),
@@ -1281,7 +1288,7 @@ void main() {
       await tester.pump();
       expect(
         find.textContaining(
-          'Apply or cancel the prefab owner draft before switching views',
+          'Apply or cancel the prefab draft before switching views',
         ),
         findsOneWidget,
       );

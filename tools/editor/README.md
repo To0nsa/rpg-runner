@@ -164,32 +164,32 @@ scene builds and handle drags.
 
 The checked-in source includes `anvil_00` with one Prefab collision polygon,
 and all eight chunks with a continuous `ground_001` polygon carrying `ground`
-/ `grass_dirt` metadata. Other collision-reset Prefab owners remain available
+/ `grass_dirt` metadata. Other collision-reset Prefabs remain available
 for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 
-Selecting an existing Prefab-v3 or Chunk-v2 owner row expands its metadata
+Selecting an existing Prefab-v3 or Chunk-v2 record expands its metadata
 editor directly below that row. These mounted forms are route-local drafts:
 Apply dispatches the existing stale-checked metadata command, Cancel changes no
 source or history, and a rejected command keeps the entered values and error
-visible. Dirty owner forms block Apply-to-files and prevent undo/redo from
+visible. Dirty metadata forms block Apply-to-files and prevent undo/redo from
 reaching session history: undo cancels the local form first and redo remains
-unavailable. Owner, level, or Prefab-workspace navigation must resolve the
+unavailable. Prefab, level, or workspace navigation must resolve the
 draft through Save, Discard, or Cancel.
-Active Prefab polygon operations receive the same owner-switch protection.
-Owner creation is a collapsed inline section. Rename, Duplicate, and Delete
-are labeled contextual actions inside the expanded owner editor; Rename uses a
+Active Prefab polygon operations receive the same prefab-switch protection.
+Prefab creation is a collapsed inline section. Rename, Duplicate, and Delete
+are labeled contextual actions inside the expanded prefab editor; Rename uses a
 separate inline stable-key-preserving lifecycle form. Creation and rename no
 longer open routine modals. Their dirty values use the same Save/Discard/Cancel
 navigation guard, and deletion retains its reference-aware confirmation.
 
-Prefab owners are selected through a searchable visual library rather than a
+Prefabs are selected through a searchable visual library rather than a
 plain text list. Atlas slices and platform modules share the same workspace-
 cached thumbnail projection used by Chunk prefab selection. Token search covers
-the owner ID, stable key, kind, visual source, and tags; kind and status filters
+the prefab ID, stable key, kind, visual source, and tags; kind and status filters
 remain presentation-only, and Enter selects the first deterministic result.
 Each card shows revision, collision count, source, tags, and downstream Chunk
-usage. The header owner selector, selected library card, collision-scene context
+usage. The header prefab selector, selected library card, collision-scene context
 chip, and expanded inline editor all resolve the same stable `prefabKey` without
 creating a revision or pending change.
 
@@ -211,7 +211,7 @@ unsaved identity or exact-coordinate fields. Axis-aligned four-vertex polygons
 use the compact X/Bottom/Width/Height editor, arbitrary polygons retain vertex
 editing, and identity plus exact geometry save as one collision command.
 
-Prefab owner and collision sidebars are flat groups of independently
+Prefab-library and collision sidebars are flat groups of independently
 collapsible sections; inactive sections start minimized and a section stays
 open while it owns an active form, shape editor, or drawing draft. Diagnostics
 projects the complete Prefab session, including issues owned by non-selected
@@ -220,10 +220,10 @@ issue carries a resolvable target. Expanding, filtering, or focusing these
 views does not author source changes.
 
 At narrow desktop widths the collision scene remains mounted and visible above
-the owner and authoring sidebars. Crossing the responsive breakpoint reparents
-the same scene, owner, and authoring subtrees, preserving viewport, selection,
-filters, expansion state, and local drafts; Prefab workspaces do not use
-exclusive Owners/Scene/Shapes tabs.
+the prefab-library and authoring sidebars. Crossing the responsive breakpoint
+reparents the same scene, library, and authoring subtrees without resetting the
+viewport, selection, filters, expansion state, or local drafts; Prefab
+workspaces do not use exclusive library/scene/shape tabs.
 
 Atlas slices and platform modules use the same responsive and panel language.
 Their authoring, palette/action, and existing-record libraries start collapsed;

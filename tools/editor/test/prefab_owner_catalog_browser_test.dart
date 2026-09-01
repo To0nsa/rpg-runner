@@ -6,7 +6,7 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
   testWidgets(
-    'owner library searches source and tags, filters, and selects by keyboard',
+    'prefab library searches source and tags, filters, and selects by keyboard',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1100);
       tester.view.devicePixelRatio = 1;
@@ -59,7 +59,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('3 of 3 owners'), findsOneWidget);
+      expect(find.text('3 of 3 prefabs'), findsOneWidget);
       expect(
         find.byKey(
           const ValueKey<String>('prefab_owner_catalog_preview_obstacle'),
@@ -79,7 +79,7 @@ void main() {
         'module_a',
       );
       await tester.pump();
-      expect(find.text('1 of 3 owners'), findsOneWidget);
+      expect(find.text('1 of 3 prefabs'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
         findsOneWidget,
@@ -103,7 +103,7 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('1 of 3 owners'), findsOneWidget);
+      expect(find.text('1 of 3 prefabs'), findsOneWidget);
       expect(find.text('dark_rock'), findsWidgets);
       expect(find.text('grass_platform'), findsNothing);
 
@@ -116,7 +116,7 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('1 of 3 owners'), findsOneWidget);
+      expect(find.text('1 of 3 prefabs'), findsOneWidget);
       expect(find.text('old_statue'), findsOneWidget);
 
       await tester.enterText(
@@ -124,7 +124,7 @@ void main() {
         'missing owner',
       );
       await tester.pump();
-      expect(find.text('0 of 3 owners'), findsOneWidget);
+      expect(find.text('0 of 3 prefabs'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('prefab_owner_catalog_empty')),
         findsOneWidget,
@@ -133,7 +133,7 @@ void main() {
     },
   );
 
-  testWidgets('expanded owner library handles a representative catalog', (
+  testWidgets('expanded prefab library handles a representative catalog', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(900, 900);
@@ -188,7 +188,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('180 of 180 owners'), findsOneWidget);
+    expect(find.text('180 of 180 prefabs'), findsOneWidget);
     final builtPreviewCount = find
         .byWidgetPredicate(
           (widget) =>
@@ -204,7 +204,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('long owner metadata remains readable at sidebar width', (
+  testWidgets('long prefab metadata remains readable at sidebar width', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(360, 900);

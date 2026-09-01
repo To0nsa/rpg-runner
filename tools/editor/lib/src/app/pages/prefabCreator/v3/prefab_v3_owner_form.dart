@@ -301,9 +301,9 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
               onSelectedSliceChanged: _selectSource,
               workspaceRootPath: widget.workspaceRootPath,
               labelText: 'Search atlas slices',
-              hintText: 'Slice ID, atlas, dimensions, tags, or prefab owner',
+              hintText: 'Slice ID, atlas, dimensions, tags, or prefab',
               emptyStateMessage:
-                  'Create an atlas slice before creating this owner.',
+                  'Create an atlas slice before creating this prefab.',
               defaultScopeTags: <String>[_kind.jsonValue],
               fieldKey: const ValueKey<String>(
                 'prefab_v3_owner_atlas_slice_search',
@@ -362,7 +362,7 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
             const Text(
               'Kind choices are restricted by the committed polygon collision '
               'modes. Edit shape metadata first to change between obstacle and '
-              'platform ownership.',
+              'platform types.',
             ),
           ],
           const SizedBox(height: 16),

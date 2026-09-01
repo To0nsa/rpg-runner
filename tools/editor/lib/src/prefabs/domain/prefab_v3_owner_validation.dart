@@ -112,7 +112,7 @@ List<PrefabValidationIssue> validatePrefabV3Owner({
       PrefabValidationIssue(
         code: 'prefab_polygon_visual_bounds_unresolved',
         message:
-            'Prefab ${prefab.id} visual bounds must resolve before its owner '
+            'Prefab ${prefab.id} visual bounds must resolve before its '
             'metadata can be committed.',
         sourcePath: ownerPath,
       ),

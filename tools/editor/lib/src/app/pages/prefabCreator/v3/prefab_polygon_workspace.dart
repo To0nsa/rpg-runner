@@ -338,7 +338,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               DropdownButton<String>(
                 key: const ValueKey<String>('prefab_v3_owner_selector'),
                 value: selectedPrefab.prefabKey,
-                hint: const Text('Select prefab owner'),
+                hint: const Text('Select prefab'),
                 onChanged: (prefabKey) {
                   if (prefabKey != null) {
                     unawaited(_selectOwnerFromHeader(prefabKey));
@@ -368,7 +368,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           children: <Widget>[
             ChoiceChip(
               key: const ValueKey<String>('prefab_v3_view_owners'),
-              label: const Text('Prefab owners & collision'),
+              label: const Text('Prefabs & collision'),
               selected: _workspaceView == _PrefabV3WorkspaceView.owners,
               onSelected: (_) => unawaited(
                 _selectWorkspaceView(_PrefabV3WorkspaceView.owners),
@@ -401,7 +401,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     if (view == _workspaceView) return;
     if (_ownerEditDirty || _ownerCreateDirty) {
       _showWorkspaceSwitchBlocked(
-        'Apply or cancel the prefab owner draft before switching views.',
+        'Apply or cancel the prefab draft before switching views.',
       );
       return;
     }
@@ -499,8 +499,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             expansionKey: const ValueKey<String>(
               'prefab_owner_library_section_toggle',
             ),
-            title: 'Prefab owner library',
-            description: 'Search, filter, select, and edit prefab owners.',
+            title: 'Prefab library',
+            description: 'Search, filter, select, and edit prefabs.',
             trailing: Text('${document.data.prefabs.length} total'),
             collapsible: !ownerEditorOpen,
             initiallyExpanded: false,
@@ -536,12 +536,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           _buildOwnerCreateSection(document, controlsEnabled: true),
           const SizedBox(height: EditorUiTokens.sectionGap),
           const EditorSectionCard(
-            title: 'Prefab owner library',
+            title: 'Prefab library',
             description: '0 total',
             collapsible: true,
             initiallyExpanded: false,
             child: Text(
-              'No prefab owners remain. Create one from a retained atlas '
+              'No prefabs remain. Create one from a retained atlas '
               'slice or platform module.',
             ),
           ),
@@ -560,7 +560,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final source = _ownerCreateSource ?? document;
     return EditorSectionCard(
       key: const ValueKey<String>('prefab_v3_owner_create_section'),
-      title: 'Create prefab owner',
+      title: 'Create prefab',
       description: canCreate
           ? 'Create from an authored atlas slice or platform module.'
           : 'Create an atlas slice or platform module first.',
@@ -583,7 +583,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               document: source,
               workspaceRootPath: widget.controller.workspacePath,
               autofocusId: true,
-              submitLabel: 'Create owner',
+              submitLabel: 'Create prefab',
               submitKey: const ValueKey<String>(
                 'prefab_v3_owner_inline_create_apply',
               ),
@@ -594,9 +594,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               onCancel: _closeOwnerCreateSection,
               onSubmit: _createOwner,
             )
-          : const Text(
-              'No visual source is currently available for a prefab owner.',
-            ),
+          : const Text('No visual source is currently available for a prefab.'),
     );
   }
 
@@ -670,7 +668,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             fieldKey: const ValueKey<String>('prefab_v3_inline_rename_id'),
             submitKey: const ValueKey<String>('prefab_v3_inline_rename_apply'),
             cancelKey: const ValueKey<String>('prefab_v3_inline_rename_cancel'),
-            submitLabel: 'Rename owner',
+            submitLabel: 'Rename prefab',
             helperText: 'The stable prefab key is preserved.',
             validator: (value) => validatePrefabV3OwnerId(
               value,
@@ -940,7 +938,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       ),
       title: 'Create collision shape',
       description: authoring.prefab.kind == PrefabKind.decoration
-          ? 'Decoration owners remain collider-free.'
+          ? 'Decoration prefabs remain collider-free.'
           : 'Choose identity and metadata, then draw in the scene.',
       collapsible: !authoring.hasActiveOperation,
       initiallyExpanded: false,
@@ -1847,7 +1845,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       builder: (context) => AlertDialog(
         title: Text('Delete ${prefab.id}?'),
         content: Text(
-          'This removes the prefab owner and its polygon source. '
+          'This removes the prefab and its collision shapes. '
           '${impact?.placementCount ?? 0} placement(s) in '
           '${impact?.referencingChunkKeys.length ?? 0} chunk(s) currently '
           'reference this stable key; those chunks are not mutated.',
@@ -1860,7 +1858,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           FilledButton(
             key: const ValueKey<String>('prefab_v3_owner_delete_confirm'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete owner'),
+            child: const Text('Delete prefab'),
           ),
         ],
       ),
@@ -1906,7 +1904,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       const SnackBar(
         content: Text(
           'Prefab change was rejected. Review validation diagnostics and '
-          'retry from the current owner state.',
+          'retry from the current prefab state.',
         ),
       ),
     );
@@ -1996,7 +1994,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     if (_authoring?.hasActiveOperation ?? false) {
       _showWorkspaceSwitchBlocked(
         'Finish or cancel the active polygon operation before switching '
-        'prefab owners.',
+        'prefabs.',
       );
       return;
     }
@@ -2030,7 +2028,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     if (_authoring?.hasActiveOperation ?? false) {
       _showWorkspaceSwitchBlocked(
         'Finish or cancel the active polygon operation before switching '
-        'prefab owners.',
+        'prefabs.',
       );
       return;
     }
@@ -2152,7 +2150,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     }
     if (!controlsEnabled) {
       _showWorkspaceSwitchBlocked(
-        'Finish the active owner or polygon operation before creating a prefab.',
+        'Finish the active prefab edit or polygon operation before creating a '
+        'prefab.',
       );
       return;
     }
@@ -2195,9 +2194,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         key: const ValueKey<String>('prefab_v3_owner_unsaved_create_dialog'),
-        title: const Text('Create this prefab owner?'),
+        title: const Text('Create this prefab?'),
         content: const Text(
-          'Save the pending prefab owner before leaving the creation form?',
+          'Save the pending prefab before leaving the creation form?',
         ),
         actions: <Widget>[
           TextButton(
