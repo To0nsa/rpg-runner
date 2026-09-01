@@ -165,8 +165,12 @@ Preserve these invariants:
 Leaderboard projection and ghost artifact creation happen in the replay validator
 worker after deterministic validation, not in read callables.
 Scheduled projection reconciliation must remain bounded, cursor-based, and
-idempotent, and may advance its cursor only after the full board page is
-durably enqueued.
+idempotent. Its release policy is one invocation per hour with four selected
+boards by default and a maximum environment override of 64. Query one lookahead
+document so exact-size final pages wrap without an empty invocation. Advance
+the cursor only after the full selected page is durably enqueued, and use a
+snapshot-version compare-and-set so an overlapping stale invocation cannot
+rewind newer cursor state.
 
 ## Firestore And Transaction Discipline
 

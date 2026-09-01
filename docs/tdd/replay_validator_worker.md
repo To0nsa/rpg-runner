@@ -262,9 +262,13 @@ so `ghostAvailable` is true only for a current active/exposed manifest whose
 identity and source replay evidence match the leaderboard entry, and is
 cleared on demotion. The materialized revision includes the source replay
 fields persisted in the Top-10 entry, but not hidden promoted-manifest fields.
-`runProjectionReconciliation` independently pages through boards every 15
-minutes and sends board reconciliation tasks, so convergence does not depend
-on a new score.
+`runProjectionReconciliation` independently visits four boards per hour by
+default through a durable ordered cursor and sends board reconciliation tasks,
+so convergence does not depend on a new score. A five-document lookahead wraps
+the final page in the same invocation, allowing up to 96 retained boards to be
+audited within the 24-hour early-release repair SLO. Cursor advancement uses a
+snapshot-version compare-and-set after all selected tasks are durably enqueued,
+so a stale overlap cannot rewind newer progress.
 
 Ghost reconciliation derives exposure from the current top 10, including an
 empty top 10, and pages through every prior manifest. Promotion copies the

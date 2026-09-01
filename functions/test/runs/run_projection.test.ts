@@ -15,7 +15,11 @@ import {
   enqueueAcceptedRunProjection,
   enqueueBoardProjectionReconciliation,
 } from "../../src/runs/projection_dispatch.js";
-import { reconcileLeaderboardBoardProjections } from "../../src/runs/projection_reconciliation.js";
+import {
+  parseProjectionReconciliationBatchSize,
+  projectionReconciliationSchedule,
+  reconcileLeaderboardBoardProjections,
+} from "../../src/runs/projection_reconciliation.js";
 import { settleAcceptedRunSession } from "../../src/runs/reward_settlement.js";
 import { loadRunSessionSubmissionStatus } from "../../src/runs/submission_store.js";
 
@@ -533,6 +537,69 @@ test("board reconciliation task uses the independent projection endpoint", async
   );
 });
 
+test("duplicate board reconciliation task is accepted as idempotent", async () => {
+  const duplicateError = Object.assign(new Error("task already exists"), {
+    code: 6,
+  });
+  const tasks = new FakeCloudTasksClient(duplicateError);
+
+  await enqueueBoardProjectionReconciliation({
+    boardId: "board_competitive_field",
+    taskKey: "cycle-1",
+    tasksClient: tasks as unknown as CloudTasksClient,
+    config: {
+      projectId: "demo-project",
+      location: "europe-west1",
+      queueName: "replay-projection",
+      projectionTaskUrl: "https://validator.example/tasks/project",
+      taskDispatchServiceAccount:
+        "sa-replay-task-dispatch@demo-project.iam.gserviceaccount.com",
+    },
+  });
+
+  assert.equal(tasks.requests.length, 0);
+});
+
+test("a later reconciliation bucket uses a distinct deterministic task", async () => {
+  const tasks = new FakeCloudTasksClient();
+  const config = {
+    projectId: "demo-project",
+    location: "europe-west1",
+    queueName: "replay-projection",
+    projectionTaskUrl: "https://validator.example/tasks/project",
+    taskDispatchServiceAccount:
+      "sa-replay-task-dispatch@demo-project.iam.gserviceaccount.com",
+  };
+
+  await enqueueBoardProjectionReconciliation({
+    boardId: "board_competitive_field",
+    taskKey: "cycle-1",
+    tasksClient: tasks as unknown as CloudTasksClient,
+    config,
+  });
+  await enqueueBoardProjectionReconciliation({
+    boardId: "board_competitive_field",
+    taskKey: "cycle-2",
+    tasksClient: tasks as unknown as CloudTasksClient,
+    config,
+  });
+
+  assert.equal(tasks.requests.length, 2);
+  assert.notEqual(tasks.requests[0]?.task?.name, tasks.requests[1]?.task?.name);
+});
+
+test("projection reconciliation release defaults are hourly and bounded", () => {
+  assert.equal(projectionReconciliationSchedule, "every 60 minutes");
+  assert.equal(parseProjectionReconciliationBatchSize(undefined), 4);
+  assert.equal(parseProjectionReconciliationBatchSize(""), 4);
+  assert.equal(parseProjectionReconciliationBatchSize("0"), 4);
+  assert.equal(parseProjectionReconciliationBatchSize("-1"), 4);
+  assert.equal(parseProjectionReconciliationBatchSize("1.5"), 4);
+  assert.equal(parseProjectionReconciliationBatchSize("invalid"), 4);
+  assert.equal(parseProjectionReconciliationBatchSize("8"), 8);
+  assert.equal(parseProjectionReconciliationBatchSize("1000"), 64);
+});
+
 test("scheduled projection reconciliation walks boards through a persisted cursor", async () => {
   await Promise.all(
     ["board_a", "board_b", "board_c"].map((boardId) =>
@@ -561,12 +628,273 @@ test("scheduled projection reconciliation walks boards through a persisted curso
 
   assert.equal(first.completedPage, false);
   assert.equal(first.nextCursor, "board_b");
+  assert.equal(first.queriedCount, 3);
+  assert.equal(first.selectedCount, 2);
+  assert.equal(first.cursorCommitted, true);
   assert.equal(second.completedPage, true);
   assert.equal(second.nextCursor, null);
+  assert.equal(second.queriedCount, 1);
+  assert.equal(second.selectedCount, 1);
+  assert.equal(second.cursorCommitted, true);
   assert.deepEqual(
     enqueued.map((entry) => entry.split(":")[0]),
     ["board_a", "board_b", "board_c"],
   );
+});
+
+test("exact-multiple final page wraps without an empty invocation", async () => {
+  await Promise.all(
+    ["board_a", "board_b", "board_c", "board_d"].map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const enqueued: string[] = [];
+  const dispatcher = {
+    async enqueue(args: { boardId: string; taskKey: string }): Promise<void> {
+      enqueued.push(args.boardId);
+    },
+  };
+
+  const first = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs,
+    batchSize: 2,
+    dispatcher,
+  });
+  const second = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs: nowMs + 60 * 60 * 1000,
+    batchSize: 2,
+    dispatcher,
+  });
+  const third = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs: nowMs + 2 * 60 * 60 * 1000,
+    batchSize: 2,
+    dispatcher,
+  });
+
+  assert.equal(first.queriedCount, 3);
+  assert.equal(first.completedPage, false);
+  assert.equal(second.queriedCount, 2);
+  assert.equal(second.selectedCount, 2);
+  assert.equal(second.completedPage, true);
+  assert.equal(second.nextCursor, null);
+  assert.deepEqual(enqueued, [
+    "board_a",
+    "board_b",
+    "board_c",
+    "board_d",
+    "board_a",
+    "board_b",
+  ]);
+  assert.equal(third.selectedCount, 2);
+});
+
+test("empty reconciliation commits a completed cycle without a task client", async () => {
+  const result = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs,
+    createTasksClient: () => {
+      throw new Error("task client must not be created for an empty page");
+    },
+  });
+
+  assert.equal(result.queriedCount, 0);
+  assert.equal(result.selectedCount, 0);
+  assert.equal(result.enqueuedCount, 0);
+  assert.equal(result.completedPage, true);
+  assert.equal(result.nextCursor, null);
+  assert.equal(result.cursorCommitted, true);
+  assert.equal(result.schedule, "every 60 minutes");
+  assert.equal(result.effectiveBatchSize, 4);
+  const state = await db
+    .collection("system_maintenance")
+    .doc("replay_projection_reconciliation")
+    .get();
+  assert.equal(state.exists, true);
+  assert.equal(state.get("cursor"), null);
+});
+
+test("default reconciliation selects four boards and keeps lookahead queued", async () => {
+  await Promise.all(
+    ["board_a", "board_b", "board_c", "board_d", "board_e"].map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const enqueued: string[] = [];
+
+  const result = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs,
+    dispatcher: {
+      async enqueue(args: { boardId: string }): Promise<void> {
+        enqueued.push(args.boardId);
+      },
+    },
+  });
+
+  assert.equal(result.queriedCount, 5);
+  assert.equal(result.selectedCount, 4);
+  assert.equal(result.enqueuedCount, 4);
+  assert.equal(result.nextCursor, "board_d");
+  assert.deepEqual(enqueued, ["board_a", "board_b", "board_c", "board_d"]);
+});
+
+test("96 boards complete and wrap in exactly 24 hourly invocations", async () => {
+  const boardIds = Array.from(
+    { length: 96 },
+    (_, index) => `board_${index.toString().padStart(3, "0")}`,
+  );
+  await Promise.all(
+    boardIds.map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const enqueued: string[] = [];
+  const dispatcher = {
+    async enqueue(args: { boardId: string; taskKey: string }): Promise<void> {
+      enqueued.push(args.boardId);
+    },
+  };
+
+  let lastResult;
+  for (let invocation = 0; invocation < 24; invocation += 1) {
+    lastResult = await reconcileLeaderboardBoardProjections({
+      db,
+      nowMs: nowMs + invocation * 60 * 60 * 1000,
+      batchSize: 4,
+      dispatcher,
+    });
+    assert.equal(lastResult.selectedCount, 4);
+    assert.equal(lastResult.cursorCommitted, true);
+  }
+
+  assert.equal(lastResult?.completedPage, true);
+  assert.equal(lastResult?.nextCursor, null);
+  assert.equal(enqueued.length, 96);
+  assert.equal(new Set(enqueued).size, 96);
+
+  const nextCycle = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs: nowMs + 24 * 60 * 60 * 1000,
+    batchSize: 4,
+    dispatcher,
+  });
+  assert.equal(nextCycle.selectedCount, 4);
+  assert.deepEqual(enqueued.slice(-4), boardIds.slice(0, 4));
+});
+
+test("54 boards complete one cycle in 14 hourly invocations", async () => {
+  const boardIds = Array.from(
+    { length: 54 },
+    (_, index) => `board_${index.toString().padStart(3, "0")}`,
+  );
+  await Promise.all(
+    boardIds.map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const enqueued: string[] = [];
+  const dispatcher = {
+    async enqueue(args: { boardId: string; taskKey: string }): Promise<void> {
+      enqueued.push(args.boardId);
+    },
+  };
+
+  let lastResult;
+  for (let invocation = 0; invocation < 14; invocation += 1) {
+    lastResult = await reconcileLeaderboardBoardProjections({
+      db,
+      nowMs: nowMs + invocation * 60 * 60 * 1000,
+      batchSize: 4,
+      dispatcher,
+    });
+  }
+
+  assert.equal(enqueued.length, 54);
+  assert.equal(new Set(enqueued).size, 54);
+  assert.equal(lastResult?.selectedCount, 2);
+  assert.equal(lastResult?.completedPage, true);
+  assert.equal(lastResult?.nextCursor, null);
+});
+
+test("board inserted before the cursor is selected after wrap", async () => {
+  await Promise.all(
+    ["board_b", "board_c", "board_d"].map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const enqueued: string[] = [];
+  const dispatcher = {
+    async enqueue(args: { boardId: string; taskKey: string }): Promise<void> {
+      enqueued.push(args.boardId);
+    },
+  };
+
+  await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs,
+    batchSize: 2,
+    dispatcher,
+  });
+  await db
+    .collection("leaderboard_boards")
+    .doc("board_a")
+    .set({ boardId: "board_a" });
+  await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs: nowMs + 60 * 60 * 1000,
+    batchSize: 2,
+    dispatcher,
+  });
+  await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs: nowMs + 2 * 60 * 60 * 1000,
+    batchSize: 2,
+    dispatcher,
+  });
+
+  assert.deepEqual(enqueued, [
+    "board_b",
+    "board_c",
+    "board_d",
+    "board_a",
+    "board_b",
+  ]);
+});
+
+test("stale overlapping reconciliation cannot overwrite newer cursor state", async () => {
+  await Promise.all(
+    ["board_a", "board_b", "board_c"].map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const stateRef = db
+    .collection("system_maintenance")
+    .doc("replay_projection_reconciliation");
+  await stateRef.set({ cursor: null, updatedAtMs: nowMs - 1 });
+  let replacedState = false;
+  const dispatcher = {
+    async enqueue(): Promise<void> {
+      if (!replacedState) {
+        replacedState = true;
+        await stateRef.set({ cursor: "board_c", updatedAtMs: nowMs });
+      }
+    },
+  };
+
+  const result = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs,
+    batchSize: 2,
+    dispatcher,
+  });
+
+  assert.equal(result.cursorCommitted, false);
+  assert.equal(result.nextCursor, "board_b");
+  const persisted = await stateRef.get();
+  assert.equal(persisted.get("cursor"), "board_c");
 });
 
 test("scheduled projection reconciliation reuses and closes one task client", async () => {
@@ -772,6 +1100,7 @@ async function clearCollection(
 
 interface ProjectionTaskRequest {
   task?: {
+    name?: string;
     httpRequest?: {
       url?: string;
       body?: string;

@@ -381,11 +381,20 @@ Why:
 - `runProjectionOnAccepted` enqueues board-backed leaderboard/ghost projection
   separately from settlement, so projection retry cannot delay payout.
 - `runProjectionReconciliation` is configured with 512 MiB of memory, pages
-  through managed board documents every 15 minutes, and enqueues deterministic
-  reconciliation tasks. One Cloud Tasks client is reused for the complete
-  invocation and closed on either success or enqueue failure. It advances its
-  cursor only after the whole page is durably enqueued, so a failed page is
-  replay-safe and leaderboard/ghost convergence does not require a new score.
+  through managed board documents once per hour, and selects four boards by
+  default. Its environment override accepts positive integers but is capped at
+  64. Each invocation queries one lookahead document, enqueues only the
+  selected page, and wraps partial or exact-size final pages without requiring
+  a later empty invocation. At 54 retained boards a complete cursor cycle takes
+  14 successful invocations; the release policy covers up to 96 boards within
+  the 24-hour repair SLO.
+- Reconciliation task names are deterministic inside their hourly bucket. One
+  Cloud Tasks client is reused for the complete invocation and closed on either
+  success or enqueue failure. Cursor state advances only after the selected
+  page is durably enqueued, and a snapshot-version compare-and-set prevents a
+  stale overlapping invocation from overwriting newer progress. A failed page
+  remains replay-safe and leaderboard/ghost convergence does not require a new
+  score.
 - The completed legacy reward-grant cutover has no deployed scheduled
   function. Normal canonical state reads never perform migration work; any
   future migration must be explicitly introduced, verified, and removed as a

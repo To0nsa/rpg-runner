@@ -175,58 +175,58 @@ Objective:
 
 Functions changes:
 
-- [ ] Change `runProjectionReconciliation` to `every 60 minutes`.
-- [ ] Change the checked-in default batch size from `64` to `4`.
-- [ ] Query at most `batchSize + 1` board documents and enqueue only the first
+- [x] Change `runProjectionReconciliation` to `every 60 minutes`.
+- [x] Change the checked-in default batch size from `64` to `4`.
+- [x] Query at most `batchSize + 1` board documents and enqueue only the first
   `batchSize` documents.
-- [ ] Keep a positive bounded environment override for incident response.
-- [ ] Ensure absent, zero, negative, or malformed overrides resolve to `4`.
-- [ ] Align reconciliation task-key buckets with the one-hour cadence.
-- [ ] Keep one page per scheduler invocation.
-- [ ] Preserve ordered document-id cursor traversal.
-- [ ] Advance the cursor only after every selected board task is durably
+- [x] Keep a positive bounded environment override for incident response.
+- [x] Ensure absent, zero, negative, or malformed overrides resolve to `4`.
+- [x] Align reconciliation task-key buckets with the one-hour cadence.
+- [x] Keep one page per scheduler invocation.
+- [x] Preserve ordered document-id cursor traversal.
+- [x] Advance the cursor only after every selected board task is durably
   enqueued.
-- [ ] Persist cursor advancement with an optimistic precondition or transaction
+- [x] Persist cursor advancement with an optimistic precondition or transaction
   that proves the starting cursor is still current.
-- [ ] If the cursor precondition fails, preserve newer state and report a stale
+- [x] If the cursor precondition fails, preserve newer state and report a stale
   overlapping invocation rather than moving the cursor backward.
-- [ ] Keep the cursor unchanged after any enqueue failure.
-- [ ] Use the lookahead document to wrap partial and exact-multiple final pages
+- [x] Keep the cursor unchanged after any enqueue failure.
+- [x] Use the lookahead document to wrap partial and exact-multiple final pages
   to `null` without a separate empty invocation.
-- [ ] Include effective cadence, batch size, queried count including lookahead,
+- [x] Include effective cadence, batch size, queried count including lookahead,
   selected count, enqueued count, and cursor-commit outcome in the structured
   result.
 
 Functions tests:
 
-- [ ] Empty board collection enqueues zero tasks and leaves a valid cursor
+- [x] Empty board collection enqueues zero tasks and leaves a valid cursor
   state.
-- [ ] A four-board page enqueues exactly four deterministic tasks.
-- [ ] A failed task leaves the page replayable.
-- [ ] Replaying a page in the same hourly bucket does not duplicate work.
-- [ ] A partial final page wraps to the beginning on the next cycle.
-- [ ] An exact-multiple final page wraps in the same invocation and the next
+- [x] A four-board page enqueues exactly four deterministic tasks.
+- [x] A failed task leaves the page replayable.
+- [x] Replaying a page in the same hourly bucket does not duplicate work.
+- [x] A partial final page wraps to the beginning on the next cycle.
+- [x] An exact-multiple final page wraps in the same invocation and the next
   hourly invocation starts at the first board.
-- [ ] An overlapping invocation whose cursor becomes stale cannot overwrite
+- [x] An overlapping invocation whose cursor becomes stale cannot overwrite
   newer cursor progress.
-- [ ] A late retry in another hourly task-key bucket may enqueue duplicate work
+- [x] A late retry in another hourly task-key bucket may enqueue duplicate work
   but remains convergent and observable.
-- [ ] Fifty-four boards complete one cycle in 14 successful hourly
+- [x] Fifty-four boards complete one cycle in 14 successful hourly
   invocations.
-- [ ] Up to 96 boards satisfy the 24-hour full-cycle SLO.
-- [ ] A new document inserted before the current cursor is picked up after the
+- [x] Up to 96 boards satisfy the 24-hour full-cycle SLO.
+- [x] A new document inserted before the current cursor is picked up after the
   next wrap.
-- [ ] Existing projection dispatch, auth, queue identity, and retry tests remain
+- [x] Existing projection dispatch, auth, queue identity, and retry tests remain
   green.
 
 Focused validation:
 
-- [ ] `corepack pnpm --dir functions build`.
-- [ ] `corepack pnpm --dir functions test`.
+- [x] `corepack pnpm --dir functions build`.
+- [x] `corepack pnpm --dir functions test`.
 
 Gate:
 
-- [ ] source defaults and tests prove no scheduler invocation can enqueue more
+- [x] source defaults and tests prove no scheduler invocation can enqueue more
   than four board-reconciliation tasks without an explicit reviewed override
 
 ---
@@ -277,13 +277,13 @@ Objective:
 Tasks:
 
 - [x] Update `docs/tdd/replay_validator_worker.md`.
-- [ ] Update `docs/tdd/firebase_cloud_functions_overview.md`.
+- [x] Update `docs/tdd/firebase_cloud_functions_overview.md`.
 - [x] Update `docs/tdd/ghost_run_flow.md`.
 - [ ] Update `services/replay_validator/README.md` deployment and rollback
   guidance.
 - [ ] Update Functions monitoring/runbook documentation for the new cadence and
   page limit.
-- [ ] Update `functions/AGENTS.md` if its reconciliation guidance needs the
+- [x] Update `functions/AGENTS.md` if its reconciliation guidance needs the
   bounded-page/no-op invariants.
 - [x] Update `services/replay_validator/AGENTS.md` if its projection guidance
   needs the materialized-revision invariant.

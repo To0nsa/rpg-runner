@@ -55,7 +55,11 @@ import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
 import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
 import { settleAcceptedRunSession } from "./runs/reward_settlement.js";
 import { enqueueAcceptedRunProjection } from "./runs/projection_dispatch.js";
-import { reconcileLeaderboardBoardProjections } from "./runs/projection_reconciliation.js";
+import {
+  parseProjectionReconciliationBatchSize,
+  projectionReconciliationSchedule,
+  reconcileLeaderboardBoardProjections,
+} from "./runs/projection_reconciliation.js";
 import {
   dispatchImmediateSettlement,
   ImmediateSettlementDispatchRequestError,
@@ -107,9 +111,9 @@ const settlementStaleThresholdMs = readPositiveInt(
 const validationRepairBatchSize = readPositiveInt(
   process.env.RUN_VALIDATION_REPAIR_BATCH_SIZE,
 ) ?? 64;
-const projectionReconciliationBatchSize = readPositiveInt(
+const projectionReconciliationBatchSize = parseProjectionReconciliationBatchSize(
   process.env.RUN_PROJECTION_RECONCILIATION_BATCH_SIZE,
-) ?? 64;
+);
 const replayValidatorServiceAccount =
   process.env.REPLAY_VALIDATOR_SERVICE_ACCOUNT?.trim() ||
   "sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com";
@@ -590,7 +594,7 @@ export const runValidationRepair = onSchedule(
  */
 export const runProjectionReconciliation = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: projectionReconciliationSchedule,
     timeZone: "Etc/UTC",
     memory: "512MiB",
   },
