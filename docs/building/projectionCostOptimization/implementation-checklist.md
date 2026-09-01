@@ -301,26 +301,26 @@ Gate:
 
 ## Phase 6 — Run the full local validation gate
 
-- [ ] `dart analyze services/replay_validator`.
-- [ ] `dart test services/replay_validator/test`.
-- [ ] `dart compile exe services/replay_validator/bin/server.dart -o
+- [x] `dart analyze services/replay_validator`.
+- [x] Run the validator's full test suite from its package directory.
+- [x] `dart compile exe services/replay_validator/bin/server.dart -o
   .tmp/replay_validator_server`.
-- [ ] `corepack pnpm --dir functions build`.
-- [ ] `corepack pnpm --dir functions test`.
-- [ ] Run focused cursor, dispatch, leaderboard, ghost, account-deletion, and
+- [x] `corepack pnpm --dir functions build`.
+- [x] `corepack pnpm --dir functions test`.
+- [x] Run focused cursor, dispatch, leaderboard, ghost, account-deletion, and
   projection retry tests.
-- [ ] Inspect `git diff --check`.
-- [ ] Confirm no generated `functions/lib/**` or `functions/lib_test/**` file
+- [x] Inspect `git diff --check`.
+- [x] Confirm no generated `functions/lib/**` or `functions/lib_test/**` file
   was edited by hand.
-- [ ] Confirm no client or shared protocol change is required.
+- [x] Confirm no client or shared protocol change is required.
 - [ ] Record projection reads per reconciled board and per complete cursor
   cycle for the release fixture/corpus.
-- [ ] Verify the `below 1,000 reads/day` target is documented as applying to the
+- [x] Verify the `below 1,000 reads/day` target is documented as applying to the
   recorded release corpus rather than as an unbounded schema guarantee.
 
 Gate:
 
-- [ ] every focused milestone commit passes its relevant checks and the full
+- [x] every focused milestone commit passes its relevant checks and the full
   committed series passes the cross-layer gate before deployment
 
 Commit sequence:
@@ -332,6 +332,26 @@ Commit sequence:
 - [x] Commit logging/monitoring configuration and operational docs as a
   separate independently validated milestone.
 - [x] Confirm each commit excludes unrelated pre-existing worktree changes.
+
+### Local validation evidence — 2026-09-01T19:00:15Z
+
+- Strategy commit: `46af0962`.
+- Validator milestone: `512fa5b6`.
+- Functions milestone: `bfa0c257`.
+- Logging/monitoring milestone: `29ffb6ad`.
+- Validator analysis: no issues.
+- Validator tests: 102 passed.
+- Validator executable: compiled to `.tmp/replay_validator_server`.
+- Functions build: passed.
+- Functions emulator suite: 204 passed, 0 failed.
+- Focused Functions projection suite: 33 passed, 0 failed.
+- Monitoring validation: both PowerShell files parse, all policy/dashboard JSON
+  parses, nine metric definitions and eleven policies are present, and the
+  checked-in queue ratios resolve to validation `1.0` / projection `0.1`.
+- Repository hygiene: `git diff --check` passed; generated Functions output,
+  Flutter client code, and shared protocol code are absent from the milestone
+  diffs. The unrelated pre-existing `assets/authoring/level/prefab_defs.json`
+  worktree edit remains uncommitted and untouched.
 
 ---
 
