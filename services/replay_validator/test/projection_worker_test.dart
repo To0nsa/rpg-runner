@@ -54,6 +54,22 @@ void main() {
     },
   );
 
+  test('run projection reports changed materialization', () async {
+    final metrics = _FakeMetrics();
+    final worker = DeterministicProjectionWorker(
+      leaderboardProjector: _FakeLeaderboardProjector(
+        runResult: LeaderboardMaterializationResult.changed,
+      ),
+      ghostPublisher: _FakeGhostPublisher(),
+      metrics: metrics,
+    );
+
+    final result = await worker.projectRunSession(runSessionId: 'run_changed');
+
+    expect(result.status, ProjectionDispatchStatus.completed);
+    expect(metrics.phases, contains('projection_changed'));
+  });
+
   test(
     'account deletion completes projection without retrying the task',
     () async {
@@ -78,10 +94,11 @@ void main() {
   test('board reconciliation refreshes leaderboard and ghost state', () async {
     final leaderboard = _FakeLeaderboardProjector();
     final ghosts = _FakeGhostPublisher();
+    final metrics = _FakeMetrics();
     final worker = DeterministicProjectionWorker(
       leaderboardProjector: leaderboard,
       ghostPublisher: ghosts,
-      metrics: _FakeMetrics(),
+      metrics: metrics,
     );
 
     final result = await worker.reconcileBoard(boardId: 'board_1');
@@ -89,18 +106,68 @@ void main() {
     expect(result.status, ProjectionDispatchStatus.completed);
     expect(leaderboard.boardIds, <String>['board_1', 'board_1']);
     expect(ghosts.boardIds, <String>['board_1']);
+    expect(metrics.phases, contains('projection_reconciliation_unchanged'));
+  });
+
+  test('board reconciliation reports a ghost-only materialization', () async {
+    final metrics = _FakeMetrics();
+    final worker = DeterministicProjectionWorker(
+      leaderboardProjector: _FakeLeaderboardProjector(
+        boardResults: const <LeaderboardMaterializationResult>[
+          LeaderboardMaterializationResult.unchanged,
+          LeaderboardMaterializationResult.changed,
+        ],
+      ),
+      ghostPublisher: _FakeGhostPublisher(),
+      metrics: metrics,
+    );
+
+    final result = await worker.reconcileBoard(boardId: 'board_ghost_change');
+
+    expect(result.status, ProjectionDispatchStatus.completed);
+    expect(
+      metrics.phases,
+      contains('projection_reconciliation_ghost_only_change'),
+    );
+  });
+
+  test('projection conflict exhaustion has a distinct retry outcome', () async {
+    final metrics = _FakeMetrics();
+    final worker = DeterministicProjectionWorker(
+      leaderboardProjector: _FakeLeaderboardProjector(
+        error: const LeaderboardProjectionConflictException('board_conflict'),
+      ),
+      ghostPublisher: _FakeGhostPublisher(),
+      metrics: metrics,
+    );
+
+    final result = await worker.reconcileBoard(boardId: 'board_conflict');
+
+    expect(result.status, ProjectionDispatchStatus.retryScheduled);
+    expect(
+      metrics.errorClasses,
+      contains(
+        'leaderboard_before_ghost_LeaderboardProjectionConflictException',
+      ),
+    );
   });
 }
 
 class _FakeLeaderboardProjector implements LeaderboardProjector {
-  _FakeLeaderboardProjector({this.error});
+  _FakeLeaderboardProjector({
+    this.error,
+    this.runResult = LeaderboardMaterializationResult.unchanged,
+    this.boardResults = const <LeaderboardMaterializationResult>[],
+  });
 
   final Object? error;
+  final LeaderboardMaterializationResult runResult;
+  final List<LeaderboardMaterializationResult> boardResults;
   final List<String> runSessionIds = <String>[];
   final List<String> boardIds = <String>[];
 
   @override
-  Future<void> projectValidatedRun({
+  Future<LeaderboardMaterializationResult> projectValidatedRun({
     required String runSessionId,
     ValidatedRun? validatedRun,
     String? characterId,
@@ -109,14 +176,21 @@ class _FakeLeaderboardProjector implements LeaderboardProjector {
     if (error != null) {
       throw error!;
     }
+    return runResult;
   }
 
   @override
-  Future<void> reconcileBoard({required String boardId}) async {
+  Future<LeaderboardMaterializationResult> reconcileBoard({
+    required String boardId,
+  }) async {
     boardIds.add(boardId);
     if (error != null) {
       throw error!;
     }
+    final resultIndex = boardIds.length - 1;
+    return resultIndex < boardResults.length
+        ? boardResults[resultIndex]
+        : LeaderboardMaterializationResult.unchanged;
   }
 }
 

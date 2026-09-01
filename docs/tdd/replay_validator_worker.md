@@ -240,17 +240,31 @@ retention policy; an active ghost is instead pinned by its independently durable
 `ghosts/...` generation.
 
 Leaderboard projection uses conditional compare-and-replace for player best
-and an update-time precondition for the top-10 materialized view. A duplicate
-task always resumes top-10 refresh even when the candidate is already the
-stored best; that no-write comparison explicitly rolls back its Firestore
-transaction before refresh so it cannot retain a pessimistic lock. Every
-deletion-fence setup failure likewise rolls back its opened transaction. After
-ghost publication/reconciliation, projection refreshes the view again so
-`ghostAvailable` is true only for a current active/exposed manifest whose
+and an update-time precondition for changed top-10 materialized views. The
+view stores `materializationSchemaVersion: 1` and a `materializedRevision`
+computed from its exact ordered consumer payload while excluding top-level and
+entry-level timestamps. An unchanged revision skips the view commit and does
+not advance `updatedAtMs`. Missing, malformed, or older revision metadata
+causes one safe rewrite; that one-way rewrite removes the retired
+`sourceRevision` field rather than retaining a second skip authority.
+
+A duplicate task always attempts top-10 convergence even when the candidate is
+already the stored best. The candidate no-write comparison explicitly rolls
+back its Firestore transaction before refresh so it cannot retain a
+pessimistic lock. Current Top-10 player bests are marked `ghostEligible` only
+when the value returned by the ranking query is false. Outgoing players use a
+deletion-fenced conditional transaction that reads the actual stored value and
+skips an already-false demotion. Every deletion-fence setup failure likewise
+rolls back its opened transaction.
+
+After ghost publication/reconciliation, projection refreshes the view again
+so `ghostAvailable` is true only for a current active/exposed manifest whose
 identity and source replay evidence match the leaderboard entry, and is
-cleared on demotion. `runProjectionReconciliation` independently pages through
-boards every 15 minutes and sends board reconciliation tasks, so convergence
-does not depend on a new score.
+cleared on demotion. The materialized revision includes the source replay
+fields persisted in the Top-10 entry, but not hidden promoted-manifest fields.
+`runProjectionReconciliation` independently pages through boards every 15
+minutes and sends board reconciliation tasks, so convergence does not depend
+on a new score.
 
 Ghost reconciliation derives exposure from the current top 10, including an
 empty top 10, and pages through every prior manifest. Promotion copies the
@@ -415,6 +429,9 @@ service and its two local Dart package dependencies.
   failing step and Google API failures append only HTTP status and stable
   provider reason. Raw API messages are excluded because they may contain
   document or object identities.
+- bounded projection phases for changed, unchanged, ghost-only, retryable, and
+  account-deletion-skip outcomes; optimistic conflict exhaustion uses a
+  dedicated safe exception class in retry telemetry.
 
 Accepted runs additionally emit `settlement_dispatch_start`,
 `settlement_dispatch_outcome`, `settlement_dispatch_fallback`, or

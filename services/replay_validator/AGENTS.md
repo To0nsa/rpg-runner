@@ -96,6 +96,9 @@ Gameplay validation must come from the replay inputs and deterministic Core.
   and must retry independently of reward settlement
 - player best and top-10 writes must remain conditional/convergent, and
   scheduled board reconciliation must not depend on a new submission
+- top-10 no-op decisions use the current versioned `materializedRevision` over
+  consumer-visible content with timestamps excluded; legacy `sourceRevision`
+  is not a projection authority
 - ghost reconciliation must include empty boards and every manifest page;
   exposure requires source generation, promoted generation, and digest
 - terminal states must be idempotent enough for Cloud Tasks retry behavior

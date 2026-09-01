@@ -82,6 +82,14 @@ Why:
 5. A second top10 refresh materializes `ghostAvailable: true` only for entries
    with a current active/exposed manifest; it clears the flag after demotion.
 
+The top10 view is materialized under one versioned revision authority. Its
+revision binds the exact ordered consumer payload, including ghost eligibility,
+availability, and source replay evidence, while excluding timestamps. The
+first and second refresh therefore write only when consumer-visible content
+changes. An already-converged board performs no top10 or player-best
+eligibility writes, while a ghost availability transition still changes the
+revision and commits the second refresh.
+
 Key details:
 - Candidate leaderboard entries start with `ghostEligible: false` then top10 refresh marks top entries as `ghostEligible: true`.
 - Promoted ghost object path is canonicalized as:
@@ -90,7 +98,14 @@ Key details:
 - active + exposed => available
 - demoted / not exposed => not available
 
-`ghostEligible` is a leaderboard candidate signal, not a manifest-availability guarantee. `ghostAvailable` is the client-facing availability projection and is true only after a matching active/exposed manifest has been published. The UI enables `VS Ghost` only for `ghostAvailable` entries, so an unavailable candidate never creates a run ticket. The manifest callable remains the final policy check because the row can become stale after it was loaded.
+`ghostEligible` is a leaderboard candidate signal, not a manifest-availability
+guarantee. Its player-best field is updated through a conditional transaction,
+so duplicate promotion or demotion attempts do not refresh `updatedAtMs`.
+`ghostAvailable` is the client-facing availability projection and is true only
+after a matching active/exposed manifest has been published. The UI enables
+`VS Ghost` only for `ghostAvailable` entries, so an unavailable candidate never
+creates a run ticket. The manifest callable remains the final policy check
+because the row can become stale after it was loaded.
 
 ## 3.2 Player starts “VS Ghost” (client UI)
 

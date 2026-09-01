@@ -59,21 +59,27 @@ class DeterministicProjectionWorker implements ProjectionWorker {
     final startedAtMs = DateTime.now().millisecondsSinceEpoch;
     var step = 'leaderboard';
     try {
-      await leaderboardProjector.projectValidatedRun(
-        runSessionId: normalizedRunSessionId,
-      );
+      final leaderboardBeforeGhost = await leaderboardProjector
+          .projectValidatedRun(runSessionId: normalizedRunSessionId);
       step = 'ghost';
       final ghostBoardId = await ghostPublisher.updateGhostArtifacts(
         runSessionId: normalizedRunSessionId,
       );
+      LeaderboardMaterializationResult? leaderboardAfterGhost;
       if (ghostBoardId != null) {
         step = 'leaderboard_after_ghost';
-        await leaderboardProjector.reconcileBoard(boardId: ghostBoardId);
+        leaderboardAfterGhost = await leaderboardProjector.reconcileBoard(
+          boardId: ghostBoardId,
+        );
       }
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
         status: ProjectionDispatchStatus.completed.name,
-        phase: 'projection',
+        phase: _materializationPhase(
+          base: 'projection',
+          beforeGhost: leaderboardBeforeGhost,
+          afterGhost: leaderboardAfterGhost,
+        ),
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
       );
       return const ProjectionDispatchResult.completed();
@@ -114,15 +120,23 @@ class DeterministicProjectionWorker implements ProjectionWorker {
     final startedAtMs = DateTime.now().millisecondsSinceEpoch;
     var step = 'leaderboard_before_ghost';
     try {
-      await leaderboardProjector.reconcileBoard(boardId: normalizedBoardId);
+      final leaderboardBeforeGhost = await leaderboardProjector.reconcileBoard(
+        boardId: normalizedBoardId,
+      );
       step = 'ghost';
       await ghostPublisher.reconcileBoard(boardId: normalizedBoardId);
       step = 'leaderboard_after_ghost';
-      await leaderboardProjector.reconcileBoard(boardId: normalizedBoardId);
+      final leaderboardAfterGhost = await leaderboardProjector.reconcileBoard(
+        boardId: normalizedBoardId,
+      );
       await metrics.recordDispatch(
         runSessionId: 'board:$normalizedBoardId',
         status: ProjectionDispatchStatus.completed.name,
-        phase: 'projection_reconciliation',
+        phase: _materializationPhase(
+          base: 'projection_reconciliation',
+          beforeGhost: leaderboardBeforeGhost,
+          afterGhost: leaderboardAfterGhost,
+        ),
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
       );
       return const ProjectionDispatchResult.completed();
@@ -168,4 +182,20 @@ class StubProjectionWorker implements ProjectionWorker {
   }) async => const ProjectionDispatchResult.retryScheduled(
     message: 'Projection worker is not configured.',
   );
+}
+
+String _materializationPhase({
+  required String base,
+  required LeaderboardMaterializationResult beforeGhost,
+  required LeaderboardMaterializationResult? afterGhost,
+}) {
+  if (beforeGhost == LeaderboardMaterializationResult.unchanged &&
+      afterGhost == LeaderboardMaterializationResult.changed) {
+    return '${base}_ghost_only_change';
+  }
+  if (beforeGhost == LeaderboardMaterializationResult.changed ||
+      afterGhost == LeaderboardMaterializationResult.changed) {
+    return '${base}_changed';
+  }
+  return '${base}_unchanged';
 }

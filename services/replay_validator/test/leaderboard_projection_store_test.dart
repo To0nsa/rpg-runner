@@ -54,6 +54,137 @@ void main() {
     expect(result, PlayerBestWriteResult.unchanged);
     expect(rollbackCalls, 1);
   });
+
+  test('unchanged ghost eligibility rolls back without a write', () async {
+    const transactionId = 'dGVzdC10cmFuc2FjdGlvbg==';
+    final existing = _entry(score: 1200, sortKey: '0001');
+    var rollbackCalls = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/documents:beginTransaction')) {
+        return _jsonResponse(<String, Object?>{'transaction': transactionId});
+      }
+      if (request.method == 'GET' &&
+          request.url.path.contains('/account_deletion_requests/')) {
+        return _notFoundResponse();
+      }
+      if (request.method == 'GET' &&
+          request.url.path.endsWith('/player_bests/uid_player')) {
+        return _jsonResponse(
+          firestore.Document(
+            name: request.url.path.substring(4),
+            fields: encodeFirestoreFields(existing.toJson()),
+            updateTime: '2026-09-01T00:00:00Z',
+          ).toJson(),
+        );
+      }
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/documents:rollback')) {
+        rollbackCalls += 1;
+        return _jsonResponse(const <String, Object?>{});
+      }
+      fail('Unexpected ${request.method} ${request.url}');
+    });
+    final store = FirestoreLeaderboardProjectionStore(
+      projectId: 'test-project',
+      apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+    );
+
+    final changed = await store.setPlayerBestGhostEligibleIfChanged(
+      boardId: existing.boardId,
+      uid: existing.uid,
+      ghostEligible: true,
+      nowMs: 2000,
+    );
+
+    expect(changed, isFalse);
+    expect(rollbackCalls, 1);
+  });
+
+  test('top10 snapshot decodes current materialization authority', () async {
+    const revision =
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    final client = MockClient((request) async {
+      if (request.method == 'GET' &&
+          request.url.path.endsWith('/views/top10')) {
+        return _jsonResponse(
+          firestore.Document(
+            name: request.url.path.substring(4),
+            fields: encodeFirestoreFields(<String, Object?>{
+              'boardId': 'board_competitive_2026_03_forest',
+              'entries': const <Object?>[],
+              'materializationSchemaVersion':
+                  leaderboardTop10MaterializationSchemaVersion,
+              'materializedRevision': revision,
+              'updatedAtMs': 1000,
+            }),
+            updateTime: '2026-09-01T00:00:00Z',
+          ).toJson(),
+        );
+      }
+      fail('Unexpected ${request.method} ${request.url}');
+    });
+    final store = FirestoreLeaderboardProjectionStore(
+      projectId: 'test-project',
+      apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+    );
+
+    final snapshot = await store.loadTop10View(
+      boardId: 'board_competitive_2026_03_forest',
+    );
+
+    expect(snapshot.exists, isTrue);
+    expect(snapshot.entries, isEmpty);
+    expect(
+      snapshot.materializationSchemaVersion,
+      leaderboardTop10MaterializationSchemaVersion,
+    );
+    expect(snapshot.materializedRevision, revision);
+  });
+
+  test(
+    'top10 write persists current authority and removes legacy revision',
+    () async {
+      const transactionId = 'dGVzdC10cmFuc2FjdGlvbg==';
+      Map<String, Object?>? committedBody;
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/documents:beginTransaction')) {
+          return _jsonResponse(<String, Object?>{'transaction': transactionId});
+        }
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/documents:commit')) {
+          committedBody = Map<String, Object?>.from(
+            jsonDecode(request.body) as Map,
+          );
+          return _jsonResponse(const <String, Object?>{});
+        }
+        fail('Unexpected ${request.method} ${request.url}');
+      });
+      final store = FirestoreLeaderboardProjectionStore(
+        projectId: 'test-project',
+        apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+      );
+
+      final committed = await store.writeTop10View(
+        boardId: 'board_competitive_2026_03_forest',
+        entries: const <LeaderboardEntry>[],
+        updatedAtMs: 2000,
+        expected: const Top10ViewSnapshot.missing(),
+      );
+
+      expect(committed, isTrue);
+      final writes = committedBody!['writes']! as List;
+      final write = Map<String, Object?>.from(writes.single as Map);
+      final update = Map<String, Object?>.from(write['update']! as Map);
+      final fields = Map<String, Object?>.from(update['fields']! as Map);
+      final updateMask = Map<String, Object?>.from(write['updateMask']! as Map);
+      expect(fields, contains('materializationSchemaVersion'));
+      expect(fields, contains('materializedRevision'));
+      expect(fields, isNot(contains('sourceRevision')));
+      expect(updateMask['fieldPaths'], contains('sourceRevision'));
+    },
+  );
 }
 
 LeaderboardEntry _entry({required int score, required String sortKey}) {

@@ -9,25 +9,29 @@ import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
 
 abstract class LeaderboardProjector {
-  Future<void> projectValidatedRun({
+  Future<LeaderboardMaterializationResult> projectValidatedRun({
     required String runSessionId,
     ValidatedRun? validatedRun,
     String? characterId,
   });
 
-  Future<void> reconcileBoard({required String boardId});
+  Future<LeaderboardMaterializationResult> reconcileBoard({
+    required String boardId,
+  });
 }
 
 class NoopLeaderboardProjector implements LeaderboardProjector {
   @override
-  Future<void> projectValidatedRun({
+  Future<LeaderboardMaterializationResult> projectValidatedRun({
     required String runSessionId,
     ValidatedRun? validatedRun,
     String? characterId,
-  }) async {}
+  }) async => LeaderboardMaterializationResult.unchanged;
 
   @override
-  Future<void> reconcileBoard({required String boardId}) async {}
+  Future<LeaderboardMaterializationResult> reconcileBoard({
+    required String boardId,
+  }) async => LeaderboardMaterializationResult.unchanged;
 }
 
 abstract class LeaderboardProjectionStore {
@@ -56,7 +60,8 @@ abstract class LeaderboardProjectionStore {
     required String boardId,
   });
 
-  Future<void> setPlayerBestGhostEligible({
+  /// Writes ghost eligibility only when the stored player-best value differs.
+  Future<bool> setPlayerBestGhostEligibleIfChanged({
     required String boardId,
     required String uid,
     required bool ghostEligible,
@@ -113,20 +118,69 @@ final class ActiveGhostManifestEvidence {
 
 enum PlayerBestWriteResult { improved, unchanged }
 
+/// Whether consumer-visible Top-10 content changed during convergence.
+enum LeaderboardMaterializationResult { changed, unchanged }
+
+/// Raised after repeated optimistic Top-10 view conflicts.
+final class LeaderboardProjectionConflictException implements Exception {
+  const LeaderboardProjectionConflictException(this.boardId, {this.uid});
+
+  final String boardId;
+  final String? uid;
+
+  @override
+  String toString() => uid == null
+      ? 'Top-10 projection conflicted repeatedly for board "$boardId".'
+      : 'Player-best eligibility projection conflicted repeatedly for '
+            '"$boardId/$uid".';
+}
+
+/// Schema of the consumer-visible Top-10 content bound by the materialized
+/// revision.
+const int leaderboardTop10MaterializationSchemaVersion = 1;
+
+/// Returns the stable revision for the persisted Top-10 payload.
+///
+/// Wall-clock metadata is deliberately excluded so identical consumer content
+/// converges without another Firestore write.
+String buildLeaderboardTop10MaterializedRevision({
+  required String boardId,
+  required List<LeaderboardEntry> entries,
+}) {
+  return ReplayDigest.canonicalSha256ForMap(<String, Object?>{
+    'materializationSchemaVersion':
+        leaderboardTop10MaterializationSchemaVersion,
+    'boardId': boardId,
+    'entries': entries
+        .map((entry) {
+          final payload = entry.toJson();
+          payload.remove('updatedAtMs');
+          return payload;
+        })
+        .toList(growable: false),
+  });
+}
+
 final class Top10ViewSnapshot {
   const Top10ViewSnapshot({
     required this.entries,
     required this.exists,
+    this.materializationSchemaVersion,
+    this.materializedRevision,
     this.updateTime,
   });
 
   const Top10ViewSnapshot.missing()
     : entries = const <LeaderboardEntry>[],
       exists = false,
+      materializationSchemaVersion = null,
+      materializedRevision = null,
       updateTime = null;
 
   final List<LeaderboardEntry> entries;
   final bool exists;
+  final int? materializationSchemaVersion;
+  final String? materializedRevision;
   final String? updateTime;
 }
 
@@ -148,7 +202,7 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
   final int Function() _clockMs;
 
   @override
-  Future<void> projectValidatedRun({
+  Future<LeaderboardMaterializationResult> projectValidatedRun({
     required String runSessionId,
     ValidatedRun? validatedRun,
     String? characterId,
@@ -164,7 +218,7 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
         !resolvedValidatedRun.accepted ||
         !resolvedValidatedRun.mode.requiresBoard ||
         resolvedValidatedRun.boardId == null) {
-      return;
+      return LeaderboardMaterializationResult.unchanged;
     }
 
     final boardId = resolvedValidatedRun.boardId!;
@@ -198,21 +252,23 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
       updatedAtMs: nowMs,
     );
     await _store.replacePlayerBestIfBetter(candidate: candidate);
-    // Always rebuild the materialized view. A duplicate task may be resuming
-    // after the player-best write but before top-10/ghost projection completed.
-    await _refreshTop10View(boardId: boardId, nowMs: nowMs);
+    // Always attempt convergence. The materialized revision makes a completed
+    // duplicate a no-op while still repairing a partial prior attempt.
+    return _refreshTop10View(boardId: boardId, nowMs: nowMs);
   }
 
   @override
-  Future<void> reconcileBoard({required String boardId}) async {
+  Future<LeaderboardMaterializationResult> reconcileBoard({
+    required String boardId,
+  }) async {
     final normalizedBoardId = boardId.trim();
     if (normalizedBoardId.isEmpty) {
       throw ArgumentError.value(boardId, 'boardId', 'must be non-empty');
     }
-    await _refreshTop10View(boardId: normalizedBoardId, nowMs: _clockMs());
+    return _refreshTop10View(boardId: normalizedBoardId, nowMs: _clockMs());
   }
 
-  Future<void> _refreshTop10View({
+  Future<LeaderboardMaterializationResult> _refreshTop10View({
     required String boardId,
     required int nowMs,
   }) async {
@@ -257,12 +313,14 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
         );
         topEntries.add(ranked);
         topUids.add(ranked.uid);
-        await _store.setPlayerBestGhostEligible(
-          boardId: boardId,
-          uid: ranked.uid,
-          ghostEligible: true,
-          nowMs: nowMs,
-        );
+        if (!parsed.ghostEligible) {
+          await _store.setPlayerBestGhostEligibleIfChanged(
+            boardId: boardId,
+            uid: ranked.uid,
+            ghostEligible: true,
+            nowMs: nowMs,
+          );
+        }
       }
 
       final previousTopUids = <String>{
@@ -272,12 +330,22 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
         if (topUids.contains(uid)) {
           continue;
         }
-        await _store.setPlayerBestGhostEligible(
+        await _store.setPlayerBestGhostEligibleIfChanged(
           boardId: boardId,
           uid: uid,
           ghostEligible: false,
           nowMs: nowMs,
         );
+      }
+
+      final materializedRevision = buildLeaderboardTop10MaterializedRevision(
+        boardId: boardId,
+        entries: topEntries,
+      );
+      if (previous.materializationSchemaVersion ==
+              leaderboardTop10MaterializationSchemaVersion &&
+          previous.materializedRevision == materializedRevision) {
+        return LeaderboardMaterializationResult.unchanged;
       }
 
       final committed = await _store.writeTop10View(
@@ -287,12 +355,10 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
         expected: previous,
       );
       if (committed) {
-        return;
+        return LeaderboardMaterializationResult.changed;
       }
     }
-    throw StateError(
-      'Top-10 projection conflicted repeatedly for board "$boardId".',
-    );
+    throw LeaderboardProjectionConflictException(boardId);
   }
 }
 
@@ -475,11 +541,18 @@ class FirestoreLeaderboardProjectionStore
         'Top-10 view "$boardId" is missing its Firestore updateTime.',
       );
     }
+    final materializationSchemaVersion =
+        decoded['materializationSchemaVersion'] is int
+        ? decoded['materializationSchemaVersion'] as int
+        : null;
+    final materializedRevision = _sha256Digest(decoded['materializedRevision']);
     final rawEntries = decoded['entries'];
     if (rawEntries is! List) {
       return Top10ViewSnapshot(
         entries: const <LeaderboardEntry>[],
         exists: true,
+        materializationSchemaVersion: materializationSchemaVersion,
+        materializedRevision: materializedRevision,
         updateTime: updateTime,
       );
     }
@@ -493,6 +566,8 @@ class FirestoreLeaderboardProjectionStore
     return Top10ViewSnapshot(
       entries: out,
       exists: true,
+      materializationSchemaVersion: materializationSchemaVersion,
+      materializedRevision: materializedRevision,
       updateTime: updateTime,
     );
   }
@@ -552,29 +627,54 @@ class FirestoreLeaderboardProjectionStore
   }
 
   @override
-  Future<void> setPlayerBestGhostEligible({
+  Future<bool> setPlayerBestGhostEligibleIfChanged({
     required String boardId,
     required String uid,
     required bool ghostEligible,
     required int nowMs,
   }) async {
-    final payload = <String, Object?>{
-      'ghostEligible': ghostEligible,
-      'updatedAtMs': nowMs,
-    };
-    final transaction = await _deletionFence.begin(uids: <String>[uid]);
-    await transaction.commit(<firestore.Write>[
-      firestore.Write(
-        update: firestore.Document(
-          name: _playerBestDocPath(boardId, uid),
-          fields: encodeFirestoreFields(payload),
-        ),
-        updateMask: firestore.DocumentMask(
-          fieldPaths: payload.keys.toList(growable: false),
-        ),
-        currentDocument: firestore.Precondition(exists: true),
-      ),
-    ]);
+    final path = _playerBestDocPath(boardId, uid);
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final transaction = await _deletionFence.begin(uids: <String>[uid]);
+      final existingDocument = await transaction.get(path);
+      if (existingDocument == null) {
+        await transaction.rollback();
+        return false;
+      }
+      final decoded = decodeFirestoreFields(existingDocument.fields);
+      if (decoded['ghostEligible'] == ghostEligible) {
+        await transaction.rollback();
+        return false;
+      }
+      final payload = <String, Object?>{
+        'ghostEligible': ghostEligible,
+        'updatedAtMs': nowMs,
+      };
+      final updateTime = _nonEmptyString(existingDocument.updateTime);
+      try {
+        await transaction.commit(<firestore.Write>[
+          firestore.Write(
+            update: firestore.Document(
+              name: path,
+              fields: encodeFirestoreFields(payload),
+            ),
+            updateMask: firestore.DocumentMask(
+              fieldPaths: payload.keys.toList(growable: false),
+            ),
+            currentDocument: firestore.Precondition(
+              exists: updateTime == null ? true : null,
+              updateTime: updateTime,
+            ),
+          ),
+        ]);
+        return true;
+      } catch (error) {
+        if (!isApiConflict(error)) {
+          rethrow;
+        }
+      }
+    }
+    throw LeaderboardProjectionConflictException(boardId, uid: uid);
   }
 
   @override
@@ -584,20 +684,16 @@ class FirestoreLeaderboardProjectionStore
     required int updatedAtMs,
     required Top10ViewSnapshot expected,
   }) async {
+    final materializedRevision = buildLeaderboardTop10MaterializedRevision(
+      boardId: boardId,
+      entries: entries,
+    );
     final payload = <String, Object?>{
       'boardId': boardId,
       'entries': entries.map((e) => e.toJson()).toList(growable: false),
-      'sourceRevision': ReplayDigest.canonicalSha256ForMap(<String, Object?>{
-        'entries': entries
-            .map(
-              (entry) => <String, Object?>{
-                'uid': entry.uid,
-                'runSessionId': entry.runSessionId,
-                'sortKey': entry.sortKey,
-              },
-            )
-            .toList(growable: false),
-      }),
+      'materializationSchemaVersion':
+          leaderboardTop10MaterializationSchemaVersion,
+      'materializedRevision': materializedRevision,
       'updatedAtMs': updatedAtMs,
     };
     try {
@@ -611,7 +707,7 @@ class FirestoreLeaderboardProjectionStore
             fields: encodeFirestoreFields(payload),
           ),
           updateMask: firestore.DocumentMask(
-            fieldPaths: payload.keys.toList(growable: false),
+            fieldPaths: <String>[...payload.keys, 'sourceRevision'],
           ),
           currentDocument: firestore.Precondition(
             exists: expected.exists ? null : false,

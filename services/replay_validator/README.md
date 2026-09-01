@@ -20,8 +20,10 @@ Current scope:
 - sealed `replay-submissions/validated/...` artifacts before accepted-run
   handoff, with pending-upload cleanup guarded by that durable record
 - atomic accepted, rejected, and exhausted-error handoffs
-- conditional player-best/top-10 writes plus scheduled board/ghost
-  reconciliation
+- conditional player-best writes and versioned, no-op Top-10 materialization
+  plus scheduled board/ghost reconciliation
+- structured projection outcomes that distinguish changed, unchanged,
+  ghost-only, retryable, and conflict-exhaustion work
 - safe local fallback behavior: validation dispatch returns
   `501 not_implemented` when required env vars are missing
 

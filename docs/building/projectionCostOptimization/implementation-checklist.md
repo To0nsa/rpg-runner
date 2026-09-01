@@ -75,43 +75,43 @@ Objective:
 
 Validator tests:
 
-- [ ] Add a legacy Top-10 fixture with `sourceRevision` but without the current
+- [x] Add a legacy Top-10 fixture with `sourceRevision` but without the current
   materialization version/revision; verify one safe rewrite adds the current
   fields and removes `sourceRevision`.
-- [ ] Add an unchanged empty-board fixture; verify both leaderboard passes
+- [x] Add an unchanged empty-board fixture; verify both leaderboard passes
   perform zero writes after initial convergence.
-- [ ] Add an unchanged populated-board fixture; verify:
-  - [ ] no Top-10 view write;
-  - [ ] no `ghostEligible` write;
-  - [ ] no `updatedAtMs` change.
-- [ ] Add a score/order change fixture; verify one new revision and the expected
+- [x] Add an unchanged populated-board fixture; verify:
+  - [x] no Top-10 view write;
+  - [x] no `ghostEligible` write;
+  - [x] no `updatedAtMs` change.
+- [x] Add a score/order change fixture; verify one new revision and the expected
   membership/view writes.
-- [ ] Add a ghost-availability change fixture; verify the second leaderboard
+- [x] Add a ghost-availability change fixture; verify the second leaderboard
   pass writes a different materialized revision.
-- [ ] Add a display-name or character projection change fixture if those fields
+- [x] Add a display-name or character projection change fixture if those fields
   are intended to update existing materialized entries.
-- [ ] Add replay reference, generation, and digest change fixtures; verify the
+- [x] Add replay reference, generation, and digest change fixtures; verify the
   revision changes and ghost evidence is not silently retained.
-- [ ] Add a materialization-schema-version change fixture; verify an old or
+- [x] Add a materialization-schema-version change fixture; verify an old or
   missing version forces one safe rewrite.
-- [ ] Verify the revision is computed from the exact persisted Top-10 consumer
+- [x] Verify the revision is computed from the exact persisted Top-10 consumer
   payload and excludes all top-level and entry-level timestamps.
-- [ ] Verify independently stored ghost-manifest metadata that is not persisted
+- [x] Verify independently stored ghost-manifest metadata that is not persisted
   in the Top-10 payload does not create revision churn.
-- [ ] Add a player entering and leaving Top 10; verify only changed
+- [x] Add a player entering and leaving Top 10; verify only changed
   `ghostEligible` values are written.
-- [ ] Add a stale outgoing-player eligibility fixture; verify its actual
+- [x] Add a stale outgoing-player eligibility fixture; verify its actual
   player-best field is read and a duplicate demotion write is skipped.
-- [ ] Add an optimistic conflict fixture; verify the existing bounded retry
+- [x] Add an optimistic conflict fixture; verify the existing bounded retry
   behavior remains.
-- [ ] Add a partial first-pass fixture; verify retry converges rather than
+- [x] Add a partial first-pass fixture; verify retry converges rather than
   treating incomplete state as unchanged.
-- [ ] Prove canonical revision input excludes timestamps and is stable across
+- [x] Prove canonical revision input excludes timestamps and is stable across
   repeated runs.
 
 Gate:
 
-- [ ] focused tests fail against the current unconditional-write behavior and
+- [x] focused tests fail against the prior unconditional-write behavior and
   encode every required change
 
 ---
@@ -124,45 +124,45 @@ Objective:
 
 Tasks:
 
-- [ ] Extend `Top10ViewSnapshot` to retain the stored materialized revision.
-- [ ] Extend `Top10ViewSnapshot` to retain the stored materialization schema
+- [x] Extend `Top10ViewSnapshot` to retain the stored materialized revision.
+- [x] Extend `Top10ViewSnapshot` to retain the stored materialization schema
   version.
-- [ ] Define one canonical materialized-revision payload equal to the persisted
+- [x] Define one canonical materialized-revision payload equal to the persisted
   Top-10 consumer payload except for explicitly excluded timestamps.
-- [ ] Set and persist a fixed `materializationSchemaVersion`.
-- [ ] Compute the revision through existing canonical SHA-256 utilities.
-- [ ] Persist `materializedRevision` on every changed Top-10 view.
-- [ ] Treat a missing, malformed, or wrong-version revision as stale and
+- [x] Set and persist a fixed `materializationSchemaVersion`.
+- [x] Compute the revision through existing canonical SHA-256 utilities.
+- [x] Persist `materializedRevision` on every changed Top-10 view.
+- [x] Treat a missing, malformed, or wrong-version revision as stale and
   rewrite once.
-- [ ] Stop emitting or consulting `sourceRevision` and remove that inert field
+- [x] Stop emitting or consulting `sourceRevision` and remove that inert field
   during the one-way legacy rewrite.
-- [ ] Compare desired eligibility with the actual current player-best field
-  before calling `setPlayerBestGhostEligible`.
-- [ ] Skip unchanged `ghostEligible: true` writes for retained Top-10 players.
-- [ ] For players leaving the previous Top 10, use a conditional read/write and
+- [x] Compare desired eligibility with the actual current player-best field
+  before calling `setPlayerBestGhostEligibleIfChanged`.
+- [x] Skip unchanged `ghostEligible: true` writes for retained Top-10 players.
+- [x] For players leaving the previous Top 10, use a conditional read/write and
   write `ghostEligible: false` only when the stored value differs.
-- [ ] Skip `writeTop10View` when the desired materialized revision matches.
-- [ ] Do not advance `updatedAtMs` on a skipped write.
-- [ ] Preserve the optimistic update-time precondition for changed views.
-- [ ] Preserve account-deletion fencing for every user-owned write.
-- [ ] Emit bounded metrics or structured outcomes for changed, unchanged,
+- [x] Skip `writeTop10View` when the desired materialized revision matches.
+- [x] Do not advance `updatedAtMs` on a skipped write.
+- [x] Preserve the optimistic update-time precondition for changed views.
+- [x] Preserve account-deletion fencing for every user-owned write.
+- [x] Emit bounded metrics or structured outcomes for changed, unchanged,
   ghost-only, conflict, and retry results.
-- [ ] Remove or update stale comments that describe unconditional rebuilding as
+- [x] Remove or update stale comments that describe unconditional rebuilding as
   an always-writing operation.
-- [ ] Keep public/internal API documentation focused on convergence invariants
+- [x] Keep public/internal API documentation focused on convergence invariants
   and non-obvious side effects.
 
 Focused validation:
 
-- [ ] `dart format` changed validator files.
-- [ ] `dart analyze services/replay_validator`.
-- [ ] `dart test services/replay_validator/test`.
-- [ ] Compile the validator executable.
+- [x] `dart format` changed validator files.
+- [x] `dart analyze services/replay_validator`.
+- [x] `dart test services/replay_validator/test`.
+- [x] Compile the validator executable.
 
 Gate:
 
-- [ ] two consecutive reconciliations of the same empty or populated board
-  produce identical reads but zero writes on the second reconciliation
+- [x] after initial convergence, another reconciliation of the same empty or
+  populated board performs the required projection reads but zero writes
 
 ---
 
@@ -276,18 +276,18 @@ Objective:
 
 Tasks:
 
-- [ ] Update `docs/tdd/replay_validator_worker.md`.
+- [x] Update `docs/tdd/replay_validator_worker.md`.
 - [ ] Update `docs/tdd/firebase_cloud_functions_overview.md`.
-- [ ] Update `docs/tdd/ghost_run_flow.md`.
+- [x] Update `docs/tdd/ghost_run_flow.md`.
 - [ ] Update `services/replay_validator/README.md` deployment and rollback
   guidance.
 - [ ] Update Functions monitoring/runbook documentation for the new cadence and
   page limit.
 - [ ] Update `functions/AGENTS.md` if its reconciliation guidance needs the
   bounded-page/no-op invariants.
-- [ ] Update `services/replay_validator/AGENTS.md` if its projection guidance
+- [x] Update `services/replay_validator/AGENTS.md` if its projection guidance
   needs the materialized-revision invariant.
-- [ ] Confirm no GDD text changes because player-facing behavior is unchanged.
+- [x] Confirm no GDD text changes because player-facing behavior is unchanged.
 - [ ] Record current official pricing links and the date they were checked.
 
 Gate:

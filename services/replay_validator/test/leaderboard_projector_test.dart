@@ -8,6 +8,291 @@ import 'package:test/test.dart';
 import 'package:replay_validator/src/leaderboard_projector.dart';
 
 void main() {
+  test(
+    'materialized revision excludes timestamps and binds payload fields',
+    () {
+      final entry = _entry(
+        boardId: 'board_revision',
+        runSessionId: 'run_revision',
+        uid: 'uid_revision',
+        displayName: 'Revision Player',
+        score: 1200,
+        distanceMeters: 400,
+        durationSeconds: 100,
+        updatedAtMs: 1000,
+        ghostEligible: true,
+      );
+      final first = buildLeaderboardTop10MaterializedRevision(
+        boardId: entry.boardId,
+        entries: <LeaderboardEntry>[entry],
+      );
+      final timestampOnly = buildLeaderboardTop10MaterializedRevision(
+        boardId: entry.boardId,
+        entries: <LeaderboardEntry>[_copyEntry(entry, updatedAtMs: 9000)],
+      );
+      final changedEvidence = buildLeaderboardTop10MaterializedRevision(
+        boardId: entry.boardId,
+        entries: <LeaderboardEntry>[
+          _copyEntry(
+            entry,
+            replayDigest: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          ),
+        ],
+      );
+      final changedReference = buildLeaderboardTop10MaterializedRevision(
+        boardId: entry.boardId,
+        entries: <LeaderboardEntry>[
+          _copyEntry(
+            entry,
+            replayStorageRef:
+                'replay-submissions/validated/run_revision_v2/replay.bin.gz',
+          ),
+        ],
+      );
+      final changedGeneration = buildLeaderboardTop10MaterializedRevision(
+        boardId: entry.boardId,
+        entries: <LeaderboardEntry>[
+          _copyEntry(entry, replayStorageGeneration: '124'),
+        ],
+      );
+      final changedDisplayName = buildLeaderboardTop10MaterializedRevision(
+        boardId: entry.boardId,
+        entries: <LeaderboardEntry>[
+          _copyEntry(entry, displayName: 'Renamed Player'),
+        ],
+      );
+
+      expect(first, hasLength(64));
+      expect(timestampOnly, first);
+      expect(changedEvidence, isNot(first));
+      expect(changedReference, isNot(first));
+      expect(changedGeneration, isNot(first));
+      expect(changedDisplayName, isNot(first));
+    },
+  );
+
+  test('empty board materialization is a no-op after convergence', () async {
+    const boardId = 'board_empty';
+    var nowMs = 1000;
+    final store = _InMemoryLeaderboardProjectionStore();
+    final projector = FirestoreLeaderboardProjector(
+      projectId: 'demo-project',
+      store: store,
+      clockMs: () => nowMs,
+    );
+
+    await projector.reconcileBoard(boardId: boardId);
+    nowMs = 2000;
+    await projector.reconcileBoard(boardId: boardId);
+
+    expect(store.top10WriteAttempts, 1);
+    expect(store.top10Writes, <String>[boardId]);
+    expect(store.top10UpdatedAtMsByBoard[boardId], 1000);
+    expect(store.eligibilityWrites, isEmpty);
+  });
+
+  test('unchanged populated board performs no second-pass writes', () async {
+    const boardId = 'board_unchanged';
+    final entry = _entry(
+      boardId: boardId,
+      runSessionId: 'run_unchanged',
+      uid: 'uid_unchanged',
+      displayName: 'Unchanged Player',
+      score: 1200,
+      distanceMeters: 400,
+      durationSeconds: 100,
+      updatedAtMs: 500,
+    );
+    var nowMs = 1000;
+    final store = _InMemoryLeaderboardProjectionStore(
+      playerBestsByBoard: <String, Map<String, LeaderboardEntry>>{
+        boardId: <String, LeaderboardEntry>{entry.uid: entry},
+      },
+    );
+    final projector = FirestoreLeaderboardProjector(
+      projectId: 'demo-project',
+      store: store,
+      clockMs: () => nowMs,
+    );
+
+    await projector.reconcileBoard(boardId: boardId);
+    final convergedBestUpdatedAtMs =
+        store.playerBestsByBoard[boardId]![entry.uid]!.updatedAtMs;
+    nowMs = 2000;
+    await projector.reconcileBoard(boardId: boardId);
+
+    expect(store.top10WriteAttempts, 1);
+    expect(store.eligibilityWrites, <String>['$boardId/${entry.uid}:true']);
+    expect(store.top10UpdatedAtMsByBoard[boardId], 1000);
+    expect(
+      store.playerBestsByBoard[boardId]![entry.uid]!.updatedAtMs,
+      convergedBestUpdatedAtMs,
+    );
+  });
+
+  test(
+    'legacy top10 view is rewritten once under the current authority',
+    () async {
+      const boardId = 'board_legacy';
+      final store = _InMemoryLeaderboardProjectionStore(
+        top10Views: <String, List<LeaderboardEntry>>{
+          boardId: <LeaderboardEntry>[],
+        },
+        legacySourceRevisionBoards: <String>{boardId},
+      );
+      final projector = FirestoreLeaderboardProjector(
+        projectId: 'demo-project',
+        store: store,
+        clockMs: () => 1000,
+      );
+
+      await projector.reconcileBoard(boardId: boardId);
+      await projector.reconcileBoard(boardId: boardId);
+
+      expect(store.top10WriteAttempts, 1);
+      expect(
+        store.top10MaterializationVersionsByBoard[boardId],
+        leaderboardTop10MaterializationSchemaVersion,
+      );
+      expect(store.top10MaterializedRevisionsByBoard[boardId], hasLength(64));
+      expect(store.legacySourceRevisionBoards, isNot(contains(boardId)));
+    },
+  );
+
+  test('wrong materialization version forces one safe rewrite', () async {
+    const boardId = 'board_old_materialization';
+    final desiredRevision = buildLeaderboardTop10MaterializedRevision(
+      boardId: boardId,
+      entries: const <LeaderboardEntry>[],
+    );
+    final store = _InMemoryLeaderboardProjectionStore(
+      top10Views: <String, List<LeaderboardEntry>>{
+        boardId: <LeaderboardEntry>[],
+      },
+      top10MaterializationVersionsByBoard: <String, int>{boardId: 0},
+      top10MaterializedRevisionsByBoard: <String, String>{
+        boardId: desiredRevision,
+      },
+    );
+    final projector = FirestoreLeaderboardProjector(
+      projectId: 'demo-project',
+      store: store,
+      clockMs: () => 1000,
+    );
+
+    await projector.reconcileBoard(boardId: boardId);
+    await projector.reconcileBoard(boardId: boardId);
+
+    expect(store.top10WriteAttempts, 1);
+    expect(
+      store.top10MaterializationVersionsByBoard[boardId],
+      leaderboardTop10MaterializationSchemaVersion,
+    );
+  });
+
+  test('hidden promoted generation change does not rewrite top10', () async {
+    const boardId = 'board_hidden_manifest_evidence';
+    final entry = _entry(
+      boardId: boardId,
+      runSessionId: 'run_hidden_manifest_evidence',
+      uid: 'uid_hidden_manifest_evidence',
+      displayName: 'Manifest Player',
+      score: 1200,
+      distanceMeters: 400,
+      durationSeconds: 100,
+      updatedAtMs: 500,
+      ghostEligible: true,
+    );
+    final store = _InMemoryLeaderboardProjectionStore(
+      playerBestsByBoard: <String, Map<String, LeaderboardEntry>>{
+        boardId: <String, LeaderboardEntry>{entry.uid: entry},
+      },
+      activeGhostManifestsByBoard:
+          <String, Map<String, ActiveGhostManifestEvidence>>{
+            boardId: <String, ActiveGhostManifestEvidence>{
+              entry.entryId: _activeGhostManifestEvidenceFor(entry),
+            },
+          },
+    );
+    final projector = FirestoreLeaderboardProjector(
+      projectId: 'demo-project',
+      store: store,
+      clockMs: () => 1000,
+    );
+
+    await projector.reconcileBoard(boardId: boardId);
+    store.activeGhostManifestsByBoard[boardId]![entry.entryId] =
+        _activeGhostManifestEvidenceFor(
+          entry,
+          promotedReplayStorageGeneration: '789',
+        );
+    await projector.reconcileBoard(boardId: boardId);
+
+    expect(store.top10WriteAttempts, 1);
+    expect(store.top10Views[boardId]!.single.ghostAvailable, isTrue);
+  });
+
+  test('outgoing player with false eligibility is not rewritten', () async {
+    const boardId = 'board_outgoing';
+    final current = <LeaderboardEntry>[
+      for (var i = 0; i < 10; i++)
+        _entry(
+          boardId: boardId,
+          runSessionId: 'run_current_$i',
+          uid: 'uid_current_$i',
+          displayName: 'Current $i',
+          score: 2000 - i,
+          distanceMeters: 500 - i,
+          durationSeconds: 100 + i,
+          updatedAtMs: 500,
+          ghostEligible: true,
+        ),
+    ];
+    final outgoing = _entry(
+      boardId: boardId,
+      runSessionId: 'run_outgoing',
+      uid: 'uid_outgoing',
+      displayName: 'Outgoing',
+      score: 100,
+      distanceMeters: 100,
+      durationSeconds: 200,
+      updatedAtMs: 500,
+    );
+    final previous = <LeaderboardEntry>[
+      for (var i = 0; i < 9; i++) _copyEntry(current[i], rank: i + 1),
+      _copyEntry(outgoing, ghostEligible: true, rank: 10),
+    ];
+    final store = _InMemoryLeaderboardProjectionStore(
+      playerBestsByBoard: <String, Map<String, LeaderboardEntry>>{
+        boardId: <String, LeaderboardEntry>{
+          for (final entry in <LeaderboardEntry>[...current, outgoing])
+            entry.uid: entry,
+        },
+      },
+      top10Views: <String, List<LeaderboardEntry>>{boardId: previous},
+      top10MaterializationVersionsByBoard: <String, int>{
+        boardId: leaderboardTop10MaterializationSchemaVersion,
+      },
+      top10MaterializedRevisionsByBoard: <String, String>{
+        boardId: buildLeaderboardTop10MaterializedRevision(
+          boardId: boardId,
+          entries: previous,
+        ),
+      },
+    );
+    final projector = FirestoreLeaderboardProjector(
+      projectId: 'demo-project',
+      store: store,
+      clockMs: () => 1000,
+    );
+
+    await projector.reconcileBoard(boardId: boardId);
+
+    expect(store.eligibilityWrites, isEmpty);
+    expect(store.playerBestsByBoard[boardId]![outgoing.uid]!.updatedAtMs, 500);
+    expect(store.top10Writes, <String>[boardId]);
+  });
+
   test('lower-than-best run does not replace existing player best', () async {
     const boardId = 'board_competitive_2026_03_field';
     const uid = 'uid_player';
@@ -434,8 +719,9 @@ LeaderboardEntry _entry({
 }
 
 ActiveGhostManifestEvidence _activeGhostManifestEvidenceFor(
-  LeaderboardEntry entry,
-) {
+  LeaderboardEntry entry, {
+  String promotedReplayStorageGeneration = '456',
+}) {
   return ActiveGhostManifestEvidence(
     boardId: entry.boardId,
     entryId: entry.entryId,
@@ -444,7 +730,7 @@ ActiveGhostManifestEvidence _activeGhostManifestEvidenceFor(
     replayStorageRef: 'ghosts/${entry.boardId}/${entry.entryId}/ghost.bin.gz',
     sourceReplayStorageRef: entry.replayStorageRef!,
     sourceReplayStorageGeneration: entry.replayStorageGeneration!,
-    promotedReplayStorageGeneration: '456',
+    promotedReplayStorageGeneration: promotedReplayStorageGeneration,
     replayDigest: entry.replayDigest!,
   );
 }
@@ -456,13 +742,16 @@ LeaderboardEntry _copyEntry(
   int? updatedAtMs,
   int? rank,
   String? replayDigest,
+  String? replayStorageRef,
+  String? replayStorageGeneration,
+  String? displayName,
 }) {
   return LeaderboardEntry(
     boardId: source.boardId,
     entryId: source.entryId,
     runSessionId: source.runSessionId,
     uid: source.uid,
-    displayName: source.displayName,
+    displayName: displayName ?? source.displayName,
     characterId: source.characterId,
     score: source.score,
     distanceMeters: source.distanceMeters,
@@ -470,8 +759,9 @@ LeaderboardEntry _copyEntry(
     sortKey: source.sortKey,
     ghostEligible: ghostEligible ?? source.ghostEligible,
     ghostAvailable: ghostAvailable ?? source.ghostAvailable,
-    replayStorageRef: source.replayStorageRef,
-    replayStorageGeneration: source.replayStorageGeneration,
+    replayStorageRef: replayStorageRef ?? source.replayStorageRef,
+    replayStorageGeneration:
+        replayStorageGeneration ?? source.replayStorageGeneration,
     replayDigest: replayDigest ?? source.replayDigest,
     updatedAtMs: updatedAtMs ?? source.updatedAtMs,
     rank: rank ?? source.rank,
@@ -488,6 +778,10 @@ class _InMemoryLeaderboardProjectionStore
     Map<String, List<LeaderboardEntry>>? top10Views,
     Map<String, Map<String, ActiveGhostManifestEvidence>>?
     activeGhostManifestsByBoard,
+    Map<String, int>? top10MaterializationVersionsByBoard,
+    Map<String, String>? top10MaterializedRevisionsByBoard,
+    Map<String, int>? top10UpdatedAtMsByBoard,
+    Set<String>? legacySourceRevisionBoards,
     this.top10WriteConflictsRemaining = 0,
     this.top10WriteFailuresRemaining = 0,
   }) : validatedRuns = validatedRuns ?? <String, ValidatedRun>{},
@@ -498,7 +792,13 @@ class _InMemoryLeaderboardProjectionStore
        top10Views = top10Views ?? <String, List<LeaderboardEntry>>{},
        activeGhostManifestsByBoard =
            activeGhostManifestsByBoard ??
-           <String, Map<String, ActiveGhostManifestEvidence>>{};
+           <String, Map<String, ActiveGhostManifestEvidence>>{},
+       top10MaterializationVersionsByBoard =
+           top10MaterializationVersionsByBoard ?? <String, int>{},
+       top10MaterializedRevisionsByBoard =
+           top10MaterializedRevisionsByBoard ?? <String, String>{},
+       top10UpdatedAtMsByBoard = top10UpdatedAtMsByBoard ?? <String, int>{},
+       legacySourceRevisionBoards = legacySourceRevisionBoards ?? <String>{};
 
   final Map<String, ValidatedRun> validatedRuns;
   final Map<String, String> displayNames;
@@ -507,9 +807,14 @@ class _InMemoryLeaderboardProjectionStore
   final Map<String, List<LeaderboardEntry>> top10Views;
   final Map<String, Map<String, ActiveGhostManifestEvidence>>
   activeGhostManifestsByBoard;
+  final Map<String, int> top10MaterializationVersionsByBoard;
+  final Map<String, String> top10MaterializedRevisionsByBoard;
+  final Map<String, int> top10UpdatedAtMsByBoard;
+  final Set<String> legacySourceRevisionBoards;
 
   final List<LeaderboardEntry> upsertedEntries = <LeaderboardEntry>[];
   final List<String> top10Writes = <String>[];
+  final List<String> eligibilityWrites = <String>[];
   int top10WriteConflictsRemaining;
   int top10WriteFailuresRemaining;
   int top10WriteAttempts = 0;
@@ -553,6 +858,9 @@ class _InMemoryLeaderboardProjectionStore
         top10Views[boardId] ?? const <LeaderboardEntry>[],
       ),
       exists: top10Views.containsKey(boardId),
+      materializationSchemaVersion:
+          top10MaterializationVersionsByBoard[boardId],
+      materializedRevision: top10MaterializedRevisionsByBoard[boardId],
       updateTime: top10Views.containsKey(boardId)
           ? 'version-${top10Writes.length}'
           : null,
@@ -584,7 +892,7 @@ class _InMemoryLeaderboardProjectionStore
   );
 
   @override
-  Future<void> setPlayerBestGhostEligible({
+  Future<bool> setPlayerBestGhostEligibleIfChanged({
     required String boardId,
     required String uid,
     required bool ghostEligible,
@@ -592,13 +900,18 @@ class _InMemoryLeaderboardProjectionStore
   }) async {
     final existing = playerBestsByBoard[boardId]?[uid];
     if (existing == null) {
-      return;
+      return false;
+    }
+    if (existing.ghostEligible == ghostEligible) {
+      return false;
     }
     playerBestsByBoard[boardId]![uid] = _copyEntry(
       existing,
       ghostEligible: ghostEligible,
       updatedAtMs: nowMs,
     );
+    eligibilityWrites.add('$boardId/$uid:$ghostEligible');
+    return true;
   }
 
   @override
@@ -620,6 +933,15 @@ class _InMemoryLeaderboardProjectionStore
     top10Views[boardId] = entries
         .map((entry) => _copyEntry(entry, updatedAtMs: updatedAtMs))
         .toList(growable: false);
+    top10MaterializationVersionsByBoard[boardId] =
+        leaderboardTop10MaterializationSchemaVersion;
+    top10MaterializedRevisionsByBoard[boardId] =
+        buildLeaderboardTop10MaterializedRevision(
+          boardId: boardId,
+          entries: entries,
+        );
+    top10UpdatedAtMsByBoard[boardId] = updatedAtMs;
+    legacySourceRevisionBoards.remove(boardId);
     top10Writes.add(boardId);
     return true;
   }
