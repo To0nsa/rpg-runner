@@ -238,14 +238,19 @@ digest and dispatches the complete prospective list once, yielding at most one
 Prefab revision and undo entry; a canonical no-op closes without either.
 
 Fit visible bounds spans all retained alpha with one rectangle. Outline tracing
-keeps disconnected four-connected components separate, retains exact concave
-cell boundaries at zero simplification, and partitions components with holes
-into deterministic non-overlapping rectangles so transparent holes are not
-filled. Platform detection follows the upper accepted pixel in each contiguous
-column run and closes the polygon downward; the scene distinguishes the same
-left-to-right one-way support edges exposed by Core. Obstacle collision is
-always solid, Platform collision is always one-way, and decoration Prefabs
-cannot author collision.
+keeps disconnected four-connected components separate and reduces hole-free
+concave contours to an explicit per-shape vertex budget. Reduction ranks each
+removal by its maximum error against all original boundary points in the
+replaced arc, preserves the original extents, winding, and simple topology, and
+retains only original whole-pixel points. The default budget is 24 vertices and
+the selectable maximum is Core's hard limit of 64. Components with holes still
+use deterministic non-overlapping rectangle partitions so transparent holes
+are not filled. Platform detection applies the same budget to the upper
+accepted-pixel profile in each contiguous column run and closes the polygon
+downward; the scene distinguishes the same left-to-right one-way support edges
+exposed by Core. The inline evidence reports the resulting maximum source-pixel
+deviation. Obstacle collision is always solid, Platform collision is always
+one-way, and decoration Prefabs cannot author collision.
 
 Every fit and every manual collision edit is reviewed against immutable Chunk
 snapshots loaded with the Prefab document. Candidate Prefab data is substituted

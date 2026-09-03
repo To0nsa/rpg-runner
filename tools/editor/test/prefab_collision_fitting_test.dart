@@ -65,8 +65,8 @@ void main() {
           'prefab_fit_minimum_island_invalid',
         ),
         (
-          const PrefabCollisionFitSettings(simplificationTolerancePx: -1),
-          'prefab_fit_simplification_invalid',
+          const PrefabCollisionFitSettings(maximumVerticesPerShape: 3),
+          'prefab_fit_maximum_vertices_invalid',
         ),
       ]) {
         final result = PrefabCollisionFitter.generate(
@@ -184,7 +184,7 @@ void main() {
       expect(result.evidence.sourceColumns, 4);
       expect(result.evidence.supportedColumns, 4);
       expect(result.evidence.omittedColumns, 0);
-      expect(result.evidence.maximumSurfaceDeviationPx, 0);
+      expect(result.evidence.maximumDeviationPx, 0);
       for (var index = 0; index < vertices.length; index += 1) {
         final start = vertices[index];
         final end = vertices[(index + 1) % vertices.length];
@@ -237,45 +237,169 @@ void main() {
       ]);
     });
 
-    test('repeated outline runs and simplification are deterministic', () {
-      final mask = _mask(<String>[
-        '#.......',
-        '###.....',
-        '#####...',
-        '#######.',
-        '########',
-      ]);
-      String signature(PrefabCollisionFitResult result) => result.shapes
-          .map(
-            (shape) => shape.vertices
-                .map((point) => '${point.x},${point.y}')
-                .join(';'),
-          )
-          .join('|');
+    test(
+      'budgeted outline reduction is deterministic and preserves extents',
+      () {
+        final mask = _mask(<String>[
+          '#.......',
+          '###.....',
+          '#####...',
+          '#######.',
+          '########',
+        ]);
+        String signature(PrefabCollisionFitResult result) => result.shapes
+            .map(
+              (shape) => shape.vertices
+                  .map((point) => '${point.x},${point.y}')
+                  .join(';'),
+            )
+            .join('|');
+        final exact = PrefabCollisionFitter.generate(
+          mask: mask,
+          method: PrefabCollisionCreationMethod.traceVisibleOutline,
+          settings: const PrefabCollisionFitSettings(
+            maximumVerticesPerShape: 64,
+          ),
+        );
+        final simplifiedA = PrefabCollisionFitter.generate(
+          mask: mask,
+          method: PrefabCollisionCreationMethod.traceVisibleOutline,
+          settings: const PrefabCollisionFitSettings(
+            maximumVerticesPerShape: 6,
+          ),
+        );
+        final simplifiedB = PrefabCollisionFitter.generate(
+          mask: mask,
+          method: PrefabCollisionCreationMethod.traceVisibleOutline,
+          settings: const PrefabCollisionFitSettings(
+            maximumVerticesPerShape: 6,
+          ),
+        );
+
+        expect(simplifiedA.accepted, isTrue);
+        expect(signature(simplifiedA), signature(simplifiedB));
+        final exactVertices = exact.shapes.single.vertices;
+        final simplifiedVertices = simplifiedA.shapes.single.vertices;
+        expect(simplifiedVertices.length, lessThan(exactVertices.length));
+        expect(simplifiedVertices.length, lessThanOrEqualTo(6));
+        expect(simplifiedVertices.every(exactVertices.contains), isTrue);
+        expect(_extents(simplifiedVertices), _extents(exactVertices));
+        expect(simplifiedA.evidence.maximumDeviationPx, greaterThan(0));
+      },
+    );
+
+    test('default budget compacts a noisy 32 pixel silhouette', () {
+      final rows = <String>[
+        for (var y = 0; y < 32; y += 1)
+          y.isEven
+              ? '${List<String>.filled(31, '#').join()}.'
+              : '.${List<String>.filled(31, '#').join()}',
+      ];
       final exact = PrefabCollisionFitter.generate(
-        mask: mask,
+        mask: _mask(rows),
         method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(maximumVerticesPerShape: 64),
       );
-      final simplifiedA = PrefabCollisionFitter.generate(
-        mask: mask,
+      final reduced = PrefabCollisionFitter.generate(
+        mask: _mask(rows),
         method: PrefabCollisionCreationMethod.traceVisibleOutline,
-        settings: const PrefabCollisionFitSettings(
-          simplificationTolerancePx: 1,
-        ),
-      );
-      final simplifiedB = PrefabCollisionFitter.generate(
-        mask: mask,
-        method: PrefabCollisionCreationMethod.traceVisibleOutline,
-        settings: const PrefabCollisionFitSettings(
-          simplificationTolerancePx: 1,
-        ),
       );
 
-      expect(signature(simplifiedA), signature(simplifiedB));
+      expect(exact.shapes.single.vertices, hasLength(64));
+      expect(exact.accepted, isTrue);
+      expect(reduced.accepted, isTrue);
       expect(
-        simplifiedA.shapes.single.vertices.length,
-        lessThan(exact.shapes.single.vertices.length),
+        reduced.shapes.single.vertices.length,
+        lessThanOrEqualTo(
+          PrefabCollisionFitSettings.defaultMaximumVerticesPerShape,
+        ),
       );
+      expect(
+        _extents(reduced.shapes.single.vertices),
+        _extents(exact.shapes.single.vertices),
+      );
+      expect(reduced.evidence.maximumDeviationPx, greaterThan(0));
+    });
+
+    test('platform surface reduction pins endpoints within its budget', () {
+      final result = PrefabCollisionFitter.generate(
+        mask: _mask(<String>[
+          List<String>.generate(32, (index) => index.isEven ? '#' : '.').join(),
+          List<String>.filled(32, '#').join(),
+          List<String>.filled(32, '#').join(),
+        ]),
+        method: PrefabCollisionCreationMethod.detectPlatformSurface,
+      );
+
+      expect(result.accepted, isTrue);
+      expect(result.shapes.single.vertices.length, lessThanOrEqualTo(24));
+      expect(result.evidence.sourceColumns, 32);
+      expect(result.evidence.supportedColumns, 32);
+      expect(result.evidence.maximumDeviationPx, lessThanOrEqualTo(1));
+      expect(
+        result.shapes.single.vertices,
+        containsAll(const <PrefabCollisionFitPoint>[
+          PrefabCollisionFitPoint(0, 0),
+          PrefabCollisionFitPoint(32, 1),
+        ]),
+      );
+    });
+
+    test('default budget produces a compact grass platform outline', () {
+      final result = PrefabCollisionFitter.generate(
+        mask: _mask(const <String>[
+          '....########################....',
+          '..############################..',
+          '.##############################.',
+          '################################',
+          '################################',
+          '################################',
+          '################################',
+          '################################',
+          '################################',
+          '###############################.',
+          '.##############################.',
+          '.##############################.',
+          '.##############################.',
+          '.##############################.',
+          '..#############################.',
+          '.#############################..',
+          '#############################...',
+          '##############################..',
+          '##############################..',
+          '.#############################..',
+          '.##############################.',
+          '.##############################.',
+          '###############################.',
+          '###############################.',
+          '###############################.',
+          '###############################.',
+          '###############################.',
+          '.##############################.',
+          '..############################..',
+          '.....####################.###...',
+          '......#########.########........',
+          '.......######.....#####.........',
+        ]),
+        method: PrefabCollisionCreationMethod.traceVisibleOutline,
+      );
+
+      expect(result.accepted, isTrue);
+      expect(result.shapes, hasLength(1));
+      expect(
+        result.shapes.single.vertices.length,
+        lessThanOrEqualTo(
+          PrefabCollisionFitSettings.defaultMaximumVerticesPerShape,
+        ),
+      );
+      expect(result.evidence.maximumDeviationPx, lessThanOrEqualTo(2));
+      expect(result.evidence.omittedVisiblePixels, lessThanOrEqualTo(10));
+      expect(_extents(result.shapes.single.vertices), (
+        minX: 0,
+        minY: 0,
+        maxX: 32,
+        maxY: 32,
+      ));
     });
 
     test('hard capacity failures never report an accepted partial fit', () {
@@ -316,6 +440,23 @@ void main() {
     });
   });
 }
+
+({int minX, int minY, int maxX, int maxY}) _extents(
+  List<PrefabCollisionFitPoint> points,
+) => (
+  minX: points
+      .map((point) => point.x)
+      .reduce((left, right) => left < right ? left : right),
+  minY: points
+      .map((point) => point.y)
+      .reduce((left, right) => left < right ? left : right),
+  maxX: points
+      .map((point) => point.x)
+      .reduce((left, right) => left > right ? left : right),
+  maxY: points
+      .map((point) => point.y)
+      .reduce((left, right) => left > right ? left : right),
+);
 
 PrefabAlphaMask _mask(List<String> rows) {
   final width = rows.first.length;

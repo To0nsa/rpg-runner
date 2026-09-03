@@ -10,6 +10,7 @@ import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/prefabs/collision_fitting/prefab_collision_fitting.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_v3_metadata_commit.dart';
@@ -388,9 +389,7 @@ void main() {
     );
   });
 
-  testWidgets('atlas fit previews locally and saves one owner revision', (
-    tester,
-  ) async {
+  testWidgets('atlas outline budget saves one owner revision', (tester) async {
     tester.view.physicalSize = const Size(1500, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -426,7 +425,9 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_fit_method_fitVisibleBounds')),
+      find.byKey(
+        const ValueKey<String>('prefab_fit_method_traceVisibleOutline'),
+      ),
     );
     await tester.pump();
     await _waitForWidgetToDisappear(
@@ -447,10 +448,14 @@ void main() {
     await tester.ensureVisible(advanced);
     await tester.tap(advanced);
     await tester.pumpAndSettle();
-    final alphaSlider = find.byKey(
-      const ValueKey<String>('prefab_fit_alpha_cutoff'),
+    final maximumVerticesSlider = find.byKey(
+      const ValueKey<String>('prefab_fit_maximum_vertices'),
     );
-    tester.widget<Slider>(alphaSlider).onChanged!(2);
+    expect(
+      tester.widget<Slider>(maximumVerticesSlider).value,
+      PrefabCollisionFitSettings.defaultMaximumVerticesPerShape,
+    );
+    tester.widget<Slider>(maximumVerticesSlider).onChanged!(20);
     await tester.pump();
     expect(
       find.text('Fit settings changed. Regenerate to review the new result.'),

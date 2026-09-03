@@ -1251,7 +1251,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                           PrefabCollisionCreationMethod.detectPlatformSurface
                       ? '${evidence.supportedColumns}/${evidence.sourceColumns} '
                             'support columns · max deviation '
-                            '${evidence.maximumSurfaceDeviationPx} px'
+                            '${evidence.maximumDeviationPx} px'
+                      : authoring.fitMethod ==
+                            PrefabCollisionCreationMethod.traceVisibleOutline
+                      ? '${evidence.coveredVisiblePixels}/'
+                            '${evidence.acceptedVisiblePixels} visible pixels '
+                            'covered · ${evidence.coveredTransparentPixels} '
+                            'transparent cells added · max deviation '
+                            '${evidence.maximumDeviationPx} px'
                       : '${evidence.coveredVisiblePixels}/'
                             '${evidence.acceptedVisiblePixels} visible pixels '
                             'covered · ${evidence.coveredTransparentPixels} '
@@ -1332,14 +1339,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   if (authoring.fitMethod !=
                       PrefabCollisionCreationMethod.fitVisibleBounds)
                     _buildIntegerFitSlider(
-                      label: 'Simplification',
-                      value: _fitSettings.simplificationTolerancePx,
-                      min: 0,
-                      max: 8,
-                      suffix: ' px',
+                      label: 'Maximum vertices',
+                      value: _fitSettings.maximumVerticesPerShape,
+                      min: 4,
+                      max: PrefabCollisionFitSettings
+                          .hardMaximumVerticesPerShape,
                       onChanged: (value) => setState(() {
                         _fitSettings = _fitSettings.copyWith(
-                          simplificationTolerancePx: value,
+                          maximumVerticesPerShape: value,
                         );
                       }),
                     ),

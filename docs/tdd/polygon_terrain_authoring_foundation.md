@@ -232,8 +232,13 @@ stable top/left order, and emits integer pixel-cell boundaries. **Fit visible
 bounds** emits one spanning rectangle; **Trace visible outline** emits exact
 concave loops or a deterministic rectangle partition when an inner ring cannot
 be represented by the source polygon schema; **Detect platform surface** emits
-downward-closed profiles with left-to-right active support edges. The default
-settings are cutoff 1, minimum island area 1 pixel, and simplification 0 pixels.
+downward-closed profiles with left-to-right active support edges. Hole-free
+outlines and open platform profiles are reduced against their original points
+to the explicit maximum-vertices-per-shape budget while retaining whole-pixel
+points; closed contours additionally preserve extents, winding, and simple
+topology. The default settings are cutoff 1, minimum island area 1 pixel, and a
+24-vertex per-shape budget capped at Core's hard limit of 64. Evidence reports
+the maximum introduced boundary or vertical-support deviation.
 The synchronous pure fit accepts at most 1,048,576 normalized pixels; larger
 visuals fail before allocating the mask.
 

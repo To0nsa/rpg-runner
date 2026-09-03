@@ -33,7 +33,7 @@ Platform-surface, and downstream-placement validation.
 - [x] Committed Prefab-v3 `collisionShapes` remain the only collision source of
       truth.
 - [x] Runtime and the content pipeline never read PNG pixels.
-- [x] Fit mode, thresholds, masks, and simplification settings remain
+- [x] Fit mode, thresholds, masks, and vertex-budget settings remain
       route-local and never enter source JSON.
 - [x] Every generated vertex is on the mandatory whole-pixel Prefab grid.
 - [x] Visual rendering, atlas rectangles, module composition, and anchors are
@@ -47,7 +47,7 @@ Platform-surface, and downstream-placement validation.
 - [x] One accepted Save creates at most one collision command, one owner
       revision increment, and one undo entry.
 - [x] No failure silently fills holes, drops components, truncates vertices, or
-      raises simplification tolerance.
+      exceeds the selected vertex budget.
 - [x] Existing source-drift, validation, canonical-order, Apply-to-Files, and
       navigation guards remain authoritative.
 - [x] Every referencing Chunk placement is reviewed through the shared
@@ -104,7 +104,7 @@ implementation.
       anchors in coordinate fixtures.
 - [x] Add module fixtures with negative cell positions and mixed slice sizes.
 - [x] Freeze default settings: alpha cutoff `1`, minimum island area `1 px²`,
-      simplification tolerance `0 px` after mandatory collinear removal.
+      and at most 24 vertices per generated shape.
 - [x] Freeze stable component ordering and additional-shape ID allocation.
 - [x] Freeze exact hole partition, coverage evidence, and Detect-platform-
       surface profile/closure rules from the strategy.
@@ -132,7 +132,7 @@ repository I/O, or session mutation.
 - [x] Add fit-method values for Fit visible bounds, Trace visible outline, and
       Detect platform surface.
 - [x] Add validated integer settings for alpha cutoff, minimum island area, and
-      whole-pixel simplification tolerance.
+      maximum vertices per shape in the range `4...64`.
 - [x] Add fit intent for create versus selected-shape replacement to the
       controller-owned draft contract.
 - [x] Add a result containing ordered candidate shapes, component and support-
@@ -410,14 +410,14 @@ preserves visible components.
 
 - [x] Trace component boundaries only along integer pixel-cell edges.
 - [x] Produce canonical concave polygons for hole-free components.
-- [x] Remove duplicate and collinear vertices before simplification.
-- [x] Implement deterministic topology-preserving simplification at the
-      selected whole-pixel tolerance.
-- [x] Define tolerance as perpendicular source-pixel distance from a removed
-      vertex to its replacement segment and compare it without floating point.
-- [x] Evaluate removable vertices in stable source order and accept a removal
-      only when integer winding, self-intersection, overlap, hole, and bounds
-      checks continue to pass.
+- [x] Remove duplicate and collinear vertices before budgeted reduction.
+- [x] Implement deterministic topology-preserving reduction to the selected
+      maximum vertices per shape.
+- [x] Measure every shortcut against all immutable original points in its
+      replaced arc using squared rational distance comparisons.
+- [x] Resolve equal error by area impact and stable source index, and accept a
+      closed-contour removal only while winding, simple topology, and original
+      silhouette extents remain unchanged.
 - [x] Preserve winding, visual containment, and non-self-intersection.
 - [x] Preserve disconnected components as separate candidate shapes.
 - [x] Detect transparent holes explicitly.
@@ -438,7 +438,7 @@ preserves visible components.
       exceeds 24 vertices.
 - [x] Block when the complete prospective owner exceeds 64 shapes or any shape
       exceeds 64 vertices.
-- [x] Offer explicit recovery by increasing simplification, increasing minimum
+- [x] Offer explicit recovery by increasing maximum vertices, increasing minimum
       island area, or selecting Fit visible bounds.
 - [x] Do not mutate fit settings automatically to pass a limit.
 
@@ -459,10 +459,10 @@ preserves visible components.
 
 - [x] Cover convex, concave, diagonal-contact, and disconnected masks.
 - [x] Cover exact boundary coordinates and stable component/ID order.
-- [x] Cover simplification tolerance, topology preservation, and repeated-run
-      parity.
-- [x] Prove zero tolerance changes no accepted-pixel occupancy after mandatory
-      duplicate/collinear cleanup.
+- [x] Cover vertex-budget enforcement, global deviation, extent/topology
+      preservation, and repeated-run parity.
+- [x] Cover the reported 925-pixel grass-platform silhouette with a compact
+      default-budget result and explicit coverage/deviation bounds.
 - [x] Cover holes and verify no silent fill path exists.
 - [x] Cover exact holed-mask occupancy and deterministic partition/merge order.
 - [x] Cover soft warnings and hard shape/vertex limits.
@@ -489,8 +489,8 @@ unambiguously one-way.
       boundary of the uppermost accepted pixel.
 - [x] Split on empty columns without automatic gap bridging and preserve stable
       component order.
-- [x] Emit integer vertical steps for height changes before explicit
-      simplification.
+- [x] Emit integer vertical steps for height changes before budgeted profile
+      reduction.
 - [x] Close each left-to-right profile at that component's bottom and return
       right-to-left so sides/bottom cannot become upward-facing edges.
 - [x] Block interlocking/stacked closures that create positive-area overlap

@@ -219,11 +219,16 @@ platform module, ignore transparent padding, and produce whole-pixel,
 anchor-relative candidate shapes. Obstacle candidates are solid, Platform
 candidates are one-way, and decoration Prefabs remain collision-free. Advanced
 sliders control the inclusive alpha cutoff, minimum retained island area, and
-whole-pixel simplification tolerance without persisting a fitting recipe.
+maximum generated vertices per shape without persisting a fitting recipe. The
+default 24-vertex budget uses deterministic global contour error against the
+original outline; it preserves whole-pixel points, silhouette extents, winding,
+and topology instead of accumulating local simplification error. Core's hard
+64-vertex capacity remains the largest selectable budget.
 
 Generated shapes remain a route-local preview: authors can select and edit
-their geometry, include or exclude components, inspect pixel-coverage or
-support-column evidence, regenerate, Save once, or Cancel. **Refit from
+their geometry, include or exclude components, inspect pixel coverage, maximum
+boundary deviation, or support-column evidence, regenerate, Save once, or
+Cancel. **Refit from
 pixels** opens the same editor below a retained shape and replaces only that
 shape while preserving its identity and metadata on the primary result. Save
 is disabled for empty, stale, locally invalid, or transformed-Chunk-invalid

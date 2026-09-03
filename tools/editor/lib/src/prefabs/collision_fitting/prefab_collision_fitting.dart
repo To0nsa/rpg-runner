@@ -59,22 +59,31 @@ final class PrefabCollisionFitSettings {
   const PrefabCollisionFitSettings({
     this.alphaCutoff = 1,
     this.minimumIslandArea = 1,
-    this.simplificationTolerancePx = 0,
+    this.maximumVerticesPerShape = defaultMaximumVerticesPerShape,
   });
+
+  /// Normal authoring target used to keep generated collision inexpensive and
+  /// editable while leaving room below Core's hard limit.
+  static const int defaultMaximumVerticesPerShape = 24;
+
+  /// Core's current per-shape capacity; fitting never offers a larger budget.
+  static const int hardMaximumVerticesPerShape = 64;
 
   final int alphaCutoff;
   final int minimumIslandArea;
-  final int simplificationTolerancePx;
+
+  /// Inclusive `4...64` budget applied independently to each generated shape.
+  final int maximumVerticesPerShape;
 
   PrefabCollisionFitSettings copyWith({
     int? alphaCutoff,
     int? minimumIslandArea,
-    int? simplificationTolerancePx,
+    int? maximumVerticesPerShape,
   }) => PrefabCollisionFitSettings(
     alphaCutoff: alphaCutoff ?? this.alphaCutoff,
     minimumIslandArea: minimumIslandArea ?? this.minimumIslandArea,
-    simplificationTolerancePx:
-        simplificationTolerancePx ?? this.simplificationTolerancePx,
+    maximumVerticesPerShape:
+        maximumVerticesPerShape ?? this.maximumVerticesPerShape,
   );
 
   @override
@@ -82,11 +91,11 @@ final class PrefabCollisionFitSettings {
       other is PrefabCollisionFitSettings &&
       other.alphaCutoff == alphaCutoff &&
       other.minimumIslandArea == minimumIslandArea &&
-      other.simplificationTolerancePx == simplificationTolerancePx;
+      other.maximumVerticesPerShape == maximumVerticesPerShape;
 
   @override
   int get hashCode =>
-      Object.hash(alphaCutoff, minimumIslandArea, simplificationTolerancePx);
+      Object.hash(alphaCutoff, minimumIslandArea, maximumVerticesPerShape);
 }
 
 /// One integer pixel-cell-boundary point before anchor-relative conversion.
@@ -143,7 +152,7 @@ final class PrefabCollisionFitEvidence {
     required this.sourceColumns,
     required this.supportedColumns,
     required this.omittedColumns,
-    required this.maximumSurfaceDeviationPx,
+    required this.maximumDeviationPx,
   });
 
   const PrefabCollisionFitEvidence.empty()
@@ -157,7 +166,7 @@ final class PrefabCollisionFitEvidence {
       sourceColumns = 0,
       supportedColumns = 0,
       omittedColumns = 0,
-      maximumSurfaceDeviationPx = 0;
+      maximumDeviationPx = 0;
 
   final int thresholdVisiblePixels;
   final int filteredIslandCount;
@@ -169,7 +178,12 @@ final class PrefabCollisionFitEvidence {
   final int sourceColumns;
   final int supportedColumns;
   final int omittedColumns;
-  final int maximumSurfaceDeviationPx;
+
+  /// Maximum source-pixel deviation introduced by the generated boundary.
+  ///
+  /// Outline fitting measures original contour points against their generated
+  /// boundary. Platform fitting measures the vertical support-profile error.
+  final int maximumDeviationPx;
 }
 
 /// Pure deterministic output. It never owns persistence or source IDs.
@@ -277,7 +291,7 @@ abstract final class PrefabCollisionFitter {
           sourceColumns: 0,
           supportedColumns: 0,
           omittedColumns: 0,
-          maximumSurfaceDeviationPx: 0,
+          maximumDeviationPx: 0,
         ),
         acceptedPixels: accepted,
       );
@@ -288,14 +302,12 @@ abstract final class PrefabCollisionFitter {
         <PrefabCollisionFitShape>[_fitBounds(retained)],
       PrefabCollisionCreationMethod.traceVisibleOutline => _traceComponents(
         retained,
-        width: mask.width,
-        height: mask.height,
-        tolerance: settings.simplificationTolerancePx,
+        maximumVerticesPerShape: settings.maximumVerticesPerShape,
       ),
       PrefabCollisionCreationMethod.detectPlatformSurface =>
         _detectPlatformSurfaces(
           retained,
-          tolerance: settings.simplificationTolerancePx,
+          maximumVerticesPerShape: settings.maximumVerticesPerShape,
         ),
       PrefabCollisionCreationMethod.rectangle ||
       PrefabCollisionCreationMethod.polygon => throw StateError('Unreachable.'),
@@ -312,14 +324,27 @@ abstract final class PrefabCollisionFitter {
       );
     }
     for (final shape in shapes) {
-      if (shape.vertices.length > 64) {
+      if (shape.vertices.length > settings.maximumVerticesPerShape) {
+        diagnostics.add(
+          PrefabCollisionFitDiagnostic(
+            code: 'prefab_fit_vertex_budget_unmet',
+            message:
+                'Component ${shape.componentIndex + 1} needs '
+                '${shape.vertices.length} vertices after safe reduction; the '
+                'selected maximum is ${settings.maximumVerticesPerShape}. '
+                'Increase Maximum vertices or use Fit visible bounds.',
+          ),
+        );
+      }
+      if (shape.vertices.length >
+          PrefabCollisionFitSettings.hardMaximumVerticesPerShape) {
         diagnostics.add(
           PrefabCollisionFitDiagnostic(
             code: 'prefab_fit_vertex_capacity_exceeded',
             message:
                 'Component ${shape.componentIndex + 1} needs '
-                '${shape.vertices.length} vertices; the hard limit is 64. '
-                'Increase simplification or use Fit visible bounds.',
+                '${shape.vertices.length} vertices; the hard limit is '
+                '${PrefabCollisionFitSettings.hardMaximumVerticesPerShape}.',
           ),
         );
       }
@@ -353,6 +378,15 @@ abstract final class PrefabCollisionFitter {
         method == PrefabCollisionCreationMethod.detectPlatformSurface
         ? _surfaceEvidence(retained, shapes)
         : const _SurfaceEvidence.empty();
+    final maximumDeviation = switch (method) {
+      PrefabCollisionCreationMethod.traceVisibleOutline =>
+        _outlineMaximumDeviation(retained, shapes),
+      PrefabCollisionCreationMethod.detectPlatformSurface =>
+        surfaceEvidence.maximumDeviation,
+      PrefabCollisionCreationMethod.fitVisibleBounds ||
+      PrefabCollisionCreationMethod.rectangle ||
+      PrefabCollisionCreationMethod.polygon => 0,
+    };
     return PrefabCollisionFitResult(
       method: method,
       settings: settings,
@@ -369,7 +403,7 @@ abstract final class PrefabCollisionFitter {
         sourceColumns: surfaceEvidence.sourceColumns,
         supportedColumns: surfaceEvidence.supportedColumns,
         omittedColumns: surfaceEvidence.omittedColumns,
-        maximumSurfaceDeviationPx: surfaceEvidence.maximumDeviation,
+        maximumDeviationPx: maximumDeviation,
       ),
       acceptedPixels: accepted,
     );
@@ -402,6 +436,22 @@ abstract final class PrefabCollisionFitter {
             shapes: candidates,
           )
         : const _SurfaceEvidence.empty();
+    final maximumDeviation = switch (method) {
+      PrefabCollisionCreationMethod.traceVisibleOutline =>
+        _outlineMaximumDeviation(
+          _discoverComponents(
+            acceptedPixels,
+            width: mask.width,
+            height: mask.height,
+          ),
+          candidates,
+        ),
+      PrefabCollisionCreationMethod.detectPlatformSurface =>
+        surface.maximumDeviation,
+      PrefabCollisionCreationMethod.fitVisibleBounds ||
+      PrefabCollisionCreationMethod.rectangle ||
+      PrefabCollisionCreationMethod.polygon => 0,
+    };
     return PrefabCollisionFitEvidence(
       thresholdVisiblePixels: baseline.thresholdVisiblePixels,
       filteredIslandCount: baseline.filteredIslandCount,
@@ -414,7 +464,7 @@ abstract final class PrefabCollisionFitter {
       sourceColumns: surface.sourceColumns,
       supportedColumns: surface.supportedColumns,
       omittedColumns: surface.omittedColumns,
-      maximumSurfaceDeviationPx: surface.maximumDeviation,
+      maximumDeviationPx: maximumDeviation,
     );
   }
 }
@@ -434,10 +484,12 @@ PrefabCollisionFitDiagnostic? _validateSettings(
       message: 'Minimum island area must be at least one pixel.',
     );
   }
-  if (settings.simplificationTolerancePx < 0) {
+  if (settings.maximumVerticesPerShape < 4 ||
+      settings.maximumVerticesPerShape >
+          PrefabCollisionFitSettings.hardMaximumVerticesPerShape) {
     return const PrefabCollisionFitDiagnostic(
-      code: 'prefab_fit_simplification_invalid',
-      message: 'Simplification tolerance cannot be negative.',
+      code: 'prefab_fit_maximum_vertices_invalid',
+      message: 'Maximum vertices per shape must be between 4 and 64.',
     );
   }
   return null;
@@ -559,9 +611,7 @@ PrefabCollisionFitShape _fitBounds(List<_PixelComponent> components) {
 
 List<PrefabCollisionFitShape> _traceComponents(
   List<_PixelComponent> components, {
-  required int width,
-  required int height,
-  required int tolerance,
+  required int maximumVerticesPerShape,
 }) {
   final shapes = <PrefabCollisionFitShape>[];
   for (
@@ -574,10 +624,10 @@ List<PrefabCollisionFitShape> _traceComponents(
     final outerLoops = loops.where((loop) => _signedArea(loop) > 0).toList();
     final hasHoles = loops.any((loop) => _signedArea(loop) < 0);
     if (!hasHoles && outerLoops.length == 1 && _isSimple(outerLoops.single)) {
-      var vertices = _removeCollinear(outerLoops.single);
-      if (tolerance > 0) {
-        vertices = _simplify(vertices, tolerance);
-      }
+      final vertices = _reduceClosedToBudget(
+        outerLoops.single,
+        maximumVerticesPerShape,
+      );
       shapes.add(
         PrefabCollisionFitShape(
           componentIndex: componentIndex,
@@ -790,7 +840,7 @@ List<_IntegerRect> _partitionIntoRectangles(_PixelComponent component) {
 
 List<PrefabCollisionFitShape> _detectPlatformSurfaces(
   List<_PixelComponent> components, {
-  required int tolerance,
+  required int maximumVerticesPerShape,
 }) {
   final shapes = <PrefabCollisionFitShape>[];
   for (
@@ -823,8 +873,10 @@ List<PrefabCollisionFitShape> _detectPlatformSurfaces(
         }
         profile.add(PrefabCollisionFitPoint(x + 1, y));
       }
-      profile = _removeConsecutiveDuplicates(profile);
-      if (tolerance > 0) profile = _simplifyOpenProfile(profile, tolerance);
+      profile = _reduceOpenToBudget(
+        _removeOpenCollinear(profile),
+        maximumVerticesPerShape - 2,
+      );
       final bottom = component.maxY + 1;
       final polygon = _removeCollinear(<PrefabCollisionFitPoint>[
         ...profile,
@@ -848,67 +900,274 @@ List<PrefabCollisionFitShape> _detectPlatformSurfaces(
   return shapes;
 }
 
-List<PrefabCollisionFitPoint> _simplify(
+List<PrefabCollisionFitPoint> _reduceClosedToBudget(
   List<PrefabCollisionFitPoint> source,
-  int tolerance,
+  int maximumVertices,
 ) {
-  var result = List<PrefabCollisionFitPoint>.of(source);
-  var changed = true;
-  while (changed && result.length > 3) {
-    changed = false;
-    for (var index = 0; index < result.length; index += 1) {
-      final previous = result[(index - 1 + result.length) % result.length];
-      final point = result[index];
-      final next = result[(index + 1) % result.length];
-      if (!_withinTolerance(previous, point, next, tolerance)) continue;
-      final candidate = List<PrefabCollisionFitPoint>.of(result)
-        ..removeAt(index);
-      if (_signedArea(candidate) <= 0 || !_isSimple(candidate)) continue;
-      result = candidate;
-      changed = true;
-      break;
+  final original = _canonical(source);
+  if (original.length <= maximumVertices) return original;
+  var retained = List<int>.generate(original.length, (index) => index);
+  final originalExtents = _pointExtents(original);
+  while (retained.length > maximumVertices && retained.length > 3) {
+    // Score the complete original arc bypassed by each shortcut. Measuring
+    // only the current neighbors would let error compound after every removal.
+    final removals = <_VertexRemoval>[];
+    for (var position = 0; position < retained.length; position += 1) {
+      final previous =
+          retained[(position - 1 + retained.length) % retained.length];
+      final next = retained[(position + 1) % retained.length];
+      removals.add(
+        _VertexRemoval(
+          position: position,
+          originalIndex: retained[position],
+          deviation: _closedArcDeviation(original, previous, next),
+          areaImpact: _triangleAreaMagnitude(
+            original[previous],
+            original[retained[position]],
+            original[next],
+          ),
+        ),
+      );
     }
-  }
-  return result;
-}
+    removals.sort(_compareVertexRemovals);
 
-List<PrefabCollisionFitPoint> _simplifyOpenProfile(
-  List<PrefabCollisionFitPoint> source,
-  int tolerance,
-) {
-  var result = List<PrefabCollisionFitPoint>.of(source);
-  var changed = true;
-  while (changed && result.length > 2) {
-    changed = false;
-    for (var index = 1; index < result.length - 1; index += 1) {
-      if (!_withinTolerance(
-        result[index - 1],
-        result[index],
-        result[index + 1],
-        tolerance,
-      )) {
+    var removed = false;
+    for (final removal in removals) {
+      final candidateIndices = List<int>.of(retained)
+        ..removeAt(removal.position);
+      final candidate = <PrefabCollisionFitPoint>[
+        for (final index in candidateIndices) original[index],
+      ];
+      if (_pointExtents(candidate) != originalExtents ||
+          _signedArea(candidate) <= 0 ||
+          !_removalKeepsSimple(original, retained, removal.position)) {
         continue;
       }
-      result = List<PrefabCollisionFitPoint>.of(result)..removeAt(index);
-      changed = true;
+      retained = candidateIndices;
+      removed = true;
       break;
     }
+    if (!removed) break;
   }
-  return result;
+  return _canonical(<PrefabCollisionFitPoint>[
+    for (final index in retained) original[index],
+  ]);
 }
 
-bool _withinTolerance(
+List<PrefabCollisionFitPoint> _reduceOpenToBudget(
+  List<PrefabCollisionFitPoint> source,
+  int maximumVertices,
+) {
+  final original = List<PrefabCollisionFitPoint>.of(source);
+  final target = maximumVertices < 2 ? 2 : maximumVertices;
+  if (original.length <= target) return original;
+  var retained = List<int>.generate(original.length, (index) => index);
+  while (retained.length > target) {
+    final removals = <_VertexRemoval>[];
+    for (var position = 1; position < retained.length - 1; position += 1) {
+      final previous = retained[position - 1];
+      final next = retained[position + 1];
+      removals.add(
+        _VertexRemoval(
+          position: position,
+          originalIndex: retained[position],
+          deviation: _openArcDeviation(original, previous, next),
+          areaImpact: _triangleAreaMagnitude(
+            original[previous],
+            original[retained[position]],
+            original[next],
+          ),
+        ),
+      );
+    }
+    if (removals.isEmpty) break;
+    removals.sort(_compareVertexRemovals);
+    retained = List<int>.of(retained)..removeAt(removals.first.position);
+  }
+  return <PrefabCollisionFitPoint>[
+    for (final index in retained) original[index],
+  ];
+}
+
+final class _VertexRemoval {
+  const _VertexRemoval({
+    required this.position,
+    required this.originalIndex,
+    required this.deviation,
+    required this.areaImpact,
+  });
+
+  final int position;
+  final int originalIndex;
+  final _SquaredDistance deviation;
+  final int areaImpact;
+}
+
+int _compareVertexRemovals(_VertexRemoval left, _VertexRemoval right) {
+  var order = left.deviation.compareTo(right.deviation);
+  if (order != 0) return order;
+  order = left.areaImpact.compareTo(right.areaImpact);
+  return order != 0 ? order : left.originalIndex.compareTo(right.originalIndex);
+}
+
+int _triangleAreaMagnitude(
   PrefabCollisionFitPoint start,
   PrefabCollisionFitPoint point,
   PrefabCollisionFitPoint end,
-  int tolerance,
+) =>
+    ((point.x - start.x) * (end.y - start.y) -
+            (point.y - start.y) * (end.x - start.x))
+        .abs();
+
+_SquaredDistance _closedArcDeviation(
+  List<PrefabCollisionFitPoint> original,
+  int startIndex,
+  int endIndex,
+) {
+  var maximum = const _SquaredDistance.zero();
+  var index = (startIndex + 1) % original.length;
+  while (index != endIndex) {
+    maximum = _maxDistance(
+      maximum,
+      _pointSegmentDistanceSquared(
+        original[index],
+        original[startIndex],
+        original[endIndex],
+      ),
+    );
+    index = (index + 1) % original.length;
+  }
+  return maximum;
+}
+
+_SquaredDistance _openArcDeviation(
+  List<PrefabCollisionFitPoint> original,
+  int startIndex,
+  int endIndex,
+) {
+  var maximum = const _SquaredDistance.zero();
+  for (var index = startIndex + 1; index < endIndex; index += 1) {
+    maximum = _maxDistance(
+      maximum,
+      _pointSegmentDistanceSquared(
+        original[index],
+        original[startIndex],
+        original[endIndex],
+      ),
+    );
+  }
+  return maximum;
+}
+
+_SquaredDistance _pointSegmentDistanceSquared(
+  PrefabCollisionFitPoint point,
+  PrefabCollisionFitPoint start,
+  PrefabCollisionFitPoint end,
 ) {
   final dx = end.x - start.x;
   final dy = end.y - start.y;
-  final cross = dx * (point.y - start.y) - dy * (point.x - start.x);
   final lengthSquared = dx * dx + dy * dy;
-  if (lengthSquared == 0) return false;
-  return cross * cross <= tolerance * tolerance * lengthSquared;
+  if (lengthSquared == 0) {
+    final pointDx = point.x - start.x;
+    final pointDy = point.y - start.y;
+    return _SquaredDistance(pointDx * pointDx + pointDy * pointDy, 1);
+  }
+  final fromStartX = point.x - start.x;
+  final fromStartY = point.y - start.y;
+  final projection = fromStartX * dx + fromStartY * dy;
+  if (projection <= 0) {
+    return _SquaredDistance(
+      fromStartX * fromStartX + fromStartY * fromStartY,
+      1,
+    );
+  }
+  if (projection >= lengthSquared) {
+    final fromEndX = point.x - end.x;
+    final fromEndY = point.y - end.y;
+    return _SquaredDistance(fromEndX * fromEndX + fromEndY * fromEndY, 1);
+  }
+  final cross = dx * fromStartY - dy * fromStartX;
+  return _SquaredDistance(cross * cross, lengthSquared);
+}
+
+final class _SquaredDistance implements Comparable<_SquaredDistance> {
+  const _SquaredDistance(this.numerator, this.denominator);
+
+  const _SquaredDistance.zero() : numerator = 0, denominator = 1;
+
+  final int numerator;
+  final int denominator;
+
+  int get ceilingPixels {
+    if (numerator == 0) return 0;
+    var low = 0;
+    var high = 1;
+    while (high * high * denominator < numerator) {
+      high *= 2;
+    }
+    while (low + 1 < high) {
+      final middle = (low + high) ~/ 2;
+      if (middle * middle * denominator >= numerator) {
+        high = middle;
+      } else {
+        low = middle;
+      }
+    }
+    return high;
+  }
+
+  @override
+  int compareTo(_SquaredDistance other) =>
+      (numerator * other.denominator).compareTo(other.numerator * denominator);
+}
+
+_SquaredDistance _maxDistance(_SquaredDistance left, _SquaredDistance right) =>
+    left.compareTo(right) >= 0 ? left : right;
+
+({int minX, int minY, int maxX, int maxY}) _pointExtents(
+  List<PrefabCollisionFitPoint> points,
+) {
+  var minX = points.first.x;
+  var minY = points.first.y;
+  var maxX = minX;
+  var maxY = minY;
+  for (final point in points.skip(1)) {
+    if (point.x < minX) minX = point.x;
+    if (point.y < minY) minY = point.y;
+    if (point.x > maxX) maxX = point.x;
+    if (point.y > maxY) maxY = point.y;
+  }
+  return (minX: minX, minY: minY, maxX: maxX, maxY: maxY);
+}
+
+bool _removalKeepsSimple(
+  List<PrefabCollisionFitPoint> original,
+  List<int> retained,
+  int removalPosition,
+) {
+  final count = retained.length;
+  final previousPosition = (removalPosition - 1 + count) % count;
+  final nextPosition = (removalPosition + 1) % count;
+  final previous = original[retained[previousPosition]];
+  final next = original[retained[nextPosition]];
+  for (var edgePosition = 0; edgePosition < count; edgePosition += 1) {
+    final edgeNextPosition = (edgePosition + 1) % count;
+    if (edgePosition == previousPosition ||
+        edgePosition == removalPosition ||
+        edgeNextPosition == previousPosition ||
+        edgePosition == nextPosition) {
+      continue;
+    }
+    if (_segmentsIntersect(
+      previous,
+      next,
+      original[retained[edgePosition]],
+      original[retained[edgeNextPosition]],
+    )) {
+      return false;
+    }
+  }
+  return true;
 }
 
 List<PrefabCollisionFitPoint> _removeConsecutiveDuplicates(
@@ -919,6 +1178,29 @@ List<PrefabCollisionFitPoint> _removeConsecutiveDuplicates(
     if (result.isEmpty || result.last != point) result.add(point);
   }
   return result;
+}
+
+List<PrefabCollisionFitPoint> _removeOpenCollinear(
+  List<PrefabCollisionFitPoint> source,
+) {
+  var points = _removeConsecutiveDuplicates(source);
+  var changed = true;
+  while (changed && points.length > 2) {
+    changed = false;
+    for (var index = 1; index < points.length - 1; index += 1) {
+      final previous = points[index - 1];
+      final current = points[index];
+      final next = points[index + 1];
+      if ((current.x - previous.x) * (next.y - current.y) !=
+          (current.y - previous.y) * (next.x - current.x)) {
+        continue;
+      }
+      points = List<PrefabCollisionFitPoint>.of(points)..removeAt(index);
+      changed = true;
+      break;
+    }
+  }
+  return points;
 }
 
 List<PrefabCollisionFitPoint> _removeCollinear(
@@ -1165,6 +1447,43 @@ List<_DoublePoint> _clip(
     previousInside = currentInside;
   }
   return result;
+}
+
+int _outlineMaximumDeviation(
+  List<_PixelComponent> components,
+  List<PrefabCollisionFitShape> shapes,
+) {
+  var maximum = const _SquaredDistance.zero();
+  for (
+    var componentIndex = 0;
+    componentIndex < components.length;
+    componentIndex += 1
+  ) {
+    final candidates = shapes
+        .where((shape) => shape.componentIndex == componentIndex)
+        .where((shape) => shape.vertices.length >= 2)
+        .toList(growable: false);
+    if (candidates.isEmpty) continue;
+    for (final loop in _traceBoundaryLoops(components[componentIndex])) {
+      for (final point in loop) {
+        _SquaredDistance? nearest;
+        for (final candidate in candidates) {
+          for (var index = 0; index < candidate.vertices.length; index += 1) {
+            final distance = _pointSegmentDistanceSquared(
+              point,
+              candidate.vertices[index],
+              candidate.vertices[(index + 1) % candidate.vertices.length],
+            );
+            if (nearest == null || distance.compareTo(nearest) < 0) {
+              nearest = distance;
+            }
+          }
+        }
+        if (nearest != null) maximum = _maxDistance(maximum, nearest);
+      }
+    }
+  }
+  return maximum.ceilingPixels;
 }
 
 final class _SurfaceEvidence {

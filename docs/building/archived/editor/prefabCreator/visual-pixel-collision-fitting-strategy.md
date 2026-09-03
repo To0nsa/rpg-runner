@@ -139,8 +139,10 @@ Defaults are conservative and reversible:
 - a pixel is accepted when `alpha >= cutoff`; the default cutoff is `1`, so any
   nonzero alpha is visible
 - no visible island is discarded by default
-- simplification removes collinear points but otherwise defaults to zero-pixel
-  tolerance, preserving the exact cell-edge outline
+- generated contours default to at most 24 vertices per shape, with an explicit
+  selectable range up to Core's hard limit of 64
+- reduction retains original whole-pixel boundary points and minimizes global
+  deviation from the source contour instead of applying a local tolerance
 - Platform Prefabs default to **Detect platform surface**
 - obstacle Prefabs default to **Trace visible outline**
 - decoration Prefabs do not expose collision fitting
@@ -322,7 +324,8 @@ The common pipeline is:
 4. Apply the explicit minimum-island-area setting.
 5. Run the selected fit method.
 6. Remove duplicate and collinear vertices.
-7. Apply deterministic, topology-preserving simplification where selected.
+7. Apply deterministic, topology-preserving reduction to the selected
+   maximum-vertices-per-shape budget.
 8. Convert mask-boundary coordinates into anchor-relative whole pixels.
 9. Allocate stable candidate IDs and canonical shape ordering.
 10. Compare candidate coverage with the source mask for author-visible evidence.
@@ -366,17 +369,19 @@ Core review. If that exact partition exceeds a hard shape or vertex limit,
 fitting blocks with a specific capacity diagnostic. It must never silently fill
 a hole while claiming an outline fit.
 
-Simplification may remove detail only within the selected tolerance, measured
-as the perpendicular distance in source pixels from a removed vertex to its
-replacement segment. Comparisons use squared integer/rational arithmetic, not
-floating point. Candidate vertex removals use stable source order and are
-accepted only if winding, self-intersection, positive-area overlap, hole
-preservation, and visual-bounds checks still pass. Every retained point remains
-a whole-pixel boundary point.
+Budgeted reduction ranks a candidate removal by the maximum point-to-segment
+distance across every original contour point in the replaced arc. Recomputing
+that error against the immutable original contour prevents the cumulative drift
+of greedy local simplification. Comparisons use squared integer/rational
+arithmetic, not floating point. Equal costs use stable area-impact and source-
+index tie-breaks. Closed-contour removals are accepted only while winding,
+simple topology, and all four original silhouette extents remain unchanged.
+Every retained point remains an original whole-pixel boundary point.
 
-If the result still exceeds Core's hard shape or vertex limits, generation is
-blocked and the UI offers a larger tolerance, minimum-island filter, or Fit
-visible bounds; it does not auto-increase a setting behind the author's back.
+If safe reduction cannot reach the selected budget, generation is blocked and
+the UI offers a larger maximum, minimum-island filter, or Fit visible bounds.
+The fitter never truncates a contour or accepts a result above the explicit
+setting.
 
 ### Detect platform surface
 
@@ -385,8 +390,9 @@ module's nominal cell rectangle. For each retained four-way-connected
 component, scan columns from left to right and select the top boundary of the
 uppermost accepted pixel in each column. Empty columns split profiles; the
 algorithm never bridges a transparent gap automatically. Changes in height are
-represented by integer vertical steps before any explicitly requested
-simplification.
+represented by integer vertical steps before the open profile is reduced to
+the explicit per-shape vertex budget. Profile endpoints remain fixed and error
+is always measured against the immutable original support profile.
 
 Each accepted support profile becomes the upward boundary of a closed one-way
 polygon. The profile is authored left-to-right, then closed down to that
@@ -398,9 +404,9 @@ review, which catches interlocking components whose closures cannot coexist.
 
 There is no hidden grass, color, filename, or fixed-cell heuristic. Alpha
 cutoff and minimum island area determine the source pixels, while the explicit
-simplification tolerance can reduce narrow peaks. The author sees the raw mask,
-support profile, and active edges and can then flatten noise or adjust ledge
-extents with normal vertex tools.
+vertex budget reduces narrow peaks by their global profile error. The author
+sees the raw mask, support profile, active edges, and maximum deviation and can
+then flatten noise or adjust ledge extents with normal vertex tools.
 
 The detected Platform result is always one-way. A result without an
 upward-facing edge is invalid and cannot be saved.
@@ -576,7 +582,7 @@ rejection. Applying this rule must not rewrite valid source during load.
 
 | Risk | Mitigation |
 | --- | --- |
-| Pixel outlines exceed shape/vertex limits | Exact counts, soft warnings, hard blocking, explicit settings, no truncation |
+| Pixel outlines exceed shape/vertex limits | Global-error budgeted reduction, exact counts/deviation, hard blocking, explicit settings, no truncation |
 | Decorative pixels create poor gameplay collision | Raw-mask/edge preview, zero-loss defaults, editable drafts, no hidden semantic heuristic |
 | Holes are silently filled | Exact deterministic partition or blocking capacity diagnostic |
 | Preview and generated coordinates drift | One shared integer visual-layout resolver with parity fixtures |
