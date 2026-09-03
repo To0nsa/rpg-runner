@@ -326,10 +326,12 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
     if (mask == null || origin == null) return;
     final fill = Paint()
       ..color = const Color(0x334FE3C1)
+      ..isAntiAlias = false
       ..style = PaintingStyle.fill;
     final edge = Paint()
       ..color = const Color(0xAA4FE3C1)
       ..strokeWidth = 1
+      ..strokeCap = StrokeCap.square
       ..style = PaintingStyle.stroke;
     for (var y = 0; y < mask.height; y += 1) {
       for (var x = 0; x < mask.width; x += 1) {
@@ -338,8 +340,17 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
           Rect.fromLTWH(origin.dx + x, origin.dy + y, 1, 1),
         );
         canvas.drawRect(rect, fill);
-        canvas.drawRect(rect, edge);
       }
+    }
+    for (final segment in prefabFitMaskBoundarySegments(
+      mask: mask,
+      originPx: origin,
+    )) {
+      canvas.drawLine(
+        _canvasOffset(segment.startPx),
+        _canvasOffset(segment.endPx),
+        edge,
+      );
     }
   }
 
@@ -397,6 +408,11 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
     transform.origin.dy + sourceRectPx.bottom * transform.zoom,
   );
 
+  Offset _canvasOffset(Offset sourceOffsetPx) => Offset(
+    transform.origin.dx + sourceOffsetPx.dx * transform.zoom,
+    transform.origin.dy + sourceOffsetPx.dy * transform.zoom,
+  );
+
   Color _fallbackColor(String sourceId) {
     var hash = 0;
     for (final code in sourceId.codeUnits) {
@@ -412,6 +428,47 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
       oldDelegate.imageCacheRevision != imageCacheRevision ||
       !identical(oldDelegate.fitMask, fitMask) ||
       oldDelegate.fitMaskOriginPx != fitMaskOriginPx;
+}
+
+/// One exposed edge of the accepted visible-pixel mask in source pixels.
+typedef PrefabFitMaskBoundarySegment = ({Offset startPx, Offset endPx});
+
+/// Returns only the mask perimeter, including holes and disconnected regions.
+///
+/// Edges shared by adjacent accepted pixels are omitted so a fitting preview
+/// communicates its boundary without drawing a grid through the artwork.
+Iterable<PrefabFitMaskBoundarySegment> prefabFitMaskBoundarySegments({
+  required PrefabAlphaMask mask,
+  required Offset originPx,
+}) sync* {
+  bool isAccepted(int x, int y) =>
+      x >= 0 &&
+      x < mask.width &&
+      y >= 0 &&
+      y < mask.height &&
+      mask.alphaAt(x, y) != 0;
+
+  for (var y = 0; y < mask.height; y += 1) {
+    for (var x = 0; x < mask.width; x += 1) {
+      if (!isAccepted(x, y)) continue;
+      final left = originPx.dx + x;
+      final top = originPx.dy + y;
+      final right = left + 1;
+      final bottom = top + 1;
+      if (!isAccepted(x, y - 1)) {
+        yield (startPx: Offset(left, top), endPx: Offset(right, top));
+      }
+      if (!isAccepted(x - 1, y)) {
+        yield (startPx: Offset(left, bottom), endPx: Offset(left, top));
+      }
+      if (!isAccepted(x + 1, y)) {
+        yield (startPx: Offset(right, top), endPx: Offset(right, bottom));
+      }
+      if (!isAccepted(x, y + 1)) {
+        yield (startPx: Offset(right, bottom), endPx: Offset(left, bottom));
+      }
+    }
+  }
 }
 
 AtlasSliceDef? _findSlice(Iterable<AtlasSliceDef> slices, String id) {

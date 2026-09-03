@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,36 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
+  test('fit-mask boundary omits edges shared by visible pixels', () {
+    final mask = PrefabAlphaMask(
+      width: 3,
+      height: 2,
+      alpha: Uint8List.fromList(const <int>[255, 255, 0, 255, 0, 255]),
+    );
+
+    final segments = prefabFitMaskBoundarySegments(
+      mask: mask,
+      originPx: const Offset(10, 20),
+    ).toSet();
+
+    expect(
+      segments,
+      containsAll(<PrefabFitMaskBoundarySegment>{
+        (startPx: const Offset(10, 20), endPx: const Offset(11, 20)),
+        (startPx: const Offset(11, 20), endPx: const Offset(12, 20)),
+        (startPx: const Offset(10, 22), endPx: const Offset(10, 21)),
+        (startPx: const Offset(13, 21), endPx: const Offset(13, 22)),
+      }),
+    );
+    expect(
+      segments,
+      isNot(
+        contains((startPx: const Offset(11, 20), endPx: const Offset(11, 21))),
+      ),
+    );
+    expect(segments, hasLength(12));
+  });
+
   test('atlas visual source is projected relative to the prefab anchor', () {
     final prefab = _prefab(
       visualSource: const PrefabVisualSource.atlasSlice('obstacle_slice'),
