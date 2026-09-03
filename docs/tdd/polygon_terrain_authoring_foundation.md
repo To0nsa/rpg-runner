@@ -70,8 +70,10 @@ Final Phase 4 acceptance work remains tracked in
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks plus normal current-source load, transactional save, and exact reload |
 | Retained tile-v2 structure and canonical serialization | editor `PrefabTileFileData` / `PrefabTileFileCodec` | current-source byte round-trip plus normal v3 paired load/save |
 | Prefab visual-source bounds | editor `PrefabVisualBoundsResolver` | normal v3 atlas-slice/platform-module loading and offline migration target review |
+| Prefab visual alpha projection | editor `PrefabPolygonVisualProjection` / `PrefabVisualAlphaMaskLoader` / `EditorUiImageCache` | one digest-bound atlas/module layout shared by scene rendering and pixel-derived collision; exact authored-order alpha composition, bounded normalized masks, stale-source rejection, and owned image disposal |
+| Pure Prefab collision fitting | editor `PrefabAlphaMask` / `PrefabCollisionFitter` | deterministic bounds, outline, hole-safe partition, Platform-support generation, component ordering, coverage evidence, and hard-capacity diagnostics without Flutter or repository I/O |
 | Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and normal current-schema route tests |
-| Prefab-v3 plugin document | editor `PrefabV3Document` / `PrefabDomainPlugin` | normal strict current-source selection, typed commits, immutable pending diffs, complete validation, transactional apply, and exact reload |
+| Prefab-v3 plugin document | editor `PrefabV3Document` / `PrefabDomainPlugin` | normal strict current-source selection, typed commits, immutable pending diffs, read-only Chunk snapshots, transformed downstream collision review, transactional apply with Chunk-drift recheck, and exact reload |
 | Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` / `PrefabPolygonWorkspace` | normal strict-v3 routing, owner isolation, visual sources, tools, snap, diagnostics, focus, keyboard, rejection, and history; legacy/missing source selects no rectangle workflow |
 | Legacy/missing editor source gate | editor `PolygonAuthoringMigrationRequiredDocument` / `PolygonAuthoringMigrationRequiredScene` | shared fail-closed Prefab/Chunk route, blocking validation, command/export refusal, read-only readiness command, and atomic source recheck |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration plus normal prefab-v3 and chunk-v2 codecs |
@@ -213,14 +215,50 @@ either the library or compact header rebinds the collision controller only
 after local owner drafts and active polygon operations have been resolved.
 
 Prefab collision creation now supplies the shared reducer with an optional
-validated shape ID plus the selected collision mode, surface, material, and
-half/whole-pixel snap policy. These values remain local until the draft is
+validated shape ID plus kind-derived collision mode, surface, material, and a
+fixed whole-pixel snap policy. These values remain local until the draft is
 saved. Retained shapes expand below their row. The shared exact rectangle view
 recognizes axis-aligned four-corner polygons; Prefab routes can then replace all
 four corners and the shape ID in one reducer result while arbitrary polygons
 retain exact vertex editing. Pending identity/coordinate text is guarded across
 row, owner, and workspace-view navigation. The former Prefab metadata dialog
 has no production entry point.
+
+The same section owns pixel-derived creation and retained-shape refit. Atlas
+slices and platform modules resolve into one immutable, anchor-relative alpha
+mask whose dimensions and tile destinations match the scene projection. The
+pure fitter thresholds alpha inclusively, labels four-connected components in
+stable top/left order, and emits integer pixel-cell boundaries. **Fit visible
+bounds** emits one spanning rectangle; **Trace visible outline** emits exact
+concave loops or a deterministic rectangle partition when an inner ring cannot
+be represented by the source polygon schema; **Detect platform surface** emits
+downward-closed profiles with left-to-right active support edges. The default
+settings are cutoff 1, minimum island area 1 pixel, and simplification 0 pixels.
+The synchronous pure fit accepts at most 1,048,576 normalized pixels; larger
+visuals fail before allocating the mask.
+
+Fit settings, masks, evidence, and methods never enter Prefab JSON. Generated
+candidates remain route-local and editable, with explicit component inclusion,
+coverage/support evidence, fit-local undo/redo, source-digest and generation-
+token guards, and one atomic final collision commit. Refit keeps the selected
+shape ID on the first included result, deterministically allocates additional
+IDs, copies the selected surface/material metadata, and preserves unrelated
+shapes exactly.
+
+Prefab kind is authoritative for collision semantics in both editor validation
+and strict content-pipeline parsing: obstacle shapes are `solid`, Platform
+shapes are `oneWay`, and decoration Prefabs have no collision shapes. The scene
+uses the Core-aligned clockwise/Y-down edge rule to distinguish active one-way
+support from inert closure edges.
+
+`PrefabV3Document` also retains immutable source snapshots for current Chunks.
+Before any manual or generated collision commit, the plugin substitutes the
+candidate Prefab catalog into every referencing snapshot and compares shared
+content-pipeline compilation errors with that Chunk's baseline errors. This
+detects transformed overlap, bounds, topology, and capacity regressions without
+giving the Prefab domain Chunk write authority. Export re-reads affected Chunk
+source bytes, blocks stale snapshots, repeats candidate compilation, and only
+then continues the existing atomic Prefab/tile write.
 
 Prefab collision sections are mounted as flat, independently collapsed sidebar
 siblings. The active draft or selected shape forces only its owning section

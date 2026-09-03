@@ -199,8 +199,11 @@ registry have been removed.
 Prefab collision authoring projects three sibling section contracts inside the
 authoring sidebar: creation, retained shapes, and diagnostics. Creation state
 owns optional identity, collision mode, surface/material defaults, and the
-local polygon/rectangle draft. Pointer input and exact fields share one fixed
-whole-pixel grid, so no precision selector is exposed. Retained shapes use
+local collision draft. It presents **Rectangle**, **Polygon**, **Fit visible
+bounds**, **Trace visible outline**, and Platform-only **Detect platform
+surface** as direct inline methods. Pointer input, exact fields, and generated
+vertices share one fixed whole-pixel grid, so no precision selector is exposed.
+Retained shapes use
 `EditorListCard`'s detail slot for contextual metadata, lifecycle actions, and
 exact geometry; no Prefab collision-metadata modal remains. The mounted exact
 editor and route-local shape-name draft report pending state through
@@ -215,6 +218,42 @@ together to the shared polygon reducer, producing at most one owner-reviewed
 collision commit, revision increment, and undo entry. Collision, surface, and
 material selectors remain immediate semantic metadata edits, matching Chunk
 behavior.
+
+Pixel-derived collision is a controller-owned draft set, not a persistence
+path. The visual adapter crops an atlas slice or composites module cells with
+the same layout consumed by the scene preview, using stable authored cell order
+and integer source-over alpha. Decoded PNG bytes, RGBA data, and content digests
+share the workspace image cache. A refresh re-reads bytes but reuses the decode
+when the digest is unchanged; changed bytes replace and dispose the old image.
+The normalized fitting mask is capped at 1,048,576 pixels before allocation.
+
+Generation captures the Prefab revision, complete before-shape list, selected
+refit target, method, settings, and visual-source digest. A monotonically
+increasing token rejects late async results. Candidate geometry, component
+inclusion, selection, exact edits, evidence, and fit-local undo/redo remain
+outside the session until Save. Settings changes invalidate Save until an
+explicit Regenerate; regeneration asks before discarding candidate edits.
+Cancel restores the captured state without history. Save rechecks the visual
+digest and dispatches the complete prospective list once, yielding at most one
+Prefab revision and undo entry; a canonical no-op closes without either.
+
+Fit visible bounds spans all retained alpha with one rectangle. Outline tracing
+keeps disconnected four-connected components separate, retains exact concave
+cell boundaries at zero simplification, and partitions components with holes
+into deterministic non-overlapping rectangles so transparent holes are not
+filled. Platform detection follows the upper accepted pixel in each contiguous
+column run and closes the polygon downward; the scene distinguishes the same
+left-to-right one-way support edges exposed by Core. Obstacle collision is
+always solid, Platform collision is always one-way, and decoration Prefabs
+cannot author collision.
+
+Every fit and every manual collision edit is reviewed against immutable Chunk
+snapshots loaded with the Prefab document. Candidate Prefab data is substituted
+into each referencing Chunk and passed through the shared content-pipeline
+compiler, preserving scale, reflection, translation, bounds, overlap, and
+capacity rules. Existing baseline errors are not attributed to the edit. Apply
+to Files re-reads those Chunk sources and repeats review before the normal
+atomic Prefab/tile write; drift blocks export with Reload guidance.
 
 The Prefab owner/collision workspace presents flat sibling
 `EditorSectionCard`s rather than placing section cards inside redundant panel

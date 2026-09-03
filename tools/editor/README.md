@@ -211,6 +211,26 @@ unsaved identity or exact-coordinate fields. Axis-aligned four-vertex polygons
 use the compact X/Bottom/Width/Height editor, arbitrary polygons retain vertex
 editing, and identity plus exact geometry save as one collision command.
 
+The creation section exposes five collision methods in place: **Rectangle**,
+**Polygon**, **Fit visible bounds**, **Trace visible outline**, and, for
+Platform Prefabs, **Detect platform surface**. Pixel-derived methods inspect
+the exact alpha rendered by either the authored atlas slice or composed
+platform module, ignore transparent padding, and produce whole-pixel,
+anchor-relative candidate shapes. Obstacle candidates are solid, Platform
+candidates are one-way, and decoration Prefabs remain collision-free. Advanced
+sliders control the inclusive alpha cutoff, minimum retained island area, and
+whole-pixel simplification tolerance without persisting a fitting recipe.
+
+Generated shapes remain a route-local preview: authors can select and edit
+their geometry, include or exclude components, inspect pixel-coverage or
+support-column evidence, regenerate, Save once, or Cancel. **Refit from
+pixels** opens the same editor below a retained shape and replaces only that
+shape while preserving its identity and metadata on the primary result. Save
+is disabled for empty, stale, locally invalid, or transformed-Chunk-invalid
+results. One accepted Save is one Prefab revision and one undo entry; runtime
+continues to consume only the committed collision polygons. The artwork is
+never cropped, scaled, snapped, or otherwise changed by fitting.
+
 Prefab-library and collision sidebars are flat groups of independently
 collapsible sections; inactive sections start minimized and a section stays
 open while it owns an active form, shape editor, or drawing draft. Diagnostics

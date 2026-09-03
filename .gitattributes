@@ -1,0 +1,3 @@
+# Repository-authored JSON is byte-canonical and must not be rewritten by
+# platform checkout settings.
+assets/authoring/**/*.json text eol=lf
