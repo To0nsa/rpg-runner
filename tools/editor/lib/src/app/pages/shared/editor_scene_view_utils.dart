@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/widgets.dart';
 
 /// Shared scene-page helpers for repeated viewport zoom, centering, and image
@@ -58,26 +60,50 @@ final class EditorSceneViewUtils {
   }
 }
 
+/// Digest-bound decoded image and straight source-byte-derived RGBA samples.
+///
+/// Preview painting and pixel-assisted authoring share this record so they
+/// cannot silently inspect different revisions of a file at the same path.
+final class EditorUiImageRaster {
+  EditorUiImageRaster({
+    required this.image,
+    required Uint8List rgba,
+    required this.digest,
+  }) : rgba = Uint8List.fromList(rgba).asUnmodifiableView();
+
+  final ui.Image image;
+  final Uint8List rgba;
+  final String digest;
+
+  int alphaAt(int x, int y) => rgba[(y * image.width + x) * 4 + 3];
+}
+
 /// Small decoded-image cache for scene previews.
 ///
 /// Pages still own when they request loads and when they rebuild, but the
 /// cache keeps the repeated file/decode/dispose/failure rules single-sourced.
 final class EditorUiImageCache {
-  final Map<String, ui.Image> _images = <String, ui.Image>{};
+  final Map<String, EditorUiImageRaster> _rasters =
+      <String, EditorUiImageRaster>{};
   final Map<_EditorUiRegionKey, ui.Image> _regionImages =
       <_EditorUiRegionKey, ui.Image>{};
   final Map<_EditorUiRegionKey, Future<ui.Image?>> _regionLoadingFutures =
       <_EditorUiRegionKey, Future<ui.Image?>>{};
-  final Map<String, Future<ui.Image?>> _loadingFutures =
-      <String, Future<ui.Image?>>{};
+  final Map<String, Future<EditorUiImageRaster?>> _loadingFutures =
+      <String, Future<EditorUiImageRaster?>>{};
   final Set<String> _failedPaths = <String>{};
   bool _disposed = false;
+  int _revision = 0;
 
-  int get loadedImageCount => _images.length;
+  int get loadedImageCount => _rasters.length;
 
   int get loadedRegionImageCount => _regionImages.length;
 
-  ui.Image? imageFor(String absolutePath) => _images[absolutePath];
+  int get revision => _revision;
+
+  ui.Image? imageFor(String absolutePath) => _rasters[absolutePath]?.image;
+
+  EditorUiImageRaster? rasterFor(String absolutePath) => _rasters[absolutePath];
 
   ui.Image? regionImageFor(
     String absolutePath, {
@@ -88,32 +114,84 @@ final class EditorUiImageCache {
   }) => _regionImages[_EditorUiRegionKey(absolutePath, x, y, width, height)];
 
   Future<ui.Image?> ensureLoaded(String absolutePath) async {
+    return (await ensureRasterLoaded(absolutePath))?.image;
+  }
+
+  /// Loads one image and its RGBA samples, optionally rechecking file bytes.
+  Future<EditorUiImageRaster?> ensureRasterLoaded(
+    String absolutePath, {
+    bool refresh = false,
+  }) async {
     if (_disposed) return null;
-    final existingImage = _images[absolutePath];
-    if (existingImage != null) {
-      return existingImage;
+    final existingRaster = _rasters[absolutePath];
+    if (!refresh && existingRaster != null) {
+      return existingRaster;
     }
     final existingLoad = _loadingFutures[absolutePath];
     if (existingLoad != null) {
-      return existingLoad;
+      final loaded = await existingLoad;
+      if (!refresh) return loaded;
+      // A refresh must inspect bytes after any older preview load completes;
+      // otherwise Save could compare a draft with that older in-flight digest.
+      return ensureRasterLoaded(absolutePath, refresh: true);
     }
-    if (_failedPaths.contains(absolutePath)) {
+    if (!refresh && _failedPaths.contains(absolutePath)) {
       return null;
     }
+    if (refresh) _failedPaths.remove(absolutePath);
 
     final loadFuture = () async {
       try {
-        final image = await EditorSceneViewUtils.loadFileImage(absolutePath);
-        if (image == null) {
+        final file = File(absolutePath);
+        if (!await file.exists()) {
           _failedPaths.add(absolutePath);
           return null;
+        }
+        final bytes = await file.readAsBytes();
+        final digest = sha256.convert(bytes).toString();
+        final current = _rasters[absolutePath];
+        if (current != null && current.digest == digest) {
+          _failedPathSucceeded(absolutePath);
+          return current;
+        }
+        final codec = await ui.instantiateImageCodec(bytes);
+        late final ui.Image image;
+        try {
+          image = (await codec.getNextFrame()).image;
+        } finally {
+          codec.dispose();
         }
         if (_disposed) {
           image.dispose();
           return null;
         }
-        _images[absolutePath] = image;
-        return image;
+        final byteData = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        if (byteData == null) {
+          image.dispose();
+          _failedPaths.add(absolutePath);
+          return null;
+        }
+        final raster = EditorUiImageRaster(
+          image: image,
+          rgba: byteData.buffer.asUint8List(
+            byteData.offsetInBytes,
+            byteData.lengthInBytes,
+          ),
+          digest: digest,
+        );
+        if (_disposed) {
+          image.dispose();
+          return null;
+        }
+        _invalidateRegionsForPath(absolutePath);
+        final replaced = _rasters[absolutePath];
+        _rasters[absolutePath] = raster;
+        if (!identical(replaced?.image, image)) replaced?.image.dispose();
+        _revision += 1;
+        _failedPaths.remove(absolutePath);
+        return raster;
       } catch (_) {
         _failedPaths.add(absolutePath);
         return null;
@@ -123,6 +201,23 @@ final class EditorUiImageCache {
     }();
     _loadingFutures[absolutePath] = loadFuture;
     return loadFuture;
+  }
+
+  /// Allows repaired files to be retried after the editor's Reload action.
+  void clearFailures() => _failedPaths.clear();
+
+  void _invalidateRegionsForPath(String absolutePath) {
+    final keys = _regionImages.keys
+        .where((key) => key.absolutePath == absolutePath)
+        .toList(growable: false);
+    for (final key in keys) {
+      _regionImages.remove(key)?.dispose();
+      _regionLoadingFutures.remove(key);
+    }
+  }
+
+  void _failedPathSucceeded(String absolutePath) {
+    _failedPaths.remove(absolutePath);
   }
 
   Future<ui.Image?> ensureRegionLoaded(
@@ -190,10 +285,10 @@ final class EditorUiImageCache {
     }
     _regionImages.clear();
     _regionLoadingFutures.clear();
-    for (final image in _images.values) {
-      image.dispose();
+    for (final raster in _rasters.values) {
+      raster.image.dispose();
     }
-    _images.clear();
+    _rasters.clear();
     _loadingFutures.clear();
     _failedPaths.clear();
   }

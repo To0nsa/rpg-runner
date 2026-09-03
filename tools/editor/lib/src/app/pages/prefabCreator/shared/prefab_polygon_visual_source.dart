@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../prefabs/collision_fitting/prefab_collision_fitting.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../shared/editor_scene_view_utils.dart';
@@ -130,6 +131,31 @@ final class PrefabPolygonVisualProjection {
 
   final Rect visualBoundsPx;
   final List<PrefabPolygonVisualTile> tiles;
+
+  /// Compares every field that can change projected source pixels or layout.
+  bool hasSameLayoutAs(PrefabPolygonVisualProjection other) {
+    if (visualBoundsPx != other.visualBoundsPx ||
+        tiles.length != other.tiles.length) {
+      return false;
+    }
+    for (var index = 0; index < tiles.length; index += 1) {
+      final left = tiles[index];
+      final right = other.tiles[index];
+      final leftSlice = left.slice;
+      final rightSlice = right.slice;
+      if (left.sourceId != right.sourceId ||
+          left.destinationRectPx != right.destinationRectPx ||
+          leftSlice?.id != rightSlice?.id ||
+          leftSlice?.sourceImagePath != rightSlice?.sourceImagePath ||
+          leftSlice?.x != rightSlice?.x ||
+          leftSlice?.y != rightSlice?.y ||
+          leftSlice?.width != rightSlice?.width ||
+          leftSlice?.height != rightSlice?.height) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 /// Workspace-scoped decoded visual source below the polygon interaction layer.
@@ -139,11 +165,17 @@ class PrefabPolygonVisualSource extends StatefulWidget {
     required this.workspaceRootPath,
     required this.projection,
     required this.transform,
+    this.imageCache,
+    this.fitMask,
+    this.fitMaskOriginPx,
   });
 
   final String workspaceRootPath;
   final PrefabPolygonVisualProjection projection;
   final TerrainPolygonViewportTransform transform;
+  final EditorUiImageCache? imageCache;
+  final PrefabAlphaMask? fitMask;
+  final Offset? fitMaskOriginPx;
 
   @override
   State<PrefabPolygonVisualSource> createState() =>
@@ -152,30 +184,37 @@ class PrefabPolygonVisualSource extends StatefulWidget {
 
 class _PrefabPolygonVisualSourceState extends State<PrefabPolygonVisualSource> {
   late EditorUiImageCache _imageCache;
+  late bool _ownsImageCache;
 
   @override
   void initState() {
     super.initState();
-    _imageCache = EditorUiImageCache();
+    _ownsImageCache = widget.imageCache == null;
+    _imageCache = widget.imageCache ?? EditorUiImageCache();
     _ensureImagesLoaded();
   }
 
   @override
   void didUpdateWidget(covariant PrefabPolygonVisualSource oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
+    if (!identical(oldWidget.imageCache, widget.imageCache)) {
+      if (_ownsImageCache) _imageCache.dispose();
+      _ownsImageCache = widget.imageCache == null;
+      _imageCache = widget.imageCache ?? EditorUiImageCache();
+    } else if (oldWidget.workspaceRootPath != widget.workspaceRootPath &&
+        _ownsImageCache) {
       _imageCache.dispose();
       _imageCache = EditorUiImageCache();
     }
     if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
-        !identical(oldWidget.projection, widget.projection)) {
+        !oldWidget.projection.hasSameLayoutAs(widget.projection)) {
       _ensureImagesLoaded();
     }
   }
 
   @override
   void dispose() {
-    _imageCache.dispose();
+    if (_ownsImageCache) _imageCache.dispose();
     super.dispose();
   }
 
@@ -195,7 +234,9 @@ class _PrefabPolygonVisualSourceState extends State<PrefabPolygonVisualSource> {
         projection: widget.projection,
         transform: widget.transform,
         imagesByPath: imagesByPath,
-        loadedImageCount: _imageCache.loadedImageCount,
+        imageCacheRevision: _imageCache.revision,
+        fitMask: widget.fitMask,
+        fitMaskOriginPx: widget.fitMaskOriginPx,
       ),
     );
   }
@@ -223,13 +264,17 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
     required this.projection,
     required this.transform,
     required this.imagesByPath,
-    required this.loadedImageCount,
+    required this.imageCacheRevision,
+    required this.fitMask,
+    required this.fitMaskOriginPx,
   });
 
   final PrefabPolygonVisualProjection projection;
   final TerrainPolygonViewportTransform transform;
   final Map<String, ui.Image> imagesByPath;
-  final int loadedImageCount;
+  final int imageCacheRevision;
+  final PrefabAlphaMask? fitMask;
+  final Offset? fitMaskOriginPx;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -261,6 +306,7 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
         );
       }
     }
+    _paintFitMask(canvas);
 
     if (!projection.visualBoundsPx.isEmpty) {
       canvas.drawRect(
@@ -272,6 +318,29 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
       );
     }
     _paintAnchor(canvas);
+  }
+
+  void _paintFitMask(Canvas canvas) {
+    final mask = fitMask;
+    final origin = fitMaskOriginPx;
+    if (mask == null || origin == null) return;
+    final fill = Paint()
+      ..color = const Color(0x334FE3C1)
+      ..style = PaintingStyle.fill;
+    final edge = Paint()
+      ..color = const Color(0xAA4FE3C1)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    for (var y = 0; y < mask.height; y += 1) {
+      for (var x = 0; x < mask.width; x += 1) {
+        if (mask.alphaAt(x, y) == 0) continue;
+        final rect = _canvasRect(
+          Rect.fromLTWH(origin.dx + x, origin.dy + y, 1, 1),
+        );
+        canvas.drawRect(rect, fill);
+        canvas.drawRect(rect, edge);
+      }
+    }
   }
 
   void _paintGrid(Canvas canvas, Size size) {
@@ -340,7 +409,9 @@ final class _PrefabPolygonVisualSourcePainter extends CustomPainter {
   bool shouldRepaint(covariant _PrefabPolygonVisualSourcePainter oldDelegate) =>
       !identical(oldDelegate.projection, projection) ||
       oldDelegate.transform != transform ||
-      oldDelegate.loadedImageCount != loadedImageCount;
+      oldDelegate.imageCacheRevision != imageCacheRevision ||
+      !identical(oldDelegate.fitMask, fitMask) ||
+      oldDelegate.fitMaskOriginPx != fitMaskOriginPx;
 }
 
 AtlasSliceDef? _findSlice(Iterable<AtlasSliceDef> slices, String id) {

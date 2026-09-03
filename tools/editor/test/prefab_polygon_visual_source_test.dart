@@ -1,6 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_polygon_visual_source.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_visual_alpha_mask_loader.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
+import 'package:runner_editor/src/prefabs/collision_fitting/prefab_collision_fitting.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -94,6 +100,241 @@ void main() {
       const Rect.fromLTWH(11, 9, 12, 12),
     ]);
   });
+
+  test(
+    'equivalent projections compare by layout instead of object identity',
+    () {
+      PrefabPolygonVisualProjection projection({int x = 0}) =>
+          PrefabPolygonVisualProjection(
+            visualBoundsPx: const Rect.fromLTWH(-2, -3, 4, 5),
+            tiles: <PrefabPolygonVisualTile>[
+              PrefabPolygonVisualTile(
+                sourceId: 'slice',
+                destinationRectPx: const Rect.fromLTWH(-2, -3, 4, 5),
+                slice: AtlasSliceDef(
+                  id: 'slice',
+                  sourceImagePath: 'assets/atlas.png',
+                  x: x,
+                  y: 0,
+                  width: 4,
+                  height: 5,
+                ),
+              ),
+            ],
+          );
+
+      expect(projection().hasSameLayoutAs(projection()), isTrue);
+      expect(projection().hasSameLayoutAs(projection(x: 1)), isFalse);
+    },
+  );
+
+  testWidgets('atlas fitting crops alpha and refreshes digest-bound cache', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('prefab-mask-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final assetDirectory = Directory('${root.path}/assets')..createSync();
+    final file = File('${assetDirectory.path}/atlas.png');
+    file.writeAsBytesSync(
+      _png(<List<int>>[
+        <int>[0, 0, 0],
+        <int>[0, 255, 0],
+      ]),
+    );
+    final projection = PrefabPolygonVisualProjection(
+      visualBoundsPx: const Rect.fromLTWH(-1, -1, 2, 2),
+      tiles: const <PrefabPolygonVisualTile>[
+        PrefabPolygonVisualTile(
+          sourceId: 'slice',
+          destinationRectPx: Rect.fromLTWH(-1, -1, 2, 2),
+          slice: AtlasSliceDef(
+            id: 'slice',
+            sourceImagePath: 'assets/atlas.png',
+            x: 1,
+            y: 0,
+            width: 2,
+            height: 2,
+          ),
+        ),
+      ],
+    );
+    final cache = EditorUiImageCache();
+    final maskCache = PrefabVisualAlphaMaskCache();
+    addTearDown(cache.dispose);
+
+    final first = (await tester.runAsync(
+      () => PrefabVisualAlphaMaskLoader.load(
+        workspaceRootPath: root.path,
+        projection: projection,
+        imageCache: cache,
+        maskCache: maskCache,
+      ),
+    ))!;
+    expect(first.accepted, isTrue);
+    expect(first.mask!.alpha, <int>[0, 0, 255, 0]);
+    final firstRevision = cache.revision;
+    final unchanged = (await tester.runAsync(
+      () => PrefabVisualAlphaMaskLoader.load(
+        workspaceRootPath: root.path,
+        projection: projection,
+        imageCache: cache,
+        maskCache: maskCache,
+      ),
+    ))!;
+    expect(unchanged.sourceIdentity, first.sourceIdentity);
+    expect(identical(unchanged.mask, first.mask), isTrue);
+    expect(maskCache.length, 1);
+    expect(cache.revision, firstRevision);
+
+    file.writeAsBytesSync(
+      _png(<List<int>>[
+        <int>[0, 255, 255],
+        <int>[0, 255, 0],
+      ]),
+    );
+    final second = (await tester.runAsync(
+      () => PrefabVisualAlphaMaskLoader.load(
+        workspaceRootPath: root.path,
+        projection: projection,
+        imageCache: cache,
+        maskCache: maskCache,
+      ),
+    ))!;
+    expect(second.accepted, isTrue);
+    expect(second.sourceIdentity, isNot(first.sourceIdentity));
+    expect(second.mask!.alpha, <int>[255, 255, 255, 0]);
+    expect(maskCache.length, 2);
+  });
+
+  testWidgets('fitting blocks oversized normalized visuals before loading', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('prefab-mask-budget-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final cache = EditorUiImageCache();
+    addTearDown(cache.dispose);
+    final result = (await tester.runAsync(
+      () => PrefabVisualAlphaMaskLoader.load(
+        workspaceRootPath: root.path,
+        projection: PrefabPolygonVisualProjection(
+          visualBoundsPx: Rect.fromLTWH(
+            0,
+            0,
+            PrefabAlphaMask.maximumPixelCount + 1,
+            1,
+          ),
+          tiles: const <PrefabPolygonVisualTile>[],
+        ),
+        imageCache: cache,
+      ),
+    ))!;
+
+    expect(result.accepted, isFalse);
+    expect(result.diagnostics.single, contains('safety limit'));
+  });
+
+  testWidgets('fitting rejects visual sources outside the workspace', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('prefab-mask-boundary-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final cache = EditorUiImageCache();
+    addTearDown(cache.dispose);
+    final result = (await tester.runAsync(
+      () => PrefabVisualAlphaMaskLoader.load(
+        workspaceRootPath: root.path,
+        projection: PrefabPolygonVisualProjection(
+          visualBoundsPx: const Rect.fromLTWH(0, 0, 1, 1),
+          tiles: const <PrefabPolygonVisualTile>[
+            PrefabPolygonVisualTile(
+              sourceId: 'escape',
+              destinationRectPx: Rect.fromLTWH(0, 0, 1, 1),
+              slice: AtlasSliceDef(
+                id: 'escape',
+                sourceImagePath: '../outside.png',
+                x: 0,
+                y: 0,
+                width: 1,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+        imageCache: cache,
+      ),
+    ))!;
+
+    expect(result.accepted, isFalse);
+    expect(result.diagnostics.single, contains('outside the workspace'));
+  });
+
+  testWidgets('module fitting composites overlapping alpha in cell order', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('prefab-mask-module-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final assetDirectory = Directory('${root.path}/assets')..createSync();
+    File('${assetDirectory.path}/atlas.png').writeAsBytesSync(
+      _png(<List<int>>[
+        <int>[128, 128],
+      ]),
+    );
+    final projection = PrefabPolygonVisualProjection(
+      visualBoundsPx: const Rect.fromLTWH(0, 0, 1, 1),
+      tiles: const <PrefabPolygonVisualTile>[
+        PrefabPolygonVisualTile(
+          sourceId: 'a',
+          destinationRectPx: Rect.fromLTWH(0, 0, 1, 1),
+          slice: AtlasSliceDef(
+            id: 'a',
+            sourceImagePath: 'assets/atlas.png',
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+          ),
+        ),
+        PrefabPolygonVisualTile(
+          sourceId: 'b',
+          destinationRectPx: Rect.fromLTWH(0, 0, 1, 1),
+          slice: AtlasSliceDef(
+            id: 'b',
+            sourceImagePath: 'assets/atlas.png',
+            x: 1,
+            y: 0,
+            width: 1,
+            height: 1,
+          ),
+        ),
+      ],
+    );
+    final cache = EditorUiImageCache();
+    addTearDown(cache.dispose);
+    final result = (await tester.runAsync(
+      () => PrefabVisualAlphaMaskLoader.load(
+        workspaceRootPath: root.path,
+        projection: projection,
+        imageCache: cache,
+      ),
+    ))!;
+
+    expect(result.accepted, isTrue);
+    expect(result.mask!.alpha.single, 192);
+  });
+}
+
+List<int> _png(List<List<int>> alphaRows) {
+  final raster = image.Image(
+    width: alphaRows.first.length,
+    height: alphaRows.length,
+    numChannels: 4,
+  );
+  for (var y = 0; y < alphaRows.length; y += 1) {
+    for (var x = 0; x < alphaRows[y].length; x += 1) {
+      raster.setPixelRgba(x, y, 255, 255, 255, alphaRows[y][x]);
+    }
+  }
+  return image.encodePng(raster);
 }
 
 PrefabV3Def _prefab({
