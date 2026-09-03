@@ -2,6 +2,7 @@ import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 
+import '../../chunks/chunk_v2_file_data.dart';
 import '../../domain/authoring_types.dart';
 import '../models/models.dart';
 
@@ -35,6 +36,24 @@ final class PrefabV3DownstreamImpact {
   final int placementCount;
 }
 
+/// Read-only current Chunk source captured for transformed Prefab review.
+@immutable
+final class PrefabV3DownstreamChunk {
+  PrefabV3DownstreamChunk({
+    required this.data,
+    required this.sourcePath,
+    required this.baselineContents,
+    Iterable<String> baselineCollisionErrorIdentities = const <String>[],
+  }) : baselineCollisionErrorIdentities = List<String>.unmodifiable(
+         baselineCollisionErrorIdentities,
+       );
+
+  final ChunkV2FileData data;
+  final String sourcePath;
+  final String baselineContents;
+  final List<String> baselineCollisionErrorIdentities;
+}
+
 /// The normal loader selects this only for strict v3 source; legacy or missing
 /// source becomes a migration-required document with no editable prefab data.
 /// Export can update already-current source but cannot migrate legacy files.
@@ -52,6 +71,8 @@ class PrefabV3Document extends AuthoringDocument {
     Iterable<String> changedPrefabKeys = const <String>[],
     Iterable<PrefabV3DownstreamImpact> downstreamImpacts =
         const <PrefabV3DownstreamImpact>[],
+    Iterable<PrefabV3DownstreamChunk> downstreamChunks =
+        const <PrefabV3DownstreamChunk>[],
   }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
        ),
@@ -63,6 +84,11 @@ class PrefabV3Document extends AuthoringDocument {
        downstreamImpacts = List<PrefabV3DownstreamImpact>.unmodifiable(
          List<PrefabV3DownstreamImpact>.of(downstreamImpacts)
            ..sort((left, right) => left.prefabKey.compareTo(right.prefabKey)),
+       ),
+       downstreamChunks = List<PrefabV3DownstreamChunk>.unmodifiable(
+         List<PrefabV3DownstreamChunk>.of(downstreamChunks)..sort(
+           (left, right) => left.data.chunkKey.compareTo(right.data.chunkKey),
+         ),
        );
 
   final PrefabV3FileData data;
@@ -74,6 +100,7 @@ class PrefabV3Document extends AuthoringDocument {
   final String? tileBaselineContents;
   final List<String> changedPrefabKeys;
   final List<PrefabV3DownstreamImpact> downstreamImpacts;
+  final List<PrefabV3DownstreamChunk> downstreamChunks;
 
   PrefabV3Document copyWith({
     PrefabV3FileData? data,
@@ -87,6 +114,7 @@ class PrefabV3Document extends AuthoringDocument {
     bool keepTileBaselineContents = true,
     Iterable<String>? changedPrefabKeys,
     Iterable<PrefabV3DownstreamImpact>? downstreamImpacts,
+    Iterable<PrefabV3DownstreamChunk>? downstreamChunks,
   }) => PrefabV3Document(
     data: data ?? this.data,
     tileData: tileData ?? this.tileData,
@@ -102,6 +130,7 @@ class PrefabV3Document extends AuthoringDocument {
         : null,
     changedPrefabKeys: changedPrefabKeys ?? this.changedPrefabKeys,
     downstreamImpacts: downstreamImpacts ?? this.downstreamImpacts,
+    downstreamChunks: downstreamChunks ?? this.downstreamChunks,
   );
 }
 

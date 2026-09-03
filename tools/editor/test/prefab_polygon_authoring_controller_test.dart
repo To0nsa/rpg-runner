@@ -6,8 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_polygon_authoring_controller.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_polygon_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter.dart';
+import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/prefabs/collision_fitting/prefab_collision_fitting.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -182,7 +186,7 @@ void main() {
   });
 
   test(
-    'creation metadata stays local and rectangle identity saves atomically',
+    'creation metadata stays local with kind-derived collision semantics',
     () async {
       final harness = await _buildHarness();
       final controller = harness.authoring;
@@ -196,7 +200,7 @@ void main() {
       expect(controller.state.draft!.shapeId, 'collision_002');
       expect(
         controller.state.draft!.collisionMode,
-        TerrainSourceCollisionMode.oneWay,
+        TerrainSourceCollisionMode.solid,
       );
       expect(controller.state.draft!.surfaceKind, 'obstacle');
       expect(controller.state.draft!.materialKey, 'stone');
@@ -593,6 +597,428 @@ void main() {
     expect(harness.session.canUndo, isFalse);
     expect(controller.prefab.revision, 4);
   });
+
+  test(
+    'fit refit remains local and equivalent save is a history no-op',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+      controller.select(TerrainPolygonSelection.shape('collision_001'));
+      final mask = _alphaMask(<String>[
+        '..........',
+        '.########.',
+        '.########.',
+        '.########.',
+        '.########.',
+        '.########.',
+        '.########.',
+        '.########.',
+        '.########.',
+        '..........',
+      ]);
+      final result = PrefabCollisionFitter.generate(
+        mask: mask,
+        method: PrefabCollisionCreationMethod.fitVisibleBounds,
+      );
+
+      final token = controller.startFitGeneration(
+        method: PrefabCollisionCreationMethod.fitVisibleBounds,
+        settings: const PrefabCollisionFitSettings(),
+        refitShapeId: 'collision_001',
+      );
+      expect(token, isNonZero);
+      expect(controller.prefab.revision, 4);
+      expect(harness.session.canUndo, isFalse);
+      expect(
+        controller.completeFitGeneration(
+          token: token,
+          sourceMask: mask,
+          sourceIdentity: 'source-a',
+          result: result,
+          visualOriginXPx: -5,
+          visualOriginYPx: -5,
+        ),
+        isTrue,
+      );
+      expect(controller.hasFitDraft, isTrue);
+      expect(controller.canSaveFitDraft, isTrue);
+      expect(controller.prefab.revision, 4);
+
+      expect(
+        controller.saveFitDraft(currentSourceIdentity: 'source-a'),
+        isTrue,
+      );
+      expect(controller.hasFitDraft, isFalse);
+      expect(controller.prefab.revision, 4);
+      expect(harness.session.canUndo, isFalse);
+    },
+  );
+
+  test(
+    'platform fit saves disconnected one-way candidates atomically',
+    () async {
+      final harness = await _buildHarness(
+        kind: PrefabKind.platform,
+        collisionShapes: const <TerrainSourceShapeDef>[],
+      );
+      final controller = harness.authoring;
+      final mask = _alphaMask(<String>[
+        '##..##....',
+        '##..##....',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+      ]);
+      final result = PrefabCollisionFitter.generate(
+        mask: mask,
+        method: PrefabCollisionCreationMethod.detectPlatformSurface,
+      );
+      final token = controller.startFitGeneration(
+        method: PrefabCollisionCreationMethod.detectPlatformSurface,
+        settings: const PrefabCollisionFitSettings(),
+      );
+
+      expect(
+        controller.completeFitGeneration(
+          token: token,
+          sourceMask: mask,
+          sourceIdentity: 'source-platform',
+          result: result,
+          visualOriginXPx: -5,
+          visualOriginYPx: -5,
+        ),
+        isTrue,
+      );
+      expect(controller.fitCandidateShapeIds, hasLength(2));
+      expect(controller.prefab.collisionShapes, isEmpty);
+      expect(harness.session.canUndo, isFalse);
+      expect(
+        controller.saveFitDraft(currentSourceIdentity: 'source-platform'),
+        isTrue,
+        reason: controller.issues
+            .map((issue) => '${issue.code}: ${issue.message}')
+            .join('\n'),
+      );
+      expect(controller.prefab.revision, 5);
+      expect(controller.prefab.collisionShapes, hasLength(2));
+      expect(
+        controller.prefab.collisionShapes.map((shape) => shape.collisionMode),
+        everyElement(TerrainSourceCollisionMode.oneWay),
+      );
+      expect(harness.session.canUndo, isTrue);
+      expect(controller.undo(), isTrue);
+      expect(controller.prefab.collisionShapes, isEmpty);
+    },
+  );
+
+  test('interlocking platform closures remain blocked for review', () async {
+    final harness = await _buildHarness(
+      kind: PrefabKind.platform,
+      collisionShapes: const <TerrainSourceShapeDef>[],
+    );
+    final controller = harness.authoring;
+    final mask = _alphaMask(<String>[
+      '#####.....',
+      '#...#.....',
+      '#.#.#.....',
+      '#...#.....',
+      '#####.....',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+    ]);
+    final result = PrefabCollisionFitter.generate(
+      mask: mask,
+      method: PrefabCollisionCreationMethod.detectPlatformSurface,
+    );
+    final token = controller.startFitGeneration(
+      method: PrefabCollisionCreationMethod.detectPlatformSurface,
+      settings: const PrefabCollisionFitSettings(),
+    );
+
+    expect(result.shapes, hasLength(2));
+    expect(
+      controller.completeFitGeneration(
+        token: token,
+        sourceMask: mask,
+        sourceIdentity: 'interlocking-platform',
+        result: result,
+        visualOriginXPx: -5,
+        visualOriginYPx: -5,
+      ),
+      isFalse,
+    );
+    expect(controller.hasFitDraft, isTrue);
+    expect(controller.canSaveFitDraft, isFalse);
+    expect(controller.fitMessages.join(' '), contains('overlap'));
+    expect(controller.prefab.collisionShapes, isEmpty);
+  });
+
+  test('fit cancel and stale source preserve the owner snapshot', () async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+    final mask = _alphaMask(List<String>.filled(10, '##########'));
+    final result = PrefabCollisionFitter.generate(
+      mask: mask,
+      method: PrefabCollisionCreationMethod.fitVisibleBounds,
+    );
+    final token = controller.startFitGeneration(
+      method: PrefabCollisionCreationMethod.fitVisibleBounds,
+      settings: const PrefabCollisionFitSettings(),
+      refitShapeId: 'collision_001',
+    );
+    controller.completeFitGeneration(
+      token: token,
+      sourceMask: mask,
+      sourceIdentity: 'before',
+      result: result,
+      visualOriginXPx: -5,
+      visualOriginYPx: -5,
+    );
+
+    expect(controller.saveFitDraft(currentSourceIdentity: 'after'), isFalse);
+    expect(controller.hasFitDraft, isTrue);
+    expect(controller.prefab.revision, 4);
+    expect(controller.cancelFitDraft(), isTrue);
+    expect(controller.prefab.collisionShapes, <TerrainSourceShapeDef>[
+      _rectangle(),
+    ]);
+    expect(harness.session.canUndo, isFalse);
+  });
+
+  test(
+    'a stale async fit completion cannot replace a newer generation',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+      final mask = _alphaMask(List<String>.filled(10, '##########'));
+      final result = PrefabCollisionFitter.generate(
+        mask: mask,
+        method: PrefabCollisionCreationMethod.fitVisibleBounds,
+      );
+      final staleToken = controller.startFitGeneration(
+        method: PrefabCollisionCreationMethod.fitVisibleBounds,
+        settings: const PrefabCollisionFitSettings(),
+      );
+      final currentToken = controller.startFitGeneration(
+        method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(),
+      );
+
+      expect(
+        controller.completeFitGeneration(
+          token: staleToken,
+          sourceMask: mask,
+          sourceIdentity: 'stale',
+          result: result,
+          visualOriginXPx: -5,
+          visualOriginYPx: -5,
+        ),
+        isFalse,
+      );
+      expect(controller.isFitLoading, isTrue);
+      expect(
+        controller.fitMethod,
+        PrefabCollisionCreationMethod.traceVisibleOutline,
+      );
+      expect(
+        controller.completeFitGeneration(
+          token: currentToken,
+          sourceMask: mask,
+          sourceIdentity: 'current',
+          result: result,
+          visualOriginXPx: -5,
+          visualOriginYPx: -5,
+        ),
+        isFalse,
+        reason: 'the current generation rejects a result from another method',
+      );
+      expect(controller.fitMessages.join(' '), contains('does not match'));
+      expect(controller.prefab.revision, 4);
+    },
+  );
+
+  test('fit review disables Save for a transformed Chunk collision', () async {
+    final chunk = ChunkV2FileData(
+      chunkKey: 'forest_test',
+      id: 'forest_test',
+      revision: 1,
+      status: chunkStatusActive,
+      levelId: 'forest',
+      tileSize: 16,
+      width: 100,
+      height: 100,
+      difficulty: chunkDifficultyNormal,
+      assemblyGroupId: defaultChunkAssemblyGroupId,
+      tags: const <String>[],
+      tileLayers: const <TileLayerDef>[],
+      prefabs: const <PlacedPrefabDef>[
+        PlacedPrefabDef(prefabId: 'target', prefabKey: 'target', x: 10, y: 10),
+      ],
+      markers: const <PlacedMarkerDef>[],
+      groundBandZIndex: 0,
+      collisionShapes: <TerrainSourceShapeDef>[
+        _box('ground', left: 28, top: 12, right: 40, bottom: 28),
+      ],
+    );
+    final harness = await _buildHarness(
+      downstreamChunks: <PrefabV3DownstreamChunk>[
+        PrefabV3DownstreamChunk(
+          data: chunk,
+          sourcePath: 'assets/authoring/level/chunks/forest_test.json',
+          baselineContents: ChunkV2FileCodec.encode(chunk),
+        ),
+      ],
+    );
+    final controller = harness.authoring;
+    final mask = _alphaMask(List<String>.filled(10, '##########'));
+    final result = PrefabCollisionFitter.generate(
+      mask: mask,
+      method: PrefabCollisionCreationMethod.fitVisibleBounds,
+    );
+    final token = controller.startFitGeneration(
+      method: PrefabCollisionCreationMethod.fitVisibleBounds,
+      settings: const PrefabCollisionFitSettings(),
+      refitShapeId: 'collision_001',
+    );
+
+    expect(
+      controller.completeFitGeneration(
+        token: token,
+        sourceMask: mask,
+        sourceIdentity: 'downstream-overlap',
+        result: result,
+        visualOriginXPx: -5,
+        visualOriginYPx: -5,
+      ),
+      isFalse,
+    );
+    expect(controller.canSaveFitDraft, isFalse);
+    expect(controller.fitMessages.join(' '), contains('overlap'));
+    expect(controller.prefab.revision, 4);
+    expect(harness.session.canUndo, isFalse);
+  });
+
+  test(
+    'refit scopes components, preserves metadata, and allocates IDs atomically',
+    () async {
+      final selected = _box(
+        'collision_001',
+        left: -4,
+        top: -4,
+        right: 4,
+        bottom: 4,
+        surfaceKind: 'stone',
+        materialKey: 'granite',
+      );
+      final unrelated = _box(
+        'collision_002',
+        left: -10,
+        top: 6,
+        right: -8,
+        bottom: 8,
+      );
+      final harness = await _buildHarness(
+        collisionShapes: <TerrainSourceShapeDef>[selected, unrelated],
+      );
+      final controller = harness.authoring;
+      controller.select(TerrainPolygonSelection.shape(selected.shapeId));
+      final mask = _alphaMask(<String>[
+        '........##',
+        '........##',
+        '..........',
+        '...####...',
+        '...####...',
+        '...####...',
+        '...####...',
+        '..........',
+        '..........',
+        '..........',
+      ]);
+      final result = PrefabCollisionFitter.generate(
+        mask: mask,
+        method: PrefabCollisionCreationMethod.traceVisibleOutline,
+      );
+      final token = controller.startFitGeneration(
+        method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(),
+        refitShapeId: selected.shapeId,
+      );
+
+      expect(
+        controller.completeFitGeneration(
+          token: token,
+          sourceMask: mask,
+          sourceIdentity: 'source-refit',
+          result: result,
+          visualOriginXPx: -5,
+          visualOriginYPx: -5,
+        ),
+        isTrue,
+      );
+      final candidateIds = controller.fitCandidateShapeIds;
+      expect(candidateIds, <String>['collision_001', 'collision_003']);
+      expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
+      expect(controller.isFitCandidateIncluded(candidateIds.last), isTrue);
+      expect(controller.fitEvidence!.coveredVisiblePixels, 16);
+
+      controller.select(TerrainPolygonSelection.shape(candidateIds.last));
+      expect(
+        controller.editSelectedAxisAlignedRectangle(
+          xHalfPixels: -4,
+          yHalfPixels: -4,
+          widthHalfPixels: 10,
+          heightHalfPixels: 8,
+          shapeId: candidateIds.last,
+        ),
+        isTrue,
+      );
+      expect(controller.fitEvidence!.coveredTransparentPixels, 4);
+      expect(controller.undo(), isTrue);
+      expect(controller.fitEvidence!.coveredTransparentPixels, 0);
+
+      controller.setFitCandidateIncluded(candidateIds.first, true);
+      expect(controller.fitEvidence!.coveredVisiblePixels, 20);
+      expect(controller.canUndo, isTrue);
+      expect(controller.undo(), isTrue);
+      expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
+      expect(controller.redo(), isTrue);
+      expect(controller.isFitCandidateIncluded(candidateIds.first), isTrue);
+
+      expect(
+        controller.saveFitDraft(currentSourceIdentity: 'source-refit'),
+        isTrue,
+        reason: controller.fitMessages.join('\n'),
+      );
+      final saved = controller.prefab.collisionShapes;
+      expect(controller.prefab.revision, 5);
+      expect(saved, hasLength(3));
+      expect(
+        saved.singleWhere((shape) => shape.shapeId == 'collision_002'),
+        unrelated,
+      );
+      for (final id in <String>['collision_001', 'collision_003']) {
+        final shape = saved.singleWhere((candidate) => candidate.shapeId == id);
+        expect(shape.surfaceKind, 'stone');
+        expect(shape.materialKey, 'granite');
+        expect(shape.collisionMode, TerrainSourceCollisionMode.solid);
+      }
+      expect(controller.undo(), isTrue);
+      expect(controller.prefab.collisionShapes, <TerrainSourceShapeDef>[
+        selected,
+        unrelated,
+      ]);
+      expect(controller.redo(), isTrue);
+      expect(controller.prefab.collisionShapes, saved);
+    },
+  );
 }
 
 Widget _surfaceApp({
@@ -657,7 +1083,13 @@ Future<void> _pressCtrlShiftShortcut(
   await tester.pump();
 }
 
-Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
+Future<_Harness> _buildHarness({
+  TerrainSourceShapeDef? shape,
+  Iterable<TerrainSourceShapeDef>? collisionShapes,
+  PrefabKind kind = PrefabKind.obstacle,
+  Iterable<PrefabV3DownstreamChunk> downstreamChunks =
+      const <PrefabV3DownstreamChunk>[],
+}) async {
   final root = Directory.systemTemp.createTempSync('prefab_polygon_route_');
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[
@@ -676,18 +1108,42 @@ Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
         id: 'target',
         revision: 4,
         status: PrefabStatus.active,
-        kind: PrefabKind.obstacle,
-        visualSource: const PrefabVisualSource.atlasSlice('slice_a'),
+        kind: kind,
+        visualSource: kind == PrefabKind.platform
+            ? const PrefabVisualSource.platformModule('module_a')
+            : const PrefabVisualSource.atlasSlice('slice_a'),
         anchorXPx: 5,
         anchorYPx: 5,
-        collisionShapes: <TerrainSourceShapeDef>[shape ?? _rectangle()],
+        collisionShapes:
+            collisionShapes ?? <TerrainSourceShapeDef>[shape ?? _rectangle()],
         tags: const <String>['test'],
       ),
     ],
   );
   final tileData = PrefabTileFileData(
-    tileSlices: const <AtlasSliceDef>[],
-    platformModules: const <TileModuleDef>[],
+    tileSlices: kind == PrefabKind.platform
+        ? const <AtlasSliceDef>[
+            AtlasSliceDef(
+              id: 'tile_a',
+              sourceImagePath: 'assets/images/level/test.png',
+              x: 0,
+              y: 0,
+              width: 10,
+              height: 10,
+            ),
+          ]
+        : const <AtlasSliceDef>[],
+    platformModules: kind == PrefabKind.platform
+        ? const <TileModuleDef>[
+            TileModuleDef(
+              id: 'module_a',
+              tileSize: 10,
+              cells: <TileModuleCellDef>[
+                TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+              ],
+            ),
+          ]
+        : const <TileModuleDef>[],
   );
   final document = PrefabV3Document(
     data: data,
@@ -701,6 +1157,7 @@ Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
     },
     prefabBaselineContents: PrefabV3FileCodec.encode(data),
     tileBaselineContents: PrefabTileFileCodec.encode(tileData),
+    downstreamChunks: downstreamChunks,
   );
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
@@ -722,6 +1179,15 @@ Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
   return _Harness(session: session, authoring: authoring);
 }
 
+PrefabAlphaMask _alphaMask(List<String> rows) => PrefabAlphaMask(
+  width: rows.first.length,
+  height: rows.length,
+  alpha: Uint8List.fromList(<int>[
+    for (final row in rows)
+      for (final value in row.codeUnits) value == 35 ? 255 : 0,
+  ]),
+);
+
 TerrainSourceShapeDef _rectangle() => TerrainSourceShapeDef(
   shapeId: 'collision_001',
   vertices: const <TerrainSourceVertexDef>[
@@ -729,6 +1195,26 @@ TerrainSourceShapeDef _rectangle() => TerrainSourceShapeDef(
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),
+  ],
+);
+
+TerrainSourceShapeDef _box(
+  String shapeId, {
+  required int left,
+  required int top,
+  required int right,
+  required int bottom,
+  String? surfaceKind,
+  String? materialKey,
+}) => TerrainSourceShapeDef(
+  shapeId: shapeId,
+  surfaceKind: surfaceKind,
+  materialKey: materialKey,
+  vertices: <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: top),
+    TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: top),
+    TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: bottom),
+    TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: bottom),
   ],
 );
 

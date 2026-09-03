@@ -31,6 +31,31 @@ void main() {
     );
   });
 
+  test('requires kind-derived collision modes', () {
+    final obstacleIssues = _validate(<TerrainSourceShapeDef>[
+      _rectangle(
+        'collision_001',
+        left: -8,
+        top: -8,
+        right: 8,
+        bottom: 8,
+        collisionMode: TerrainSourceCollisionMode.oneWay,
+      ),
+    ]);
+    final platformIssues = _validate(<TerrainSourceShapeDef>[
+      _rectangle('collision_001', left: -8, top: -8, right: 8, bottom: 8),
+    ], kind: PrefabKind.platform);
+
+    expect(
+      obstacleIssues.map((issue) => issue.code),
+      contains('prefab_collision_mode_kind_mismatch'),
+    );
+    expect(
+      platformIssues.map((issue) => issue.code),
+      contains('prefab_collision_mode_kind_mismatch'),
+    );
+  });
+
   test('delegates canonical policy and occupied overlap to Core', () {
     final noncanonical = TerrainSourceShapeDef(
       shapeId: 'collision_001',
@@ -259,8 +284,10 @@ TerrainSourceShapeDef _rectangle(
   required int top,
   required int right,
   required int bottom,
+  TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
 }) => TerrainSourceShapeDef(
   shapeId: shapeId,
+  collisionMode: collisionMode,
   vertices: <TerrainSourceVertexDef>[
     TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: top),
     TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: top),

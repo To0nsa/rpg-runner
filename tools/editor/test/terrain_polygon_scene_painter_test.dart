@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_scene_projection.dart';
+import 'package:runner_editor/src/terrain_authoring/terrain_source_core_adapter.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
@@ -124,6 +126,51 @@ void main() {
         ).shouldRepaint(painter),
         isTrue,
       );
+      expect(
+        TerrainPolygonScenePainter(
+          projection: painter.projection,
+          transform: transform,
+          showActiveOneWayEdges: true,
+        ).shouldRepaint(painter),
+        isTrue,
+      );
+    });
+
+    test('one-way preview edge classification matches Core exposure', () {
+      final shape = TerrainSourceShapeDef(
+        shapeId: 'platform_surface',
+        collisionMode: TerrainSourceCollisionMode.oneWay,
+        vertices: const <TerrainSourceVertexDef>[
+          TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 4),
+          TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 4),
+          TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 0),
+          TerrainSourceVertexDef(xHalfPixels: 16, yHalfPixels: 0),
+          TerrainSourceVertexDef(xHalfPixels: 16, yHalfPixels: 12),
+          TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 12),
+        ],
+      );
+      final previewIndices = <int>{
+        for (var index = 0; index < shape.vertices.length; index += 1)
+          if (terrainSourceEdgeIsActiveOneWay(
+            shape.vertices[index],
+            shape.vertices[(index + 1) % shape.vertices.length],
+          ))
+            index,
+      };
+      final geometry = const TerrainCompiler().compile([
+        TerrainSourceCoreAdapter.toPolygonInput(
+          shape: shape,
+          sourcePath: 'test/platform.json',
+          chunkIndex: 0,
+          chunkKey: 'test',
+        ),
+      ], geometryVersion: 1);
+
+      expect(
+        geometry.edges.map((edge) => edge.id.localEdgeIndex).toSet(),
+        previewIndices,
+      );
+      expect(previewIndices, <int>{0, 2});
     });
 
     testWidgets('renders solids, one-way shapes, previews, and open drafts', (

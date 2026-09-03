@@ -4,6 +4,7 @@ import 'dart:ui' show Size;
 import 'package:path/path.dart' as p;
 
 import '../../chunks/chunk_store.dart';
+import '../../chunks/chunk_v2_collision_expansion.dart';
 import '../../domain/authoring_types.dart';
 import '../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../../terrain_authoring/terrain_polygon_interaction.dart';
@@ -19,6 +20,50 @@ import 'prefab_v3_lifecycle_commit.dart';
 import 'prefab_v3_metadata_commit.dart';
 import '../store/prefab_store.dart';
 import '../validation/prefab_validation.dart';
+
+/// Returns only collision errors introduced into captured current Chunk source
+/// by [candidateData]. Existing baseline errors are consumed as a multiset so
+/// an unchanged invalid Chunk is not misattributed to the Prefab edit.
+List<ValidationIssue> introducedPrefabV3DownstreamCollisionErrors({
+  required PrefabV3Document original,
+  required PrefabV3FileData candidateData,
+}) {
+  final introduced = <ValidationIssue>[];
+  for (var index = 0; index < original.downstreamChunks.length; index += 1) {
+    final source = original.downstreamChunks[index];
+    final before = expandChunkV2Collision(
+      chunk: source.data,
+      prefabs: original.data.prefabs,
+      sourcePath: source.sourcePath,
+      chunkIndex: index,
+    );
+    final after = expandChunkV2Collision(
+      chunk: source.data,
+      prefabs: candidateData.prefabs,
+      sourcePath: source.sourcePath,
+      chunkIndex: index,
+    );
+    final existingErrors = <String, int>{};
+    for (final issue in before.issues.where(
+      (issue) => issue.severity == ValidationSeverity.error,
+    )) {
+      final identity = _downstreamIssueIdentity(issue);
+      existingErrors.update(identity, (count) => count + 1, ifAbsent: () => 1);
+    }
+    for (final issue in after.issues.where(
+      (issue) => issue.severity == ValidationSeverity.error,
+    )) {
+      final identity = _downstreamIssueIdentity(issue);
+      final priorCount = existingErrors[identity] ?? 0;
+      if (priorCount == 0) {
+        introduced.add(issue);
+      } else {
+        existingErrors[identity] = priorCount - 1;
+      }
+    }
+  }
+  return List<ValidationIssue>.unmodifiable(introduced);
+}
 
 /// Prefab-domain `AuthoringDomainPlugin` implementation.
 ///
@@ -91,7 +136,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   Future<PrefabV3Document> loadV3FromRepo(EditorWorkspace workspace) async {
     final loadResult = await _store.loadV3(workspace.rootPath);
     final metadata = await _loadWorkspaceMetadata(workspace);
-    final downstreamImpacts = await _loadV3DownstreamImpacts(
+    final downstream = await _loadV3DownstreamMetadata(
       workspace,
       loadResult.prefabData,
     );
@@ -106,11 +151,12 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       atlasImageSizes: metadata.atlasImageSizes,
       prefabBaselineContents: metadata.prefabBaselineContents,
       tileBaselineContents: metadata.tileBaselineContents,
-      downstreamImpacts: downstreamImpacts,
+      downstreamImpacts: downstream.impacts,
+      downstreamChunks: downstream.chunks,
     );
   }
 
-  Future<List<PrefabV3DownstreamImpact>> _loadV3DownstreamImpacts(
+  Future<_PrefabDownstreamMetadata> _loadV3DownstreamMetadata(
     EditorWorkspace workspace,
     PrefabV3FileData prefabData,
   ) async {
@@ -123,8 +169,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     final chunkDirectory = Directory(
       workspace.resolve(ChunkStore.chunksDirectoryPath),
     );
+    var chunkSources = const <ChunkV2Source>[];
     if (chunkDirectory.existsSync()) {
       final chunks = await const ChunkStore().loadV2(workspace);
+      chunkSources = chunks.sources;
       final prefabKeyById = <String, String>{
         for (final prefab in prefabData.prefabs) prefab.id: prefab.prefabKey,
       };
@@ -143,14 +191,35 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         }
       }
     }
-    return <PrefabV3DownstreamImpact>[
-      for (final prefab in prefabData.prefabs)
-        PrefabV3DownstreamImpact(
-          prefabKey: prefab.prefabKey,
-          referencingChunkKeys: placementChunksByPrefabKey[prefab.prefabKey]!,
-          placementCount: placementCountByPrefabKey[prefab.prefabKey]!,
-        ),
-    ];
+    return _PrefabDownstreamMetadata(
+      impacts: <PrefabV3DownstreamImpact>[
+        for (final prefab in prefabData.prefabs)
+          PrefabV3DownstreamImpact(
+            prefabKey: prefab.prefabKey,
+            referencingChunkKeys: placementChunksByPrefabKey[prefab.prefabKey]!,
+            placementCount: placementCountByPrefabKey[prefab.prefabKey]!,
+          ),
+      ],
+      chunks: <PrefabV3DownstreamChunk>[
+        for (final entry in chunkSources.indexed)
+          PrefabV3DownstreamChunk(
+            data: entry.$2.data,
+            sourcePath: entry.$2.sourcePath,
+            baselineContents: entry.$2.baselineContents,
+            baselineCollisionErrorIdentities:
+                expandChunkV2Collision(
+                      chunk: entry.$2.data,
+                      prefabs: prefabData.prefabs,
+                      sourcePath: entry.$2.sourcePath,
+                      chunkIndex: entry.$1,
+                    ).issues
+                    .where(
+                      (issue) => issue.severity == ValidationSeverity.error,
+                    )
+                    .map(_downstreamIssueIdentity),
+          ),
+      ],
+    );
   }
 
   Future<_PrefabWorkspaceMetadata> _loadWorkspaceMetadata(
@@ -257,9 +326,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       );
     }
     if (document is! PrefabV3Document) throw _unexpectedDocument(document);
-    final blockingIssues = _validateV3Document(
-      document,
-    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    await _ensureDownstreamSourcesCurrent(workspace, document);
+    final blockingIssues = _validateV3Document(document)
+        .where((issue) => issue.severity == ValidationSeverity.error)
+        .toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
         'Cannot export prefab-v3 while validation has '
@@ -273,8 +343,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         artifacts: <ExportArtifact>[
           const ExportArtifact(
             title: 'prefab_summary.md',
-            content:
-                '# Prefab Export\n\nchangedFiles: 0\n\nNo prefab-v3 edits detected.',
+            content: '# Prefab Export\n\nchangedFiles: 0\n\nNo prefab-v3 edits detected.',
           ),
         ],
       );
@@ -432,10 +501,15 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     PrefabV3Document original,
     PrefabV3Document candidate,
   ) {
-    final hasBlockingIssue = _validateV3Document(
-      candidate,
-    ).any((issue) => issue.severity == ValidationSeverity.error);
+    final hasBlockingIssue = _validateV3Document(candidate)
+        .any((issue) => issue.severity == ValidationSeverity.error);
     if (hasBlockingIssue) return original;
+    if (introducedPrefabV3DownstreamCollisionErrors(
+      original: original,
+      candidateData: candidate.data,
+    ).isNotEmpty) {
+      return original;
+    }
     try {
       _store.buildV3SavePlan(
         prefabData: candidate.data,
@@ -449,10 +523,63 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return candidate;
   }
 
+  Future<void> _ensureDownstreamSourcesCurrent(
+    EditorWorkspace workspace,
+    PrefabV3Document document,
+  ) async {
+    final affectedChunkKeys = document.downstreamImpacts
+        .where(
+          (impact) => document.changedPrefabKeys.contains(impact.prefabKey),
+        )
+        .expand((impact) => impact.referencingChunkKeys)
+        .toSet();
+    for (final entry in document.downstreamChunks.indexed.where(
+      (entry) => affectedChunkKeys.contains(entry.$2.data.chunkKey),
+    )) {
+      final source = entry.$2;
+      final file = File(workspace.resolve(source.sourcePath));
+      if (!await file.exists() ||
+          await file.readAsString() != source.baselineContents) {
+        throw StateError(
+          'Chunk ${source.data.chunkKey} changed after Prefab review. Reload '
+          'before applying collision changes.',
+        );
+      }
+      final result = expandChunkV2Collision(
+        chunk: source.data,
+        prefabs: document.data.prefabs,
+        sourcePath: source.sourcePath,
+        chunkIndex: entry.$1,
+      );
+      final baselineErrors = <String, int>{};
+      for (final identity in source.baselineCollisionErrorIdentities) {
+        baselineErrors.update(
+          identity,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
+      }
+      for (final issue in result.issues.where(
+        (issue) => issue.severity == ValidationSeverity.error,
+      )) {
+        final identity = _downstreamIssueIdentity(issue);
+        final priorCount = baselineErrors[identity] ?? 0;
+        if (priorCount > 0) {
+          baselineErrors[identity] = priorCount - 1;
+          continue;
+        }
+        throw StateError(
+          'Prefab collision changes invalidate Chunk ${source.data.id}: '
+          '${issue.message}',
+        );
+      }
+    }
+  }
+
   List<ValidationIssue> _validateV3Document(PrefabV3Document document) {
-    final issues = validatePrefabV3CatalogDocument(
-      document,
-    ).map(_toValidationIssue).toList(growable: false);
+    final issues = validatePrefabV3CatalogDocument(document)
+        .map(_toValidationIssue)
+        .toList(growable: false);
     issues.sort((left, right) {
       final pathOrder = (left.sourcePath ?? '').compareTo(
         right.sourcePath ?? '',
@@ -576,6 +703,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       };
 }
 
+String _downstreamIssueIdentity(ValidationIssue issue) =>
+    '${issue.code}|${issue.sourcePath}|${issue.ownerKey}|'
+    '${issue.placementKey}|${issue.shapeId}|${issue.elementIndex}';
+
 class _PrefabFileWrite {
   const _PrefabFileWrite({
     required this.relativePath,
@@ -601,4 +732,15 @@ class _PrefabWorkspaceMetadata {
   final Map<String, Size> atlasImageSizes;
   final String? prefabBaselineContents;
   final String? tileBaselineContents;
+}
+
+class _PrefabDownstreamMetadata {
+  _PrefabDownstreamMetadata({
+    required Iterable<PrefabV3DownstreamImpact> impacts,
+    required Iterable<PrefabV3DownstreamChunk> chunks,
+  }) : impacts = List<PrefabV3DownstreamImpact>.unmodifiable(impacts),
+       chunks = List<PrefabV3DownstreamChunk>.unmodifiable(chunks);
+
+  final List<PrefabV3DownstreamImpact> impacts;
+  final List<PrefabV3DownstreamChunk> chunks;
 }

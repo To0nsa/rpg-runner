@@ -83,6 +83,7 @@ class _PrefabPolygonSceneSurfaceState extends State<PrefabPolygonSceneSurface> {
                     painter: TerrainPolygonScenePainter(
                       projection: widget.controller.sceneProjection,
                       transform: widget.transform,
+                      showActiveOneWayEdges: true,
                     ),
                   ),
                 ),

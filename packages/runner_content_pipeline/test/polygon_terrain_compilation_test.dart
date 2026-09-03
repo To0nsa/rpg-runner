@@ -608,6 +608,53 @@ void main() {
     );
   });
 
+  test('strict prefab parser enforces kind-derived collision modes', () {
+    final prefab = _json('prefab_defs.json');
+
+    void expectModeFailure({required String kind, required String mode}) {
+      expect(
+        () => decodePolygonTerrainPrefabs(
+          _mutated(prefab, (root) {
+            final owner =
+                (root['prefabs']! as List<Object?>).single!
+                    as Map<String, Object?>;
+            owner['kind'] = kind;
+            final shape =
+                (owner['collisionShapes']! as List<Object?>).single!
+                    as Map<String, Object?>;
+            shape['collisionMode'] = mode;
+          }),
+          sourcePath: 'prefab_defs.json',
+        ),
+        throwsA(
+          _formatMessage(
+            contains(
+              '.collisionShapes[0].collisionMode must be '
+              '${kind == 'platform' ? 'oneWay' : 'solid'} when kind is $kind.',
+            ),
+          ),
+        ),
+      );
+    }
+
+    expectModeFailure(kind: 'obstacle', mode: 'oneWay');
+    expectModeFailure(kind: 'platform', mode: 'solid');
+    expect(
+      () => decodePolygonTerrainPrefabs(
+        _mutated(prefab, (root) {
+          final owner =
+              (root['prefabs']! as List<Object?>).single!
+                  as Map<String, Object?>;
+          owner['kind'] = 'decoration';
+        }),
+        sourcePath: 'prefab_defs.json',
+      ),
+      throwsA(
+        _formatMessage(contains('must be empty when kind is decoration')),
+      ),
+    );
+  });
+
   test('strict chunk parser rejects the structural diagnostic matrix', () {
     void expectChunkFailure(
       void Function(Map<String, Object?> root) mutate,

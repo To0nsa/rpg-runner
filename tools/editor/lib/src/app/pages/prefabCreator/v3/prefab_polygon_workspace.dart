@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../../domain/authoring_types.dart';
+import '../../../../prefabs/collision_fitting/prefab_collision_fitting.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../../prefabs/domain/prefab_v3_lifecycle_commit.dart';
@@ -33,6 +34,7 @@ import '../../shared/terrain_polygon_vertex_editor.dart';
 import '../shared/prefab_polygon_authoring_controller.dart';
 import '../shared/prefab_polygon_scene_surface.dart';
 import '../shared/prefab_polygon_visual_source.dart';
+import '../shared/prefab_visual_alpha_mask_loader.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import 'prefab_v3_atlas_catalog_workspace.dart';
 import 'prefab_v3_module_catalog_workspace.dart';
@@ -92,6 +94,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
   TerrainMaterialCatalog? _materialCatalog;
+  late EditorUiImageCache _prefabImageCache;
+  late PrefabVisualAlphaMaskCache _prefabMaskCache;
+  PrefabCollisionCreationMethod _creationMethod =
+      PrefabCollisionCreationMethod.traceVisibleOutline;
+  PrefabCollisionFitSettings _fitSettings = const PrefabCollisionFitSettings();
+  String? _pendingRefitShapeId;
+  bool _fitAdvancedExpanded = false;
+  bool _observedFitDraft = false;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -177,6 +187,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   @override
   void initState() {
     super.initState();
+    _prefabImageCache = EditorUiImageCache();
+    _prefabMaskCache = PrefabVisualAlphaMaskCache();
     _exactEditController.addListener(_handleExactEditChanged);
     _reloadMaterialCatalog();
     _selectInitialOwner();
@@ -186,6 +198,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   void didUpdateWidget(covariant PrefabPolygonWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
+      _prefabImageCache.dispose();
+      _prefabImageCache = EditorUiImageCache();
+      _prefabMaskCache = PrefabVisualAlphaMaskCache();
       _disposeAuthoring();
       _clearOwnerEditorState();
       _clearOwnerCreateState();
@@ -206,6 +221,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   @override
   void dispose() {
     _disposeAuthoring();
+    _prefabImageCache.dispose();
     _exactEditController
       ..removeListener(_handleExactEditChanged)
       ..dispose();
@@ -813,6 +829,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                       workspaceRootPath: widget.controller.workspacePath,
                       projection: projection,
                       transform: transform,
+                      imageCache: _prefabImageCache,
+                      fitMask: authoring.fitMask,
+                      fitMaskOriginPx: authoring.fitMask == null
+                          ? null
+                          : projection.visualBoundsPx.topLeft,
                     ),
                     onPanDelta: (delta) => setState(() => _pan += delta),
                     onZoomSteps: (steps) {
@@ -900,8 +921,26 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                         subtitle: Text(
                           '${_collisionModeLabel(shape.collisionMode)} · '
                           '${shape.vertices.length} vertices · '
-                          '${_shapeExtent(shape)}',
+                          '${_shapeExtent(shape)}'
+                          '${authoring.isFitCandidate(shape.shapeId) ? ' · Fit draft' : ''}',
                         ),
+                        trailing: authoring.isFitCandidate(shape.shapeId)
+                            ? Checkbox(
+                                key: ValueKey<String>(
+                                  'prefab_fit_include_${shape.shapeId}',
+                                ),
+                                value: authoring.isFitCandidateIncluded(
+                                  shape.shapeId,
+                                ),
+                                onChanged: authoring.isFitLoading
+                                    ? null
+                                    : (included) =>
+                                          authoring.setFitCandidateIncluded(
+                                            shape.shapeId,
+                                            included ?? false,
+                                          ),
+                              )
+                            : null,
                       ),
                     ),
               ],
@@ -966,27 +1005,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             onChanged: authoring.setNewShapeNameInput,
           ),
           const SizedBox(height: EditorUiTokens.controlGap),
-          _buildMetadataDropdown<TerrainSourceCollisionMode>(
-            keyName: 'prefab_polygon_creation_mode_selector',
-            label: 'Collision',
-            value: authoring.newShapeCollisionMode,
-            items:
-                const <TerrainSourceCollisionMode>[
-                      TerrainSourceCollisionMode.solid,
-                      TerrainSourceCollisionMode.oneWay,
-                    ]
-                    .map(
-                      (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
-                        value: mode,
-                        child: Text(_collisionModeLabel(mode)),
-                      ),
-                    )
-                    .toList(growable: false),
-            onChanged: authoring.hasActiveOperation
-                ? null
-                : (mode) {
-                    if (mode != null) authoring.setNewShapeCollisionMode(mode);
-                  },
+          InputDecorator(
+            key: const ValueKey<String>(
+              'prefab_polygon_creation_mode_selector',
+            ),
+            decoration: const InputDecoration(labelText: 'Collision'),
+            child: Text(
+              '${_collisionModeLabel(authoring.newShapeCollisionMode)} '
+              '(from ${authoring.prefab.kind.jsonValue})',
+            ),
           ),
           const SizedBox(height: EditorUiTokens.controlGap),
           _buildMetadataDropdown<String>(
@@ -1036,6 +1063,60 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     }
                   },
           ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          Text('Method', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          if (authoring.prefab.kind == PrefabKind.decoration)
+            const Text('Decoration Prefabs do not author collision.')
+          else
+            Wrap(
+              key: const ValueKey<String>('prefab_collision_creation_methods'),
+              spacing: EditorUiTokens.controlGap,
+              runSpacing: EditorUiTokens.controlGap,
+              children: <Widget>[
+                FilledButton.tonalIcon(
+                  key: const ValueKey<String>('prefab_polygon_new_rectangle'),
+                  label: const Text('Rectangle'),
+                  icon: const Icon(Icons.crop_square, size: 18),
+                  style: _manualMethodStyle(
+                    PrefabCollisionCreationMethod.rectangle,
+                  ),
+                  onPressed: _creationMethodEnabled(authoring)
+                      ? () => _selectManualCreationMethod(
+                          authoring,
+                          PrefabCollisionCreationMethod.rectangle,
+                        )
+                      : null,
+                ),
+                FilledButton.tonalIcon(
+                  key: const ValueKey<String>('prefab_polygon_new_shape'),
+                  label: const Text('Polygon'),
+                  icon: const Icon(Icons.polyline, size: 18),
+                  style: _manualMethodStyle(
+                    PrefabCollisionCreationMethod.polygon,
+                  ),
+                  onPressed: _creationMethodEnabled(authoring)
+                      ? () => _selectManualCreationMethod(
+                          authoring,
+                          PrefabCollisionCreationMethod.polygon,
+                        )
+                      : null,
+                ),
+                _buildFitMethodChip(
+                  authoring,
+                  PrefabCollisionCreationMethod.fitVisibleBounds,
+                ),
+                _buildFitMethodChip(
+                  authoring,
+                  PrefabCollisionCreationMethod.traceVisibleOutline,
+                ),
+                if (authoring.prefab.kind == PrefabKind.platform)
+                  _buildFitMethodChip(
+                    authoring,
+                    PrefabCollisionCreationMethod.detectPlatformSurface,
+                  ),
+              ],
+            ),
           if (draft != null || gesture != null) ...<Widget>[
             const SizedBox(height: EditorUiTokens.controlGap),
             Text(
@@ -1047,60 +1128,413 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               key: const ValueKey<String>('prefab_polygon_creation_status'),
             ),
           ],
-          const SizedBox(height: EditorUiTokens.controlGap),
-          Wrap(
-            spacing: EditorUiTokens.controlGap,
-            runSpacing: EditorUiTokens.controlGap,
-            children: <Widget>[
-              FilledButton.icon(
-                key: const ValueKey<String>('prefab_polygon_new_shape'),
-                onPressed:
-                    authoring.prefab.kind == PrefabKind.decoration ||
-                        authoring.hasActiveOperation ||
-                        !authoring.canBeginNewShape
-                    ? null
-                    : () {
-                        authoring.setTool(TerrainPolygonTool.createPolygon);
-                        authoring.beginCreatePolygon();
-                      },
-                icon: const Icon(Icons.polyline),
-                label: const Text('Draw polygon'),
-              ),
-              FilledButton.tonalIcon(
-                key: const ValueKey<String>('prefab_polygon_new_rectangle'),
-                onPressed:
-                    authoring.prefab.kind == PrefabKind.decoration ||
-                        authoring.hasActiveOperation ||
-                        !authoring.canBeginNewShape
-                    ? null
-                    : () =>
-                          authoring.setTool(TerrainPolygonTool.createRectangle),
-                icon: const Icon(Icons.crop_square),
-                label: const Text('Draw rectangle'),
-              ),
-              OutlinedButton.icon(
-                key: const ValueKey<String>('prefab_polygon_save_draft'),
-                onPressed: draft == null || draft.vertices.length < 3
-                    ? null
-                    : authoring.saveDraft,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Save shape'),
-              ),
-              TextButton(
-                key: const ValueKey<String>('prefab_polygon_cancel_draft'),
-                onPressed:
-                    authoring.hasActiveOperation ||
-                        authoring.state.tool ==
-                            TerrainPolygonTool.createRectangle
-                    ? authoring.cancelActiveOperation
-                    : null,
-                child: const Text('Cancel'),
-              ),
-            ],
-          ),
+          if (authoring.hasFitDraft) ...<Widget>[
+            const SizedBox(height: EditorUiTokens.controlGap),
+            _buildFitDraftEditor(authoring),
+          ] else ...<Widget>[
+            const SizedBox(height: EditorUiTokens.controlGap),
+            Wrap(
+              spacing: EditorUiTokens.controlGap,
+              runSpacing: EditorUiTokens.controlGap,
+              children: <Widget>[
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('prefab_polygon_save_draft'),
+                  onPressed: draft == null || draft.vertices.length < 3
+                      ? null
+                      : authoring.saveDraft,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Save shape'),
+                ),
+                TextButton(
+                  key: const ValueKey<String>('prefab_polygon_cancel_draft'),
+                  onPressed:
+                      draft != null ||
+                          authoring.state.tool ==
+                              TerrainPolygonTool.createRectangle
+                      ? authoring.cancelActiveOperation
+                      : null,
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  bool _creationMethodEnabled(PrefabPolygonAuthoringController authoring) =>
+      authoring.prefab.kind != PrefabKind.decoration &&
+      !authoring.hasActiveOperation &&
+      authoring.canBeginNewShape;
+
+  ButtonStyle? _manualMethodStyle(PrefabCollisionCreationMethod method) {
+    if (_creationMethod != method) return null;
+    return FilledButton.styleFrom(
+      backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+      foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+      side: BorderSide(color: Theme.of(context).colorScheme.secondary),
+    );
+  }
+
+  Widget _buildFitMethodChip(
+    PrefabPolygonAuthoringController authoring,
+    PrefabCollisionCreationMethod method,
+  ) => ChoiceChip(
+    key: ValueKey<String>('prefab_fit_method_${method.name}'),
+    label: Text(_fitMethodLabel(method)),
+    avatar: Icon(_fitMethodIcon(method), size: 18),
+    selected: _creationMethod == method,
+    onSelected: _creationMethodEnabled(authoring)
+        ? (_) => unawaited(_generateFit(authoring, method: method))
+        : null,
+  );
+
+  void _selectManualCreationMethod(
+    PrefabPolygonAuthoringController authoring,
+    PrefabCollisionCreationMethod method,
+  ) {
+    setState(() => _creationMethod = method);
+    if (method == PrefabCollisionCreationMethod.polygon) {
+      authoring.setTool(TerrainPolygonTool.createPolygon);
+      authoring.beginCreatePolygon();
+    } else {
+      authoring.setTool(TerrainPolygonTool.createRectangle);
+    }
+  }
+
+  Widget _buildFitDraftEditor(PrefabPolygonAuthoringController authoring) {
+    final evidence = authoring.fitEvidence;
+    final candidateIds = authoring.fitCandidateShapeIds;
+    final settingsChanged = authoring.fitSettings != _fitSettings;
+    final includedCount = candidateIds
+        .where(authoring.isFitCandidateIncluded)
+        .length;
+    final vertexCount = candidateIds.fold<int>(0, (total, id) {
+      final shape = _findShape(authoring.state.shapes, id);
+      return total + (shape?.vertices.length ?? 0);
+    });
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x1716C79A),
+        border: Border.all(color: const Color(0x664FE3C1)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(EditorUiTokens.controlGap),
+        child: Column(
+          key: const ValueKey<String>('prefab_fit_draft_editor'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              authoring.fitRefitShapeId == null
+                  ? _fitMethodLabel(authoring.fitMethod!)
+                  : 'Refit ${authoring.fitRefitShapeId} · '
+                        '${_fitMethodLabel(authoring.fitMethod!)}',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: EditorUiTokens.controlGap),
+            if (authoring.isFitLoading)
+              const LinearProgressIndicator(
+                key: ValueKey<String>('prefab_fit_loading'),
+              )
+            else ...<Widget>[
+              Text(
+                '$includedCount of ${candidateIds.length} shapes included · '
+                '$vertexCount vertices',
+                key: const ValueKey<String>('prefab_fit_counts'),
+              ),
+              if (evidence != null) ...<Widget>[
+                const SizedBox(height: EditorUiTokens.controlGap),
+                Text(
+                  authoring.fitMethod ==
+                          PrefabCollisionCreationMethod.detectPlatformSurface
+                      ? '${evidence.supportedColumns}/${evidence.sourceColumns} '
+                            'support columns · max deviation '
+                            '${evidence.maximumSurfaceDeviationPx} px'
+                      : '${evidence.coveredVisiblePixels}/'
+                            '${evidence.acceptedVisiblePixels} visible pixels '
+                            'covered · ${evidence.coveredTransparentPixels} '
+                            'transparent cells added',
+                  key: const ValueKey<String>('prefab_fit_evidence'),
+                ),
+              ],
+              if (candidateIds.length > 1 ||
+                  candidateIds.any(
+                    (id) => !authoring.isFitCandidateIncluded(id),
+                  )) ...<Widget>[
+                const SizedBox(height: EditorUiTokens.controlGap),
+                for (final id in candidateIds)
+                  CheckboxListTile(
+                    key: ValueKey<String>('prefab_fit_component_$id'),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(id),
+                    subtitle: Text(
+                      '${_findShape(authoring.state.shapes, id)?.vertices.length ?? 0} vertices',
+                    ),
+                    value: authoring.isFitCandidateIncluded(id),
+                    onChanged: (included) => authoring.setFitCandidateIncluded(
+                      id,
+                      included ?? false,
+                    ),
+                  ),
+              ],
+              if (authoring.fitMessages.isNotEmpty) ...<Widget>[
+                const SizedBox(height: EditorUiTokens.controlGap),
+                for (final message in authoring.fitMessages)
+                  Text(
+                    message,
+                    style: const TextStyle(color: Color(0xFFFFD166)),
+                  ),
+              ],
+              if (settingsChanged) ...<Widget>[
+                const SizedBox(height: EditorUiTokens.controlGap),
+                const Text(
+                  'Fit settings changed. Regenerate to review the new result.',
+                  style: TextStyle(color: Color(0xFFFFD166)),
+                ),
+              ],
+            ],
+            const SizedBox(height: EditorUiTokens.controlGap),
+            Material(
+              type: MaterialType.transparency,
+              child: ExpansionTile(
+                key: const ValueKey<String>('prefab_fit_advanced'),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                initiallyExpanded: _fitAdvancedExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() => _fitAdvancedExpanded = expanded);
+                },
+                title: const Text('Advanced'),
+                children: <Widget>[
+                  _buildIntegerFitSlider(
+                    label: 'Alpha cutoff',
+                    value: _fitSettings.alphaCutoff,
+                    min: 1,
+                    max: 255,
+                    onChanged: (value) => setState(() {
+                      _fitSettings = _fitSettings.copyWith(alphaCutoff: value);
+                    }),
+                  ),
+                  _buildIntegerFitSlider(
+                    label: 'Minimum island area',
+                    value: _fitSettings.minimumIslandArea,
+                    min: 1,
+                    max: 64,
+                    onChanged: (value) => setState(() {
+                      _fitSettings = _fitSettings.copyWith(
+                        minimumIslandArea: value,
+                      );
+                    }),
+                  ),
+                  if (authoring.fitMethod !=
+                      PrefabCollisionCreationMethod.fitVisibleBounds)
+                    _buildIntegerFitSlider(
+                      label: 'Simplification',
+                      value: _fitSettings.simplificationTolerancePx,
+                      min: 0,
+                      max: 8,
+                      suffix: ' px',
+                      onChanged: (value) => setState(() {
+                        _fitSettings = _fitSettings.copyWith(
+                          simplificationTolerancePx: value,
+                        );
+                      }),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: EditorUiTokens.controlGap),
+            Wrap(
+              spacing: EditorUiTokens.controlGap,
+              runSpacing: EditorUiTokens.controlGap,
+              children: <Widget>[
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('prefab_fit_regenerate'),
+                  onPressed: authoring.isFitLoading
+                      ? null
+                      : () => unawaited(_regenerateFit(authoring)),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Regenerate'),
+                ),
+                FilledButton.icon(
+                  key: const ValueKey<String>('prefab_fit_save'),
+                  onPressed: authoring.canSaveFitDraft && !settingsChanged
+                      ? () => unawaited(_saveFitDraft(authoring))
+                      : null,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(
+                    authoring.fitRefitShapeId == null
+                        ? 'Save shapes'
+                        : 'Save replacement',
+                  ),
+                ),
+                TextButton(
+                  key: const ValueKey<String>('prefab_fit_cancel'),
+                  onPressed: _cancelFitDraft,
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIntegerFitSlider({
+    required String label,
+    required int value,
+    required int min,
+    required int max,
+    String suffix = '',
+    required ValueChanged<int> onChanged,
+  }) => Row(
+    children: <Widget>[
+      SizedBox(width: 150, child: Text('$label: $value$suffix')),
+      Expanded(
+        child: Slider(
+          key: ValueKey<String>(
+            'prefab_fit_${label.toLowerCase().replaceAll(' ', '_')}',
+          ),
+          value: value.toDouble(),
+          min: min.toDouble(),
+          max: max.toDouble(),
+          divisions: max - min,
+          label: '$value$suffix',
+          onChanged: (next) => onChanged(next.round()),
+        ),
+      ),
+    ],
+  );
+
+  Future<void> _generateFit(
+    PrefabPolygonAuthoringController authoring, {
+    required PrefabCollisionCreationMethod method,
+    String? refitShapeId,
+  }) async {
+    final document = _documentOrNull;
+    if (document == null || !identical(authoring, _authoring)) return;
+    final token = authoring.startFitGeneration(
+      method: method,
+      settings: _fitSettings,
+      refitShapeId: refitShapeId,
+    );
+    if (token == 0) return;
+    setState(() {
+      _creationMethod = method;
+      _pendingRefitShapeId = null;
+    });
+    final projection = PrefabPolygonVisualProjection.fromDocument(
+      document: document,
+      prefab: authoring.prefab,
+    );
+    final loaded = await PrefabVisualAlphaMaskLoader.load(
+      workspaceRootPath: widget.controller.workspacePath,
+      projection: projection,
+      imageCache: _prefabImageCache,
+      maskCache: _prefabMaskCache,
+    );
+    if (!mounted || !identical(authoring, _authoring)) return;
+    if (!loaded.accepted) {
+      authoring.rejectFitGeneration(
+        token: token,
+        message: loaded.diagnostics.join(' '),
+      );
+      return;
+    }
+    final result = PrefabCollisionFitter.generate(
+      mask: loaded.mask!,
+      method: method,
+      settings: _fitSettings,
+    );
+    authoring.completeFitGeneration(
+      token: token,
+      sourceMask: loaded.mask!,
+      sourceIdentity: loaded.sourceIdentity!,
+      result: result,
+      visualOriginXPx: projection.visualBoundsPx.left.toInt(),
+      visualOriginYPx: projection.visualBoundsPx.top.toInt(),
+    );
+  }
+
+  Future<void> _regenerateFit(
+    PrefabPolygonAuthoringController authoring,
+  ) async {
+    if (authoring.fitHasLocalEdits) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Replace fit adjustments?'),
+          content: const Text(
+            'Regenerating replaces candidate edits and component choices with '
+            'a fresh result from the current settings.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Regenerate'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    final method = authoring.fitMethod;
+    if (method == null) return;
+    await _generateFit(
+      authoring,
+      method: method,
+      refitShapeId: authoring.fitRefitShapeId,
+    );
+  }
+
+  Future<void> _saveFitDraft(PrefabPolygonAuthoringController authoring) async {
+    final document = _documentOrNull;
+    if (document == null || !identical(authoring, _authoring)) return;
+    final projection = PrefabPolygonVisualProjection.fromDocument(
+      document: document,
+      prefab: authoring.prefab,
+    );
+    final current = await PrefabVisualAlphaMaskLoader.load(
+      workspaceRootPath: widget.controller.workspacePath,
+      projection: projection,
+      imageCache: _prefabImageCache,
+      maskCache: _prefabMaskCache,
+    );
+    if (!mounted || !identical(authoring, _authoring)) return;
+    if (!current.accepted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(current.diagnostics.join(' '))));
+      return;
+    }
+    final saved = authoring.saveFitDraft(
+      currentSourceIdentity: current.sourceIdentity!,
+    );
+    if (saved) {
+      setState(() {
+        _pendingRefitShapeId = null;
+        _fitSettings = const PrefabCollisionFitSettings();
+        _fitAdvancedExpanded = false;
+      });
+    }
+  }
+
+  void _cancelFitDraft() {
+    final authoring = _authoring;
+    if (authoring == null || !authoring.cancelFitDraft()) return;
+    setState(() {
+      _pendingRefitShapeId = null;
+      _fitSettings = const PrefabCollisionFitSettings();
+      _fitAdvancedExpanded = false;
+      _creationMethod = _defaultCreationMethod(authoring.prefab.kind);
+    });
   }
 
   Widget _buildSelectedShapeEditor(
@@ -1109,6 +1543,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   ) {
     final hasPendingExactEdit =
         _hasPendingShapeName(shape) || _exactEditController.hasChanges;
+    final canEditShape = authoring.canEditShape(shape.shapeId);
+    final isFitCandidate = authoring.isFitCandidate(shape.shapeId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -1122,7 +1558,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           children: <Widget>[
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_duplicate_shape'),
-              onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+              onPressed: !canEditShape || isFitCandidate || hasPendingExactEdit
                   ? null
                   : () => _duplicateSelectedShape(authoring, shape),
               icon: const Icon(Icons.copy_outlined),
@@ -1130,7 +1566,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_normalize_shape'),
-              onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+              onPressed: !canEditShape || hasPendingExactEdit
                   ? null
                   : authoring.normalizeSelectedShape,
               icon: const Icon(Icons.auto_fix_high),
@@ -1138,14 +1574,66 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_delete_shape'),
-              onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+              onPressed: !canEditShape || isFitCandidate || hasPendingExactEdit
                   ? null
                   : authoring.deleteSelection,
               icon: const Icon(Icons.delete_outline),
               label: const Text('Delete'),
             ),
+            if (!isFitCandidate &&
+                authoring.prefab.kind != PrefabKind.decoration)
+              OutlinedButton.icon(
+                key: const ValueKey<String>('prefab_polygon_refit_shape'),
+                onPressed: authoring.hasActiveOperation || hasPendingExactEdit
+                    ? null
+                    : () => setState(() {
+                        _pendingRefitShapeId =
+                            _pendingRefitShapeId == shape.shapeId
+                            ? null
+                            : shape.shapeId;
+                      }),
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: const Text('Refit from pixels'),
+              ),
           ],
         ),
+        if (_pendingRefitShapeId == shape.shapeId) ...<Widget>[
+          const SizedBox(height: EditorUiTokens.controlGap),
+          Text(
+            'Choose how visible pixels should replace this shape:',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          Wrap(
+            key: const ValueKey<String>('prefab_refit_methods'),
+            spacing: EditorUiTokens.controlGap,
+            runSpacing: EditorUiTokens.controlGap,
+            children: <Widget>[
+              for (final method in <PrefabCollisionCreationMethod>[
+                PrefabCollisionCreationMethod.fitVisibleBounds,
+                PrefabCollisionCreationMethod.traceVisibleOutline,
+                if (authoring.prefab.kind == PrefabKind.platform)
+                  PrefabCollisionCreationMethod.detectPlatformSurface,
+              ])
+                ActionChip(
+                  key: ValueKey<String>('prefab_refit_method_${method.name}'),
+                  avatar: Icon(_fitMethodIcon(method), size: 18),
+                  label: Text(_fitMethodLabel(method)),
+                  onPressed: () => unawaited(
+                    _generateFit(
+                      authoring,
+                      method: method,
+                      refitShapeId: shape.shapeId,
+                    ),
+                  ),
+                ),
+              ActionChip(
+                label: const Text('Cancel'),
+                onPressed: () => setState(() => _pendingRefitShapeId = null),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: EditorUiTokens.controlGap),
         _buildShapeMetadataInspector(authoring, shape),
         const SizedBox(height: EditorUiTokens.controlGap),
@@ -1176,7 +1664,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           const <String>[],
     );
     final controlsEnabled =
-        !authoring.hasActiveOperation &&
+        authoring.canEditShape(shape.shapeId) &&
         !_hasPendingShapeName(shape) &&
         !_exactEditController.hasChanges;
     return Column(
@@ -1186,7 +1674,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         TextFormField(
           key: ValueKey<String>('prefab_polygon_shape_name_${shape.shapeId}'),
           initialValue: shapeNameInput,
-          enabled: !authoring.hasActiveOperation,
+          enabled:
+              authoring.canEditShape(shape.shapeId) &&
+              !authoring.isFitCandidate(shape.shapeId),
           decoration: InputDecoration(
             labelText: 'Shape name',
             helperText:
@@ -1200,33 +1690,13 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           },
         ),
         const SizedBox(height: EditorUiTokens.controlGap),
-        _buildMetadataDropdown<TerrainSourceCollisionMode>(
-          keyName: 'prefab_polygon_metadata_mode',
-          label: 'Collision mode',
-          value: shape.collisionMode,
-          items: TerrainSourceCollisionMode.values
-              .where(
-                (mode) =>
-                    mode != TerrainSourceCollisionMode.none ||
-                    mode == shape.collisionMode,
-              )
-              .map(
-                (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
-                  value: mode,
-                  child: Text(_collisionModeLabel(mode)),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: controlsEnabled
-              ? (mode) {
-                  if (mode == null || mode == shape.collisionMode) return;
-                  authoring.editSelectedShapeMetadata(
-                    collisionMode: mode,
-                    surfaceKind: shape.surfaceKind,
-                    materialKey: shape.materialKey,
-                  );
-                }
-              : null,
+        InputDecorator(
+          key: const ValueKey<String>('prefab_polygon_metadata_mode'),
+          decoration: const InputDecoration(labelText: 'Collision mode'),
+          child: Text(
+            '${_collisionModeLabel(shape.collisionMode)} '
+            '(from ${authoring.prefab.kind.jsonValue})',
+          ),
         ),
         const SizedBox(height: EditorUiTokens.controlGap),
         _buildMetadataDropdown<String>(
@@ -1526,7 +1996,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     PrefabPolygonAuthoringController authoring,
     TerrainSourceShapeDef target,
   ) async {
-    if (authoring.hasActiveOperation) return;
+    if (authoring.hasActiveOperation &&
+        !(authoring.hasFitDraft && authoring.isFitCandidate(target.shapeId))) {
+      return;
+    }
     final currentSelection = authoring.state.selection;
     final closingCurrent = currentSelection?.shapeId == target.shapeId;
     if (currentSelection != null) {
@@ -2241,6 +2714,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     _disposeAuthoring();
     _exactEditController.discard();
     _shapeNameDrafts.clear();
+    _pendingRefitShapeId = null;
+    _fitSettings = const PrefabCollisionFitSettings();
+    _fitAdvancedExpanded = false;
+    _observedFitDraft = false;
     _selectedPrefabKey = prefabKey;
     _authoring = PrefabPolygonAuthoringController(
       session: widget.controller,
@@ -2248,6 +2725,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       newShapeSurfaceKind: terrainSurfaceKindOptions.first,
       newShapeMaterialKey: _materialCatalog?.materials.firstOrNull?.key,
     )..addListener(_handleAuthoringChanged);
+    _creationMethod = _defaultCreationMethod(_authoring!.prefab.kind);
   }
 
   void _disposeAuthoring() {
@@ -2259,7 +2737,18 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   void _handleAuthoringChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final authoring = _authoring;
+    final hasFitDraft = authoring?.hasFitDraft ?? false;
+    setState(() {
+      if (_observedFitDraft && !hasFitDraft && authoring != null) {
+        _pendingRefitShapeId = null;
+        _fitSettings = const PrefabCollisionFitSettings();
+        _fitAdvancedExpanded = false;
+        _creationMethod = _defaultCreationMethod(authoring.prefab.kind);
+      }
+      _observedFitDraft = hasFitDraft;
+    });
   }
 
   PrefabV3Document? get _documentOrNull {
@@ -2319,6 +2808,36 @@ String _collisionModeLabel(TerrainSourceCollisionMode mode) => switch (mode) {
   TerrainSourceCollisionMode.solid => 'Solid',
   TerrainSourceCollisionMode.oneWay => 'One-way',
   TerrainSourceCollisionMode.none => 'No collision (visual only)',
+};
+
+PrefabCollisionCreationMethod _defaultCreationMethod(PrefabKind kind) =>
+    switch (kind) {
+      PrefabKind.platform =>
+        PrefabCollisionCreationMethod.detectPlatformSurface,
+      PrefabKind.obstacle ||
+      PrefabKind.unknown => PrefabCollisionCreationMethod.traceVisibleOutline,
+      PrefabKind.decoration => PrefabCollisionCreationMethod.rectangle,
+    };
+
+String _fitMethodLabel(PrefabCollisionCreationMethod method) =>
+    switch (method) {
+      PrefabCollisionCreationMethod.rectangle => 'Rectangle',
+      PrefabCollisionCreationMethod.polygon => 'Polygon',
+      PrefabCollisionCreationMethod.fitVisibleBounds => 'Fit visible bounds',
+      PrefabCollisionCreationMethod.traceVisibleOutline =>
+        'Trace visible outline',
+      PrefabCollisionCreationMethod.detectPlatformSurface =>
+        'Detect platform surface',
+    };
+
+IconData _fitMethodIcon(
+  PrefabCollisionCreationMethod method,
+) => switch (method) {
+  PrefabCollisionCreationMethod.rectangle => Icons.crop_square,
+  PrefabCollisionCreationMethod.polygon => Icons.polyline,
+  PrefabCollisionCreationMethod.fitVisibleBounds => Icons.fit_screen,
+  PrefabCollisionCreationMethod.traceVisibleOutline => Icons.gesture_outlined,
+  PrefabCollisionCreationMethod.detectPlatformSurface => Icons.horizontal_rule,
 };
 
 String _shapeExtent(TerrainSourceShapeDef shape) {

@@ -314,7 +314,12 @@ final class _Fixture {
           visualSource: const PrefabVisualSource.platformModule('module_a'),
           anchorXPx: 32,
           anchorYPx: 12,
-          collisionShapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
+          collisionShapes: <TerrainSourceShapeDef>[
+            _rectangle(
+              'collision_001',
+              collisionMode: TerrainSourceCollisionMode.oneWay,
+            ),
+          ],
           tags: const <String>[],
         ),
       ],
@@ -425,8 +430,12 @@ ChunkV2FileData _chunk({
   collisionShapes: const <TerrainSourceShapeDef>[],
 );
 
-TerrainSourceShapeDef _rectangle(String shapeId) => TerrainSourceShapeDef(
+TerrainSourceShapeDef _rectangle(
+  String shapeId, {
+  TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
+}) => TerrainSourceShapeDef(
   shapeId: shapeId,
+  collisionMode: collisionMode,
   vertices: const <TerrainSourceVertexDef>[
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: -8),
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),

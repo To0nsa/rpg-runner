@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
@@ -240,6 +241,252 @@ void main() {
     );
     expect(find.text('Place vertex'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('collision methods and retained-shape refit stay inline', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: harness.session,
+            initialPrefabKey: 'obstacle',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
+
+    expect(find.text('Rectangle'), findsOneWidget);
+    expect(find.text('Polygon'), findsOneWidget);
+    expect(find.text('Fit visible bounds'), findsOneWidget);
+    expect(find.text('Trace visible outline'), findsOneWidget);
+    expect(find.text('Detect platform surface'), findsNothing);
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(
+              const ValueKey<String>('prefab_fit_method_traceVisibleOutline'),
+            ),
+          )
+          .selected,
+      isTrue,
+    );
+
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_shapes_panel_toggle',
+      bodyKey: 'prefab_shape_list',
+    );
+    final row = find.byKey(
+      const ValueKey<String>('prefab_polygon_shape_collision_001'),
+    );
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pump();
+    final refit = find.byKey(
+      const ValueKey<String>('prefab_polygon_refit_shape'),
+    );
+    await tester.ensureVisible(refit);
+    await tester.tap(refit);
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('prefab_refit_methods')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_refit_method_detectPlatformSurface'),
+      ),
+      findsNothing,
+    );
+    expect(find.byType(Dialog), findsNothing);
+  });
+
+  testWidgets('platform and decoration expose kind-safe collision methods', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final platformHarness = await _buildHarness();
+    addTearDown(platformHarness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: platformHarness.session,
+            initialPrefabKey: 'platform',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
+    final platformMethod = find.byKey(
+      const ValueKey<String>('prefab_fit_method_detectPlatformSurface'),
+    );
+    expect(platformMethod, findsOneWidget);
+    expect(tester.widget<ChoiceChip>(platformMethod).selected, isTrue);
+    expect(find.text('One-way (from platform)'), findsWidgets);
+
+    final decorationHarness = await _buildHarness();
+    addTearDown(decorationHarness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: decorationHarness.session,
+            initialPrefabKey: 'decoration',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
+    expect(find.text('Fit visible bounds'), findsNothing);
+    expect(find.text('Trace visible outline'), findsNothing);
+    expect(find.text('Detect platform surface'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_rectangle')),
+      findsNothing,
+    );
+    expect(
+      find.text('Decoration Prefabs do not author collision.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('No collision (visual only) (from decoration)'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('atlas fit previews locally and saves one owner revision', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness(
+      document: _currentDocumentWithColliderFreeObstacle(),
+    );
+    addTearDown(harness.dispose);
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+    final asset = File('${harness.root.path}/assets/obstacles.png')
+      ..createSync(recursive: true);
+    final raster = image.Image(width: 20, height: 20, numChannels: 4);
+    image.fill(raster, color: image.ColorRgba8(255, 255, 255, 255));
+    asset.writeAsBytesSync(image.encodePng(raster));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: harness.session,
+            initialPrefabKey: 'obstacle',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_polygon_creation_panel_toggle',
+      bodyKey: 'prefab_polygon_creation_name_0',
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_fit_method_fitVisibleBounds')),
+    );
+    await tester.pump();
+    await _waitForWidgetToDisappear(
+      tester,
+      find.byKey(const ValueKey<String>('prefab_fit_loading')),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('prefab_fit_draft_editor')),
+      findsOneWidget,
+    );
+    expect(_prefab(harness.session, 'obstacle').collisionShapes, isEmpty);
+    expect(harness.session.canUndo, isFalse);
+    final save = find.byKey(const ValueKey<String>('prefab_fit_save'));
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+
+    final advanced = find.byKey(const ValueKey<String>('prefab_fit_advanced'));
+    await tester.ensureVisible(advanced);
+    await tester.tap(advanced);
+    await tester.pumpAndSettle();
+    final alphaSlider = find.byKey(
+      const ValueKey<String>('prefab_fit_alpha_cutoff'),
+    );
+    tester.widget<Slider>(alphaSlider).onChanged!(2);
+    await tester.pump();
+    expect(
+      find.text('Fit settings changed. Regenerate to review the new result.'),
+      findsOneWidget,
+    );
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_fit_regenerate')),
+    );
+    await tester.pump();
+    await _waitForWidgetToDisappear(
+      tester,
+      find.byKey(const ValueKey<String>('prefab_fit_loading')),
+    );
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pump();
+    await _waitForWidgetToDisappear(
+      tester,
+      find.byKey(const ValueKey<String>('prefab_fit_draft_editor')),
+    );
+
+    final obstacle = _prefab(harness.session, 'obstacle');
+    expect(obstacle.revision, 2);
+    expect(obstacle.collisionShapes, hasLength(1));
+    expect(
+      obstacle.collisionShapes.single.collisionMode,
+      TerrainSourceCollisionMode.solid,
+    );
+    expect(harness.session.canUndo, isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_fit_draft_editor')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -635,15 +882,18 @@ void main() {
         const ValueKey<String>('prefab_polygon_metadata_mode'),
       );
       await tester.ensureVisible(modeSelector);
-      await tester.tap(modeSelector);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('One-way').last);
-      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: modeSelector,
+          matching: find.text('Solid (from obstacle)'),
+        ),
+        findsOneWidget,
+      );
       obstacle = _prefab(harness.session, 'obstacle');
-      expect(obstacle.revision, 3);
+      expect(obstacle.revision, 2);
       expect(
         obstacle.collisionShapes.single.collisionMode,
-        TerrainSourceCollisionMode.oneWay,
+        TerrainSourceCollisionMode.solid,
       );
     },
   );
@@ -2308,6 +2558,7 @@ TerrainSourceShapeDef _outsideRectangle() => TerrainSourceShapeDef(
 
 TerrainSourceShapeDef _smallRectangle() => TerrainSourceShapeDef(
   shapeId: 'collision_001',
+  collisionMode: TerrainSourceCollisionMode.oneWay,
   vertices: const <TerrainSourceVertexDef>[
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: -8),
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),
@@ -2329,6 +2580,23 @@ Future<void> _openPrefabSection(
   await tester.tap(toggle);
   await tester.pumpAndSettle();
   expect(body, findsOneWidget);
+}
+
+Future<void> _waitForWidgetToDisappear(
+  WidgetTester tester,
+  Finder finder,
+) async {
+  for (
+    var attempt = 0;
+    attempt < 40 && finder.evaluate().isNotEmpty;
+    attempt++
+  ) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+    await tester.pump(const Duration(milliseconds: 25));
+  }
+  expect(finder, findsNothing);
 }
 
 Future<void> _openOwnerLibrary(WidgetTester tester) => _openPrefabSection(

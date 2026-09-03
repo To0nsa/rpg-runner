@@ -4,6 +4,13 @@ import '../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../terrain_authoring/terrain_source_models.dart';
 
+/// Mirrors Core's one-way edge exposure rule for clockwise Y-down source
+/// loops: only edges travelling toward positive X have an upward normal.
+bool terrainSourceEdgeIsActiveOneWay(
+  TerrainSourceVertexDef start,
+  TerrainSourceVertexDef end,
+) => end.xHalfPixels > start.xHalfPixels;
+
 /// One-way mapping between exact source ticks and display-only canvas space.
 ///
 /// [zoom] is canvas pixels per source pixel, so one half-pixel source tick is
@@ -90,6 +97,7 @@ final class TerrainPolygonSceneStyle {
     this.vertexFill = const Color(0xFFE8F4FF),
     this.selectedVertexFill = const Color(0xFFFFD97A),
     this.draftStroke = const Color(0xFF74E39A),
+    this.activeOneWayStroke = const Color(0xFF5CF2A4),
     this.outlineWidth = 1.25,
     this.selectedOutlineWidth = 2,
     this.selectedEdgeWidth = 3,
@@ -109,6 +117,7 @@ final class TerrainPolygonSceneStyle {
   final Color vertexFill;
   final Color selectedVertexFill;
   final Color draftStroke;
+  final Color activeOneWayStroke;
   final double outlineWidth;
   final double selectedOutlineWidth;
   final double selectedEdgeWidth;
@@ -130,6 +139,7 @@ final class TerrainPolygonSceneStyle {
       vertexFill == other.vertexFill &&
       selectedVertexFill == other.selectedVertexFill &&
       draftStroke == other.draftStroke &&
+      activeOneWayStroke == other.activeOneWayStroke &&
       outlineWidth == other.outlineWidth &&
       selectedOutlineWidth == other.selectedOutlineWidth &&
       selectedEdgeWidth == other.selectedEdgeWidth &&
@@ -150,6 +160,7 @@ final class TerrainPolygonSceneStyle {
     vertexFill,
     selectedVertexFill,
     draftStroke,
+    activeOneWayStroke,
     outlineWidth,
     selectedOutlineWidth,
     selectedEdgeWidth,
@@ -168,11 +179,13 @@ final class TerrainPolygonScenePainter extends CustomPainter {
     required this.projection,
     required this.transform,
     this.style = const TerrainPolygonSceneStyle(),
+    this.showActiveOneWayEdges = false,
   });
 
   final TerrainPolygonSceneProjection projection;
   final TerrainPolygonViewportTransform transform;
   final TerrainPolygonSceneStyle style;
+  final bool showActiveOneWayEdges;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -222,6 +235,28 @@ final class TerrainPolygonScenePainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke,
     );
+
+    if (showActiveOneWayEdges &&
+        mode == TerrainSourceCollisionMode.oneWay &&
+        points.length >= 2) {
+      final activePaint = Paint()
+        ..color = style.activeOneWayStroke
+        ..strokeWidth = style.selectedEdgeWidth
+        ..strokeCap = StrokeCap.round;
+      for (var index = 0; index < vertices.length; index += 1) {
+        final start = vertices[index];
+        final end = vertices[(index + 1) % vertices.length];
+        // For Core's clockwise Y-down loops, a positive horizontal direction
+        // has an outward normal with negative Y and is physically one-way.
+        if (terrainSourceEdgeIsActiveOneWay(start, end)) {
+          canvas.drawLine(
+            points[index],
+            points[(index + 1) % points.length],
+            activePaint,
+          );
+        }
+      }
+    }
 
     final selectedEdgeIndex = sceneShape.selectedEdgeIndex;
     if (selectedEdgeIndex != null &&
@@ -279,7 +314,8 @@ final class TerrainPolygonScenePainter extends CustomPainter {
   bool shouldRepaint(covariant TerrainPolygonScenePainter oldDelegate) =>
       oldDelegate.projection != projection ||
       oldDelegate.transform != transform ||
-      oldDelegate.style != style;
+      oldDelegate.style != style ||
+      oldDelegate.showActiveOneWayEdges != showActiveOneWayEdges;
 }
 
 Path _path(List<Offset> points, {required bool close}) {

@@ -71,6 +71,28 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
     return _sortedPolygonIssues(issues);
   }
 
+  final requiredMode = kind == PrefabKind.platform
+      ? TerrainSourceCollisionMode.oneWay
+      : TerrainSourceCollisionMode.solid;
+  for (final shape in shapes.where(
+    (shape) => shape.collisionMode != requiredMode,
+  )) {
+    issues.add(
+      PrefabValidationIssue(
+        code: 'prefab_collision_mode_kind_mismatch',
+        message:
+            'Prefab $prefabId is ${kind.jsonValue}; shape ${shape.shapeId} '
+            'must use ${requiredMode == TerrainSourceCollisionMode.oneWay ? 'one-way' : 'solid'} collision.',
+        sourcePath: sourcePath,
+        ownerKey: prefabKey,
+        shapeId: shape.shapeId,
+      ),
+    );
+  }
+  if (issues.any((issue) => issue.severity == PrefabValidationSeverity.error)) {
+    return _sortedPolygonIssues(issues);
+  }
+
   if (shapes.isEmpty) {
     issues.add(
       PrefabValidationIssue(

@@ -2,6 +2,9 @@ import 'dart:io';
 import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
@@ -317,28 +320,26 @@ void main() {
   test('typed metadata changes only owner metadata and revision once', () {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
     final before = document.data.prefabs.single;
-    final edited =
-        plugin.applyEdit(
-              document,
-              AuthoringCommand(
-                kind: PrefabDomainPlugin.commitPrefabV3MetadataCommandKind,
-                payload: <String, Object?>{
-                  'prefabKey': before.prefabKey,
-                  'commit': PrefabV3MetadataCommit(
-                    before: PrefabV3MetadataSnapshot.fromPrefab(before),
-                    after: PrefabV3MetadataSnapshot(
-                      status: PrefabStatus.deprecated,
-                      kind: before.kind,
-                      visualSource: before.visualSource,
-                      anchorXPx: 4,
-                      anchorYPx: 6,
-                      tags: const <String>['boss', 'test'],
-                    ),
-                  ),
-                },
-              ),
-            )
-            as PrefabV3Document;
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3MetadataCommandKind,
+        payload: <String, Object?>{
+          'prefabKey': before.prefabKey,
+          'commit': PrefabV3MetadataCommit(
+            before: PrefabV3MetadataSnapshot.fromPrefab(before),
+            after: PrefabV3MetadataSnapshot(
+              status: PrefabStatus.deprecated,
+              kind: before.kind,
+              visualSource: before.visualSource,
+              anchorXPx: 4,
+              anchorYPx: 6,
+              tags: const <String>['boss', 'test'],
+            ),
+          ),
+        },
+      ),
+    ) as PrefabV3Document;
 
     final after = edited.data.prefabs.single;
     expect(after.prefabKey, before.prefabKey);
@@ -420,20 +421,18 @@ void main() {
       PrefabV3Document apply(
         PrefabV3Document source,
         PrefabV3LifecycleOperation operation,
-      ) =>
-          plugin.applyEdit(
-                source,
-                AuthoringCommand(
-                  kind: PrefabDomainPlugin.commitPrefabV3LifecycleCommandKind,
-                  payload: <String, Object?>{
-                    'commit': PrefabV3LifecycleCommit(
-                      before: PrefabV3LifecycleSnapshot.fromDocument(source),
-                      operation: operation,
-                    ),
-                  },
-                ),
-              )
-              as PrefabV3Document;
+      ) => plugin.applyEdit(
+        source,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabV3LifecycleCommandKind,
+          payload: <String, Object?>{
+            'commit': PrefabV3LifecycleCommit(
+              before: PrefabV3LifecycleSnapshot.fromDocument(source),
+              operation: operation,
+            ),
+          },
+        ),
+      ) as PrefabV3Document;
 
       final created = apply(
         document,
@@ -592,22 +591,20 @@ void main() {
       ),
     );
 
-    final resized =
-        apply(
-              document,
-              const PrefabV3UpsertSliceOperation(
-                kind: AtlasSliceKind.prefab,
-                slice: AtlasSliceDef(
-                  id: 'slice_a',
-                  sourceImagePath: 'assets/images/level/test.png',
-                  x: 0,
-                  y: 0,
-                  width: 12,
-                  height: 10,
-                ),
-              ),
-            )
-            as PrefabV3Document;
+    final resized = apply(
+      document,
+      const PrefabV3UpsertSliceOperation(
+        kind: AtlasSliceKind.prefab,
+        slice: AtlasSliceDef(
+          id: 'slice_a',
+          sourceImagePath: 'assets/images/level/test.png',
+          x: 0,
+          y: 0,
+          width: 12,
+          height: 10,
+        ),
+      ),
+    ) as PrefabV3Document;
     expect(resized.visualBoundsByPrefabKey['target']?.widthPx, 12);
     expect(resized.data.prefabs.single.revision, 4);
 
@@ -620,16 +617,14 @@ void main() {
     );
     expect(blockedDelete, same(resized));
 
-    final deleted =
-        apply(
-              resized,
-              const PrefabV3DeleteSliceOperation(
-                kind: AtlasSliceKind.prefab,
-                sliceId: 'slice_a',
-                cascadeReferences: true,
-              ),
-            )
-            as PrefabV3Document;
+    final deleted = apply(
+      resized,
+      const PrefabV3DeleteSliceOperation(
+        kind: AtlasSliceKind.prefab,
+        sliceId: 'slice_a',
+        cascadeReferences: true,
+      ),
+    ) as PrefabV3Document;
     expect(deleted.data.slices, isEmpty);
     expect(deleted.data.prefabs, isEmpty);
     expect(deleted.changedPrefabKeys, <String>['target']);
@@ -641,20 +636,18 @@ void main() {
     PrefabV3Document apply(
       PrefabV3Document source,
       PrefabV3CatalogOperation operation,
-    ) =>
-        plugin.applyEdit(
-              source,
-              AuthoringCommand(
-                kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
-                payload: <String, Object?>{
-                  'commit': PrefabV3CatalogCommit(
-                    before: PrefabV3CatalogSnapshot.fromDocument(source),
-                    operation: operation,
-                  ),
-                },
-              ),
-            )
-            as PrefabV3Document;
+    ) => plugin.applyEdit(
+      source,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(source),
+            operation: operation,
+          ),
+        },
+      ),
+    ) as PrefabV3Document;
 
     final updated = apply(
       document,
@@ -821,24 +814,22 @@ void main() {
 
   test('tile-slice cascade bumps each affected module exactly once', () {
     final document = _catalogDocument();
-    final edited =
-        plugin.applyEdit(
-              document,
-              AuthoringCommand(
-                kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
-                payload: <String, Object?>{
-                  'commit': PrefabV3CatalogCommit(
-                    before: PrefabV3CatalogSnapshot.fromDocument(document),
-                    operation: const PrefabV3DeleteSliceOperation(
-                      kind: AtlasSliceKind.tile,
-                      sliceId: 'tile_a',
-                      cascadeReferences: true,
-                    ),
-                  ),
-                },
-              ),
-            )
-            as PrefabV3Document;
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(document),
+            operation: const PrefabV3DeleteSliceOperation(
+              kind: AtlasSliceKind.tile,
+              sliceId: 'tile_a',
+              cascadeReferences: true,
+            ),
+          ),
+        },
+      ),
+    ) as PrefabV3Document;
 
     expect(edited.tileData.tileSlices.single.id, 'tile_b');
     expect(edited.tileData.platformModules.single.revision, 3);
@@ -849,54 +840,341 @@ void main() {
     expect(edited.data.prefabs.single.revision, 7);
   });
 
-  test('tile-only current mutation rejects an absent source baseline', () async {
-    final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
-    addTearDown(() => root.deleteSync(recursive: true));
-    final document = _catalogDocument();
+  test(
+    'tile-only current mutation rejects an absent source baseline',
+    () async {
+      final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final document = _catalogDocument();
+      final edited = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+          payload: <String, Object?>{
+            'commit': PrefabV3CatalogCommit(
+              before: PrefabV3CatalogSnapshot.fromDocument(document),
+              operation: PrefabV3CreateModuleOperation(
+                id: 'module_c',
+                status: TileModuleStatus.active,
+                tileSize: 16,
+                cells: const <TileModuleCellDef>[
+                  TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+                ],
+              ),
+            ),
+          },
+        ),
+      );
+      final pending = plugin.describePendingChanges(
+        EditorWorkspace(rootPath: root.path),
+        document: edited,
+      );
+      expect(pending.fileDiffs, hasLength(1));
+      expect(pending.fileDiffs.single.relativePath, contains('tile_defs.json'));
+
+      await expectLater(
+        plugin.exportToRepo(
+          EditorWorkspace(rootPath: root.path),
+          document: edited,
+        ),
+        throwsA(
+          isA<PrefabV3SaveException>().having(
+            (error) => error.code,
+            'code',
+            'prefab_v3_save_source_drift',
+          ),
+        ),
+      );
+      expect(root.listSync(recursive: true), isEmpty);
+    },
+  );
+
+  test('polygon commits reject newly overlapping downstream placements', () {
+    final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+    final chunk = _chunk(
+      placements: const <PlacedPrefabDef>[
+        PlacedPrefabDef(prefabId: 'target', prefabKey: 'target', x: 10, y: 10),
+      ],
+      directShapes: <TerrainSourceShapeDef>[
+        _namedRectangle('ground', left: 28, top: 12, right: 40, bottom: 28),
+      ],
+    );
+    final document = _document(
+      before,
+      downstreamChunks: <PrefabV3DownstreamChunk>[_downstreamChunk(chunk)],
+    );
+
     final edited = plugin.applyEdit(
       document,
       AuthoringCommand(
-        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
         payload: <String, Object?>{
-          'commit': PrefabV3CatalogCommit(
-            before: PrefabV3CatalogSnapshot.fromDocument(document),
-            operation: PrefabV3CreateModuleOperation(
-              id: 'module_c',
-              status: TileModuleStatus.active,
-              tileSize: 16,
-              cells: const <TileModuleCellDef>[
-                TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
-              ],
-            ),
+          'prefabKey': 'target',
+          'commit': _commit(
+            before: before,
+            after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
           ),
         },
       ),
     );
-    final pending = plugin.describePendingChanges(
-      EditorWorkspace(rootPath: root.path),
-      document: edited,
+
+    expect(edited, same(document));
+  });
+
+  test('polygon commits reject transformed downstream bounds failures', () {
+    final before = <TerrainSourceShapeDef>[
+      _namedRectangle('collision_001', left: 0, top: 0, right: 8, bottom: 8),
+    ];
+    final chunk = _chunk(
+      width: 10,
+      height: 20,
+      placements: const <PlacedPrefabDef>[
+        PlacedPrefabDef(
+          prefabId: 'target',
+          prefabKey: 'target',
+          x: 4,
+          y: 4,
+          scale: 1.5,
+        ),
+      ],
     );
-    expect(pending.fileDiffs, hasLength(1));
-    expect(pending.fileDiffs.single.relativePath, contains('tile_defs.json'));
+    final document = _document(
+      before,
+      downstreamChunks: <PrefabV3DownstreamChunk>[_downstreamChunk(chunk)],
+    );
+
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+        payload: <String, Object?>{
+          'prefabKey': 'target',
+          'commit': _commit(
+            before: before,
+            after: <TerrainSourceShapeDef>[
+              _namedRectangle(
+                'collision_001',
+                left: 0,
+                top: 0,
+                right: 10,
+                bottom: 8,
+              ),
+            ],
+          ),
+        },
+      ),
+    );
+
+    expect(edited, same(document));
+  });
+
+  test(
+    'pre-existing downstream errors do not block an unrelated valid edit',
+    () {
+      final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+      final chunk = _chunk(
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'target',
+            prefabKey: 'target',
+            x: 10,
+            y: 10,
+          ),
+        ],
+        directShapes: <TerrainSourceShapeDef>[
+          _namedRectangle('ground_a', left: 40, top: 40, right: 60, bottom: 60),
+          _namedRectangle('ground_b', left: 50, top: 50, right: 70, bottom: 70),
+        ],
+      );
+      final document = _document(
+        before,
+        downstreamChunks: <PrefabV3DownstreamChunk>[_downstreamChunk(chunk)],
+      );
+
+      final edited = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+          payload: <String, Object?>{
+            'prefabKey': 'target',
+            'commit': _commit(
+              before: before,
+              after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+            ),
+          },
+        ),
+      );
+
+      expect(edited, isNot(same(document)));
+    },
+  );
+
+  test('unreferenced Prefab edits do not acquire Chunk write authority', () {
+    final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+    final document = _document(
+      before,
+      downstreamChunks: <PrefabV3DownstreamChunk>[_downstreamChunk(_chunk())],
+    );
+
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+        payload: <String, Object?>{
+          'prefabKey': 'target',
+          'commit': _commit(
+            before: before,
+            after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+          ),
+        },
+      ),
+    );
+
+    expect(edited, isNot(same(document)));
+    expect((edited as PrefabV3Document).changedPrefabKeys, <String>['target']);
+  });
+
+  test(
+    'export rejects affected Chunk source drift before writing Prefabs',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'prefab_downstream_drift_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+      final chunk = _chunk(
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'target',
+            prefabKey: 'target',
+            x: 20,
+            y: 20,
+          ),
+        ],
+      );
+      final source = _downstreamChunk(chunk);
+      final document = _document(
+        before,
+        downstreamImpacts: <PrefabV3DownstreamImpact>[
+          PrefabV3DownstreamImpact(
+            prefabKey: 'target',
+            referencingChunkKeys: <String>['forest_test'],
+            placementCount: 1,
+          ),
+        ],
+        downstreamChunks: <PrefabV3DownstreamChunk>[source],
+      );
+      final edited = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+          payload: <String, Object?>{
+            'prefabKey': 'target',
+            'commit': _commit(
+              before: before,
+              after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+            ),
+          },
+        ),
+      );
+      expect(edited, isNot(same(document)));
+
+      final chunkFile = File('${root.path}/${source.sourcePath}')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('${source.baselineContents}\n');
+      expect(chunkFile.existsSync(), isTrue);
+
+      await expectLater(
+        plugin.exportToRepo(
+          EditorWorkspace(rootPath: root.path),
+          document: edited,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('changed after Prefab review'),
+          ),
+        ),
+      );
+      expect(
+        File('${root.path}/${PrefabStore.prefabDefsPath}').existsSync(),
+        isFalse,
+      );
+    },
+  );
+
+  test('export independently rechecks introduced downstream errors', () async {
+    final root = Directory.systemTemp.createTempSync(
+      'prefab_downstream_export_review_',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+    final chunk = _chunk(
+      placements: const <PlacedPrefabDef>[
+        PlacedPrefabDef(prefabId: 'target', prefabKey: 'target', x: 10, y: 10),
+      ],
+      directShapes: <TerrainSourceShapeDef>[
+        _namedRectangle('ground', left: 28, top: 12, right: 40, bottom: 28),
+      ],
+    );
+    final source = _downstreamChunk(chunk);
+    final original = _document(
+      before,
+      downstreamImpacts: <PrefabV3DownstreamImpact>[
+        PrefabV3DownstreamImpact(
+          prefabKey: 'target',
+          referencingChunkKeys: <String>['forest_test'],
+          placementCount: 1,
+        ),
+      ],
+      downstreamChunks: <PrefabV3DownstreamChunk>[source],
+    );
+    final candidateOwner = original.data.prefabs.single.copyWith(
+      revision: original.data.prefabs.single.revision + 1,
+      collisionShapes: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+    );
+    final candidate = original.copyWith(
+      data: original.data.copyWith(prefabs: <PrefabV3Def>[candidateOwner]),
+      changedPrefabKeys: const <String>['target'],
+    );
+    for (final entry in <String, String>{
+      PrefabStore.prefabDefsPath: original.prefabBaselineContents!,
+      PrefabStore.tileDefsPath: original.tileBaselineContents!,
+      source.sourcePath: source.baselineContents,
+    }.entries) {
+      File('${root.path}/${entry.key}')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(entry.value);
+    }
 
     await expectLater(
       plugin.exportToRepo(
         EditorWorkspace(rootPath: root.path),
-        document: edited,
+        document: candidate,
       ),
       throwsA(
-        isA<PrefabV3SaveException>().having(
-          (error) => error.code,
-          'code',
-          'prefab_v3_save_source_drift',
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('invalidate Chunk forest_test'),
         ),
       ),
     );
-    expect(root.listSync(recursive: true), isEmpty);
+    expect(
+      File('${root.path}/${PrefabStore.prefabDefsPath}').readAsStringSync(),
+      original.prefabBaselineContents,
+    );
   });
 }
 
-PrefabV3Document _document(Iterable<TerrainSourceShapeDef> shapes) {
+PrefabV3Document _document(
+  Iterable<TerrainSourceShapeDef> shapes, {
+  Iterable<PrefabV3DownstreamImpact> downstreamImpacts =
+      const <PrefabV3DownstreamImpact>[],
+  Iterable<PrefabV3DownstreamChunk> downstreamChunks =
+      const <PrefabV3DownstreamChunk>[],
+}) {
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[
       AtlasSliceDef(
@@ -943,6 +1221,8 @@ PrefabV3Document _document(Iterable<TerrainSourceShapeDef> shapes) {
         platformModules: const <TileModuleDef>[],
       ),
     ),
+    downstreamImpacts: downstreamImpacts,
+    downstreamChunks: downstreamChunks,
   );
 }
 
@@ -959,7 +1239,12 @@ PrefabV3Document _catalogDocument() {
         visualSource: const PrefabVisualSource.platformModule('module_a'),
         anchorXPx: 8,
         anchorYPx: 8,
-        collisionShapes: <TerrainSourceShapeDef>[_rectangle(right: 8)],
+        collisionShapes: <TerrainSourceShapeDef>[
+          _rectangle(
+            right: 8,
+            collisionMode: TerrainSourceCollisionMode.oneWay,
+          ),
+        ],
         tags: const <String>[],
       ),
     ],
@@ -1021,15 +1306,67 @@ TerrainPolygonInteractionCommit _commit({
   afterSelection: null,
 );
 
-TerrainSourceShapeDef _rectangle({int left = -8, required int right}) =>
-    TerrainSourceShapeDef(
-      shapeId: 'collision_001',
-      vertices: <TerrainSourceVertexDef>[
-        TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: -8),
-        TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: -8),
-        TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: 8),
-        TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: 8),
-      ],
+TerrainSourceShapeDef _rectangle({
+  int left = -8,
+  required int right,
+  TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
+}) => TerrainSourceShapeDef(
+  shapeId: 'collision_001',
+  collisionMode: collisionMode,
+  vertices: <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: 8),
+    TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: 8),
+  ],
+);
+
+TerrainSourceShapeDef _namedRectangle(
+  String shapeId, {
+  required int left,
+  required int top,
+  required int right,
+  required int bottom,
+}) => TerrainSourceShapeDef(
+  shapeId: shapeId,
+  vertices: <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: top),
+    TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: top),
+    TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: bottom),
+    TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: bottom),
+  ],
+);
+
+ChunkV2FileData _chunk({
+  int width = 100,
+  int height = 100,
+  Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
+  Iterable<TerrainSourceShapeDef> directShapes =
+      const <TerrainSourceShapeDef>[],
+}) => ChunkV2FileData(
+  chunkKey: 'forest_test',
+  id: 'forest_test',
+  revision: 1,
+  status: chunkStatusActive,
+  levelId: 'forest',
+  tileSize: 16,
+  width: width,
+  height: height,
+  difficulty: chunkDifficultyNormal,
+  assemblyGroupId: defaultChunkAssemblyGroupId,
+  tags: const <String>[],
+  tileLayers: const <TileLayerDef>[],
+  prefabs: placements,
+  markers: const <PlacedMarkerDef>[],
+  groundBandZIndex: 0,
+  collisionShapes: directShapes,
+);
+
+PrefabV3DownstreamChunk _downstreamChunk(ChunkV2FileData chunk) =>
+    PrefabV3DownstreamChunk(
+      data: chunk,
+      sourcePath: 'assets/authoring/level/chunks/${chunk.chunkKey}.json',
+      baselineContents: ChunkV2FileCodec.encode(chunk),
     );
 
 TerrainSourceShapeDef _selfIntersectingShape() => TerrainSourceShapeDef(

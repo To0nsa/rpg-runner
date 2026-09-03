@@ -354,12 +354,38 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
     }
     _integer(json['anchorXPx'], '$path.anchorXPx');
     _integer(json['anchorYPx'], '$path.anchorYPx');
-    _enum(json['kind'], const {
+    final kind = _enum(json['kind'], const {
       'obstacle',
       'platform',
       'decoration',
     }, '$path.kind');
     _tags(json['tags'], '$path.tags');
+    final collisionShapes = _shapes(
+      json['collisionShapes'],
+      '$path.collisionShapes',
+      allowRenderOnly: false,
+      requireWholePixels: true,
+    );
+    final requiredMode = kind == 'platform'
+        ? TerrainAuthoringPolygonMode.oneWay
+        : TerrainAuthoringPolygonMode.solid;
+    if (kind == 'decoration' && collisionShapes.isNotEmpty) {
+      throw FormatException(
+        '$path.collisionShapes must be empty when kind is decoration.',
+      );
+    }
+    for (
+      var shapeIndex = 0;
+      shapeIndex < collisionShapes.length;
+      shapeIndex += 1
+    ) {
+      if (collisionShapes[shapeIndex].collisionMode != requiredMode) {
+        throw FormatException(
+          '$path.collisionShapes[$shapeIndex].collisionMode must be '
+          '${kind == 'platform' ? 'oneWay' : 'solid'} when kind is $kind.',
+        );
+      }
+    }
     prefabs.add(
       PolygonTerrainPrefabSource(
         prefabKey: _string(json['prefabKey'], '$path.prefabKey'),
@@ -369,11 +395,7 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
           'active',
           'deprecated',
         }, '$path.status'),
-        kind: _enum(json['kind'], const {
-          'obstacle',
-          'platform',
-          'decoration',
-        }, '$path.kind'),
+        kind: kind,
         anchorXPx: _integer(json['anchorXPx'], '$path.anchorXPx'),
         anchorYPx: _integer(json['anchorYPx'], '$path.anchorYPx'),
         visualSource: PolygonTerrainPrefabVisualSource(
@@ -383,12 +405,7 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
             '$visualPath.${visualType == 'platform_module' ? 'moduleId' : 'sliceId'}',
           ),
         ),
-        collisionShapes: _shapes(
-          json['collisionShapes'],
-          '$path.collisionShapes',
-          allowRenderOnly: false,
-          requireWholePixels: true,
-        ),
+        collisionShapes: collisionShapes,
       ),
     );
   }
