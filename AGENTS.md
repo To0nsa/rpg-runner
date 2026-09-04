@@ -166,6 +166,12 @@ do not defer necessary technical or game-design documentation to a later task.
 ## Practical Guardrails
 
 - Prefer existing repo patterns before inventing new abstractions
+- Keep level source atlases under
+  `assets/images/level/atlases/<collection>/<sheet>.png`; use lowercase
+  snake_case and group by reusable visual collection rather than level ID;
+  Prefab and terrain-material authoring must reuse these canonical sources
+- Keep parallax PNGs under `assets/images/parallax/<theme>/<sheet>.png`; use
+  lowercase snake_case and `layer_NN.png` for ordered layer sheets
 - Keep generated files generated
 - Ignore unrelated dirty-worktree changes unless they conflict with the task
 - Do not weaken determinism, auth checks, or revision/idempotency rules to make a feature "work"

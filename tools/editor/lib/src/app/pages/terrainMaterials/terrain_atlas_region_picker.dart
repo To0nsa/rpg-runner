@@ -222,7 +222,7 @@ class _TerrainAtlasRegionPickerState extends State<_TerrainAtlasRegionPicker> {
               child: image == null
                   ? const Center(
                       child: Text(
-                        'No PNGs found under assets/images/terrain/.',
+                        'No PNGs found under assets/images/level/atlases/.',
                       ),
                     )
                   : !dimensionsValid

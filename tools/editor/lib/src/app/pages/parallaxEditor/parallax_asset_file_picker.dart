@@ -1,24 +1,14 @@
-import 'package:file_selector/file_selector.dart';
+import '../shared/editor_native_file_picker.dart';
 
-typedef ParallaxAssetFilePicker =
-    Future<String?> Function({required String initialDirectory});
-
-const XTypeGroup _parallaxImageTypeGroup = XTypeGroup(
-  label: 'Parallax images',
-  extensions: <String>['png', 'jpg', 'jpeg', 'webp'],
-);
+typedef ParallaxAssetFilePicker = EditorNativeFilePicker;
 
 /// Opens the platform file dialog for one parallax image.
 ///
 /// The page converts the returned absolute path into an authored
 /// workspace-relative path and rejects selections outside the workspace.
-Future<String?> pickParallaxAssetFilePath({
-  required String initialDirectory,
-}) async {
-  final file = await openFile(
-    acceptedTypeGroups: const <XTypeGroup>[_parallaxImageTypeGroup],
-    initialDirectory: initialDirectory,
-    confirmButtonText: 'Select',
-  );
-  return file?.path;
-}
+Future<String?> pickParallaxAssetFilePath({required String initialDirectory}) =>
+    pickEditorFilePath(
+      initialDirectory: initialDirectory,
+      typeLabel: 'Parallax images',
+      extensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
+    );

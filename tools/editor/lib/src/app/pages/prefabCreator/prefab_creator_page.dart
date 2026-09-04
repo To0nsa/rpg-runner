@@ -5,6 +5,7 @@ import '../../../session/editor_session_controller.dart';
 import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
+import 'atlas_slicer/atlas_image_file_picker.dart';
 import 'v3/prefab_polygon_workspace.dart';
 
 /// Current prefab-v3 editor route.
@@ -17,12 +18,16 @@ class PrefabCreatorPage extends StatefulWidget {
     super.key,
     required this.controller,
     this.initialPrefabKey,
+    this.atlasImageFilePicker = pickAtlasImageFilePath,
   });
 
   final EditorSessionController controller;
 
   /// Stable owner requested by guarded chunk-v2 collision navigation.
   final String? initialPrefabKey;
+
+  /// Native atlas-source picker, replaceable for deterministic widget tests.
+  final AtlasImageFilePicker atlasImageFilePicker;
 
   @override
   State<PrefabCreatorPage> createState() => _PrefabCreatorPageState();
@@ -134,6 +139,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
         key: _workspaceKey,
         controller: widget.controller,
         initialPrefabKey: widget.initialPrefabKey,
+        atlasImageFilePicker: widget.atlasImageFilePicker,
       );
     }
     if (widget.controller.isLoading) {

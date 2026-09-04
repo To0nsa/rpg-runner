@@ -7,6 +7,10 @@ import '../domain/authoring_identifiers.dart';
 import '../workspace/editor_workspace.dart';
 import 'parallax_domain_models.dart';
 
+final RegExp _parallaxAssetPathPattern = RegExp(
+  r'^assets/images/parallax/[a-z0-9]+(?:_[a-z0-9]+)*/[a-z0-9]+(?:_[a-z0-9]+)*\.png$',
+);
+
 List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
   final issues = <ValidationIssue>[
     ...document.loadIssues,
@@ -321,6 +325,19 @@ void _validateAssetPath(
         severity: ValidationSeverity.error,
         code: code,
         message: '$ownerLabel $fieldLabel must be a non-empty asset path.',
+        sourcePath: sourcePath,
+      ),
+    );
+    return;
+  }
+  if (normalized != value || !_parallaxAssetPathPattern.hasMatch(normalized)) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: code,
+        message:
+            '$ownerLabel $fieldLabel must use a lowercase snake_case path '
+            'beneath assets/images/parallax/<theme>/.',
         sourcePath: sourcePath,
       ),
     );

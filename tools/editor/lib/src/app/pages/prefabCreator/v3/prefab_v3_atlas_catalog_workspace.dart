@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../../atlas/atlas_grid.dart';
 import '../../../../atlas/atlas_grid_settings_cache.dart';
@@ -11,6 +15,8 @@ import '../../../../prefabs/domain/prefab_v3_catalog_commit.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../../../workspace/editor_workspace.dart';
+import '../atlas_slicer/atlas_image_file_picker.dart';
 import '../atlas_slicer/atlas_slicer_tab.dart';
 
 typedef _AtlasSliceDraft = ({
@@ -31,10 +37,12 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
     super.key,
     required this.controller,
     required this.document,
+    required this.atlasImageFilePicker,
   });
 
   final EditorSessionController controller;
   final PrefabV3Document document;
+  final AtlasImageFilePicker atlasImageFilePicker;
 
   @override
   State<PrefabV3AtlasCatalogWorkspace> createState() =>
@@ -129,7 +137,6 @@ class PrefabV3AtlasCatalogWorkspaceState
     return KeyedSubtree(
       key: ValueKey<String>('prefab_v3_atlas_form_$_formEpoch'),
       child: AtlasSlicerTab(
-        atlasImagePaths: document.atlasImagePaths,
         selectedAtlasPath: selectedPath,
         selectedSliceKind: kind,
         sliceIdController: _idController,
@@ -158,7 +165,7 @@ class PrefabV3AtlasCatalogWorkspaceState
             : _gridSettingsCache.settingsFor(selectedPath),
         horizontalScrollController: _horizontalScrollController,
         verticalScrollController: _verticalScrollController,
-        onSelectedAtlasChanged: (path) => _selectAtlas(document, path),
+        onBrowseAtlasSource: () => unawaited(_pickAtlasSource(document)),
         onSelectedSliceKindChanged: (nextKind) =>
             _selectKind(document, nextKind),
         onSelectedSliceChanged: (sliceId) =>
@@ -207,21 +214,18 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   void _initialize(PrefabV3Document document) {
     _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
-    _selectedPrefabSliceId = document.data.slices.firstOrNull?.id;
-    _selectedTileSliceId = document.tileData.tileSlices.firstOrNull?.id;
-    final selected = _findSlice(document.data.slices, _selectedPrefabSliceId);
-    final path =
-        selected?.sourceImagePath ?? document.atlasImagePaths.firstOrNull;
-    _atlasState = AtlasSelectionState(selectedSourcePath: path);
+    _atlasState = AtlasSelectionState(
+      selectedSourcePath: document.atlasImagePaths.firstOrNull,
+    );
     _syncSelectedDraft(document);
   }
 
   void _reconcile(PrefabV3Document document) {
-    _selectedPrefabSliceId = _retainedOrFirstId(
+    _selectedPrefabSliceId = _retainedId(
       document.data.slices,
       _selectedPrefabSliceId,
     );
-    _selectedTileSliceId = _retainedOrFirstId(
+    _selectedTileSliceId = _retainedId(
       document.tileData.tileSlices,
       _selectedTileSliceId,
     );
@@ -241,29 +245,90 @@ class PrefabV3AtlasCatalogWorkspaceState
     _syncSelectedDraft(document);
   }
 
-  void _selectAtlas(PrefabV3Document document, String? path) {
+  void _selectAtlas(String? path) {
     if (!_canNavigateCatalog()) return;
-    final slices = _slicesForKind(document, _selectedSliceKind);
-    final selected = slices
-        .where((slice) => slice.sourceImagePath == path)
-        .firstOrNull;
+    if (path == _atlasState.selectedSourcePath) return;
     setState(() {
       _atlasState = _atlasState.withSelectedSourcePath(path);
-      _setSelectedId(_selectedSliceKind, selected?.id);
-      _syncDraft(selected);
+      _setSelectedId(_selectedSliceKind, null);
+      _syncDraft(null);
     });
+  }
+
+  Future<void> _pickAtlasSource(PrefabV3Document document) async {
+    String? selectedPath;
+    try {
+      selectedPath = await widget.atlasImageFilePicker(
+        initialDirectory: _atlasPickerInitialDirectory(document),
+      );
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Could not open the atlas source selector.');
+      }
+      return;
+    }
+    if (!mounted || selectedPath == null) return;
+
+    final catalogPath = _catalogPathForAbsoluteSelection(
+      document,
+      selectedPath,
+    );
+    if (catalogPath == null) {
+      _showMessage('Choose a PNG from the current prefab atlas catalog.');
+      return;
+    }
+    _selectAtlas(catalogPath);
+  }
+
+  String _atlasPickerInitialDirectory(PrefabV3Document document) {
+    final workspace = EditorWorkspace(
+      rootPath: widget.controller.workspacePath,
+    );
+    final sourcePath =
+        _atlasState.selectedSourcePath ?? document.atlasImagePaths.firstOrNull;
+    if (sourcePath != null) {
+      try {
+        final parent = File(workspace.resolve(sourcePath)).parent;
+        if (parent.existsSync()) return parent.path;
+      } on ArgumentError {
+        // A stale catalog path falls back to the workspace root.
+      }
+    }
+    return workspace.rootPath;
+  }
+
+  String? _catalogPathForAbsoluteSelection(
+    PrefabV3Document document,
+    String selectedPath,
+  ) {
+    final absoluteSelection = p.normalize(p.absolute(selectedPath));
+    if (!File(absoluteSelection).existsSync()) return null;
+    final workspace = EditorWorkspace(
+      rootPath: widget.controller.workspacePath,
+    );
+    for (final catalogPath in document.atlasImagePaths) {
+      try {
+        if (p.equals(workspace.resolve(catalogPath), absoluteSelection)) {
+          return catalogPath;
+        }
+      } on ArgumentError {
+        // Ignore stale catalog entries that no longer resolve in the workspace.
+      }
+    }
+    return null;
   }
 
   void _selectKind(PrefabV3Document document, AtlasSliceKind kind) {
     if (!_canNavigateCatalog()) return;
     final slices = _slicesForKind(document, kind);
-    var selected = _findSlice(slices, _selectedId(kind));
-    selected ??= slices.firstOrNull;
+    final selected = _findSlice(slices, _selectedId(kind));
     setState(() {
       _setSelectedId(kind, selected?.id);
       _selectedSliceKind = kind;
       _atlasState = _atlasState.withSelectedSourcePath(
-        selected?.sourceImagePath ?? document.atlasImagePaths.firstOrNull,
+        selected?.sourceImagePath ??
+            _atlasState.selectedSourcePath ??
+            document.atlasImagePaths.firstOrNull,
       );
       _syncDraft(selected);
     });
@@ -344,7 +409,10 @@ class PrefabV3AtlasCatalogWorkspaceState
       y: rect.y,
       width: rect.width,
       height: rect.height,
-      tags: PrefabDeterminism.normalizeTags(_tagsController.text.split(',')),
+      tags: PrefabDeterminism.normalizeTags(<String>[
+        ..._tagsController.text.split(','),
+        _atlasSourceTag(path),
+      ]),
     );
     final current = _findSlice(
       _slicesForKind(document, _selectedSliceKind),
@@ -438,11 +506,10 @@ class PrefabV3AtlasCatalogWorkspaceState
     if (next == null) return;
     setState(() {
       final slices = _slicesForKind(next, kind);
-      final selected = slices
-          .where(
-            (slice) => slice.sourceImagePath == _atlasState.selectedSourcePath,
-          )
-          .firstOrNull;
+      final selected = _findSlice(
+        slices,
+        _retainedId(slices, _selectedId(kind)),
+      );
       _setSelectedId(kind, selected?.id);
       _syncDraft(selected);
     });
@@ -487,7 +554,9 @@ class PrefabV3AtlasCatalogWorkspaceState
   void _syncDraft(AtlasSliceDef? slice) {
     _runDraftSync(() {
       _idController.text = slice?.id ?? '';
-      _tagsController.text = slice?.tags.join(', ') ?? '';
+      _tagsController.text = slice == null
+          ? _atlasSourceTag(_atlasState.selectedSourcePath)
+          : slice.tags.join(', ');
       final rect = slice == null
           ? null
           : AtlasPixelRect(
@@ -504,6 +573,9 @@ class PrefabV3AtlasCatalogWorkspaceState
       _hasDraftChanges = false;
     });
   }
+
+  String _atlasSourceTag(String? sourcePath) =>
+      sourcePath == null ? '' : p.basenameWithoutExtension(sourcePath).trim();
 
   void _syncSelectionInputs(AtlasPixelRect? rect) {
     _runDraftSync(() {
@@ -578,11 +650,11 @@ AtlasSliceDef? _findSlice(Iterable<AtlasSliceDef> slices, String? id) {
   return null;
 }
 
-String? _retainedOrFirstId(Iterable<AtlasSliceDef> slices, String? currentId) {
+String? _retainedId(Iterable<AtlasSliceDef> slices, String? currentId) {
   if (currentId != null && slices.any((slice) => slice.id == currentId)) {
     return currentId;
   }
-  return slices.firstOrNull?.id;
+  return null;
 }
 
 bool _slicesEqual(AtlasSliceDef left, AtlasSliceDef right) =>

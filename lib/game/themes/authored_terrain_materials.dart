@@ -8,9 +8,9 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
       'grass_dirt': TerrainMaterialSpec(
         key: 'grass_dirt',
         displayName: 'Grass / Dirt',
-        revision: 10,
+        revision: 11,
         fill: TerrainMaterialImageRegionSpec(
-          assetPath: 'terrain/tx_tileset_ground/atlas.png',
+          assetPath: 'level/atlases/tiny_swords/ground.png',
           x: 224,
           y: 192,
           width: 32,
@@ -19,7 +19,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         top: TerrainMaterialEdgeProfileSpec(
           base: TerrainMaterialEdgeLayerSpec(
             region: TerrainMaterialImageRegionSpec(
-              assetPath: 'terrain/tx_tileset_ground/atlas.png',
+              assetPath: 'level/atlases/tiny_swords/ground.png',
               x: 32,
               y: 1,
               width: 32,
@@ -31,7 +31,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         leftWall: TerrainMaterialEdgeProfileSpec(
           base: TerrainMaterialEdgeLayerSpec(
             region: TerrainMaterialImageRegionSpec(
-              assetPath: 'terrain/tx_tileset_ground/atlas.png',
+              assetPath: 'level/atlases/tiny_swords/ground.png',
               x: 193,
               y: 192,
               width: 31,
@@ -43,7 +43,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         rightWall: TerrainMaterialEdgeProfileSpec(
           base: TerrainMaterialEdgeLayerSpec(
             region: TerrainMaterialImageRegionSpec(
-              assetPath: 'terrain/tx_tileset_ground/atlas.png',
+              assetPath: 'level/atlases/tiny_swords/ground.png',
               x: 256,
               y: 192,
               width: 31,
@@ -55,7 +55,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         underside: TerrainMaterialEdgeProfileSpec(
           base: TerrainMaterialEdgeLayerSpec(
             region: TerrainMaterialImageRegionSpec(
-              assetPath: 'terrain/tx_tileset_ground/atlas.png',
+              assetPath: 'level/atlases/tiny_swords/ground.png',
               x: 32,
               y: 64,
               width: 32,
@@ -66,7 +66,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         ),
         topStartCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
-            assetPath: 'terrain/tx_tileset_ground/atlas.png',
+            assetPath: 'level/atlases/tiny_swords/ground.png',
             x: 0,
             y: 1,
             width: 32,
@@ -77,7 +77,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         ),
         topEndCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
-            assetPath: 'terrain/tx_tileset_ground/atlas.png',
+            assetPath: 'level/atlases/tiny_swords/ground.png',
             x: 64,
             y: 1,
             width: 32,
@@ -88,7 +88,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         ),
         undersideStartCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
-            assetPath: 'terrain/tx_tileset_ground/atlas.png',
+            assetPath: 'level/atlases/tiny_swords/ground.png',
             x: 64,
             y: 64,
             width: 32,
@@ -99,7 +99,7 @@ const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
         ),
         undersideEndCap: TerrainMaterialCapSpec(
           region: TerrainMaterialImageRegionSpec(
-            assetPath: 'terrain/tx_tileset_ground/atlas.png',
+            assetPath: 'level/atlases/tiny_swords/ground.png',
             x: 0,
             y: 64,
             width: 32,

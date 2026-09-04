@@ -26,6 +26,11 @@ Generated Dart is output and is never an authoring input. In particular,
 `packages/runner_core/lib/levels/level_registry.dart` is not consulted to admit
 the authored Level/Parallax pair or to regenerate the Parallax registry.
 
+Parallax PNGs use `assets/images/parallax/<theme>/<sheet>.png`. Theme and sheet
+names are lowercase snake_case, and sequential source layers use zero-padded
+`layer_NN.png` names. The visual-theme ID remains independent of a folder name,
+so multiple levels can reuse the same authored theme and asset collection.
+
 ## Identity Contract
 
 Level IDs and visual-theme IDs use the shared editor grammar:

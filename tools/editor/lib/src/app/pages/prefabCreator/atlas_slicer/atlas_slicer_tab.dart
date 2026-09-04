@@ -18,7 +18,6 @@ import '../../shared/editor_zoom_controls.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
-import '../shared/ui/prefab_editor_mode_banner.dart';
 import '../shared/ui/prefab_editor_panel_summary.dart';
 import '../shared/ui/prefab_editor_row_metadata.dart';
 import '../shared/ui/prefab_editor_scene_header.dart';
@@ -28,7 +27,6 @@ import '../shared/ui/prefab_editor_three_panel_layout.dart';
 class AtlasSlicerTab extends StatefulWidget {
   const AtlasSlicerTab({
     super.key,
-    required this.atlasImagePaths,
     required this.selectedAtlasPath,
     required this.selectedSliceKind,
     required this.sliceIdController,
@@ -53,7 +51,7 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.gridSettings,
     required this.horizontalScrollController,
     required this.verticalScrollController,
-    required this.onSelectedAtlasChanged,
+    required this.onBrowseAtlasSource,
     required this.onSelectedSliceKindChanged,
     required this.onSelectedSliceChanged,
     required this.onAtlasZoomChanged,
@@ -66,7 +64,6 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.hasLocalDraftChanges,
   });
 
-  final List<String> atlasImagePaths;
   final String? selectedAtlasPath;
   final AtlasSliceKind selectedSliceKind;
   final TextEditingController sliceIdController;
@@ -91,7 +88,7 @@ class AtlasSlicerTab extends StatefulWidget {
   final AtlasGridSettings gridSettings;
   final ScrollController horizontalScrollController;
   final ScrollController verticalScrollController;
-  final ValueChanged<String?> onSelectedAtlasChanged;
+  final VoidCallback onBrowseAtlasSource;
   final ValueChanged<AtlasSliceKind> onSelectedSliceKindChanged;
   final ValueChanged<String> onSelectedSliceChanged;
   final ValueChanged<double> onAtlasZoomChanged;
@@ -131,29 +128,6 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: widget.sliceIdController,
-            builder: (context, value, _) {
-              final id = value.text.trim();
-              final editing = widget.existingSliceIds.contains(id);
-              return PrefabEditorModeBanner(
-                bannerKey: const ValueKey<String>('atlas_slice_mode_banner'),
-                title: editing
-                    ? 'Editing ${_sliceKindDisplayName.toLowerCase()} slice '
-                          '"$id"'
-                    : 'Creating a new '
-                          '${_sliceKindDisplayName.toLowerCase()} slice',
-                details: editing
-                    ? 'The visual row, atlas overlay, and fields share this '
-                          'slice selection.'
-                    : 'Choose a unique ID and source rectangle before saving.',
-                tone: editing
-                    ? PrefabEditorModeTone.edit
-                    : PrefabEditorModeTone.create,
-              );
-            },
-          ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
           EditorSectionCard(
             key: const ValueKey<String>('atlas_slice_setup_section'),
             expansionKey: const ValueKey<String>(
@@ -167,21 +141,24 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropdownButtonFormField<String>(
+                TextFormField(
                   key: ValueKey<String?>(
                     'atlas_${widget.selectedAtlasPath ?? 'none'}',
                   ),
                   initialValue: widget.selectedAtlasPath,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
+                  readOnly: true,
+                  onTap: widget.onBrowseAtlasSource,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
                     labelText: 'Atlas/Tileset Source',
+                    hintText: 'Select a PNG atlas or tileset',
+                    suffixIcon: IconButton(
+                      key: const ValueKey<String>('atlas_source_file_picker'),
+                      tooltip: 'Browse atlas or tileset PNGs',
+                      onPressed: widget.onBrowseAtlasSource,
+                      icon: const Icon(Icons.folder_open_outlined),
+                    ),
                   ),
-                  items: [
-                    for (final path in widget.atlasImagePaths)
-                      DropdownMenuItem<String>(value: path, child: Text(path)),
-                  ],
-                  onChanged: widget.onSelectedAtlasChanged,
                 ),
                 const SizedBox(height: EditorUiTokens.controlGap),
                 DropdownButtonFormField<AtlasSliceKind>(
@@ -230,6 +207,8 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     labelText: 'Slice Tags (comma separated)',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
                     hintText: 'obstacle, decoration, wall, ground',
+                    helperText:
+                        'The atlas filename tag is added automatically.',
                   ),
                 ),
               ],

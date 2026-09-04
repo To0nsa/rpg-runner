@@ -4241,7 +4241,7 @@ Future<_Harness> _buildHarness({
         layers: <ParallaxLayerDef>[
           ParallaxLayerDef(
             layerKey: 'forest_background',
-            assetPath: 'assets/images/parallax/forest/Forest Layer 01.png',
+            assetPath: 'assets/images/parallax/forest/layer_01.png',
             group: parallaxGroupBackground,
             parallaxFactor: 0.1,
             zOrder: 1,
@@ -4250,7 +4250,7 @@ Future<_Harness> _buildHarness({
           ),
           ParallaxLayerDef(
             layerKey: 'forest_foreground',
-            assetPath: 'assets/images/parallax/forest/Forest Layer 04.png',
+            assetPath: 'assets/images/parallax/forest/layer_04.png',
             group: parallaxGroupForeground,
             parallaxFactor: 1,
             zOrder: 2,

@@ -8,14 +8,14 @@ void main() {
     expect(
       theme.backgroundLayers.map((layer) => layer.assetPath).toList(),
       <String>[
-        'parallax/field/Field Layer 01.png',
-        'parallax/field/Field Layer 02.png',
-        'parallax/field/Field Layer 03.png',
-        'parallax/field/Field Layer 04.png',
-        'parallax/field/Field Layer 05.png',
-        'parallax/field/Field Layer 06.png',
-        'parallax/field/Field Layer 07.png',
-        'parallax/field/Field Layer 08.png',
+        'parallax/field/layer_01.png',
+        'parallax/field/layer_02.png',
+        'parallax/field/layer_03.png',
+        'parallax/field/layer_04.png',
+        'parallax/field/layer_05.png',
+        'parallax/field/layer_06.png',
+        'parallax/field/layer_07.png',
+        'parallax/field/layer_08.png',
       ],
     );
     expect(theme.foregroundLayers, isEmpty);

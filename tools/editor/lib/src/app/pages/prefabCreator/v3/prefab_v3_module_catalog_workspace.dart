@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../../prefabs/domain/prefab_platform_pairing.dart';
 import '../../../../prefabs/domain/prefab_v3_catalog_commit.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
@@ -19,10 +20,12 @@ class PrefabV3ModuleCatalogWorkspace extends StatefulWidget {
     super.key,
     required this.controller,
     required this.document,
+    required this.onEditCollision,
   });
 
   final EditorSessionController controller;
   final PrefabV3Document document;
+  final ValueChanged<String> onEditCollision;
 
   @override
   State<PrefabV3ModuleCatalogWorkspace> createState() =>
@@ -91,6 +94,13 @@ class PrefabV3ModuleCatalogWorkspaceState
       selectedTileSliceId: _selectedTileSliceId,
       selectedModuleSceneTool: _tool,
       workspaceRootPath: widget.controller.workspacePath,
+      prefabCountByModuleId: <String, int>{
+        for (final module in document.tileData.platformModules)
+          module.id: PrefabPlatformPairing.ownersForModule(
+            document.data,
+            module.id,
+          ).length,
+      },
       onUpsertModule: () => _upsert(document),
       onStartNewEmptyModule: _startNew,
       onRenameSelectedModule: () => _rename(document),
@@ -114,6 +124,7 @@ class PrefabV3ModuleCatalogWorkspaceState
       onDeleteModule: (id) => _deleteModule(document, id),
       onDeleteModuleCell: (id, index) =>
           _deleteCell(document, moduleId: id, cellIndex: index),
+      onEditCollision: widget.onEditCollision,
       hasLocalDraftChanges: _hasDraftChanges,
     );
   }
@@ -422,20 +433,45 @@ class PrefabV3ModuleCatalogWorkspaceState
       _showMessage('Apply or undo the module form before deleting.');
       return;
     }
-    final references = document.data.prefabs
-        .where(
-          (prefab) => prefab.usesPlatformModule && prefab.moduleId == moduleId,
-        )
-        .map((prefab) => prefab.id)
-        .toList(growable: false);
-    if (references.isNotEmpty) {
+    final references = PrefabPlatformPairing.ownersForModule(
+      document.data,
+      moduleId,
+    );
+    if (references.length > 1) {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text('Cannot delete $moduleId'),
           content: Text(
-            'Reassign or remove these prefabs first: '
-            '${references.join(', ')}.',
+            'This platform has multiple prefab variants. Reassign or remove '
+            'them first: ${references.map((prefab) => prefab.id).join(', ')}.',
+          ),
+          actions: <Widget>[
+            FilledButton(
+              key: const ValueKey<String>('prefab_v3_module_delete_blocked'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final paired = references.firstOrNull;
+    final impact = paired == null
+        ? null
+        : document.downstreamImpacts
+              .where((entry) => entry.prefabKey == paired.prefabKey)
+              .firstOrNull;
+    if ((impact?.placementCount ?? 0) > 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Cannot delete $moduleId'),
+          content: Text(
+            'Remove ${impact!.placementCount} placement(s) from '
+            '${impact.referencingChunkKeys.length} chunk(s) before deleting '
+            'this platform.',
           ),
           actions: <Widget>[
             FilledButton(
@@ -451,8 +487,13 @@ class PrefabV3ModuleCatalogWorkspaceState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete module $moduleId?'),
-        content: const Text('This removes the unreferenced retained module.'),
+        title: Text('Delete platform $moduleId?'),
+        content: Text(
+          paired == null
+              ? 'This removes the platform visual composition.'
+              : 'This removes the platform visual and its paired collision '
+                    'prefab ${paired.id}.',
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -461,7 +502,7 @@ class PrefabV3ModuleCatalogWorkspaceState
           FilledButton(
             key: const ValueKey<String>('prefab_v3_module_delete_confirm'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete module'),
+            child: const Text('Delete platform'),
           ),
         ],
       ),
@@ -469,7 +510,10 @@ class PrefabV3ModuleCatalogWorkspaceState
     if (confirmed != true || !mounted) return;
     final next = _dispatch(
       document,
-      PrefabV3DeleteModuleOperation(moduleId: moduleId),
+      PrefabV3DeleteModuleOperation(
+        moduleId: moduleId,
+        pairedPrefabKey: paired?.prefabKey,
+      ),
     );
     if (next == null) return;
     setState(() {

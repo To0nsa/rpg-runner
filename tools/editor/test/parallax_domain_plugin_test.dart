@@ -36,30 +36,26 @@ void main() {
       parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
     );
 
-    final created =
-        plugin.applyEdit(
-              document,
-              AuthoringCommand(
-                kind: 'create_layer',
-                payload: const <String, Object?>{
-                  'group': parallaxGroupForeground,
-                  'assetPath': 'assets/images/parallax/field/fg_10.png',
-                },
-              ),
-            )
-            as ParallaxDefsDocument;
+    final created = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: 'create_layer',
+        payload: const <String, Object?>{
+          'group': parallaxGroupForeground,
+          'assetPath': 'assets/images/parallax/field/fg_10.png',
+        },
+      ),
+    ) as ParallaxDefsDocument;
     expect(created.themes.single.revision, 2);
     expect(created.themes.single.layers, hasLength(2));
 
-    final duplicated =
-        plugin.applyEdit(
-              created,
-              AuthoringCommand(
-                kind: 'duplicate_layer',
-                payload: const <String, Object?>{'layerKey': 'field_bg_10'},
-              ),
-            )
-            as ParallaxDefsDocument;
+    final duplicated = plugin.applyEdit(
+      created,
+      AuthoringCommand(
+        kind: 'duplicate_layer',
+        payload: const <String, Object?>{'layerKey': 'field_bg_10'},
+      ),
+    ) as ParallaxDefsDocument;
     expect(duplicated.themes.single.revision, 3);
     expect(duplicated.themes.single.layers, hasLength(3));
 
@@ -70,20 +66,18 @@ void main() {
               layer.group == parallaxGroupBackground,
         )
         .layerKey;
-    final updated =
-        plugin.applyEdit(
-              duplicated,
-              AuthoringCommand(
-                kind: 'update_layer',
-                payload: <String, Object?>{
-                  'layerKey': duplicateKey,
-                  'nextLayerKey': 'field_bg_20',
-                  'zOrder': 20,
-                  'opacity': '0.5',
-                },
-              ),
-            )
-            as ParallaxDefsDocument;
+    final updated = plugin.applyEdit(
+      duplicated,
+      AuthoringCommand(
+        kind: 'update_layer',
+        payload: <String, Object?>{
+          'layerKey': duplicateKey,
+          'nextLayerKey': 'field_bg_20',
+          'zOrder': 20,
+          'opacity': '0.5',
+        },
+      ),
+    ) as ParallaxDefsDocument;
     expect(updated.themes.single.revision, 4);
     expect(
       updated.themes.single.layers.any(
@@ -92,18 +86,16 @@ void main() {
       isTrue,
     );
 
-    final reordered =
-        plugin.applyEdit(
-              updated,
-              AuthoringCommand(
-                kind: 'reorder_layer',
-                payload: const <String, Object?>{
-                  'layerKey': 'field_bg_20',
-                  'direction': -1,
-                },
-              ),
-            )
-            as ParallaxDefsDocument;
+    final reordered = plugin.applyEdit(
+      updated,
+      AuthoringCommand(
+        kind: 'reorder_layer',
+        payload: const <String, Object?>{
+          'layerKey': 'field_bg_20',
+          'direction': -1,
+        },
+      ),
+    ) as ParallaxDefsDocument;
     expect(reordered.themes.single.revision, 5);
     final backgroundLayers = reordered.themes.single.layers
         .where((layer) => layer.group == parallaxGroupBackground)
@@ -112,15 +104,13 @@ void main() {
     expect(backgroundLayers.first.zOrder, 10);
     expect(backgroundLayers.last.zOrder, 20);
 
-    final removed =
-        plugin.applyEdit(
-              reordered,
-              AuthoringCommand(
-                kind: 'remove_layer',
-                payload: const <String, Object?>{'layerKey': 'field_bg_20'},
-              ),
-            )
-            as ParallaxDefsDocument;
+    final removed = plugin.applyEdit(
+      reordered,
+      AuthoringCommand(
+        kind: 'remove_layer',
+        payload: const <String, Object?>{'layerKey': 'field_bg_20'},
+      ),
+    ) as ParallaxDefsDocument;
     expect(removed.themes.single.revision, 6);
     expect(
       removed.themes.single.layers.any(
@@ -170,9 +160,9 @@ void main() {
         parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
       );
 
-      final codes = validateParallaxDocument(
-        document,
-      ).map((issue) => issue.code).toSet();
+      final codes = validateParallaxDocument(document)
+          .map((issue) => issue.code)
+          .toSet();
 
       expect(codes, contains('invalid_revision'));
       expect(codes, contains('duplicate_layer_key'));
@@ -185,6 +175,49 @@ void main() {
     } finally {
       root.deleteSync(recursive: true);
     }
+  });
+
+  test('validation rejects a noncanonical parallax asset path', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'parallax_asset_path_validation_',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    const legacyPath =
+        'assets/images/parallax/dark-forest/Mysterious Layer 01.png';
+    final image = File('${root.path}/$legacyPath');
+    image.parent.createSync(recursive: true);
+    image.writeAsBytesSync(const <int>[0]);
+
+    final document = ParallaxDefsDocument(
+      workspaceRootPath: root.path,
+      themes: const <ParallaxThemeDef>[
+        ParallaxThemeDef(
+          parallaxThemeId: 'field',
+          revision: 1,
+          layers: <ParallaxLayerDef>[
+            ParallaxLayerDef(
+              layerKey: 'field_bg',
+              assetPath: legacyPath,
+              group: parallaxGroupBackground,
+              parallaxFactor: 0.2,
+              zOrder: 10,
+              opacity: 1,
+              yOffset: 0,
+            ),
+          ],
+        ),
+      ],
+      baseline: null,
+      availableLevelIds: const <String>['field'],
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
+    );
+
+    expect(
+      validateParallaxDocument(document).map((issue) => issue.code),
+      contains('invalid_layer_asset_path'),
+    );
   });
 
   test('setting a shared Y offset replaces every active-theme layer value', () {
@@ -224,15 +257,13 @@ void main() {
       parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
     );
 
-    final updated =
-        plugin.applyEdit(
-              document,
-              AuthoringCommand(
-                kind: 'set_active_theme_y_offsets',
-                payload: <String, Object?>{'yOffset': 0},
-              ),
-            )
-            as ParallaxDefsDocument;
+    final updated = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: 'set_active_theme_y_offsets',
+        payload: <String, Object?>{'yOffset': 0},
+      ),
+    ) as ParallaxDefsDocument;
 
     expect(updated.themes.single.revision, 5);
     expect(updated.themes.single.layers.map((layer) => layer.yOffset), <double>[
@@ -271,15 +302,13 @@ void main() {
         parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
       );
 
-      final rejected =
-          plugin.applyEdit(
-                document,
-                AuthoringCommand(
-                  kind: 'set_active_theme_y_offsets',
-                  payload: <String, Object?>{'yOffset': maxAbsYOffset + 1},
-                ),
-              )
-              as ParallaxDefsDocument;
+      final rejected = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: 'set_active_theme_y_offsets',
+          payload: <String, Object?>{'yOffset': maxAbsYOffset + 1},
+        ),
+      ) as ParallaxDefsDocument;
 
       expect(rejected.themes.single, document.themes.single);
       expect(

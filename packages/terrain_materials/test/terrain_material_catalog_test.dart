@@ -11,7 +11,7 @@ void main() {
       "displayName": "Grass / Dirt",
       "revision": 1,
       "fill": {
-        "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+        "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
         "x": 32,
         "y": 32,
         "width": 32,
@@ -20,7 +20,7 @@ void main() {
       "top": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
             "x": 32,
             "y": 0,
             "width": 32,
@@ -31,7 +31,7 @@ void main() {
       },
       "topStartCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
           "x": 0,
           "y": 0,
           "width": 32,
@@ -42,7 +42,7 @@ void main() {
       },
       "topEndCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
           "x": 64,
           "y": 0,
           "width": 32,
@@ -72,9 +72,10 @@ void main() {
   });
 
   test('catalog ordering and numeric encoding are canonical', () {
-    final original = decodeTerrainMaterialCatalog(
-      source,
-    ).catalog!.materials.single;
+    final original = decodeTerrainMaterialCatalog(source)
+        .catalog!
+        .materials
+        .single;
     final catalog = TerrainMaterialCatalog(
       materials: <TerrainMaterialDefinition>[
         original.copyWith(key: 'stone', displayName: 'Stone'),
@@ -91,9 +92,10 @@ void main() {
   });
 
   test('region traversal deduplicates identities and paths stably', () {
-    final material = decodeTerrainMaterialCatalog(
-      source,
-    ).catalog!.materials.single;
+    final material = decodeTerrainMaterialCatalog(source)
+        .catalog!
+        .materials
+        .single;
 
     expect(terrainMaterialRegions(material), <TerrainMaterialImageRegion>[
       material.fill,
@@ -102,7 +104,7 @@ void main() {
       material.topEndCap!.region,
     ]);
     expect(terrainMaterialAssetPaths(material), <String>[
-      'assets/images/terrain/tx_tileset_ground/atlas.png',
+      'assets/images/level/atlases/tx_tileset_ground/atlas.png',
     ]);
   });
 
@@ -146,7 +148,7 @@ void main() {
       '''"leftWall": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
             "x": 0,
             "y": 0,
             "width": 12,
@@ -183,7 +185,7 @@ void main() {
       '''"underside": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
             "x": 32,
             "y": 64,
             "width": 32,
@@ -194,7 +196,7 @@ void main() {
       },
       "undersideStartCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
           "x": 64,
           "y": 64,
           "width": 32,
@@ -205,7 +207,7 @@ void main() {
       },
       "undersideEndCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
           "x": 0,
           "y": 64,
           "width": 32,
@@ -236,14 +238,14 @@ void main() {
     final withoutProfile = decodeTerrainMaterialCatalog(
       source.replaceFirst('"topStartCap": {', '''"undersideStartCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
           "x": 64, "y": 64, "width": 32, "height": 32
         },
         "anchorX": 0, "anchorY": 0
       },
       "undersideEndCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tx_tileset_ground/atlas.png",
           "x": 0, "y": 64, "width": 32, "height": 32
         },
         "anchorX": 32, "anchorY": 0
@@ -271,10 +273,10 @@ void main() {
       "key": "legacy",
       "displayName": "Legacy",
       "revision": 1,
-      "fillAssetPath": "assets/images/terrain/legacy/fill.png",
+      "fillAssetPath": "assets/images/level/atlases/legacy/fill.png",
       "top": {
         "base": {
-          "assetPath": "assets/images/terrain/legacy/top.png",
+          "assetPath": "assets/images/level/atlases/legacy/top.png",
           "anchorY": 0
         }
       }
@@ -298,16 +300,16 @@ void main() {
   test('invalid region numbers and non-normalized paths fail closed', () {
     for (final path in <String>[
       r'assets\\images\\terrain\\atlas.png',
-      'assets/images/terrain/bad path/atlas.png',
-      'assets/images/terrain//atlas.png',
-      'assets/images/terrain/./atlas.png',
-      'assets/images/terrain/../atlas.png',
-      '/assets/images/terrain/atlas.png',
-      'assets/images/terrain/atlas.PNG',
+      'assets/images/level/atlases/bad path/atlas.png',
+      'assets/images/level/atlases//atlas.png',
+      'assets/images/level/atlases/./atlas.png',
+      'assets/images/level/atlases/../atlas.png',
+      '/assets/images/level/atlases/atlas.png',
+      'assets/images/level/atlases/atlas.PNG',
     ]) {
       final result = decodeTerrainMaterialCatalog(
         source.replaceFirst(
-          'assets/images/terrain/tx_tileset_ground/atlas.png',
+          'assets/images/level/atlases/tx_tileset_ground/atlas.png',
           path,
         ),
       );

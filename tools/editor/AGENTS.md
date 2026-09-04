@@ -99,6 +99,18 @@ reading five other files first.
   - `tools/editor/lib/src/app/pages/home/editor_home_page.dart`
 - shared scene/view primitives:
   - `tools/editor/lib/src/app/pages/shared/**`
+- shared owner-draft and pending-resolution contracts:
+  - `tools/editor/lib/src/app/pages/shared/editor_owner_draft_state.dart`
+  - `tools/editor/lib/src/app/pages/shared/editor_pending_changes_dialog.dart`
+- large route coordinators and their typed presentation siblings:
+  - `tools/editor/lib/src/app/pages/prefabCreator/v3/prefab_polygon_workspace.dart`
+  - `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart`
+  - `tools/editor/lib/src/app/pages/levelCreator/level_creator_page.dart`
+
+Keep selection guards, controller binding, gestures, draft resolution, and
+command dispatch in those coordinator files. Put bounded, callback-driven
+layout, catalog, preview, and painter presentation beside the owning route;
+only genuinely domain-neutral workflow state belongs under `pages/shared/`.
 
 Page widgets may own transient UI state such as selection, tool mode, tab
 state, viewport state, and form drafts. Repository load/validate/export
@@ -193,6 +205,11 @@ maintainability concerns.
   Prefab parsing belongs to the explicit offline polygon migration command
 - persist through `PrefabStore` so canonical ordering and atomic paired writes
   stay consistent
+- present authored platform modules and their gameplay Prefabs as one Platform
+  workflow: bounded modules receive a deterministic paired collision owner,
+  while `tile_defs.json` and `prefab_defs.json` remain separate internal
+  sources and ambiguous multi-Prefab module relationships are never rewritten
+  by guesswork
 - page-local form and scene state may stay in `prefabCreator/**`, but
   load/validate/export contracts still flow through the prefab plugin/store path
 - validation is structural and contract-oriented; keep obstacle/platform
@@ -221,7 +238,8 @@ maintainability concerns.
 - plugin: `TerrainMaterialDomainPlugin`
 - source-of-truth file:
   `assets/authoring/level/terrain_material_defs.json`
-- source-image root: `assets/images/terrain/**`
+- source-image root: `assets/images/level/atlases/**`; terrain reuses the
+  canonical level source atlases instead of maintaining terrain-only copies
 - the manifest uses strict schema v3 explicit image regions and paired top and
   underside endpoint/corner caps; normal editor code must not accept older
   schemas or add a migration fallback
@@ -255,6 +273,8 @@ maintainability concerns.
   `tools/editor/lib/src/app/pages/parallaxEditor/**`
 - plugin: `ParallaxDomainPlugin`
 - source-of-truth file: `assets/authoring/level/parallax_defs.json`
+- source images: `assets/images/parallax/<theme>/<sheet>.png`; theme and sheet
+  names use lowercase snake_case, and ordered layer sheets use `layer_NN.png`
 - parallax themes are visual-only render data keyed by stable `parallaxThemeId`
 - active level selection resolves the current `parallaxThemeId` via
   authored `assets/authoring/level/level_defs.json`; generated runtime

@@ -127,7 +127,7 @@ TerrainSourceShapeDef _shape({
 );
 
 const _region = TerrainMaterialImageRegion(
-  assetPath: 'assets/images/terrain/test.png',
+  assetPath: 'assets/images/level/atlases/test/atlas.png',
   x: 0,
   y: 0,
   width: 32,

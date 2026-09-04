@@ -602,7 +602,7 @@ void main() {
       expect(parallaxOutput, isNot(contains('groundMaterialAssetPath')));
       expect(
         parallaxOutput,
-        contains("assetPath: 'parallax/field/Field Layer 01.png'"),
+        contains("assetPath: 'parallax/field/layer_01.png'"),
       );
     } finally {
       fixtureRoot.deleteSync(recursive: true);
@@ -625,7 +625,7 @@ void main() {
   "slices": [
     {
       "id": "rock_slice",
-      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
       "x": 0,
       "y": 0,
       "width": 32,
@@ -760,7 +760,7 @@ void main() {
   "slices": [
     {
       "id": "bridge_slice",
-      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
       "x": 0,
       "y": 0,
       "width": 32,
@@ -947,9 +947,9 @@ void main() {
         isNot(contains('LevelAssemblyRenderThemeMode')),
       );
       expect(
-        RegExp(
-          r'assembly: const LevelAssemblyDefinition\(',
-        ).allMatches(levelRegistryOutput).length,
+        RegExp(r'assembly: const LevelAssemblyDefinition\(')
+            .allMatches(levelRegistryOutput)
+            .length,
         1,
       );
     } finally {
@@ -1042,7 +1042,7 @@ void _writePrefabAndTileDefs(String rootPath) {
   "slices": [
     {
       "id": "grass_slice",
-      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
       "x": 0,
       "y": 0,
       "width": 32,
@@ -1085,7 +1085,7 @@ void _writeTerrainMaterialDefs(String rootPath) {
       "displayName": "Grass / Dirt",
       "revision": 1,
       "fill": {
-        "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+        "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
         "x": 32,
         "y": 32,
         "width": 32,
@@ -1094,7 +1094,7 @@ void _writeTerrainMaterialDefs(String rootPath) {
       "top": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
             "x": 32,
             "y": 0,
             "width": 32,
@@ -1108,7 +1108,7 @@ void _writeTerrainMaterialDefs(String rootPath) {
 }
 ''');
   for (final path in const <String>[
-    'assets/images/terrain/tx_tileset_ground/atlas.png',
+    'assets/images/level/atlases/tiny_swords/ground.png',
   ]) {
     final source = File(
       _joinPath(<String>[Directory.current.path, ...path.split('/')]),
@@ -1222,7 +1222,7 @@ void _writeParallaxDefs(String rootPath) {
       "layers": [
         {
           "layerKey": "field_bg_01",
-          "assetPath": "assets/images/parallax/field/Field Layer 01.png",
+          "assetPath": "assets/images/parallax/field/layer_01.png",
           "group": "background",
           "parallaxFactor": 0.1,
           "zOrder": 10,
@@ -1231,7 +1231,7 @@ void _writeParallaxDefs(String rootPath) {
         },
         {
           "layerKey": "field_fg_10",
-          "assetPath": "assets/images/parallax/field/Field Layer 10.png",
+          "assetPath": "assets/images/parallax/field/layer_10.png",
           "group": "foreground",
           "parallaxFactor": 1,
           "zOrder": 10,
@@ -1246,7 +1246,7 @@ void _writeParallaxDefs(String rootPath) {
       "layers": [
         {
           "layerKey": "forest_bg_01",
-          "assetPath": "assets/images/parallax/forest/Forest Layer 01.png",
+          "assetPath": "assets/images/parallax/forest/layer_01.png",
           "group": "background",
           "parallaxFactor": 0.1,
           "zOrder": 10,
@@ -1255,7 +1255,7 @@ void _writeParallaxDefs(String rootPath) {
         },
         {
           "layerKey": "forest_fg_10",
-          "assetPath": "assets/images/parallax/forest/Forest Layer 10.png",
+          "assetPath": "assets/images/parallax/forest/layer_10.png",
           "group": "foreground",
           "parallaxFactor": 1,
           "zOrder": 10,
@@ -1269,12 +1269,12 @@ void _writeParallaxDefs(String rootPath) {
 ''');
 
   for (final relativePath in <String>[
-    'assets/images/parallax/field/Field Layer 01.png',
-    'assets/images/parallax/field/Field Layer 09.png',
-    'assets/images/parallax/field/Field Layer 10.png',
-    'assets/images/parallax/forest/Forest Layer 01.png',
-    'assets/images/parallax/forest/Forest Layer 09.png',
-    'assets/images/parallax/forest/Forest Layer 10.png',
+    'assets/images/parallax/field/layer_01.png',
+    'assets/images/parallax/field/layer_09.png',
+    'assets/images/parallax/field/layer_10.png',
+    'assets/images/parallax/forest/layer_01.png',
+    'assets/images/parallax/forest/layer_09.png',
+    'assets/images/parallax/forest/layer_10.png',
   ]) {
     _writeFile(rootPath, relativePath, '');
   }

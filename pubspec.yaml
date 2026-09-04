@@ -136,13 +136,17 @@ flutter:
     - assets/images/icons/gear-icons/spellbook/
     - assets/images/icons/gear-icons/sword/
     - assets/images/icons/skills-icons/
-    - assets/images/level/props/
-    - assets/images/level/tileset/
-    - assets/images/parallax/ancient-forest/
-    - assets/images/parallax/dark-forest/
+    - assets/images/level/atlases/ancient_forest/
+    - assets/images/level/atlases/dark_forest/
+    - assets/images/level/atlases/fantasy_environment/
+    - assets/images/level/atlases/rune_rocks/
+    - assets/images/level/atlases/tiny_swords/
+    - assets/images/level/atlases/weird_nature/
+    - assets/images/level/atlases/woods/
+    - assets/images/parallax/ancient_forest/
+    - assets/images/parallax/dark_forest/
     - assets/images/parallax/field/
     - assets/images/parallax/forest/
-    - assets/images/terrain/tx_tileset_ground/
     - assets/images/ui/weaponsIcon/
     - assets/images/weapons/oneHandedSwords/
     - assets/images/weapons/throwingWeapons/

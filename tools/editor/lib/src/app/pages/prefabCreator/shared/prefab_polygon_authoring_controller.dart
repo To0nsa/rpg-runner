@@ -26,23 +26,19 @@ final TerrainPolygonSnapPolicy _prefabCollisionSnapPolicy =
 /// local. Only an accepted owner-reviewed semantic commit is dispatched to the
 /// plugin/session boundary, producing one undo entry and one revision bump.
 /// All pointer-authored collision coordinates snap to whole source pixels.
+/// Prefab kind fixes collision mode; new and regenerated shapes intentionally
+/// omit terrain surface/material metadata because placement lineage and the
+/// Prefab visual own those concerns.
 /// The controller requires the current Prefab-v3 document; fail-closed legacy
 /// or missing-source sessions cannot activate polygon authoring.
 final class PrefabPolygonAuthoringController extends ChangeNotifier {
   PrefabPolygonAuthoringController({
     required EditorSessionController session,
     required String prefabKey,
-    String? newShapeSurfaceKind,
-    String? newShapeMaterialKey,
     PrefabV3CollisionCommitPolicy commitPolicy =
         const PrefabV3CollisionCommitPolicy(),
   }) : _session = session,
        _prefabKey = prefabKey,
-       _newShapeSurfaceKind = _normalizeOptionalKey(newShapeSurfaceKind),
-       _newShapeMaterialKey = _normalizeOptionalKey(newShapeMaterialKey),
-       _newShapeCollisionMode = _collisionModeForKind(
-         _requirePrefab(session, prefabKey).kind,
-       ),
        _commitPolicy = commitPolicy,
        _reducer = TerrainPolygonInteractionReducer(
          sourcePath: PrefabStore.prefabDefsPath,
@@ -58,9 +54,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   final EditorSessionController _session;
   final String _prefabKey;
-  String? _newShapeSurfaceKind;
-  String? _newShapeMaterialKey;
-  TerrainSourceCollisionMode _newShapeCollisionMode;
   String _newShapeNameInput = '';
   int _newShapeNameGeneration = 0;
   final PrefabV3CollisionCommitPolicy _commitPolicy;
@@ -81,10 +74,8 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   /// Fixed Prefab collision step in half-pixel ticks; `2` is one source pixel.
   int get coordinateStepHalfPixels => _prefabCollisionSnapPolicy.stepHalfPixels;
-  String? get newShapeMaterialKey => _newShapeMaterialKey;
-  String? get newShapeSurfaceKind => _newShapeSurfaceKind;
   TerrainSourceCollisionMode get newShapeCollisionMode =>
-      _newShapeCollisionMode;
+      _collisionModeForKind(prefab.kind);
   String get newShapeNameInput => _newShapeNameInput;
   int get newShapeNameGeneration => _newShapeNameGeneration;
   String get resolvedNewShapeName => _newShapeNameInput.trim().isEmpty
@@ -156,34 +147,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     _replaceLocalState(_reducer.setTool(_state, tool));
   }
 
-  void setNewShapeCollisionMode(TerrainSourceCollisionMode collisionMode) {
-    final requiredMode = _collisionModeForKind(prefab.kind);
-    if (_state.hasActiveOperation ||
-        _fitDraft != null ||
-        collisionMode != requiredMode ||
-        collisionMode == _newShapeCollisionMode) {
-      return;
-    }
-    _newShapeCollisionMode = collisionMode;
-    notifyListeners();
-  }
-
-  void setNewShapeMaterialKey(String? materialKey) {
-    if (hasActiveOperation) return;
-    final normalized = _normalizeOptionalKey(materialKey);
-    if (normalized == _newShapeMaterialKey) return;
-    _newShapeMaterialKey = normalized;
-    notifyListeners();
-  }
-
-  void setNewShapeSurfaceKind(String? surfaceKind) {
-    if (hasActiveOperation) return;
-    final normalized = _normalizeOptionalKey(surfaceKind);
-    if (normalized == _newShapeSurfaceKind) return;
-    _newShapeSurfaceKind = normalized;
-    notifyListeners();
-  }
-
   void setNewShapeNameInput(String value) {
     if (hasActiveOperation || value == _newShapeNameInput) return;
     _newShapeNameInput = value;
@@ -225,20 +188,16 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
-  bool beginCreatePolygon({
-    TerrainSourceCollisionMode? collisionMode,
-    String? surfaceKind,
-    String? materialKey,
-  }) {
+  bool beginCreatePolygon() {
     if (!canBeginNewShape || _fitDraft != null) return false;
     final before = _state;
     _replaceLocalState(
       _reducer.beginCreatePolygon(
         _state,
         shapeId: resolvedNewShapeName,
-        collisionMode: collisionMode ?? _newShapeCollisionMode,
-        surfaceKind: surfaceKind ?? newShapeSurfaceKind,
-        materialKey: materialKey ?? _newShapeMaterialKey,
+        collisionMode: newShapeCollisionMode,
+        surfaceKind: null,
+        materialKey: null,
       ),
     );
     return !identical(before, _state);
@@ -254,9 +213,9 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
       pointer: pointer,
       startPointer: _snapPoint(point),
       shapeId: resolvedNewShapeName,
-      collisionMode: _newShapeCollisionMode,
-      surfaceKind: newShapeSurfaceKind,
-      materialKey: _newShapeMaterialKey,
+      collisionMode: newShapeCollisionMode,
+      surfaceKind: null,
+      materialKey: null,
     );
     final started = !identical(next, _state);
     _replaceLocalState(next);
@@ -506,30 +465,6 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
-  bool editSelectedShapeMetadata({
-    required TerrainSourceCollisionMode collisionMode,
-    String? surfaceKind,
-    String? materialKey,
-  }) {
-    final selection = _state.selection;
-    if (_fitDraft != null &&
-        (selection == null || !isFitCandidate(selection.shapeId))) {
-      return false;
-    }
-    final requiredMode = _collisionModeForKind(prefab.kind);
-    if (collisionMode != requiredMode) return false;
-    final attemptedState = _state;
-    return _applyInteractionResult(
-      _reducer.editSelectedShapeMetadata(
-        attemptedState,
-        collisionMode: collisionMode,
-        surfaceKind: surfaceKind,
-        materialKey: materialKey,
-      ),
-      attemptedState: attemptedState,
-    );
-  }
-
   /// Starts or regenerates one digest-bound multi-shape fitting draft.
   ///
   /// The returned token must accompany the async result; older completions are
@@ -664,8 +599,8 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
       final shape = TerrainSourceShapeDef(
         shapeId: shapeId,
         collisionMode: collisionMode,
-        surfaceKind: refitShape?.surfaceKind ?? _newShapeSurfaceKind,
-        materialKey: refitShape?.materialKey ?? _newShapeMaterialKey,
+        surfaceKind: null,
+        materialKey: null,
         vertices: <TerrainSourceVertexDef>[
           for (final point in fitShape.vertices)
             TerrainSourceVertexDef(
@@ -1478,9 +1413,4 @@ List<PrefabValidationIssue> _sortedIssues(
       return order != 0 ? order : left.message.compareTo(right.message);
     });
   return List<PrefabValidationIssue>.unmodifiable(sorted);
-}
-
-String? _normalizeOptionalKey(String? value) {
-  final normalized = value?.trim() ?? '';
-  return normalized.isEmpty ? null : normalized;
 }

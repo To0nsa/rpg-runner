@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/collision_fitting/prefab_collision_fitting.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../../prefabs/domain/prefab_platform_pairing.dart';
+import '../../../../prefabs/domain/prefab_v3_catalog_commit.dart';
 import '../../../../prefabs/domain/prefab_v3_lifecycle_commit.dart';
 import '../../../../prefabs/domain/prefab_v3_metadata_commit.dart';
 import '../../../../prefabs/models/models.dart';
@@ -19,27 +20,36 @@ import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_inline_id_form.dart';
+import '../../shared/editor_owner_draft_state.dart';
 import '../../shared/editor_panel_card.dart';
+import '../../shared/editor_pending_changes_dialog.dart';
 import '../../shared/editor_section_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_ui_tokens.dart';
 import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_zoom_controls.dart';
-import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
+import '../atlas_slicer/atlas_image_file_picker.dart';
 import '../shared/prefab_polygon_authoring_controller.dart';
 import '../shared/prefab_polygon_scene_surface.dart';
 import '../shared/prefab_polygon_visual_source.dart';
 import '../shared/prefab_visual_alpha_mask_loader.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import 'prefab_v3_atlas_catalog_workspace.dart';
+import 'prefab_collision_owner_panel.dart';
+import 'prefab_collision_catalog.dart';
+import 'prefab_fit_draft_editor.dart';
+import 'prefab_library_panel.dart';
+import 'prefab_owner_order.dart';
+import 'prefab_owner_panels.dart';
 import 'prefab_v3_module_catalog_workspace.dart';
 import 'prefab_v3_owner_form.dart';
-import 'prefab_owner_catalog_browser.dart';
+import 'prefab_visual_preview_panel.dart';
+import 'prefab_workspace_view_selector.dart';
 
 /// Normal prefab-v3 polygon authoring workspace.
 ///
@@ -50,10 +60,12 @@ class PrefabPolygonWorkspace extends StatefulWidget {
   const PrefabPolygonWorkspace({
     super.key,
     required this.controller,
+    required this.atlasImageFilePicker,
     this.initialPrefabKey,
   });
 
   final EditorSessionController controller;
+  final AtlasImageFilePicker atlasImageFilePicker;
 
   /// Stable owner to prefer over the workspace's deterministic default.
   final String? initialPrefabKey;
@@ -83,17 +95,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   final Map<String, String> _shapeNameDrafts = <String, String>{};
   final TerrainPolygonExactEditController _exactEditController =
       TerrainPolygonExactEditController();
+  final EditorOwnerDraftState<PrefabV3Def, PrefabV3Document> _ownerDraft =
+      EditorOwnerDraftState<PrefabV3Def, PrefabV3Document>();
   String? _selectedPrefabKey;
-  PrefabV3Def? _ownerEditSource;
-  bool _ownerEditDirty = false;
-  bool _ownerRenameActive = false;
-  bool _ownerCreateExpanded = false;
-  bool _ownerCreateDirty = false;
-  PrefabV3Document? _ownerCreateSource;
-  _PrefabV3WorkspaceView _workspaceView = _PrefabV3WorkspaceView.owners;
+  PrefabWorkspaceView _workspaceView = PrefabWorkspaceView.prefabs;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
-  TerrainMaterialCatalog? _materialCatalog;
   late EditorUiImageCache _prefabImageCache;
   late PrefabVisualAlphaMaskCache _prefabMaskCache;
   PrefabCollisionCreationMethod _creationMethod =
@@ -102,6 +109,13 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   String? _pendingRefitShapeId;
   bool _fitAdvancedExpanded = false;
   bool _observedFitDraft = false;
+
+  PrefabV3Def? get _ownerEditSource => _ownerDraft.editSource;
+  bool get _ownerEditDirty => _ownerDraft.editDirty;
+  bool get _ownerRenameActive => _ownerDraft.renameActive;
+  bool get _ownerCreateExpanded => _ownerDraft.createExpanded;
+  bool get _ownerCreateDirty => _ownerDraft.createDirty;
+  PrefabV3Document? get _ownerCreateSource => _ownerDraft.createSource;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -154,11 +168,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _discardSelectedShapeEdit();
       return true;
     }
-    if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
+    if (_workspaceView == PrefabWorkspaceView.atlasSlices &&
         (_atlasWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
       return true;
     }
-    if (_workspaceView == _PrefabV3WorkspaceView.platformModules &&
+    if (_workspaceView == PrefabWorkspaceView.platformModules &&
         (_moduleWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
       return true;
     }
@@ -190,7 +204,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     _prefabImageCache = EditorUiImageCache();
     _prefabMaskCache = PrefabVisualAlphaMaskCache();
     _exactEditController.addListener(_handleExactEditChanged);
-    _reloadMaterialCatalog();
     _selectInitialOwner();
   }
 
@@ -205,7 +218,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _clearOwnerEditorState();
       _clearOwnerCreateState();
       _selectedPrefabKey = null;
-      _reloadMaterialCatalog();
+      _workspaceView = PrefabWorkspaceView.prefabs;
       _selectInitialOwner();
       return;
     }
@@ -249,12 +262,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     if (mounted) setState(() {});
   }
 
-  void _reloadMaterialCatalog() {
-    _materialCatalog = loadTerrainMaterialPreviewCatalog(
-      widget.controller.workspacePath,
-    ).catalog;
-  }
-
   @override
   Widget build(BuildContext context) {
     final document = _documentOrNull;
@@ -269,35 +276,42 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final issues = authoring == null
         ? widget.controller.issues
         : _sessionIssues(authoring);
-    final ownerWorkspace = prefab == null || authoring == null
-        ? _buildEmptyOwnerState(document)
-        : PrefabEditorThreePanelLayout(
-            inspector: _buildOwnerPanel(document, prefab, authoring),
-            scene: _buildScenePanel(document, prefab, authoring),
-            display: _buildShapePanel(document, authoring, issues),
-          );
+    final prefabWorkspace = _buildPrefabWorkspace(document, prefab, authoring);
+    final collisionWorkspace = _buildCollisionWorkspace(
+      document,
+      prefab,
+      authoring,
+      issues,
+    );
 
     return EditorWorkspaceCard(
       key: const ValueKey<String>('prefab_polygon_workspace'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _buildHeader(document),
+          PrefabWorkspaceViewSelector(
+            selectedView: _workspaceView,
+            onSelected: (view) => unawaited(_selectWorkspaceView(view)),
+          ),
           const SizedBox(height: EditorUiTokens.sectionGap),
           Expanded(
             child: IndexedStack(
               index: _workspaceView.index,
               children: <Widget>[
-                ownerWorkspace,
+                prefabWorkspace,
+                collisionWorkspace,
                 PrefabV3AtlasCatalogWorkspace(
                   key: _atlasWorkspaceKey,
                   controller: widget.controller,
                   document: document,
+                  atlasImageFilePicker: widget.atlasImageFilePicker,
                 ),
                 PrefabV3ModuleCatalogWorkspace(
                   key: _moduleWorkspaceKey,
                   controller: widget.controller,
                   document: document,
+                  onEditCollision: (moduleId) =>
+                      unawaited(_editPlatformCollision(moduleId)),
                 ),
               ],
             ),
@@ -307,113 +321,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     );
   }
 
-  Widget _buildHeader(PrefabV3Document document) {
-    final changedCount = document.changedPrefabKeys.length;
-    final changedKeys = document.changedPrefabKeys.toSet();
-    final affectedImpacts = document.downstreamImpacts
-        .where((impact) => changedKeys.contains(impact.prefabKey))
-        .toList(growable: false);
-    final affectedPlacementCount = affectedImpacts.fold<int>(
-      0,
-      (total, impact) => total + impact.placementCount,
-    );
-    final affectedChunkCount = affectedImpacts
-        .expand((impact) => impact.referencingChunkKeys)
-        .toSet()
-        .length;
-    final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
-      ..sort(_comparePrefabs);
-    final selectedPrefab = prefabs
-        .where((prefab) => prefab.prefabKey == _selectedPrefabKey)
-        .firstOrNull;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Wrap(
-          spacing: EditorUiTokens.controlGap,
-          runSpacing: EditorUiTokens.controlGap,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            const Chip(
-              avatar: Icon(Icons.science_outlined, size: 18),
-              label: Text('Prefab v3 polygon authoring'),
-            ),
-            Text(
-              changedCount == 0
-                  ? 'No pending prefab changes'
-                  : '$changedCount pending prefab change(s)',
-            ),
-            if (changedCount > 0)
-              Text(
-                key: const ValueKey<String>('prefab_polygon_downstream_impact'),
-                '$affectedPlacementCount placement(s) in '
-                '$affectedChunkCount chunk(s) affected; chunk revisions stay '
-                'unchanged.',
-              ),
-            if (selectedPrefab != null)
-              DropdownButton<String>(
-                key: const ValueKey<String>('prefab_v3_owner_selector'),
-                value: selectedPrefab.prefabKey,
-                hint: const Text('Select prefab'),
-                onChanged: (prefabKey) {
-                  if (prefabKey != null) {
-                    unawaited(_selectOwnerFromHeader(prefabKey));
-                  }
-                },
-                items: <DropdownMenuItem<String>>[
-                  for (final prefab in prefabs)
-                    DropdownMenuItem<String>(
-                      value: prefab.prefabKey,
-                      child: Text(prefab.id),
-                    ),
-                ],
-              ),
-          ],
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        const Text(
-          'Current-schema workspace: apply rechecks both source baselines and '
-          'commits the prefab/tile pair atomically. Legacy migration stays '
-          'read-only; runtime terrain updates after generated outputs refresh.',
-          style: TextStyle(color: Color(0xFFFFD166)),
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        Wrap(
-          spacing: EditorUiTokens.controlGap,
-          runSpacing: EditorUiTokens.controlGap,
-          children: <Widget>[
-            ChoiceChip(
-              key: const ValueKey<String>('prefab_v3_view_owners'),
-              label: const Text('Prefabs & collision'),
-              selected: _workspaceView == _PrefabV3WorkspaceView.owners,
-              onSelected: (_) => unawaited(
-                _selectWorkspaceView(_PrefabV3WorkspaceView.owners),
-              ),
-            ),
-            ChoiceChip(
-              key: const ValueKey<String>('prefab_v3_view_atlas_slices'),
-              label: const Text('Atlas & tile slices'),
-              selected: _workspaceView == _PrefabV3WorkspaceView.atlasSlices,
-              onSelected: (_) => unawaited(
-                _selectWorkspaceView(_PrefabV3WorkspaceView.atlasSlices),
-              ),
-            ),
-            ChoiceChip(
-              key: const ValueKey<String>('prefab_v3_view_platform_modules'),
-              label: const Text('Platform modules'),
-              selected:
-                  _workspaceView == _PrefabV3WorkspaceView.platformModules,
-              onSelected: (_) => unawaited(
-                _selectWorkspaceView(_PrefabV3WorkspaceView.platformModules),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Future<void> _selectWorkspaceView(_PrefabV3WorkspaceView view) async {
+  Future<void> _selectWorkspaceView(PrefabWorkspaceView view) async {
     if (view == _workspaceView) return;
     if (_ownerEditDirty || _ownerCreateDirty) {
       _showWorkspaceSwitchBlocked(
@@ -432,19 +340,36 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
       return;
     }
-    if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
+    if (_workspaceView == PrefabWorkspaceView.atlasSlices &&
         (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
       _showWorkspaceSwitchBlocked(
         'Apply the slice form or undo its local draft before switching.',
       );
       return;
     }
-    if (_workspaceView == _PrefabV3WorkspaceView.platformModules &&
+    if (_workspaceView == PrefabWorkspaceView.platformModules &&
         (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
       _showWorkspaceSwitchBlocked(
         'Apply the module form or undo its local draft before switching.',
       );
       return;
+    }
+    if (view == PrefabWorkspaceView.collision) {
+      final document = _documentOrNull;
+      if (document != null) {
+        final selected = document.data.prefabs
+            .where((prefab) => prefab.prefabKey == _selectedPrefabKey)
+            .firstOrNull;
+        if (selected == null || !canAuthorPrefabCollision(selected)) {
+          final collisionPrefab = PrefabCollisionCatalog.fromDocument(document)
+              .prefabs
+              .firstOrNull;
+          if (collisionPrefab != null) {
+            _bindOwner(collisionPrefab.prefabKey);
+            _resetViewportValues();
+          }
+        }
+      }
     }
     setState(() => _workspaceView = view);
   }
@@ -494,77 +419,82 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     );
   }
 
-  Widget _buildOwnerPanel(
+  Widget _buildPrefabWorkspace(
     PrefabV3Document document,
-    PrefabV3Def selectedPrefab,
-    PrefabPolygonAuthoringController authoring,
+    PrefabV3Def? selectedPrefab,
+    PrefabPolygonAuthoringController? authoring,
+  ) => PrefabEditorThreePanelLayout(
+    inspector: _buildPrefabAuthoringPanel(document, authoring),
+    scene: PrefabVisualPreviewPanel(
+      document: document,
+      prefab: selectedPrefab,
+      imageCache: _prefabImageCache,
+      workspaceRootPath: widget.controller.workspacePath,
+    ),
+    display: _buildPrefabLibraryPanel(document, selectedPrefab),
+  );
+
+  Widget _buildPrefabAuthoringPanel(
+    PrefabV3Document document,
+    PrefabPolygonAuthoringController? authoring,
+  ) => SingleChildScrollView(
+    key: const ValueKey<String>('prefab_authoring_sidebar'),
+    child: _buildOwnerCreateSection(
+      document,
+      controlsEnabled: !(authoring?.hasActiveOperation ?? false),
+    ),
+  );
+
+  Widget _buildPrefabLibraryPanel(
+    PrefabV3Document document,
+    PrefabV3Def? selectedPrefab,
+  ) => PrefabLibraryPanel(
+    document: document,
+    selectedPrefab: selectedPrefab,
+    expandedPrefab: _ownerEditSource,
+    workspaceRootPath: widget.controller.workspacePath,
+    onSelected: (prefab) => unawaited(_selectOrOpenOwner(prefab)),
+    selectedDetailsBuilder: (context, prefab) => Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+      child: _buildOwnerEditDetails(document, prefab),
+    ),
+  );
+
+  Widget _buildCollisionWorkspace(
+    PrefabV3Document document,
+    PrefabV3Def? prefab,
+    PrefabPolygonAuthoringController? authoring,
+    List<ValidationIssue> issues,
   ) {
-    final ownerEditorOpen = _ownerEditSource != null;
-    return SingleChildScrollView(
-      key: const ValueKey<String>('prefab_owner_sidebar'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          _buildOwnerCreateSection(
-            document,
-            controlsEnabled: !authoring.hasActiveOperation,
-          ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          EditorSectionCard(
-            key: const ValueKey<String>('prefab_owner_library_section'),
-            expansionKey: const ValueKey<String>(
-              'prefab_owner_library_section_toggle',
-            ),
-            title: 'Prefab library',
-            description: 'Search, filter, select, and edit prefabs.',
-            trailing: Text('${document.data.prefabs.length} total'),
-            collapsible: !ownerEditorOpen,
-            initiallyExpanded: false,
-            expanded: ownerEditorOpen ? true : null,
-            child: PrefabOwnerCatalogBrowser(
-              prefabs: document.data.prefabs,
-              prefabData: document.data,
-              tileData: document.tileData,
-              visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
-              workspaceRootPath: widget.controller.workspacePath,
-              selectedPrefabKey: selectedPrefab.prefabKey,
-              expandedPrefabKey: _ownerEditSource?.prefabKey,
-              changedPrefabKeys: document.changedPrefabKeys,
-              downstreamImpacts: document.downstreamImpacts,
-              enabled: true,
-              onSelected: (prefab) => unawaited(_selectOrOpenOwner(prefab)),
-              selectedDetailsBuilder: (context, prefab) => Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                child: _buildOwnerEditDetails(document, prefab),
-              ),
-            ),
-          ),
-        ],
-      ),
+    final canAuthor =
+        prefab != null && authoring != null && canAuthorPrefabCollision(prefab);
+    return PrefabEditorThreePanelLayout(
+      inspector: _buildCollisionOwnerPanel(document, prefab),
+      scene: canAuthor
+          ? _buildScenePanel(document, prefab, authoring)
+          : const PrefabCollisionEmptyScene(),
+      display: canAuthor
+          ? _buildShapePanel(document, authoring, issues)
+          : const PrefabCollisionEmptyInspector(),
     );
   }
 
-  Widget _buildEmptyOwnerState(PrefabV3Document document) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          _buildOwnerCreateSection(document, controlsEnabled: true),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          const EditorSectionCard(
-            title: 'Prefab library',
-            description: '0 total',
-            collapsible: true,
-            initiallyExpanded: false,
-            child: Text(
-              'No prefabs remain. Create one from a retained atlas '
-              'slice or platform module.',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildCollisionOwnerPanel(
+    PrefabV3Document document,
+    PrefabV3Def? selectedPrefab,
+  ) => PrefabCollisionOwnerPanel(
+    document: document,
+    selectedPrefab: selectedPrefab,
+    catalog: PrefabCollisionCatalog.fromDocument(document),
+    imageCache: _prefabImageCache,
+    workspaceRootPath: widget.controller.workspacePath,
+    onPrefabSelected: (prefab) =>
+        unawaited(_selectOwnerFromHeader(prefab.prefabKey)),
+    onEditPrefabCollision: (prefabKey) =>
+        unawaited(_editPrefabCollision(prefabKey)),
+    onEditPlatformCollision: (moduleId) =>
+        unawaited(_editPlatformCollision(moduleId)),
+  );
 
   Widget _buildOwnerCreateSection(
     PrefabV3Document document, {
@@ -574,43 +504,24 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         document.data.slices.isNotEmpty ||
         document.tileData.platformModules.isNotEmpty;
     final source = _ownerCreateSource ?? document;
-    return EditorSectionCard(
-      key: const ValueKey<String>('prefab_v3_owner_create_section'),
-      title: 'Create prefab',
-      description: canCreate
-          ? 'Create from an authored atlas slice or platform module.'
-          : 'Create an atlas slice or platform module first.',
-      collapsible: !_ownerCreateDirty,
-      initiallyExpanded: false,
-      expanded: _ownerCreateExpanded || _ownerCreateDirty,
-      expansionKey: const ValueKey<String>(
-        'prefab_v3_owner_create_section_toggle',
-      ),
+    return PrefabOwnerCreateSection(
+      formDocument: source,
+      workspaceRootPath: widget.controller.workspacePath,
+      formKey: _ownerCreateFormKey,
+      canCreate: canCreate,
+      isExpanded: _ownerCreateExpanded,
+      isDirty: _ownerCreateDirty,
       onExpansionChanged: (expanded) => unawaited(
         _setOwnerCreateExpanded(
           expanded,
           document: document,
-          controlsEnabled: controlsEnabled && canCreate,
+          controlsEnabled: controlsEnabled,
+          canCreate: canCreate,
         ),
       ),
-      child: canCreate
-          ? PrefabV3OwnerForm(
-              key: _ownerCreateFormKey,
-              document: source,
-              workspaceRootPath: widget.controller.workspacePath,
-              autofocusId: true,
-              submitLabel: 'Create prefab',
-              submitKey: const ValueKey<String>(
-                'prefab_v3_owner_inline_create_apply',
-              ),
-              cancelKey: const ValueKey<String>(
-                'prefab_v3_owner_inline_create_cancel',
-              ),
-              onDirtyChanged: _setOwnerCreateDirty,
-              onCancel: _closeOwnerCreateSection,
-              onSubmit: _createOwner,
-            )
-          : const Text('No visual source is currently available for a prefab.'),
+      onDirtyChanged: _setOwnerCreateDirty,
+      onCancel: _closeOwnerCreateSection,
+      onSubmit: _createOwner,
     );
   }
 
@@ -619,100 +530,29 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     PrefabV3Def currentPrefab,
   ) {
     final source = _ownerEditSource!;
-    final impact = document.downstreamImpacts
-        .where((entry) => entry.prefabKey == source.prefabKey)
-        .firstOrNull;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          'Edit ${currentPrefab.id}',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        Text(
-          'prefabKey: ${source.prefabKey} · revision ${source.revision}\n'
-          '${source.visualSource.type.jsonValue}:${source.sourceRefId} · '
-          '${source.collisionShapes.length} collision shape(s) · '
-          '${impact?.placementCount ?? 0} downstream placement(s)',
-        ),
-        const SizedBox(height: EditorUiTokens.sectionGap),
-        Wrap(
-          spacing: EditorUiTokens.controlGap,
-          runSpacing: EditorUiTokens.controlGap,
-          children: <Widget>[
-            Tooltip(
-              message: 'Rename ${source.id} while preserving its prefab key.',
-              child: OutlinedButton.icon(
-                key: const ValueKey<String>('prefab_v3_owner_rename'),
-                onPressed: !_ownerEditDirty && !_ownerRenameActive
-                    ? _beginOwnerRename
-                    : null,
-                icon: const Icon(Icons.drive_file_rename_outline),
-                label: const Text('Rename'),
-              ),
-            ),
-            Tooltip(
-              message: 'Duplicate ${source.id} with a new stable prefab key.',
-              child: OutlinedButton.icon(
-                key: const ValueKey<String>('prefab_v3_owner_duplicate'),
-                onPressed: !_ownerEditDirty && !_ownerRenameActive
-                    ? () => _duplicateOwner(document, source)
-                    : null,
-                icon: const Icon(Icons.copy_outlined),
-                label: const Text('Duplicate'),
-              ),
-            ),
-            Tooltip(
-              message: 'Delete ${source.id} after reviewing its references.',
-              child: OutlinedButton.icon(
-                key: const ValueKey<String>('prefab_v3_owner_delete'),
-                onPressed: !_ownerEditDirty && !_ownerRenameActive
-                    ? () => _deleteOwner(document, source)
-                    : null,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Delete'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: EditorUiTokens.sectionGap),
-        if (_ownerRenameActive)
-          EditorInlineIdForm(
-            key: _ownerRenameFormKey,
-            initialValue: source.id,
-            fieldKey: const ValueKey<String>('prefab_v3_inline_rename_id'),
-            submitKey: const ValueKey<String>('prefab_v3_inline_rename_apply'),
-            cancelKey: const ValueKey<String>('prefab_v3_inline_rename_cancel'),
-            submitLabel: 'Rename prefab',
-            helperText: 'The stable prefab key is preserved.',
-            validator: (value) => validatePrefabV3OwnerId(
-              value,
-              document: document,
-              exceptPrefabKey: source.prefabKey,
-            ),
-            onDirtyChanged: _setOwnerEditDirty,
-            onCancel: _cancelOwnerRename,
-            onSubmit: _renameOwner,
-          )
-        else
-          PrefabV3OwnerForm(
-            key: _ownerEditFormKey,
-            document: document,
-            workspaceRootPath: widget.controller.workspacePath,
-            prefab: source,
-            submitLabel: 'Apply changes',
-            submitKey: ValueKey<String>(
-              'prefab_v3_owner_inline_apply_${source.prefabKey}',
-            ),
-            cancelKey: ValueKey<String>(
-              'prefab_v3_owner_inline_cancel_${source.prefabKey}',
-            ),
-            onDirtyChanged: _setOwnerEditDirty,
-            onCancel: _closeOwnerEditor,
-            onSubmit: _applyOwnerEdit,
-          ),
-      ],
+    return PrefabOwnerEditDetails(
+      document: document,
+      currentPrefab: currentPrefab,
+      source: source,
+      workspaceRootPath: widget.controller.workspacePath,
+      editFormKey: _ownerEditFormKey,
+      renameFormKey: _ownerRenameFormKey,
+      isDirty: _ownerEditDirty,
+      renameActive: _ownerRenameActive,
+      renameValidator: (value) => validatePrefabV3OwnerId(
+        value,
+        document: document,
+        exceptPrefabKey: source.prefabKey,
+      ),
+      onEditCollision: () => unawaited(_editPrefabCollision(source.prefabKey)),
+      onBeginRename: _beginOwnerRename,
+      onDuplicate: () => _duplicateOwner(document, source),
+      onDelete: () => _deleteOwner(document, source),
+      onDirtyChanged: _setOwnerEditDirty,
+      onCancelRename: _cancelOwnerRename,
+      onRename: _renameOwner,
+      onCancelEdit: _closeOwnerEditor,
+      onApplyEdit: _applyOwnerEdit,
     );
   }
 
@@ -958,18 +798,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   ) {
     final draft = authoring.state.draft;
     final gesture = authoring.state.gesture;
-    final materialValue = authoring.newShapeMaterialKey?.trim() ?? '';
-    final surfaceValue = authoring.newShapeSurfaceKind?.trim() ?? '';
-    final materialOptions = terrainMetadataSelectorOptions(
-      current: materialValue,
-      known:
-          _materialCatalog?.materials.map((material) => material.key) ??
-          const <String>[],
-    );
-    final surfaceOptions = terrainMetadataSelectorOptions(
-      current: surfaceValue,
-      known: terrainSurfaceKindOptions,
-    );
     return EditorSectionCard(
       key: const ValueKey<String>('prefab_polygon_creation_panel'),
       expansionKey: const ValueKey<String>(
@@ -1014,54 +842,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               '${_collisionModeLabel(authoring.newShapeCollisionMode)} '
               '(from ${authoring.prefab.kind.jsonValue})',
             ),
-          ),
-          const SizedBox(height: EditorUiTokens.controlGap),
-          _buildMetadataDropdown<String>(
-            keyName: 'prefab_polygon_creation_surface_selector',
-            label: 'Surface kind',
-            value: surfaceValue,
-            items: surfaceOptions
-                .map(
-                  (value) => DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(terrainMetadataSelectorLabel(value)),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: authoring.hasActiveOperation
-                ? null
-                : (value) {
-                    if (value != null) {
-                      authoring.setNewShapeSurfaceKind(
-                        nullableTerrainMetadataSelection(value),
-                      );
-                    }
-                  },
-          ),
-          const SizedBox(height: EditorUiTokens.controlGap),
-          _buildMetadataDropdown<String>(
-            keyName: 'prefab_polygon_creation_material_selector',
-            label: 'Material key',
-            value: materialValue,
-            items: materialOptions
-                .map(
-                  (value) => DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(
-                      terrainMaterialSelectorLabel(_materialCatalog, value),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: authoring.hasActiveOperation
-                ? null
-                : (value) {
-                    if (value != null) {
-                      authoring.setNewShapeMaterialKey(
-                        nullableTerrainMetadataSelection(value),
-                      );
-                    }
-                  },
           ),
           const SizedBox(height: EditorUiTokens.controlGap),
           Text('Method', style: Theme.of(context).textTheme.titleSmall),
@@ -1182,8 +962,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     PrefabCollisionCreationMethod method,
   ) => ChoiceChip(
     key: ValueKey<String>('prefab_fit_method_${method.name}'),
-    label: Text(_fitMethodLabel(method)),
-    avatar: Icon(_fitMethodIcon(method), size: 18),
+    label: Text(prefabFitMethodLabel(method)),
+    avatar: Icon(prefabFitMethodIcon(method), size: 18),
     selected: _creationMethod == method,
     onSelected: _creationMethodEnabled(authoring)
         ? (_) => unawaited(_generateFit(authoring, method: method))
@@ -1204,218 +984,35 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   Widget _buildFitDraftEditor(PrefabPolygonAuthoringController authoring) {
-    final evidence = authoring.fitEvidence;
     final candidateIds = authoring.fitCandidateShapeIds;
-    final settingsChanged = authoring.fitSettings != _fitSettings;
-    final includedCount = candidateIds
-        .where(authoring.isFitCandidateIncluded)
-        .length;
-    final vertexCount = candidateIds.fold<int>(0, (total, id) {
-      final shape = _findShape(authoring.state.shapes, id);
-      return total + (shape?.vertices.length ?? 0);
-    });
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0x1716C79A),
-        border: Border.all(color: const Color(0x664FE3C1)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(EditorUiTokens.controlGap),
-        child: Column(
-          key: const ValueKey<String>('prefab_fit_draft_editor'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Text(
-              authoring.fitRefitShapeId == null
-                  ? _fitMethodLabel(authoring.fitMethod!)
-                  : 'Refit ${authoring.fitRefitShapeId} · '
-                        '${_fitMethodLabel(authoring.fitMethod!)}',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: EditorUiTokens.controlGap),
-            if (authoring.isFitLoading)
-              const LinearProgressIndicator(
-                key: ValueKey<String>('prefab_fit_loading'),
-              )
-            else ...<Widget>[
-              Text(
-                '$includedCount of ${candidateIds.length} shapes included · '
-                '$vertexCount vertices',
-                key: const ValueKey<String>('prefab_fit_counts'),
-              ),
-              if (evidence != null) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
-                Text(
-                  authoring.fitMethod ==
-                          PrefabCollisionCreationMethod.detectPlatformSurface
-                      ? '${evidence.supportedColumns}/${evidence.sourceColumns} '
-                            'support columns · max deviation '
-                            '${evidence.maximumDeviationPx} px'
-                      : authoring.fitMethod ==
-                            PrefabCollisionCreationMethod.traceVisibleOutline
-                      ? '${evidence.coveredVisiblePixels}/'
-                            '${evidence.acceptedVisiblePixels} visible pixels '
-                            'covered · ${evidence.coveredTransparentPixels} '
-                            'transparent cells added · max deviation '
-                            '${evidence.maximumDeviationPx} px'
-                      : '${evidence.coveredVisiblePixels}/'
-                            '${evidence.acceptedVisiblePixels} visible pixels '
-                            'covered · ${evidence.coveredTransparentPixels} '
-                            'transparent cells added',
-                  key: const ValueKey<String>('prefab_fit_evidence'),
-                ),
-              ],
-              if (candidateIds.length > 1 ||
-                  candidateIds.any(
-                    (id) => !authoring.isFitCandidateIncluded(id),
-                  )) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
-                for (final id in candidateIds)
-                  CheckboxListTile(
-                    key: ValueKey<String>('prefab_fit_component_$id'),
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(id),
-                    subtitle: Text(
-                      '${_findShape(authoring.state.shapes, id)?.vertices.length ?? 0} vertices',
-                    ),
-                    value: authoring.isFitCandidateIncluded(id),
-                    onChanged: (included) => authoring.setFitCandidateIncluded(
-                      id,
-                      included ?? false,
-                    ),
-                  ),
-              ],
-              if (authoring.fitMessages.isNotEmpty) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
-                for (final message in authoring.fitMessages)
-                  Text(
-                    message,
-                    style: const TextStyle(color: Color(0xFFFFD166)),
-                  ),
-              ],
-              if (settingsChanged) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
-                const Text(
-                  'Fit settings changed. Regenerate to review the new result.',
-                  style: TextStyle(color: Color(0xFFFFD166)),
-                ),
-              ],
-            ],
-            const SizedBox(height: EditorUiTokens.controlGap),
-            Material(
-              type: MaterialType.transparency,
-              child: ExpansionTile(
-                key: const ValueKey<String>('prefab_fit_advanced'),
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: EdgeInsets.zero,
-                initiallyExpanded: _fitAdvancedExpanded,
-                onExpansionChanged: (expanded) {
-                  setState(() => _fitAdvancedExpanded = expanded);
-                },
-                title: const Text('Advanced'),
-                children: <Widget>[
-                  _buildIntegerFitSlider(
-                    label: 'Alpha cutoff',
-                    value: _fitSettings.alphaCutoff,
-                    min: 1,
-                    max: 255,
-                    onChanged: (value) => setState(() {
-                      _fitSettings = _fitSettings.copyWith(alphaCutoff: value);
-                    }),
-                  ),
-                  _buildIntegerFitSlider(
-                    label: 'Minimum island area',
-                    value: _fitSettings.minimumIslandArea,
-                    min: 1,
-                    max: 64,
-                    onChanged: (value) => setState(() {
-                      _fitSettings = _fitSettings.copyWith(
-                        minimumIslandArea: value,
-                      );
-                    }),
-                  ),
-                  if (authoring.fitMethod !=
-                      PrefabCollisionCreationMethod.fitVisibleBounds)
-                    _buildIntegerFitSlider(
-                      label: 'Maximum vertices',
-                      value: _fitSettings.maximumVerticesPerShape,
-                      min: 4,
-                      max: PrefabCollisionFitSettings
-                          .hardMaximumVerticesPerShape,
-                      onChanged: (value) => setState(() {
-                        _fitSettings = _fitSettings.copyWith(
-                          maximumVerticesPerShape: value,
-                        );
-                      }),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: EditorUiTokens.controlGap),
-            Wrap(
-              spacing: EditorUiTokens.controlGap,
-              runSpacing: EditorUiTokens.controlGap,
-              children: <Widget>[
-                OutlinedButton.icon(
-                  key: const ValueKey<String>('prefab_fit_regenerate'),
-                  onPressed: authoring.isFitLoading
-                      ? null
-                      : () => unawaited(_regenerateFit(authoring)),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Regenerate'),
-                ),
-                FilledButton.icon(
-                  key: const ValueKey<String>('prefab_fit_save'),
-                  onPressed: authoring.canSaveFitDraft && !settingsChanged
-                      ? () => unawaited(_saveFitDraft(authoring))
-                      : null,
-                  icon: const Icon(Icons.save_outlined),
-                  label: Text(
-                    authoring.fitRefitShapeId == null
-                        ? 'Save shapes'
-                        : 'Save replacement',
-                  ),
-                ),
-                TextButton(
-                  key: const ValueKey<String>('prefab_fit_cancel'),
-                  onPressed: _cancelFitDraft,
-                  child: const Text('Cancel'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    final vertexCountsByShapeId = <String, int>{
+      for (final id in candidateIds)
+        id: _findShape(authoring.state.shapes, id)?.vertices.length ?? 0,
+    };
+    return PrefabFitDraftEditor(
+      method: authoring.fitMethod!,
+      refitShapeId: authoring.fitRefitShapeId,
+      evidence: authoring.fitEvidence,
+      candidateIds: candidateIds,
+      vertexCountsByShapeId: vertexCountsByShapeId,
+      includedCandidateIds: candidateIds
+          .where(authoring.isFitCandidateIncluded)
+          .toSet(),
+      messages: authoring.fitMessages,
+      isLoading: authoring.isFitLoading,
+      canSave: authoring.canSaveFitDraft,
+      settings: _fitSettings,
+      settingsChanged: authoring.fitSettings != _fitSettings,
+      advancedExpanded: _fitAdvancedExpanded,
+      onCandidateChanged: authoring.setFitCandidateIncluded,
+      onSettingsChanged: (settings) => setState(() => _fitSettings = settings),
+      onAdvancedExpansionChanged: (expanded) =>
+          setState(() => _fitAdvancedExpanded = expanded),
+      onRegenerate: () => unawaited(_regenerateFit(authoring)),
+      onSave: () => unawaited(_saveFitDraft(authoring)),
+      onCancel: _cancelFitDraft,
     );
   }
-
-  Widget _buildIntegerFitSlider({
-    required String label,
-    required int value,
-    required int min,
-    required int max,
-    String suffix = '',
-    required ValueChanged<int> onChanged,
-  }) => Row(
-    children: <Widget>[
-      SizedBox(width: 150, child: Text('$label: $value$suffix')),
-      Expanded(
-        child: Slider(
-          key: ValueKey<String>(
-            'prefab_fit_${label.toLowerCase().replaceAll(' ', '_')}',
-          ),
-          value: value.toDouble(),
-          min: min.toDouble(),
-          max: max.toDouble(),
-          divisions: max - min,
-          label: '$value$suffix',
-          onChanged: (next) => onChanged(next.round()),
-        ),
-      ),
-    ],
-  );
 
   Future<void> _generateFit(
     PrefabPolygonAuthoringController authoring, {
@@ -1624,8 +1221,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ])
                 ActionChip(
                   key: ValueKey<String>('prefab_refit_method_${method.name}'),
-                  avatar: Icon(_fitMethodIcon(method), size: 18),
-                  label: Text(_fitMethodLabel(method)),
+                  avatar: Icon(prefabFitMethodIcon(method), size: 18),
+                  label: Text(prefabFitMethodLabel(method)),
                   onPressed: () => unawaited(
                     _generateFit(
                       authoring,
@@ -1658,22 +1255,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       shapeNameInput,
       excludingShapeId: shape.shapeId,
     );
-    final surfaceValue = shape.surfaceKind?.trim() ?? '';
-    final materialValue = shape.materialKey?.trim() ?? '';
-    final surfaceOptions = terrainMetadataSelectorOptions(
-      current: surfaceValue,
-      known: terrainSurfaceKindOptions,
-    );
-    final materialOptions = terrainMetadataSelectorOptions(
-      current: materialValue,
-      known:
-          _materialCatalog?.materials.map((material) => material.key) ??
-          const <String>[],
-    );
-    final controlsEnabled =
-        authoring.canEditShape(shape.shapeId) &&
-        !_hasPendingShapeName(shape) &&
-        !_exactEditController.hasChanges;
     return Column(
       key: const ValueKey<String>('prefab_polygon_metadata_section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1704,56 +1285,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             '${_collisionModeLabel(shape.collisionMode)} '
             '(from ${authoring.prefab.kind.jsonValue})',
           ),
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        _buildMetadataDropdown<String>(
-          keyName: 'prefab_polygon_metadata_surface_selector',
-          label: 'Surface kind',
-          value: surfaceValue,
-          items: surfaceOptions
-              .map(
-                (value) => DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(terrainMetadataSelectorLabel(value)),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: controlsEnabled
-              ? (value) {
-                  if (value == null || value == surfaceValue) return;
-                  authoring.editSelectedShapeMetadata(
-                    collisionMode: shape.collisionMode,
-                    surfaceKind: nullableTerrainMetadataSelection(value),
-                    materialKey: shape.materialKey,
-                  );
-                }
-              : null,
-        ),
-        const SizedBox(height: EditorUiTokens.controlGap),
-        _buildMetadataDropdown<String>(
-          keyName: 'prefab_polygon_metadata_material_selector',
-          label: 'Material key',
-          value: materialValue,
-          items: materialOptions
-              .map(
-                (value) => DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(
-                    terrainMaterialSelectorLabel(_materialCatalog, value),
-                  ),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: controlsEnabled
-              ? (value) {
-                  if (value == null || value == materialValue) return;
-                  authoring.editSelectedShapeMetadata(
-                    collisionMode: shape.collisionMode,
-                    surfaceKind: shape.surfaceKind,
-                    materialKey: nullableTerrainMetadataSelection(value),
-                  );
-                }
-              : null,
         ),
       ],
     );
@@ -1817,26 +1348,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
     );
   }
-
-  Widget _buildMetadataDropdown<T>({
-    required String keyName,
-    required String label,
-    required T value,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?>? onChanged,
-  }) => InputDecorator(
-    decoration: InputDecoration(labelText: label),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<T>(
-        key: ValueKey<String>(keyName),
-        value: value,
-        isDense: true,
-        isExpanded: true,
-        items: items,
-        onChanged: onChanged,
-      ),
-    ),
-  );
 
   Widget _buildVertexInspector(
     PrefabPolygonAuthoringController authoring,
@@ -2029,50 +1540,30 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _shapeNameDrafts.remove(shape.shapeId);
       return true;
     }
-    final action = await showDialog<_PendingShapeEditAction>(
+    final action = await showEditorPendingChangesDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        key: const ValueKey<String>('prefab_polygon_unsaved_edit_dialog'),
-        title: const Text('Save collision shape changes?'),
-        content: Text(
-          'Save the pending changes to ${shape.shapeId} before closing its '
-          'editor?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('prefab_polygon_unsaved_edit_cancel'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingShapeEditAction.cancel),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            key: const ValueKey<String>('prefab_polygon_unsaved_edit_discard'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingShapeEditAction.discard),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('prefab_polygon_unsaved_edit_save'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingShapeEditAction.save),
-            child: const Text('Save'),
-          ),
-        ],
+      dialogKey: const ValueKey<String>('prefab_polygon_unsaved_edit_dialog'),
+      title: 'Save collision shape changes?',
+      content: Text(
+        'Save the pending changes to ${shape.shapeId} before closing its '
+        'editor?',
       ),
+      cancelKey: const ValueKey<String>('prefab_polygon_unsaved_edit_cancel'),
+      discardKey: const ValueKey<String>('prefab_polygon_unsaved_edit_discard'),
+      saveKey: const ValueKey<String>('prefab_polygon_unsaved_edit_save'),
     );
     if (!mounted || !identical(authoring, _authoring)) return false;
     return switch (action) {
-      _PendingShapeEditAction.save =>
+      EditorPendingChangesAction.save =>
         _exactEditController.hasEditor
             ? _exactEditController.save()
             : _saveShapeName(authoring, shape),
-      _PendingShapeEditAction.discard => () {
+      EditorPendingChangesAction.discard => () {
         _exactEditController.discard();
         setState(() => _shapeNameDrafts.remove(shape.shapeId));
         return true;
       }(),
-      _PendingShapeEditAction.cancel || null => false,
+      EditorPendingChangesAction.cancel || null => false,
     };
   }
 
@@ -2354,6 +1845,107 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     }
   }
 
+  Future<void> _editPlatformCollision(String moduleId) async {
+    if (_workspaceView != PrefabWorkspaceView.collision) {
+      await _selectWorkspaceView(PrefabWorkspaceView.collision);
+      if (!mounted || _workspaceView != PrefabWorkspaceView.collision) {
+        return;
+      }
+    }
+    if (_authoring?.hasActiveOperation ?? false) {
+      _showWorkspaceSwitchBlocked(
+        'Finish or cancel the active polygon operation before switching '
+        'platforms.',
+      );
+      return;
+    }
+    final authoring = _authoring;
+    if (authoring != null &&
+        (!await _resolvePendingShapeEdit(authoring) || !mounted)) {
+      return;
+    }
+    if (!await _resolveOwnerCreateDraft() || !mounted) return;
+    if (!await _resolveOwnerEditor() || !mounted) return;
+
+    var document = _documentOrNull;
+    if (document == null ||
+        !document.tileData.platformModules.any(
+          (module) => module.id == moduleId,
+        )) {
+      return;
+    }
+    var owners = PrefabPlatformPairing.ownersForModule(document.data, moduleId);
+    if (owners.isEmpty) {
+      final next = _dispatchCatalog(
+        document,
+        PrefabV3EnsurePlatformPrefabOperation(moduleId: moduleId),
+      );
+      if (next == null) return;
+      document = next;
+      owners = PrefabPlatformPairing.ownersForModule(document.data, moduleId);
+    }
+    final target =
+        PrefabPlatformPairing.pairedOwner(document.data, moduleId) ??
+        owners.firstOrNull;
+    if (target == null) {
+      _showWorkspaceSwitchBlocked(
+        'Add at least one visual tile before setting up collision.',
+      );
+      return;
+    }
+    setState(() {
+      if (_selectedPrefabKey != target.prefabKey) {
+        _bindOwner(target.prefabKey);
+        _resetViewportValues();
+      }
+    });
+    if (owners.length > 1 &&
+        PrefabPlatformPairing.pairedOwner(document.data, moduleId) == null) {
+      _showWorkspaceSwitchBlocked(
+        'This platform has multiple custom prefab variants; opened '
+        '${target.id}.',
+      );
+    }
+  }
+
+  Future<void> _editPrefabCollision(String prefabKey) async {
+    if (_workspaceView != PrefabWorkspaceView.collision) {
+      await _selectWorkspaceView(PrefabWorkspaceView.collision);
+      if (!mounted || _workspaceView != PrefabWorkspaceView.collision) {
+        return;
+      }
+    }
+    if (_selectedPrefabKey == prefabKey) return;
+    await _selectOwnerFromHeader(prefabKey);
+  }
+
+  PrefabV3Document? _dispatchCatalog(
+    PrefabV3Document document,
+    PrefabV3CatalogOperation operation,
+  ) {
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(document),
+            operation: operation,
+          ),
+        },
+      ),
+    );
+    final next = widget.controller.document;
+    if (identical(next, beforeDocument) || next is! PrefabV3Document) {
+      _showWorkspaceSwitchBlocked(
+        'Platform collision setup was rejected. Review validation '
+        'diagnostics and retry.',
+      );
+      return null;
+    }
+    return next;
+  }
+
   PrefabV3Document? _dispatchLifecycle(
     PrefabV3Document document,
     PrefabV3LifecycleOperation operation,
@@ -2451,7 +2043,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     if (requestedKey != null) return requestedKey;
     if (document.data.prefabs.isEmpty) return null;
     final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
-      ..sort(_comparePrefabs);
+      ..sort(comparePrefabOwners);
     return prefabs
             .where((prefab) => prefab.kind != PrefabKind.decoration)
             .firstOrNull
@@ -2531,27 +2123,22 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   void _beginOwnerEditor(PrefabV3Def prefab) {
-    _ownerEditSource = prefab;
-    _ownerEditDirty = false;
-    _ownerRenameActive = false;
+    _ownerDraft.beginEdit(prefab);
   }
 
   void _beginOwnerRename() {
-    if (_ownerEditSource == null || _ownerEditDirty) return;
-    setState(() => _ownerRenameActive = true);
+    if (!_ownerDraft.beginRename()) return;
+    setState(() {});
   }
 
   void _cancelOwnerRename() {
-    if (!_ownerRenameActive) return;
-    setState(() {
-      _ownerRenameActive = false;
-      _ownerEditDirty = false;
-    });
+    if (!_ownerDraft.cancelRename()) return;
+    setState(() {});
   }
 
   void _setOwnerEditDirty(bool dirty) {
-    if (!mounted || dirty == _ownerEditDirty) return;
-    setState(() => _ownerEditDirty = dirty);
+    if (!mounted || !_ownerDraft.setEditDirty(dirty)) return;
+    setState(() {});
   }
 
   void _closeOwnerEditor() {
@@ -2560,9 +2147,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   void _clearOwnerEditorState() {
-    _ownerEditSource = null;
-    _ownerEditDirty = false;
-    _ownerRenameActive = false;
+    _ownerDraft.clearEdit();
   }
 
   Future<bool> _resolveOwnerEditor() async {
@@ -2571,50 +2156,32 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _closeOwnerEditor();
       return true;
     }
-    final action = await showDialog<_PendingOwnerEditAction>(
+    final action = await showEditorPendingChangesDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_dialog'),
-        title: const Text('Save prefab metadata changes?'),
-        content: Text(
-          'Save the pending changes to ${_ownerEditSource!.id} before closing '
-          'its editor?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_cancel'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.cancel),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_discard'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.discard),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('prefab_v3_owner_unsaved_edit_save'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.save),
-            child: const Text('Save'),
-          ),
-        ],
+      dialogKey: const ValueKey<String>('prefab_v3_owner_unsaved_edit_dialog'),
+      title: 'Save prefab metadata changes?',
+      content: Text(
+        'Save the pending changes to ${_ownerEditSource!.id} before closing '
+        'its editor?',
       ),
+      cancelKey: const ValueKey<String>('prefab_v3_owner_unsaved_edit_cancel'),
+      discardKey: const ValueKey<String>(
+        'prefab_v3_owner_unsaved_edit_discard',
+      ),
+      saveKey: const ValueKey<String>('prefab_v3_owner_unsaved_edit_save'),
     );
     if (!mounted) return false;
     return switch (action) {
-      _PendingOwnerEditAction.save =>
+      EditorPendingChangesAction.save =>
         await ((_ownerRenameActive
                 ? _ownerRenameFormKey.currentState?.submit()
                 : _ownerEditFormKey.currentState?.submit()) ??
             Future<bool>.value(false)),
-      _PendingOwnerEditAction.discard => () {
+      EditorPendingChangesAction.discard => () {
         _closeOwnerEditor();
         return true;
       }(),
-      _PendingOwnerEditAction.cancel || null => false,
+      EditorPendingChangesAction.cancel || null => false,
     };
   }
 
@@ -2622,10 +2189,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     bool expanded, {
     required PrefabV3Document document,
     required bool controlsEnabled,
+    required bool canCreate,
   }) async {
     if (!expanded) {
       if (_ownerCreateDirty) return;
       _closeOwnerCreateSection();
+      return;
+    }
+    if (!canCreate) {
+      setState(_ownerDraft.expandCreate);
       return;
     }
     if (!controlsEnabled) {
@@ -2642,14 +2214,13 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     }
     if (!await _resolveOwnerEditor() || !mounted) return;
     setState(() {
-      _ownerCreateExpanded = true;
-      _ownerCreateSource = document;
+      _ownerDraft.expandCreate(document);
     });
   }
 
   void _setOwnerCreateDirty(bool dirty) {
-    if (!mounted || dirty == _ownerCreateDirty) return;
-    setState(() => _ownerCreateDirty = dirty);
+    if (!mounted || !_ownerDraft.setCreateDirty(dirty)) return;
+    setState(() {});
   }
 
   void _closeOwnerCreateSection() {
@@ -2658,9 +2229,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   void _clearOwnerCreateState() {
-    _ownerCreateExpanded = false;
-    _ownerCreateDirty = false;
-    _ownerCreateSource = null;
+    _ownerDraft.clearCreate();
   }
 
   Future<bool> _resolveOwnerCreateDraft() async {
@@ -2669,51 +2238,33 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _closeOwnerCreateSection();
       return true;
     }
-    final action = await showDialog<_PendingOwnerEditAction>(
+    final action = await showEditorPendingChangesDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        key: const ValueKey<String>('prefab_v3_owner_unsaved_create_dialog'),
-        title: const Text('Create this prefab?'),
-        content: const Text(
-          'Save the pending prefab before leaving the creation form?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>(
-              'prefab_v3_owner_unsaved_create_cancel',
-            ),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.cancel),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            key: const ValueKey<String>(
-              'prefab_v3_owner_unsaved_create_discard',
-            ),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.discard),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('prefab_v3_owner_unsaved_create_save'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.save),
-            child: const Text('Save'),
-          ),
-        ],
+      dialogKey: const ValueKey<String>(
+        'prefab_v3_owner_unsaved_create_dialog',
       ),
+      title: 'Create this prefab?',
+      content: const Text(
+        'Save the pending prefab before leaving the creation form?',
+      ),
+      cancelKey: const ValueKey<String>(
+        'prefab_v3_owner_unsaved_create_cancel',
+      ),
+      discardKey: const ValueKey<String>(
+        'prefab_v3_owner_unsaved_create_discard',
+      ),
+      saveKey: const ValueKey<String>('prefab_v3_owner_unsaved_create_save'),
     );
     if (!mounted) return false;
     return switch (action) {
-      _PendingOwnerEditAction.save =>
+      EditorPendingChangesAction.save =>
         await (_ownerCreateFormKey.currentState?.submit() ??
             Future<bool>.value(false)),
-      _PendingOwnerEditAction.discard => () {
+      EditorPendingChangesAction.discard => () {
         _closeOwnerCreateSection();
         return true;
       }(),
-      _PendingOwnerEditAction.cancel || null => false,
+      EditorPendingChangesAction.cancel || null => false,
     };
   }
 
@@ -2729,8 +2280,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     _authoring = PrefabPolygonAuthoringController(
       session: widget.controller,
       prefabKey: prefabKey,
-      newShapeSurfaceKind: terrainSurfaceKindOptions.first,
-      newShapeMaterialKey: _materialCatalog?.materials.firstOrNull?.key,
     )..addListener(_handleAuthoringChanged);
     _creationMethod = _defaultCreationMethod(_authoring!.prefab.kind);
   }
@@ -2782,26 +2331,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 }
 
-enum _PrefabV3WorkspaceView { owners, atlasSlices, platformModules }
-
-enum _PendingOwnerEditAction { save, discard, cancel }
-
-enum _PendingShapeEditAction { save, discard, cancel }
-
-int _comparePrefabs(PrefabV3Def left, PrefabV3Def right) {
-  final kindOrder = _kindOrder(left.kind).compareTo(_kindOrder(right.kind));
-  if (kindOrder != 0) return kindOrder;
-  final idOrder = left.id.compareTo(right.id);
-  return idOrder != 0 ? idOrder : left.prefabKey.compareTo(right.prefabKey);
-}
-
-int _kindOrder(PrefabKind kind) => switch (kind) {
-  PrefabKind.obstacle => 0,
-  PrefabKind.platform => 1,
-  PrefabKind.decoration => 2,
-  PrefabKind.unknown => 3,
-};
-
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.select => 'Select shape',
   TerrainPolygonTool.createPolygon => 'Place vertex',
@@ -2825,27 +2354,6 @@ PrefabCollisionCreationMethod _defaultCreationMethod(PrefabKind kind) =>
       PrefabKind.unknown => PrefabCollisionCreationMethod.traceVisibleOutline,
       PrefabKind.decoration => PrefabCollisionCreationMethod.rectangle,
     };
-
-String _fitMethodLabel(PrefabCollisionCreationMethod method) =>
-    switch (method) {
-      PrefabCollisionCreationMethod.rectangle => 'Rectangle',
-      PrefabCollisionCreationMethod.polygon => 'Polygon',
-      PrefabCollisionCreationMethod.fitVisibleBounds => 'Fit visible bounds',
-      PrefabCollisionCreationMethod.traceVisibleOutline =>
-        'Trace visible outline',
-      PrefabCollisionCreationMethod.detectPlatformSurface =>
-        'Detect platform surface',
-    };
-
-IconData _fitMethodIcon(
-  PrefabCollisionCreationMethod method,
-) => switch (method) {
-  PrefabCollisionCreationMethod.rectangle => Icons.crop_square,
-  PrefabCollisionCreationMethod.polygon => Icons.polyline,
-  PrefabCollisionCreationMethod.fitVisibleBounds => Icons.fit_screen,
-  PrefabCollisionCreationMethod.traceVisibleOutline => Icons.gesture_outlined,
-  PrefabCollisionCreationMethod.detectPlatformSurface => Icons.horizontal_rule,
-};
 
 String _shapeExtent(TerrainSourceShapeDef shape) {
   final xs = shape.vertices.map((vertex) => vertex.xHalfPixels);

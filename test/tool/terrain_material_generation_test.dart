@@ -35,7 +35,7 @@ void main() {
       "displayName": "Stone",
       "revision": 1,
       "fill": {
-        "assetPath": "assets/images/terrain/stone/atlas.png",
+        "assetPath": "assets/images/level/atlases/stone/atlas.png",
         "x": 0,
         "y": 0,
         "width": 16,
@@ -44,7 +44,7 @@ void main() {
       "top": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/stone/atlas.png",
+            "assetPath": "assets/images/level/atlases/stone/atlas.png",
             "x": 16,
             "y": 0,
             "width": 16,

@@ -37,7 +37,7 @@ void main() {
       'images',
       'parallax',
       'forest',
-      'Forest Layer 01.png',
+      'layer_01.png',
     );
     final pickerSelections = <String>[outsideAsset.path, selectedAssetPath];
     final pickerInitialDirectories = <String>[];
@@ -117,7 +117,7 @@ void main() {
     await _flush(tester);
     expect(
       tester.widget<TextField>(assetPathField).controller?.text,
-      'assets/images/parallax/forest/Forest Layer 01.png',
+      'assets/images/parallax/forest/layer_01.png',
     );
     expect(
       pickerInitialDirectories,
@@ -132,8 +132,7 @@ void main() {
     expect(
       scene.activeTheme?.layers.any(
         (layer) =>
-            layer.assetPath ==
-                'assets/images/parallax/forest/Forest Layer 01.png' &&
+            layer.assetPath == 'assets/images/parallax/forest/layer_01.png' &&
             layer.parallaxFactor == 1.1,
       ),
       isTrue,

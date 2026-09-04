@@ -201,9 +201,9 @@ Parallax route now exists as a dedicated theme-authoring workflow:
 ### Assets
 
 - props atlas exists:
-  `assets/images/level/props/TX Village Props.png`
+  `assets/images/level/atlases/tiny_swords/village_props.png`
 - ground tileset exists:
-  `assets/images/level/tileset/TX Tileset Ground.png`
+  `assets/images/level/atlases/tiny_swords/ground.png`
 
 ## 3) Product Scope
 
@@ -452,7 +452,7 @@ Scope:
 - add `Atlas Slice` route for manual source-rect selection on atlas/tileset
   sheets
 - support slicing individual tiles from tilesets (for example
-  `TX Tileset Ground.png`)
+  `assets/images/level/atlases/tiny_swords/ground.png`)
 - add tile composition tool to join sliced individual tiles into reusable
   larger platform modules
 - add prefab inspector route for collider/anchor/tag/snap/z-index authoring
@@ -617,6 +617,10 @@ Scope:
 - persist module data in `tile_defs.json` in canonical deterministic form
 - ensure authored platform modules are immediately consumable by prefab authoring
   (`visualSource.type = platform_module`) without hand-editing JSON
+- present modules and their paired collision Prefabs as one Platform workflow;
+  bounded create/duplicate operations create the pair atomically, lifecycle
+  changes synchronize an unambiguous pair, and retained unpaired modules expose
+  direct collision setup without weakening multi-Prefab compatibility
 
 Gate:
 
@@ -627,6 +631,8 @@ Gate:
 - authored modules round-trip load/save deterministically
 - module validation blocks invalid composition states before save/export
 - platform prefab flow can reference newly authored modules in the same session
+- every bounded platform can open collision authoring directly, with both
+  internal source records participating in one undo/export transaction
 
 ### Phase 4 - Replace Existing Obstacles/Platforms With Prefab-Backed Runtime Data
 

@@ -22,7 +22,8 @@ Implemented authoring domains:
   whole-pixel polygon-collision authoring, including tagged atlas/tile slices
   and visual slice selection with search, source/usage filters, thumbnails, and
   existing-Prefab usage indicators; Prefab atlas slicing supports configurable
-  cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
+  cell dimensions, origins, gutters, arbitrary manual pixel rectangles, and a
+  native PNG file picker constrained to the loaded repository atlas catalog
 - chunk authoring with whole-pixel direct terrain polygons, expanded
   placed-Prefab collision, searchable visual Prefab and enemy libraries,
   active-level parallax and terrain-material scene preview, Core-backed
@@ -183,33 +184,64 @@ separate inline stable-key-preserving lifecycle form. Creation and rename no
 longer open routine modals. Their dirty values use the same Save/Discard/Cancel
 navigation guard, and deletion retains its reference-aware confirmation.
 
-Prefabs are selected through a searchable visual library rather than a
-plain text list. Atlas slices and platform modules share the same workspace-
+Prefab Creator separates **Prefabs** from **Collision**. Prefabs owns inline
+creation, a visual-only selected-source preview, and the searchable library
+with row-local metadata and lifecycle actions. Collision owns the missing-
+setup queue, an Obstacle/Platform-only visual selector, the collision scene,
+shape creation/editing, and diagnostics. Selecting **Set up collision** or
+**Edit collision** in an expanded Prefab carries that same stable selection
+into Collision.
+
+Prefabs are selected through a searchable visual library rather than a plain
+text list. Atlas slices and platform modules share the same workspace-
 cached thumbnail projection used by Chunk prefab selection. Token search covers
 the prefab ID, stable key, kind, visual source, and tags; kind and status filters
 remain presentation-only, and Enter selects the first deterministic result.
 Each card shows revision, collision count, source, tags, and downstream Chunk
-usage. The header prefab selector, selected library card, collision-scene context
-chip, and expanded inline editor all resolve the same stable `prefabKey` without
-creating a revision or pending change.
+usage. The Prefabs library/preview, Collision selector/scene, and expanded
+inline editor all resolve the same stable `prefabKey` without creating a
+revision or pending change. Entering Collision from a selected Decoration
+chooses the first deterministic colliding Prefab; when none exists, the view
+shows an explicit empty state.
 
-Polygon metadata uses selectors for supported surface semantics and terrain
-materials loaded from the canonical terrain-material manifest. Prefab and
-Chunk collision creation and retained-shape editors place those selectors
-inline; the former Prefab metadata dialog is no longer part of the workflow.
-Each accepted metadata selection is one validated history edit, and Chunk's
-Material **Preview** button opens the composed
+Chunk polygon metadata uses selectors for supported surface semantics and
+terrain materials loaded from the canonical terrain-material manifest. Prefab
+collision does not expose either selector: collision mode is derived from the
+Prefab kind, while new and regenerated shapes keep `surfaceKind` and
+`materialKey` null because the placed Prefab provides gameplay provenance and
+its sprite owns appearance. Existing imported metadata remains source-compatible
+until its shape is explicitly regenerated. Chunk's Material **Preview** button
+opens the composed
 fill, top/detail bands, convex corner/endpoint caps, source assets, and explicit
 wall/underside coverage in a read-only dialog.
 
 Prefab collision authoring is split into collapsed **Create collision shape**,
 **Existing collision shapes**, and **Diagnostics** sections. Creation owns an
-optional validated shape name, collision/surface/material defaults, snap grid,
-draft readiness, and Save/Cancel. A retained shape expands its editor inside
+optional validated shape name, kind-derived collision mode, snap grid, draft
+readiness, and Save/Cancel. A retained shape expands its editor inside
 its selected row; re-clicking closes it, with Save/Discard/Cancel protection for
 unsaved identity or exact-coordinate fields. Axis-aligned four-vertex polygons
 use the compact X/Bottom/Width/Height editor, arbitrary polygons retain vertex
 editing, and identity plus exact geometry save as one collision command.
+
+Platforms are presented as one workflow even though their source remains split
+internally: `tile_defs.json` owns the visual tile composition and
+`prefab_defs.json` owns gameplay identity, anchors, collision, and placement
+compatibility. Creating a bounded platform, duplicating one, or adding the
+first visual tile to an empty platform draft creates its paired collision
+Prefab in the same undoable session command. Rename and lifecycle changes keep
+an unambiguous pair synchronized without changing its stable `prefabKey`.
+
+The **Platforms** view shows **Set Up Collision** or **Edit Collision** on each
+row and opens the paired Prefab in **Collision**. Collision also exposes any old
+or imported visual that lacks a Prefab under **Collision setup needed**. That
+section also lists existing
+Obstacle and Platform Prefabs whose collision-shape list is empty, while
+Decoration Prefabs remain excluded. Opening an unpaired Platform row creates
+the missing status-matched owner and selects its collision scene. Modules that
+intentionally feed several custom Prefab variants remain supported and are not
+collapsed automatically. Deleting a platform removes its sole unplaced pair
+atomically; multiple variants or Chunk placements must be resolved first.
 
 The creation section exposes five collision methods in place: **Rectangle**,
 **Polygon**, **Fit visible bounds**, **Trace visible outline**, and, for
@@ -250,12 +282,16 @@ reparents the same scene, library, and authoring subtrees without resetting the
 viewport, selection, filters, expansion state, or local drafts; Prefab
 workspaces do not use exclusive library/scene/shape tabs.
 
-Atlas slices and platform modules use the same responsive and panel language.
+Atlas slices and Platforms use the same responsive and panel language.
 Their authoring, palette/action, and existing-record libraries start collapsed;
 a dirty slice or module form forces its owning authoring section open until it
 is applied or undone. Selected visual rows state which synchronized inspector
-and scene they control. Platform-module creation begins only after **New Empty
-Module**, while selected modules use the explicit edit/lifecycle context.
+and scene they control. Atlas opens without an implicitly selected slice; its
+read-only source field opens the native PNG picker and accepts only an image in
+the loaded repository atlas catalog. New slice drafts prefill the source
+filename stem as a tag, and every slice save merges that tag with the normalized
+user tags. Platform creation begins only after **New Platform**, while selected
+records use the explicit edit/lifecycle context.
 Reference-aware slice/module deletion and atlas source-bounds validation are
 unchanged.
 
@@ -270,7 +306,7 @@ reference-safely deletes those definitions. Each material owns a stable key,
 fill region, required top/slope profile, optional left/right wall and underside
 profiles, and independent optional pairs of top cliff and underside corner
 caps. Each visual role selects an exact
-`X/Y/W/H` rectangle from a PNG below `assets/images/terrain/`. The picker offers
+`X/Y/W/H` rectangle from a PNG below `assets/images/level/atlases/`. The picker offers
 a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
 rectangles; selecting a region never creates a cropped asset. Edge regions use
 their natural world-facing orientation in the atlas—left/right walls stay

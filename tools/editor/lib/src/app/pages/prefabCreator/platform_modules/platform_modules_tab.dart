@@ -18,7 +18,7 @@ import '../shared/ui/prefab_editor_scene_header.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import 'widgets/platform_module_scene_view.dart';
 
-/// Platform-module editing view.
+/// Platform visual-composition view with direct collision-owner navigation.
 class PlatformModulesTab extends StatelessWidget {
   const PlatformModulesTab({
     super.key,
@@ -31,6 +31,7 @@ class PlatformModulesTab extends StatelessWidget {
     required this.selectedTileSliceId,
     required this.selectedModuleSceneTool,
     required this.workspaceRootPath,
+    required this.prefabCountByModuleId,
     required this.onUpsertModule,
     required this.onStartNewEmptyModule,
     required this.onRenameSelectedModule,
@@ -44,6 +45,7 @@ class PlatformModulesTab extends StatelessWidget {
     required this.onMoveCell,
     required this.onDeleteModule,
     required this.onDeleteModuleCell,
+    required this.onEditCollision,
     required this.hasLocalDraftChanges,
   });
 
@@ -56,6 +58,7 @@ class PlatformModulesTab extends StatelessWidget {
   final String? selectedTileSliceId;
   final PlatformModuleSceneTool selectedModuleSceneTool;
   final String workspaceRootPath;
+  final Map<String, int> prefabCountByModuleId;
   final VoidCallback onUpsertModule;
   final VoidCallback onStartNewEmptyModule;
   final VoidCallback onRenameSelectedModule;
@@ -75,6 +78,7 @@ class PlatformModulesTab extends StatelessWidget {
   onMoveCell;
   final ValueChanged<String> onDeleteModule;
   final void Function(String moduleId, int cellIndex) onDeleteModuleCell;
+  final ValueChanged<String> onEditCollision;
   final bool hasLocalDraftChanges;
 
   @override
@@ -97,6 +101,12 @@ class PlatformModulesTab extends StatelessWidget {
         onRenameSelectedModule: onRenameSelectedModule,
         onDuplicateSelectedModule: onDuplicateSelectedModule,
         onToggleDeprecateSelectedModule: onToggleDeprecateSelectedModule,
+        collisionOwnerCount: selectedModule == null
+            ? 0
+            : prefabCountByModuleId[selectedModule!.id] ?? 0,
+        onEditCollision: selectedModule == null || selectedModule!.cells.isEmpty
+            ? null
+            : () => onEditCollision(selectedModule!.id),
         onSelectedTileSliceChanged: onSelectedTileSliceChanged,
       ),
       scene: _buildSceneCard(
@@ -118,6 +128,8 @@ class PlatformModulesTab extends StatelessWidget {
         onSelectedModuleChanged: onSelectedModuleChanged,
         onDeleteModule: onDeleteModule,
         onDeleteModuleCell: onDeleteModuleCell,
+        prefabCountByModuleId: prefabCountByModuleId,
+        onEditCollision: onEditCollision,
       ),
     );
   }
@@ -140,10 +152,10 @@ class PlatformModulesTab extends StatelessWidget {
     onMoveCell,
   }) {
     final sceneHeaderTitle = selectedModule == null
-        ? 'No module selected'
-        : 'Module: ${selectedModule.id}';
+        ? 'No platform selected'
+        : 'Platform: ${selectedModule.id}';
     final sceneHeaderSubtitle = selectedModule == null
-        ? 'Select or create a module to edit it.'
+        ? 'Select or create a platform to edit it.'
         : 'cells=${selectedModule.cells.length} '
               'tileSize=${selectedModule.tileSize} '
               'tool=${selectedModuleSceneTool.label} '
@@ -151,7 +163,7 @@ class PlatformModulesTab extends StatelessWidget {
 
     return EditorPanelCard(
       key: const ValueKey<String>('platform_module_scene_card'),
-      title: 'Platform Module View',
+      title: 'Platform Visual',
       bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +207,8 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
     required this.onRenameSelectedModule,
     required this.onDuplicateSelectedModule,
     required this.onToggleDeprecateSelectedModule,
+    required this.collisionOwnerCount,
+    required this.onEditCollision,
     required this.onSelectedTileSliceChanged,
   });
 
@@ -211,6 +225,8 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
   final VoidCallback onRenameSelectedModule;
   final VoidCallback onDuplicateSelectedModule;
   final VoidCallback onToggleDeprecateSelectedModule;
+  final int collisionOwnerCount;
+  final VoidCallback? onEditCollision;
   final ValueChanged<String?> onSelectedTileSliceChanged;
 
   @override
@@ -223,14 +239,16 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
           PrefabEditorModeBanner(
             bannerKey: const ValueKey<String>('platform_module_mode_banner'),
             title: selectedModule == null
-                ? 'Creating new platform module'
-                : 'Editing platform module "${selectedModule!.id}"',
+                ? 'Creating new platform'
+                : 'Editing platform "${selectedModule!.id}"',
             details: selectedModule == null
-                ? 'Saving will create a new empty module for the current ID.'
+                ? 'Saving creates an empty visual composition. Add tiles and '
+                      'its collision owner is created automatically.'
                 : 'rev=${selectedModule!.revision} '
                       'status=${selectedModule!.status.jsonValue} '
                       'tileSize=${selectedModule!.tileSize} '
-                      'cells=${selectedModule!.cells.length}',
+                      'cells=${selectedModule!.cells.length} '
+                      'collision=${_collisionOwnerLabel(collisionOwnerCount)}',
             tone: selectedModule == null
                 ? PrefabEditorModeTone.create
                 : PrefabEditorModeTone.edit,
@@ -242,11 +260,11 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
               'platform_module_advanced_controls_toggle',
             ),
             title: selectedModule == null
-                ? 'Create platform module'
-                : 'Edit selected module',
+                ? 'Create platform'
+                : 'Edit selected platform',
             description: selectedModule == null
-                ? 'Create a new empty module with a unique ID and tile size.'
-                : 'Update metadata or use contextual lifecycle actions.',
+                ? 'Create a new platform visual with a unique ID and tile size.'
+                : 'Update its visual, lifecycle, or collision.',
             collapsible: !hasLocalDraftChanges,
             initiallyExpanded: false,
             expanded: hasLocalDraftChanges ? true : null,
@@ -258,7 +276,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                   controller: moduleIdController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: 'Platform Module ID',
+                    labelText: 'Platform ID',
                   ),
                 ),
                 const SizedBox(height: EditorUiTokens.controlGap),
@@ -288,8 +306,8 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                       ),
                       label: Text(
                         selectedModule != null
-                            ? 'Update Module'
-                            : 'Create Module',
+                            ? 'Update Platform'
+                            : 'Create Platform',
                       ),
                     ),
                     OutlinedButton.icon(
@@ -300,7 +318,21 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                           ? null
                           : onStartNewEmptyModule,
                       icon: const Icon(Icons.post_add_outlined),
-                      label: const Text('New Empty Module'),
+                      label: const Text('New Platform'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'platform_module_edit_collision_button',
+                      ),
+                      onPressed: onEditCollision,
+                      icon: const Icon(Icons.border_style_outlined),
+                      label: Text(
+                        collisionOwnerCount == 0
+                            ? 'Set Up Collision'
+                            : collisionOwnerCount == 1
+                            ? 'Edit Collision'
+                            : 'Choose Collision Prefab',
+                      ),
                     ),
                     OutlinedButton.icon(
                       key: const ValueKey<String>(
@@ -343,7 +375,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                 const SizedBox(height: EditorUiTokens.sectionGap),
                 Text(
                   selectedModule == null
-                      ? 'Select a module from the list to edit it.'
+                      ? 'Select a platform from the list to edit it.'
                       : 'Selected: key=${selectedModule!.id} '
                             'rev=${selectedModule!.revision} '
                             'status=${selectedModule!.status.jsonValue}',
@@ -423,7 +455,7 @@ class _PlatformModuleScenePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (selectedModule == null) {
       return const PrefabEditorEmptyState(
-        message: 'Select or create a module to edit it.',
+        message: 'Select or create a platform to edit it.',
       );
     }
 
@@ -450,6 +482,8 @@ class _PlatformModuleDisplayPanel extends StatefulWidget {
     required this.onSelectedModuleChanged,
     required this.onDeleteModule,
     required this.onDeleteModuleCell,
+    required this.prefabCountByModuleId,
+    required this.onEditCollision,
   });
 
   final List<TileModuleDef> modules;
@@ -459,6 +493,8 @@ class _PlatformModuleDisplayPanel extends StatefulWidget {
   final ValueChanged<String?> onSelectedModuleChanged;
   final ValueChanged<String> onDeleteModule;
   final void Function(String moduleId, int cellIndex) onDeleteModuleCell;
+  final Map<String, int> prefabCountByModuleId;
+  final ValueChanged<String> onEditCollision;
 
   @override
   State<_PlatformModuleDisplayPanel> createState() =>
@@ -488,8 +524,8 @@ class _PlatformModuleDisplayPanelState
         expansionKey: const ValueKey<String>(
           'platform_module_library_section_toggle',
         ),
-        title: 'Existing platform modules',
-        description: 'Select a visual row to synchronize its inline editor.',
+        title: 'Existing platforms',
+        description: 'Select a platform to edit its visual or collision.',
         trailing: Text('${widget.modules.length} total'),
         collapsible: true,
         initiallyExpanded: false,
@@ -502,7 +538,7 @@ class _PlatformModuleDisplayPanelState
             ),
             const SizedBox(height: EditorUiTokens.sectionGap),
             if (widget.modules.isEmpty)
-              const PrefabEditorEmptyState(message: 'No platform modules yet.')
+              const PrefabEditorEmptyState(message: 'No platforms yet.')
             else
               for (final module in widget.modules)
                 EditorListCard(
@@ -522,8 +558,28 @@ class _PlatformModuleDisplayPanelState
                     module: module,
                     tileSlicesById: tileSlicesById,
                   ),
-                  trailing: PrefabEditorDeleteButton(
-                    onPressed: () => widget.onDeleteModule(module.id),
+                  trailing: Wrap(
+                    spacing: EditorUiTokens.controlGap,
+                    children: <Widget>[
+                      IconButton(
+                        key: ValueKey<String>(
+                          'platform_module_collision_${module.id}',
+                        ),
+                        tooltip: module.cells.isEmpty
+                            ? 'Add visual tiles before editing collision'
+                            : (widget.prefabCountByModuleId[module.id] ?? 0) ==
+                                  0
+                            ? 'Set up collision'
+                            : 'Edit collision',
+                        onPressed: module.cells.isEmpty
+                            ? null
+                            : () => widget.onEditCollision(module.id),
+                        icon: const Icon(Icons.border_style_outlined),
+                      ),
+                      PrefabEditorDeleteButton(
+                        onPressed: () => widget.onDeleteModule(module.id),
+                      ),
+                    ],
                   ),
                   details: widget.selectedModuleId != module.id
                       ? null
@@ -532,7 +588,7 @@ class _PlatformModuleDisplayPanelState
                           children: [
                             const Text(
                               'Selected for editing in Edit selected '
-                              'module and the scene.',
+                              'platform and the visual scene.',
                             ),
                             if (module.cells.isEmpty)
                               const Text('No cells yet.'),
@@ -560,6 +616,7 @@ class _PlatformModuleDisplayPanelState
                           'rev=${module.revision} '
                           'tileSize=${module.tileSize} '
                           'cells=${module.cells.length}',
+                      'collision=${_collisionOwnerLabel(widget.prefabCountByModuleId[module.id] ?? 0)}',
                       module.cells.isEmpty
                           ? 'No components yet.'
                           : 'Tap to edit and expand components.',
@@ -572,3 +629,9 @@ class _PlatformModuleDisplayPanelState
     );
   }
 }
+
+String _collisionOwnerLabel(int count) => switch (count) {
+  0 => 'not configured',
+  1 => 'configured',
+  _ => '$count prefab variants',
+};

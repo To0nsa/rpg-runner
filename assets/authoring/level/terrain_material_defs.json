@@ -4,9 +4,9 @@
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
-      "revision": 10,
+      "revision": 11,
       "fill": {
-        "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+        "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
         "x": 224,
         "y": 192,
         "width": 32,
@@ -15,7 +15,7 @@
       "top": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
             "x": 32,
             "y": 1,
             "width": 32,
@@ -27,7 +27,7 @@
       "leftWall": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
             "x": 193,
             "y": 192,
             "width": 31,
@@ -39,7 +39,7 @@
       "rightWall": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
             "x": 256,
             "y": 192,
             "width": 31,
@@ -51,7 +51,7 @@
       "underside": {
         "base": {
           "region": {
-            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
             "x": 32,
             "y": 64,
             "width": 32,
@@ -62,7 +62,7 @@
       },
       "topStartCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
           "x": 0,
           "y": 1,
           "width": 32,
@@ -73,7 +73,7 @@
       },
       "topEndCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
           "x": 64,
           "y": 1,
           "width": 32,
@@ -84,7 +84,7 @@
       },
       "undersideStartCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
           "x": 64,
           "y": 64,
           "width": 32,
@@ -95,7 +95,7 @@
       },
       "undersideEndCap": {
         "region": {
-          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "assetPath": "assets/images/level/atlases/tiny_swords/ground.png",
           "x": 0,
           "y": 64,
           "width": 32,

@@ -186,24 +186,21 @@ void main() {
   });
 
   test(
-    'creation metadata stays local with kind-derived collision semantics',
+    'creation derives collision semantics without terrain metadata',
     () async {
       final harness = await _buildHarness();
       final controller = harness.authoring;
       final session = harness.session;
 
       controller.setNewShapeNameInput('collision_002');
-      controller.setNewShapeCollisionMode(TerrainSourceCollisionMode.oneWay);
-      controller.setNewShapeSurfaceKind('obstacle');
-      controller.setNewShapeMaterialKey('stone');
       expect(controller.beginCreatePolygon(), isTrue);
       expect(controller.state.draft!.shapeId, 'collision_002');
       expect(
         controller.state.draft!.collisionMode,
         TerrainSourceCollisionMode.solid,
       );
-      expect(controller.state.draft!.surfaceKind, 'obstacle');
-      expect(controller.state.draft!.materialKey, 'stone');
+      expect(controller.state.draft!.surfaceKind, isNull);
+      expect(controller.state.draft!.materialKey, isNull);
       expect(session.canUndo, isFalse);
       expect(controller.prefab.revision, 4);
       controller.cancelActiveOperation();
@@ -710,6 +707,14 @@ void main() {
         controller.prefab.collisionShapes.map((shape) => shape.collisionMode),
         everyElement(TerrainSourceCollisionMode.oneWay),
       );
+      expect(
+        controller.prefab.collisionShapes.map((shape) => shape.surfaceKind),
+        everyElement(isNull),
+      );
+      expect(
+        controller.prefab.collisionShapes.map((shape) => shape.materialKey),
+        everyElement(isNull),
+      );
       expect(harness.session.canUndo, isTrue);
       expect(controller.undo(), isTrue);
       expect(controller.prefab.collisionShapes, isEmpty);
@@ -906,119 +911,118 @@ void main() {
     expect(harness.session.canUndo, isFalse);
   });
 
-  test(
-    'refit scopes components, preserves metadata, and allocates IDs atomically',
-    () async {
-      final selected = _box(
-        'collision_001',
-        left: -4,
-        top: -4,
-        right: 4,
-        bottom: 4,
-        surfaceKind: 'stone',
-        materialKey: 'granite',
-      );
-      final unrelated = _box(
-        'collision_002',
-        left: -10,
-        top: 6,
-        right: -8,
-        bottom: 8,
-      );
-      final harness = await _buildHarness(
-        collisionShapes: <TerrainSourceShapeDef>[selected, unrelated],
-      );
-      final controller = harness.authoring;
-      controller.select(TerrainPolygonSelection.shape(selected.shapeId));
-      final mask = _alphaMask(<String>[
-        '........##',
-        '........##',
-        '..........',
-        '...####...',
-        '...####...',
-        '...####...',
-        '...####...',
-        '..........',
-        '..........',
-        '..........',
-      ]);
-      final result = PrefabCollisionFitter.generate(
-        mask: mask,
-        method: PrefabCollisionCreationMethod.traceVisibleOutline,
-      );
-      final token = controller.startFitGeneration(
-        method: PrefabCollisionCreationMethod.traceVisibleOutline,
-        settings: const PrefabCollisionFitSettings(),
-        refitShapeId: selected.shapeId,
-      );
+  test('refit scopes components, clears terrain metadata, and allocates IDs atomically', () async {
+    final selected = _box(
+      'collision_001',
+      left: -4,
+      top: -4,
+      right: 4,
+      bottom: 4,
+      surfaceKind: 'stone',
+      materialKey: 'granite',
+    );
+    final unrelated = _box(
+      'collision_002',
+      left: -10,
+      top: 6,
+      right: -8,
+      bottom: 8,
+      surfaceKind: 'obstacle',
+      materialKey: 'legacy_material',
+    );
+    final harness = await _buildHarness(
+      collisionShapes: <TerrainSourceShapeDef>[selected, unrelated],
+    );
+    final controller = harness.authoring;
+    controller.select(TerrainPolygonSelection.shape(selected.shapeId));
+    final mask = _alphaMask(<String>[
+      '........##',
+      '........##',
+      '..........',
+      '...####...',
+      '...####...',
+      '...####...',
+      '...####...',
+      '..........',
+      '..........',
+      '..........',
+    ]);
+    final result = PrefabCollisionFitter.generate(
+      mask: mask,
+      method: PrefabCollisionCreationMethod.traceVisibleOutline,
+    );
+    final token = controller.startFitGeneration(
+      method: PrefabCollisionCreationMethod.traceVisibleOutline,
+      settings: const PrefabCollisionFitSettings(),
+      refitShapeId: selected.shapeId,
+    );
 
-      expect(
-        controller.completeFitGeneration(
-          token: token,
-          sourceMask: mask,
-          sourceIdentity: 'source-refit',
-          result: result,
-          visualOriginXPx: -5,
-          visualOriginYPx: -5,
-        ),
-        isTrue,
-      );
-      final candidateIds = controller.fitCandidateShapeIds;
-      expect(candidateIds, <String>['collision_001', 'collision_003']);
-      expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
-      expect(controller.isFitCandidateIncluded(candidateIds.last), isTrue);
-      expect(controller.fitEvidence!.coveredVisiblePixels, 16);
+    expect(
+      controller.completeFitGeneration(
+        token: token,
+        sourceMask: mask,
+        sourceIdentity: 'source-refit',
+        result: result,
+        visualOriginXPx: -5,
+        visualOriginYPx: -5,
+      ),
+      isTrue,
+    );
+    final candidateIds = controller.fitCandidateShapeIds;
+    expect(candidateIds, <String>['collision_001', 'collision_003']);
+    expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
+    expect(controller.isFitCandidateIncluded(candidateIds.last), isTrue);
+    expect(controller.fitEvidence!.coveredVisiblePixels, 16);
 
-      controller.select(TerrainPolygonSelection.shape(candidateIds.last));
-      expect(
-        controller.editSelectedAxisAlignedRectangle(
-          xHalfPixels: -4,
-          yHalfPixels: -4,
-          widthHalfPixels: 10,
-          heightHalfPixels: 8,
-          shapeId: candidateIds.last,
-        ),
-        isTrue,
-      );
-      expect(controller.fitEvidence!.coveredTransparentPixels, 4);
-      expect(controller.undo(), isTrue);
-      expect(controller.fitEvidence!.coveredTransparentPixels, 0);
+    controller.select(TerrainPolygonSelection.shape(candidateIds.last));
+    expect(
+      controller.editSelectedAxisAlignedRectangle(
+        xHalfPixels: -4,
+        yHalfPixels: -4,
+        widthHalfPixels: 10,
+        heightHalfPixels: 8,
+        shapeId: candidateIds.last,
+      ),
+      isTrue,
+    );
+    expect(controller.fitEvidence!.coveredTransparentPixels, 4);
+    expect(controller.undo(), isTrue);
+    expect(controller.fitEvidence!.coveredTransparentPixels, 0);
 
-      controller.setFitCandidateIncluded(candidateIds.first, true);
-      expect(controller.fitEvidence!.coveredVisiblePixels, 20);
-      expect(controller.canUndo, isTrue);
-      expect(controller.undo(), isTrue);
-      expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
-      expect(controller.redo(), isTrue);
-      expect(controller.isFitCandidateIncluded(candidateIds.first), isTrue);
+    controller.setFitCandidateIncluded(candidateIds.first, true);
+    expect(controller.fitEvidence!.coveredVisiblePixels, 20);
+    expect(controller.canUndo, isTrue);
+    expect(controller.undo(), isTrue);
+    expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
+    expect(controller.redo(), isTrue);
+    expect(controller.isFitCandidateIncluded(candidateIds.first), isTrue);
 
-      expect(
-        controller.saveFitDraft(currentSourceIdentity: 'source-refit'),
-        isTrue,
-        reason: controller.fitMessages.join('\n'),
-      );
-      final saved = controller.prefab.collisionShapes;
-      expect(controller.prefab.revision, 5);
-      expect(saved, hasLength(3));
-      expect(
-        saved.singleWhere((shape) => shape.shapeId == 'collision_002'),
-        unrelated,
-      );
-      for (final id in <String>['collision_001', 'collision_003']) {
-        final shape = saved.singleWhere((candidate) => candidate.shapeId == id);
-        expect(shape.surfaceKind, 'stone');
-        expect(shape.materialKey, 'granite');
-        expect(shape.collisionMode, TerrainSourceCollisionMode.solid);
-      }
-      expect(controller.undo(), isTrue);
-      expect(controller.prefab.collisionShapes, <TerrainSourceShapeDef>[
-        selected,
-        unrelated,
-      ]);
-      expect(controller.redo(), isTrue);
-      expect(controller.prefab.collisionShapes, saved);
-    },
-  );
+    expect(
+      controller.saveFitDraft(currentSourceIdentity: 'source-refit'),
+      isTrue,
+      reason: controller.fitMessages.join('\n'),
+    );
+    final saved = controller.prefab.collisionShapes;
+    expect(controller.prefab.revision, 5);
+    expect(saved, hasLength(3));
+    expect(
+      saved.singleWhere((shape) => shape.shapeId == 'collision_002'),
+      unrelated,
+    );
+    for (final id in <String>['collision_001', 'collision_003']) {
+      final shape = saved.singleWhere((candidate) => candidate.shapeId == id);
+      expect(shape.surfaceKind, isNull);
+      expect(shape.materialKey, isNull);
+      expect(shape.collisionMode, TerrainSourceCollisionMode.solid);
+    }
+    expect(controller.undo(), isTrue);
+    expect(controller.prefab.collisionShapes, <TerrainSourceShapeDef>[
+      selected,
+      unrelated,
+    ]);
+    expect(controller.redo(), isTrue);
+    expect(controller.prefab.collisionShapes, saved);
+  });
 }
 
 Widget _surfaceApp({

@@ -27,12 +27,13 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_inline_id_form.dart';
 import '../../shared/editor_list_card.dart';
+import '../../shared/editor_owner_draft_state.dart';
 import '../../shared/editor_panel_card.dart';
+import '../../shared/editor_pending_changes_dialog.dart';
 import '../../shared/editor_section_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
-import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_material_preview.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
@@ -45,43 +46,20 @@ import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_marker_scene_gesture.dart';
+import 'chunk_owner_panels.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_level_visual_source.dart';
 import 'chunk_prefab_scene_gesture.dart';
 import 'chunk_scene_coordinator.dart';
+import 'chunk_scene_painters.dart';
 import 'chunk_scene_surface.dart';
 import 'chunk_scene_visual_source.dart';
 import 'chunk_composition_card.dart';
+import 'chunk_diagnostics_card.dart';
 import 'chunk_v2_owner_form.dart';
-
-enum _PendingShapeEditAction { save, discard, cancel }
-
-enum _PendingOwnerEditAction { save, discard, cancel }
-
-/// Snapshot readiness exposed to the Chunk Creator Play/Edit orchestrator.
-///
-/// Accepted session changes are intentionally absent from the blockers. Only
-/// state that is not yet represented by the immutable plugin document, or a
-/// blocking document/session condition, prevents scenario capture.
-@immutable
-final class ChunkPlaytestWorkspaceReadiness {
-  const ChunkPlaytestWorkspaceReadiness({
-    required this.code,
-    required this.message,
-    required this.selectedChunkKey,
-  });
-
-  /// Stable readiness code used by tests and editor presentation.
-  final String code;
-
-  /// Concise author-facing explanation or ready-state description.
-  final String message;
-
-  /// Selected accepted owner, absent when owner/level context is incomplete.
-  final String? selectedChunkKey;
-
-  bool get isReady => code == 'ready';
-}
+import 'chunk_owner_order.dart';
+import 'chunk_workspace_header.dart';
+import 'chunk_workspace_layout.dart';
 
 /// Normal current-schema workspace for complete Chunk-v2 authoring.
 ///
@@ -129,13 +107,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       GlobalKey<EditorInlineIdFormState>();
   final GlobalKey<EditorInlineIdFormState> _ownerCreateFormKey =
       GlobalKey<EditorInlineIdFormState>();
+  final EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document> _ownerDraft =
+      EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document>();
   String? _selectedChunkKey;
-  ChunkV2FileData? _ownerEditSource;
-  bool _ownerEditDirty = false;
-  bool _ownerRenameActive = false;
-  bool _ownerCreateExpanded = false;
-  bool _ownerCreateDirty = false;
-  ChunkV2Document? _ownerCreateSource;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
   bool _showGrid = false;
@@ -164,6 +138,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final Map<String, String> _shapeNameDrafts = <String, String>{};
   final TerrainPolygonExactEditController _exactEditController =
       TerrainPolygonExactEditController();
+
+  ChunkV2FileData? get _ownerEditSource => _ownerDraft.editSource;
+  bool get _ownerEditDirty => _ownerDraft.editDirty;
+  bool get _ownerRenameActive => _ownerDraft.renameActive;
+  bool get _ownerCreateExpanded => _ownerDraft.createExpanded;
+  bool get _ownerCreateDirty => _ownerDraft.createDirty;
+  ChunkV2Document? get _ownerCreateSource => _ownerDraft.createSource;
 
   bool get _hasActiveOperation =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -370,7 +351,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           _buildHeader(document, scene),
           const SizedBox(height: _gap),
           Expanded(
-            child: _ChunkWorkspaceLayout(
+            child: ChunkWorkspaceLayout(
               minimumWideWidth: _minimumWideWorkspaceWidth,
               gap: _gap,
               ownerSidebar: _buildChunkOwnerSidebar(
@@ -396,93 +377,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  Widget _buildHeader(ChunkV2Document document, ChunkV2Scene scene) {
-    final readiness = playtestReadiness;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            const Chip(
-              avatar: Icon(Icons.science_outlined, size: 18),
-              label: Text('Chunk v2 authoring'),
-            ),
-            DropdownButton<String>(
-              key: const ValueKey<String>('chunk_polygon_level_selector'),
-              value: scene.activeLevelId,
-              items: scene.availableLevelIds
-                  .map(
-                    (levelId) => DropdownMenuItem<String>(
-                      value: levelId,
-                      child: Text(levelId),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (levelId) => unawaited(_selectLevel(levelId)),
-            ),
-            DropdownButton<String>(
-              key: const ValueKey<String>('chunk_polygon_owner_selector'),
-              value:
-                  scene.chunks.any(
-                    (chunk) => chunk.chunkKey == _selectedChunkKey,
-                  )
-                  ? _selectedChunkKey
-                  : null,
-              hint: const Text('No chunk owner'),
-              items:
-                  (List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks))
-                      .map(
-                        (chunk) => DropdownMenuItem<String>(
-                          value: chunk.chunkKey,
-                          child: Text(chunk.id),
-                        ),
-                      )
-                      .toList(growable: false),
-              onChanged: (chunkKey) {
-                if (chunkKey != null) unawaited(_selectOwner(chunkKey));
-              },
-            ),
-            Text(
-              document.changedChunkKeys.isEmpty
-                  ? 'No pending chunk changes'
-                  : '${document.changedChunkKeys.length} pending chunk change(s)',
-            ),
-            Tooltip(
-              message: readiness.message,
-              child: FilledButton.icon(
-                key: const ValueKey<String>('chunk_playtest_button'),
-                onPressed: readiness.isReady ? widget.onPlayRequested : null,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Play (F5)'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          readiness.isReady
-              ? 'Play ready: ${readiness.message}'
-              : 'Play unavailable: ${readiness.message}',
-          key: const ValueKey<String>('chunk_playtest_readiness'),
-          style: TextStyle(
-            color: readiness.isReady
-                ? const Color(0xFF7DD3FC)
-                : const Color(0xFFFFD166),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Current-schema workspace: apply rechecks the complete chunk source '
-          'set and commits it atomically. Legacy migration stays read-only; '
-          'runtime terrain updates after the generated outputs are refreshed.',
-          style: TextStyle(color: Color(0xFFFFD166)),
-        ),
-      ],
-    );
-  }
+  Widget _buildHeader(ChunkV2Document document, ChunkV2Scene scene) =>
+      ChunkWorkspaceHeader(
+        document: document,
+        scene: scene,
+        selectedChunkKey: _selectedChunkKey,
+        readiness: playtestReadiness,
+        onLevelSelected: (levelId) => unawaited(_selectLevel(levelId)),
+        onOwnerSelected: (chunkKey) => unawaited(_selectOwner(chunkKey)),
+        onPlayRequested: widget.onPlayRequested,
+      );
 
   /// Confirms and applies the complete Chunk-v2 source set through the session.
   Future<void> applyToFiles() async {
@@ -529,74 +433,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ChunkV2Scene scene,
     ChunkV2FileData? selectedChunk, {
     required bool controlsEnabled,
-  }) {
-    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
-    return EditorSectionCard(
-      key: const ValueKey<String>('chunk_owner_section'),
-      title: 'Existing chunk owners',
-      collapsible: true,
-      initiallyExpanded: false,
-      expansionKey: const ValueKey<String>('chunk_owner_section_toggle'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (chunks.isEmpty)
-            const Text(
-              'No chunk owners remain in this level. Creation requires one '
-              'existing owner to provide locked tile size and dimensions.',
-            ),
-          for (final chunk in chunks) ...<Widget>[
-            Builder(
-              builder: (context) {
-                final expansion = _expansionFor(chunk.chunkKey)?.expansion;
-                return EditorListCard(
-                  key: ValueKey<String>(
-                    'chunk_polygon_owner_${chunk.chunkKey}',
-                  ),
-                  isSelected: chunk.chunkKey == selectedChunk?.chunkKey,
-                  onTap: () => unawaited(_selectOrOpenOwner(chunk)),
-                  preview: _ChunkOwnerPreview(
-                    key: ValueKey<String>(
-                      'chunk_owner_preview_${chunk.chunkKey}',
-                    ),
-                    workspaceRootPath: widget.controller.workspacePath,
-                    chunk: chunk,
-                    scene: scene,
-                  ),
-                  trailing: document.changedChunkKeys.contains(chunk.chunkKey)
-                      ? const Tooltip(
-                          message: 'Pending geometry changed',
-                          child: Icon(Icons.circle, size: 12),
-                        )
-                      : null,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    selected: chunk.chunkKey == selectedChunk?.chunkKey,
-                    title: Text(chunk.id),
-                    subtitle: Text(
-                      '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
-                      'rev ${chunk.revision}\n${chunk.status} · '
-                      '${chunk.collisionShapes.length} direct · '
-                      '${expansion?.expandedPrefabShapeCount ?? 0} expanded',
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
-              },
-            ),
-            if (_ownerEditSource?.chunkKey == chunk.chunkKey)
-              Padding(
-                key: ValueKey<String>(
-                  'chunk_v2_owner_inline_editor_${chunk.chunkKey}',
-                ),
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                child: _buildOwnerEditDetails(document, chunk),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
+  }) => ChunkOwnerListSection(
+    document: document,
+    scene: scene,
+    selectedChunk: selectedChunk,
+    expandedChunk: _ownerEditSource,
+    workspaceRootPath: widget.controller.workspacePath,
+    expandedPrefabShapeCount: (chunkKey) =>
+        _expansionFor(chunkKey)?.expansion?.expandedPrefabShapeCount ?? 0,
+    onSelected: (chunk) => unawaited(_selectOrOpenOwner(chunk)),
+    selectedDetailsBuilder: (context, chunk) =>
+        _buildOwnerEditDetails(document, chunk),
+  );
 
   Widget _buildOwnerCreateSection(
     ChunkV2Document document,
@@ -606,18 +454,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final canCreate = controlsEnabled && scene.chunks.isNotEmpty;
     final source = _ownerCreateSource ?? document;
     final template = scene.chunks.firstOrNull;
-    return EditorSectionCard(
-      key: const ValueKey<String>('chunk_owner_create_section'),
-      title: 'Create chunk owner',
-      description: template == null
-          ? 'Creation needs an existing owner in this level to provide locked dimensions.'
-          : 'Creates an empty deprecated owner at '
-                '${template.width}×${template.height} px with '
-                '${template.tileSize} px tiles.',
-      collapsible: !_ownerCreateDirty,
-      initiallyExpanded: false,
-      expanded: _ownerCreateExpanded || _ownerCreateDirty,
-      expansionKey: const ValueKey<String>('chunk_owner_create_section_toggle'),
+    return ChunkOwnerCreateSection(
+      formKey: _ownerCreateFormKey,
+      template: template,
+      isExpanded: _ownerCreateExpanded,
+      isDirty: _ownerCreateDirty,
       onExpansionChanged: (expanded) => unawaited(
         _setOwnerCreateExpanded(
           expanded,
@@ -625,27 +466,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           controlsEnabled: canCreate,
         ),
       ),
-      child: template == null
-          ? const Text(
-              'Undo an owner deletion or switch to a level with an existing '
-              'dimension template.',
-            )
-          : EditorInlineIdForm(
-              key: _ownerCreateFormKey,
-              initialValue: '',
-              fieldKey: const ValueKey<String>('chunk_v2_inline_create_id'),
-              submitKey: const ValueKey<String>('chunk_v2_inline_create_apply'),
-              cancelKey: const ValueKey<String>(
-                'chunk_v2_inline_create_cancel',
-              ),
-              submitLabel: 'Create owner',
-              helperText: 'The owner starts deprecated with locked dimensions and an empty composition.',
-              validator: (value) =>
-                  validateChunkV2OwnerId(value, document: source),
-              onDirtyChanged: _setOwnerCreateDirty,
-              onCancel: _closeOwnerCreateSection,
-              onSubmit: _createOwner,
-            ),
+      validator: (value) => validateChunkV2OwnerId(value, document: source),
+      onDirtyChanged: _setOwnerCreateDirty,
+      onCancel: _closeOwnerCreateSection,
+      onSubmit: _createOwner,
     );
   }
 
@@ -654,95 +478,27 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ChunkV2FileData currentChunk,
   ) {
     final source = _ownerEditSource!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          'Edit ${currentChunk.id}',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'chunkKey: ${source.chunkKey} · revision ${source.revision}\n'
-          '${source.width}×${source.height} px · tile ${source.tileSize} px · '
-          '${source.collisionShapes.length} shape(s) · '
-          '${source.prefabs.length} prefab(s) · ${source.markers.length} marker(s)',
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            Tooltip(
-              message: 'Rename ${source.id} while preserving its chunk key.',
-              child: OutlinedButton.icon(
-                key: const ValueKey<String>('chunk_v2_owner_rename'),
-                onPressed: !_ownerEditDirty && !_ownerRenameActive
-                    ? _beginOwnerRename
-                    : null,
-                icon: const Icon(Icons.drive_file_rename_outline),
-                label: const Text('Rename'),
-              ),
-            ),
-            Tooltip(
-              message: 'Duplicate ${source.id} with a new stable chunk key.',
-              child: OutlinedButton.icon(
-                key: const ValueKey<String>('chunk_v2_owner_duplicate'),
-                onPressed: !_ownerEditDirty && !_ownerRenameActive
-                    ? () => _duplicateOwner(document, source)
-                    : null,
-                icon: const Icon(Icons.copy_outlined),
-                label: const Text('Duplicate'),
-              ),
-            ),
-            Tooltip(
-              message: 'Delete ${source.id} and its authored composition.',
-              child: OutlinedButton.icon(
-                key: const ValueKey<String>('chunk_v2_owner_delete'),
-                onPressed: !_ownerEditDirty && !_ownerRenameActive
-                    ? () => _deleteOwner(document, _sceneOrNull!, source)
-                    : null,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Delete'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_ownerRenameActive)
-          EditorInlineIdForm(
-            key: _ownerRenameFormKey,
-            initialValue: source.id,
-            fieldKey: const ValueKey<String>('chunk_v2_inline_rename_id'),
-            submitKey: const ValueKey<String>('chunk_v2_inline_rename_apply'),
-            cancelKey: const ValueKey<String>('chunk_v2_inline_rename_cancel'),
-            submitLabel: 'Rename owner',
-            helperText: 'The stable chunk key is preserved.',
-            validator: (value) => validateChunkV2OwnerId(
-              value,
-              document: document,
-              exceptChunkKey: source.chunkKey,
-            ),
-            onDirtyChanged: _setOwnerEditDirty,
-            onCancel: _cancelOwnerRename,
-            onSubmit: _renameOwner,
-          )
-        else
-          ChunkV2OwnerForm(
-            key: _ownerEditFormKey,
-            document: document,
-            chunk: source,
-            submitKey: ValueKey<String>(
-              'chunk_v2_owner_inline_apply_${source.chunkKey}',
-            ),
-            cancelKey: ValueKey<String>(
-              'chunk_v2_owner_inline_cancel_${source.chunkKey}',
-            ),
-            onDirtyChanged: _setOwnerEditDirty,
-            onCancel: _closeOwnerEditor,
-            onSubmit: _applyOwnerEdit,
-          ),
-      ],
+    return ChunkOwnerEditDetails(
+      document: document,
+      currentChunk: currentChunk,
+      source: source,
+      editFormKey: _ownerEditFormKey,
+      renameFormKey: _ownerRenameFormKey,
+      isDirty: _ownerEditDirty,
+      renameActive: _ownerRenameActive,
+      renameValidator: (value) => validateChunkV2OwnerId(
+        value,
+        document: document,
+        exceptChunkKey: source.chunkKey,
+      ),
+      onBeginRename: _beginOwnerRename,
+      onDuplicate: () => _duplicateOwner(document, source),
+      onDelete: () => _deleteOwner(document, _sceneOrNull!, source),
+      onDirtyChanged: _setOwnerEditDirty,
+      onCancelRename: _cancelOwnerRename,
+      onRename: _renameOwner,
+      onCancelEdit: _closeOwnerEditor,
+      onApplyEdit: _applyOwnerEdit,
     );
   }
 
@@ -814,60 +570,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         children: <Widget>[
           activeSections,
           const SizedBox(height: _gap),
-          _buildDiagnosticsCard(),
+          ChunkDiagnosticsCard(issues: widget.controller.issues),
         ],
       ),
     );
     return IgnorePointer(
       ignoring: _visualPreview,
       child: Opacity(opacity: _visualPreview ? 0.45 : 1, child: sidebar),
-    );
-  }
-
-  Widget _buildDiagnosticsCard() {
-    final issues = widget.controller.issues;
-    final errorCount = issues
-        .where((issue) => issue.severity == ValidationSeverity.error)
-        .length;
-    final warningCount = issues
-        .where((issue) => issue.severity == ValidationSeverity.warning)
-        .length;
-    final infoCount = issues.length - errorCount - warningCount;
-    final description = issues.isEmpty
-        ? 'No issues in the current chunk document.'
-        : '${issues.length} total · $errorCount error(s) · '
-              '$warningCount warning(s) · $infoCount info';
-    return EditorPanelCard(
-      key: const ValueKey<String>('chunk_diagnostics_card'),
-      title: 'Diagnostics',
-      description: description,
-      collapsible: true,
-      initiallyExpanded: false,
-      expansionKey: const ValueKey<String>('chunk_diagnostics_card_toggle'),
-      child: Column(
-        key: const ValueKey<String>('chunk_diagnostics_list'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (issues.isEmpty)
-            const Text('No validation issues.')
-          else
-            for (final (index, issue) in issues.indexed)
-              ListTile(
-                key: ValueKey<String>(
-                  'chunk_diagnostic_${index}_${issue.code}',
-                ),
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  _diagnosticIcon(issue.severity),
-                  color: _diagnosticColor(issue.severity),
-                ),
-                title: Text(issue.code),
-                subtitle: Text(
-                  [issue.message, ?_diagnosticContext(issue)].join('\n'),
-                ),
-              ),
-        ],
-      ),
     );
   }
 
@@ -1323,7 +1032,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       if (!_visualPreview)
                         CustomPaint(
                           key: const ValueKey<String>('chunk_bounds_overlay'),
-                          painter: _ChunkBoundsPainter(
+                          painter: ChunkBoundsPainter(
                             chunk: chunk,
                             transform: transform,
                             paintFill: false,
@@ -1404,7 +1113,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             key: const ValueKey<String>(
                               'chunk_tile_grid_overlay',
                             ),
-                            painter: _ChunkTileGridPainter(
+                            painter: ChunkTileGridPainter(
                               chunk: chunk,
                               transform: transform,
                             ),
@@ -2377,49 +2086,29 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _shapeNameDrafts.remove(shape.shapeId);
       return true;
     }
-    final action = await showDialog<_PendingShapeEditAction>(
+    final action = await showEditorPendingChangesDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        key: const ValueKey<String>('chunk_polygon_unsaved_edit_dialog'),
-        title: const Text('Save terrain shape changes?'),
-        content: Text(
-          'Save the pending changes to ${shape.shapeId} before closing its '
-          'editor?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('chunk_polygon_unsaved_edit_cancel'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingShapeEditAction.cancel),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            key: const ValueKey<String>('chunk_polygon_unsaved_edit_discard'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingShapeEditAction.discard),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('chunk_polygon_unsaved_edit_save'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingShapeEditAction.save),
-            child: const Text('Save'),
-          ),
-        ],
+      dialogKey: const ValueKey<String>('chunk_polygon_unsaved_edit_dialog'),
+      title: 'Save terrain shape changes?',
+      content: Text(
+        'Save the pending changes to ${shape.shapeId} before closing its '
+        'editor?',
       ),
+      cancelKey: const ValueKey<String>('chunk_polygon_unsaved_edit_cancel'),
+      discardKey: const ValueKey<String>('chunk_polygon_unsaved_edit_discard'),
+      saveKey: const ValueKey<String>('chunk_polygon_unsaved_edit_save'),
     );
     if (!mounted || !identical(authoring, _authoring)) return false;
     switch (action) {
-      case _PendingShapeEditAction.save:
+      case EditorPendingChangesAction.save:
         return _exactEditController.hasEditor
             ? _exactEditController.save()
             : _saveShapeName(authoring, shape);
-      case _PendingShapeEditAction.discard:
+      case EditorPendingChangesAction.discard:
         _exactEditController.discard();
         setState(() => _shapeNameDrafts.remove(shape.shapeId));
         return true;
-      case _PendingShapeEditAction.cancel:
+      case EditorPendingChangesAction.cancel:
       case null:
         return false;
     }
@@ -2617,7 +2306,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (!mounted) return;
     final scene = _sceneOrNull;
     if (scene == null) return;
-    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
+    final chunks = List<ChunkV2FileData>.of(scene.chunks)
+      ..sort(compareChunkOwners);
     final keys = chunks.map((chunk) => chunk.chunkKey).toSet();
     String? nextKey;
     if (preferredChunkKey != null && keys.contains(preferredChunkKey)) {
@@ -2645,7 +2335,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _selectInitialOwner() {
     final scene = _sceneOrNull;
     if (scene == null || scene.chunks.isEmpty) return;
-    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
+    final chunks = List<ChunkV2FileData>.of(scene.chunks)
+      ..sort(compareChunkOwners);
     _bindOwner(chunks.first.chunkKey);
   }
 
@@ -2658,7 +2349,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _disposeAuthoring();
     _clearOwnerEditorState();
     _selectedChunkKey = null;
-    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
+    final chunks = List<ChunkV2FileData>.of(scene.chunks)
+      ..sort(compareChunkOwners);
     final nextKey = chunks.firstOrNull?.chunkKey;
     if (nextKey != null) {
       _bindOwner(nextKey);
@@ -2697,27 +2389,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _beginOwnerEditor(ChunkV2FileData chunk) {
-    _ownerEditSource = chunk;
-    _ownerEditDirty = false;
-    _ownerRenameActive = false;
+    _ownerDraft.beginEdit(chunk);
   }
 
   void _beginOwnerRename() {
-    if (_ownerEditSource == null || _ownerEditDirty) return;
-    setState(() => _ownerRenameActive = true);
+    if (!_ownerDraft.beginRename()) return;
+    setState(() {});
   }
 
   void _cancelOwnerRename() {
-    if (!_ownerRenameActive) return;
-    setState(() {
-      _ownerRenameActive = false;
-      _ownerEditDirty = false;
-    });
+    if (!_ownerDraft.cancelRename()) return;
+    setState(() {});
   }
 
   void _setOwnerEditDirty(bool dirty) {
-    if (!mounted || dirty == _ownerEditDirty) return;
-    setState(() => _ownerEditDirty = dirty);
+    if (!mounted || !_ownerDraft.setEditDirty(dirty)) return;
+    setState(() {});
   }
 
   void _closeOwnerEditor() {
@@ -2726,9 +2413,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _clearOwnerEditorState() {
-    _ownerEditSource = null;
-    _ownerEditDirty = false;
-    _ownerRenameActive = false;
+    _ownerDraft.clearEdit();
   }
 
   Future<bool> _resolveOwnerEditor() async {
@@ -2737,50 +2422,30 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _closeOwnerEditor();
       return true;
     }
-    final action = await showDialog<_PendingOwnerEditAction>(
+    final action = await showEditorPendingChangesDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        key: const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog'),
-        title: const Text('Save chunk owner changes?'),
-        content: Text(
-          'Save the pending changes to ${_ownerEditSource!.id} before closing '
-          'its editor?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('chunk_v2_owner_unsaved_edit_cancel'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.cancel),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            key: const ValueKey<String>('chunk_v2_owner_unsaved_edit_discard'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.discard),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('chunk_v2_owner_unsaved_edit_save'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.save),
-            child: const Text('Save'),
-          ),
-        ],
+      dialogKey: const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog'),
+      title: 'Save chunk owner changes?',
+      content: Text(
+        'Save the pending changes to ${_ownerEditSource!.id} before closing '
+        'its editor?',
       ),
+      cancelKey: const ValueKey<String>('chunk_v2_owner_unsaved_edit_cancel'),
+      discardKey: const ValueKey<String>('chunk_v2_owner_unsaved_edit_discard'),
+      saveKey: const ValueKey<String>('chunk_v2_owner_unsaved_edit_save'),
     );
     if (!mounted) return false;
     return switch (action) {
-      _PendingOwnerEditAction.save =>
+      EditorPendingChangesAction.save =>
         await ((_ownerRenameActive
                 ? _ownerRenameFormKey.currentState?.submit()
                 : _ownerEditFormKey.currentState?.submit()) ??
             Future<bool>.value(false)),
-      _PendingOwnerEditAction.discard => () {
+      EditorPendingChangesAction.discard => () {
         _closeOwnerEditor();
         return true;
       }(),
-      _PendingOwnerEditAction.cancel || null => false,
+      EditorPendingChangesAction.cancel || null => false,
     };
   }
 
@@ -2846,14 +2511,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return;
     }
     setState(() {
-      _ownerCreateExpanded = true;
-      _ownerCreateSource = document;
+      _ownerDraft.expandCreate(document);
     });
   }
 
   void _setOwnerCreateDirty(bool dirty) {
-    if (!mounted || dirty == _ownerCreateDirty) return;
-    setState(() => _ownerCreateDirty = dirty);
+    if (!mounted || !_ownerDraft.setCreateDirty(dirty)) return;
+    setState(() {});
   }
 
   void _closeOwnerCreateSection() {
@@ -2862,9 +2526,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _clearOwnerCreateState() {
-    _ownerCreateExpanded = false;
-    _ownerCreateDirty = false;
-    _ownerCreateSource = null;
+    _ownerDraft.clearCreate();
   }
 
   Future<bool> _resolveOwnerCreateDraft() async {
@@ -2873,49 +2535,29 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _closeOwnerCreateSection();
       return true;
     }
-    final action = await showDialog<_PendingOwnerEditAction>(
+    final action = await showEditorPendingChangesDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        key: const ValueKey<String>('chunk_v2_owner_unsaved_create_dialog'),
-        title: const Text('Create this chunk owner?'),
-        content: const Text(
-          'Save the pending chunk owner before leaving the creation form?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('chunk_v2_owner_unsaved_create_cancel'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.cancel),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            key: const ValueKey<String>(
-              'chunk_v2_owner_unsaved_create_discard',
-            ),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.discard),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('chunk_v2_owner_unsaved_create_save'),
-            onPressed: () =>
-                Navigator.of(context).pop(_PendingOwnerEditAction.save),
-            child: const Text('Save'),
-          ),
-        ],
+      dialogKey: const ValueKey<String>('chunk_v2_owner_unsaved_create_dialog'),
+      title: 'Create this chunk owner?',
+      content: const Text(
+        'Save the pending chunk owner before leaving the creation form?',
       ),
+      cancelKey: const ValueKey<String>('chunk_v2_owner_unsaved_create_cancel'),
+      discardKey: const ValueKey<String>(
+        'chunk_v2_owner_unsaved_create_discard',
+      ),
+      saveKey: const ValueKey<String>('chunk_v2_owner_unsaved_create_save'),
     );
     if (!mounted) return false;
     return switch (action) {
-      _PendingOwnerEditAction.save =>
+      EditorPendingChangesAction.save =>
         await (_ownerCreateFormKey.currentState?.submit() ??
             Future<bool>.value(false)),
-      _PendingOwnerEditAction.discard => () {
+      EditorPendingChangesAction.discard => () {
         _closeOwnerCreateSection();
         return true;
       }(),
-      _PendingOwnerEditAction.cancel || null => false,
+      EditorPendingChangesAction.cancel || null => false,
     };
   }
 
@@ -3495,272 +3137,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 }
 
-/// Keeps the owner rail, scene, and inspector sidebar mounted while only their
-/// bounds change.
-class _ChunkWorkspaceLayout extends StatelessWidget {
-  const _ChunkWorkspaceLayout({
-    required this.minimumWideWidth,
-    required this.gap,
-    required this.ownerSidebar,
-    required this.scene,
-    required this.sidebar,
-  });
-
-  final double minimumWideWidth;
-  final double gap;
-  final Widget ownerSidebar;
-  final Widget scene;
-  final Widget sidebar;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final isWide = constraints.maxWidth >= minimumWideWidth;
-      final sidebarWidth = math.min(
-        460.0,
-        math.max(360.0, constraints.maxWidth * 0.34),
-      );
-      final ownerSidebarWidth = math.min(
-        360.0,
-        math.max(280.0, constraints.maxWidth * 0.23),
-      );
-      final availableNarrowHeight = math.max(1.0, constraints.maxHeight - gap);
-      final sceneHeight = math.min(
-        math.max(540.0, availableNarrowHeight * 0.72),
-        math.max(1.0, availableNarrowHeight - 140.0),
-      );
-      return Stack(
-        key: const ValueKey<String>('chunk_workspace_layout'),
-        children: <Widget>[
-          Positioned(
-            left: 0,
-            top: 0,
-            child: SizedBox.shrink(
-              key: ValueKey<String>(
-                isWide ? 'chunk_workspace_wide' : 'chunk_workspace_narrow',
-              ),
-            ),
-          ),
-          Positioned(
-            key: const ValueKey<String>('chunk_scene_slot'),
-            left: isWide ? ownerSidebarWidth + gap : 0,
-            top: 0,
-            right: isWide ? sidebarWidth + gap : 0,
-            bottom: isWide ? 0 : null,
-            height: isWide ? null : sceneHeight,
-            child: scene,
-          ),
-          Positioned(
-            key: const ValueKey<String>('chunk_owner_sidebar_slot'),
-            left: 0,
-            top: isWide ? 0 : sceneHeight + gap,
-            bottom: 0,
-            width: ownerSidebarWidth,
-            child: ownerSidebar,
-          ),
-          Positioned(
-            key: const ValueKey<String>('chunk_sidebar_slot'),
-            left: isWide ? null : ownerSidebarWidth + gap,
-            top: isWide ? 0 : sceneHeight + gap,
-            right: 0,
-            bottom: 0,
-            width: isWide ? sidebarWidth : null,
-            child: sidebar,
-          ),
-        ],
-      );
-    },
-  );
-}
-
-/// Compact, read-only composition preview for one owner-row card.
-class _ChunkOwnerPreview extends StatelessWidget {
-  const _ChunkOwnerPreview({
-    super.key,
-    required this.workspaceRootPath,
-    required this.chunk,
-    required this.scene,
-  });
-
-  final String workspaceRootPath;
-  final ChunkV2FileData chunk;
-  final ChunkV2Scene scene;
-
-  @override
-  Widget build(BuildContext context) {
-    final visualProjection = ChunkSceneVisualProjection.fromChunk(
-      chunk: chunk,
-      prefabData: scene.prefabData,
-      tileData: scene.tileData,
-      visualBoundsByPrefabKey: scene.visualBoundsByPrefabKey,
-    );
-    final belowTerrain = visualProjection
-        .belowTerrain(chunk.groundBandZIndex)
-        .toList(growable: false);
-    final atOrAboveTerrain = visualProjection
-        .atOrAboveTerrain(chunk.groundBandZIndex)
-        .toList(growable: false);
-    final colorScheme = Theme.of(context).colorScheme;
-    return Semantics(
-      image: true,
-      label: 'Preview of ${chunk.id}',
-      child: RepaintBoundary(
-        child: Container(
-          width: 104,
-          height: 68,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLowest,
-            border: Border.all(color: colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final chunkWidth = math.max(1, chunk.width).toDouble();
-                final chunkHeight = math.max(1, chunk.height).toDouble();
-                final zoom = math.min(
-                  constraints.maxWidth / chunkWidth,
-                  constraints.maxHeight / chunkHeight,
-                );
-                final transform = TerrainPolygonViewportTransform(
-                  origin: Offset(
-                    (constraints.maxWidth - chunkWidth * zoom) * 0.5,
-                    (constraints.maxHeight - chunkHeight * zoom) * 0.5,
-                  ),
-                  zoom: zoom,
-                );
-                return Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    ChunkPolygonLevelVisualSource(
-                      workspaceRootPath: workspaceRootPath,
-                      chunk: chunk,
-                      parallaxTheme: scene.activeParallaxTheme,
-                      transform: transform,
-                      layer: ChunkPolygonLevelVisualLayer.background,
-                    ),
-                    if (belowTerrain.isNotEmpty)
-                      ChunkSceneVisualSource(
-                        workspaceRootPath: workspaceRootPath,
-                        placements: belowTerrain,
-                        transform: transform,
-                      ),
-                    ChunkPolygonLevelVisualSource(
-                      workspaceRootPath: workspaceRootPath,
-                      chunk: chunk,
-                      parallaxTheme: scene.activeParallaxTheme,
-                      transform: transform,
-                      layer: ChunkPolygonLevelVisualLayer.terrain,
-                    ),
-                    ChunkPolygonLevelVisualSource(
-                      workspaceRootPath: workspaceRootPath,
-                      chunk: chunk,
-                      parallaxTheme: scene.activeParallaxTheme,
-                      transform: transform,
-                      layer: ChunkPolygonLevelVisualLayer.foreground,
-                    ),
-                    if (atOrAboveTerrain.isNotEmpty)
-                      ChunkSceneVisualSource(
-                        workspaceRootPath: workspaceRootPath,
-                        placements: atOrAboveTerrain,
-                        transform: transform,
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChunkTileGridPainter extends CustomPainter {
-  const _ChunkTileGridPainter({required this.chunk, required this.transform});
-
-  final ChunkV2FileData chunk;
-  final TerrainPolygonViewportTransform transform;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bounds = Rect.fromLTWH(
-      transform.origin.dx,
-      transform.origin.dy,
-      chunk.width * transform.zoom,
-      chunk.height * transform.zoom,
-    );
-    canvas.save();
-    canvas.clipRect(bounds);
-    EditorViewportGridPainter.world(
-      zoom: transform.zoom,
-      worldRect: Rect.fromLTWH(
-        0,
-        0,
-        chunk.width.toDouble(),
-        chunk.height.toDouble(),
-      ),
-      worldOrigin: transform.origin,
-      worldSpacingPx: chunk.tileSize.toDouble(),
-      majorWorldSpacingPx: chunk.tileSize * 4.0,
-    ).paint(canvas, size);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChunkTileGridPainter oldDelegate) =>
-      oldDelegate.chunk.width != chunk.width ||
-      oldDelegate.chunk.height != chunk.height ||
-      oldDelegate.chunk.tileSize != chunk.tileSize ||
-      oldDelegate.transform.origin != transform.origin ||
-      oldDelegate.transform.zoom != transform.zoom;
-}
-
-class _ChunkBoundsPainter extends CustomPainter {
-  const _ChunkBoundsPainter({
-    required this.chunk,
-    required this.transform,
-    this.paintFill = true,
-  });
-
-  final ChunkV2FileData chunk;
-  final TerrainPolygonViewportTransform transform;
-  final bool paintFill;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final topLeft = transform.sourceVertexToCanvas(
-      const TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
-    );
-    final bottomRight = transform.sourceVertexToCanvas(
-      TerrainSourceVertexDef(
-        xHalfPixels: chunk.width * 2,
-        yHalfPixels: chunk.height * 2,
-      ),
-    );
-    final bounds = Rect.fromPoints(topLeft, bottomRight);
-    if (paintFill) {
-      canvas.drawRect(bounds, Paint()..color = const Color(0xFF16232D));
-    }
-    canvas.drawRect(
-      bounds,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = const Color(0xFF7DD3FC),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChunkBoundsPainter oldDelegate) =>
-      !identical(chunk, oldDelegate.chunk) ||
-      paintFill != oldDelegate.paintFill ||
-      transform.origin != oldDelegate.transform.origin ||
-      transform.zoom != oldDelegate.transform.zoom;
-}
-
 TerrainSourceShapeDef? _findShape(
   Iterable<TerrainSourceShapeDef> shapes,
   String? shapeId,
@@ -3770,39 +3146,6 @@ TerrainSourceShapeDef? _findShape(
     if (shape.shapeId == shapeId) return shape;
   }
   return null;
-}
-
-int _compareChunks(ChunkV2FileData left, ChunkV2FileData right) {
-  final idOrder = left.id.compareTo(right.id);
-  return idOrder != 0 ? idOrder : left.chunkKey.compareTo(right.chunkKey);
-}
-
-IconData _diagnosticIcon(ValidationSeverity severity) => switch (severity) {
-  ValidationSeverity.error => Icons.error_outline,
-  ValidationSeverity.warning => Icons.warning_amber_outlined,
-  ValidationSeverity.info => Icons.info_outline,
-};
-
-Color _diagnosticColor(ValidationSeverity severity) => switch (severity) {
-  ValidationSeverity.error => const Color(0xFFFF7F7F),
-  ValidationSeverity.warning => const Color(0xFFFFD166),
-  ValidationSeverity.info => const Color(0xFF7DD3FC),
-};
-
-String? _diagnosticContext(ValidationIssue issue) {
-  final sourcePath = issue.sourcePath?.trim();
-  final ownerKey = issue.ownerKey?.trim();
-  final placementKey = issue.placementKey?.trim();
-  final shapeId = issue.shapeId?.trim();
-  final parts = <String>[
-    if (sourcePath != null && sourcePath.isNotEmpty) sourcePath,
-    if (ownerKey != null && ownerKey.isNotEmpty) 'owner $ownerKey',
-    if (placementKey != null && placementKey.isNotEmpty)
-      'placement $placementKey',
-    if (shapeId != null && shapeId.isNotEmpty) 'shape $shapeId',
-    if (issue.elementIndex case final elementIndex?) 'element $elementIndex',
-  ];
-  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {

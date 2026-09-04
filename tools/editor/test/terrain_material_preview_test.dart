@@ -13,7 +13,7 @@ void main() {
     final workspaceRoot = p.normalize(
       p.absolute(p.join(Directory.current.path, '..', '..')),
     );
-    const assetPath = 'assets/images/terrain/tx_tileset_ground/atlas.png';
+    const assetPath = 'assets/images/level/atlases/tiny_swords/ground.png';
 
     final topOnly = _material(assetPath: assetPath);
     await tester.pumpWidget(_preview(workspaceRoot, topOnly));

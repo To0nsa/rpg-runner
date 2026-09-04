@@ -27,8 +27,7 @@ void main() {
                 layers: <ParallaxLayerDef>[
                   ParallaxLayerDef(
                     layerKey: 'field_bg',
-                    assetPath:
-                        'assets/images/parallax/field/Field Layer 01.png',
+                    assetPath: 'assets/images/parallax/field/layer_01.png',
                     group: parallaxGroupBackground,
                     parallaxFactor: 0.1,
                     zOrder: 10,

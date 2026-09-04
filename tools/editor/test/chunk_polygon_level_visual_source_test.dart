@@ -18,11 +18,11 @@ void main() {
     expect(decoded.issues, isEmpty);
     expect(
       material?.fill.assetPath,
-      'assets/images/terrain/tx_tileset_ground/atlas.png',
+      'assets/images/level/atlases/tiny_swords/ground.png',
     );
     expect(
       material?.top.base.region.assetPath,
-      'assets/images/terrain/tx_tileset_ground/atlas.png',
+      'assets/images/level/atlases/tiny_swords/ground.png',
     );
     expect(material?.top.detail?.region.assetPath, isNull);
     expect(

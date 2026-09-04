@@ -693,6 +693,13 @@ also carries workspace-scoped atlas paths/sizes and both source baselines into
 the current document/scene. A clean export is a no-op; changed current source
 uses the paired transactional apply path.
 
+Level source atlases use
+`assets/images/level/atlases/<collection>/<sheet>.png`. Collection and sheet
+names are lowercase snake_case; the collection identifies a reusable visual
+family rather than a level ID. Atlas paths are persisted source identities, so
+renames must update every live authored reference and asset-bundle declaration
+in the same change.
+
 ## Chunk-v2 Current-Schema Validation
 
 The chunk current-schema plugin composes strict prefab-v3/tile-v2 data with
@@ -849,13 +856,13 @@ Rejected out-of-bounds text remains visible with its exact diagnostic and does
 not change revision, pending diffs, or history; an accepted replacement creates
 one owner revision/history entry.
 
-Collision mode, optional `surfaceKind`, and optional render `materialKey` use
-one shared owner-neutral dialog on both current routes. Optional text is trimmed
-and empty text becomes `null`; the dialog returns only a value object and never
-mutates the document. Each route sends that value through its controller,
-shared reducer, owner policy, and typed plugin command. The dialog state owns
-its text controllers until the route-removal animation completes, avoiding an
-early-disposal race after `showDialog` resolves.
+Chunk terrain authors collision mode, optional `surfaceKind`, and optional
+render `materialKey` through its inline shape controls. Prefab collision instead
+derives solid/one-way mode from obstacle/platform kind and does not expose
+terrain surface or material controls. New and explicitly regenerated Prefab
+shapes store both optional fields as null because placed-Prefab lineage provides
+navigation provenance and the sprite owns rendering. Legacy values remain
+parseable and survive unrelated geometry edits for source compatibility.
 
 ## Prefab Polygon Owner Validation
 

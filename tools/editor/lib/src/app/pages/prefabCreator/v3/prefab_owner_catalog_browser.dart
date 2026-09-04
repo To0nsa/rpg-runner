@@ -27,7 +27,7 @@ class PrefabOwnerCatalogBrowser extends StatefulWidget {
     required Iterable<String> changedPrefabKeys,
     required Iterable<PrefabV3DownstreamImpact> downstreamImpacts,
     required this.onSelected,
-    required this.selectedDetailsBuilder,
+    this.selectedDetailsBuilder,
     this.enabled = true,
   }) : prefabs = List<PrefabV3Def>.unmodifiable(prefabs),
        visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
@@ -48,7 +48,9 @@ class PrefabOwnerCatalogBrowser extends StatefulWidget {
   final Set<String> changedPrefabKeys;
   final List<PrefabV3DownstreamImpact> downstreamImpacts;
   final ValueChanged<PrefabV3Def> onSelected;
-  final Widget Function(BuildContext context, PrefabV3Def prefab)
+
+  /// Optional row-local editor. When omitted, the catalog is selection-only.
+  final Widget Function(BuildContext context, PrefabV3Def prefab)?
   selectedDetailsBuilder;
   final bool enabled;
 
@@ -251,12 +253,12 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
               child: Icon(Icons.circle, size: 12),
             )
           : null,
-      details: expanded
+      details: expanded && widget.selectedDetailsBuilder != null
           ? KeyedSubtree(
               key: ValueKey<String>(
                 'prefab_v3_owner_inline_editor_${prefab.prefabKey}',
               ),
-              child: widget.selectedDetailsBuilder(context, prefab),
+              child: widget.selectedDetailsBuilder!(context, prefab),
             )
           : null,
       child: Tooltip(

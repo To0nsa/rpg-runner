@@ -10,49 +10,49 @@ import 'parallax_theme.dart';
 const ParallaxTheme authoredParallaxThemeField = ParallaxTheme(
   backgroundLayers: <PixelParallaxLayerSpec>[
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 01.png',
+      assetPath: 'parallax/field/layer_01.png',
       parallaxFactor: 0.1,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 02.png',
+      assetPath: 'parallax/field/layer_02.png',
       parallaxFactor: 0.15,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 03.png',
+      assetPath: 'parallax/field/layer_03.png',
       parallaxFactor: 0.2,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 04.png',
+      assetPath: 'parallax/field/layer_04.png',
       parallaxFactor: 0.3,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 05.png',
+      assetPath: 'parallax/field/layer_05.png',
       parallaxFactor: 0.4,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 06.png',
+      assetPath: 'parallax/field/layer_06.png',
       parallaxFactor: 0.5,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 07.png',
+      assetPath: 'parallax/field/layer_07.png',
       parallaxFactor: 0.6,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 08.png',
+      assetPath: 'parallax/field/layer_08.png',
       parallaxFactor: 0.7,
       opacity: 1,
       yOffset: -44,
@@ -65,19 +65,19 @@ const ParallaxTheme authoredParallaxThemeField = ParallaxTheme(
 const ParallaxTheme authoredParallaxThemeForest = ParallaxTheme(
   backgroundLayers: <PixelParallaxLayerSpec>[
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/forest/Forest Layer 01.png',
+      assetPath: 'parallax/forest/layer_01.png',
       parallaxFactor: 0.1,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/forest/Forest Layer 02.png',
+      assetPath: 'parallax/forest/layer_02.png',
       parallaxFactor: 0.2,
       opacity: 1,
       yOffset: -44,
     ),
     PixelParallaxLayerSpec(
-      assetPath: 'parallax/forest/Forest Layer 03.png',
+      assetPath: 'parallax/forest/layer_03.png',
       parallaxFactor: 0.3,
       opacity: 1,
       yOffset: -44,

@@ -6,7 +6,8 @@ validation, ordering, canonical JSON encoding, region/asset traversal, and
 atlas repeat/seam/corner-selection/placement math remain single-sourced.
 
 The live contract is strict schema v3. Every fill, edge layer, and cap uses an
-explicit terrain-owned PNG region. Edge regions are authored in their natural
+explicit region from `assets/images/level/atlases/<collection>/<sheet>.png`.
+Collection and sheet names use lowercase snake_case. Edge regions are authored in their natural
 world-facing role orientation; shared render math normalizes top, left-wall,
 right-wall, and underside art into edge tangent space. Do not add compatibility
 for older schemas, full-image fallback fields, editor grid state, or image

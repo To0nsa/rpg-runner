@@ -3,11 +3,11 @@
   "themes": [
     {
       "parallaxThemeId": "field",
-      "revision": 7,
+      "revision": 8,
       "layers": [
         {
           "layerKey": "field_bg_01",
-          "assetPath": "assets/images/parallax/field/Field Layer 01.png",
+          "assetPath": "assets/images/parallax/field/layer_01.png",
           "group": "background",
           "parallaxFactor": 0.1,
           "zOrder": 10,
@@ -16,7 +16,7 @@
         },
         {
           "layerKey": "field_bg_02",
-          "assetPath": "assets/images/parallax/field/Field Layer 02.png",
+          "assetPath": "assets/images/parallax/field/layer_02.png",
           "group": "background",
           "parallaxFactor": 0.15,
           "zOrder": 20,
@@ -25,7 +25,7 @@
         },
         {
           "layerKey": "field_bg_03",
-          "assetPath": "assets/images/parallax/field/Field Layer 03.png",
+          "assetPath": "assets/images/parallax/field/layer_03.png",
           "group": "background",
           "parallaxFactor": 0.2,
           "zOrder": 30,
@@ -34,7 +34,7 @@
         },
         {
           "layerKey": "field_bg_04",
-          "assetPath": "assets/images/parallax/field/Field Layer 04.png",
+          "assetPath": "assets/images/parallax/field/layer_04.png",
           "group": "background",
           "parallaxFactor": 0.3,
           "zOrder": 40,
@@ -43,7 +43,7 @@
         },
         {
           "layerKey": "field_bg_05",
-          "assetPath": "assets/images/parallax/field/Field Layer 05.png",
+          "assetPath": "assets/images/parallax/field/layer_05.png",
           "group": "background",
           "parallaxFactor": 0.4,
           "zOrder": 50,
@@ -52,7 +52,7 @@
         },
         {
           "layerKey": "field_bg_06",
-          "assetPath": "assets/images/parallax/field/Field Layer 06.png",
+          "assetPath": "assets/images/parallax/field/layer_06.png",
           "group": "background",
           "parallaxFactor": 0.5,
           "zOrder": 60,
@@ -61,7 +61,7 @@
         },
         {
           "layerKey": "field_bg_07",
-          "assetPath": "assets/images/parallax/field/Field Layer 07.png",
+          "assetPath": "assets/images/parallax/field/layer_07.png",
           "group": "background",
           "parallaxFactor": 0.6,
           "zOrder": 70,
@@ -70,7 +70,7 @@
         },
         {
           "layerKey": "field_bg_08",
-          "assetPath": "assets/images/parallax/field/Field Layer 08.png",
+          "assetPath": "assets/images/parallax/field/layer_08.png",
           "group": "background",
           "parallaxFactor": 0.7,
           "zOrder": 80,
@@ -81,11 +81,11 @@
     },
     {
       "parallaxThemeId": "forest",
-      "revision": 3,
+      "revision": 4,
       "layers": [
         {
           "layerKey": "forest_bg_01",
-          "assetPath": "assets/images/parallax/forest/Forest Layer 01.png",
+          "assetPath": "assets/images/parallax/forest/layer_01.png",
           "group": "background",
           "parallaxFactor": 0.1,
           "zOrder": 10,
@@ -94,7 +94,7 @@
         },
         {
           "layerKey": "forest_bg_02",
-          "assetPath": "assets/images/parallax/forest/Forest Layer 02.png",
+          "assetPath": "assets/images/parallax/forest/layer_02.png",
           "group": "background",
           "parallaxFactor": 0.2,
           "zOrder": 20,
@@ -103,7 +103,7 @@
         },
         {
           "layerKey": "forest_bg_03",
-          "assetPath": "assets/images/parallax/forest/Forest Layer 03.png",
+          "assetPath": "assets/images/parallax/forest/layer_03.png",
           "group": "background",
           "parallaxFactor": 0.3,
           "zOrder": 30,

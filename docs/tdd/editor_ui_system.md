@@ -22,6 +22,13 @@ store owners.
   selected-state, leading/preview, details, and trailing-action structure.
 - `EditorWorkspaceCard` owns the outer outlined route surface and workspace
   padding without taking over route sizing or scroll state.
+- `EditorOwnerDraftState<T>` is the neutral create/edit/rename draft-state
+  contract shared by Prefab and Chunk. It owns no widgets, domain commands, or
+  persistence; each route decides when to resolve a draft and how Save is
+  dispatched.
+- `showEditorPendingChangesDialog` is the single non-dismissible
+  Save/Discard/Cancel presentation used by Prefab and Chunk owner and polygon
+  guards. Callers provide stable keys and retain all resolution behavior.
 
 ## Shared action toolbar
 
@@ -158,10 +165,12 @@ lifecycle command, and preserves the stable key. Dirty create and rename forms
 join the same local-draft guard. Destructive deletion remains a contextual but
 reference-aware confirmation rather than becoming an unguarded icon action.
 
-The Prefab Creator presents these records simply as **prefabs**. Labels such as
-**Prefab library**, **Create prefab**, and **Prefabs & collision** keep the
-internal owner/`ownerKey` vocabulary out of the authoring workflow; owner terms
-remain implementation language for stable diagnostic and mutation contracts.
+The Prefab Creator presents these records simply as **prefabs**. Separate
+**Prefabs** and **Collision** views distinguish visual/identity authoring from
+collision geometry authoring, while labels such as **Prefab library** and
+**Create prefab** keep the internal owner/`ownerKey` vocabulary out of the
+workflow. Owner terms remain implementation language for stable diagnostic and
+mutation contracts.
 
 Obstacle and decoration owner forms choose their atlas slice through an inline
 visual catalog rather than a text dropdown. Token search covers slice identity,
@@ -174,21 +183,54 @@ Usage is informative rather than exclusive because multiple owners may
 intentionally share one authored visual source. Selecting a card remains part
 of the local owner draft and recenters its anchor from the chosen slice bounds.
 
-The Prefab owner rail composes the same neutral visual-catalog controls and
-thumbnail renderer as Chunk prefab selection. One owner-neutral token filter
-searches ID, stable key, kind, status, source type/reference, and tags, while
-each route retains its own filters and usage labels. A browser-owned decoded-
-image cache projects both atlas-slice and platform-module sources and degrades
-to a deterministic missing-image preview. Search text, kind/status filters,
-and expansion are presentation-only. Deterministic ID/key ordering and Enter
-selection return the exact immutable owner record.
+The Prefabs library and Collision selector compose the same neutral visual-
+catalog controls and thumbnail renderer as Chunk prefab selection. Prefabs
+shows all kinds and retains row-local owner editing; Collision is selection-only
+and receives only Obstacle and Platform records because Decoration collision is
+forbidden. One owner-neutral token filter searches ID, stable key, kind,
+status, source type/reference, and tags, while each route retains its own
+filters and usage labels. A browser-owned decoded-image cache projects both
+atlas-slice and platform-module sources and degrades to a deterministic
+missing-image preview. Search text, kind/status filters, and expansion are
+presentation-only. Deterministic ID/key ordering and Enter selection return the
+exact immutable owner record.
 
-Prefab selection is synchronized exclusively by `prefabKey`: the compact
-header selector, visual card, collision-scene context chip, polygon controller,
-and inline owner editor cannot diverge. The selected editor occupies the card's
-detail slot, so lifecycle and metadata actions remain visually attached to
-their target. An active polygon operation still routes attempted card or header
+Prefab selection is synchronized exclusively by `prefabKey`: the Prefabs
+visual card and preview, Collision visual card and scene context chip, polygon
+controller, and inline owner editor cannot diverge.
+The selected editor occupies the Prefabs card's detail slot, so lifecycle and
+metadata actions remain visually attached to their target. Its contextual
+**Set up collision** or **Edit collision** action carries the same selection
+into Collision. An active polygon operation still routes attempted card or view
 navigation through the workspace guard rather than replacing the controller.
+
+Platform authoring is one user-facing workflow over two internal source
+records. `tile_defs.json` retains the visual tile composition and
+`prefab_defs.json` retains stable gameplay identity, anchor, collision, tags,
+and placement compatibility. A bounded new or duplicated module receives a
+paired Platform Prefab in the same stale-checked catalog command. The paired
+Prefab uses `<moduleId>_platform` with deterministic collision suffixing,
+inherits lifecycle status, and begins collisionless unless duplication has one
+unambiguous source pair whose collision and metadata can be copied safely.
+Status changes synchronize the unambiguous pair. Module rename always rewrites
+visual-source references and also follows the conventional paired display ID
+when that rename cannot collide; stable `prefabKey` identity never changes.
+Modules with several custom Prefab variants remain valid and are not
+destructively collapsed or arbitrarily synchronized.
+
+The **Platforms** view reports whether each visual has collision configured and
+opens its collision owner directly in **Collision**. The Collision sidebar
+groups all remaining work under **Collision setup needed**: every unpaired
+bounded module and every existing Obstacle or Platform Prefab with no collision shape.
+Decoration Prefabs are excluded because their contract forbids collision.
+Opening an unpaired module creates the missing status-matched Prefab and selects
+it as one undoable two-file session edit; it then remains in the list as a
+collider-free Prefab until a shape is saved. Existing Prefab rows select their
+collision scene through the normal draft-safe navigation path. Empty visual
+drafts remain unpaired because no anchor bounds exist yet. Deleting a platform
+removes a sole paired Prefab in the same confirmed command, but stays blocked
+for multiple variants or active Chunk placements. Source export remains the
+existing atomic Prefab/tile transaction.
 
 Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
 section, list-row, and token primitives. Prefab-specific widgets remain only
@@ -198,14 +240,14 @@ registry have been removed.
 
 Prefab collision authoring projects three sibling section contracts inside the
 authoring sidebar: creation, retained shapes, and diagnostics. Creation state
-owns optional identity, collision mode, surface/material defaults, and the
-local collision draft. It presents **Rectangle**, **Polygon**, **Fit visible
-bounds**, **Trace visible outline**, and Platform-only **Detect platform
-surface** as direct inline methods. Pointer input, exact fields, and generated
+owns optional identity, the Prefab-kind-derived collision mode, and the local
+collision draft. It presents **Rectangle**, **Polygon**, **Fit visible bounds**,
+**Trace visible outline**, and Platform-only **Detect platform surface** as
+direct inline methods. Pointer input, exact fields, and generated
 vertices share one fixed whole-pixel grid, so no precision selector is exposed.
 Retained shapes use
-`EditorListCard`'s detail slot for contextual metadata, lifecycle actions, and
-exact geometry; no Prefab collision-metadata modal remains. The mounted exact
+`EditorListCard`'s detail slot for identity, fixed collision context, lifecycle
+actions, and exact geometry; no Prefab collision-metadata modal remains. The mounted exact
 editor and route-local shape-name draft report pending state through
 `TerrainPolygonExactEditController`. Re-click, owner/view navigation, and
 source apply must resolve Save/Discard/Cancel before the selection/controller
@@ -215,9 +257,13 @@ An axis-aligned four-corner loop uses `TerrainPolygonRectangleEditor` with
 whole-pixel X/Bottom/Width/Height values. Other loops keep individual
 whole-pixel vertex editing. Identity and one exact geometry change are passed
 together to the shared polygon reducer, producing at most one owner-reviewed
-collision commit, revision increment, and undo entry. Collision, surface, and
-material selectors remain immediate semantic metadata edits, matching Chunk
-behavior.
+collision commit, revision increment, and undo entry. Prefab collision does not
+expose terrain `surfaceKind` or `materialKey`: new and regenerated shapes store
+both as null, while obstacle/platform kind determines solid/one-way mode and
+placed-Prefab lineage supplies navigation provenance. Legacy values remain
+parseable and survive unrelated exact edits, but an explicit refit replaces the
+target with canonical null metadata. Chunk terrain retains its independent
+surface and material authoring controls.
 
 Pixel-derived collision is a controller-owned draft set, not a persistence
 path. The visual adapter crops an atlas slice or composites module cells with
@@ -260,13 +306,15 @@ capacity rules. Existing baseline errors are not attributed to the edit. Apply
 to Files re-reads those Chunk sources and repeats review before the normal
 atomic Prefab/tile write; drift blocks export with Reload guidance.
 
-The Prefab owner/collision workspace presents flat sibling
-`EditorSectionCard`s rather than placing section cards inside redundant panel
-cards. Inactive owner creation, owner library, shape creation, retained shapes,
-and Diagnostics sections start collapsed. Controlled expansion is reserved for
-the section that owns an active owner form, drawing operation, or selected
-shape editor; presentation-only expansion remains in the mounted section state
-and never enters the session command/history stream.
+The Prefabs and Collision workspaces present flat sibling `EditorSectionCard`s
+rather than placing section cards inside redundant panel cards. Prefabs uses a
+creation sidebar, visual-only center preview, and owner-library sidebar.
+Collision uses a missing-setup/selection sidebar, collision scene, and shape
+authoring sidebar. Inactive owner creation, owner library, collision library,
+shape creation, retained shapes, and Diagnostics sections start collapsed.
+Controlled expansion is reserved for the section that owns an active owner
+form, drawing operation, or selected shape editor; presentation-only expansion
+remains in mounted section state and never enters session command/history.
 
 Prefab Diagnostics consumes the session controller's complete validation
 projection and merges only transient interaction findings from the active
@@ -276,28 +324,38 @@ stable owner suffix in `sourcePath`, then uses the guarded owner navigation
 path before selecting and centering a retained shape. Unresolvable catalog
 issues remain visible without a misleading focus action.
 
-`PrefabEditorThreePanelLayout` owns the Prefab-specific responsive contract.
-The wide layout is `1:2:1`; the narrow layout keeps the scene above two bounded
-sidebars. Global-keyed panel hosts reparent the existing inspector, scene, and
-display elements across the breakpoint, so responsive changes do not reset
-viewport or route-local draft state. The generic three-panel component retains
-its tabbed contract for non-Prefab callers.
+`PrefabEditorThreePanelLayout` owns the Prefab-specific responsive contract for
+Prefabs, Collision, Atlas, and Platforms. The wide layout is `1:2:1`; the
+narrow layout keeps the center preview or scene above two bounded sidebars.
+Global-keyed panel hosts reparent the existing inspector, scene, and display
+elements across the breakpoint, so responsive changes do not reset viewport or
+route-local draft state. The generic three-panel component retains its tabbed
+contract for non-Prefab callers.
 
-Atlas and platform-module views use that same mounted layout and flat sidebar
+Atlas and Platform views use that same mounted layout and flat sidebar
 contract. Atlas source/setup and rectangle/actions are separate collapsed
 sections; both are controlled open while their shared slice draft is dirty.
+Atlas initialization selects the first available source image for visibility
+but no slice. The read-only source field delegates to the platform-native PNG
+picker, accepts only exact paths in the loaded repository atlas catalog, and
+clears slice selection when the user chooses another source.
+For a new slice, the tag draft starts with the selected source filename stem
+without its extension. Every slice save merges that source tag with normalized
+user tags, so it remains present exactly once even if the editable field omits
+or duplicates it. Selecting an existing slice alone does not retrofit the tag
+or dirty the draft; the invariant is applied when that slice is next saved.
 Atlas slice dirty state is derived from the current form values against the
 loaded slice baseline. Mounting fields, synchronizing a retained slice, or
 receiving a semantic no-op input callback therefore cannot block view or owner
 navigation; restoring every edited value to the baseline clears the draft.
 The existing-slice visual library is a separate collapsed section whose
-selected row explicitly names the synchronized form. Platform modules expose
-one create-or-edit section based on stable selection: **New Empty Module**
-enters creation, while a selected module permits Update, Rename, Duplicate,
-and status changes. Typing a new ID in edit mode cannot silently create a
-parallel module. The tile palette and existing-module visual library remain
-independent collapsed sections, and selected module rows expand their cell
-context.
+selected row explicitly names the synchronized form. Platforms expose one
+create-or-edit section based on stable selection: **New Platform** enters an
+empty visual draft, while a selected platform permits Update, Rename,
+Duplicate, status, and collision actions. Typing a new ID in edit mode cannot
+silently create a parallel platform. The tile palette and existing-platform
+visual library remain independent collapsed sections, and selected rows expand
+their cell context.
 
 `EditorListCard` is the reusable semantics boundary for owner, atlas, module,
 and composition rows. It reports button and selected state and accepts a
@@ -321,6 +379,17 @@ Explanatory route-intro cards compose the same panel shell. The fail-closed
 polygon-migration route keeps its specialized warning content inside the shared
 workspace surface.
 
+The large current-schema route states are coordinators rather than complete UI
+implementations. Prefab keeps guarded view/owner selection, polygon-controller
+binding, collision fitting, and command dispatch; typed sibling widgets own
+the ordered view selector, preview, owner/catalog panels, collision setup,
+fit-draft presentation, and deterministic UI ordering. Chunk keeps scene
+coordination, gesture/projection state, selection, and commands; sibling files
+own its responsive layout, header, owner panels and preview, diagnostics, grid
+and bounds painters, and shared owner ordering. These extracted widgets accept
+immutable projections and semantic callbacks, not session or store write
+authority.
+
 Parallax uses the shared workspace and bounded panel cards for Layers, Preview,
 and Inspector. Layer rows use `EditorListCard` with their asset thumbnail
 in the leading slot, preserving selection and edit ownership in the page while
@@ -334,6 +403,10 @@ rollback-safe transaction. After successful apply and canonical reload, the
 page may pass a typed Level/theme target to the shell; the shell atomically
 loads it through the Parallax plugin before changing routes. Page-local form
 drafts and handoff intent are transient and never become persistence authority.
+The route state retains those controllers, validation decisions, command
+dispatch, and handoff lifecycle, while `LevelCatalogPane`,
+`LevelRuntimeMetrics`, and the small Level presentation widgets render the
+catalog, creation form, metrics, errors, and validation rows through callbacks.
 
 Entities uses the shared outer workspace, Entries panel, load-error panel, and
 bounded Validation, Pending File Diff, and Apply Result panels. The scene and

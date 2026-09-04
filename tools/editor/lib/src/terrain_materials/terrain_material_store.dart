@@ -19,7 +19,10 @@ final class TerrainMaterialStore {
 
   Future<TerrainMaterialDocument> load(EditorWorkspace workspace) async {
     final atlasImages = _pngCatalog
-        .discoverSync(workspace, roots: const <String>['assets/images/terrain'])
+        .discoverSync(
+          workspace,
+          roots: const <String>['assets/images/level/atlases'],
+        )
         .where((image) => isValidTerrainMaterialAssetPath(image.relativePath))
         .toList(growable: false);
     final file = File(workspace.resolve(terrainMaterialDefsSourcePath));

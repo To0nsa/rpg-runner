@@ -33,7 +33,8 @@ and lifecycle rules. It does not define terrain geometry or collision meaning.
 `TerrainMaterialImageRegion` contains:
 
 - `assetPath`: normalized repository path matching
-  `assets/images/terrain/**/*.png`
+  `assets/images/level/atlases/<collection>/<sheet>.png`; collection and sheet
+  names use lowercase snake_case
 - `x`, `y`: non-negative integer pixel origin from the source image's top-left
 - `width`, `height`: positive integer pixel dimensions
 
@@ -165,7 +166,7 @@ TerrainMaterialStore ──► canonical schema v3 JSON
 Repository discovery and PNG metadata reading are non-UI infrastructure shared
 with Prefab authoring. Pixel rectangles, grid math, selection state, viewport,
 controls, painters, numeric region fields, and thumbnails are also neutral
-shared editor components. Material-role assignment, revisions, terrain-root
+shared editor components. Material-role assignment, revisions, atlas-root
 policy, and persistence remain terrain-specific.
 
 The grid is an authoring aid, not source data. Cell width and height are any
@@ -256,7 +257,7 @@ cache.
 
 ## Invariants
 
-- Terrain material paths never escape `assets/images/terrain/**`.
+- Terrain material paths never escape `assets/images/level/atlases/**`.
 - No normal consumer accepts or emits terrain material schemas older than v3.
 - Persisted material data never contains grid settings or cell IDs.
 - No terrain shader repeats over a complete packed atlas.

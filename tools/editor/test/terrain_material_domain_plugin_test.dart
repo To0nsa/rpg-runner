@@ -48,18 +48,13 @@ void main() {
         key: 'stone',
         displayName: 'Stone',
       );
-      final added =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'upsert_material',
-                  payload: <String, Object?>{
-                    'previousKey': '',
-                    'material': stone,
-                  },
-                ),
-              )
-              as TerrainMaterialDocument;
+      final added = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'upsert_material',
+          payload: <String, Object?>{'previousKey': '', 'material': stone},
+        ),
+      ) as TerrainMaterialDocument;
       expect(added.materials.map((material) => material.key), <String>[
         'grass_dirt',
         'stone',
@@ -69,15 +64,13 @@ void main() {
         isTrue,
       );
 
-      final removed =
-          plugin.applyEdit(
-                added,
-                AuthoringCommand(
-                  kind: 'delete_material',
-                  payload: const <String, Object?>{'key': 'stone'},
-                ),
-              )
-              as TerrainMaterialDocument;
+      final removed = plugin.applyEdit(
+        added,
+        AuthoringCommand(
+          kind: 'delete_material',
+          payload: const <String, Object?>{'key': 'stone'},
+        ),
+      ) as TerrainMaterialDocument;
       expect(removed.materials.single.key, 'grass_dirt');
     },
   );
@@ -87,9 +80,8 @@ void main() {
     () async {
       final fixture = await _TerrainMaterialFixture.create();
       addTearDown(fixture.dispose);
-      File(
-        p.join(fixture.root.path, fixture.material.fill.assetPath),
-      ).deleteSync();
+      File(p.join(fixture.root.path, fixture.material.fill.assetPath))
+          .deleteSync();
       File(
         p.join(
           fixture.root.path,
@@ -127,7 +119,7 @@ final class _TerrainMaterialFixture {
       displayName: 'Grass / Dirt',
       revision: 1,
       fill: TerrainMaterialImageRegion(
-        assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+        assetPath: 'assets/images/level/atlases/tiny_swords/ground.png',
         x: 32,
         y: 32,
         width: 32,
@@ -136,7 +128,7 @@ final class _TerrainMaterialFixture {
       top: TerrainMaterialEdgeProfile(
         base: TerrainMaterialEdgeLayer(
           region: TerrainMaterialImageRegion(
-            assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+            assetPath: 'assets/images/level/atlases/tiny_swords/ground.png',
             x: 32,
             y: 0,
             width: 32,
@@ -147,7 +139,7 @@ final class _TerrainMaterialFixture {
       ),
       topStartCap: TerrainMaterialCap(
         region: TerrainMaterialImageRegion(
-          assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+          assetPath: 'assets/images/level/atlases/tiny_swords/ground.png',
           x: 0,
           y: 0,
           width: 32,
@@ -158,7 +150,7 @@ final class _TerrainMaterialFixture {
       ),
       topEndCap: TerrainMaterialCap(
         region: TerrainMaterialImageRegion(
-          assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+          assetPath: 'assets/images/level/atlases/tiny_swords/ground.png',
           x: 64,
           y: 0,
           width: 32,
@@ -178,9 +170,8 @@ final class _TerrainMaterialFixture {
       ),
     )..parent.createSync(recursive: true);
     catalogFile.writeAsStringSync(
-      TerrainMaterialCatalog(
-        materials: <TerrainMaterialDefinition>[material],
-      ).toCanonicalJson(),
+      TerrainMaterialCatalog(materials: <TerrainMaterialDefinition>[material])
+          .toCanonicalJson(),
     );
     final prefabFile = File(
       p.join(root.path, 'assets', 'authoring', 'level', 'prefab_defs.json'),

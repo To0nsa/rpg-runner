@@ -10,6 +10,9 @@ import '../../../parallax/parallax_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_workspace_card.dart';
+import 'level_catalog_pane.dart';
+import 'level_presentation.dart';
+import 'level_runtime_metrics.dart';
 
 class LevelCreatorPage extends StatefulWidget {
   const LevelCreatorPage({
@@ -71,7 +74,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       const <LevelAssemblySegmentDef>[];
   int? _selectedAssemblySegmentIndex;
   bool _selectedSegmentRequireDistinct = true;
-  _NewLevelThemeMode _newLevelThemeMode = _NewLevelThemeMode.create;
+  NewLevelThemeMode _newLevelThemeMode = NewLevelThemeMode.create;
   String _newLevelFormBaselineId = _defaultNewLevelId;
   String? _selectedExistingThemeId;
   bool _newThemeIdWasManuallyEdited = false;
@@ -86,7 +89,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     final levelScene = scene is LevelScene ? scene : null;
     final activeLevel = levelScene?.activeLevel;
     if (_newLevelIdController.text.trim() != _newLevelFormBaselineId ||
-        _newLevelThemeMode != _NewLevelThemeMode.create ||
+        _newLevelThemeMode != NewLevelThemeMode.create ||
         _newVisualThemeIdController.text.trim() != _newLevelFormBaselineId ||
         _createThemeDialogOpen ||
         _createThemeDialogDraftId != null) {
@@ -211,9 +214,9 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
               _buildRouteControls(levelScene),
               const SizedBox(height: 12),
               if (widget.controller.loadError != null)
-                _buildErrorBanner(widget.controller.loadError!),
+                LevelErrorBanner(message: widget.controller.loadError!),
               if (widget.controller.exportError != null)
-                _buildErrorBanner(widget.controller.exportError!),
+                LevelErrorBanner(message: widget.controller.exportError!),
               if (levelScene == null)
                 const Expanded(
                   child: Center(
@@ -321,279 +324,56 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   }
 
   Widget _buildLevelListPane(LevelScene scene) {
-    return _buildPane(
-      title: 'Levels',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildNewLevelForm(scene),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: scene.activeLevel == null
-                    ? null
-                    : _duplicateActiveLevel,
-                child: const Text('Duplicate'),
-              ),
-              OutlinedButton(
-                onPressed:
-                    scene.activeLevel == null ||
-                        scene.activeLevel!.status == levelStatusDeprecated
-                    ? null
-                    : _deprecateActiveLevel,
-                child: const Text('Deprecate'),
-              ),
-              OutlinedButton(
-                onPressed:
-                    scene.activeLevel == null ||
-                        scene.activeLevel!.status == levelStatusActive
-                    ? null
-                    : _reactivateActiveLevel,
-                child: const Text('Reactivate'),
-              ),
-            ],
+    return LevelCatalogPane(
+      scene: scene,
+      dirtyItemIds: widget.controller.dirtyItemIds,
+      newLevelIdController: _newLevelIdController,
+      newVisualThemeIdController: _newVisualThemeIdController,
+      themeMode: _newLevelThemeMode,
+      selectedExistingThemeId: _selectedExistingThemeId,
+      formError: _newLevelFormError(scene),
+      isExporting: widget.controller.isExporting,
+      onNewLevelIdChanged: (value) {
+        if (!_newThemeIdWasManuallyEdited) {
+          _newVisualThemeIdController.value = _newVisualThemeIdController.value
+              .copyWith(
+                text: value,
+                selection: TextSelection.collapsed(offset: value.length),
+                composing: TextRange.empty,
+              );
+        }
+        setState(_invalidateHandoff);
+      },
+      onThemeModeChanged: (mode) {
+        setState(() {
+          _newLevelThemeMode = mode;
+          _invalidateHandoff();
+        });
+      },
+      onNewThemeIdChanged: (_) {
+        setState(() {
+          _newThemeIdWasManuallyEdited = true;
+          _invalidateHandoff();
+        });
+      },
+      onExistingThemeChanged: (value) {
+        setState(() {
+          _selectedExistingThemeId = value;
+          _invalidateHandoff();
+        });
+      },
+      onCreate: _createLevel,
+      onDuplicate: _duplicateActiveLevel,
+      onDeprecate: _deprecateActiveLevel,
+      onReactivate: _reactivateActiveLevel,
+      onLevelSelected: (levelId) {
+        widget.controller.applyCommand(
+          AuthoringCommand(
+            kind: 'set_active_level',
+            payload: <String, Object?>{'levelId': levelId},
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: scene.levels.isEmpty
-                ? const Center(child: Text('No authored levels.'))
-                : ListView.builder(
-                    itemCount: scene.levels.length,
-                    itemBuilder: (context, index) {
-                      final level = scene.levels[index];
-                      final isSelected = level.levelId == scene.activeLevelId;
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == scene.levels.length - 1 ? 0 : 8,
-                        ),
-                        child: _buildLevelEntry(
-                          level,
-                          isSelected: isSelected,
-                          chunkCount:
-                              scene.authoredChunkCountsByLevelId[level
-                                  .levelId] ??
-                              0,
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNewLevelForm(LevelScene scene) {
-    final formError = _newLevelFormError(scene);
-    final themeIds = scene.availableParallaxVisualThemeIds;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest
-            .withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0x334A6074)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('New Level', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            TextField(
-              key: const ValueKey<String>('new_level_id_field'),
-              controller: _newLevelIdController,
-              decoration: const InputDecoration(
-                labelText: 'New levelId',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (value) {
-                if (!_newThemeIdWasManuallyEdited) {
-                  _newVisualThemeIdController
-                      .value = _newVisualThemeIdController.value.copyWith(
-                    text: value,
-                    selection: TextSelection.collapsed(offset: value.length),
-                    composing: TextRange.empty,
-                  );
-                }
-                setState(_invalidateHandoff);
-              },
-            ),
-            const SizedBox(height: 8),
-            SegmentedButton<_NewLevelThemeMode>(
-              key: const ValueKey<String>('new_level_theme_mode'),
-              segments: const <ButtonSegment<_NewLevelThemeMode>>[
-                ButtonSegment<_NewLevelThemeMode>(
-                  value: _NewLevelThemeMode.create,
-                  icon: Icon(Icons.add_photo_alternate_outlined),
-                  label: Text('Create new theme'),
-                ),
-                ButtonSegment<_NewLevelThemeMode>(
-                  value: _NewLevelThemeMode.existing,
-                  icon: Icon(Icons.collections_outlined),
-                  label: Text('Use existing theme'),
-                ),
-              ],
-              selected: <_NewLevelThemeMode>{_newLevelThemeMode},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _newLevelThemeMode = selection.single;
-                  _invalidateHandoff();
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            if (_newLevelThemeMode == _NewLevelThemeMode.create)
-              TextField(
-                key: const ValueKey<String>('new_visual_theme_id_field'),
-                controller: _newVisualThemeIdController,
-                decoration: const InputDecoration(
-                  labelText: 'New visual theme ID',
-                  helperText: 'Creates an empty theme. Add its layers in Parallax after apply.',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onChanged: (_) {
-                  setState(() {
-                    _newThemeIdWasManuallyEdited = true;
-                    _invalidateHandoff();
-                  });
-                },
-              )
-            else
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                key: const ValueKey<String>('new_level_existing_theme'),
-                initialValue: themeIds.contains(_selectedExistingThemeId)
-                    ? _selectedExistingThemeId
-                    : null,
-                decoration: const InputDecoration(
-                  labelText: 'Existing visual theme',
-                  hintText: 'Choose an authored theme',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                items: [
-                  for (final themeId in themeIds)
-                    DropdownMenuItem<String>(
-                      value: themeId,
-                      child: Text(themeId),
-                    ),
-                ],
-                onChanged: themeIds.isEmpty
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _selectedExistingThemeId = value;
-                          _invalidateHandoff();
-                        });
-                      },
-              ),
-            if (formError != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                formError,
-                key: const ValueKey<String>('new_level_form_error'),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              key: const ValueKey<String>('create_level_button'),
-              onPressed: formError == null && !widget.controller.isExporting
-                  ? _createLevel
-                  : null,
-              icon: const Icon(Icons.add),
-              label: const Text('Create Level'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLevelEntry(
-    LevelDef level, {
-    required bool isSelected,
-    required int chunkCount,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDirty = widget.controller.dirtyItemIds.contains(
-      'level:${level.levelId}',
-    );
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.24)
-              : colorScheme.surface,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outlineVariant.withValues(alpha: 0.7),
-          ),
-        ),
-        child: InkWell(
-          key: ValueKey<String>('level_entry_${level.levelId}'),
-          borderRadius: BorderRadius.circular(6),
-          onTap: () {
-            widget.controller.applyCommand(
-              AuthoringCommand(
-                kind: 'set_active_level',
-                payload: <String, Object?>{'levelId': level.levelId},
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        level.levelId,
-                        style: Theme.of(context).textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    if (isDirty)
-                      const Icon(Icons.circle, size: 10, color: Colors.orange),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(level.displayName),
-                const SizedBox(height: 4),
-                Text(
-                  'visualTheme=${level.visualThemeId}  status=${level.status}  chunks=$chunkCount',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'ordinal=${level.enumOrdinal}  ground=${formatCanonicalLevelNumber(level.groundTopY)}  camera=${formatCanonicalLevelNumber(level.cameraCenterY)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'assembly=${level.assembly?.segments.length ?? 0} segment(s)',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -623,7 +403,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         activeLevel != null && availableVisualThemeIds.isNotEmpty;
     final postApplyPanel = _buildPostApplyPanel(scene);
 
-    return _buildPane(
+    return LevelPane(
       title: 'Inspector',
       child: ListView(
         key: const ValueKey<String>('level_inspector_scroll'),
@@ -729,7 +509,14 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             'Parallax owns theme layers. Terrain materials remain authored separately.',
           ),
           const SizedBox(height: 8),
-          _buildRuntimeMetricsRow(),
+          LevelRuntimeMetrics(
+            cameraCenterYController: _cameraCenterYController,
+            groundTopYController: _groundTopYController,
+            earlyPatternChunksController: _earlyPatternChunksController,
+            easyPatternChunksController: _easyPatternChunksController,
+            normalPatternChunksController: _normalPatternChunksController,
+            noEnemyChunksController: _noEnemyChunksController,
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _enumOrdinalController,
@@ -764,7 +551,9 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           if (issues.isEmpty)
             const Text('No validation issues.')
           else
-            ...issues.take(12).map(_buildIssueRow),
+            ...issues
+                .take(12)
+                .map((issue) => LevelValidationIssueRow(issue: issue)),
           if (issues.length > 12)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -793,93 +582,6 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             ],
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildRuntimeMetricsRow() {
-    final lockedFillColor = Theme.of(context)
-        .colorScheme
-        .surfaceContainerHighest
-        .withValues(alpha: 0.32);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildRuntimeMetricField(
-            controller: _cameraCenterYController,
-            label: 'cameraCenterY',
-            fillColor: lockedFillColor,
-            readOnly: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(width: 8),
-          _buildRuntimeMetricField(
-            controller: _groundTopYController,
-            label: 'groundTopY',
-            fillColor: lockedFillColor,
-            readOnly: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(width: 8),
-          _buildRuntimeMetricField(
-            controller: _earlyPatternChunksController,
-            label: 'earlyPatternChunks',
-            fillColor: lockedFillColor,
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(width: 8),
-          _buildRuntimeMetricField(
-            controller: _easyPatternChunksController,
-            label: 'easyPatternChunks',
-            fillColor: lockedFillColor,
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(width: 8),
-          _buildRuntimeMetricField(
-            controller: _normalPatternChunksController,
-            label: 'normalPatternChunks',
-            fillColor: lockedFillColor,
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(width: 8),
-          _buildRuntimeMetricField(
-            controller: _noEnemyChunksController,
-            label: 'noEnemyChunks',
-            fillColor: lockedFillColor,
-            keyboardType: TextInputType.number,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRuntimeMetricField({
-    required TextEditingController controller,
-    required String label,
-    required Color fillColor,
-    bool readOnly = false,
-    TextInputType? keyboardType,
-  }) {
-    return SizedBox(
-      width: 190,
-      child: TextField(
-        controller: controller,
-        readOnly: readOnly,
-        style: readOnly
-            ? Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              )
-            : null,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          isDense: true,
-          filled: readOnly,
-          fillColor: readOnly ? fillColor : null,
-          suffixIcon: readOnly ? const Icon(Icons.lock_outline) : null,
-        ),
-        keyboardType: keyboardType,
       ),
     );
   }
@@ -954,62 +656,6 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildIssueRow(ValidationIssue issue) {
-    final color = switch (issue.severity) {
-      ValidationSeverity.error => Colors.red.shade300,
-      ValidationSeverity.warning => Colors.orange.shade300,
-      ValidationSeverity.info => Colors.blue.shade300,
-    };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(
-            '[${issue.code}] ${issue.message}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPane({required String title, required Widget child}) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0x22101820),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x334A6074)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            Expanded(child: child),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner(String message) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: MaterialBanner(
-        content: Text(message),
-        actions: const [SizedBox.shrink()],
       ),
     );
   }
@@ -1490,7 +1136,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
 
   void _createLevel() {
     final requestedLevelId = _newLevelIdController.text.trim();
-    final requestedThemeId = _newLevelThemeMode == _NewLevelThemeMode.create
+    final requestedThemeId = _newLevelThemeMode == NewLevelThemeMode.create
         ? _newVisualThemeIdController.text.trim()
         : (_selectedExistingThemeId ?? '');
     _invalidateHandoff();
@@ -1499,7 +1145,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         kind: 'create_level',
         payload: <String, Object?>{
           'levelId': requestedLevelId,
-          'themeMode': _newLevelThemeMode == _NewLevelThemeMode.create
+          'themeMode': _newLevelThemeMode == NewLevelThemeMode.create
               ? levelThemeModeCreate
               : levelThemeModeExisting,
           'visualThemeId': requestedThemeId,
@@ -1707,7 +1353,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     if (scene.levels.any((level) => level.levelId == levelId)) {
       return 'Level "$levelId" already exists.';
     }
-    if (_newLevelThemeMode == _NewLevelThemeMode.existing) {
+    if (_newLevelThemeMode == NewLevelThemeMode.existing) {
       if (scene.availableParallaxVisualThemeIds.isEmpty) {
         return 'No authored visual themes are available.';
       }
@@ -1857,7 +1503,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     _newLevelFormBaselineId = suggestion;
     _newLevelIdController.text = suggestion;
     _newVisualThemeIdController.text = suggestion;
-    _newLevelThemeMode = _NewLevelThemeMode.create;
+    _newLevelThemeMode = NewLevelThemeMode.create;
     _selectedExistingThemeId = null;
     _newThemeIdWasManuallyEdited = false;
   }
@@ -2098,5 +1744,3 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     });
   }
 }
-
-enum _NewLevelThemeMode { create, existing }

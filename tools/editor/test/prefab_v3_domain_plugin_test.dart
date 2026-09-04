@@ -662,10 +662,8 @@ void main() {
       ),
     );
     expect(updated.tileData.platformModules.single.revision, 3);
-    expect(
-      updated.data.prefabs.single.revision,
-      document.data.prefabs.single.revision,
-    );
+    expect(updated.data.prefabs.single.revision, 8);
+    expect(updated.data.prefabs.single.status, PrefabStatus.deprecated);
     expect(updated.visualBoundsByPrefabKey['platform']?.widthPx, 32);
 
     final renamed = apply(
@@ -680,7 +678,7 @@ void main() {
     expect(renamedModule.id, 'module_b');
     expect(renamedModule.revision, 4);
     expect(referencingPrefab.moduleId, 'module_b');
-    expect(referencingPrefab.revision, 8);
+    expect(referencingPrefab.revision, 9);
     expect(renamed.changedPrefabKeys, <String>['platform']);
 
     final duplicated = apply(
@@ -693,6 +691,13 @@ void main() {
           .revision,
       1,
     );
+    final duplicatedPrefab = duplicated.data.prefabs.singleWhere(
+      (prefab) => prefab.moduleId == 'module_b_copy',
+    );
+    expect(duplicatedPrefab.id, 'module_b_copy_platform');
+    expect(duplicatedPrefab.status, PrefabStatus.active);
+    expect(duplicatedPrefab.revision, 1);
+    expect(duplicatedPrefab.collisionShapes, referencingPrefab.collisionShapes);
 
     final created = apply(
       duplicated,
@@ -711,14 +716,31 @@ void main() {
           .revision,
       1,
     );
+    final createdPrefab = created.data.prefabs.singleWhere(
+      (prefab) => prefab.moduleId == 'module_c',
+    );
+    expect(createdPrefab.id, 'module_c_platform');
+    expect(createdPrefab.status, PrefabStatus.active);
+    expect(createdPrefab.anchorXPx, 8);
+    expect(createdPrefab.anchorYPx, 8);
+    expect(createdPrefab.collisionShapes, isEmpty);
 
     final deleted = apply(
       created,
-      const PrefabV3DeleteModuleOperation(moduleId: 'module_b_copy'),
+      PrefabV3DeleteModuleOperation(
+        moduleId: 'module_b_copy',
+        pairedPrefabKey: duplicatedPrefab.prefabKey,
+      ),
     );
     expect(
       deleted.tileData.platformModules.any(
         (module) => module.id == 'module_b_copy',
+      ),
+      isFalse,
+    );
+    expect(
+      deleted.data.prefabs.any(
+        (prefab) => prefab.prefabKey == duplicatedPrefab.prefabKey,
       ),
       isFalse,
     );
@@ -735,6 +757,121 @@ void main() {
         'assets/authoring/level/tile_defs.json',
       ]),
     );
+  });
+
+  test('module pairing preserves ambiguous custom prefab variants', () {
+    final original = _catalogDocument();
+    final sourcePrefab = original.data.prefabs.single;
+    final variant = sourcePrefab.copyWith(
+      prefabKey: 'platform_variant',
+      id: 'platform_variant',
+      revision: 3,
+    );
+    final document = original.copyWith(
+      data: original.data.copyWith(
+        prefabs: <PrefabV3Def>[sourcePrefab, variant],
+      ),
+      visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
+        'platform': PrefabV3VisualBounds(widthPx: 32, heightPx: 16),
+        'platform_variant': PrefabV3VisualBounds(widthPx: 32, heightPx: 16),
+      },
+    );
+
+    PrefabV3Document apply(
+      PrefabV3Document source,
+      PrefabV3CatalogOperation operation,
+    ) => plugin.applyEdit(
+      source,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(source),
+            operation: operation,
+          ),
+        },
+      ),
+    ) as PrefabV3Document;
+
+    final deprecated = apply(
+      document,
+      PrefabV3UpdateModuleOperation(
+        moduleId: 'module_a',
+        status: TileModuleStatus.deprecated,
+        tileSize: 16,
+        cells: original.tileData.platformModules.single.cells,
+      ),
+    );
+    expect(
+      deprecated.data.prefabs.map((prefab) => prefab.status),
+      everyElement(PrefabStatus.active),
+    );
+    expect(deprecated.data.prefabs.map((prefab) => prefab.revision), <int>[
+      7,
+      3,
+    ]);
+
+    final renamed = apply(
+      deprecated,
+      const PrefabV3RenameModuleOperation(
+        moduleId: 'module_a',
+        nextId: 'module_shared',
+      ),
+    );
+    expect(renamed.data.prefabs.map((prefab) => prefab.id), <String>[
+      'platform',
+      'platform_variant',
+    ]);
+    expect(
+      renamed.data.prefabs.map((prefab) => prefab.moduleId),
+      everyElement('module_shared'),
+    );
+
+    final duplicated = apply(
+      renamed,
+      const PrefabV3DuplicateModuleOperation(sourceModuleId: 'module_shared'),
+    );
+    final pairedDuplicate = duplicated.data.prefabs.singleWhere(
+      (prefab) => prefab.moduleId == 'module_shared_copy',
+    );
+    expect(pairedDuplicate.id, 'module_shared_copy_platform');
+    expect(pairedDuplicate.collisionShapes, isEmpty);
+  });
+
+  test('explicit collision setup pairs retained deprecated modules', () {
+    final original = _catalogDocument();
+    final document = original.copyWith(
+      data: original.data.copyWith(prefabs: const <PrefabV3Def>[]),
+      tileData: original.tileData.copyWith(
+        platformModules: <TileModuleDef>[
+          original.tileData.platformModules.single.copyWith(
+            status: TileModuleStatus.deprecated,
+          ),
+        ],
+      ),
+      visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{},
+    );
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(document),
+            operation: const PrefabV3EnsurePlatformPrefabOperation(
+              moduleId: 'module_a',
+            ),
+          ),
+        },
+      ),
+    ) as PrefabV3Document;
+
+    final prefab = edited.data.prefabs.single;
+    expect(prefab.id, 'module_a_platform');
+    expect(prefab.status, PrefabStatus.deprecated);
+    expect(prefab.visualSource.type, PrefabVisualSourceType.platformModule);
+    expect(prefab.moduleId, 'module_a');
+    expect(prefab.collisionShapes, isEmpty);
   });
 
   test('catalog commits reject stale noncanonical and referenced deletes', () {
@@ -840,54 +977,57 @@ void main() {
     expect(edited.data.prefabs.single.revision, 7);
   });
 
-  test(
-    'tile-only current mutation rejects an absent source baseline',
-    () async {
-      final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
-      addTearDown(() => root.deleteSync(recursive: true));
-      final document = _catalogDocument();
-      final edited = plugin.applyEdit(
-        document,
-        AuthoringCommand(
-          kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
-          payload: <String, Object?>{
-            'commit': PrefabV3CatalogCommit(
-              before: PrefabV3CatalogSnapshot.fromDocument(document),
-              operation: PrefabV3CreateModuleOperation(
-                id: 'module_c',
-                status: TileModuleStatus.active,
-                tileSize: 16,
-                cells: const <TileModuleCellDef>[
-                  TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
-                ],
-              ),
+  test('paired platform mutation rejects absent source baselines', () async {
+    final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final document = _catalogDocument();
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(document),
+            operation: PrefabV3CreateModuleOperation(
+              id: 'module_c',
+              status: TileModuleStatus.active,
+              tileSize: 16,
+              cells: const <TileModuleCellDef>[
+                TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+              ],
             ),
-          },
-        ),
-      );
-      final pending = plugin.describePendingChanges(
+          ),
+        },
+      ),
+    );
+    final pending = plugin.describePendingChanges(
+      EditorWorkspace(rootPath: root.path),
+      document: edited,
+    );
+    expect(pending.fileDiffs, hasLength(2));
+    expect(
+      pending.fileDiffs.map((diff) => diff.relativePath),
+      containsAll(<String>[
+        'assets/authoring/level/prefab_defs.json',
+        'assets/authoring/level/tile_defs.json',
+      ]),
+    );
+
+    await expectLater(
+      plugin.exportToRepo(
         EditorWorkspace(rootPath: root.path),
         document: edited,
-      );
-      expect(pending.fileDiffs, hasLength(1));
-      expect(pending.fileDiffs.single.relativePath, contains('tile_defs.json'));
-
-      await expectLater(
-        plugin.exportToRepo(
-          EditorWorkspace(rootPath: root.path),
-          document: edited,
+      ),
+      throwsA(
+        isA<PrefabV3SaveException>().having(
+          (error) => error.code,
+          'code',
+          'prefab_v3_save_source_drift',
         ),
-        throwsA(
-          isA<PrefabV3SaveException>().having(
-            (error) => error.code,
-            'code',
-            'prefab_v3_save_source_drift',
-          ),
-        ),
-      );
-      expect(root.listSync(recursive: true), isEmpty);
-    },
-  );
+      ),
+    );
+    expect(root.listSync(recursive: true), isEmpty);
+  });
 
   test('polygon commits reject newly overlapping downstream placements', () {
     final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];

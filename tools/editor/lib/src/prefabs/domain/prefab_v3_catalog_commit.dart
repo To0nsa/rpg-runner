@@ -6,6 +6,7 @@ import '../store/prefab_tile_file_codec.dart';
 import '../store/prefab_v3_file_codec.dart';
 import '../validation/prefab_validation.dart';
 import 'prefab_domain_models.dart';
+import 'prefab_platform_pairing.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_catalog_validation.dart';
 
@@ -69,6 +70,10 @@ final class PrefabV3DeleteSliceOperation extends PrefabV3CatalogOperation {
 }
 
 /// Creates one module at revision 1.
+///
+/// A bounded module also receives a collisionless paired platform prefab in
+/// the same commit. Empty drafts remain module-only until they gain visual
+/// geometry or are explicitly opened for collision.
 @immutable
 final class PrefabV3CreateModuleOperation extends PrefabV3CatalogOperation {
   PrefabV3CreateModuleOperation({
@@ -85,6 +90,9 @@ final class PrefabV3CreateModuleOperation extends PrefabV3CatalogOperation {
 }
 
 /// Replaces revision-owned fields of one existing module.
+///
+/// Status changes synchronize the unambiguous paired prefab. Editing an
+/// unpaired bounded module creates that prefab in the same commit.
 @immutable
 final class PrefabV3UpdateModuleOperation extends PrefabV3CatalogOperation {
   PrefabV3UpdateModuleOperation({
@@ -101,6 +109,9 @@ final class PrefabV3UpdateModuleOperation extends PrefabV3CatalogOperation {
 }
 
 /// Copies one module under a deterministic ID and revision 1.
+///
+/// The duplicate receives a paired platform prefab. Collision and metadata are
+/// copied only when the source module has an unambiguous paired owner.
 @immutable
 final class PrefabV3DuplicateModuleOperation extends PrefabV3CatalogOperation {
   const PrefabV3DuplicateModuleOperation({
@@ -110,6 +121,15 @@ final class PrefabV3DuplicateModuleOperation extends PrefabV3CatalogOperation {
 
   final String sourceModuleId;
   final String? targetId;
+}
+
+/// Creates the missing collision owner for one retained platform module.
+@immutable
+final class PrefabV3EnsurePlatformPrefabOperation
+    extends PrefabV3CatalogOperation {
+  const PrefabV3EnsurePlatformPrefabOperation({required this.moduleId});
+
+  final String moduleId;
 }
 
 /// Renames one module and rewrites every referencing prefab exactly once.
@@ -124,12 +144,16 @@ final class PrefabV3RenameModuleOperation extends PrefabV3CatalogOperation {
   final String nextId;
 }
 
-/// Removes one unreferenced platform module.
+/// Removes one unreferenced platform module or its explicit sole paired owner.
 @immutable
 final class PrefabV3DeleteModuleOperation extends PrefabV3CatalogOperation {
-  const PrefabV3DeleteModuleOperation({required this.moduleId});
+  const PrefabV3DeleteModuleOperation({
+    required this.moduleId,
+    this.pairedPrefabKey,
+  });
 
   final String moduleId;
+  final String? pairedPrefabKey;
 }
 
 /// One immutable stale-checked mutation of retained prefab visual catalogs.
@@ -195,6 +219,8 @@ final class PrefabV3CatalogCommitPolicy {
         document,
         operation,
       ),
+      final PrefabV3EnsurePlatformPrefabOperation operation =>
+        _ensurePlatformPrefab(document, operation),
       final PrefabV3RenameModuleOperation operation => _renameModule(
         document,
         operation,
@@ -372,7 +398,7 @@ final class PrefabV3CatalogCommitPolicy {
       tileSize: operation.tileSize,
       cells: operation.cells,
     );
-    return _withCatalog(
+    final next = _withCatalog(
       document,
       tileData: document.tileData.copyWith(
         platformModules: PrefabDeterminism.sortModulesByStatusIdRevision(
@@ -380,6 +406,7 @@ final class PrefabV3CatalogCommitPolicy {
         ),
       ),
     );
+    return _ensurePairedOwner(next, module);
   }
 
   Object _updateModule(
@@ -416,7 +443,7 @@ final class PrefabV3CatalogCommitPolicy {
       tileSize: operation.tileSize,
       cells: operation.cells,
     );
-    return _withCatalog(
+    final next = _withCatalog(
       document,
       tileData: document.tileData.copyWith(
         platformModules: PrefabDeterminism.sortModulesByStatusIdRevision(
@@ -424,6 +451,7 @@ final class PrefabV3CatalogCommitPolicy {
         ),
       ),
     );
+    return _synchronizePairedOwner(next, modules[index]);
   }
 
   Object _duplicateModule(
@@ -455,7 +483,7 @@ final class PrefabV3CatalogCommitPolicy {
       revision: 1,
       status: TileModuleStatus.active,
     );
-    return _withCatalog(
+    final next = _withCatalog(
       document,
       tileData: document.tileData.copyWith(
         platformModules: PrefabDeterminism.sortModulesByStatusIdRevision(
@@ -463,6 +491,28 @@ final class PrefabV3CatalogCommitPolicy {
         ),
       ),
     );
+    return _ensurePairedOwner(
+      next,
+      duplicate,
+      copyFrom: PrefabPlatformPairing.pairedOwner(document.data, source.id),
+    );
+  }
+
+  Object _ensurePlatformPrefab(
+    PrefabV3Document document,
+    PrefabV3EnsurePlatformPrefabOperation operation,
+  ) {
+    final module = document.tileData.platformModules
+        .where((candidate) => candidate.id == operation.moduleId)
+        .firstOrNull;
+    if (module == null) {
+      return _CatalogRejection(
+        code: 'prefab_v3_module_missing',
+        message:
+            'Cannot configure collision for unknown platform ${operation.moduleId}.',
+      );
+    }
+    return _ensurePairedOwner(document, module);
   }
 
   Object _renameModule(
@@ -492,6 +542,24 @@ final class PrefabV3CatalogCommitPolicy {
       id: operation.nextId,
       revision: current.revision + 1,
     );
+    final paired = PrefabPlatformPairing.pairedOwner(
+      document.data,
+      operation.moduleId,
+    );
+    final oldDefaultId = PrefabPlatformPairing.defaultPrefabId(
+      operation.moduleId,
+    );
+    final nextDefaultId = PrefabPlatformPairing.defaultPrefabId(
+      operation.nextId,
+    );
+    final canRenamePairedOwner =
+        paired != null &&
+        paired.id == oldDefaultId &&
+        !document.data.prefabs.any(
+          (prefab) =>
+              prefab.prefabKey != paired.prefabKey &&
+              prefab.id.toLowerCase() == nextDefaultId.toLowerCase(),
+        );
     final changedKeys = <String>[];
     final prefabs = document.data.prefabs.map((prefab) {
       if (!prefab.usesPlatformModule || prefab.moduleId != operation.moduleId) {
@@ -499,6 +567,9 @@ final class PrefabV3CatalogCommitPolicy {
       }
       changedKeys.add(prefab.prefabKey);
       return prefab.copyWith(
+        id: canRenamePairedOwner && prefab.prefabKey == paired.prefabKey
+            ? nextDefaultId
+            : prefab.id,
         revision: prefab.revision + 1,
         visualSource: PrefabVisualSource.platformModule(operation.nextId),
       );
@@ -529,29 +600,127 @@ final class PrefabV3CatalogCommitPolicy {
         message: 'Cannot delete unknown module ${operation.moduleId}.',
       );
     }
-    final referenceCount = document.data.prefabs
-        .where(
-          (prefab) =>
-              prefab.usesPlatformModule &&
-              prefab.moduleId == operation.moduleId,
-        )
-        .length;
-    if (referenceCount > 0) {
+    final references = PrefabPlatformPairing.ownersForModule(
+      document.data,
+      operation.moduleId,
+    );
+    final pairedPrefabKey = operation.pairedPrefabKey;
+    if (references.isNotEmpty &&
+        (references.length != 1 ||
+            pairedPrefabKey == null ||
+            references.single.prefabKey != pairedPrefabKey)) {
       return _CatalogRejection(
         code: 'prefab_v3_module_referenced',
         message:
-            'Cannot delete module ${operation.moduleId}: $referenceCount '
-            '${referenceCount == 1 ? 'prefab still references' : 'prefabs still reference'} '
+            'Cannot delete module ${operation.moduleId}: ${references.length} '
+            '${references.length == 1 ? 'prefab still references' : 'prefabs still reference'} '
             'it.',
       );
     }
+    final removedKeys = references.map((prefab) => prefab.prefabKey).toSet();
     return _withCatalog(
       document,
+      data: removedKeys.isEmpty
+          ? document.data
+          : document.data.copyWith(
+              prefabs: document.data.prefabs.where(
+                (prefab) => !removedKeys.contains(prefab.prefabKey),
+              ),
+            ),
       tileData: document.tileData.copyWith(
         platformModules: document.tileData.platformModules.where(
           (module) => module.id != operation.moduleId,
         ),
       ),
+      changedPrefabKeys: removedKeys,
+    );
+  }
+
+  PrefabV3Document _synchronizePairedOwner(
+    PrefabV3Document document,
+    TileModuleDef module,
+  ) {
+    final paired = PrefabPlatformPairing.pairedOwner(document.data, module.id);
+    if (paired == null) {
+      return _ensurePairedOwner(document, module);
+    }
+    final status = PrefabPlatformPairing.prefabStatus(module.status);
+    if (paired.status == status) return document;
+    final prefabs = document.data.prefabs.map(
+      (prefab) => prefab.prefabKey == paired.prefabKey
+          ? prefab.copyWith(status: status, revision: prefab.revision + 1)
+          : prefab,
+    );
+    return _withCatalog(
+      document,
+      data: document.data.copyWith(
+        prefabs: PrefabDeterminism.sortPrefabV3ByIdThenKey(prefabs),
+      ),
+      changedPrefabKeys: <String>[paired.prefabKey],
+    );
+  }
+
+  PrefabV3Document _ensurePairedOwner(
+    PrefabV3Document document,
+    TileModuleDef module, {
+    PrefabV3Def? copyFrom,
+  }) {
+    final paired = PrefabPlatformPairing.pairedOwner(document.data, module.id);
+    if (paired != null) return _synchronizePairedOwner(document, module);
+    if (PrefabPlatformPairing.ownersForModule(
+      document.data,
+      module.id,
+    ).isNotEmpty) {
+      return document;
+    }
+    final bounds = PrefabVisualBoundsResolver.resolvePlatformModule(
+      module,
+      tileSlicesById: <String, AtlasSliceDef>{
+        for (final slice in document.tileData.tileSlices) slice.id: slice,
+      },
+    );
+    if (bounds == null) {
+      return document;
+    }
+    final id = PrefabPlatformPairing.allocatePrefabId(
+      moduleId: module.id,
+      usedPrefabIds: document.data.prefabs.map((prefab) => prefab.id),
+    );
+    final key = PrefabDeterminism.allocatePrefabKey(
+      id: id,
+      usedPrefabKeys: document.data.prefabs
+          .map((prefab) => prefab.prefabKey)
+          .toSet(),
+    );
+    final prefab = copyFrom == null
+        ? PrefabV3Def(
+            prefabKey: key,
+            id: id,
+            revision: 1,
+            status: PrefabPlatformPairing.prefabStatus(module.status),
+            kind: PrefabKind.platform,
+            visualSource: PrefabVisualSource.platformModule(module.id),
+            anchorXPx: bounds.widthPx ~/ 2,
+            anchorYPx: bounds.heightPx ~/ 2,
+            collisionShapes: const [],
+            tags: const [],
+          )
+        : copyFrom.copyWith(
+            prefabKey: key,
+            id: id,
+            revision: 1,
+            status: PrefabPlatformPairing.prefabStatus(module.status),
+            visualSource: PrefabVisualSource.platformModule(module.id),
+          );
+    return _withCatalog(
+      document,
+      data: document.data.copyWith(
+        prefabs: PrefabDeterminism.sortPrefabV3ByIdThenKey(<PrefabV3Def>[
+          ...document.data.prefabs,
+          prefab,
+        ]),
+      ),
+      changedPrefabKeys: <String>[key],
     );
   }
 

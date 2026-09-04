@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
+import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
@@ -44,10 +45,39 @@ void main() {
     await tester.pumpAndSettle();
     await _openOwnerLibrary(tester);
 
-    expect(find.text('Prefabs & collision'), findsOneWidget);
+    expect(find.text('Prefabs'), findsOneWidget);
+    expect(find.text('Atlas slicer'), findsOneWidget);
+    expect(find.text('Collision'), findsOneWidget);
+    expect(find.text('Prefab v3 polygon authoring'), findsNothing);
+    expect(find.text('No pending prefab changes'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_v3_owner_selector')),
+      findsNothing,
+    );
+    final viewSelectors = <Finder>[
+      find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+      find.byKey(const ValueKey<String>('prefab_v3_view_platform_modules')),
+      find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
+    ];
+    final selectorOffsets = viewSelectors.map(tester.getTopLeft).toList();
+    expect(
+      selectorOffsets.map((offset) => offset.dx),
+      orderedEquals(
+        selectorOffsets.map((offset) => offset.dx).toList()..sort(),
+      ),
+    );
     expect(find.text('Create prefab'), findsOneWidget);
     expect(find.text('Prefab library'), findsOneWidget);
     expect(find.text('Search prefabs'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_visual_preview')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+      findsNothing,
+    );
     expect(
       find.textContaining(RegExp(r'\bowners?\b', caseSensitive: false)),
       findsNothing,
@@ -63,13 +93,37 @@ void main() {
     expect(tester.widget<ListTile>(requestedOwnerTile).selected, isTrue);
     expect(find.textContaining('platform_module:module_a'), findsWidgets);
     expect(
-      tester
-          .widget<DropdownButton<String>>(
-            find.byKey(const ValueKey<String>('prefab_v3_owner_selector')),
-          )
-          .value,
-      'platform',
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('prefab_preview_owner_context')),
+        matching: find.textContaining('platform'),
+      ),
+      findsOneWidget,
     );
+
+    await tester.ensureVisible(requestedOwner);
+    await tester.tap(requestedOwner);
+    await tester.pump();
+    final editCollision = find.byKey(
+      const ValueKey<String>('prefab_v3_owner_edit_collision'),
+    );
+    expect(
+      find.descendant(of: editCollision, matching: find.text('Edit collision')),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(editCollision);
+    await tester.tap(editCollision);
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
+          )
+          .selected,
+      isTrue,
+    );
+    expect(find.text('Create prefab'), findsNothing);
+    expect(find.text('Prefab library'), findsNothing);
+    expect(find.text('Collision prefabs'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
@@ -104,7 +158,7 @@ void main() {
     );
     expect(find.byType(TabBar), findsNothing);
     expect(
-      find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+      find.byKey(const ValueKey<String>('prefab_preview_owner_context')),
       findsOneWidget,
     );
     expect(
@@ -115,6 +169,29 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
       findsNothing,
     );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_creation_panel')),
+      findsNothing,
+    );
+
+    final prefabPreview = tester.element(
+      find.byKey(const ValueKey<String>('prefab_visual_preview')),
+    );
+    tester.view.physicalSize = const Size(1400, 900);
+    await tester.pumpAndSettle();
+    expect(
+      identical(
+        prefabPreview,
+        tester.element(
+          find.byKey(const ValueKey<String>('prefab_visual_preview')),
+        ),
+      ),
+      isTrue,
+    );
+    tester.view.physicalSize = const Size(900, 900);
+    await tester.pumpAndSettle();
+
+    await _openCollisionView(tester);
 
     await _openPrefabSection(
       tester,
@@ -244,6 +321,44 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'empty prefab catalog opens creation guidance without an edit guard',
+    (tester) async {
+      tester.view.physicalSize = const Size(1260, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness(
+        document: _currentDocumentWithoutPrefabSources(),
+      );
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final createToggle = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_create_section_toggle'),
+      );
+      await tester.tap(createToggle);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('No visual source is currently available for a prefab.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Finish the active prefab edit'),
+        findsNothing,
+      );
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+    },
+  );
+
   testWidgets('collision methods and retained-shape refit stay inline', (
     tester,
   ) async {
@@ -266,6 +381,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openCollisionView(tester);
     await _openPrefabSection(
       tester,
       toggleKey: 'prefab_polygon_creation_panel_toggle',
@@ -277,6 +393,18 @@ void main() {
     expect(find.text('Fit visible bounds'), findsOneWidget);
     expect(find.text('Trace visible outline'), findsOneWidget);
     expect(find.text('Detect platform surface'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_polygon_creation_surface_selector'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_polygon_creation_material_selector'),
+      ),
+      findsNothing,
+    );
     expect(
       tester
           .widget<ChoiceChip>(
@@ -299,6 +427,22 @@ void main() {
     await tester.ensureVisible(row);
     await tester.tap(row);
     await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_polygon_metadata_surface_selector'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_polygon_metadata_material_selector'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_metadata_mode')),
+      findsOneWidget,
+    );
     final refit = find.byKey(
       const ValueKey<String>('prefab_polygon_refit_shape'),
     );
@@ -319,7 +463,7 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
   });
 
-  testWidgets('platform and decoration expose kind-safe collision methods', (
+  testWidgets('platform methods and decoration handoff stay kind safe', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1500, 1000);
@@ -341,6 +485,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openCollisionView(tester);
     await _openPrefabSection(
       tester,
       toggleKey: 'prefab_polygon_creation_panel_toggle',
@@ -367,26 +512,77 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _openPrefabSection(
-      tester,
-      toggleKey: 'prefab_polygon_creation_panel_toggle',
-      bodyKey: 'prefab_polygon_creation_name_0',
-    );
-    expect(find.text('Fit visible bounds'), findsNothing);
-    expect(find.text('Trace visible outline'), findsNothing);
-    expect(find.text('Detect platform surface'), findsNothing);
     expect(
-      find.byKey(const ValueKey<String>('prefab_polygon_new_rectangle')),
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('prefab_preview_owner_context')),
+        matching: find.textContaining('decoration'),
+      ),
+      findsOneWidget,
+    );
+    await _openCollisionView(tester);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+        matching: find.textContaining('obstacle'),
+      ),
+      findsOneWidget,
+    );
+    await _openCollisionLibrary(tester);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_decoration')),
       findsNothing,
     );
     expect(
-      find.text('Decoration Prefabs do not author collision.'),
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('collision view has an explicit decoration-only empty state', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness(
+      document: _currentDocumentWithDecorationOnly(),
+    );
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: harness.session,
+            initialPrefabKey: 'decoration',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openCollisionView(tester);
+
+    expect(
+      find.byKey(const ValueKey<String>('prefab_v3_owner_selector')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('prefab_collision_scene_empty')),
       findsOneWidget,
     );
     expect(
-      find.text('No collision (visual only) (from decoration)'),
-      findsWidgets,
+      find.byKey(const ValueKey<String>('prefab_polygon_creation_panel')),
+      findsNothing,
     );
+    expect(find.text('Collision prefabs'), findsOneWidget);
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'prefab_collision_library_section_toggle',
+      bodyKey: 'prefab_collision_library_empty',
+    );
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
 
   testWidgets('atlas outline budget saves one owner revision', (tester) async {
@@ -418,6 +614,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openCollisionView(tester);
     await _openPrefabSection(
       tester,
       toggleKey: 'prefab_polygon_creation_panel_toggle',
@@ -516,6 +713,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openCollisionView(tester);
 
       final issues = harness.session.issues;
       final errors = issues
@@ -551,12 +749,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester
-            .widget<DropdownButton<String>>(
-              find.byKey(const ValueKey<String>('prefab_v3_owner_selector')),
-            )
-            .value,
-        'obstacle',
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+          matching: find.textContaining('obstacle'),
+        ),
+        findsOneWidget,
       );
       expect(
         find.byKey(
@@ -697,6 +894,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openCollisionView(tester);
 
       await _openPrefabSection(
         tester,
@@ -730,7 +928,7 @@ void main() {
   );
 
   testWidgets(
-    'collision sections edit rectangle identity and metadata below its row',
+    'collision sections edit rectangle identity and geometry below its row',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -746,6 +944,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _openCollisionView(tester);
 
       expect(
         find.byKey(
@@ -921,6 +1120,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _openOwnerLibrary(tester);
+    await _openCollisionView(tester);
+    await _openCollisionLibrary(tester);
 
     expect(
       find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
@@ -970,6 +1171,25 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
+          )
+          .selected,
+      isTrue,
+    );
+    expect(
+      find.textContaining(
+        'Finish or cancel the active polygon operation before switching',
+      ),
+      findsOneWidget,
+    );
 
     final platformOwner = find.byKey(
       const ValueKey<String>('prefab_polygon_owner_platform'),
@@ -1023,11 +1243,10 @@ void main() {
           .xHalfPixels,
       12,
     );
-    final impactText = tester.widget<Text>(
+    expect(
       find.byKey(const ValueKey<String>('prefab_polygon_downstream_impact')),
+      findsNothing,
     );
-    expect(impactText.data, contains('3 placement(s) in 2 chunk(s)'));
-    expect(impactText.data, contains('chunk revisions stay unchanged'));
 
     expect(_prefabShortcutHandler(tester).handleUndoSessionShortcut(), isTrue);
     await tester.pump();
@@ -1538,7 +1757,7 @@ void main() {
       );
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+        find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
       );
       await tester.pump();
       expect(
@@ -1546,6 +1765,14 @@ void main() {
           'Apply or cancel the prefab draft before switching views',
         ),
         findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+            )
+            .selected,
+        isTrue,
       );
       expect(
         find.byKey(
@@ -1758,6 +1985,87 @@ void main() {
     );
   });
 
+  testWidgets(
+    'native atlas source picker preserves cancel and rejects non-catalog PNGs',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      final nonCatalogAsset = File(
+        p.join(harness.root.path, 'assets', 'not_in_catalog.png'),
+      );
+      nonCatalogAsset.parent.createSync(recursive: true);
+      nonCatalogAsset.writeAsBytesSync(
+        image.encodePng(image.Image(width: 8, height: 8)),
+      );
+      final pickerSelections = <String?>[null, nonCatalogAsset.path];
+      final pickerInitialDirectories = <String>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: PrefabCreatorPage(
+              controller: harness.session,
+              atlasImageFilePicker: ({required initialDirectory}) async {
+                pickerInitialDirectories.add(initialDirectory);
+                return pickerSelections.removeAt(0);
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      );
+      await tester.pumpAndSettle();
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'atlas_slice_setup_section_toggle',
+        bodyKey: 'atlas_source_file_picker',
+      );
+
+      final sourceField = find.byKey(
+        const ValueKey<String?>('atlas_assets/decorations.png'),
+      );
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(
+                of: sourceField,
+                matching: find.byType(EditableText),
+              ),
+            )
+            .readOnly,
+        isTrue,
+      );
+      final picker = find.byKey(
+        const ValueKey<String>('atlas_source_file_picker'),
+      );
+      await tester.tap(picker);
+      await tester.pumpAndSettle();
+      expect(sourceField, findsOneWidget);
+
+      await tester.tap(picker);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Choose a PNG from the current prefab atlas catalog.'),
+        findsOneWidget,
+      );
+      expect(sourceField, findsOneWidget);
+      expect(
+        pickerInitialDirectories,
+        everyElement(p.join(harness.root.path, 'assets')),
+      );
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+    },
+  );
+
   testWidgets('current atlas form ignores semantic no-op input callbacks', (
     tester,
   ) async {
@@ -1781,6 +2089,15 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
     );
     await tester.pumpAndSettle();
+    await _openPrefabSection(
+      tester,
+      toggleKey: 'atlas_slice_library_section_toggle',
+      bodyKey: 'atlas_slice_row_decoration_slice',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
+    );
+    await tester.pump();
     await _openPrefabSection(
       tester,
       toggleKey: 'atlas_slice_selection_section_toggle',
@@ -1839,10 +2156,24 @@ void main() {
 
       final harness = await _buildHarness();
       addTearDown(harness.dispose);
+      final tilesAsset = File(p.join(harness.root.path, 'assets', 'tiles.png'));
+      tilesAsset.parent.createSync(recursive: true);
+      tilesAsset.writeAsBytesSync(
+        image.encodePng(image.Image(width: 16, height: 16)),
+      );
+      final pickerInitialDirectories = <String>[];
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData.dark(),
-          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+          home: Scaffold(
+            body: PrefabCreatorPage(
+              controller: harness.session,
+              atlasImageFilePicker: ({required initialDirectory}) async {
+                pickerInitialDirectories.add(initialDirectory);
+                return tilesAsset.path;
+              },
+            ),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -1870,6 +2201,33 @@ void main() {
         toggleKey: 'atlas_slice_setup_section_toggle',
         bodyKey: 'atlas_slice_id_field',
       );
+      expect(find.text('Selected Prefab Slice: none'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_mode_banner')),
+        findsNothing,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('atlas_slice_id_field')),
+            )
+            .controller!
+            .text,
+        isEmpty,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
+            )
+            .controller!
+            .text,
+        'decorations',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
+      );
+      await tester.pump();
       expect(
         find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
         findsOneWidget,
@@ -1889,8 +2247,8 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.textContaining('Creating a new prefab slice'),
-        findsOneWidget,
+        find.byKey(const ValueKey<String>('atlas_slice_mode_banner')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('atlas_slice_setup_section_toggle')),
@@ -1931,7 +2289,7 @@ void main() {
       var bonus = _slice(harness.session, 'bonus_slice');
       expect(bonus.sourceImagePath, 'assets/decorations.png');
       expect((bonus.x, bonus.y, bonus.width, bonus.height), (1, 1, 6, 6));
-      expect(bonus.tags, <String>['art', 'bonus']);
+      expect(bonus.tags, <String>['art', 'bonus', 'decorations']);
 
       expect(
         _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
@@ -1965,7 +2323,7 @@ void main() {
       await tester.pumpAndSettle();
       bonus = _slice(harness.session, 'bonus_slice');
       expect(bonus.width, 7);
-      expect(bonus.tags, <String>['art', 'bonus']);
+      expect(bonus.tags, <String>['art', 'bonus', 'decorations']);
 
       final referencedRow = find.byKey(
         const ValueKey<String>('atlas_slice_row_decoration_slice'),
@@ -2008,7 +2366,27 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('atlas_slice_row_tile_a')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_source_file_picker')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_tile_a')),
         findsOneWidget,
+      );
+      expect(pickerInitialDirectories, <String>[
+        p.join(harness.root.path, 'assets'),
+      ]);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
+            )
+            .controller!
+            .text,
+        'tiles',
       );
       await tester.enterText(
         find.byKey(const ValueKey<String>('atlas_slice_id_field')),
@@ -2038,6 +2416,7 @@ void main() {
         _slice(harness.session, 'tile_bonus').sourceImagePath,
         'assets/tiles.png',
       );
+      expect(_slice(harness.session, 'tile_bonus').tags, <String>['tiles']);
 
       final tileBonusRow = find.byKey(
         const ValueKey<String>('atlas_slice_row_tile_bonus'),
@@ -2145,10 +2524,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('Selected for editing in Edit selected module'),
+        find.textContaining('Selected for editing in Edit selected'),
         findsOneWidget,
       );
-      expect(find.text('Editing platform module "module_a"'), findsOneWidget);
+      expect(find.text('Editing platform "module_a"'), findsOneWidget);
       expect(
         find.bySemanticsLabel('module_a, active, 1 cells, 16 pixel tiles'),
         findsOneWidget,
@@ -2163,10 +2542,8 @@ void main() {
             .first,
       );
       await tester.pumpAndSettle();
-      expect(find.text('Cannot delete module_a'), findsOneWidget);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_v3_module_delete_blocked')),
-      );
+      expect(find.text('Delete platform module_a?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -2234,6 +2611,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(_module(harness.session, 'module_main_copy').revision, 1);
       expect(_module(harness.session, 'module_main_copy').cells, hasLength(1));
+      final duplicatedPlatform = _prefab(
+        harness.session,
+        'module_main_copy_platform',
+      );
+      expect(duplicatedPlatform.moduleId, 'module_main_copy');
+      expect(duplicatedPlatform.collisionShapes, platformShapes);
 
       final copyRow = find.byKey(
         const ValueKey<String>('platform_module_row_module_main_copy'),
@@ -2251,6 +2634,12 @@ void main() {
             .any((module) => module.id == 'module_main_copy'),
         isFalse,
       );
+      expect(
+        (harness.session.document! as PrefabV3Document).data.prefabs.any(
+          (prefab) => prefab.prefabKey == duplicatedPlatform.prefabKey,
+        ),
+        isFalse,
+      );
 
       final newEmpty = find.byKey(
         const ValueKey<String>('platform_module_new_empty_button'),
@@ -2259,7 +2648,7 @@ void main() {
       await tester.pump();
       await tester.tap(newEmpty);
       await tester.pump();
-      expect(find.text('Create platform module'), findsOneWidget);
+      expect(find.text('Create platform'), findsOneWidget);
       expect(
         tester
             .widget<OutlinedButton>(
@@ -2303,6 +2692,12 @@ void main() {
       scratch = _module(harness.session, 'scratch_module');
       expect(scratch.revision, 3);
       expect(scratch.status, TileModuleStatus.active);
+      final scratchPlatform = _prefab(
+        harness.session,
+        'scratch_module_platform',
+      );
+      expect(scratchPlatform.status, PrefabStatus.active);
+      expect(scratchPlatform.collisionShapes, isEmpty);
 
       final scratchRow = find.byKey(
         const ValueKey<String>('platform_module_row_scratch_module'),
@@ -2320,6 +2715,12 @@ void main() {
       expect(
         (harness.session.document! as PrefabV3Document).tileData.platformModules
             .any((module) => module.id == 'scratch_module'),
+        isFalse,
+      );
+      expect(
+        (harness.session.document! as PrefabV3Document).data.prefabs.any(
+          (prefab) => prefab.prefabKey == scratchPlatform.prefabKey,
+        ),
         isFalse,
       );
 
@@ -2357,6 +2758,195 @@ void main() {
         findsOneWidget,
       );
       expect(_prefabApplyHandler(tester).canApplyEditorPage, isTrue);
+    },
+  );
+
+  testWidgets(
+    'collision setup includes collider-free prefabs but not decorations',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness(
+        document: _currentDocumentWithColliderFreeObstacle(),
+      );
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: PrefabCreatorPage(
+              controller: harness.session,
+              initialPrefabKey: 'decoration',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openCollisionView(tester);
+
+      final section = find.byKey(
+        const ValueKey<String>('prefab_collision_setup_section'),
+      );
+      expect(section, findsOneWidget);
+      expect(
+        find.descendant(of: section, matching: find.text('1 total')),
+        findsOneWidget,
+      );
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_collision_setup_section_toggle',
+        bodyKey: 'prefab_missing_collision_obstacle',
+      );
+      expect(
+        find.byKey(const ValueKey<String>('prefab_missing_collision_obstacle')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_missing_collision_decoration'),
+        ),
+        findsNothing,
+      );
+
+      final setup = find.byKey(
+        const ValueKey<String>('prefab_missing_collision_setup_obstacle'),
+      );
+      await tester.ensureVisible(setup);
+      await tester.tap(setup);
+      await tester.pumpAndSettle();
+
+      expect(_prefab(harness.session, 'obstacle').collisionShapes, isEmpty);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+          matching: find.textContaining('obstacle'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'unpaired platform becomes a listed collider-free prefab in one action',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final source = _currentDocumentWithColliderFreeObstacle();
+      final unpairedModule = source.tileData.platformModules.single.copyWith(
+        id: 'module_without_collision',
+      );
+      final document = source.copyWith(
+        tileData: source.tileData.copyWith(
+          platformModules: <TileModuleDef>[
+            ...source.tileData.platformModules,
+            unpairedModule,
+          ],
+        ),
+      );
+      final harness = await _buildHarness(document: document);
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openCollisionView(tester);
+
+      final collisionSetupSection = find.byKey(
+        const ValueKey<String>('prefab_collision_setup_section'),
+      );
+      expect(
+        find.descendant(
+          of: collisionSetupSection,
+          matching: find.text('2 total'),
+        ),
+        findsOneWidget,
+      );
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'prefab_collision_setup_section_toggle',
+        bodyKey: 'prefab_unpaired_platform_module_without_collision',
+      );
+      final setup = find.byKey(
+        const ValueKey<String>(
+          'prefab_unpaired_platform_setup_module_without_collision',
+        ),
+      );
+      await tester.ensureVisible(setup);
+      await tester.tap(setup);
+      await tester.pumpAndSettle();
+
+      final platform = _prefab(
+        harness.session,
+        'module_without_collision_platform',
+      );
+      expect(platform.moduleId, 'module_without_collision');
+      expect(platform.collisionShapes, isEmpty);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+          matching: find.textContaining('module_without_collision_platform'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_unpaired_platform_module_without_collision',
+          ),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'prefab_missing_collision_module_without_collision_platform',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Collision setup needed'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_platform_modules')),
+      );
+      await tester.pumpAndSettle();
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'platform_module_library_section_toggle',
+        bodyKey: 'platform_module_row_module_without_collision',
+      );
+      final collisionAction = find.byKey(
+        const ValueKey<String>(
+          'platform_module_collision_module_without_collision',
+        ),
+      );
+      await tester.ensureVisible(collisionAction);
+      await tester.tap(collisionAction);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+          matching: find.textContaining('module_without_collision_platform'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 }
@@ -2507,6 +3097,47 @@ PrefabV3Document _currentDocumentWithColliderFreeObstacle() {
   );
 }
 
+PrefabV3Document _currentDocumentWithDecorationOnly() {
+  final document = _currentDocument();
+  final data = document.data.copyWith(
+    prefabs: document.data.prefabs
+        .where((prefab) => prefab.kind == PrefabKind.decoration)
+        .toList(growable: false),
+  );
+  final tileData = document.tileData.copyWith(
+    platformModules: const <TileModuleDef>[],
+  );
+  return document.copyWith(
+    data: data,
+    tileData: tileData,
+    visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
+      'decoration': PrefabV3VisualBounds(widthPx: 12, heightPx: 12),
+    },
+    prefabBaselineContents: PrefabV3FileCodec.encode(data),
+    tileBaselineContents: PrefabTileFileCodec.encode(tileData),
+    downstreamImpacts: const <PrefabV3DownstreamImpact>[],
+  );
+}
+
+PrefabV3Document _currentDocumentWithoutPrefabSources() {
+  final document = _currentDocument();
+  final data = document.data.copyWith(
+    slices: const <AtlasSliceDef>[],
+    prefabs: const <PrefabV3Def>[],
+  );
+  final tileData = document.tileData.copyWith(
+    platformModules: const <TileModuleDef>[],
+  );
+  return document.copyWith(
+    data: data,
+    tileData: tileData,
+    visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{},
+    prefabBaselineContents: PrefabV3FileCodec.encode(data),
+    tileBaselineContents: PrefabTileFileCodec.encode(tileData),
+    downstreamImpacts: const <PrefabV3DownstreamImpact>[],
+  );
+}
+
 PrefabV3Document _currentDocumentWithUnusedSlice() {
   final document = _currentDocument();
   final data = document.data.copyWith(
@@ -2607,6 +3238,23 @@ Future<void> _waitForWidgetToDisappear(
 Future<void> _openOwnerLibrary(WidgetTester tester) => _openPrefabSection(
   tester,
   toggleKey: 'prefab_owner_library_section_toggle',
+  bodyKey: 'prefab_owner_catalog_search',
+);
+
+Future<void> _openCollisionView(WidgetTester tester) async {
+  final selector = find.byKey(
+    const ValueKey<String>('prefab_v3_view_collision'),
+  );
+  final chip = tester.widget<ChoiceChip>(selector);
+  if (chip.selected) return;
+  await tester.tap(selector);
+  await tester.pumpAndSettle();
+  expect(tester.widget<ChoiceChip>(selector).selected, isTrue);
+}
+
+Future<void> _openCollisionLibrary(WidgetTester tester) => _openPrefabSection(
+  tester,
+  toggleKey: 'prefab_collision_library_section_toggle',
   bodyKey: 'prefab_owner_catalog_search',
 );
 

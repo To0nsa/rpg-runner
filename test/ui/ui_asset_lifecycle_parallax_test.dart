@@ -15,9 +15,9 @@ void main() {
     final layers = await lifecycle.getParallaxLayers('forest');
 
     expect(layers.map((layer) => layer.assetName).toList(), <String>[
-      'assets/images/parallax/forest/Forest Layer 01.png',
-      'assets/images/parallax/forest/Forest Layer 02.png',
-      'assets/images/parallax/forest/Forest Layer 03.png',
+      'assets/images/parallax/forest/layer_01.png',
+      'assets/images/parallax/forest/layer_02.png',
+      'assets/images/parallax/forest/layer_03.png',
     ]);
   });
 
@@ -71,6 +71,6 @@ void main() {
       PlayerCharacterRegistry.eloise.id,
     );
 
-    expect(paths, contains('terrain/tx_tileset_ground/atlas.png'));
+    expect(paths, contains('level/atlases/tiny_swords/ground.png'));
   });
 }

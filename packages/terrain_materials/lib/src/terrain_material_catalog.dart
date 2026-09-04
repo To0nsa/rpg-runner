@@ -6,10 +6,10 @@ const int terrainMaterialCatalogSchemaVersion = 3;
 
 final RegExp _materialKeyPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 final RegExp _assetPathPattern = RegExp(
-  r'^assets/images/terrain/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*\.png$',
+  r'^assets/images/level/atlases/[a-z0-9]+(?:_[a-z0-9]+)*/[a-z0-9]+(?:_[a-z0-9]+)*\.png$',
 );
 
-/// Whether a path satisfies the canonical terrain-owned PNG policy.
+/// Whether a path identifies a canonical level source atlas PNG.
 bool isValidTerrainMaterialAssetPath(String value) =>
     value == value.trim() && _assetPathPattern.hasMatch(value);
 
@@ -634,8 +634,7 @@ TerrainMaterialDefinition? _decodeMaterial(
         code: 'unpaired_underside_caps',
         path: path,
         materialKey: key,
-        message:
-            'undersideStartCap and undersideEndCap must be configured together.',
+        message: 'undersideStartCap and undersideEndCap must be configured together.',
       ),
     );
   }
@@ -934,8 +933,8 @@ String? _assetPath(
       path: path,
       materialKey: materialKey,
       message:
-          'Asset paths must be normalized lowercase-extension PNG paths '
-          'beneath assets/images/terrain/.',
+          'Asset paths must use lowercase snake_case collection and sheet '
+          'names beneath assets/images/level/atlases/.',
     ),
   );
   return null;
