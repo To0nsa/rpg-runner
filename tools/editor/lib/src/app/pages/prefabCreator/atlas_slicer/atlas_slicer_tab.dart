@@ -31,6 +31,9 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.selectedSliceKind,
     required this.sliceIdController,
     required this.sliceTagsController,
+    required this.sliceIdValidationMessage,
+    required this.createPrefabAutomatically,
+    required this.correspondingPrefabKind,
     required this.atlasZoom,
     required this.zoomMin,
     required this.zoomMax,
@@ -54,6 +57,8 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.onBrowseAtlasSource,
     required this.onSelectedSliceKindChanged,
     required this.onSelectedSliceChanged,
+    required this.onCreatePrefabAutomaticallyChanged,
+    required this.onCorrespondingPrefabKindChanged,
     required this.onAtlasZoomChanged,
     required this.onSelectionInputsChanged,
     required this.onAutoSliceEnabledChanged,
@@ -68,6 +73,9 @@ class AtlasSlicerTab extends StatefulWidget {
   final AtlasSliceKind selectedSliceKind;
   final TextEditingController sliceIdController;
   final TextEditingController sliceTagsController;
+  final String? Function(String id) sliceIdValidationMessage;
+  final bool createPrefabAutomatically;
+  final PrefabKind correspondingPrefabKind;
   final double atlasZoom;
   final double zoomMin;
   final double zoomMax;
@@ -91,6 +99,8 @@ class AtlasSlicerTab extends StatefulWidget {
   final VoidCallback onBrowseAtlasSource;
   final ValueChanged<AtlasSliceKind> onSelectedSliceKindChanged;
   final ValueChanged<String> onSelectedSliceChanged;
+  final ValueChanged<bool> onCreatePrefabAutomaticallyChanged;
+  final ValueChanged<PrefabKind> onCorrespondingPrefabKindChanged;
   final ValueChanged<double> onAtlasZoomChanged;
   final VoidCallback onSelectionInputsChanged;
   final ValueChanged<bool> onAutoSliceEnabledChanged;
@@ -129,12 +139,12 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           EditorSectionCard(
-            key: const ValueKey<String>('atlas_slice_setup_section'),
+            key: const ValueKey<String>('atlas_slice_source_section'),
             expansionKey: const ValueKey<String>(
-              'atlas_slice_setup_section_toggle',
+              'atlas_slice_source_section_toggle',
             ),
-            title: 'Source & Slice Setup',
-            description: 'Choose the atlas image, slice kind, target slice id, and tags.',
+            title: 'Source',
+            description: 'Choose the atlas or tileset image to slice.',
             collapsible: !widget.hasLocalDraftChanges,
             initiallyExpanded: false,
             expanded: widget.hasLocalDraftChanges ? true : null,
@@ -160,7 +170,24 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     ),
                   ),
                 ),
-                const SizedBox(height: EditorUiTokens.controlGap),
+              ],
+            ),
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          EditorSectionCard(
+            key: const ValueKey<String>('atlas_slice_setup_section'),
+            expansionKey: const ValueKey<String>(
+              'atlas_slice_setup_section_toggle',
+            ),
+            title: 'Slice Setup',
+            description:
+                'Choose the slice kind, target ID, tags, and optional prefab.',
+            collapsible: !widget.hasLocalDraftChanges,
+            initiallyExpanded: false,
+            expanded: widget.hasLocalDraftChanges ? true : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 DropdownButtonFormField<AtlasSliceKind>(
                   key: ValueKey<String>(
                     'slice_kind_${widget.selectedSliceKind.name}',
@@ -188,14 +215,26 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   },
                 ),
                 const SizedBox(height: EditorUiTokens.controlGap),
-                TextField(
-                  key: const ValueKey<String>('atlas_slice_id_field'),
-                  controller: widget.sliceIdController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Slice ID',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    hintText: 'village_crate_01 or grass_dirt_32x32',
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: widget.sliceIdController,
+                  builder: (context, idValue, _) => TextField(
+                    key: const ValueKey<String>('atlas_slice_id_field'),
+                    controller: widget.sliceIdController,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: 'Slice ID',
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                      hintText: 'ancient_forest_crate_01',
+                      errorText: widget.sliceIdValidationMessage(idValue.text),
+                      suffixIcon: IconButton(
+                        key: const ValueKey<String>(
+                          'atlas_slice_naming_convention_button',
+                        ),
+                        tooltip: 'Show prefab naming convention',
+                        onPressed: () => _showNamingConventionDialog(context),
+                        icon: const Icon(Icons.info_outline),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: EditorUiTokens.controlGap),
@@ -207,10 +246,10 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     labelText: 'Slice Tags (comma separated)',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
                     hintText: 'obstacle, decoration, wall, ground',
-                    helperText:
-                        'The atlas filename tag is added automatically.',
                   ),
                 ),
+                const SizedBox(height: EditorUiTokens.sectionGap),
+                _buildAutomaticPrefabControls(),
               ],
             ),
           ),
@@ -220,8 +259,9 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
             expansionKey: const ValueKey<String>(
               'atlas_slice_selection_section_toggle',
             ),
-            title: 'Selection & Actions',
-            description: 'Adjust the selection rectangle numerically and save it back to the slice list.',
+            title: 'Selection',
+            description:
+                'Adjust the selection rectangle numerically or with a grid.',
             collapsible: !widget.hasLocalDraftChanges,
             initiallyExpanded: false,
             expanded: widget.hasLocalDraftChanges ? true : null,
@@ -271,33 +311,159 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     '${widget.atlasSize!.height.toInt()} px',
                   ),
                 ],
-                const SizedBox(height: EditorUiTokens.sectionGap),
-                PrefabEditorActionRow(
-                  children: [
-                    FilledButton.icon(
-                      key: const ValueKey<String>('atlas_slice_save'),
-                      onPressed: widget.onSaveSlice,
-                      icon: const Icon(Icons.add_box_outlined),
-                      label: ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: widget.sliceIdController,
-                        builder: (context, value, _) {
-                          final id = value.text.trim();
-                          final label = widget.existingSliceIds.contains(id)
-                              ? 'Update Slice'
-                              : 'Create Slice';
-                          return Text(label);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          PrefabEditorActionRow(
+            key: const ValueKey<String>('atlas_slice_action_row'),
+            children: [
+              FilledButton.icon(
+                key: const ValueKey<String>('atlas_slice_save'),
+                onPressed: widget.onSaveSlice,
+                icon: const Icon(Icons.add_box_outlined),
+                label: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: widget.sliceIdController,
+                  builder: (context, value, _) {
+                    final id = value.text.trim();
+                    final label = widget.existingSliceIds.contains(id)
+                        ? 'Update Slice'
+                        : widget.createPrefabAutomatically
+                        ? 'Create Slice & Prefab'
+                        : 'Create Slice';
+                    return Text(label);
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
+  Widget _buildAutomaticPrefabControls() {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: widget.sliceIdController,
+      builder: (context, idValue, _) {
+        final normalizedId = idValue.text.trim().toLowerCase();
+        final sliceAlreadyExists =
+            normalizedId.isNotEmpty &&
+            widget.existingSliceIds.any(
+              (id) => id.toLowerCase() == normalizedId,
+            );
+        final isPrefabSlice = widget.selectedSliceKind == AtlasSliceKind.prefab;
+        final canCreate = isPrefabSlice && !sliceAlreadyExists;
+        final canToggle =
+            canCreate || (isPrefabSlice && widget.createPrefabAutomatically);
+        final kindEnabled = canCreate && widget.createPrefabAutomatically;
+        final helperText = !isPrefabSlice
+            ? 'Available only for Prefab Slices.'
+            : sliceAlreadyExists
+            ? 'Available only when creating a new slice.'
+            : 'Uses the Slice ID and centers the prefab anchor.';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            SwitchListTile.adaptive(
+              key: const ValueKey<String>(
+                'atlas_create_corresponding_prefab_toggle',
+              ),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Create corresponding prefab automatically'),
+              subtitle: Text(helperText),
+              value: widget.createPrefabAutomatically,
+              onChanged: canToggle
+                  ? widget.onCreatePrefabAutomaticallyChanged
+                  : null,
+            ),
+            const SizedBox(height: EditorUiTokens.controlGap),
+            SegmentedButton<PrefabKind>(
+              key: const ValueKey<String>('atlas_corresponding_prefab_kind'),
+              segments: const <ButtonSegment<PrefabKind>>[
+                ButtonSegment<PrefabKind>(
+                  value: PrefabKind.decoration,
+                  label: Text('Decoration'),
+                  icon: Icon(Icons.park_outlined),
+                ),
+                ButtonSegment<PrefabKind>(
+                  value: PrefabKind.obstacle,
+                  label: Text('Obstacle'),
+                  icon: Icon(Icons.warning_amber_outlined),
+                ),
+              ],
+              selected: <PrefabKind>{widget.correspondingPrefabKind},
+              showSelectedIcon: false,
+              onSelectionChanged: kindEnabled
+                  ? (selection) => widget.onCorrespondingPrefabKindChanged(
+                      selection.single,
+                    )
+                  : null,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showNamingConventionDialog(BuildContext context) =>
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey<String>('atlas_slice_naming_convention_dialog'),
+          title: const Text('Prefab naming convention'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text('Use this pattern:'),
+                const SizedBox(height: EditorUiTokens.controlGap),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(EditorUiTokens.controlGap),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const SelectableText(
+                    '<collection>_<object>[_<descriptor>]_<nn>',
+                  ),
+                ),
+                const SizedBox(height: EditorUiTokens.sectionGap),
+                const Text(
+                  'For a new slice, the collection prefix is filled from the '
+                  'atlas folder. Complete it with the object and a zero-padded '
+                  'variant number.',
+                ),
+                const SizedBox(height: EditorUiTokens.sectionGap),
+                Text('Examples', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: EditorUiTokens.rowTitleGap),
+                const SelectableText(
+                  'ancient_forest_crate_01\n'
+                  'ancient_forest_dead_tree_02\n'
+                  'village_barrel_broken_01',
+                ),
+                const SizedBox(height: EditorUiTokens.sectionGap),
+                const Text(
+                  'New Prefab Slice IDs must use lowercase snake_case, start '
+                  'with the atlas collection prefix, include an object name, '
+                  'and end in _01 through _99. Duplicate IDs are rejected '
+                  'separately; existing slices keep their IDs.',
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            FilledButton(
+              key: const ValueKey<String>(
+                'atlas_slice_naming_convention_close',
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildScenePanel(BuildContext context) {
     final selectedAtlasPath = widget.selectedAtlasPath;
@@ -407,8 +573,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       ),
       details: isSelected
           ? const Text(
-              'Selected for editing in Source & Slice Setup and Selection & '
-              'Actions.',
+              'Selected for editing in Source, Slice Setup, and Selection.',
             )
           : null,
       child: PrefabEditorRowMetadata(

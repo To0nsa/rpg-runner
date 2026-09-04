@@ -5,7 +5,9 @@ import 'editor_scene_view_utils.dart';
 /// Shared zoom input widget for editor scene pages.
 ///
 /// Exposes zoom as world scale (`1.0 == 100%`) while displaying/accepting
-/// percent values in the text field for authoring ergonomics.
+/// percent values in the text field for authoring ergonomics. The slider
+/// contracts to bounded panel widths and stacks below the field when the
+/// inline layout cannot retain a usable touch target.
 class EditorZoomControls extends StatefulWidget {
   const EditorZoomControls({
     super.key,
@@ -33,6 +35,11 @@ class EditorZoomControls extends StatefulWidget {
 }
 
 class _EditorZoomControlsState extends State<EditorZoomControls> {
+  static const double _controlGap = 8;
+
+  // Keep the Material minimum touch target before falling back to two rows.
+  static const double _minimumInlineSliderWidth = 48;
+
   late final TextEditingController _controller;
 
   @override
@@ -60,41 +67,75 @@ class _EditorZoomControlsState extends State<EditorZoomControls> {
   Widget build(BuildContext context) {
     final clampedValue = widget.value.clamp(widget.min, widget.max).toDouble();
     final divisions = ((widget.max - widget.min) / widget.step).round();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: widget.fieldWidth,
-          child: TextField(
-            controller: _controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textAlign: TextAlign.right,
-            decoration: InputDecoration(
-              isDense: true,
-              labelText: widget.label,
-              suffixText: '%',
-              border: const OutlineInputBorder(),
-            ),
-            onSubmitted: (_) => _commit(),
-            onEditingComplete: _commit,
-            onTapOutside: (_) => _commit(),
-          ),
+    final field = SizedBox(
+      width: widget.fieldWidth,
+      child: TextField(
+        controller: _controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.right,
+        decoration: InputDecoration(
+          isDense: true,
+          labelText: widget.label,
+          suffixText: '%',
+          border: const OutlineInputBorder(),
         ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: widget.sliderWidth,
-          child: Slider(
-            min: widget.min,
-            max: widget.max,
-            divisions: divisions < 1 ? null : divisions,
-            value: clampedValue,
-            label: '${_formatPercent(clampedValue)}%',
-            onChanged: (next) {
-              widget.onChanged(_snapToStep(next));
-            },
+        onSubmitted: (_) => _commit(),
+        onEditingComplete: _commit,
+        onTapOutside: (_) => _commit(),
+      ),
+    );
+    final slider = Slider(
+      min: widget.min,
+      max: widget.max,
+      divisions: divisions < 1 ? null : divisions,
+      value: clampedValue,
+      label: '${_formatPercent(clampedValue)}%',
+      onChanged: (next) {
+        widget.onChanged(_snapToStep(next));
+      },
+    );
+    final preferredWidth = widget.fieldWidth + _controlGap + widget.sliderWidth;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.hasBoundedWidth &&
+            constraints.maxWidth <
+                widget.fieldWidth + _controlGap + _minimumInlineSliderWidth) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                width: constraints.maxWidth
+                    .clamp(0, widget.fieldWidth)
+                    .toDouble(),
+                child: field,
+              ),
+              const SizedBox(height: _controlGap),
+              SizedBox(
+                width: constraints.maxWidth
+                    .clamp(0, widget.sliderWidth)
+                    .toDouble(),
+                child: slider,
+              ),
+            ],
+          );
+        }
+
+        final width = constraints.hasBoundedWidth
+            ? constraints.maxWidth.clamp(0, preferredWidth).toDouble()
+            : preferredWidth;
+        return SizedBox(
+          width: width,
+          child: Row(
+            children: <Widget>[
+              field,
+              const SizedBox(width: _controlGap),
+              Expanded(child: slider),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 

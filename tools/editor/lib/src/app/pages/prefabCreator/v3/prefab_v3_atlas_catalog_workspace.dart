@@ -11,6 +11,7 @@ import '../../../../atlas/atlas_selection.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../../prefabs/domain/prefab_slice_id_convention.dart';
 import '../../../../prefabs/domain/prefab_v3_catalog_commit.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
@@ -26,6 +27,8 @@ typedef _AtlasSliceDraft = ({
   String y,
   String width,
   String height,
+  bool createPrefabAutomatically,
+  PrefabKind correspondingPrefabKind,
 });
 
 /// Adapts the retained atlas-slicer UI to typed Prefab-v3 commands.
@@ -38,11 +41,13 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
     required this.controller,
     required this.document,
     required this.atlasImageFilePicker,
+    required this.onPrefabCreated,
   });
 
   final EditorSessionController controller;
   final PrefabV3Document document;
   final AtlasImageFilePicker atlasImageFilePicker;
+  final ValueChanged<PrefabV3Def> onPrefabCreated;
 
   @override
   State<PrefabV3AtlasCatalogWorkspace> createState() =>
@@ -68,6 +73,8 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   AtlasSelectionState _atlasState = const AtlasSelectionState();
   AtlasSliceKind _selectedSliceKind = AtlasSliceKind.prefab;
+  bool _createPrefabAutomatically = false;
+  PrefabKind _correspondingPrefabKind = PrefabKind.decoration;
   bool _autoSliceEnabled = false;
   String? _selectedPrefabSliceId;
   String? _selectedTileSliceId;
@@ -141,6 +148,10 @@ class PrefabV3AtlasCatalogWorkspaceState
         selectedSliceKind: kind,
         sliceIdController: _idController,
         sliceTagsController: _tagsController,
+        sliceIdValidationMessage: (id) =>
+            _sliceIdValidationMessage(document, id),
+        createPrefabAutomatically: _createPrefabAutomatically,
+        correspondingPrefabKind: _correspondingPrefabKind,
         atlasZoom: _atlasState.zoom,
         zoomMin: _zoomMin,
         zoomMax: _zoomMax,
@@ -170,6 +181,8 @@ class PrefabV3AtlasCatalogWorkspaceState
             _selectKind(document, nextKind),
         onSelectedSliceChanged: (sliceId) =>
             _selectSlice(document, kind, sliceId),
+        onCreatePrefabAutomaticallyChanged: _setCreatePrefabAutomatically,
+        onCorrespondingPrefabKindChanged: _setCorrespondingPrefabKind,
         onAtlasZoomChanged: (zoom) =>
             setState(() => _atlasState = _atlasState.withZoom(zoom)),
         onSelectionInputsChanged: () => _applySelectionInputs(document),
@@ -210,6 +223,8 @@ class PrefabV3AtlasCatalogWorkspaceState
     y: _yController.text,
     width: _widthController.text,
     height: _heightController.text,
+    createPrefabAutomatically: _createPrefabAutomatically,
+    correspondingPrefabKind: _correspondingPrefabKind,
   );
 
   void _initialize(PrefabV3Document document) {
@@ -380,6 +395,20 @@ class PrefabV3AtlasCatalogWorkspaceState
       _showMessage('Select an atlas/tileset image first.');
       return;
     }
+    final current = _findSlice(
+      _slicesForKind(document, _selectedSliceKind),
+      id,
+    );
+    if (_selectedSliceKind == AtlasSliceKind.prefab && current == null) {
+      final namingIssue = PrefabSliceIdConvention.validate(
+        id: id,
+        sourceImagePath: path,
+      );
+      if (namingIssue != null) {
+        _showMessage(namingIssue);
+        return;
+      }
+    }
     final size = document.atlasImageSizes[path];
     if (size == null) {
       _showMessage('Atlas metadata is unavailable for $path.');
@@ -411,13 +440,31 @@ class PrefabV3AtlasCatalogWorkspaceState
       height: rect.height,
       tags: PrefabDeterminism.normalizeTags(<String>[
         ..._tagsController.text.split(','),
-        _atlasSourceTag(path),
+        ..._atlasSourceTags(path),
       ]),
     );
-    final current = _findSlice(
-      _slicesForKind(document, _selectedSliceKind),
-      id,
-    );
+    if (_createPrefabAutomatically &&
+        _selectedSliceKind != AtlasSliceKind.prefab) {
+      _showMessage('Automatic prefab creation requires a Prefab Slice.');
+      return;
+    }
+    if (_createPrefabAutomatically && current != null) {
+      _showMessage(
+        'Automatic prefab creation is available only for a new slice. '
+        'Choose a new Slice ID or turn it off.',
+      );
+      return;
+    }
+    if (_createPrefabAutomatically &&
+        document.data.prefabs.any(
+          (prefab) => prefab.id.toLowerCase() == id.toLowerCase(),
+        )) {
+      _showMessage(
+        'Prefab ID "$id" already exists. Choose another Slice ID or turn '
+        'off automatic prefab creation.',
+      );
+      return;
+    }
     if (current != null && _slicesEqual(current, slice)) {
       setState(() {
         _draftBaseline = _currentDraft;
@@ -427,14 +474,24 @@ class PrefabV3AtlasCatalogWorkspaceState
     }
     final next = _dispatch(
       document,
-      PrefabV3UpsertSliceOperation(kind: _selectedSliceKind, slice: slice),
+      PrefabV3UpsertSliceOperation(
+        kind: _selectedSliceKind,
+        slice: slice,
+        createPrefabKind: _createPrefabAutomatically
+            ? _correspondingPrefabKind
+            : null,
+      ),
     );
     if (next == null) return;
+    final createdPrefab = _createPrefabAutomatically
+        ? next.data.prefabs.where((prefab) => prefab.id == id).firstOrNull
+        : null;
     setState(() {
       _setSelectedId(_selectedSliceKind, id);
       _atlasState = _atlasState.withSelectedSourcePath(path);
       _syncDraft(slice);
     });
+    if (createdPrefab != null) widget.onPrefabCreated(createdPrefab);
   }
 
   Future<void> _deleteSlice(
@@ -553,9 +610,15 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   void _syncDraft(AtlasSliceDef? slice) {
     _runDraftSync(() {
-      _idController.text = slice?.id ?? '';
+      _createPrefabAutomatically = false;
+      _correspondingPrefabKind = PrefabKind.decoration;
+      _idController.text =
+          slice?.id ??
+          PrefabSliceIdConvention.collectionPrefix(
+            _atlasState.selectedSourcePath,
+          );
       _tagsController.text = slice == null
-          ? _atlasSourceTag(_atlasState.selectedSourcePath)
+          ? _atlasSourceTags(_atlasState.selectedSourcePath).join(', ')
           : slice.tags.join(', ');
       final rect = slice == null
           ? null
@@ -574,8 +637,43 @@ class PrefabV3AtlasCatalogWorkspaceState
     });
   }
 
-  String _atlasSourceTag(String? sourcePath) =>
-      sourcePath == null ? '' : p.basenameWithoutExtension(sourcePath).trim();
+  List<String> _atlasSourceTags(String? sourcePath) {
+    if (sourcePath == null) return const <String>[];
+    final normalizedPath = p.normalize(sourcePath.trim());
+    if (normalizedPath.isEmpty || normalizedPath == '.') {
+      return const <String>[];
+    }
+    final parentPath = p.dirname(normalizedPath);
+    return PrefabDeterminism.normalizeTags(<String>[
+      if (parentPath != '.') p.basename(parentPath),
+      p.basenameWithoutExtension(normalizedPath),
+    ]);
+  }
+
+  String? _sliceIdValidationMessage(PrefabV3Document document, String id) {
+    if (_selectedSliceKind != AtlasSliceKind.prefab) return null;
+    if (_findSlice(document.data.slices, id) != null) return null;
+    final path = _atlasState.selectedSourcePath;
+    if (path == null) return null;
+    final prefix = PrefabSliceIdConvention.collectionPrefix(path);
+    if (id.isEmpty || id == prefix) return null;
+    return PrefabSliceIdConvention.validate(id: id, sourceImagePath: path);
+  }
+
+  void _setCreatePrefabAutomatically(bool value) {
+    setState(() {
+      _createPrefabAutomatically = value;
+      _hasDraftChanges = _currentDraft != _draftBaseline;
+    });
+  }
+
+  void _setCorrespondingPrefabKind(PrefabKind value) {
+    if (value != PrefabKind.decoration && value != PrefabKind.obstacle) return;
+    setState(() {
+      _correspondingPrefabKind = value;
+      _hasDraftChanges = _currentDraft != _draftBaseline;
+    });
+  }
 
   void _syncSelectionInputs(AtlasPixelRect? rect) {
     _runDraftSync(() {

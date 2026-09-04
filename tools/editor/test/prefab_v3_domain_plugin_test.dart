@@ -630,6 +630,145 @@ void main() {
     expect(deleted.changedPrefabKeys, <String>['target']);
   });
 
+  test('new prefab slice atomically creates its requested owner', () {
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
+
+    AuthoringDocument apply(PrefabV3UpsertSliceOperation operation) =>
+        plugin.applyEdit(
+          document,
+          AuthoringCommand(
+            kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+            payload: <String, Object?>{
+              'commit': PrefabV3CatalogCommit(
+                before: PrefabV3CatalogSnapshot.fromDocument(document),
+                operation: operation,
+              ),
+            },
+          ),
+        );
+
+    final created = apply(
+      const PrefabV3UpsertSliceOperation(
+        kind: AtlasSliceKind.prefab,
+        slice: AtlasSliceDef(
+          id: 'level_stone_block_01',
+          sourceImagePath: 'assets/images/level/test.png',
+          x: 2,
+          y: 3,
+          width: 7,
+          height: 9,
+          tags: <String>['stone', 'test'],
+        ),
+        createPrefabKind: PrefabKind.obstacle,
+      ),
+    ) as PrefabV3Document;
+
+    final prefab = created.data.prefabs.singleWhere(
+      (candidate) => candidate.id == 'level_stone_block_01',
+    );
+    expect(prefab.prefabKey, 'level_stone_block_01');
+    expect(prefab.revision, 1);
+    expect(prefab.status, PrefabStatus.active);
+    expect(prefab.kind, PrefabKind.obstacle);
+    expect(prefab.sliceId, 'level_stone_block_01');
+    expect((prefab.anchorXPx, prefab.anchorYPx), (3, 4));
+    expect(prefab.collisionShapes, isEmpty);
+    expect(prefab.tags, <String>['stone', 'test']);
+    expect(created.visualBoundsByPrefabKey['level_stone_block_01'], isNotNull);
+    expect(created.changedPrefabKeys, <String>['level_stone_block_01']);
+
+    expect(
+      apply(
+        const PrefabV3UpsertSliceOperation(
+          kind: AtlasSliceKind.prefab,
+          slice: AtlasSliceDef(
+            id: 'slice_a',
+            sourceImagePath: 'assets/images/level/test.png',
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+          ),
+          createPrefabKind: PrefabKind.decoration,
+        ),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        const PrefabV3UpsertSliceOperation(
+          kind: AtlasSliceKind.prefab,
+          slice: AtlasSliceDef(
+            id: 'target',
+            sourceImagePath: 'assets/images/level/test.png',
+            x: 0,
+            y: 0,
+            width: 4,
+            height: 4,
+          ),
+          createPrefabKind: PrefabKind.decoration,
+        ),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        const PrefabV3UpsertSliceOperation(
+          kind: AtlasSliceKind.tile,
+          slice: AtlasSliceDef(
+            id: 'tile_with_prefab',
+            sourceImagePath: 'assets/images/level/test.png',
+            x: 0,
+            y: 0,
+            width: 4,
+            height: 4,
+          ),
+          createPrefabKind: PrefabKind.obstacle,
+        ),
+      ),
+      same(document),
+    );
+  });
+
+  test('new prefab slices enforce the collection naming convention', () {
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
+    const policy = PrefabV3CatalogCommitPolicy();
+
+    for (final id in <String>[
+      'Level Stone 01',
+      'forest_stone_01',
+      'level_stone_1',
+      'level_01',
+    ]) {
+      final result = policy.apply(
+        document: document,
+        commit: PrefabV3CatalogCommit(
+          before: PrefabV3CatalogSnapshot.fromDocument(document),
+          operation: PrefabV3UpsertSliceOperation(
+            kind: AtlasSliceKind.prefab,
+            slice: AtlasSliceDef(
+              id: id,
+              sourceImagePath: 'assets/images/level/test.png',
+              x: 0,
+              y: 0,
+              width: 4,
+              height: 4,
+            ),
+          ),
+        ),
+      );
+
+      expect(result.accepted, isFalse, reason: id);
+      expect(result.changed, isFalse, reason: id);
+      expect(result.document, same(document), reason: id);
+      expect(
+        result.issues.single.code,
+        'prefab_v3_slice_id_convention_invalid',
+        reason: id,
+      );
+    }
+  });
+
   test('typed module lifecycle propagates references and revisions once', () {
     final document = _catalogDocument();
 

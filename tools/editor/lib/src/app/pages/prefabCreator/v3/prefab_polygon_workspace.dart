@@ -305,6 +305,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   controller: widget.controller,
                   document: document,
                   atlasImageFilePicker: widget.atlasImageFilePicker,
+                  onPrefabCreated: _handleAtlasPrefabCreated,
                 ),
                 PrefabV3ModuleCatalogWorkspace(
                   key: _moduleWorkspaceKey,
@@ -1917,6 +1918,22 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     }
     if (_selectedPrefabKey == prefabKey) return;
     await _selectOwnerFromHeader(prefabKey);
+  }
+
+  void _handleAtlasPrefabCreated(PrefabV3Def prefab) {
+    if (!mounted || prefab.kind != PrefabKind.obstacle) return;
+    final document = _documentOrNull;
+    if (document == null ||
+        !document.data.prefabs.any(
+          (candidate) => candidate.prefabKey == prefab.prefabKey,
+        )) {
+      return;
+    }
+    setState(() {
+      _bindOwner(prefab.prefabKey);
+      _resetViewportValues();
+      _workspaceView = PrefabWorkspaceView.collision;
+    });
   }
 
   PrefabV3Document? _dispatchCatalog(

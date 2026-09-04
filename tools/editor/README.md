@@ -22,8 +22,9 @@ Implemented authoring domains:
   whole-pixel polygon-collision authoring, including tagged atlas/tile slices
   and visual slice selection with search, source/usage filters, thumbnails, and
   existing-Prefab usage indicators; Prefab atlas slicing supports configurable
-  cell dimensions, origins, gutters, arbitrary manual pixel rectangles, and a
-  native PNG file picker constrained to the loaded repository atlas catalog
+  cell dimensions, advanced origin/gutter settings, arbitrary manual pixel
+  rectangles, and a native PNG file picker constrained to the loaded repository
+  atlas catalog
 - chunk authoring with whole-pixel direct terrain polygons, expanded
   placed-Prefab collision, searchable visual Prefab and enemy libraries,
   active-level parallax and terrain-material scene preview, Core-backed
@@ -287,11 +288,24 @@ Their authoring, palette/action, and existing-record libraries start collapsed;
 a dirty slice or module form forces its owning authoring section open until it
 is applied or undone. Selected visual rows state which synchronized inspector
 and scene they control. Atlas opens without an implicitly selected slice; its
+authoring sidebar separates Source, Slice Setup, and Selection into three
+focused cards, with the Create/Update action directly below Selection. Its
 read-only source field opens the native PNG picker and accepts only an image in
-the loaded repository atlas catalog. New slice drafts prefill the source
-filename stem as a tag, and every slice save merges that tag with the normalized
-user tags. Platform creation begins only after **New Platform**, while selected
-records use the explicit edit/lifecycle context.
+the loaded repository atlas catalog. New slice drafts prefill the source image's
+immediate parent-folder name and filename stem as tags, prefill Slice ID with
+the normalized reusable-collection prefix, and merge both source tags with the
+normalized user tags on every save. New Prefab Slice IDs must use lowercase
+ASCII snake case, start with that collection prefix, contain an object name,
+and end in a two-digit `_01` through `_99` variant. Existing Prefab Slice IDs
+remain editable without migration, and Tile Slice IDs keep their existing
+rules. The Slice ID info action opens the prefab naming pattern, examples, and
+rules without changing the draft. A new Prefab Slice can optionally create a
+same-ID Decoration or Obstacle prefab in the same undoable change; its anchor
+starts at the slice center, its tags copy the slice's complete saved tag set,
+and a new Obstacle opens directly in collision authoring. Automatic prefab
+creation is unavailable for Tile Slices and existing slice or prefab IDs.
+Platform creation begins only after **New Platform**, while selected records
+use the explicit edit/lifecycle context.
 Reference-aware slice/module deletion and atlas source-bounds validation are
 unchanged.
 

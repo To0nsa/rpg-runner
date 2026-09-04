@@ -799,8 +799,38 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const ValueKey<String>('atlas_slice_source_section_toggle')),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const ValueKey<String>('atlas_slice_setup_section_toggle')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('atlas_slice_selection_section_toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_action_row')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('atlas_slice_action_row')),
+            )
+            .dy,
+        greaterThanOrEqualTo(
+          tester
+              .getBottomLeft(
+                find.byKey(
+                  const ValueKey<String>('atlas_slice_selection_section'),
+                ),
+              )
+              .dy,
+        ),
       );
       expect(
         find.byKey(
@@ -2026,7 +2056,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openPrefabSection(
         tester,
-        toggleKey: 'atlas_slice_setup_section_toggle',
+        toggleKey: 'atlas_slice_source_section_toggle',
         bodyKey: 'atlas_source_file_picker',
       );
 
@@ -2213,7 +2243,7 @@ void main() {
             )
             .controller!
             .text,
-        isEmpty,
+        'assets_',
       );
       expect(
         tester
@@ -2222,8 +2252,60 @@ void main() {
             )
             .controller!
             .text,
-        'decorations',
+        'assets, decorations',
       );
+      final createPrefabToggle = find.byKey(
+        const ValueKey<String>('atlas_create_corresponding_prefab_toggle'),
+      );
+      final prefabKindSelector = find.byKey(
+        const ValueKey<String>('atlas_corresponding_prefab_kind'),
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
+            )
+            .dy,
+        lessThan(tester.getTopLeft(createPrefabToggle).dy),
+      );
+      expect(tester.widget<SwitchListTile>(createPrefabToggle).value, isFalse);
+      expect(
+        tester.widget<SegmentedButton<PrefabKind>>(prefabKindSelector).selected,
+        <PrefabKind>{PrefabKind.decoration},
+      );
+      expect(
+        tester
+            .widget<SegmentedButton<PrefabKind>>(prefabKindSelector)
+            .onSelectionChanged,
+        isNull,
+      );
+      final initialDraftState = tester.state(
+        find.byType(PrefabCreatorPage),
+      ) as EditorPageLocalDraftState;
+      expect(initialDraftState.hasLocalDraftChanges, isFalse);
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('atlas_slice_naming_convention_button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('atlas_slice_naming_convention_dialog'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('<collection>_<object>[_<descriptor>]_<nn>'),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('atlas_slice_naming_convention_close'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(initialDraftState.hasLocalDraftChanges, isFalse);
       await tester.tap(
         find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
       );
@@ -2233,7 +2315,9 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('Selected for editing in Source & Slice Setup'),
+        find.textContaining(
+          'Selected for editing in Source, Slice Setup, and Selection',
+        ),
         findsOneWidget,
       );
       expect(
@@ -2243,11 +2327,28 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey<String>('atlas_slice_id_field')),
-        'bonus_slice',
+        'Bonus Slice',
       );
       await tester.pump();
       expect(
+        find.text('Use lowercase snake_case with ASCII letters and numbers.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_slice_id_field')),
+        'assets_bonus_01',
+      );
+      await tester.pump();
+      expect(
+        find.text('Use lowercase snake_case with ASCII letters and numbers.'),
+        findsNothing,
+      );
+      expect(
         find.byKey(const ValueKey<String>('atlas_slice_mode_banner')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_source_section_toggle')),
         findsNothing,
       );
       expect(
@@ -2286,10 +2387,10 @@ void main() {
       await tester.tap(saveSlice);
       await tester.pumpAndSettle();
 
-      var bonus = _slice(harness.session, 'bonus_slice');
+      var bonus = _slice(harness.session, 'assets_bonus_01');
       expect(bonus.sourceImagePath, 'assets/decorations.png');
       expect((bonus.x, bonus.y, bonus.width, bonus.height), (1, 1, 6, 6));
-      expect(bonus.tags, <String>['art', 'bonus', 'decorations']);
+      expect(bonus.tags, <String>['art', 'assets', 'bonus', 'decorations']);
 
       expect(
         _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
@@ -2298,7 +2399,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         (harness.session.document! as PrefabV3Document).data.slices.any(
-          (slice) => slice.id == 'bonus_slice',
+          (slice) => slice.id == 'assets_bonus_01',
         ),
         isFalse,
       );
@@ -2307,10 +2408,10 @@ void main() {
         isTrue,
       );
       await tester.pumpAndSettle();
-      expect(_slice(harness.session, 'bonus_slice').width, 6);
+      expect(_slice(harness.session, 'assets_bonus_01').width, 6);
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('atlas_slice_row_bonus_slice')),
+        find.byKey(const ValueKey<String>('atlas_slice_row_assets_bonus_01')),
       );
       await tester.pump();
       await tester.enterText(
@@ -2321,9 +2422,9 @@ void main() {
       await tester.pump();
       await tester.tap(saveSlice);
       await tester.pumpAndSettle();
-      bonus = _slice(harness.session, 'bonus_slice');
+      bonus = _slice(harness.session, 'assets_bonus_01');
       expect(bonus.width, 7);
-      expect(bonus.tags, <String>['art', 'bonus', 'decorations']);
+      expect(bonus.tags, <String>['art', 'assets', 'bonus', 'decorations']);
 
       final referencedRow = find.byKey(
         const ValueKey<String>('atlas_slice_row_decoration_slice'),
@@ -2343,7 +2444,7 @@ void main() {
       );
 
       final bonusRow = find.byKey(
-        const ValueKey<String>('atlas_slice_row_bonus_slice'),
+        const ValueKey<String>('atlas_slice_row_assets_bonus_01'),
       );
       await tester.tap(
         find.descendant(of: bonusRow, matching: find.byTooltip('Delete')),
@@ -2355,12 +2456,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         (harness.session.document! as PrefabV3Document).data.slices.any(
-          (slice) => slice.id == 'bonus_slice',
+          (slice) => slice.id == 'assets_bonus_01',
         ),
         isFalse,
       );
 
-      await tester.tap(find.byKey(const ValueKey<String>('slice_kind_prefab')));
+      final sliceKindDropdown = find.byKey(
+        const ValueKey<String>('slice_kind_prefab'),
+      );
+      await tester.ensureVisible(sliceKindDropdown);
+      await tester.tap(sliceKindDropdown);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tile Slice').last);
       await tester.pumpAndSettle();
@@ -2368,9 +2473,11 @@ void main() {
         find.byKey(const ValueKey<String>('atlas_slice_row_tile_a')),
         findsNothing,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('atlas_source_file_picker')),
+      final atlasSourcePicker = find.byKey(
+        const ValueKey<String>('atlas_source_file_picker'),
       );
+      await tester.ensureVisible(atlasSourcePicker);
+      await tester.tap(atlasSourcePicker);
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('atlas_slice_row_tile_a')),
@@ -2386,7 +2493,18 @@ void main() {
             )
             .controller!
             .text,
-        'tiles',
+        'assets, tiles',
+      );
+      expect(tester.widget<SwitchListTile>(createPrefabToggle).value, isFalse);
+      expect(
+        tester.widget<SwitchListTile>(createPrefabToggle).onChanged,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<SegmentedButton<PrefabKind>>(prefabKindSelector)
+            .onSelectionChanged,
+        isNull,
       );
       await tester.enterText(
         find.byKey(const ValueKey<String>('atlas_slice_id_field')),
@@ -2416,7 +2534,10 @@ void main() {
         _slice(harness.session, 'tile_bonus').sourceImagePath,
         'assets/tiles.png',
       );
-      expect(_slice(harness.session, 'tile_bonus').tags, <String>['tiles']);
+      expect(_slice(harness.session, 'tile_bonus').tags, <String>[
+        'assets',
+        'tiles',
+      ]);
 
       final tileBonusRow = find.byKey(
         const ValueKey<String>('atlas_slice_row_tile_bonus'),
@@ -2475,6 +2596,130 @@ void main() {
         findsOneWidget,
       );
       expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
+    },
+  );
+
+  testWidgets(
+    'prefab slice can atomically create an obstacle and open collision',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      );
+      await tester.pumpAndSettle();
+      await _openPrefabSection(
+        tester,
+        toggleKey: 'atlas_slice_setup_section_toggle',
+        bodyKey: 'atlas_slice_id_field',
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_slice_id_field')),
+        'assets_obstacle_01',
+      );
+      final createPrefabToggle = find.byKey(
+        const ValueKey<String>('atlas_create_corresponding_prefab_toggle'),
+      );
+      tester.widget<SwitchListTile>(createPrefabToggle).onChanged!(true);
+      await tester.pump();
+      final prefabKindSelector = find.byKey(
+        const ValueKey<String>('atlas_corresponding_prefab_kind'),
+      );
+      tester
+          .widget<SegmentedButton<PrefabKind>>(prefabKindSelector)
+          .onSelectionChanged!(<PrefabKind>{PrefabKind.obstacle});
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_x_field')),
+        '1',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_y_field')),
+        '2',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+        '7',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_h_field')),
+        '9',
+      );
+      final saveSlice = find.byKey(const ValueKey<String>('atlas_slice_save'));
+      await tester.ensureVisible(saveSlice);
+      await tester.tap(saveSlice);
+      await tester.pumpAndSettle();
+
+      final slice = _slice(harness.session, 'assets_obstacle_01');
+      expect((slice.x, slice.y, slice.width, slice.height), (1, 2, 7, 9));
+      final prefab = _prefab(harness.session, 'assets_obstacle_01');
+      expect(prefab.kind, PrefabKind.obstacle);
+      expect(prefab.sliceId, 'assets_obstacle_01');
+      expect((prefab.anchorXPx, prefab.anchorYPx), (3, 4));
+      expect(prefab.collisionShapes, isEmpty);
+      expect(prefab.tags, slice.tags);
+      expect(prefab.tags, <String>['assets', 'decorations']);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+          matching: find.textContaining('assets_obstacle_01'),
+        ),
+        findsOneWidget,
+      );
+
+      harness.session.undo();
+      await tester.pumpAndSettle();
+      var document = harness.session.document! as PrefabV3Document;
+      expect(
+        document.data.slices.any(
+          (candidate) => candidate.id == 'assets_obstacle_01',
+        ),
+        isFalse,
+      );
+      expect(
+        document.data.prefabs.any(
+          (candidate) => candidate.prefabKey == 'assets_obstacle_01',
+        ),
+        isFalse,
+      );
+
+      harness.session.redo();
+      await tester.pumpAndSettle();
+      document = harness.session.document! as PrefabV3Document;
+      expect(
+        document.data.slices.any(
+          (candidate) => candidate.id == 'assets_obstacle_01',
+        ),
+        isTrue,
+      );
+      expect(
+        document.data.prefabs.any(
+          (candidate) => candidate.prefabKey == 'assets_obstacle_01',
+        ),
+        isTrue,
+      );
     },
   );
 

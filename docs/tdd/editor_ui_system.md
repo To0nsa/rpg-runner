@@ -333,17 +333,48 @@ route-local draft state. The generic three-panel component retains its tabbed
 contract for non-Prefab callers.
 
 Atlas and Platform views use that same mounted layout and flat sidebar
-contract. Atlas source/setup and rectangle/actions are separate collapsed
-sections; both are controlled open while their shared slice draft is dirty.
+contract. Atlas Source, Slice Setup, and Selection are three separate collapsed
+sections; all are controlled open while their shared slice draft is dirty. The
+single Create/Update action sits below Selection instead of forming a fourth
+section or sharing the selection card.
 Atlas initialization selects the first available source image for visibility
 but no slice. The read-only source field delegates to the platform-native PNG
 picker, accepts only exact paths in the loaded repository atlas catalog, and
 clears slice selection when the user chooses another source.
-For a new slice, the tag draft starts with the selected source filename stem
-without its extension. Every slice save merges that source tag with normalized
-user tags, so it remains present exactly once even if the editable field omits
-or duplicates it. Selecting an existing slice alone does not retrofit the tag
-or dirty the draft; the invariant is applied when that slice is next saved.
+Shared auto-slice controls keep cell width and height visible while origin and
+gutter values start collapsed under **Advanced grid settings**. Disclosure
+state is presentation-only; hiding the fields preserves their session values.
+For a new slice, the tag draft starts with the selected source image's immediate
+parent-folder name and filename stem without its extension. Every slice save
+merges both source tags with normalized user tags, so each remains present
+exactly once even if the editable field omits or duplicates it. Selecting an
+existing slice alone does not retrofit the tags or dirty the draft; the
+invariant is applied when that slice is next saved.
+The Slice ID draft for a new source begins with the normalized reusable atlas
+collection plus `_`. Canonical paths resolve the collection immediately below
+`assets/images/level/atlases/`; noncanonical retained paths fall back to their
+immediate parent folder. Existing slice IDs and non-empty local drafts are never
+rewritten by this suggestion. A Slice ID suffix action opens a read-only naming
+convention dialog with the canonical pattern, examples, and identity rules; the
+dialog never enters draft or session state.
+Creation of a new Prefab Slice is rejected unless its ID uses lowercase ASCII
+snake case, begins with the resolved collection prefix, includes an object
+segment, and ends in `_01` through `_99`. The form reports the same rule inline
+while the catalog commit policy enforces it independently. Tile Slice IDs and
+updates to existing Prefab Slice IDs are exempt so retained content is not
+silently migrated or stranded.
+New Prefab Slice drafts expose an opt-in same-ID prefab creation control with a
+mutually exclusive Decoration/Obstacle kind. The control is reset and disabled
+for Tile Slices and cannot target an existing slice or case-insensitively
+matching prefab ID. An accepted operation creates the slice and collisionless
+revision-1 active prefab through one stale-checked catalog commit, derives the
+prefab key through the existing collision-safe allocator, and centers its
+integer-pixel anchor within the slice. The generated prefab copies the slice's
+complete normalized tag set, including source-folder and filename tags.
+Generated Obstacles become the selected owner in the Collision workspace so
+geometry can be authored immediately; generated Decorations leave the Atlas
+workflow active. Undo and redo always move the generated slice and prefab
+together.
 Atlas slice dirty state is derived from the current form values against the
 loaded slice baseline. Mounting fields, synchronizing a retained slice, or
 receiving a semantic no-op input callback therefore cannot block view or owner

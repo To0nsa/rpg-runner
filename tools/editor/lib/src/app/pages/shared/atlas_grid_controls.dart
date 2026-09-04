@@ -5,6 +5,9 @@ import '../../../atlas/atlas_grid.dart';
 import 'editor_ui_tokens.dart';
 
 /// Editable, session-only grid settings shared by atlas pickers.
+///
+/// Cell dimensions stay immediately available while the less common origin
+/// and gutter values live in a presentation-only advanced disclosure.
 class AtlasGridControls extends StatefulWidget {
   const AtlasGridControls({
     super.key,
@@ -24,6 +27,7 @@ class AtlasGridControls extends StatefulWidget {
 class _AtlasGridControlsState extends State<AtlasGridControls> {
   late final List<TextEditingController> _controllers;
   String? _error;
+  bool _advancedExpanded = false;
 
   @override
   void initState() {
@@ -61,21 +65,40 @@ class _AtlasGridControlsState extends State<AtlasGridControls> {
         ],
       ),
       const SizedBox(height: EditorUiTokens.controlGap),
-      Row(
-        children: [
-          _field(2, 'Origin X', 'origin_x'),
-          const SizedBox(width: EditorUiTokens.controlGap),
-          _field(3, 'Origin Y', 'origin_y'),
-        ],
+      Semantics(
+        expanded: _advancedExpanded,
+        child: TextButton.icon(
+          key: ValueKey<String>('${widget.keyPrefix}_advanced_toggle'),
+          style: TextButton.styleFrom(
+            alignment: Alignment.centerLeft,
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: () =>
+              setState(() => _advancedExpanded = !_advancedExpanded),
+          icon: Icon(_advancedExpanded ? Icons.expand_less : Icons.expand_more),
+          label: const Text('Advanced grid settings'),
+        ),
       ),
-      const SizedBox(height: EditorUiTokens.controlGap),
-      Row(
-        children: [
-          _field(4, 'Gutter X', 'gutter_x'),
-          const SizedBox(width: EditorUiTokens.controlGap),
-          _field(5, 'Gutter Y', 'gutter_y'),
-        ],
-      ),
+      if (_advancedExpanded) ...<Widget>[
+        const SizedBox(height: EditorUiTokens.controlGap),
+        Row(
+          children: [
+            _field(2, 'Origin X', 'origin_x'),
+            const SizedBox(width: EditorUiTokens.controlGap),
+            _field(3, 'Origin Y', 'origin_y'),
+          ],
+        ),
+        const SizedBox(height: EditorUiTokens.controlGap),
+        Row(
+          children: [
+            _field(4, 'Gutter X', 'gutter_x'),
+            const SizedBox(width: EditorUiTokens.controlGap),
+            _field(5, 'Gutter Y', 'gutter_y'),
+          ],
+        ),
+      ],
       if (_error != null) ...[
         const SizedBox(height: EditorUiTokens.controlGap),
         Text(

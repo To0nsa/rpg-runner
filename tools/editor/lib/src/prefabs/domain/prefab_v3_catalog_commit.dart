@@ -7,6 +7,7 @@ import '../store/prefab_v3_file_codec.dart';
 import '../validation/prefab_validation.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_platform_pairing.dart';
+import 'prefab_slice_id_convention.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_catalog_validation.dart';
 
@@ -43,12 +44,20 @@ sealed class PrefabV3CatalogOperation {
 }
 
 /// Creates or replaces one prefab-atlas or tile-atlas slice by stable ID.
+///
+/// [createPrefabKind] is valid only for a new prefab slice and atomically adds
+/// a collisionless Decoration or Obstacle owner using the slice ID and tags.
 @immutable
 final class PrefabV3UpsertSliceOperation extends PrefabV3CatalogOperation {
-  const PrefabV3UpsertSliceOperation({required this.kind, required this.slice});
+  const PrefabV3UpsertSliceOperation({
+    required this.kind,
+    required this.slice,
+    this.createPrefabKind,
+  });
 
   final AtlasSliceKind kind;
   final AtlasSliceDef slice;
+  final PrefabKind? createPrefabKind;
 }
 
 /// Removes one slice, optionally deleting its direct catalog references.
@@ -271,12 +280,54 @@ final class PrefabV3CatalogCommitPolicy {
   ) {
     final sliceIssue = _sliceIssue(document, operation.slice);
     if (sliceIssue != null) return sliceIssue;
+    final createPrefabKind = operation.createPrefabKind;
+    if (createPrefabKind != null &&
+        (operation.kind != AtlasSliceKind.prefab ||
+            (createPrefabKind != PrefabKind.decoration &&
+                createPrefabKind != PrefabKind.obstacle))) {
+      return const _CatalogRejection(
+        code: 'prefab_v3_slice_prefab_kind_invalid',
+        message:
+            'Automatic prefab creation requires a new Prefab Slice and a '
+            'Decoration or Obstacle kind.',
+      );
+    }
     final current = operation.kind == AtlasSliceKind.prefab
         ? document.data.slices
         : document.tileData.tileSlices;
     final previous = current
         .where((slice) => slice.id == operation.slice.id)
         .firstOrNull;
+    if (previous != null && createPrefabKind != null) {
+      return _CatalogRejection(
+        code: 'prefab_v3_slice_prefab_existing_slice',
+        message:
+            'Automatic prefab creation is only available for a new slice; '
+            '${operation.slice.id} already exists.',
+      );
+    }
+    if (createPrefabKind != null &&
+        document.data.prefabs.any(
+          (prefab) =>
+              prefab.id.toLowerCase() == operation.slice.id.toLowerCase(),
+        )) {
+      return _CatalogRejection(
+        code: 'prefab_v3_slice_prefab_id_collision',
+        message: 'Prefab id "${operation.slice.id}" is already owned.',
+      );
+    }
+    if (operation.kind == AtlasSliceKind.prefab && previous == null) {
+      final namingIssue = PrefabSliceIdConvention.validate(
+        id: operation.slice.id,
+        sourceImagePath: operation.slice.sourceImagePath,
+      );
+      if (namingIssue != null) {
+        return _CatalogRejection(
+          code: 'prefab_v3_slice_id_convention_invalid',
+          message: namingIssue,
+        );
+      }
+    }
     if (previous != null && _slicesEqual(previous, operation.slice)) {
       return document;
     }
@@ -286,15 +337,60 @@ final class PrefabV3CatalogCommitPolicy {
       ),
     );
     return switch (operation.kind) {
-      AtlasSliceKind.prefab => _withCatalog(
-        document,
-        data: document.data.copyWith(slices: slices),
-      ),
+      AtlasSliceKind.prefab =>
+        createPrefabKind == null
+            ? _withCatalog(
+                document,
+                data: document.data.copyWith(slices: slices),
+              )
+            : _withGeneratedSlicePrefab(
+                document,
+                slice: operation.slice,
+                slices: slices,
+                kind: createPrefabKind,
+              ),
       AtlasSliceKind.tile => _withCatalog(
         document,
         tileData: document.tileData.copyWith(tileSlices: slices),
       ),
     };
+  }
+
+  PrefabV3Document _withGeneratedSlicePrefab(
+    PrefabV3Document document, {
+    required AtlasSliceDef slice,
+    required List<AtlasSliceDef> slices,
+    required PrefabKind kind,
+  }) {
+    final key = PrefabDeterminism.allocatePrefabKey(
+      id: slice.id,
+      usedPrefabKeys: document.data.prefabs
+          .map((prefab) => prefab.prefabKey)
+          .toSet(),
+    );
+    final prefab = PrefabV3Def(
+      prefabKey: key,
+      id: slice.id,
+      revision: 1,
+      status: PrefabStatus.active,
+      kind: kind,
+      visualSource: PrefabVisualSource.atlasSlice(slice.id),
+      anchorXPx: slice.width ~/ 2,
+      anchorYPx: slice.height ~/ 2,
+      collisionShapes: const [],
+      tags: slice.tags,
+    );
+    return _withCatalog(
+      document,
+      data: document.data.copyWith(
+        slices: slices,
+        prefabs: PrefabDeterminism.sortPrefabV3ByIdThenKey(<PrefabV3Def>[
+          ...document.data.prefabs,
+          prefab,
+        ]),
+      ),
+      changedPrefabKeys: <String>[key],
+    );
   }
 
   Object _deleteSlice(
