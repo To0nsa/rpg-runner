@@ -370,9 +370,18 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   }
 
   bool deleteSelection() {
-    if (_fitDraft != null) return false;
     final selection = _state.selection;
     if (selection == null || _state.hasActiveOperation) return false;
+    final fitDraft = _fitDraft;
+    if (fitDraft != null) {
+      if (fitDraft.loading ||
+          !fitDraft.candidateShapeIds.contains(selection.shapeId)) {
+        return false;
+      }
+      if (selection.kind == TerrainPolygonSelectionKind.shape) {
+        return _deleteFitCandidateShape(selection.shapeId);
+      }
+    }
     final attemptedState = _state;
     final result = switch (selection.kind) {
       TerrainPolygonSelectionKind.vertex => _reducer.deleteSelectedVertex(
@@ -385,6 +394,25 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     };
     if (result == null) return false;
     return _applyInteractionResult(result, attemptedState: attemptedState);
+  }
+
+  bool _deleteFitCandidateShape(String shapeId) {
+    final draft = _fitDraft;
+    if (draft == null || !draft.candidateShapeIds.contains(shapeId)) {
+      return false;
+    }
+    _recordFitUndo();
+    draft
+      ..candidateShapeIds.remove(shapeId)
+      ..includedShapeIds.remove(shapeId)
+      ..componentByShapeId.remove(shapeId);
+    _state = TerrainPolygonInteractionState(
+      shapes: _state.shapes.where((shape) => shape.shapeId != shapeId),
+      tool: _state.tool,
+    );
+    _reviewFitDraft();
+    notifyListeners();
+    return true;
   }
 
   bool editSelectedVertex(TerrainSourceVertexDef vertex, {String? shapeId}) {
@@ -1016,12 +1044,17 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   _PrefabCollisionFitSnapshot _currentFitSnapshot() =>
       _PrefabCollisionFitSnapshot(
         state: _state,
+        candidateShapeIds: _fitDraft!.candidateShapeIds,
+        componentByShapeId: _fitDraft!.componentByShapeId,
         includedShapeIds: _fitDraft!.includedShapeIds,
       );
 
   void _restoreFitSnapshot(_PrefabCollisionFitSnapshot snapshot) {
     _state = snapshot.state;
-    _fitDraft!.includedShapeIds = Set<String>.of(snapshot.includedShapeIds);
+    _fitDraft!
+      ..candidateShapeIds = List<String>.of(snapshot.candidateShapeIds)
+      ..componentByShapeId = Map<String, int>.of(snapshot.componentByShapeId)
+      ..includedShapeIds = Set<String>.of(snapshot.includedShapeIds);
     _reviewFitDraft();
   }
 
@@ -1306,10 +1339,16 @@ final class _PrefabCollisionFitDraft {
 final class _PrefabCollisionFitSnapshot {
   _PrefabCollisionFitSnapshot({
     required this.state,
+    required Iterable<String> candidateShapeIds,
+    required Map<String, int> componentByShapeId,
     required Iterable<String> includedShapeIds,
-  }) : includedShapeIds = Set<String>.unmodifiable(includedShapeIds);
+  }) : candidateShapeIds = List<String>.unmodifiable(candidateShapeIds),
+       componentByShapeId = Map<String, int>.unmodifiable(componentByShapeId),
+       includedShapeIds = Set<String>.unmodifiable(includedShapeIds);
 
   final TerrainPolygonInteractionState state;
+  final List<String> candidateShapeIds;
+  final Map<String, int> componentByShapeId;
   final Set<String> includedShapeIds;
 }
 

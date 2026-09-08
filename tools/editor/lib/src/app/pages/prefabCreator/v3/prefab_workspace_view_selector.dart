@@ -30,14 +30,14 @@ class PrefabWorkspaceViewSelector extends StatelessWidget {
       ),
       _ViewChip(
         chipKey: const ValueKey<String>('prefab_v3_view_owners'),
-        label: 'Prefabs',
+        label: 'Prefabs and Platforms',
         view: PrefabWorkspaceView.prefabs,
         selectedView: selectedView,
         onSelected: onSelected,
       ),
       _ViewChip(
         chipKey: const ValueKey<String>('prefab_v3_view_platform_modules'),
-        label: 'Platforms',
+        label: 'Platform module',
         view: PrefabWorkspaceView.platformModules,
         selectedView: selectedView,
         onSelected: onSelected,

@@ -62,12 +62,29 @@ final class PrefabCollisionFitSettings {
     this.maximumVerticesPerShape = defaultMaximumVerticesPerShape,
   });
 
+  /// Trace default that filters isolated single-pixel visual noise.
+  static const int traceVisibleOutlineDefaultMinimumIslandArea = 2;
+
   /// Normal authoring target used to keep generated collision inexpensive and
   /// editable while leaving room below Core's hard limit.
   static const int defaultMaximumVerticesPerShape = 24;
 
   /// Core's current per-shape capacity; fitting never offers a larger budget.
   static const int hardMaximumVerticesPerShape = 64;
+
+  /// Returns the initial settings for one pixel-derived creation method.
+  ///
+  /// Outline tracing filters isolated one-pixel components by default. Bounds
+  /// and platform fitting retain them because those methods intentionally
+  /// summarize all accepted visual support unless the author raises the filter.
+  static PrefabCollisionFitSettings defaultsFor(
+    PrefabCollisionCreationMethod method,
+  ) => PrefabCollisionFitSettings(
+    minimumIslandArea:
+        method == PrefabCollisionCreationMethod.traceVisibleOutline
+        ? traceVisibleOutlineDefaultMinimumIslandArea
+        : 1,
+  );
 
   final int alphaCutoff;
   final int minimumIslandArea;
@@ -217,19 +234,26 @@ final class PrefabCollisionFitResult {
 
 /// Pure-Dart alpha-mask to collision geometry pipeline.
 abstract final class PrefabCollisionFitter {
+  /// Generates deterministic collision candidates from one normalized mask.
+  ///
+  /// Omitting [settings] selects method-specific defaults: outline tracing
+  /// filters isolated one-pixel components, while the other fit methods retain
+  /// them. Supplying settings always uses the requested minimum island area.
   static PrefabCollisionFitResult generate({
     required PrefabAlphaMask mask,
     required PrefabCollisionCreationMethod method,
-    PrefabCollisionFitSettings settings = const PrefabCollisionFitSettings(),
+    PrefabCollisionFitSettings? settings,
   }) {
     if (!method.isPixelDerived) {
       throw ArgumentError.value(method, 'method', 'Must be pixel-derived.');
     }
-    final settingsDiagnostic = _validateSettings(settings);
+    final resolvedSettings =
+        settings ?? PrefabCollisionFitSettings.defaultsFor(method);
+    final settingsDiagnostic = _validateSettings(resolvedSettings);
     if (settingsDiagnostic != null) {
       return PrefabCollisionFitResult(
         method: method,
-        settings: settings,
+        settings: resolvedSettings,
         shapes: const <PrefabCollisionFitShape>[],
         diagnostics: <PrefabCollisionFitDiagnostic>[settingsDiagnostic],
         evidence: const PrefabCollisionFitEvidence.empty(),
@@ -240,7 +264,7 @@ abstract final class PrefabCollisionFitter {
     final thresholded = Uint8List(mask.width * mask.height);
     var thresholdVisiblePixels = 0;
     for (var index = 0; index < mask.alpha.length; index += 1) {
-      if (mask.alpha[index] >= settings.alphaCutoff) {
+      if (mask.alpha[index] >= resolvedSettings.alphaCutoff) {
         thresholded[index] = 1;
         thresholdVisiblePixels += 1;
       }
@@ -255,7 +279,7 @@ abstract final class PrefabCollisionFitter {
     var filteredPixels = 0;
     var filteredIslands = 0;
     for (final component in discovered) {
-      if (component.pixels.length < settings.minimumIslandArea) {
+      if (component.pixels.length < resolvedSettings.minimumIslandArea) {
         filteredPixels += component.pixels.length;
         filteredIslands += 1;
       } else {
@@ -272,7 +296,7 @@ abstract final class PrefabCollisionFitter {
     if (acceptedCount == 0) {
       return PrefabCollisionFitResult(
         method: method,
-        settings: settings,
+        settings: resolvedSettings,
         shapes: const <PrefabCollisionFitShape>[],
         diagnostics: <PrefabCollisionFitDiagnostic>[
           const PrefabCollisionFitDiagnostic(
@@ -302,12 +326,12 @@ abstract final class PrefabCollisionFitter {
         <PrefabCollisionFitShape>[_fitBounds(retained)],
       PrefabCollisionCreationMethod.traceVisibleOutline => _traceComponents(
         retained,
-        maximumVerticesPerShape: settings.maximumVerticesPerShape,
+        maximumVerticesPerShape: resolvedSettings.maximumVerticesPerShape,
       ),
       PrefabCollisionCreationMethod.detectPlatformSurface =>
         _detectPlatformSurfaces(
           retained,
-          maximumVerticesPerShape: settings.maximumVerticesPerShape,
+          maximumVerticesPerShape: resolvedSettings.maximumVerticesPerShape,
         ),
       PrefabCollisionCreationMethod.rectangle ||
       PrefabCollisionCreationMethod.polygon => throw StateError('Unreachable.'),
@@ -324,14 +348,14 @@ abstract final class PrefabCollisionFitter {
       );
     }
     for (final shape in shapes) {
-      if (shape.vertices.length > settings.maximumVerticesPerShape) {
+      if (shape.vertices.length > resolvedSettings.maximumVerticesPerShape) {
         diagnostics.add(
           PrefabCollisionFitDiagnostic(
             code: 'prefab_fit_vertex_budget_unmet',
             message:
                 'Component ${shape.componentIndex + 1} needs '
                 '${shape.vertices.length} vertices after safe reduction; the '
-                'selected maximum is ${settings.maximumVerticesPerShape}. '
+                'selected maximum is ${resolvedSettings.maximumVerticesPerShape}. '
                 'Increase Maximum vertices or use Fit visible bounds.',
           ),
         );
@@ -389,7 +413,7 @@ abstract final class PrefabCollisionFitter {
     };
     return PrefabCollisionFitResult(
       method: method,
-      settings: settings,
+      settings: resolvedSettings,
       shapes: shapes,
       diagnostics: diagnostics,
       evidence: PrefabCollisionFitEvidence(

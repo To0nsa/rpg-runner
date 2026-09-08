@@ -236,9 +236,10 @@ downward-closed profiles with left-to-right active support edges. Hole-free
 outlines and open platform profiles are reduced against their original points
 to the explicit maximum-vertices-per-shape budget while retaining whole-pixel
 points; closed contours additionally preserve extents, winding, and simple
-topology. The default settings are cutoff 1, minimum island area 1 pixel, and a
-24-vertex per-shape budget capped at Core's hard limit of 64. Evidence reports
-the maximum introduced boundary or vertical-support deviation.
+topology. The UI defaults are cutoff 1, a two-pixel minimum island area for
+outline tracing and one pixel for other fit methods, and a 24-vertex per-shape
+budget capped at Core's hard limit of 64. Evidence reports the maximum
+introduced boundary or vertical-support deviation.
 The synchronous pure fit accepts at most 1,048,576 normalized pixels; larger
 visuals fail before allocating the mask.
 

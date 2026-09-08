@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Level Creator · Interactive design proposal</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0c111a; --panel:#121b28; --raised:#192536; --border:#29384a; --text:#e8eff8; --muted:#9aabc1; --blue:#0ea5e9; --light-blue:#7dd3fc; --green:#70dab3; --amber:#efc778; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input,select { font:inherit; }
+    button { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid var(--border); border-radius:7px; background:var(--raised); color:var(--text); padding:8px 12px; cursor:pointer; min-height:37px; }
+    button:hover { background:#26384c; border-color:#4d6b89; }
+    button:disabled { opacity:.44; cursor:not-allowed; }
+    button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible { outline:2px solid var(--light-blue); outline-offset:3px; }
+    .primary { background:#047daf; border-color:#17adee; color:white; font-weight:650; }
+    .primary:hover { background:#0996ce; }
+    .quiet { background:transparent; }
+    .small { font-size:12px; min-height:30px; padding:4px 9px; }
+    .muted { color:var(--muted); } .tiny { font-size:12px; } .eyebrow { color:var(--light-blue); letter-spacing:.13em; text-transform:uppercase; font-size:10px; font-weight:750; }
+    h1,h2,h3,p { margin:0; } h1 { font-size:22px; letter-spacing:-.04em; } h2 { font-size:16px; } h3 { font-size:13px; } p + p { margin-top:8px; }
+    .proposal { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 20px; padding:7px 22px; color:#bed0e3; background:#182639; border-bottom:1px solid #334760; font-size:11px; }
+    .proposal strong { color:#dfedff; font-weight:600; }
+    .coverage { padding:10px 22px; color:#9aabc1; background:#111c29; border-bottom:1px solid var(--border); font-size:11px; }
+    .coverage a { color:var(--light-blue); }
+    .appbar { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:17px 22px; border-bottom:1px solid var(--border); }
+    .brand { display:flex; align-items:center; gap:12px; } .brand-mark { display:grid; place-items:center; width:36px; height:36px; background:#143d58; border:1px solid #246082; border-radius:10px; color:var(--light-blue); font-size:22px; }
+    .appbar .muted { font-size:12px; } .toolbar,.row { display:flex; align-items:center; gap:8px; } .toolbar { flex-wrap:wrap; justify-content:flex-end; } .divider { width:1px; height:25px; background:var(--border); margin:0 5px; }
+    .save-state { min-width:125px; font-size:12px; color:var(--muted); } .save-state.dirty { color:var(--amber); }
+    kbd { font:10px system-ui; padding:1px 4px; border-radius:3px; color:inherit; opacity:.72; background:#ffffff12; }
+    .workspace { display:grid; grid-template-columns:230px minmax(440px,1fr) 292px; min-height:calc(100vh - 116px); max-width:1850px; margin:auto; }
+    .library { border-right:1px solid var(--border); padding:22px 14px; background:#101722; } .library-heading { display:flex; justify-content:space-between; align-items:center; padding:0 6px; margin-bottom:18px; }
+    .library-heading h2 { font-size:13px; } .library .primary { width:100%; margin-bottom:16px; } .level-list { display:grid; gap:7px; }
+    .level-card { width:100%; text-align:left; justify-content:flex-start; padding:12px 10px; background:transparent; border-color:transparent; gap:11px; }
+    .level-card[aria-current=true] { background:#112f46; border-color:#236285; box-shadow:inset 3px 0 var(--blue); } .level-card strong { display:block; font-weight:600; } .level-card .tiny { display:block; color:var(--muted); }
+    .swatch { flex:none; width:34px; height:40px; border:1px solid #527d7d; border-radius:5px; background:linear-gradient(160deg,#315567 0 44%,#315b55 45% 65%,#193c39 66%); }
+    .library-note { border-top:1px solid var(--border); margin:22px 6px 0; padding-top:15px; font-size:12px; color:var(--muted); } .library-note strong { display:block; color:#becce0; margin-bottom:5px; }
+    main { padding:22px 24px 30px; min-width:0; } .level-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:15px; margin-bottom:17px; } .level-heading h2 { font-size:25px; letter-spacing:-.03em; } .level-heading .muted { margin-top:3px; font-size:12px; }
+    .badge { display:inline-flex; border:1px solid #33475c; border-radius:20px; padding:2px 8px; font-size:10px; color:#bfcee0; background:#1b2a3c; white-space:nowrap; }
+    .scene { position:relative; border:1px solid #385569; border-radius:10px; overflow:hidden; background:#173247; }
+    .scene svg { display:block; width:100%; height:auto; min-height:210px; max-height:320px; }
+    .scene-top { position:absolute; inset:13px 14px auto; display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:11px; color:#c4e0ed; }
+    .scene-top span { background:#081a2bbf; padding:4px 9px; border-radius:5px; }
+    .scene-bottom { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#111e2a; padding:10px 13px; border-top:1px solid #36505d; font-size:11px; color:#9fb7c8; }
+    .scene-bottom strong { color:#d4e9f2; font-weight:500; }
+    .tabs { display:flex; gap:22px; margin-top:20px; border-bottom:1px solid var(--border); }
+    .tab { border:0; border-radius:0; padding:12px 1px; min-height:43px; background:transparent; color:var(--muted); font-weight:600; }
+    .tab:hover { background:transparent; color:white; } .tab[aria-selected=true] { color:var(--light-blue); box-shadow:inset 0 -2px var(--blue); }
+    .tab-content { padding-top:22px; } .section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:5px; } .description { color:var(--muted); font-size:12px; max-width:660px; }
+    .mode-switch { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:17px; }
+    .mode { justify-content:flex-start; text-align:left; padding:13px; background:var(--panel); border-radius:8px; align-items:flex-start; gap:10px; }
+    .mode .radio { width:15px; height:15px; border:1px solid #76879b; border-radius:50%; margin-top:2px; flex:none; }
+    .mode[aria-pressed=true] { border-color:#188dbe; background:#102c40; } .mode[aria-pressed=true] .radio { border:4px solid var(--blue); background:#d9f5ff; }
+    .mode strong { display:block; font-size:12px; font-weight:600; } .mode .tiny { display:block; color:var(--muted); font-size:11px; margin-top:2px; }
+    .automatic { margin-top:18px; padding:19px; background:linear-gradient(135deg,#142839,#121d2b); border:1px solid #2b4459; border-radius:8px; }
+    .chunk-repeat { display:flex; gap:8px; align-items:center; margin:15px 0; } .mini-chunk { flex:1; border:1px solid #477a76; border-radius:6px; padding:14px 8px 10px; text-align:center; background:linear-gradient(#183d47 68%,#658e6b 69% 74%,#294b42 75%); color:#c7e5dc; font-size:10px; }
+    .mini-chunk.faint { opacity:.45; } .arrow { color:#6d8ba0; } .note { display:flex; align-items:flex-start; gap:9px; color:#c9bb99; border:1px solid #514938; background:#2b281f; border-radius:7px; padding:11px 12px; font-size:12px; margin-top:14px; }
+    .note.info { color:#aacbdf; border-color:#2b4c63; background:#142939; }
+    .section-list { display:flex; gap:10px; overflow-x:auto; padding:16px 1px 9px; }
+    .sequence-card { width:165px; flex:none; padding:15px 12px; display:block; text-align:left; background:#182839; min-height:109px; }
+    .sequence-card.selected { border-color:var(--blue); box-shadow:inset 0 2px var(--blue); } .sequence-card strong { display:block; font-size:13px; margin:7px 0 3px; } .sequence-card span { display:block; font-size:11px; color:var(--muted); }
+    .empty { padding:25px; border:1px dashed #41566d; border-radius:8px; text-align:center; margin-top:17px; } .empty p { margin:7px auto 14px; max-width:370px; color:var(--muted); font-size:12px; }
+    .groups { display:grid; gap:8px; margin-top:15px; } .group { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid var(--border); padding:12px 14px; border-radius:7px; background:var(--panel); } .group strong { font-size:12px; } .group p { color:var(--muted); font-size:11px; margin-top:3px; }
+    .context { background:#111a26; border-left:1px solid var(--border); padding:22px 20px; min-width:0; } .context-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+    .context section + section { margin-top:24px; padding-top:20px; border-top:1px solid var(--border); }
+    label { display:block; color:#c6d2e1; font-size:12px; margin-bottom:12px; } input,select { width:100%; margin-top:6px; padding:9px 10px; border:1px solid #384b60; border-radius:6px; background:#0e1723; color:var(--text); min-width:0; }
+    input[type=checkbox] { width:15px; height:15px; margin:1px 0 0; accent-color:var(--blue); }
+    .check { display:flex; align-items:flex-start; gap:9px; cursor:pointer; } .field-help { display:block; color:var(--muted); font-size:11px; margin-top:5px; }
+    .two-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .pacing { display:flex; height:7px; overflow:hidden; border-radius:5px; margin:14px 0 16px; } .pacing span:nth-child(1){background:#62bfad;flex:3}.pacing span:nth-child(2){background:#4099b1;flex:10}.pacing span:nth-child(3){background:#5d7fd2;flex:15}.pacing span:nth-child(4){background:#a889ce;flex:8}
+    .pacing-fields { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; } .pacing-fields input { padding:6px 9px; }
+    details { margin-top:20px; font-size:12px; color:var(--muted); } summary { cursor:pointer; padding:5px 0; } details label { margin-top:13px; } details code { display:block; color:#aebdd0; font-size:11px; margin-top:8px; overflow-wrap:anywhere; }
+    .issue { border:1px solid #514a3a; border-radius:7px; background:#25241f; padding:11px; margin-top:12px; } .issue p { color:#d0c3a6; font-size:11px; margin:5px 0 9px; } .issue button { border-color:#665940; background:transparent; font-size:11px; padding:4px 9px; min-height:28px; }
+    .appearance-card { height:100px; border:1px solid #3f645c; background:linear-gradient(160deg,#214351,#25483d); border-radius:8px; margin:16px 0 12px; padding:16px; display:flex; flex-direction:column; justify-content:flex-end; } .appearance-card span { font-size:11px; color:#adc7c5; }
+    .footer { margin-top:23px; font-size:10px; color:#72849b; display:flex; gap:9px; flex-wrap:wrap; }
+    dialog { background:#141f2d; color:var(--text); border:1px solid #425a72; border-radius:13px; padding:26px; width:min(510px,calc(100vw - 30px)); box-shadow:0 25px 90px #0009; }
+    dialog::backdrop { background:#030a13c9; backdrop-filter:blur(3px); }
+    dialog h2 { font-size:21px; } dialog form > .muted { margin:6px 0 20px; font-size:12px; } .dialog-actions { display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--border); margin-top:23px; padding-top:17px; }
+    .dialog-error { color:#ffb6a9; font-size:12px; min-height:18px; }
+    #play-dialog { width:min(920px,calc(100vw - 30px)); padding:20px; } .play-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+    .play-canvas { position:relative; height:300px; overflow:hidden; border:1px solid #3d6175; border-radius:8px; background:linear-gradient(#12283b,#264d55); }
+    .play-canvas:before { content:""; position:absolute; inset:40px 0 55px; opacity:.35; background:repeating-linear-gradient(100deg,transparent 0 75px,#102c31 77px 95px,transparent 98px 150px); }
+    .play-ground { height:55px; position:absolute; bottom:0; width:100%; border-top:5px solid #82ae7a; background:repeating-linear-gradient(90deg,#315746 0 38px,#365d49 39px 77px); animation:scroll-ground 2s linear infinite; }
+    .runner { position:absolute; left:24%; bottom:59px; font-size:37px; line-height:1; color:#ace9ff; text-shadow:0 0 18px #0ea5e9; transition:bottom .17s ease-out; } .runner.jumping { bottom:139px; } .play-canvas.paused .play-ground { animation-play-state:paused; }
+    @keyframes scroll-ground { to { background-position:-154px 0; } }
+    .play-overlay { position:absolute; top:14px; left:14px; font-size:11px; color:#b4d5e4; background:#102230d9; padding:5px 9px; border-radius:5px; }
+    .play-controls { display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap; margin-top:14px; } .play-controls p { font-size:12px; color:var(--muted); }
+    #toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); max-width:calc(100vw - 30px); background:#24384b; color:#e4f0fa; border:1px solid #55728e; border-radius:9px; padding:12px 18px; box-shadow:0 10px 30px #0007; z-index:10; font-size:12px; }
+    [hidden] { display:none !important; }
+    @media(min-width:1500px) { main { padding:26px 34px; } .workspace { grid-template-columns:245px minmax(440px,1fr) 316px; } .context { padding:26px; } .scene svg { max-height:350px; } }
+    @media(max-width:1130px) { .workspace { grid-template-columns:190px minmax(380px,1fr); } .context { grid-column:2; border-top:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; gap:24px; } .context > section + section { margin-top:0; padding-top:0; border-top:0; } .library { grid-row:1 / 3; } .save-state { display:none; } main { padding:20px; } }
+    @media(max-width:730px) { .proposal { padding:8px 14px; } .proposal > span { display:none; } .appbar { align-items:flex-start; padding:14px; flex-direction:column; gap:13px; } .toolbar { width:100%; justify-content:flex-start; } .toolbar .primary { margin-left:auto; } .workspace { display:flex; flex-direction:column; } .library { padding:12px 14px; border-right:0; border-bottom:1px solid var(--border); } .library-heading { margin-bottom:8px; } .library > .primary { width:auto; float:right; margin:0 0 8px 9px; } .level-list { display:flex; overflow-x:auto; clear:both; } .level-card { min-width:145px; width:auto; } .library-note { display:none; } .context { border-left:0; padding:20px; } main { padding:19px 14px; } .mode-switch { grid-template-columns:1fr; } .scene svg { min-height:175px; } .scene-bottom { align-items:flex-start; flex-direction:column; gap:4px; } .level-heading h2 { font-size:23px; } .brand h1 { font-size:20px; } .chunk-repeat { gap:5px; } }
+    @media(max-width:450px) { .context { grid-template-columns:1fr; } .group { align-items:flex-start; } .play-canvas { height:240px; } .toolbar .divider { display:none; } }
+    @media(prefers-reduced-motion:reduce) { *,*:before,*:after { animation:none !important; transition:none !important; } }
+  </style>
+</head>
+<body>
+  <div class="proposal"><strong>Design proposal — illustrative content</strong><span>Interactive wireframe · browser memory only · no game or repository changes</span></div>
+  <header class="appbar">
+    <div class="brand"><div class="brand-mark" aria-hidden="true">▧</div><div><h1>Level Creator</h1><p class="muted">Build a place. Shape the run. Try it.</p></div></div>
+    <div class="toolbar" aria-label="Level actions">
+      <span class="save-state" id="save-state" role="status">Demo is unchanged</span>
+      <button class="quiet" id="undo" aria-label="Undo last demo edit" title="Undo · Ctrl+Z">↶ <span>Undo</span></button>
+      <button class="quiet" id="redo" aria-label="Redo last demo edit" title="Redo · Ctrl+Shift+Z">↷ <span>Redo</span></button>
+      <span class="divider" aria-hidden="true"></span>
+      <button id="play">▶ Play <kbd>F5</kbd></button>
+      <button class="primary" id="save">Save <kbd>Ctrl S</kbd></button>
+    </div>
+  </header>
+  <div class="coverage"><strong>Concept coverage:</strong> the <a href="ui-ux-redesign-plan.md">implementation plan</a> is authoritative. Full journeys are not simulated here: background choices are <strong>Copy (recommended), Share, or Empty</strong>; Contents adds group creation and chunk assignment. Valid edits are accepted on selection changes. First-chunk creation follows <strong>Save level → Chunk Creator → Save and return</strong>, with retry if interrupted. The <a href="ui-ux-workflow-audit.md#applied-corrections">audited contracts</a> for incomplete designs, both authored Play paths, Save/Undo scope, build inclusion, and recovery are specified in the plan and are not implemented by this concept.</div>
+  <div class="workspace">
+    <aside class="library" aria-label="Level library">
+      <div class="library-heading"><h2>Your levels</h2><span id="level-count" class="muted tiny">3</span></div>
+      <button class="primary" id="new-level">＋ New level</button>
+      <div id="level-list" class="level-list"></div>
+      <div class="library-note"><strong>Start with the level</strong>Choose its chunks, arrange their flow, and set the atmosphere. Detailed chunk editing opens in Chunk Creator.</div>
+    </aside>
+    <main>
+      <div class="level-heading"><div><div class="eyebrow">Level workspace</div><h2 id="level-title">Forest</h2><p class="muted" id="level-summary">1 chunk · Automatic flow · Forest background</p></div><span class="badge">AUTHORING</span></div>
+      <div class="scene" aria-label="Illustrative level scene, not a render of repository content">
+        <div class="scene-top"><span>Level scene</span><span>Illustrative view</span></div>
+        <svg viewBox="0 0 900 320" role="img" aria-label="Conceptual forest terrain with one outlined chunk, a player start, and a guide for continued streaming">
+          <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#142d41"/><stop offset="1" stop-color="#2c5560"/></linearGradient><linearGradient id="dirt" x2="0" y2="1"><stop stop-color="#365a4d"/><stop offset="1" stop-color="#1b3735"/></linearGradient><pattern id="grid" width="45" height="40" patternUnits="userSpaceOnUse"><path d="M45 0H0V40" fill="none" stroke="#8eb5ba" stroke-opacity=".08"/></pattern></defs>
+          <rect width="900" height="320" fill="url(#sky)"/>
+          <g fill="#173b43" opacity=".8"><path d="M-20 260 70 40 160 260ZM110 260 230 20 350 260ZM320 260 440 50 560 260ZM510 260 635 5 760 260ZM720 260 840 45 960 260Z"/></g>
+          <g fill="#15342f" opacity=".8"><path d="M0 250 50 110 110 250ZM155 255 255 90 350 255ZM380 250 485 90 590 250ZM595 250 690 85 790 250ZM760 250 850 70 940 250Z"/></g>
+          <rect y="249" width="900" height="71" fill="url(#dirt)"/><path d="M0 249H900" stroke="#83ae81" stroke-width="5"/>
+          <g fill="#88ad7b" opacity=".8"><path d="m22 246-7-13 12 9 2-13 8 17ZM187 246l-7-10 10 7 4-12 4 15ZM382 247l-4-15 9 8 8-13-2 20ZM697 247l-5-11 10 6 7-10-1 15Z"/></g>
+          <rect width="900" height="320" fill="url(#grid)"/>
+          <rect x="75" y="68" width="450" height="228" rx="3" fill="#0ea5e905" stroke="#5fc9ef" stroke-width="1.5"/>
+          <path d="M525 181H850" stroke="#9fc6cf" stroke-dasharray="6 7" stroke-opacity=".5"/><path d="m842 176 9 5-9 5" fill="none" stroke="#9fc6cf"/>
+          <rect x="85" y="78" width="117" height="24" rx="4" fill="#113445"/><text x="96" y="94" fill="#afdfed" font-size="11" font-family="system-ui">One chunk · concept</text>
+          <g fill="#c5ecfa"><circle cx="137" cy="215" r="7"/><rect x="132" y="222" width="10" height="15" rx="3"/><path d="m134 235-5 13m11-13 7 13m-15-23-7 8m16-8 7 6" stroke="#c5ecfa" stroke-width="3" fill="none"/></g>
+          <text x="112" y="278" fill="#bfd8d6" font-size="11" font-family="system-ui">Player start</text><text x="593" y="202" fill="#a9c6cd" font-size="11" font-family="system-ui">The run continues →</text>
+        </svg>
+        <div class="scene-bottom"><strong id="scene-caption">A persistent view of the level you are shaping</strong><span>Scene artwork is a placeholder, not authored geometry.</span></div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Level editing views">
+        <button class="tab" id="tab-contents" role="tab" aria-selected="false" aria-controls="tab-panel" tabindex="-1" data-tab="contents">Contents</button>
+        <button class="tab" id="tab-flow" role="tab" aria-selected="true" aria-controls="tab-panel" tabindex="0" data-tab="flow">Flow</button>
+        <button class="tab" id="tab-appearance" role="tab" aria-selected="false" aria-controls="tab-panel" tabindex="-1" data-tab="appearance">Appearance</button>
+      </div>
+      <div id="tab-panel" class="tab-content" role="tabpanel" aria-labelledby="tab-flow"></div>
+      <div class="footer"><span>PROPOSAL ONLY</span><span>Save keeps this demo in memory. Reloading the page resets it.</span></div>
+    </main>
+    <aside id="context" class="context" aria-label="Contextual settings"></aside>
+  </div>
+  <dialog id="create-dialog" aria-labelledby="create-title">
+    <form id="create-form">
+      <div class="eyebrow">Make a new place</div><h2 id="create-title">New level</h2><p class="muted">Start small. Your background and first chunk can evolve as you build.</p>
+      <label>Level name<input id="create-name" name="name" placeholder="For example, Moonlit Grove" required maxlength="70" autocomplete="off"></label>
+      <label>Background<select id="create-background"><option value="new">Create a new background</option><option value="existing">Use an existing background</option></select><span class="field-help" id="background-help">Begins with an empty background. Add layers in Appearance.</span></label>
+      <label id="existing-background-label" hidden>Choose a background<select id="existing-background"><option>Forest</option><option>Field</option></select></label>
+      <label class="check"><input type="checkbox" id="starter-chunk" checked><span>Start with a flat playable chunk<span class="field-help">Proposed starter: simple terrain and a safe player start. No enemies.</span></span></label>
+      <details><summary>Advanced · stable identifier</summary><label>Level ID<input id="create-id" placeholder="Generated from the name" pattern="[a-z][a-z0-9_]*"><span class="field-help">Stable after creation. Letters, numbers and underscores.</span></label></details>
+      <p class="dialog-error" id="create-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="quiet" id="cancel-create">Cancel</button><button type="submit" class="primary">Create level</button></div>
+    </form>
+  </dialog>
+  <dialog id="play-dialog" aria-labelledby="play-title">
+    <div class="play-head"><div><div class="eyebrow">Simulation mock — not the real game</div><h2 id="play-title">Try Forest</h2></div><button id="stop-play">■ Stop <kbd>Esc</kbd></button></div>
+    <div class="play-canvas" id="play-canvas"><span class="play-overlay" id="play-label">Illustrative motion · no Core simulation</span><div class="runner" id="runner" aria-hidden="true">♟</div><div class="play-ground"></div></div>
+    <div class="play-controls"><p>This proposes the same in-editor Play experience as Chunk Creator.<br>It does not validate or simulate your level.</p><div class="row"><button id="jump">Jump <kbd>Space</kbd></button><button id="pause">Pause <kbd>P</kbd></button></div></div>
+  </dialog>
+  <dialog id="handoff-dialog" aria-labelledby="handoff-title"><div class="eyebrow">Navigation concept</div><h2 id="handoff-title">Open Chunk Creator</h2><p id="handoff-body" class="muted" style="margin-top:12px"></p><div class="dialog-actions"><button id="close-handoff" class="primary">Back to level</button></div></dialog>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <script>
+    // This isolated wireframe never reads or writes repository or browser storage.
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+    const initialLevel = (id,name,background,chunks,groups) => ({id,name,background,chunks,groups,mode:'automatic',sections:[],loop:true,early:3,easy:10,normal:15,enemyFree:3});
+    let levels = [initialLevel('forest','Forest','Forest',1,['default','ruin','trainingcamp','woodcamp']),{...initialLevel('field','Field','Field',1,['default']),easy:0,normal:0},initialLevel('new_level','New Level','New Level (empty)',1,['default'])];
+    let activeId = 'forest', tab = 'flow', selectedSection = 0, undo = [], redo = [], saved = JSON.stringify(levels), toastTimer, jumpTimer;
+    let paused = false;
+    const level = () => levels.find((item) => item.id === activeId) || levels[0];
+    const snapshot = () => JSON.stringify({levels,activeId,selectedSection});
+    const friendlyGroup = (id) => ({default:'Default',ruin:'Ruins',trainingcamp:'Training camp',woodcamp:'Wood camp'}[id] || id.replaceAll('_',' '));
+    function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true,5000); }
+    function mutate(change) { const before = snapshot(); change(); if(snapshot() !== before) { undo.push(before); redo = []; } render(); }
+    function restore(history, opposite) { if(!history.length) return; opposite.push(snapshot()); const state = JSON.parse(history.pop()); levels = state.levels; activeId = state.activeId; selectedSection = state.selectedSection; render(); }
+    function setTab(next) { tab = next; render(); }
+    function openHandoff(title,message) { $('handoff-title').textContent = title; $('handoff-body').textContent = message; $('handoff-dialog').showModal(); }
+    function numberField(id,label,value,property,help='') { return `<label>${label}<input id="${id}" type="number" min="0" step="1" value="${value}" data-number="${property}" required>${help ? `<span class="field-help">${help}</span>` : ''}</label>`; }
+    function render() {
+      const current = level(); activeId = current.id;
+      const dirty = saved !== JSON.stringify(levels);
+      $('save-state').textContent = dirty ? '● Unsaved demo edits' : 'Demo is unchanged'; $('save-state').classList.toggle('dirty',dirty);
+      $('save').disabled = !dirty; $('undo').disabled = !undo.length; $('redo').disabled = !redo.length;
+      $('play').disabled = current.chunks === 0; $('play').title = current.chunks ? 'Open an illustrative Play mock' : 'Add a starter chunk to try the Play mock';
+      $('level-count').textContent = levels.length;
+      $('level-list').innerHTML = levels.map((item) => `<button class="level-card" data-level="${escapeHtml(item.id)}" aria-current="${item.id === activeId}"><span class="swatch" aria-hidden="true" style="${item.id === 'field' ? 'filter:hue-rotate(35deg)' : item.id !== 'forest' ? 'filter:saturate(.4)' : ''}"></span><span><strong>${escapeHtml(item.name)}</strong><span class="tiny">${item.chunks} chunk${item.chunks === 1 ? '' : 's'} · ${item.mode === 'automatic' ? 'Automatic' : 'Ordered'}</span></span></button>`).join('');
+      $('level-title').textContent = current.name;
+      $('level-summary').textContent = `${current.chunks} chunk${current.chunks === 1 ? '' : 's'} · ${current.mode === 'automatic' ? 'Automatic flow' : 'Ordered sections'} · ${current.background} background`;
+      $('scene-caption').textContent = current.chunks ? 'Persistent scene · choose a chunk in Contents to edit it' : 'Empty level · add a starter chunk in Contents';
+      document.querySelectorAll('[data-tab]').forEach((button) => { button.setAttribute('aria-selected',button.dataset.tab === tab); button.tabIndex = button.dataset.tab === tab ? 0 : -1; });
+      $('tab-panel').setAttribute('aria-labelledby',`tab-${tab}`);
+      $('tab-panel').innerHTML = tab === 'flow' ? flowMarkup(current) : tab === 'contents' ? contentsMarkup(current) : appearanceMarkup(current);
+      $('context').innerHTML = contextMarkup(current);
+      wireDynamicControls();
+    }
+    function flowMarkup(current) {
+      const automatic = current.mode === 'automatic';
+      return `<div class="section-heading"><h2>How should the run unfold?</h2><span class="badge">${automatic ? 'CURRENT PATTERN' : 'DEMO EDIT'}</span></div><p class="description">Choose chunks freely, or guide the run through a sequence of groups.</p>
+        <div class="mode-switch"><button class="mode" data-mode="automatic" aria-pressed="${automatic}"><span class="radio" aria-hidden="true"></span><span><strong>Automatic</strong><span class="tiny">Pick from the level’s available chunks.</span></span></button><button class="mode" data-mode="ordered" aria-pressed="${!automatic}"><span class="radio" aria-hidden="true"></span><span><strong>Ordered sections</strong><span class="tiny">Decide which chunk group comes next.</span></span></button></div>
+        ${automatic ? `<div class="automatic"><h3>${current.chunks === 1 ? 'One chunk, a continuing run' : current.chunks ? 'A continuing mix of chunks' : 'Your chunk collection starts here'}</h3><p class="description" style="margin-top:5px">${current.chunks === 1 ? 'This level has one available chunk. Automatic selection can reuse it as the run continues.' : current.chunks ? 'The engine chooses eligible chunks for the current difficulty. This diagram is illustrative.' : 'Add a chunk before this level can supply terrain. The scene above remains an illustrative placeholder.'}</p><div class="chunk-repeat" aria-label="Illustrative repeated chunk selection"><div class="mini-chunk">Chunk</div><span class="arrow">→</span><div class="mini-chunk faint">Repeat</div><span class="arrow">→</span><div class="mini-chunk faint">Repeat</div><span class="arrow">→</span></div><p class="tiny muted">Selection follows difficulty and the run seed. This diagram is not a generated run.</p></div>` : `<div class="note info">ℹ <span>Ordered flow shown here is a local design example. It is not saved Forest content. Each section chooses a group, not a specific chunk.</span></div>${current.sections.length ? `<div class="section-list" aria-label="Ordered sections">${current.sections.map((section,index) => `<button class="sequence-card ${index === selectedSection ? 'selected' : ''}" data-section="${index}" aria-pressed="${index === selectedSection}"><span>SECTION ${index + 1}</span><strong>${escapeHtml(friendlyGroup(section.group))}</strong><span>${section.min}–${section.max} chunks</span><span>${section.distinct ? 'Avoid repeats' : 'Repeats allowed'}</span></button>`).join('')}</div>` : '<div class="empty"><h3>Give the run a shape</h3><p>Add the first section, choose its chunk group, then set how many chunks it lasts.</p></div>'}<div class="row" style="margin-top:12px"><button id="add-section">＋ Add section</button></div><label style="margin-top:17px">After the last section<select id="end-behavior"><option value="loop" ${current.loop ? 'selected' : ''}>Loop back to the first section</option><option value="hold" ${!current.loop ? 'selected' : ''}>Keep repeating the last section</option></select><span class="field-help">Both keep the run going. This setting does not create a finish line.</span></label>`}
+        ${current.id === 'forest' ? '<div class="note">◌ <span><strong>Three groups are waiting for content.</strong><br>Ruins, Training camp and Wood camp have no active chunks yet. <button class="small quiet" id="see-groups" style="margin-top:7px">View groups in Contents →</button></span></div>' : ''}`;
+    }
+    function contentsMarkup(current) {
+      return `<div class="section-heading"><h2>The pieces of this level</h2><button class="small" id="add-chunk">＋ Add starter chunk</button></div><p class="description">Chunks contain the terrain, platforms and encounters. Groups help you organize their place in the run.</p><div class="groups">${current.groups.map((group) => `<div class="group"><div><strong>${escapeHtml(friendlyGroup(group))}</strong><p>${group === 'default' ? `${current.chunks} active chunk${current.chunks === 1 ? '' : 's'}` : 'No active chunks yet'}</p></div><button class="small quiet" data-edit-group="${escapeHtml(group)}">${group === 'default' && current.chunks ? 'Edit chunks' : 'Create a chunk'} ↗</button></div>`).join('')}</div><div class="note info">ℹ <span>Adding a starter here changes the demo count only. Detailed creation and editing would open Chunk Creator with this level and group already selected.</span></div>`;
+    }
+    function appearanceMarkup(current) {
+      return `<div class="section-heading"><h2>Set the atmosphere</h2><span class="badge">BACKGROUND</span></div><p class="description">The background brings the level to life. Ground textures belong to the terrain inside your chunks.</p><div class="appearance-card"><strong>${escapeHtml(current.background)}</strong><span>Illustrative background card · no asset preview loaded</span></div><div class="row"><button id="edit-background">Edit background layers ↗</button><button id="change-background">Change background</button></div><div class="note info">ℹ <span>Backgrounds can be shared by levels. The full design should show which levels will be affected before shared layers are edited.</span></div>`;
+    }
+    function contextMarkup(current) {
+      const section = current.mode === 'ordered' && tab === 'flow' ? current.sections[selectedSection] : null;
+      const sectionSettings = section ? `<div class="context-top"><h2>Section ${selectedSection + 1}</h2><span class="badge">SELECTED</span></div><label>Chunk group<select id="section-group">${current.groups.map((group) => `<option value="${escapeHtml(group)}" ${section.group === group ? 'selected' : ''}>${escapeHtml(friendlyGroup(group))}</option>`).join('')}</select></label><div class="two-fields">${numberField('section-min','At least',section.min,'sectionMin')}${numberField('section-max','At most',section.max,'sectionMax')}</div><p class="tiny muted" style="margin-top:-5px;margin-bottom:15px">Length is measured in chunks, not seconds. A run seed picks a count within this range.</p><label class="check"><input type="checkbox" id="distinct" ${section.distinct ? 'checked' : ''}><span>Avoid repeats within this section<span class="field-help">Needs enough eligible chunks for every requested difficulty.</span></span></label><div class="row" style="flex-wrap:wrap"><button class="small" id="move-left" ${selectedSection === 0 ? 'disabled' : ''}>← Earlier</button><button class="small" id="move-right" ${selectedSection === current.sections.length - 1 ? 'disabled' : ''}>Later →</button><button class="small quiet" id="remove-section">Remove</button></div>` : `<div class="context-top"><h2>Level settings</h2><span class="badge">${escapeHtml(current.name.length > 15 ? 'LEVEL' : current.name.toUpperCase())}</span></div><label>Display name<input id="display-name" value="${escapeHtml(current.name)}" maxlength="70" required></label><h3 style="margin-top:21px">Difficulty over the run</h3><p class="field-help">Consecutive opening phases, measured in chunks. Hard continues afterward.</p><div class="pacing" aria-hidden="true"><span></span><span></span><span></span><span></span></div><div class="pacing-fields">${numberField('early','Early',current.early,'early')}${numberField('easy','Easy',current.easy,'easy')}${numberField('normal','Normal',current.normal,'normal')}<label>Hard<input value="Continues" disabled></label></div>${numberField('enemy-free','Enemy-free opening',current.enemyFree,'enemyFree','No enemy spawns in the first N chunks. Independent of difficulty.')}<details><summary>Advanced details</summary><code>Level ID: ${escapeHtml(current.id)}</code><code>Camera center and ground height: inherited, read-only in this concept</code><p class="tiny" style="margin-top:10px">Stable identifiers and source publication belong here, outside the main creation flow.</p></details>`;
+      const emptyGroup = current.sections.find((item) => item.group !== 'default');
+      const capacityIssue = current.sections.find((item) => item.distinct && item.max > current.chunks);
+      let issue = !current.chunks ? ['Add a first chunk','This level has no chunks. Start with flat terrain, then build it out.','Add starter chunk','starter'] : emptyGroup ? ['A section uses an empty group','Add chunks to that group or select a group with content.','Review Contents','contents'] : capacityIssue ? ['Not enough distinct chunks','This section may need more chunks than the group has. Tier eligibility still needs real validation.','Review section','section'] : ['Check the run in motion','This concept has not checked seams, difficulty fallback or playability.','Try Play mock','play'];
+      return `<section>${sectionSettings}</section><section><div class="section-heading"><h3>Next step</h3><span class="badge">${!current.chunks || emptyGroup || capacityIssue ? 'NEEDS CONTENT' : 'PREVIEW'}</span></div><div class="issue"><strong class="tiny">${issue[0]}</strong><p>${issue[1]}</p><button id="issue-action" data-action="${issue[3]}">${issue[2]} →</button></div><p class="tiny muted" style="margin-top:12px">Real validation remains authoritative in the editor. These are illustrative hints.</p></section>`;
+    }
+    function wireDynamicControls() {
+      document.querySelectorAll('[data-level]').forEach((button) => button.onclick = () => { activeId = button.dataset.level; selectedSection = 0; render(); });
+      document.querySelectorAll('[data-mode]').forEach((button) => button.onclick = () => mutate(() => { level().mode = button.dataset.mode; }));
+      document.querySelectorAll('[data-section]').forEach((button) => button.onclick = () => { selectedSection = Number(button.dataset.section); render(); });
+      document.querySelectorAll('[data-edit-group]').forEach((button) => button.onclick = () => openHandoff('Continue in Chunk Creator',`Proposed handoff: ${level().name} → ${friendlyGroup(button.dataset.editGroup)}. The real editor would resolve unsaved changes and open this exact level/group. This wireframe stays in the browser.`));
+      document.querySelectorAll('[data-number]').forEach((input) => input.onchange = () => {
+        if(!input.reportValidity()) return;
+        const property = input.dataset.number, number = Number(input.value);
+        if(!Number.isSafeInteger(number) || number < 0) return;
+        const section = level().sections[selectedSection];
+        if(property.startsWith('section') && (number < 1 || (property === 'sectionMin' ? number > section.max : number < section.min))) { input.setCustomValidity('Use positive lengths with the minimum no greater than the maximum.'); input.reportValidity(); input.oninput = () => input.setCustomValidity(''); return; }
+        mutate(() => { if(property === 'sectionMin') section.min = number; else if(property === 'sectionMax') section.max = number; else level()[property] = number; });
+      });
+      if($('display-name')) $('display-name').onchange = (event) => { const value = event.target.value.trim(); if(!value) { event.target.setCustomValidity('Enter a display name.'); event.target.reportValidity(); event.target.oninput = () => event.target.setCustomValidity(''); return; } mutate(() => level().name = value); };
+      if($('see-groups')) $('see-groups').onclick = () => setTab('contents');
+      if($('add-section')) $('add-section').onclick = () => mutate(() => { level().sections.push({group:'default',min:1,max:1,distinct:false}); selectedSection = level().sections.length - 1; });
+      if($('section-group')) $('section-group').onchange = (event) => mutate(() => level().sections[selectedSection].group = event.target.value);
+      if($('distinct')) $('distinct').onchange = (event) => mutate(() => level().sections[selectedSection].distinct = event.target.checked);
+      if($('end-behavior')) $('end-behavior').onchange = (event) => mutate(() => level().loop = event.target.value === 'loop');
+      if($('remove-section')) $('remove-section').onclick = () => mutate(() => { level().sections.splice(selectedSection,1); selectedSection = Math.max(0,selectedSection - 1); });
+      const move = (offset) => mutate(() => { const sections = level().sections; const [section] = sections.splice(selectedSection,1); selectedSection += offset; sections.splice(selectedSection,0,section); });
+      if($('move-left')) $('move-left').onclick = () => move(-1);
+      if($('move-right')) $('move-right').onclick = () => move(1);
+      if($('add-chunk')) $('add-chunk').onclick = addStarter;
+      if($('edit-background')) $('edit-background').onclick = () => openHandoff('Continue in Parallax',`Proposed handoff: ${level().name} → ${level().background} background. The real editor would open the exact background and show any other levels sharing it. No external editor opens in this wireframe.`);
+      if($('change-background')) $('change-background').onclick = () => mutate(() => level().background = level().background === 'Forest' ? 'Field' : 'Forest');
+      $('issue-action').onclick = (event) => { const action = event.currentTarget.dataset.action; if(action === 'starter') addStarter(); else if(action === 'contents') setTab('contents'); else if(action === 'section') { selectedSection = level().sections.findIndex((item) => item.distinct && item.max > level().chunks); setTab('flow'); } else play(); };
+    }
+    function addStarter() { mutate(() => level().chunks += 1); toast('Added a starter chunk to the demo count. No terrain file was created.'); }
+    function flushFocusedInput() { const focused = document.activeElement; if(focused && focused.matches('input')) { if(!focused.reportValidity()) return false; focused.dispatchEvent(new Event('change')); } return [...document.querySelectorAll('main input, #context input')].every((input) => input.reportValidity()); }
+    function saveDemo() { if(!flushFocusedInput()) return; saved = JSON.stringify(levels); render(); toast('Demo saved in browser memory only. No repository files changed.'); }
+    function play() { if(!level().chunks) { toast('Add a starter chunk in Contents before opening the Play mock.'); return; } $('play-title').textContent = `Try ${level().name}`; paused = false; $('pause').innerHTML = 'Pause <kbd>P</kbd>'; $('play-canvas').classList.remove('paused'); $('play-dialog').showModal(); }
+    function jump() { if(paused) return; clearTimeout(jumpTimer); $('runner').classList.add('jumping'); jumpTimer = setTimeout(() => $('runner').classList.remove('jumping'),320); }
+    function pause() { paused = !paused; $('play-canvas').classList.toggle('paused',paused); $('pause').innerHTML = `${paused ? 'Resume' : 'Pause'} <kbd>P</kbd>`; }
+    document.querySelectorAll('[data-tab]').forEach((button,index,buttons) => { button.onclick = () => setTab(button.dataset.tab); button.onkeydown = (event) => { if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return; event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length; setTab(buttons[next].dataset.tab); buttons[next].focus(); }; });
+    $('undo').onclick = () => restore(undo,redo); $('redo').onclick = () => restore(redo,undo); $('save').onclick = saveDemo; $('play').onclick = play;
+    $('new-level').onclick = () => { $('create-form').reset(); $('existing-background-label').hidden = true; $('background-help').textContent = 'Begins with an empty background. Add layers in Appearance.'; $('create-error').textContent = ''; $('create-dialog').showModal(); $('create-name').focus(); };
+    $('cancel-create').onclick = () => $('create-dialog').close();
+    $('create-background').onchange = () => { const existing = $('create-background').value === 'existing'; $('existing-background-label').hidden = !existing; $('background-help').textContent = existing ? 'Share an existing background; your chunks stay independent.' : 'Begins with an empty background. Add layers in Appearance.'; };
+    $('create-form').onsubmit = (event) => { event.preventDefault(); const name = $('create-name').value.trim(); const generatedId = name.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); const id = $('create-id').value.trim() || (/^[a-z]/.test(generatedId) ? generatedId : `level_${generatedId || levels.length + 1}`); if(!name || !/^[a-z][a-z0-9_]*$/.test(id) || levels.some((item) => item.id === id)) { $('create-error').textContent = 'Choose a name and a unique valid level ID in Advanced.'; return; } const background = $('create-background').value === 'existing' ? $('existing-background').value : `${name} (empty)`; mutate(() => { const created = initialLevel(id,name,background,$('starter-chunk').checked ? 1 : 0,['default']); created.easy = 0; created.normal = 0; levels.push(created); activeId = id; tab = 'contents'; selectedSection = 0; }); $('create-dialog').close(); toast('Level created in this demo. The proposed starter workflow still needs implementation.'); };
+    $('stop-play').onclick = () => $('play-dialog').close(); $('jump').onclick = jump; $('pause').onclick = pause; $('close-handoff').onclick = () => $('handoff-dialog').close();
+    document.addEventListener('input',(event) => { if(!event.target.closest('#context')) return; $('save').disabled = false; $('save-state').textContent = '● Unsaved demo edits'; $('save-state').classList.add('dirty'); });
+    document.addEventListener('click',(event) => { if(document.querySelector('dialog[open]') || !event.target.closest('button')) return; const invalid = document.querySelector('#context input:invalid'); if(invalid) { event.preventDefault(); event.stopPropagation(); invalid.reportValidity(); } },true);
+    document.addEventListener('keydown',(event) => { if($('play-dialog').open) { if(event.code === 'Space') { event.preventDefault(); jump(); } if(event.key.toLowerCase() === 'p') pause(); return; } if(document.querySelector('dialog[open]')) return; if(event.key === 'F5') { event.preventDefault(); play(); return; } if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); saveDemo(); return; } if(event.target.matches('input,textarea,select')) return; if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? restore(redo,undo) : restore(undo,redo); } });
+    render();
+  </script>
+</body>
+</html>

@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_editor/src/chunks/migration/legacy_chunk_models.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
@@ -13,17 +11,19 @@ import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
+import 'test_support/polygon_migration_fixture.dart';
+
 void main() {
-  test('repository check plan is complete and blocker-free', () async {
+  test('fixed inventory check plan is complete and blocker-free', () async {
     final fixture = await _loadRepositoryFixture();
     final plan = _buildPlan(fixture);
     final chunkCount = fixture.chunks.length;
 
     expect(plan.hasBlockers, isFalse);
     expect(plan.summary.toJson(), <String, Object>{
-      'prefabCount': 99,
+      'prefabCount': 5,
       'collisionPrefabCount': 0,
-      'decorationPrefabCount': 29,
+      'decorationPrefabCount': 1,
       'multiColliderPrefabCount': 0,
       'reauthoredPrefabCount': 0,
       'prefabShapeCount': 0,
@@ -36,7 +36,7 @@ void main() {
     expect(decoded['reportVersion'], 2);
     expect(decoded['mode'], 'check');
     expect(decoded['sourceFiles']! as List<Object?>, hasLength(chunkCount + 1));
-    expect((decoded['prefabs']! as List<Object?>), hasLength(99));
+    expect((decoded['prefabs']! as List<Object?>), hasLength(5));
     expect((decoded['chunks']! as List<Object?>), hasLength(chunkCount));
     expect((decoded['blockers']! as List<Object?>), isEmpty);
     final legacyByKey = <String, LegacyPrefabDef>{
@@ -45,12 +45,12 @@ void main() {
     final platformEntries = plan.prefabs.where(
       (entry) => legacyByKey[entry.prefabKey]!.kind == PrefabKind.platform,
     );
-    expect(platformEntries, hasLength(4));
+    expect(platformEntries, hasLength(1));
     expect(
       plan.prefabs.where(
         (entry) => entry.kind == PrefabPolygonMigrationKind.collisionCleared,
       ),
-      hasLength(70),
+      hasLength(4),
     );
     expect(
       platformEntries
@@ -104,12 +104,15 @@ void main() {
     'missing reviewed prefab and duplicate identities fail closed',
     () async {
       final fixture = await _loadRepositoryFixture();
+      final duplicatePrefab = fixture.prefabData.prefabs.singleWhere(
+        (prefab) => prefab.prefabKey == 'fixture_platform',
+      );
       final retainedPrefabs =
           fixture.prefabData.prefabs
               .where((prefab) => prefab.prefabKey != 'dark_menhir_01')
               .toList(growable: true)
-            ..add(fixture.prefabData.prefabs.first)
-            ..add(fixture.prefabData.prefabs.first);
+            ..add(duplicatePrefab)
+            ..add(duplicatePrefab);
       final duplicateChunk = fixture.chunks.first;
       final plan = PolygonAuthoringMigrationPlan.build(
         prefabData: fixture.prefabData.copyWith(prefabs: retainedPrefabs),
@@ -229,25 +232,17 @@ final class _RepositoryMigrationFixture {
 }
 
 Future<_RepositoryMigrationFixture> _loadRepositoryFixture() async {
-  final root = _repoRootPath();
-  final prefabRaw = File(p.join(root, p.normalize(PrefabStore.prefabDefsPath)))
-      .readAsStringSync();
   final prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
-    _demotePrefabSource(prefabRaw),
+    _demotePrefabSource(polygonMigrationPrefabSource()),
     sourcePath: PrefabStore.prefabDefsPath,
   );
-  final chunkFiles =
-      Directory(p.join(root, 'assets', 'authoring', 'level', 'chunks'))
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((file) => p.extension(file.path).toLowerCase() == '.json');
   final chunks = <LevelChunkDef>[];
   final chunkSourcePaths = <String, String>{};
   final chunkSourceSha256ByKey = <String, String>{};
-  for (final file in chunkFiles) {
-    final sourcePath = p.relative(file.path, from: root).replaceAll(r'\', '/');
+  for (final source in polygonMigrationChunkSources().entries) {
+    final sourcePath = source.key;
     final document = PolygonAuthoringLegacyCodec.decodeChunkV1(
-      _demoteChunkSource(file.readAsStringSync()),
+      _demoteChunkSource(source.value),
       sourcePath: sourcePath,
     );
     chunks.add(document.chunk);
@@ -319,12 +314,3 @@ PolygonAuthoringMigrationPlan _buildPlan(_RepositoryMigrationFixture fixture) =>
     );
 
 String _sha(String digit) => List<String>.filled(64, digit).join();
-
-String _repoRootPath() {
-  final cwd = p.normalize(Directory.current.path);
-  if (p.basename(cwd).toLowerCase() == 'editor' &&
-      p.basename(p.dirname(cwd)).toLowerCase() == 'tools') {
-    return p.normalize(p.join(cwd, '..', '..'));
-  }
-  return cwd;
-}

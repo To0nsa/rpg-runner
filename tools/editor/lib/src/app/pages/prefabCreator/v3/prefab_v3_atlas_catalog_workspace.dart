@@ -9,9 +9,9 @@ import '../../../../atlas/atlas_grid_settings_cache.dart';
 import '../../../../atlas/atlas_pixel_rect.dart';
 import '../../../../atlas/atlas_selection.dart';
 import '../../../../domain/authoring_types.dart';
+import '../../../../prefabs/domain/atlas_slice_id_convention.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
-import '../../../../prefabs/domain/prefab_slice_id_convention.dart';
 import '../../../../prefabs/domain/prefab_v3_catalog_commit.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
@@ -27,27 +27,26 @@ typedef _AtlasSliceDraft = ({
   String y,
   String width,
   String height,
-  bool createPrefabAutomatically,
+  bool createCorrespondingOwnerAutomatically,
   PrefabKind correspondingPrefabKind,
 });
 
 /// Adapts the retained atlas-slicer UI to typed Prefab-v3 commands.
 ///
 /// Selection and form drafts remain local. Only a validated slice upsert or an
-/// explicitly confirmed unreferenced delete crosses the plugin/session seam.
+/// explicitly confirmed, placement-safe cascade crosses the plugin/session
+/// seam.
 class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
   const PrefabV3AtlasCatalogWorkspace({
     super.key,
     required this.controller,
     required this.document,
     required this.atlasImageFilePicker,
-    required this.onPrefabCreated,
   });
 
   final EditorSessionController controller;
   final PrefabV3Document document;
   final AtlasImageFilePicker atlasImageFilePicker;
-  final ValueChanged<PrefabV3Def> onPrefabCreated;
 
   @override
   State<PrefabV3AtlasCatalogWorkspace> createState() =>
@@ -73,9 +72,9 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   AtlasSelectionState _atlasState = const AtlasSelectionState();
   AtlasSliceKind _selectedSliceKind = AtlasSliceKind.prefab;
-  bool _createPrefabAutomatically = false;
+  bool _createCorrespondingOwnerAutomatically = false;
   PrefabKind _correspondingPrefabKind = PrefabKind.decoration;
-  bool _autoSliceEnabled = false;
+  bool _autoSliceEnabled = true;
   String? _selectedPrefabSliceId;
   String? _selectedTileSliceId;
   int _formEpoch = 0;
@@ -134,12 +133,6 @@ class PrefabV3AtlasCatalogWorkspaceState
               .where((slice) => slice.sourceImagePath == selectedPath)
               .toList(growable: false);
     final selection = _atlasState.selectionRect;
-    final selectionLabel = selection == null
-        ? 'Selection: none'
-        : 'Selection: x=${selection.x} '
-              'y=${selection.y} '
-              'w=${selection.width} '
-              'h=${selection.height}';
 
     return KeyedSubtree(
       key: ValueKey<String>('prefab_v3_atlas_form_$_formEpoch'),
@@ -150,13 +143,13 @@ class PrefabV3AtlasCatalogWorkspaceState
         sliceTagsController: _tagsController,
         sliceIdValidationMessage: (id) =>
             _sliceIdValidationMessage(document, id),
-        createPrefabAutomatically: _createPrefabAutomatically,
+        createCorrespondingOwnerAutomatically:
+            _createCorrespondingOwnerAutomatically,
         correspondingPrefabKind: _correspondingPrefabKind,
         atlasZoom: _atlasState.zoom,
         zoomMin: _zoomMin,
         zoomMax: _zoomMax,
         zoomStep: _zoomStep,
-        selectionLabel: selectionLabel,
         selectionXController: _xController,
         selectionYController: _yController,
         selectionWController: _widthController,
@@ -181,7 +174,8 @@ class PrefabV3AtlasCatalogWorkspaceState
             _selectKind(document, nextKind),
         onSelectedSliceChanged: (sliceId) =>
             _selectSlice(document, kind, sliceId),
-        onCreatePrefabAutomaticallyChanged: _setCreatePrefabAutomatically,
+        onCreateCorrespondingOwnerAutomaticallyChanged:
+            _setCreateCorrespondingOwnerAutomatically,
         onCorrespondingPrefabKindChanged: _setCorrespondingPrefabKind,
         onAtlasZoomChanged: (zoom) =>
             setState(() => _atlasState = _atlasState.withZoom(zoom)),
@@ -194,12 +188,15 @@ class PrefabV3AtlasCatalogWorkspaceState
           setState(() => _gridSettingsCache.setSettings(path, settings));
         },
         onSaveSlice: () => _saveSlice(document),
+        onCancelSliceDraft: () => cancelLocalDraft(),
+        onStartNewSlice: _startNewSlice,
         onDeleteSlice: (sliceId) => _deleteSlice(document, kind, sliceId),
         hasLocalDraftChanges: _hasDraftChanges,
         onSelectionChanged: (rect) {
           setState(() {
             _atlasState = _atlasState.withRect(rect);
             _syncSelectionInputs(rect);
+            _synchronizeTileSizeSuffix();
             _hasDraftChanges = _currentDraft != _draftBaseline;
           });
         },
@@ -223,7 +220,8 @@ class PrefabV3AtlasCatalogWorkspaceState
     y: _yController.text,
     width: _widthController.text,
     height: _heightController.text,
-    createPrefabAutomatically: _createPrefabAutomatically,
+    createCorrespondingOwnerAutomatically:
+        _createCorrespondingOwnerAutomatically,
     correspondingPrefabKind: _correspondingPrefabKind,
   );
 
@@ -355,12 +353,27 @@ class PrefabV3AtlasCatalogWorkspaceState
     String sliceId,
   ) {
     if (!_canNavigateCatalog()) return;
+    if (_selectedId(kind) == sliceId) {
+      setState(() {
+        _setSelectedId(kind, null);
+        _syncDraft(null);
+      });
+      return;
+    }
     final slice = _findSlice(_slicesForKind(document, kind), sliceId);
     if (slice == null) return;
     setState(() {
       _setSelectedId(kind, sliceId);
       _atlasState = _atlasState.withSelectedSourcePath(slice.sourceImagePath);
       _syncDraft(slice);
+    });
+  }
+
+  void _startNewSlice() {
+    if (!_canNavigateCatalog()) return;
+    setState(() {
+      _setSelectedId(_selectedSliceKind, null);
+      _syncDraft(null);
     });
   }
 
@@ -378,7 +391,11 @@ class PrefabV3AtlasCatalogWorkspaceState
       imageHeight: size.height.toInt(),
     );
     if (result.rect != null) {
-      setState(() => _atlasState = _atlasState.withRect(result.rect!));
+      setState(() {
+        _atlasState = _atlasState.withRect(result.rect!);
+        _synchronizeTileSizeSuffix();
+        _hasDraftChanges = _currentDraft != _draftBaseline;
+      });
     }
   }
 
@@ -395,19 +412,16 @@ class PrefabV3AtlasCatalogWorkspaceState
       _showMessage('Select an atlas/tileset image first.');
       return;
     }
-    final current = _findSlice(
-      _slicesForKind(document, _selectedSliceKind),
-      id,
-    );
-    if (_selectedSliceKind == AtlasSliceKind.prefab && current == null) {
-      final namingIssue = PrefabSliceIdConvention.validate(
-        id: id,
-        sourceImagePath: path,
-      );
-      if (namingIssue != null) {
-        _showMessage(namingIssue);
-        return;
-      }
+    final slices = _slicesForKind(document, _selectedSliceKind);
+    final selectedId = _selectedId(_selectedSliceKind);
+    final current = _findSlice(slices, selectedId);
+    if (current != null && id != current.id) {
+      _showMessage('Existing Slice IDs cannot be changed.');
+      return;
+    }
+    if (current == null && _findSlice(slices, id) != null) {
+      _showMessage('Slice ID "$id" already exists.');
+      return;
     }
     final size = document.atlasImageSizes[path];
     if (size == null) {
@@ -431,6 +445,19 @@ class PrefabV3AtlasCatalogWorkspaceState
       _showMessage('Define a valid selection before saving the slice.');
       return;
     }
+    if (current == null) {
+      final namingIssue = AtlasSliceIdConvention.validate(
+        kind: _selectedSliceKind,
+        id: id,
+        sourceImagePath: path,
+        width: rect.width,
+        height: rect.height,
+      );
+      if (namingIssue != null) {
+        _showMessage(namingIssue);
+        return;
+      }
+    }
     final slice = AtlasSliceDef(
       id: id,
       sourceImagePath: path,
@@ -443,25 +470,32 @@ class PrefabV3AtlasCatalogWorkspaceState
         ..._atlasSourceTags(path),
       ]),
     );
-    if (_createPrefabAutomatically &&
-        _selectedSliceKind != AtlasSliceKind.prefab) {
-      _showMessage('Automatic prefab creation requires a Prefab Slice.');
-      return;
-    }
-    if (_createPrefabAutomatically && current != null) {
+    if (_createCorrespondingOwnerAutomatically && current != null) {
       _showMessage(
-        'Automatic prefab creation is available only for a new slice. '
+        'Automatic owner creation is available only for a new slice. '
         'Choose a new Slice ID or turn it off.',
       );
       return;
     }
-    if (_createPrefabAutomatically &&
+    if (_createCorrespondingOwnerAutomatically &&
+        _selectedSliceKind == AtlasSliceKind.prefab &&
         document.data.prefabs.any(
           (prefab) => prefab.id.toLowerCase() == id.toLowerCase(),
         )) {
       _showMessage(
         'Prefab ID "$id" already exists. Choose another Slice ID or turn '
         'off automatic prefab creation.',
+      );
+      return;
+    }
+    if (_createCorrespondingOwnerAutomatically &&
+        _selectedSliceKind == AtlasSliceKind.tile &&
+        document.tileData.platformModules.any(
+          (module) => module.id.toLowerCase() == id.toLowerCase(),
+        )) {
+      _showMessage(
+        'Platform ID "$id" already exists. Choose another Slice ID or turn '
+        'off automatic platform creation.',
       );
       return;
     }
@@ -477,21 +511,27 @@ class PrefabV3AtlasCatalogWorkspaceState
       PrefabV3UpsertSliceOperation(
         kind: _selectedSliceKind,
         slice: slice,
-        createPrefabKind: _createPrefabAutomatically
+        createPrefabKind:
+            _createCorrespondingOwnerAutomatically &&
+                _selectedSliceKind == AtlasSliceKind.prefab
             ? _correspondingPrefabKind
             : null,
+        createPlatformAutomatically:
+            _createCorrespondingOwnerAutomatically &&
+            _selectedSliceKind == AtlasSliceKind.tile,
       ),
     );
     if (next == null) return;
-    final createdPrefab = _createPrefabAutomatically
-        ? next.data.prefabs.where((prefab) => prefab.id == id).firstOrNull
-        : null;
     setState(() {
-      _setSelectedId(_selectedSliceKind, id);
       _atlasState = _atlasState.withSelectedSourcePath(path);
-      _syncDraft(slice);
+      if (current == null) {
+        _setSelectedId(_selectedSliceKind, null);
+        _syncDraft(null);
+      } else {
+        _setSelectedId(_selectedSliceKind, id);
+        _syncDraft(slice);
+      }
     });
-    if (createdPrefab != null) widget.onPrefabCreated(createdPrefab);
   }
 
   Future<void> _deleteSlice(
@@ -503,28 +543,20 @@ class PrefabV3AtlasCatalogWorkspaceState
       _showMessage('Apply or undo the slice form before deleting.');
       return;
     }
-    final references = kind == AtlasSliceKind.prefab
-        ? document.data.prefabs
-              .where(
-                (prefab) => prefab.usesAtlasSlice && prefab.sliceId == sliceId,
-              )
-              .map((prefab) => prefab.id)
-              .toList(growable: false)
-        : document.tileData.platformModules
-              .where(
-                (module) => module.cells.any((cell) => cell.sliceId == sliceId),
-              )
-              .map((module) => module.id)
-              .toList(growable: false);
-    if (references.isNotEmpty) {
+    final impact = inspectPrefabV3SliceDeletion(
+      document: document,
+      kind: kind,
+      sliceId: sliceId,
+    );
+    if (impact.hasDownstreamPlacements) {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text('Cannot delete $sliceId'),
           content: Text(
-            'Update or remove these references first: '
-            '${references.join(', ')}. Automatic cascade is intentionally '
-            'not exposed by this current form.',
+            'Remove ${impact.placementCount} placement(s) from '
+            '${impact.referencingChunkKeys.length} chunk(s) before deleting '
+            'this slice and its linked catalog records.',
           ),
           actions: <Widget>[
             FilledButton(
@@ -537,11 +569,21 @@ class PrefabV3AtlasCatalogWorkspaceState
       );
       return;
     }
+    final confirmation = switch (kind) {
+      AtlasSliceKind.prefab when impact.prefabs.isNotEmpty =>
+        'This removes the slice and ${impact.prefabs.length} linked '
+            'prefab(s), including all of their collision shapes.',
+      AtlasSliceKind.tile =>
+        'This removes the slice, ${impact.modules.length} linked platform '
+            'module(s), and ${impact.prefabs.length} linked prefab(s), '
+            'including all of their collision shapes.',
+      _ => 'This removes the unreferenced retained slice.',
+    };
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete slice $sliceId?'),
-        content: const Text('This removes the unreferenced retained slice.'),
+        content: Text(confirmation),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -558,7 +600,11 @@ class PrefabV3AtlasCatalogWorkspaceState
     if (confirmed != true || !mounted) return;
     final next = _dispatch(
       document,
-      PrefabV3DeleteSliceOperation(kind: kind, sliceId: sliceId),
+      PrefabV3DeleteSliceOperation(
+        kind: kind,
+        sliceId: sliceId,
+        cascadeReferences: true,
+      ),
     );
     if (next == null) return;
     setState(() {
@@ -610,12 +656,13 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   void _syncDraft(AtlasSliceDef? slice) {
     _runDraftSync(() {
-      _createPrefabAutomatically = false;
+      _createCorrespondingOwnerAutomatically = false;
       _correspondingPrefabKind = PrefabKind.decoration;
       _idController.text =
           slice?.id ??
-          PrefabSliceIdConvention.collectionPrefix(
-            _atlasState.selectedSourcePath,
+          AtlasSliceIdConvention.suggestedPrefix(
+            kind: _selectedSliceKind,
+            sourcePath: _atlasState.selectedSourcePath,
           );
       _tagsController.text = slice == null
           ? _atlasSourceTags(_atlasState.selectedSourcePath).join(', ')
@@ -651,18 +698,35 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   String? _sliceIdValidationMessage(PrefabV3Document document, String id) {
-    if (_selectedSliceKind != AtlasSliceKind.prefab) return null;
-    if (_findSlice(document.data.slices, id) != null) return null;
+    final existing = _findSlice(
+      _slicesForKind(document, _selectedSliceKind),
+      id,
+    );
+    if (existing != null) {
+      return existing.id == _selectedId(_selectedSliceKind)
+          ? null
+          : 'Slice ID already exists.';
+    }
     final path = _atlasState.selectedSourcePath;
     if (path == null) return null;
-    final prefix = PrefabSliceIdConvention.collectionPrefix(path);
+    final prefix = AtlasSliceIdConvention.suggestedPrefix(
+      kind: _selectedSliceKind,
+      sourcePath: path,
+    );
     if (id.isEmpty || id == prefix) return null;
-    return PrefabSliceIdConvention.validate(id: id, sourceImagePath: path);
+    final rect = _atlasState.selectionRect;
+    return AtlasSliceIdConvention.validate(
+      kind: _selectedSliceKind,
+      id: id,
+      sourceImagePath: path,
+      width: rect?.width,
+      height: rect?.height,
+    );
   }
 
-  void _setCreatePrefabAutomatically(bool value) {
+  void _setCreateCorrespondingOwnerAutomatically(bool value) {
     setState(() {
-      _createPrefabAutomatically = value;
+      _createCorrespondingOwnerAutomatically = value;
       _hasDraftChanges = _currentDraft != _draftBaseline;
     });
   }
@@ -694,7 +758,28 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   void _markDraftChanged() {
+    if (_draftSyncDepth > 0) return;
+    _synchronizeTileSizeSuffix();
     _refreshDraftChanged();
+  }
+
+  void _synchronizeTileSizeSuffix() {
+    if (_selectedSliceKind != AtlasSliceKind.tile) return;
+    if (_selectedId(AtlasSliceKind.tile) != null) return;
+    final id = _idController.text;
+    final selection = _atlasState.selectionRect;
+    final nextId = AtlasSliceIdConvention.withTileSelectionSize(
+      id: id,
+      width: selection?.width,
+      height: selection?.height,
+    );
+    if (nextId == id) return;
+    _runDraftSync(() {
+      _idController.value = TextEditingValue(
+        text: nextId,
+        selection: TextSelection.collapsed(offset: nextId.length),
+      );
+    });
   }
 
   void _refreshDraftChanged() {

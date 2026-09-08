@@ -721,6 +721,122 @@ void main() {
     },
   );
 
+  test('fit candidates can be deleted with fit-local undo and redo', () async {
+    final harness = await _buildHarness(
+      collisionShapes: const <TerrainSourceShapeDef>[],
+    );
+    final controller = harness.authoring;
+    final mask = _alphaMask(<String>[
+      '##..#.....',
+      '##........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+    ]);
+    const settings = PrefabCollisionFitSettings(minimumIslandArea: 1);
+    final result = PrefabCollisionFitter.generate(
+      mask: mask,
+      method: PrefabCollisionCreationMethod.traceVisibleOutline,
+      settings: settings,
+    );
+    final token = controller.startFitGeneration(
+      method: PrefabCollisionCreationMethod.traceVisibleOutline,
+      settings: settings,
+    );
+    expect(
+      controller.completeFitGeneration(
+        token: token,
+        sourceMask: mask,
+        sourceIdentity: 'deletable-candidates',
+        result: result,
+        visualOriginXPx: -5,
+        visualOriginYPx: -5,
+      ),
+      isTrue,
+    );
+    final originalCandidateIds = controller.fitCandidateShapeIds;
+    expect(originalCandidateIds, hasLength(2));
+
+    controller.select(TerrainPolygonSelection.shape(originalCandidateIds.last));
+    expect(controller.deleteSelection(), isTrue);
+    expect(controller.fitCandidateShapeIds, <String>[
+      originalCandidateIds.first,
+    ]);
+    expect(controller.state.shapes, hasLength(1));
+    expect(controller.fitEvidence!.omittedVisiblePixels, 1);
+
+    expect(controller.undo(), isTrue);
+    expect(controller.fitCandidateShapeIds, originalCandidateIds);
+    expect(controller.state.shapes, hasLength(2));
+    expect(controller.fitEvidence!.omittedVisiblePixels, 0);
+
+    expect(controller.redo(), isTrue);
+    expect(controller.fitCandidateShapeIds, <String>[
+      originalCandidateIds.first,
+    ]);
+    expect(controller.state.shapes, hasLength(1));
+    expect(
+      controller.saveFitDraft(currentSourceIdentity: 'deletable-candidates'),
+      isTrue,
+    );
+    expect(controller.prefab.collisionShapes, hasLength(1));
+  });
+
+  test('fit candidate vertex deletion uses fit-local history', () async {
+    final harness = await _buildHarness(
+      collisionShapes: const <TerrainSourceShapeDef>[],
+    );
+    final controller = harness.authoring;
+    final mask = _alphaMask(<String>[
+      '##........',
+      '##........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+      '..........',
+    ]);
+    final result = PrefabCollisionFitter.generate(
+      mask: mask,
+      method: PrefabCollisionCreationMethod.traceVisibleOutline,
+    );
+    final token = controller.startFitGeneration(
+      method: PrefabCollisionCreationMethod.traceVisibleOutline,
+      settings: PrefabCollisionFitSettings.defaultsFor(
+        PrefabCollisionCreationMethod.traceVisibleOutline,
+      ),
+    );
+    expect(
+      controller.completeFitGeneration(
+        token: token,
+        sourceMask: mask,
+        sourceIdentity: 'deletable-vertices',
+        result: result,
+        visualOriginXPx: -5,
+        visualOriginYPx: -5,
+      ),
+      isTrue,
+    );
+    final candidateId = controller.fitCandidateShapeIds.single;
+    expect(controller.state.shapes.single.vertices, hasLength(4));
+
+    controller.select(TerrainPolygonSelection.vertex(candidateId, 0));
+    expect(controller.deleteSelection(), isTrue);
+    expect(controller.state.shapes.single.vertices, hasLength(3));
+    expect(controller.undo(), isTrue);
+    expect(controller.state.shapes.single.vertices, hasLength(4));
+    expect(controller.redo(), isTrue);
+    expect(controller.state.shapes.single.vertices, hasLength(3));
+  });
+
   test('interlocking platform closures remain blocked for review', () async {
     final harness = await _buildHarness(
       kind: PrefabKind.platform,
@@ -953,7 +1069,9 @@ void main() {
     );
     final token = controller.startFitGeneration(
       method: PrefabCollisionCreationMethod.traceVisibleOutline,
-      settings: const PrefabCollisionFitSettings(),
+      settings: PrefabCollisionFitSettings.defaultsFor(
+        PrefabCollisionCreationMethod.traceVisibleOutline,
+      ),
       refitShapeId: selected.shapeId,
     );
 
@@ -973,6 +1091,10 @@ void main() {
     expect(controller.isFitCandidateIncluded(candidateIds.first), isFalse);
     expect(controller.isFitCandidateIncluded(candidateIds.last), isTrue);
     expect(controller.fitEvidence!.coveredVisiblePixels, 16);
+
+    controller.select(TerrainPolygonSelection.shape(unrelated.shapeId));
+    expect(controller.deleteSelection(), isFalse);
+    expect(controller.state.shapes, contains(unrelated));
 
     controller.select(TerrainPolygonSelection.shape(candidateIds.last));
     expect(

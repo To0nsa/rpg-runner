@@ -348,7 +348,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _buildHeader(document, scene),
+          _buildHeader(scene),
           const SizedBox(height: _gap),
           Expanded(
             child: ChunkWorkspaceLayout(
@@ -377,16 +377,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  Widget _buildHeader(ChunkV2Document document, ChunkV2Scene scene) =>
-      ChunkWorkspaceHeader(
-        document: document,
-        scene: scene,
-        selectedChunkKey: _selectedChunkKey,
-        readiness: playtestReadiness,
-        onLevelSelected: (levelId) => unawaited(_selectLevel(levelId)),
-        onOwnerSelected: (chunkKey) => unawaited(_selectOwner(chunkKey)),
-        onPlayRequested: widget.onPlayRequested,
-      );
+  Widget _buildHeader(ChunkV2Scene scene) => ChunkWorkspaceHeader(
+    scene: scene,
+    selectedChunkKey: _selectedChunkKey,
+    readiness: playtestReadiness,
+    onLevelSelected: (levelId) => unawaited(_selectLevel(levelId)),
+    onOwnerSelected: (chunkKey) => unawaited(_selectOwner(chunkKey)),
+    onPlayRequested: widget.onPlayRequested,
+  );
 
   /// Confirms and applies the complete Chunk-v2 source set through the session.
   Future<void> applyToFiles() async {
@@ -570,7 +568,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         children: <Widget>[
           activeSections,
           const SizedBox(height: _gap),
-          ChunkDiagnosticsCard(issues: widget.controller.issues),
+          ChunkDiagnosticsCard(issues: _diagnosticIssues),
         ],
       ),
     );
@@ -578,6 +576,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       ignoring: _visualPreview,
       child: Opacity(opacity: _visualPreview ? 0.45 : 1, child: sidebar),
     );
+  }
+
+  List<ValidationIssue> get _diagnosticIssues {
+    final readiness = playtestReadiness;
+    return <ValidationIssue>[
+      ...widget.controller.issues,
+      if (!readiness.isReady)
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'playtest_unavailable',
+          message: readiness.message,
+        ),
+    ];
   }
 
   Widget _buildCompositionSidebarSections(

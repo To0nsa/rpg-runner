@@ -61,6 +61,8 @@ apply source files, regenerate Dart, create a replay, or contact the backend.
 
 Play is unavailable until the current chunk validates and every route-local
 draft, gesture, dialog, or unsaved inspector edit has been saved or discarded.
+When unavailable, the Play button is disabled and the reason appears as an
+error in the shared **Diagnostics** panel.
 Preparation uses fixed scenario seed `4401`, Eloise, and an empty loadout.
 Other platforms, custom seeds/characters/loadouts, remapping, and gamepads are
 not supported by this editor mode.
@@ -185,10 +187,10 @@ separate inline stable-key-preserving lifecycle form. Creation and rename no
 longer open routine modals. Their dirty values use the same Save/Discard/Cancel
 navigation guard, and deletion retains its reference-aware confirmation.
 
-Prefab Creator separates **Prefabs** from **Collision**. Prefabs owns inline
-creation, a visual-only selected-source preview, and the searchable library
-with row-local metadata and lifecycle actions. Collision owns the missing-
-setup queue, an Obstacle/Platform-only visual selector, the collision scene,
+Prefab Creator separates **Prefabs and Platforms** from **Collision**. The
+former owns inline creation, a visual-only selected-source preview, and the
+searchable library with row-local metadata and lifecycle actions. Collision
+owns the missing-setup queue, an Obstacle/Platform-only visual selector, the collision scene,
 shape creation/editing, and diagnostics. Selecting **Set up collision** or
 **Edit collision** in an expanded Prefab carries that same stable selection
 into Collision.
@@ -233,8 +235,8 @@ first visual tile to an empty platform draft creates its paired collision
 Prefab in the same undoable session command. Rename and lifecycle changes keep
 an unambiguous pair synchronized without changing its stable `prefabKey`.
 
-The **Platforms** view shows **Set Up Collision** or **Edit Collision** on each
-row and opens the paired Prefab in **Collision**. Collision also exposes any old
+The **Platform module** view shows **Set Up Collision** or **Edit Collision**
+on each row and opens the paired Prefab in **Collision**. Collision also exposes any old
 or imported visual that lacks a Prefab under **Collision setup needed**. That
 section also lists existing
 Obstacle and Platform Prefabs whose collision-shape list is empty, while
@@ -253,14 +255,18 @@ anchor-relative candidate shapes. Obstacle candidates are solid, Platform
 candidates are one-way, and decoration Prefabs remain collision-free. Advanced
 sliders control the inclusive alpha cutoff, minimum retained island area, and
 maximum generated vertices per shape without persisting a fitting recipe. The
-default 24-vertex budget uses deterministic global contour error against the
-original outline; it preserves whole-pixel points, silhouette extents, winding,
-and topology instead of accumulating local simplification error. Core's hard
+Trace visible outline defaults to a two-pixel minimum that filters isolated
+single-pixel noise, while connected details remain part of their larger visual
+component. Other pixel-derived methods retain a one-pixel default. The default
+24-vertex budget uses deterministic global contour error against the original
+outline; it preserves whole-pixel points, silhouette extents, winding, and
+topology instead of accumulating local simplification error. Core's hard
 64-vertex capacity remains the largest selectable budget.
 
 Generated shapes remain a route-local preview: authors can select and edit
-their geometry, include or exclude components, inspect pixel coverage, maximum
-boundary deviation, or support-column evidence, regenerate, Save once, or
+their geometry, delete unwanted candidates, include or exclude components,
+inspect pixel coverage, maximum boundary deviation, or support-column evidence,
+regenerate, Save once, or
 Cancel. **Refit from
 pixels** opens the same editor below a retained shape and replaces only that
 shape while preserving its identity and metadata on the primary result. Save
@@ -286,28 +292,51 @@ workspaces do not use exclusive library/scene/shape tabs.
 Atlas slices and Platforms use the same responsive and panel language.
 Their authoring, palette/action, and existing-record libraries start collapsed;
 a dirty slice or module form forces its owning authoring section open until it
-is applied or undone. Selected visual rows state which synchronized inspector
-and scene they control. Atlas opens without an implicitly selected slice; its
-authoring sidebar separates Source, Slice Setup, and Selection into three
-focused cards, with the Create/Update action directly below Selection. Its
-read-only source field opens the native PNG picker and accepts only an image in
-the loaded repository atlas catalog. New slice drafts prefill the source image's
+is applied or undone. Prefab Creator opens Atlas Slicer by default unless an
+explicit prefab deep-link was requested. Atlas opens without an implicitly selected slice. Its
+left sidebar owns Source plus the Slice Setup, Selection, and Create action for
+a new slice. Selecting an existing slice forces the right library open and
+expands that row with its tags, numeric selection, Update, and Delete controls;
+clicking the selected row header again closes its editor.
+**New Prefab Slice** or **New Tile Slice** returns to creation on the left.
+Existing Slice IDs are stable and read-only in the row editor. The read-only
+source field opens the native PNG picker and accepts only an image in the
+loaded repository atlas catalog. New slice drafts prefill the source image's
 immediate parent-folder name and filename stem as tags, prefill Slice ID with
 the normalized reusable-collection prefix, and merge both source tags with the
-normalized user tags on every save. New Prefab Slice IDs must use lowercase
-ASCII snake case, start with that collection prefix, contain an object name,
-and end in a two-digit `_01` through `_99` variant. Existing Prefab Slice IDs
-remain editable without migration, and Tile Slice IDs keep their existing
-rules. The Slice ID info action opens the prefab naming pattern, examples, and
-rules without changing the draft. A new Prefab Slice can optionally create a
-same-ID Decoration or Obstacle prefab in the same undoable change; its anchor
-starts at the slice center, its tags copy the slice's complete saved tag set,
-and a new Obstacle opens directly in collision authoring. Automatic prefab
-creation is unavailable for Tile Slices and existing slice or prefab IDs.
-Platform creation begins only after **New Platform**, while selected records
-use the explicit edit/lifecycle context.
-Reference-aware slice/module deletion and atlas source-bounds validation are
-unchanged.
+normalized user tags on every save. Tile Slice prefixes additionally include
+the source filename stem. Auto-slice grid selection starts enabled with
+32-by-32-pixel cells; authors can disable it or adjust the per-atlas session
+settings. Saving a new slice keeps creation active and leaves its new library
+row collapsed; only explicit row selection opens the editor. New Slice IDs
+must use lowercase ASCII snake case, contain an object
+name, and end with a `_01` through `_99` variant. Only Tile Slice IDs append
+their actual `_WxH` pixel size; Prefab Slice IDs do not contain a size suffix.
+Once a new Tile Slice draft ends in its two-digit variant, the editor appends
+that size and keeps it synchronized with selection changes. The Slice ID info
+action shows only the
+selected kind's pattern and resolves the current source prefix, example, and
+Tile selection size dynamically without changing the draft. A new Prefab Slice
+can optionally create a same-ID Decoration or
+Obstacle prefab in the same undoable change; its anchor starts at the slice
+center and its tags copy the slice's complete saved tag set. Atlas authoring
+stays active after creation without changing the selected prefab. A new Tile
+Slice can instead create a
+same-ID one-cell active platform module and paired platform prefab atomically;
+the platform copies the slice tags. Automatic owner creation is unavailable
+for existing slice, prefab, or platform IDs. Platforms can also be created and
+edited through the dedicated **Platform module** workspace.
+Deleting a retained slice is a confirmed catalog cascade. A Prefab Slice
+deletes every linked prefab and its embedded collision shapes. A Tile Slice
+deletes every module that contains it plus each prefab and collision shape
+owned by those modules. The editor blocks the whole operation while any
+affected prefab has a placement in an authored Chunk; Chunk files are never
+changed by slice deletion. Standalone platform-module deletion retains its
+existing reference checks, and atlas source-bounds validation is unchanged.
+
+The creation action row includes **Cancel** whenever the new-slice draft is
+dirty. Cancel restores the clean source-derived defaults and releases the local
+draft navigation guard without creating or changing repository content.
 
 Catalog rows expose button/selection semantics and complete spoken labels while
 retaining visible text or tooltips for every action. Long IDs, tags, and source

@@ -630,7 +630,57 @@ void main() {
     expect(deleted.changedPrefabKeys, <String>['target']);
   });
 
-  test('new prefab slice atomically creates its requested owner', () {
+  test('slice cascades reject linked Prefabs with Chunk placements', () {
+    const policy = PrefabV3CatalogCommitPolicy();
+    final prefabDocument = _document(
+      <TerrainSourceShapeDef>[_rectangle(right: 8)],
+      downstreamImpacts: <PrefabV3DownstreamImpact>[
+        PrefabV3DownstreamImpact(
+          prefabKey: 'target',
+          referencingChunkKeys: const <String>['forest_a', 'forest_b'],
+          placementCount: 3,
+        ),
+      ],
+    );
+    final platformDocument = _catalogDocument().copyWith(
+      downstreamImpacts: <PrefabV3DownstreamImpact>[
+        PrefabV3DownstreamImpact(
+          prefabKey: 'platform',
+          referencingChunkKeys: const <String>['forest_c'],
+          placementCount: 1,
+        ),
+      ],
+    );
+
+    for (final entry in <(PrefabV3Document, AtlasSliceKind, String)>[
+      (prefabDocument, AtlasSliceKind.prefab, 'slice_a'),
+      (platformDocument, AtlasSliceKind.tile, 'tile_a'),
+    ]) {
+      final (document, kind, sliceId) = entry;
+      final result = policy.apply(
+        document: document,
+        commit: PrefabV3CatalogCommit(
+          before: PrefabV3CatalogSnapshot.fromDocument(document),
+          operation: PrefabV3DeleteSliceOperation(
+            kind: kind,
+            sliceId: sliceId,
+            cascadeReferences: true,
+          ),
+        ),
+      );
+
+      expect(result.accepted, isFalse, reason: sliceId);
+      expect(result.changed, isFalse, reason: sliceId);
+      expect(result.document, same(document), reason: sliceId);
+      expect(
+        result.issues.single.code,
+        'prefab_v3_slice_downstream_referenced',
+        reason: sliceId,
+      );
+    }
+  });
+
+  test('new slices atomically create their requested owners', () {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
 
     AuthoringDocument apply(PrefabV3UpsertSliceOperation operation) =>
@@ -676,6 +726,38 @@ void main() {
     expect(prefab.tags, <String>['stone', 'test']);
     expect(created.visualBoundsByPrefabKey['level_stone_block_01'], isNotNull);
     expect(created.changedPrefabKeys, <String>['level_stone_block_01']);
+
+    final platformCreated = apply(
+      const PrefabV3UpsertSliceOperation(
+        kind: AtlasSliceKind.tile,
+        slice: AtlasSliceDef(
+          id: 'level_test_stone_01_7x9',
+          sourceImagePath: 'assets/images/level/test.png',
+          x: 2,
+          y: 3,
+          width: 7,
+          height: 9,
+          tags: <String>['stone', 'test'],
+        ),
+        createPlatformAutomatically: true,
+      ),
+    ) as PrefabV3Document;
+    final module = platformCreated.tileData.platformModules.single;
+    expect(module.id, 'level_test_stone_01_7x9');
+    expect(module.revision, 1);
+    expect(module.status, TileModuleStatus.active);
+    expect(module.tileSize, 7);
+    expect(module.cells, hasLength(1));
+    expect(module.cells.single.sliceId, 'level_test_stone_01_7x9');
+    expect((module.cells.single.gridX, module.cells.single.gridY), (0, 0));
+    final platformPrefab = platformCreated.data.prefabs.singleWhere(
+      (candidate) => candidate.moduleId == module.id,
+    );
+    expect(platformPrefab.id, 'level_test_stone_01_7x9_platform');
+    expect(platformPrefab.kind, PrefabKind.platform);
+    expect((platformPrefab.anchorXPx, platformPrefab.anchorYPx), (3, 4));
+    expect(platformPrefab.collisionShapes, isEmpty);
+    expect(platformPrefab.tags, <String>['stone', 'test']);
 
     expect(
       apply(
@@ -730,22 +812,24 @@ void main() {
     );
   });
 
-  test('new prefab slices enforce the collection naming convention', () {
+  test('new slices enforce their source naming convention', () {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
     const policy = PrefabV3CatalogCommitPolicy();
 
-    for (final id in <String>[
-      'Level Stone 01',
-      'forest_stone_01',
-      'level_stone_1',
-      'level_01',
+    for (final entry in <(AtlasSliceKind, String)>[
+      (AtlasSliceKind.prefab, 'Level Stone 01'),
+      (AtlasSliceKind.prefab, 'forest_stone_01'),
+      (AtlasSliceKind.prefab, 'level_stone_1'),
+      (AtlasSliceKind.prefab, 'level_01'),
+      (AtlasSliceKind.tile, 'level_stone_01_4x4'),
     ]) {
+      final (kind, id) = entry;
       final result = policy.apply(
         document: document,
         commit: PrefabV3CatalogCommit(
           before: PrefabV3CatalogSnapshot.fromDocument(document),
           operation: PrefabV3UpsertSliceOperation(
-            kind: AtlasSliceKind.prefab,
+            kind: kind,
             slice: AtlasSliceDef(
               id: id,
               sourceImagePath: 'assets/images/level/test.png',
@@ -1088,7 +1172,7 @@ void main() {
     );
   });
 
-  test('tile-slice cascade bumps each affected module exactly once', () {
+  test('tile-slice cascade deletes linked modules and Prefabs', () {
     final document = _catalogDocument();
     final edited = plugin.applyEdit(
       document,
@@ -1108,12 +1192,9 @@ void main() {
     ) as PrefabV3Document;
 
     expect(edited.tileData.tileSlices.single.id, 'tile_b');
-    expect(edited.tileData.platformModules.single.revision, 3);
-    expect(
-      edited.tileData.platformModules.single.cells.single.sliceId,
-      'tile_b',
-    );
-    expect(edited.data.prefabs.single.revision, 7);
+    expect(edited.tileData.platformModules, isEmpty);
+    expect(edited.data.prefabs, isEmpty);
+    expect(edited.changedPrefabKeys, <String>['platform']);
   });
 
   test('paired platform mutation rejects absent source baselines', () async {

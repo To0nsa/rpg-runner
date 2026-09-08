@@ -45,6 +45,7 @@ void main() {
         final result = PrefabCollisionFitter.generate(
           mask: _mask(rows),
           method: PrefabCollisionCreationMethod.traceVisibleOutline,
+          settings: const PrefabCollisionFitSettings(minimumIslandArea: 1),
         );
 
         expect(result.accepted, isTrue);
@@ -130,6 +131,7 @@ void main() {
       final diagonal = PrefabCollisionFitter.generate(
         mask: _mask(<String>['#.', '.#']),
         method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(minimumIslandArea: 1),
       );
 
       expect(concave.accepted, isTrue);
@@ -154,11 +156,10 @@ void main() {
       expect(result.evidence.omittedVisiblePixels, 0);
     });
 
-    test('filters islands only when the author requests it', () {
+    test('filters isolated one-pixel islands by default', () {
       final result = PrefabCollisionFitter.generate(
         mask: _mask(<String>['##.#']),
         method: PrefabCollisionCreationMethod.traceVisibleOutline,
-        settings: const PrefabCollisionFitSettings(minimumIslandArea: 2),
       );
 
       expect(result.accepted, isTrue);
@@ -167,6 +168,20 @@ void main() {
       expect(result.evidence.filteredIslandCount, 1);
       expect(result.evidence.filteredVisiblePixels, 1);
       expect(result.evidence.acceptedVisiblePixels, 2);
+    });
+
+    test('allows authors to retain one-pixel islands explicitly', () {
+      final result = PrefabCollisionFitter.generate(
+        mask: _mask(<String>['##.#']),
+        method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(minimumIslandArea: 1),
+      );
+
+      expect(result.accepted, isTrue);
+      expect(result.shapes, hasLength(2));
+      expect(result.evidence.filteredIslandCount, 0);
+      expect(result.evidence.filteredVisiblePixels, 0);
+      expect(result.evidence.acceptedVisiblePixels, 3);
     });
 
     test('detects stepped platform support and closes it downward', () {
@@ -410,6 +425,7 @@ void main() {
       final result = PrefabCollisionFitter.generate(
         mask: _mask(<String>[row]),
         method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(minimumIslandArea: 1),
       );
 
       expect(result.shapes, hasLength(65));
@@ -425,6 +441,7 @@ void main() {
       final generated = PrefabCollisionFitter.generate(
         mask: mask,
         method: PrefabCollisionCreationMethod.traceVisibleOutline,
+        settings: const PrefabCollisionFitSettings(minimumIslandArea: 1),
       );
       final evidence = PrefabCollisionFitter.evaluateEvidence(
         mask: mask,

@@ -256,16 +256,18 @@ generator/runtime consumption, and migration.
 
 ### Global header
 
-The route header remains global. Its visible badge changes from
-`Chunk v2 polygon authoring` to `Chunk v2 authoring`, while the scene panel uses
-the requested `Chunk creation scene` title. The header continues to own:
+The route header remains global and compact, while the scene panel uses the
+requested `Chunk creation scene` title. It contains no redundant route/schema
+badge, pending-change label, or persistent readiness copy. The header owns:
 
 - current level selection
 - current chunk-owner selection
-- source apply
-- undo and redo
-- pending-change summary
-- source-generation and migration status
+- Play readiness gating
+
+Apply, undo/redo, and pending-change state remain available through the editor
+shell instead of being repeated in the route header. An unavailable Play action
+is disabled, and its reason is projected as an error in the shared Diagnostics
+panel.
 
 Owner switching, reload, apply, and route switching remain blocked while any
 domain has an active gesture or guarded route-local draft. The expanded Prefab
@@ -560,7 +562,8 @@ source identity or depends on an undefined tile-content model.
   creation inline, and expand existing Prefab/Marker rows for editing without
   adding a second write path
 - rename the visible panel to `Chunk creation scene`
-- rename the route badge to `Chunk v2 authoring`
+- keep the route header to level/owner selection and Play without redundant
+  schema or status copy
 - label layers as metadata and expose no spatial tile controls
 - preserve wide and narrow usability without reintroducing workspace tabs
 

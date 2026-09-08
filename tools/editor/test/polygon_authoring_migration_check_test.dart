@@ -10,6 +10,8 @@ import 'package:runner_editor/src/migration/polygon_authoring_target_codec.dart'
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
+import 'test_support/polygon_migration_fixture.dart';
+
 void main() {
   test(
     'repository check builds and strictly validates all targets in memory',
@@ -458,32 +460,8 @@ void main() {
   });
 }
 
-Directory _copyMigrationSources() {
-  final sourceRoot = _repoRootPath();
-  final targetRoot = Directory.systemTemp.createTempSync(
-    'polygon_migration_check_',
-  );
-  final sourcePrefab = File(
-    p.join(sourceRoot, p.normalize(PrefabStore.prefabDefsPath)),
-  );
-  final targetPrefab = File(
-    p.join(targetRoot.path, p.normalize(PrefabStore.prefabDefsPath)),
-  )..parent.createSync(recursive: true);
-  sourcePrefab.copySync(targetPrefab.path);
-
-  final sourceChunkDirectory = Directory(
-    p.join(sourceRoot, 'assets', 'authoring', 'level', 'chunks'),
-  );
-  for (final source
-      in sourceChunkDirectory.listSync(recursive: true).whereType<File>()) {
-    if (p.extension(source.path).toLowerCase() != '.json') continue;
-    final relativePath = p.relative(source.path, from: sourceRoot);
-    final target = File(p.join(targetRoot.path, relativePath))
-      ..parent.createSync(recursive: true);
-    source.copySync(target.path);
-  }
-  return targetRoot;
-}
+Directory _copyMigrationSources() =>
+    createPolygonMigrationFixture('polygon_migration_check_');
 
 void _demoteFixtureToLegacy(String rootPath) {
   final prefabFile = File(p.join(rootPath, PrefabStore.prefabDefsPath));
@@ -571,12 +549,3 @@ File _firstChunkFile(String rootPath) {
 
 String _canonicalJson(Map<String, Object?> json) =>
     '${const JsonEncoder.withIndent('  ').convert(json)}\n';
-
-String _repoRootPath() {
-  final cwd = p.normalize(Directory.current.path);
-  if (p.basename(cwd).toLowerCase() == 'editor' &&
-      p.basename(p.dirname(cwd)).toLowerCase() == 'tools') {
-    return p.normalize(p.join(cwd, '..', '..'));
-  }
-  return cwd;
-}

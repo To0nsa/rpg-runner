@@ -1,5 +1,257 @@
 {
   "schemaVersion": 2,
-  "tileSlices": [],
-  "platformModules": []
+  "tileSlices": [
+    {
+      "id": "tiny_swords_ground_platform_01_96x96",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_02_64x64",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_03_32x64",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 224,
+      "y": 0,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_04_64x32",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 288,
+      "y": 0,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_05_64x64",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 384,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_06_32x32",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 128,
+      "y": 96,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_07_32x96",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 0,
+      "y": 256,
+      "width": 32,
+      "height": 96,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_08_32x32",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 64,
+      "y": 256,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_09_96x32",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 0,
+      "y": 384,
+      "width": 96,
+      "height": 32,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_10_96x32",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/ground.png",
+      "x": 0,
+      "y": 448,
+      "width": 96,
+      "height": 32,
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    }
+  ],
+  "platformModules": [
+    {
+      "id": "tiny_swords_ground_platform_01_96x96",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 96,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_01_96x96",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_02_64x64",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 64,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_02_64x64",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_03_32x64",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 32,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_03_32x64",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_04_64x32",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 64,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_04_64x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_05_64x64",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 64,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_05_64x64",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_06_32x32",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 32,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_06_32x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_07_32x96",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 32,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_07_32x96",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_08_32x32",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 32,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_08_32x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_09_96x32",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 96,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_09_96x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "tiny_swords_ground_platform_10_96x32",
+      "revision": 1,
+      "status": "active",
+      "tileSize": 96,
+      "cells": [
+        {
+          "sliceId": "tiny_swords_ground_platform_10_96x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    }
+  ]
 }

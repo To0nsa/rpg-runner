@@ -274,8 +274,8 @@ adding direct non-terrain manipulation.
       chunk workspace.
 - [x] Rename the panel title from `Terrain collision scene` to
       `Chunk creation scene`.
-- [x] Rename the route badge from `Chunk v2 polygon authoring` to
-      `Chunk v2 authoring`.
+- [x] Keep the route header to level/owner selection and Play; omit redundant
+      route/schema, pending-change, and persistent readiness copy.
 - [x] Update the scene semantic label to describe chunk authoring.
 - [x] Preserve scene viewport, focus, overlay toggles, and terrain draft state
       while cards expand, collapse, or scroll.
@@ -283,6 +283,8 @@ adding direct non-terrain manipulation.
 ### Compose the right sidebar
 
 - [x] Build one bounded sidebar with one vertical scroll owner.
+- [x] Project the reason for an unavailable, disabled Play action as an error
+      in shared Diagnostics.
 - [x] Add the `Chunk owners` rail and `Terrain` authoring card.
 - [x] Move owner list/lifecycle actions into that card without changing their
       command ownership.

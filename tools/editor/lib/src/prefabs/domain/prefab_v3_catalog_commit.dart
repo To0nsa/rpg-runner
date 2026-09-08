@@ -5,9 +5,9 @@ import '../store/prefab_determinism.dart';
 import '../store/prefab_tile_file_codec.dart';
 import '../store/prefab_v3_file_codec.dart';
 import '../validation/prefab_validation.dart';
+import 'atlas_slice_id_convention.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_platform_pairing.dart';
-import 'prefab_slice_id_convention.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_catalog_validation.dart';
 
@@ -47,24 +47,28 @@ sealed class PrefabV3CatalogOperation {
 ///
 /// [createPrefabKind] is valid only for a new prefab slice and atomically adds
 /// a collisionless Decoration or Obstacle owner using the slice ID and tags.
+/// [createPlatformAutomatically] is valid only for a new tile slice and adds a
+/// same-ID one-cell module plus its paired platform prefab.
 @immutable
 final class PrefabV3UpsertSliceOperation extends PrefabV3CatalogOperation {
   const PrefabV3UpsertSliceOperation({
     required this.kind,
     required this.slice,
     this.createPrefabKind,
+    this.createPlatformAutomatically = false,
   });
 
   final AtlasSliceKind kind;
   final AtlasSliceDef slice;
   final PrefabKind? createPrefabKind;
+  final bool createPlatformAutomatically;
 }
 
 /// Removes one slice, optionally deleting its direct catalog references.
 ///
 /// Cascading a prefab slice deletes referencing prefab owners. Cascading a
-/// tile slice removes referencing module cells and bumps each changed module
-/// once. The complete candidate must still retain resolvable visual bounds.
+/// tile slice deletes every referencing module and its Prefab owners. Either
+/// cascade is rejected while an affected Prefab has downstream placements.
 @immutable
 final class PrefabV3DeleteSliceOperation extends PrefabV3CatalogOperation {
   const PrefabV3DeleteSliceOperation({
@@ -76,6 +80,72 @@ final class PrefabV3DeleteSliceOperation extends PrefabV3CatalogOperation {
   final AtlasSliceKind kind;
   final String sliceId;
   final bool cascadeReferences;
+}
+
+/// Complete direct and downstream impact of deleting one retained slice.
+///
+/// Atlas UI confirmation and the catalog commit policy share this projection
+/// so the warning cannot drift from the records the accepted command removes.
+@immutable
+final class PrefabV3SliceDeletionImpact {
+  PrefabV3SliceDeletionImpact({
+    required Iterable<PrefabV3Def> prefabs,
+    required Iterable<TileModuleDef> modules,
+    required Iterable<String> referencingChunkKeys,
+    required this.placementCount,
+  }) : prefabs = List<PrefabV3Def>.unmodifiable(prefabs),
+       modules = List<TileModuleDef>.unmodifiable(modules),
+       referencingChunkKeys = List<String>.unmodifiable(
+         referencingChunkKeys.toSet().toList()..sort(),
+       );
+
+  final List<PrefabV3Def> prefabs;
+  final List<TileModuleDef> modules;
+  final List<String> referencingChunkKeys;
+  final int placementCount;
+
+  bool get hasCatalogReferences => prefabs.isNotEmpty || modules.isNotEmpty;
+  bool get hasDownstreamPlacements => placementCount > 0;
+}
+
+/// Resolves the exact catalog records and Chunk usage affected by a cascade.
+PrefabV3SliceDeletionImpact inspectPrefabV3SliceDeletion({
+  required PrefabV3Document document,
+  required AtlasSliceKind kind,
+  required String sliceId,
+}) {
+  final modules = kind == AtlasSliceKind.tile
+      ? document.tileData.platformModules
+            .where(
+              (module) => module.cells.any((cell) => cell.sliceId == sliceId),
+            )
+            .toList(growable: false)
+      : const <TileModuleDef>[];
+  final moduleIds = modules.map((module) => module.id).toSet();
+  final prefabs = document.data.prefabs
+      .where(
+        kind == AtlasSliceKind.prefab
+            ? (prefab) => prefab.usesAtlasSlice && prefab.sliceId == sliceId
+            : (prefab) =>
+                  prefab.usesPlatformModule &&
+                  moduleIds.contains(prefab.moduleId),
+      )
+      .toList(growable: false);
+  final prefabKeys = prefabs.map((prefab) => prefab.prefabKey).toSet();
+  var placementCount = 0;
+  final chunkKeys = <String>{};
+  for (final impact in document.downstreamImpacts.where(
+    (impact) => prefabKeys.contains(impact.prefabKey),
+  )) {
+    placementCount += impact.placementCount;
+    chunkKeys.addAll(impact.referencingChunkKeys);
+  }
+  return PrefabV3SliceDeletionImpact(
+    prefabs: prefabs,
+    modules: modules,
+    referencingChunkKeys: chunkKeys,
+    placementCount: placementCount,
+  );
 }
 
 /// Creates one module at revision 1.
@@ -90,12 +160,17 @@ final class PrefabV3CreateModuleOperation extends PrefabV3CatalogOperation {
     required this.status,
     required this.tileSize,
     required Iterable<TileModuleCellDef> cells,
-  }) : cells = List<TileModuleCellDef>.unmodifiable(cells);
+    Iterable<String> prefabTags = const <String>[],
+  }) : cells = List<TileModuleCellDef>.unmodifiable(cells),
+       prefabTags = PrefabDeterminism.normalizeTags(<String>[...prefabTags]);
 
   final String id;
   final TileModuleStatus status;
   final int tileSize;
   final List<TileModuleCellDef> cells;
+
+  /// Tags assigned when this operation creates the paired platform prefab.
+  final List<String> prefabTags;
 }
 
 /// Replaces revision-owned fields of one existing module.
@@ -281,6 +356,13 @@ final class PrefabV3CatalogCommitPolicy {
     final sliceIssue = _sliceIssue(document, operation.slice);
     if (sliceIssue != null) return sliceIssue;
     final createPrefabKind = operation.createPrefabKind;
+    final createPlatformAutomatically = operation.createPlatformAutomatically;
+    if (createPrefabKind != null && createPlatformAutomatically) {
+      return const _CatalogRejection(
+        code: 'prefab_v3_slice_owner_kind_ambiguous',
+        message: 'A slice can create either a prefab or a platform, not both.',
+      );
+    }
     if (createPrefabKind != null &&
         (operation.kind != AtlasSliceKind.prefab ||
             (createPrefabKind != PrefabKind.decoration &&
@@ -292,18 +374,29 @@ final class PrefabV3CatalogCommitPolicy {
             'Decoration or Obstacle kind.',
       );
     }
+    if (createPlatformAutomatically && operation.kind != AtlasSliceKind.tile) {
+      return const _CatalogRejection(
+        code: 'prefab_v3_slice_platform_kind_invalid',
+        message: 'Automatic platform creation requires a new Tile Slice.',
+      );
+    }
     final current = operation.kind == AtlasSliceKind.prefab
         ? document.data.slices
         : document.tileData.tileSlices;
     final previous = current
         .where((slice) => slice.id == operation.slice.id)
         .firstOrNull;
-    if (previous != null && createPrefabKind != null) {
+    if (previous != null &&
+        (createPrefabKind != null || createPlatformAutomatically)) {
       return _CatalogRejection(
-        code: 'prefab_v3_slice_prefab_existing_slice',
-        message:
-            'Automatic prefab creation is only available for a new slice; '
-            '${operation.slice.id} already exists.',
+        code: createPrefabKind != null
+            ? 'prefab_v3_slice_prefab_existing_slice'
+            : 'prefab_v3_slice_platform_existing_slice',
+        message: createPrefabKind != null
+            ? 'Automatic prefab creation is only available for a new slice; '
+                  '${operation.slice.id} already exists.'
+            : 'Automatic platform creation is only available for a new '
+                  'slice; ${operation.slice.id} already exists.',
       );
     }
     if (createPrefabKind != null &&
@@ -316,10 +409,13 @@ final class PrefabV3CatalogCommitPolicy {
         message: 'Prefab id "${operation.slice.id}" is already owned.',
       );
     }
-    if (operation.kind == AtlasSliceKind.prefab && previous == null) {
-      final namingIssue = PrefabSliceIdConvention.validate(
+    if (previous == null) {
+      final namingIssue = AtlasSliceIdConvention.validate(
+        kind: operation.kind,
         id: operation.slice.id,
         sourceImagePath: operation.slice.sourceImagePath,
+        width: operation.slice.width,
+        height: operation.slice.height,
       );
       if (namingIssue != null) {
         return _CatalogRejection(
@@ -349,10 +445,17 @@ final class PrefabV3CatalogCommitPolicy {
                 slices: slices,
                 kind: createPrefabKind,
               ),
-      AtlasSliceKind.tile => _withCatalog(
-        document,
-        tileData: document.tileData.copyWith(tileSlices: slices),
-      ),
+      AtlasSliceKind.tile =>
+        createPlatformAutomatically
+            ? _withGeneratedSlicePlatform(
+                document,
+                slice: operation.slice,
+                slices: slices,
+              )
+            : _withCatalog(
+                document,
+                tileData: document.tileData.copyWith(tileSlices: slices),
+              ),
     };
   }
 
@@ -393,6 +496,29 @@ final class PrefabV3CatalogCommitPolicy {
     );
   }
 
+  Object _withGeneratedSlicePlatform(
+    PrefabV3Document document, {
+    required AtlasSliceDef slice,
+    required List<AtlasSliceDef> slices,
+  }) {
+    final next = _withCatalog(
+      document,
+      tileData: document.tileData.copyWith(tileSlices: slices),
+    );
+    return _createModule(
+      next,
+      PrefabV3CreateModuleOperation(
+        id: slice.id,
+        status: TileModuleStatus.active,
+        tileSize: slice.width,
+        cells: <TileModuleCellDef>[
+          TileModuleCellDef(sliceId: slice.id, gridX: 0, gridY: 0),
+        ],
+        prefabTags: slice.tags,
+      ),
+    );
+  }
+
   Object _deleteSlice(
     PrefabV3Document document,
     PrefabV3DeleteSliceOperation operation,
@@ -407,23 +533,38 @@ final class PrefabV3CatalogCommitPolicy {
       );
     }
 
+    final impact = inspectPrefabV3SliceDeletion(
+      document: document,
+      kind: operation.kind,
+      sliceId: operation.sliceId,
+    );
+    if (impact.hasCatalogReferences && !operation.cascadeReferences) {
+      return _CatalogRejection(
+        code: operation.kind == AtlasSliceKind.prefab
+            ? 'prefab_v3_slice_referenced'
+            : 'prefab_v3_tile_slice_referenced',
+        message: operation.kind == AtlasSliceKind.prefab
+            ? 'Prefab slice ${operation.sliceId} is referenced by '
+                  '${impact.prefabs.length} '
+                  '${impact.prefabs.length == 1 ? 'prefab' : 'prefabs'}.'
+            : 'Tile slice ${operation.sliceId} is referenced by '
+                  '${impact.modules.length} platform module(s).',
+      );
+    }
+    if (impact.hasDownstreamPlacements) {
+      return _CatalogRejection(
+        code: 'prefab_v3_slice_downstream_referenced',
+        message:
+            'Cannot delete slice ${operation.sliceId}: its linked Prefabs have '
+            '${impact.placementCount} placement(s) in '
+            '${impact.referencingChunkKeys.length} Chunk(s).',
+      );
+    }
+
+    final removedPrefabKeys = impact.prefabs
+        .map((prefab) => prefab.prefabKey)
+        .toSet();
     if (operation.kind == AtlasSliceKind.prefab) {
-      final referencing = document.data.prefabs
-          .where(
-            (prefab) =>
-                prefab.usesAtlasSlice && prefab.sliceId == operation.sliceId,
-          )
-          .toList(growable: false);
-      if (referencing.isNotEmpty && !operation.cascadeReferences) {
-        return _CatalogRejection(
-          code: 'prefab_v3_slice_referenced',
-          message:
-              'Prefab slice ${operation.sliceId} is referenced by '
-              '${referencing.length} '
-              '${referencing.length == 1 ? 'prefab' : 'prefabs'}.',
-        );
-      }
-      final removedKeys = referencing.map((prefab) => prefab.prefabKey);
       return _withCatalog(
         document,
         data: document.data.copyWith(
@@ -431,45 +572,30 @@ final class PrefabV3CatalogCommitPolicy {
             (slice) => slice.id != operation.sliceId,
           ),
           prefabs: document.data.prefabs.where(
-            (prefab) => !removedKeys.contains(prefab.prefabKey),
+            (prefab) => !removedPrefabKeys.contains(prefab.prefabKey),
           ),
         ),
-        changedPrefabKeys: removedKeys,
+        changedPrefabKeys: removedPrefabKeys,
       );
     }
 
-    final referencingModules = document.tileData.platformModules
-        .where(
-          (module) =>
-              module.cells.any((cell) => cell.sliceId == operation.sliceId),
-        )
-        .toList(growable: false);
-    if (referencingModules.isNotEmpty && !operation.cascadeReferences) {
-      return _CatalogRejection(
-        code: 'prefab_v3_tile_slice_referenced',
-        message:
-            'Tile slice ${operation.sliceId} is referenced by '
-            '${referencingModules.length} platform module(s).',
-      );
-    }
-    final modules = document.tileData.platformModules.map((module) {
-      final cells = module.cells
-          .where((cell) => cell.sliceId != operation.sliceId)
-          .toList(growable: false);
-      return cells.length == module.cells.length
-          ? module
-          : module.copyWith(revision: module.revision + 1, cells: cells);
-    });
+    final removedModuleIds = impact.modules.map((module) => module.id).toSet();
     return _withCatalog(
       document,
+      data: document.data.copyWith(
+        prefabs: document.data.prefabs.where(
+          (prefab) => !removedPrefabKeys.contains(prefab.prefabKey),
+        ),
+      ),
       tileData: document.tileData.copyWith(
         tileSlices: document.tileData.tileSlices.where(
           (slice) => slice.id != operation.sliceId,
         ),
-        platformModules: PrefabDeterminism.sortModulesByStatusIdRevision(
-          modules,
+        platformModules: document.tileData.platformModules.where(
+          (module) => !removedModuleIds.contains(module.id),
         ),
       ),
+      changedPrefabKeys: removedPrefabKeys,
     );
   }
 
@@ -502,7 +628,7 @@ final class PrefabV3CatalogCommitPolicy {
         ),
       ),
     );
-    return _ensurePairedOwner(next, module);
+    return _ensurePairedOwner(next, module, tags: operation.prefabTags);
   }
 
   Object _updateModule(
@@ -760,6 +886,7 @@ final class PrefabV3CatalogCommitPolicy {
     PrefabV3Document document,
     TileModuleDef module, {
     PrefabV3Def? copyFrom,
+    Iterable<String> tags = const <String>[],
   }) {
     final paired = PrefabPlatformPairing.pairedOwner(document.data, module.id);
     if (paired != null) return _synchronizePairedOwner(document, module);
@@ -799,7 +926,7 @@ final class PrefabV3CatalogCommitPolicy {
             anchorXPx: bounds.widthPx ~/ 2,
             anchorYPx: bounds.heightPx ~/ 2,
             collisionShapes: const [],
-            tags: const [],
+            tags: PrefabDeterminism.normalizeTags(<String>[...tags]),
           )
         : copyFrom.copyWith(
             prefabKey: key,

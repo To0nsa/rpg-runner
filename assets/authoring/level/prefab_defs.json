@@ -1,5 +1,8795 @@
 {
   "schemaVersion": 3,
-  "slices": [],
-  "prefabs": []
+  "slices": [
+    {
+      "id": "ancient_forest_flower_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 64,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_02",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 128,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_03",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 192,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_04",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 256,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_05",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 320,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_06",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 384,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_07",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 448,
+      "y": 320,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_08",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 480,
+      "y": 320,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_09",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 544,
+      "y": 288,
+      "width": 64,
+      "height": 64,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_flower_10",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 608,
+      "y": 288,
+      "width": 64,
+      "height": 64,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_lamp_post_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 768,
+      "y": 64,
+      "width": 96,
+      "height": 160,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_rock_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 32,
+      "y": 32,
+      "width": 224,
+      "height": 96,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_rock_02",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 32,
+      "y": 160,
+      "width": 96,
+      "height": 96,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_rock_03",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 192,
+      "y": 160,
+      "width": 96,
+      "height": 96,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_rock_04",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 384,
+      "y": 64,
+      "width": 288,
+      "height": 160,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_ruin_arch_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 320,
+      "y": 384,
+      "width": 224,
+      "height": 160,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_ruin_pillar_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 64,
+      "y": 384,
+      "width": 64,
+      "height": 160,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_ruin_pillar_02",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 192,
+      "y": 448,
+      "width": 96,
+      "height": 96,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_ruin_wall_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 544,
+      "y": 384,
+      "width": 224,
+      "height": 160,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_ruin_wall_02",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 832,
+      "y": 480,
+      "width": 128,
+      "height": 64,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_statue_01",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 736,
+      "y": 224,
+      "width": 64,
+      "height": 160,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "ancient_forest_statue_02",
+      "sourceImagePath": "assets/images/level/atlases/ancient_forest/props.png",
+      "x": 832,
+      "y": 256,
+      "width": 96,
+      "height": 128,
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "id": "dark_forest_herb_01",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 0,
+      "y": 264,
+      "width": 152,
+      "height": 32,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_herb_02",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 152,
+      "y": 256,
+      "width": 80,
+      "height": 40,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_herb_03",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 336,
+      "y": 280,
+      "width": 128,
+      "height": 32,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_herb_04",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 0,
+      "y": 488,
+      "width": 144,
+      "height": 48,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_herb_05",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 416,
+      "y": 504,
+      "width": 104,
+      "height": 32,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_rock_01",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
+      "x": 0,
+      "y": 192,
+      "width": 144,
+      "height": 144,
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "id": "dark_forest_rock_02",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
+      "x": 144,
+      "y": 192,
+      "width": 128,
+      "height": 128,
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "id": "dark_forest_rock_03",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
+      "x": 272,
+      "y": 192,
+      "width": 64,
+      "height": 128,
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "id": "dark_forest_rock_04",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
+      "x": 0,
+      "y": 336,
+      "width": 240,
+      "height": 144,
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "id": "dark_forest_trees_01",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 0,
+      "y": 0,
+      "width": 288,
+      "height": 256,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_trees_02",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 320,
+      "y": 0,
+      "width": 200,
+      "height": 272,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_trees_03",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 416,
+      "y": 336,
+      "width": 128,
+      "height": 168,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "dark_forest_trees_04",
+      "sourceImagePath": "assets/images/level/atlases/dark_forest/trees.png",
+      "x": 0,
+      "y": 304,
+      "width": 136,
+      "height": 184,
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "id": "fantasy_environment_bench_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 672,
+      "y": 560,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_bush_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 816,
+      "y": 224,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_bush_02",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 880,
+      "y": 240,
+      "width": 32,
+      "height": 16,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_bush_03",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 832,
+      "y": 0,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_cabin_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 752,
+      "y": 624,
+      "width": 104,
+      "height": 64,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_cabin_roof_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 736,
+      "y": 560,
+      "width": 128,
+      "height": 48,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_giant_mushroom_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 432,
+      "y": 320,
+      "width": 48,
+      "height": 48,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_giant_mushroom_02",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 480,
+      "y": 320,
+      "width": 48,
+      "height": 48,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_mushrooms_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 528,
+      "y": 336,
+      "width": 16,
+      "height": 16,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_mushrooms_02",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 528,
+      "y": 352,
+      "width": 16,
+      "height": 16,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_mushrooms_03",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 544,
+      "y": 336,
+      "width": 16,
+      "height": 16,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_mushrooms_04",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 544,
+      "y": 352,
+      "width": 16,
+      "height": 16,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_tree_01",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 608,
+      "y": 176,
+      "width": 192,
+      "height": 176,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "fantasy_environment_tree_02",
+      "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+      "x": 480,
+      "y": 176,
+      "width": 128,
+      "height": 144,
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "id": "tiny_swords_anvil_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 848,
+      "y": 160,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_banner_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 640,
+      "y": 224,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_banner_pole_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 560,
+      "y": 224,
+      "width": 64,
+      "height": 96,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_barrel_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 192,
+      "y": 0,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_barrier_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 240,
+      "y": 80,
+      "width": 96,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bench_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 448,
+      "y": 80,
+      "width": 96,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bleachers_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 156,
+      "y": 678,
+      "width": 108,
+      "height": 60,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bleachers_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 282,
+      "y": 690,
+      "width": 84,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bleachers_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 368,
+      "y": 688,
+      "width": 80,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bleachers_04",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 464,
+      "y": 704,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bleachers_05",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 528,
+      "y": 704,
+      "width": 48,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_boulder_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 800,
+      "y": 352,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_boulder_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 864,
+      "y": 352,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_boulder_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 928,
+      "y": 352,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bucket_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 128,
+      "y": 224,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bush_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 352,
+      "y": 576,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bush_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 448,
+      "y": 560,
+      "width": 96,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_bush_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 560,
+      "y": 560,
+      "width": 128,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_chair_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 392,
+      "y": 184,
+      "width": 32,
+      "height": 40,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_chopping_block_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 800,
+      "y": 160,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_cimetery_statue_05",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 702,
+      "y": 114,
+      "width": 36,
+      "height": 78,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_cloth_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 672,
+      "y": 352,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_cloth_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 736,
+      "y": 384,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothesline_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 576,
+      "y": 352,
+      "width": 96,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothesline_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 576,
+      "y": 384,
+      "width": 96,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothing_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 672,
+      "y": 384,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothing_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 672,
+      "y": 416,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothing_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 704,
+      "y": 352,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothing_04",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 704,
+      "y": 384,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothing_05",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 704,
+      "y": 416,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_clothing_06",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 736,
+      "y": 352,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_crate_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 32,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_crate_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 96,
+      "y": 0,
+      "width": 96,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_fire_vasque_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 784,
+      "y": 32,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_firecamp_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 352,
+      "y": 256,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_hay_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 192,
+      "y": 240,
+      "width": 64,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_hay_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 272,
+      "y": 256,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_mat_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 544,
+      "y": 320,
+      "width": 16,
+      "height": 96,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_pot_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 256,
+      "y": 32,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_pot_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 288,
+      "y": 32,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_pot_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 320,
+      "y": 32,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_sawbuck_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 864,
+      "y": 16,
+      "width": 64,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_scarecrow_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 704,
+      "y": 224,
+      "width": 64,
+      "height": 96,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_sunflower_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 864,
+      "y": 256,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_sunflower_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 896,
+      "y": 256,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_sunflower_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 928,
+      "y": 256,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_table_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 312,
+      "y": 192,
+      "width": 80,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_tombstone_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 440,
+      "y": 160,
+      "width": 48,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_tombstone_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 504,
+      "y": 144,
+      "width": 48,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_tombstone_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 576,
+      "y": 144,
+      "width": 32,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_tombstone_04",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 640,
+      "y": 144,
+      "width": 32,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_training_dummy_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 768,
+      "y": 240,
+      "width": 64,
+      "height": 80,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_training_target_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 704,
+      "y": 16,
+      "width": 64,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_tree_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 688,
+      "y": 464,
+      "width": 128,
+      "height": 144,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_tree_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 816,
+      "y": 432,
+      "width": 176,
+      "height": 176,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wall_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 720,
+      "y": 624,
+      "width": 160,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_well_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 32,
+      "y": 160,
+      "width": 96,
+      "height": 96,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wheat_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 512,
+      "y": 480,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wheat_02",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 544,
+      "y": 480,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wheat_03",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 576,
+      "y": 480,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wheat_04",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 608,
+      "y": 480,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wheat_05",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 640,
+      "y": 480,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wood_log_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 160,
+      "y": 384,
+      "width": 96,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_wood_logs_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 160,
+      "y": 336,
+      "width": 96,
+      "height": 48,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "woods_barrel_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 64,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_clothline_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 0,
+      "y": 352,
+      "width": 160,
+      "height": 64,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_crate_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_crate_02",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 32,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_logs_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 192,
+      "y": 64,
+      "width": 64,
+      "height": 32,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_scarecrow_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 288,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_statue_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 384,
+      "y": 256,
+      "width": 32,
+      "height": 64,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_tent_01",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 0,
+      "y": 32,
+      "width": 96,
+      "height": 64,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "id": "woods_tent_02",
+      "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
+      "x": 96,
+      "y": 32,
+      "width": 96,
+      "height": 64,
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "ancient_forest_flower_01",
+      "id": "ancient_forest_flower_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_02",
+      "id": "ancient_forest_flower_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_02"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_03",
+      "id": "ancient_forest_flower_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_03"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_04",
+      "id": "ancient_forest_flower_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_04"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_05",
+      "id": "ancient_forest_flower_05",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_05"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_06",
+      "id": "ancient_forest_flower_06",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_06"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_07",
+      "id": "ancient_forest_flower_07",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_07"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_08",
+      "id": "ancient_forest_flower_08",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_08"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_09",
+      "id": "ancient_forest_flower_09",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_09"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_flower_10",
+      "id": "ancient_forest_flower_10",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_flower_10"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_lamp_post_01",
+      "id": "ancient_forest_lamp_post_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_lamp_post_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 80,
+      "collisionShapes": [],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_rock_01",
+      "id": "ancient_forest_rock_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_rock_01"
+      },
+      "anchorXPx": 112,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -82,
+              "y": 46
+            },
+            {
+              "x": -66,
+              "y": 22
+            },
+            {
+              "x": -55,
+              "y": 14
+            },
+            {
+              "x": -46,
+              "y": -5
+            },
+            {
+              "x": -25,
+              "y": -1
+            },
+            {
+              "x": -5,
+              "y": 8
+            },
+            {
+              "x": 7,
+              "y": 13
+            },
+            {
+              "x": 20,
+              "y": 17
+            },
+            {
+              "x": 29,
+              "y": 18
+            },
+            {
+              "x": 30,
+              "y": 11
+            },
+            {
+              "x": 35,
+              "y": -1
+            },
+            {
+              "x": 49,
+              "y": -9
+            },
+            {
+              "x": 67,
+              "y": -5
+            },
+            {
+              "x": 76,
+              "y": -4
+            },
+            {
+              "x": 81,
+              "y": -5
+            },
+            {
+              "x": 89,
+              "y": -3
+            },
+            {
+              "x": 88,
+              "y": 2
+            },
+            {
+              "x": 92,
+              "y": 1
+            },
+            {
+              "x": 90,
+              "y": 10
+            },
+            {
+              "x": 90,
+              "y": 6
+            },
+            {
+              "x": 86,
+              "y": 16
+            },
+            {
+              "x": 97,
+              "y": 31
+            },
+            {
+              "x": 94,
+              "y": 33
+            },
+            {
+              "x": 104,
+              "y": 46
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_rock_02",
+      "id": "ancient_forest_rock_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_rock_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -48,
+              "y": 30
+            },
+            {
+              "x": -39,
+              "y": 16
+            },
+            {
+              "x": -32,
+              "y": -11
+            },
+            {
+              "x": -19,
+              "y": -24
+            },
+            {
+              "x": -12,
+              "y": -23
+            },
+            {
+              "x": -4,
+              "y": -21
+            },
+            {
+              "x": 6,
+              "y": -18
+            },
+            {
+              "x": 14,
+              "y": -17
+            },
+            {
+              "x": 23,
+              "y": -18
+            },
+            {
+              "x": 26,
+              "y": -19
+            },
+            {
+              "x": 25,
+              "y": -14
+            },
+            {
+              "x": 29,
+              "y": -15
+            },
+            {
+              "x": 27,
+              "y": -6
+            },
+            {
+              "x": 27,
+              "y": -10
+            },
+            {
+              "x": 23,
+              "y": 0
+            },
+            {
+              "x": 24,
+              "y": 5
+            },
+            {
+              "x": 33,
+              "y": 13
+            },
+            {
+              "x": 31,
+              "y": 16
+            },
+            {
+              "x": 41,
+              "y": 30
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_rock_03",
+      "id": "ancient_forest_rock_03",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_rock_03"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -44,
+              "y": 30
+            },
+            {
+              "x": -35,
+              "y": 16
+            },
+            {
+              "x": -35,
+              "y": 13
+            },
+            {
+              "x": -27,
+              "y": 5
+            },
+            {
+              "x": -27,
+              "y": -10
+            },
+            {
+              "x": 7,
+              "y": -24
+            },
+            {
+              "x": 16,
+              "y": -23
+            },
+            {
+              "x": 22,
+              "y": -20
+            },
+            {
+              "x": 29,
+              "y": -10
+            },
+            {
+              "x": 30,
+              "y": 1
+            },
+            {
+              "x": 35,
+              "y": 15
+            },
+            {
+              "x": 45,
+              "y": 30
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_rock_04",
+      "id": "ancient_forest_rock_04",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_rock_04"
+      },
+      "anchorXPx": 144,
+      "anchorYPx": 80,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -124,
+              "y": 46
+            },
+            {
+              "x": -116,
+              "y": 41
+            },
+            {
+              "x": -108,
+              "y": 39
+            },
+            {
+              "x": -108,
+              "y": 28
+            },
+            {
+              "x": -98,
+              "y": 31
+            },
+            {
+              "x": -87,
+              "y": 29
+            },
+            {
+              "x": -70,
+              "y": 24
+            },
+            {
+              "x": -66,
+              "y": -8
+            },
+            {
+              "x": -46,
+              "y": -9
+            },
+            {
+              "x": -41,
+              "y": 3
+            },
+            {
+              "x": -15,
+              "y": 3
+            },
+            {
+              "x": 0,
+              "y": 5
+            },
+            {
+              "x": 9,
+              "y": 0
+            },
+            {
+              "x": 14,
+              "y": -5
+            },
+            {
+              "x": 22,
+              "y": 14
+            },
+            {
+              "x": 34,
+              "y": 11
+            },
+            {
+              "x": 57,
+              "y": 23
+            },
+            {
+              "x": 102,
+              "y": 27
+            },
+            {
+              "x": 121,
+              "y": 49
+            },
+            {
+              "x": -122,
+              "y": 49
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_ruin_arch_01",
+      "id": "ancient_forest_ruin_arch_01",
+      "revision": 3,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_ruin_arch_01"
+      },
+      "anchorXPx": 112,
+      "anchorYPx": 80,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -84,
+              "y": 64
+            },
+            {
+              "x": -70,
+              "y": 59
+            },
+            {
+              "x": -71,
+              "y": -33
+            },
+            {
+              "x": -58,
+              "y": -50
+            },
+            {
+              "x": 2,
+              "y": -51
+            },
+            {
+              "x": 18,
+              "y": -36
+            },
+            {
+              "x": 37,
+              "y": -28
+            },
+            {
+              "x": 33,
+              "y": -14
+            },
+            {
+              "x": 40,
+              "y": 42
+            },
+            {
+              "x": 57,
+              "y": 52
+            },
+            {
+              "x": 90,
+              "y": 64
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_ruin_pillar_01",
+      "id": "ancient_forest_ruin_pillar_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_ruin_pillar_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 80,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -16,
+              "y": 64
+            },
+            {
+              "x": -3,
+              "y": 59
+            },
+            {
+              "x": -2,
+              "y": -58
+            },
+            {
+              "x": 3,
+              "y": -61
+            },
+            {
+              "x": 9,
+              "y": -43
+            },
+            {
+              "x": 9,
+              "y": 23
+            },
+            {
+              "x": 13,
+              "y": 31
+            },
+            {
+              "x": 14,
+              "y": 58
+            },
+            {
+              "x": 27,
+              "y": 64
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_ruin_pillar_02",
+      "id": "ancient_forest_ruin_pillar_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_ruin_pillar_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -28,
+              "y": 32
+            },
+            {
+              "x": -13,
+              "y": 26
+            },
+            {
+              "x": -12,
+              "y": 1
+            },
+            {
+              "x": -14,
+              "y": -4
+            },
+            {
+              "x": -14,
+              "y": -19
+            },
+            {
+              "x": -5,
+              "y": -23
+            },
+            {
+              "x": -3,
+              "y": -12
+            },
+            {
+              "x": 0,
+              "y": -6
+            },
+            {
+              "x": 0,
+              "y": 4
+            },
+            {
+              "x": -1,
+              "y": 6
+            },
+            {
+              "x": 2,
+              "y": 10
+            },
+            {
+              "x": 3,
+              "y": 21
+            },
+            {
+              "x": 3,
+              "y": 27
+            },
+            {
+              "x": 15,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_ruin_wall_01",
+      "id": "ancient_forest_ruin_wall_01",
+      "revision": 4,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_ruin_wall_01"
+      },
+      "anchorXPx": 112,
+      "anchorYPx": 80,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -94,
+              "y": 62
+            },
+            {
+              "x": -83,
+              "y": 55
+            },
+            {
+              "x": -66,
+              "y": 53
+            },
+            {
+              "x": -47,
+              "y": 45
+            },
+            {
+              "x": -33,
+              "y": 44
+            },
+            {
+              "x": -32,
+              "y": 32
+            },
+            {
+              "x": -15,
+              "y": 11
+            },
+            {
+              "x": -11,
+              "y": -14
+            },
+            {
+              "x": 13,
+              "y": -34
+            },
+            {
+              "x": 21,
+              "y": -22
+            },
+            {
+              "x": 25,
+              "y": -2
+            },
+            {
+              "x": 31,
+              "y": 29
+            },
+            {
+              "x": 37,
+              "y": 38
+            },
+            {
+              "x": 43,
+              "y": 45
+            },
+            {
+              "x": 54,
+              "y": 53
+            },
+            {
+              "x": 89,
+              "y": 63
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_ruin_wall_02",
+      "id": "ancient_forest_ruin_wall_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_ruin_wall_02"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -48,
+              "y": 16
+            },
+            {
+              "x": -12,
+              "y": 5
+            },
+            {
+              "x": -3,
+              "y": -2
+            },
+            {
+              "x": 2,
+              "y": -2
+            },
+            {
+              "x": 16,
+              "y": -17
+            },
+            {
+              "x": 24,
+              "y": -19
+            },
+            {
+              "x": 20,
+              "y": -13
+            },
+            {
+              "x": 22,
+              "y": -9
+            },
+            {
+              "x": 18,
+              "y": -2
+            },
+            {
+              "x": 24,
+              "y": 1
+            },
+            {
+              "x": 28,
+              "y": -2
+            },
+            {
+              "x": 31,
+              "y": 0
+            },
+            {
+              "x": 32,
+              "y": 4
+            },
+            {
+              "x": 29,
+              "y": 9
+            },
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 40,
+              "y": 13
+            },
+            {
+              "x": 46,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_statue_01",
+      "id": "ancient_forest_statue_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_statue_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 80,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -27,
+              "y": 51
+            },
+            {
+              "x": -20,
+              "y": 46
+            },
+            {
+              "x": -21,
+              "y": 32
+            },
+            {
+              "x": -16,
+              "y": 28
+            },
+            {
+              "x": -9,
+              "y": 27
+            },
+            {
+              "x": -11,
+              "y": -12
+            },
+            {
+              "x": -18,
+              "y": -12
+            },
+            {
+              "x": -19,
+              "y": -15
+            },
+            {
+              "x": -14,
+              "y": -35
+            },
+            {
+              "x": -9,
+              "y": -36
+            },
+            {
+              "x": -6,
+              "y": -41
+            },
+            {
+              "x": -9,
+              "y": -55
+            },
+            {
+              "x": 3,
+              "y": -58
+            },
+            {
+              "x": 8,
+              "y": -54
+            },
+            {
+              "x": 11,
+              "y": -43
+            },
+            {
+              "x": 20,
+              "y": -35
+            },
+            {
+              "x": 20,
+              "y": -26
+            },
+            {
+              "x": 17,
+              "y": -16
+            },
+            {
+              "x": 18,
+              "y": -11
+            },
+            {
+              "x": 15,
+              "y": -1
+            },
+            {
+              "x": 14,
+              "y": 24
+            },
+            {
+              "x": 15,
+              "y": 30
+            },
+            {
+              "x": 24,
+              "y": 29
+            },
+            {
+              "x": 24,
+              "y": 48
+            },
+            {
+              "x": 29,
+              "y": 51
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "ancient_forest_statue_02",
+      "id": "ancient_forest_statue_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ancient_forest_statue_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 64,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -35,
+              "y": 35
+            },
+            {
+              "x": -29,
+              "y": 32
+            },
+            {
+              "x": -30,
+              "y": 16
+            },
+            {
+              "x": -27,
+              "y": 13
+            },
+            {
+              "x": -22,
+              "y": 12
+            },
+            {
+              "x": -16,
+              "y": 9
+            },
+            {
+              "x": -20,
+              "y": -28
+            },
+            {
+              "x": -26,
+              "y": -27
+            },
+            {
+              "x": -28,
+              "y": -30
+            },
+            {
+              "x": -21,
+              "y": -51
+            },
+            {
+              "x": -18,
+              "y": -52
+            },
+            {
+              "x": -15,
+              "y": -56
+            },
+            {
+              "x": 6,
+              "y": -56
+            },
+            {
+              "x": 11,
+              "y": -51
+            },
+            {
+              "x": 11,
+              "y": -40
+            },
+            {
+              "x": 7,
+              "y": -17
+            },
+            {
+              "x": 7,
+              "y": 8
+            },
+            {
+              "x": 9,
+              "y": 13
+            },
+            {
+              "x": 16,
+              "y": 13
+            },
+            {
+              "x": 16,
+              "y": 32
+            },
+            {
+              "x": 20,
+              "y": 35
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ancient_forest",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_herb_01",
+      "id": "dark_forest_herb_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_herb_01"
+      },
+      "anchorXPx": 76,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_herb_02",
+      "id": "dark_forest_herb_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_herb_02"
+      },
+      "anchorXPx": 40,
+      "anchorYPx": 20,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_herb_03",
+      "id": "dark_forest_herb_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_herb_03"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_herb_04",
+      "id": "dark_forest_herb_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_herb_04"
+      },
+      "anchorXPx": 72,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_herb_05",
+      "id": "dark_forest_herb_05",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_herb_05"
+      },
+      "anchorXPx": 52,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_rock_01",
+      "id": "dark_forest_rock_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_rock_01"
+      },
+      "anchorXPx": 72,
+      "anchorYPx": 72,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -72,
+              "y": 68
+            },
+            {
+              "x": -56,
+              "y": 58
+            },
+            {
+              "x": -53,
+              "y": 53
+            },
+            {
+              "x": -52,
+              "y": 39
+            },
+            {
+              "x": -53,
+              "y": 29
+            },
+            {
+              "x": -47,
+              "y": 0
+            },
+            {
+              "x": -51,
+              "y": -14
+            },
+            {
+              "x": -49,
+              "y": -35
+            },
+            {
+              "x": -11,
+              "y": -52
+            },
+            {
+              "x": 40,
+              "y": -53
+            },
+            {
+              "x": 45,
+              "y": -51
+            },
+            {
+              "x": 48,
+              "y": -41
+            },
+            {
+              "x": 47,
+              "y": -27
+            },
+            {
+              "x": 49,
+              "y": -22
+            },
+            {
+              "x": 52,
+              "y": -9
+            },
+            {
+              "x": 56,
+              "y": 15
+            },
+            {
+              "x": 54,
+              "y": 20
+            },
+            {
+              "x": 60,
+              "y": 71
+            },
+            {
+              "x": -72,
+              "y": 72
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_rock_02",
+      "id": "dark_forest_rock_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_rock_02"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 64,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_rock_03",
+      "id": "dark_forest_rock_03",
+      "revision": 9,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_rock_03"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 64,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": -23
+            },
+            {
+              "x": -23,
+              "y": -29
+            },
+            {
+              "x": -10,
+              "y": -32
+            },
+            {
+              "x": 6,
+              "y": -35
+            },
+            {
+              "x": 14,
+              "y": -38
+            },
+            {
+              "x": 19,
+              "y": -40
+            },
+            {
+              "x": 23,
+              "y": -26
+            },
+            {
+              "x": 26,
+              "y": -13
+            },
+            {
+              "x": 25,
+              "y": 24
+            },
+            {
+              "x": 28,
+              "y": 30
+            },
+            {
+              "x": 29,
+              "y": 49
+            },
+            {
+              "x": 32,
+              "y": 64
+            },
+            {
+              "x": -13,
+              "y": 63
+            },
+            {
+              "x": -24,
+              "y": 49
+            },
+            {
+              "x": -29,
+              "y": 34
+            },
+            {
+              "x": -27,
+              "y": 32
+            },
+            {
+              "x": -29,
+              "y": 32
+            },
+            {
+              "x": -26,
+              "y": 3
+            },
+            {
+              "x": -24,
+              "y": 1
+            },
+            {
+              "x": -27,
+              "y": 2
+            },
+            {
+              "x": -29,
+              "y": -6
+            },
+            {
+              "x": -30,
+              "y": -21
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_rock_04",
+      "id": "dark_forest_rock_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_rock_04"
+      },
+      "anchorXPx": 120,
+      "anchorYPx": 72,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "rock_terrain"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_trees_01",
+      "id": "dark_forest_trees_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_trees_01"
+      },
+      "anchorXPx": 144,
+      "anchorYPx": 128,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -137,
+              "y": 123
+            },
+            {
+              "x": -128,
+              "y": 108
+            },
+            {
+              "x": -129,
+              "y": 83
+            },
+            {
+              "x": -115,
+              "y": 47
+            },
+            {
+              "x": -110,
+              "y": -1
+            },
+            {
+              "x": -96,
+              "y": -14
+            },
+            {
+              "x": -101,
+              "y": -23
+            },
+            {
+              "x": -89,
+              "y": -24
+            },
+            {
+              "x": -100,
+              "y": -46
+            },
+            {
+              "x": -85,
+              "y": -43
+            },
+            {
+              "x": -82,
+              "y": -47
+            },
+            {
+              "x": -64,
+              "y": -21
+            },
+            {
+              "x": -21,
+              "y": -16
+            },
+            {
+              "x": 10,
+              "y": -4
+            },
+            {
+              "x": 16,
+              "y": -2
+            },
+            {
+              "x": 19,
+              "y": -13
+            },
+            {
+              "x": 71,
+              "y": -16
+            },
+            {
+              "x": 68,
+              "y": 5
+            },
+            {
+              "x": 100,
+              "y": 10
+            },
+            {
+              "x": 72,
+              "y": 35
+            },
+            {
+              "x": 61,
+              "y": 95
+            },
+            {
+              "x": 77,
+              "y": 115
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_trees_02",
+      "id": "dark_forest_trees_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_trees_02"
+      },
+      "anchorXPx": 100,
+      "anchorYPx": 136,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_trees_03",
+      "id": "dark_forest_trees_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_trees_03"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 84,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "dark_forest_trees_04",
+      "id": "dark_forest_trees_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "dark_forest_trees_04"
+      },
+      "anchorXPx": 68,
+      "anchorYPx": 92,
+      "collisionShapes": [],
+      "tags": [
+        "dark_forest",
+        "trees"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_bench_01",
+      "id": "fantasy_environment_bench_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_bench_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -29,
+              "y": -5
+            },
+            {
+              "x": 31,
+              "y": -5
+            },
+            {
+              "x": 31,
+              "y": 0
+            },
+            {
+              "x": 26,
+              "y": 0
+            },
+            {
+              "x": 30,
+              "y": 7
+            },
+            {
+              "x": 30,
+              "y": 16
+            },
+            {
+              "x": 18,
+              "y": 16
+            },
+            {
+              "x": 18,
+              "y": 8
+            },
+            {
+              "x": 19,
+              "y": 8
+            },
+            {
+              "x": 19,
+              "y": 5
+            },
+            {
+              "x": 20,
+              "y": 5
+            },
+            {
+              "x": 20,
+              "y": 0
+            },
+            {
+              "x": -18,
+              "y": 0
+            },
+            {
+              "x": -17,
+              "y": 2
+            },
+            {
+              "x": -18,
+              "y": 2
+            },
+            {
+              "x": -18,
+              "y": 5
+            },
+            {
+              "x": -17,
+              "y": 5
+            },
+            {
+              "x": -17,
+              "y": 8
+            },
+            {
+              "x": -16,
+              "y": 8
+            },
+            {
+              "x": -16,
+              "y": 16
+            },
+            {
+              "x": -28,
+              "y": 16
+            },
+            {
+              "x": -28,
+              "y": 7
+            },
+            {
+              "x": -24,
+              "y": 0
+            },
+            {
+              "x": -29,
+              "y": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_bush_01",
+      "id": "fantasy_environment_bush_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_bush_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_bush_02",
+      "id": "fantasy_environment_bush_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_bush_02"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 8,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_bush_03",
+      "id": "fantasy_environment_bush_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_bush_03"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_cabin_01",
+      "id": "fantasy_environment_cabin_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_cabin_01"
+      },
+      "anchorXPx": 52,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -52,
+              "y": -32
+            },
+            {
+              "x": 51,
+              "y": -32
+            },
+            {
+              "x": 51,
+              "y": 32
+            },
+            {
+              "x": -52,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_cabin_roof_01",
+      "id": "fantasy_environment_cabin_roof_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_cabin_roof_01"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -55,
+              "y": 24
+            },
+            {
+              "x": -54,
+              "y": 23
+            },
+            {
+              "x": -54,
+              "y": 20
+            },
+            {
+              "x": -40,
+              "y": 7
+            },
+            {
+              "x": -27,
+              "y": -7
+            },
+            {
+              "x": -22,
+              "y": -11
+            },
+            {
+              "x": -22,
+              "y": -13
+            },
+            {
+              "x": -20,
+              "y": -13
+            },
+            {
+              "x": -20,
+              "y": -12
+            },
+            {
+              "x": 26,
+              "y": -12
+            },
+            {
+              "x": 26,
+              "y": -13
+            },
+            {
+              "x": 28,
+              "y": -13
+            },
+            {
+              "x": 28,
+              "y": -11
+            },
+            {
+              "x": 37,
+              "y": -2
+            },
+            {
+              "x": 42,
+              "y": 2
+            },
+            {
+              "x": 46,
+              "y": 7
+            },
+            {
+              "x": 51,
+              "y": 11
+            },
+            {
+              "x": 55,
+              "y": 16
+            },
+            {
+              "x": 60,
+              "y": 20
+            },
+            {
+              "x": 60,
+              "y": 23
+            },
+            {
+              "x": 61,
+              "y": 24
+            },
+            {
+              "x": -50,
+              "y": 24
+            },
+            {
+              "x": -51,
+              "y": 23
+            },
+            {
+              "x": -51,
+              "y": 24
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_giant_mushroom_01",
+      "id": "fantasy_environment_giant_mushroom_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_giant_mushroom_01"
+      },
+      "anchorXPx": 24,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_giant_mushroom_02",
+      "id": "fantasy_environment_giant_mushroom_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_giant_mushroom_02"
+      },
+      "anchorXPx": 24,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_mushrooms_01",
+      "id": "fantasy_environment_mushrooms_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_mushrooms_01"
+      },
+      "anchorXPx": 8,
+      "anchorYPx": 8,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_mushrooms_02",
+      "id": "fantasy_environment_mushrooms_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_mushrooms_02"
+      },
+      "anchorXPx": 8,
+      "anchorYPx": 8,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_mushrooms_03",
+      "id": "fantasy_environment_mushrooms_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_mushrooms_03"
+      },
+      "anchorXPx": 8,
+      "anchorYPx": 8,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_mushrooms_04",
+      "id": "fantasy_environment_mushrooms_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_mushrooms_04"
+      },
+      "anchorXPx": 8,
+      "anchorYPx": 8,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_tree_01",
+      "id": "fantasy_environment_tree_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_tree_01"
+      },
+      "anchorXPx": 96,
+      "anchorYPx": 88,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "fantasy_environment_tree_02",
+      "id": "fantasy_environment_tree_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "fantasy_environment_tree_02"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 72,
+      "collisionShapes": [],
+      "tags": [
+        "fantasy_environment",
+        "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_anvil_01",
+      "id": "tiny_swords_anvil_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_anvil_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -23,
+              "y": -1
+            },
+            {
+              "x": -22,
+              "y": -3
+            },
+            {
+              "x": -10,
+              "y": -3
+            },
+            {
+              "x": -10,
+              "y": -4
+            },
+            {
+              "x": 18,
+              "y": -4
+            },
+            {
+              "x": 19,
+              "y": -1
+            },
+            {
+              "x": 10,
+              "y": 4
+            },
+            {
+              "x": 8,
+              "y": 4
+            },
+            {
+              "x": 8,
+              "y": 5
+            },
+            {
+              "x": 6,
+              "y": 5
+            },
+            {
+              "x": 6,
+              "y": 10
+            },
+            {
+              "x": 13,
+              "y": 13
+            },
+            {
+              "x": 13,
+              "y": 16
+            },
+            {
+              "x": -12,
+              "y": 16
+            },
+            {
+              "x": -12,
+              "y": 13
+            },
+            {
+              "x": -5,
+              "y": 10
+            },
+            {
+              "x": -7,
+              "y": 5
+            },
+            {
+              "x": -9,
+              "y": 5
+            },
+            {
+              "x": -9,
+              "y": 4
+            },
+            {
+              "x": -15,
+              "y": 4
+            },
+            {
+              "x": -15,
+              "y": 3
+            },
+            {
+              "x": -18,
+              "y": 3
+            },
+            {
+              "x": -18,
+              "y": 2
+            },
+            {
+              "x": -20,
+              "y": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_banner_01",
+      "id": "tiny_swords_banner_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_banner_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_banner_pole_01",
+      "id": "tiny_swords_banner_pole_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_banner_pole_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 48,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_barrel_01",
+      "id": "tiny_swords_barrel_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_barrel_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -13,
+              "y": 9
+            },
+            {
+              "x": -12,
+              "y": 9
+            },
+            {
+              "x": -12,
+              "y": 5
+            },
+            {
+              "x": -11,
+              "y": 5
+            },
+            {
+              "x": -11,
+              "y": 2
+            },
+            {
+              "x": -10,
+              "y": 2
+            },
+            {
+              "x": -10,
+              "y": -1
+            },
+            {
+              "x": -8,
+              "y": -3
+            },
+            {
+              "x": 9,
+              "y": -3
+            },
+            {
+              "x": 11,
+              "y": -1
+            },
+            {
+              "x": 11,
+              "y": 2
+            },
+            {
+              "x": 12,
+              "y": 2
+            },
+            {
+              "x": 12,
+              "y": 5
+            },
+            {
+              "x": 13,
+              "y": 5
+            },
+            {
+              "x": 13,
+              "y": 9
+            },
+            {
+              "x": 14,
+              "y": 9
+            },
+            {
+              "x": 14,
+              "y": 23
+            },
+            {
+              "x": 13,
+              "y": 23
+            },
+            {
+              "x": 12,
+              "y": 28
+            },
+            {
+              "x": 9,
+              "y": 32
+            },
+            {
+              "x": -8,
+              "y": 32
+            },
+            {
+              "x": -10,
+              "y": 30
+            },
+            {
+              "x": -12,
+              "y": 23
+            },
+            {
+              "x": -13,
+              "y": 23
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_barrier_01",
+      "id": "tiny_swords_barrier_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_barrier_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -31,
+              "y": -9
+            },
+            {
+              "x": -25,
+              "y": -9
+            },
+            {
+              "x": -25,
+              "y": -8
+            },
+            {
+              "x": -31,
+              "y": -8
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_002",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 25,
+              "y": -9
+            },
+            {
+              "x": 31,
+              "y": -9
+            },
+            {
+              "x": 31,
+              "y": -8
+            },
+            {
+              "x": 25,
+              "y": -8
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_003",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": -8
+            },
+            {
+              "x": -24,
+              "y": -8
+            },
+            {
+              "x": -24,
+              "y": -3
+            },
+            {
+              "x": -32,
+              "y": -3
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_004",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 24,
+              "y": -8
+            },
+            {
+              "x": 32,
+              "y": -8
+            },
+            {
+              "x": 32,
+              "y": -3
+            },
+            {
+              "x": 24,
+              "y": -3
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_005",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -33,
+              "y": -3
+            },
+            {
+              "x": 33,
+              "y": -3
+            },
+            {
+              "x": 33,
+              "y": -2
+            },
+            {
+              "x": -33,
+              "y": -2
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_006",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -34,
+              "y": -2
+            },
+            {
+              "x": 34,
+              "y": -2
+            },
+            {
+              "x": 34,
+              "y": 0
+            },
+            {
+              "x": -34,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_007",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -33,
+              "y": 0
+            },
+            {
+              "x": 33,
+              "y": 0
+            },
+            {
+              "x": 33,
+              "y": 1
+            },
+            {
+              "x": -33,
+              "y": 1
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_008",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": 1
+            },
+            {
+              "x": -24,
+              "y": 1
+            },
+            {
+              "x": -24,
+              "y": 13
+            },
+            {
+              "x": -32,
+              "y": 13
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_009",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 24,
+              "y": 1
+            },
+            {
+              "x": 32,
+              "y": 1
+            },
+            {
+              "x": 32,
+              "y": 13
+            },
+            {
+              "x": 24,
+              "y": 13
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_010",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -33,
+              "y": 13
+            },
+            {
+              "x": 33,
+              "y": 13
+            },
+            {
+              "x": 33,
+              "y": 14
+            },
+            {
+              "x": -33,
+              "y": 14
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_011",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -34,
+              "y": 14
+            },
+            {
+              "x": 34,
+              "y": 14
+            },
+            {
+              "x": 34,
+              "y": 16
+            },
+            {
+              "x": -34,
+              "y": 16
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_012",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -33,
+              "y": 16
+            },
+            {
+              "x": 33,
+              "y": 16
+            },
+            {
+              "x": 33,
+              "y": 17
+            },
+            {
+              "x": -33,
+              "y": 17
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_013",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": 17
+            },
+            {
+              "x": -24,
+              "y": 17
+            },
+            {
+              "x": -24,
+              "y": 24
+            },
+            {
+              "x": -32,
+              "y": 24
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_014",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 24,
+              "y": 17
+            },
+            {
+              "x": 32,
+              "y": 17
+            },
+            {
+              "x": 32,
+              "y": 24
+            },
+            {
+              "x": 24,
+              "y": 24
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bench_01",
+      "id": "tiny_swords_bench_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bench_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -43,
+              "y": 8
+            },
+            {
+              "x": 42,
+              "y": 8
+            },
+            {
+              "x": 42,
+              "y": 24
+            },
+            {
+              "x": -43,
+              "y": 24
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bleachers_01",
+      "id": "tiny_swords_bleachers_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bleachers_01"
+      },
+      "anchorXPx": 54,
+      "anchorYPx": 30,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bleachers_02",
+      "id": "tiny_swords_bleachers_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bleachers_02"
+      },
+      "anchorXPx": 42,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bleachers_03",
+      "id": "tiny_swords_bleachers_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bleachers_03"
+      },
+      "anchorXPx": 40,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bleachers_04",
+      "id": "tiny_swords_bleachers_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bleachers_04"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bleachers_05",
+      "id": "tiny_swords_bleachers_05",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bleachers_05"
+      },
+      "anchorXPx": 24,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_boulder_01",
+      "id": "tiny_swords_boulder_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_boulder_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -16,
+              "y": 7
+            },
+            {
+              "x": -14,
+              "y": 6
+            },
+            {
+              "x": -13,
+              "y": 4
+            },
+            {
+              "x": -11,
+              "y": 3
+            },
+            {
+              "x": -10,
+              "y": 1
+            },
+            {
+              "x": -8,
+              "y": 0
+            },
+            {
+              "x": -7,
+              "y": -2
+            },
+            {
+              "x": -2,
+              "y": -2
+            },
+            {
+              "x": -2,
+              "y": -3
+            },
+            {
+              "x": 9,
+              "y": -3
+            },
+            {
+              "x": 10,
+              "y": -1
+            },
+            {
+              "x": 12,
+              "y": 0
+            },
+            {
+              "x": 13,
+              "y": 2
+            },
+            {
+              "x": 17,
+              "y": 5
+            },
+            {
+              "x": 17,
+              "y": 11
+            },
+            {
+              "x": 15,
+              "y": 12
+            },
+            {
+              "x": 14,
+              "y": 14
+            },
+            {
+              "x": 12,
+              "y": 15
+            },
+            {
+              "x": 12,
+              "y": 16
+            },
+            {
+              "x": -11,
+              "y": 16
+            },
+            {
+              "x": -11,
+              "y": 15
+            },
+            {
+              "x": -13,
+              "y": 15
+            },
+            {
+              "x": -13,
+              "y": 14
+            },
+            {
+              "x": -16,
+              "y": 13
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_boulder_02",
+      "id": "tiny_swords_boulder_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_boulder_02"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -22,
+              "y": 3
+            },
+            {
+              "x": -17,
+              "y": -1
+            },
+            {
+              "x": -13,
+              "y": -6
+            },
+            {
+              "x": -11,
+              "y": -7
+            },
+            {
+              "x": -9,
+              "y": -10
+            },
+            {
+              "x": 5,
+              "y": -10
+            },
+            {
+              "x": 8,
+              "y": -7
+            },
+            {
+              "x": 10,
+              "y": -4
+            },
+            {
+              "x": 16,
+              "y": -4
+            },
+            {
+              "x": 17,
+              "y": -2
+            },
+            {
+              "x": 19,
+              "y": -1
+            },
+            {
+              "x": 20,
+              "y": 1
+            },
+            {
+              "x": 24,
+              "y": 4
+            },
+            {
+              "x": 24,
+              "y": 12
+            },
+            {
+              "x": 22,
+              "y": 14
+            },
+            {
+              "x": 20,
+              "y": 14
+            },
+            {
+              "x": 20,
+              "y": 15
+            },
+            {
+              "x": 18,
+              "y": 15
+            },
+            {
+              "x": 18,
+              "y": 16
+            },
+            {
+              "x": -16,
+              "y": 16
+            },
+            {
+              "x": -17,
+              "y": 14
+            },
+            {
+              "x": -19,
+              "y": 14
+            },
+            {
+              "x": -20,
+              "y": 12
+            },
+            {
+              "x": -22,
+              "y": 11
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_boulder_03",
+      "id": "tiny_swords_boulder_03",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_boulder_03"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -10,
+              "y": 6
+            },
+            {
+              "x": -8,
+              "y": 5
+            },
+            {
+              "x": -7,
+              "y": 3
+            },
+            {
+              "x": -5,
+              "y": 2
+            },
+            {
+              "x": -5,
+              "y": 1
+            },
+            {
+              "x": 5,
+              "y": 1
+            },
+            {
+              "x": 6,
+              "y": 3
+            },
+            {
+              "x": 8,
+              "y": 4
+            },
+            {
+              "x": 9,
+              "y": 6
+            },
+            {
+              "x": 11,
+              "y": 7
+            },
+            {
+              "x": 11,
+              "y": 13
+            },
+            {
+              "x": 9,
+              "y": 14
+            },
+            {
+              "x": 9,
+              "y": 15
+            },
+            {
+              "x": 8,
+              "y": 15
+            },
+            {
+              "x": 8,
+              "y": 16
+            },
+            {
+              "x": -6,
+              "y": 16
+            },
+            {
+              "x": -6,
+              "y": 15
+            },
+            {
+              "x": -7,
+              "y": 15
+            },
+            {
+              "x": -7,
+              "y": 14
+            },
+            {
+              "x": -8,
+              "y": 14
+            },
+            {
+              "x": -8,
+              "y": 13
+            },
+            {
+              "x": -9,
+              "y": 13
+            },
+            {
+              "x": -9,
+              "y": 12
+            },
+            {
+              "x": -10,
+              "y": 12
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bucket_01",
+      "id": "tiny_swords_bucket_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bucket_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bush_01",
+      "id": "tiny_swords_bush_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bush_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bush_02",
+      "id": "tiny_swords_bush_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bush_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_bush_03",
+      "id": "tiny_swords_bush_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_bush_03"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_chopping_block_01",
+      "id": "tiny_swords_chopping_block_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_chopping_block_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -16,
+              "y": 0
+            },
+            {
+              "x": -13,
+              "y": 0
+            },
+            {
+              "x": -13,
+              "y": 1
+            },
+            {
+              "x": -11,
+              "y": 1
+            },
+            {
+              "x": -11,
+              "y": -8
+            },
+            {
+              "x": -8,
+              "y": -9
+            },
+            {
+              "x": -8,
+              "y": -10
+            },
+            {
+              "x": -1,
+              "y": -10
+            },
+            {
+              "x": -1,
+              "y": -11
+            },
+            {
+              "x": 10,
+              "y": -11
+            },
+            {
+              "x": 10,
+              "y": -10
+            },
+            {
+              "x": 13,
+              "y": -9
+            },
+            {
+              "x": 13,
+              "y": -2
+            },
+            {
+              "x": 14,
+              "y": -2
+            },
+            {
+              "x": 14,
+              "y": 6
+            },
+            {
+              "x": 15,
+              "y": 6
+            },
+            {
+              "x": 15,
+              "y": 16
+            },
+            {
+              "x": -13,
+              "y": 16
+            },
+            {
+              "x": -13,
+              "y": 11
+            },
+            {
+              "x": -12,
+              "y": 11
+            },
+            {
+              "x": -12,
+              "y": 7
+            },
+            {
+              "x": -13,
+              "y": 7
+            },
+            {
+              "x": -13,
+              "y": 5
+            },
+            {
+              "x": -16,
+              "y": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_cimetery_statue_05",
+      "id": "tiny_swords_cimetery_statue_05",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_cimetery_statue_05"
+      },
+      "anchorXPx": 18,
+      "anchorYPx": 39,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -17,
+              "y": 33
+            },
+            {
+              "x": -15,
+              "y": 31
+            },
+            {
+              "x": -12,
+              "y": 31
+            },
+            {
+              "x": -12,
+              "y": -14
+            },
+            {
+              "x": -8,
+              "y": -21
+            },
+            {
+              "x": -8,
+              "y": -29
+            },
+            {
+              "x": -6,
+              "y": -35
+            },
+            {
+              "x": -3,
+              "y": -38
+            },
+            {
+              "x": 3,
+              "y": -38
+            },
+            {
+              "x": 7,
+              "y": -33
+            },
+            {
+              "x": 6,
+              "y": -21
+            },
+            {
+              "x": 11,
+              "y": -15
+            },
+            {
+              "x": 11,
+              "y": -12
+            },
+            {
+              "x": 15,
+              "y": -10
+            },
+            {
+              "x": 11,
+              "y": 9
+            },
+            {
+              "x": 10,
+              "y": 23
+            },
+            {
+              "x": 12,
+              "y": 23
+            },
+            {
+              "x": 11,
+              "y": 25
+            },
+            {
+              "x": 13,
+              "y": 27
+            },
+            {
+              "x": 13,
+              "y": 31
+            },
+            {
+              "x": 16,
+              "y": 31
+            },
+            {
+              "x": 18,
+              "y": 33
+            },
+            {
+              "x": 18,
+              "y": 39
+            },
+            {
+              "x": -17,
+              "y": 39
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_cloth_01",
+      "id": "tiny_swords_cloth_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_cloth_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_cloth_02",
+      "id": "tiny_swords_cloth_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_cloth_02"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothesline_01",
+      "id": "tiny_swords_clothesline_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothesline_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothesline_02",
+      "id": "tiny_swords_clothesline_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothesline_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothing_01",
+      "id": "tiny_swords_clothing_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothing_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothing_02",
+      "id": "tiny_swords_clothing_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothing_02"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothing_03",
+      "id": "tiny_swords_clothing_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothing_03"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothing_04",
+      "id": "tiny_swords_clothing_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothing_04"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothing_05",
+      "id": "tiny_swords_clothing_05",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothing_05"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_clothing_06",
+      "id": "tiny_swords_clothing_06",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_clothing_06"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_crate_01",
+      "id": "tiny_swords_crate_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_crate_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -22,
+              "y": -13
+            },
+            {
+              "x": 23,
+              "y": -13
+            },
+            {
+              "x": 23,
+              "y": 32
+            },
+            {
+              "x": -22,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_crate_02",
+      "id": "tiny_swords_crate_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_crate_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -17,
+              "y": -3
+            },
+            {
+              "x": 18,
+              "y": -3
+            },
+            {
+              "x": 18,
+              "y": 32
+            },
+            {
+              "x": -17,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_fire_vasque_01",
+      "id": "tiny_swords_fire_vasque_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_fire_vasque_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -18,
+              "y": -15
+            },
+            {
+              "x": 17,
+              "y": -15
+            },
+            {
+              "x": 12,
+              "y": -1
+            },
+            {
+              "x": 14,
+              "y": 15
+            },
+            {
+              "x": -13,
+              "y": 15
+            },
+            {
+              "x": -10,
+              "y": -2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_firecamp_01",
+      "id": "tiny_swords_firecamp_01",
+      "revision": 3,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_firecamp_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -29,
+              "y": 10
+            },
+            {
+              "x": -22,
+              "y": 8
+            },
+            {
+              "x": -12,
+              "y": -2
+            },
+            {
+              "x": -6,
+              "y": -4
+            },
+            {
+              "x": 1,
+              "y": -1
+            },
+            {
+              "x": 8,
+              "y": -2
+            },
+            {
+              "x": 13,
+              "y": 4
+            },
+            {
+              "x": 23,
+              "y": 6
+            },
+            {
+              "x": 28,
+              "y": 10
+            },
+            {
+              "x": 27,
+              "y": 16
+            },
+            {
+              "x": -27,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_01_96x96_platform",
+      "id": "tiny_swords_ground_platform_01_96x96_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_01_96x96"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -48,
+              "y": -45
+            },
+            {
+              "x": -47,
+              "y": -45
+            },
+            {
+              "x": -47,
+              "y": -46
+            },
+            {
+              "x": -46,
+              "y": -46
+            },
+            {
+              "x": -46,
+              "y": -47
+            },
+            {
+              "x": -44,
+              "y": -47
+            },
+            {
+              "x": -44,
+              "y": -48
+            },
+            {
+              "x": 44,
+              "y": -48
+            },
+            {
+              "x": 44,
+              "y": -47
+            },
+            {
+              "x": 46,
+              "y": -47
+            },
+            {
+              "x": 46,
+              "y": -46
+            },
+            {
+              "x": 47,
+              "y": -46
+            },
+            {
+              "x": 47,
+              "y": -45
+            },
+            {
+              "x": 48,
+              "y": -45
+            },
+            {
+              "x": 48,
+              "y": 48
+            },
+            {
+              "x": -48,
+              "y": 48
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_02_64x64_platform",
+      "id": "tiny_swords_ground_platform_02_64x64_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_02_64x64"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -32,
+              "y": -9
+            },
+            {
+              "x": -31,
+              "y": -9
+            },
+            {
+              "x": -31,
+              "y": -29
+            },
+            {
+              "x": -30,
+              "y": -29
+            },
+            {
+              "x": -30,
+              "y": -30
+            },
+            {
+              "x": -29,
+              "y": -30
+            },
+            {
+              "x": -29,
+              "y": -31
+            },
+            {
+              "x": -27,
+              "y": -31
+            },
+            {
+              "x": -27,
+              "y": -32
+            },
+            {
+              "x": 27,
+              "y": -32
+            },
+            {
+              "x": 27,
+              "y": -31
+            },
+            {
+              "x": 29,
+              "y": -31
+            },
+            {
+              "x": 29,
+              "y": -30
+            },
+            {
+              "x": 30,
+              "y": -30
+            },
+            {
+              "x": 30,
+              "y": -29
+            },
+            {
+              "x": 31,
+              "y": -29
+            },
+            {
+              "x": 31,
+              "y": 8
+            },
+            {
+              "x": 32,
+              "y": 8
+            },
+            {
+              "x": 32,
+              "y": 32
+            },
+            {
+              "x": -32,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_03_32x64_platform",
+      "id": "tiny_swords_ground_platform_03_32x64_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_03_32x64"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -16,
+              "y": -29
+            },
+            {
+              "x": -15,
+              "y": -29
+            },
+            {
+              "x": -15,
+              "y": -30
+            },
+            {
+              "x": -14,
+              "y": -30
+            },
+            {
+              "x": -14,
+              "y": -31
+            },
+            {
+              "x": -12,
+              "y": -31
+            },
+            {
+              "x": -12,
+              "y": -32
+            },
+            {
+              "x": 12,
+              "y": -32
+            },
+            {
+              "x": 12,
+              "y": -31
+            },
+            {
+              "x": 14,
+              "y": -31
+            },
+            {
+              "x": 14,
+              "y": -30
+            },
+            {
+              "x": 15,
+              "y": -30
+            },
+            {
+              "x": 15,
+              "y": -29
+            },
+            {
+              "x": 16,
+              "y": -29
+            },
+            {
+              "x": 16,
+              "y": 32
+            },
+            {
+              "x": -16,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "id": "tiny_swords_ground_platform_04_64x32_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_04_64x32"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -32,
+              "y": -13
+            },
+            {
+              "x": -31,
+              "y": -13
+            },
+            {
+              "x": -31,
+              "y": -14
+            },
+            {
+              "x": -30,
+              "y": -14
+            },
+            {
+              "x": -30,
+              "y": -15
+            },
+            {
+              "x": -28,
+              "y": -15
+            },
+            {
+              "x": -28,
+              "y": -16
+            },
+            {
+              "x": 26,
+              "y": -16
+            },
+            {
+              "x": 26,
+              "y": -15
+            },
+            {
+              "x": 28,
+              "y": -15
+            },
+            {
+              "x": 28,
+              "y": -14
+            },
+            {
+              "x": 29,
+              "y": -14
+            },
+            {
+              "x": 29,
+              "y": -13
+            },
+            {
+              "x": 30,
+              "y": -13
+            },
+            {
+              "x": 30,
+              "y": 16
+            },
+            {
+              "x": -32,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_05_64x64_platform",
+      "id": "tiny_swords_ground_platform_05_64x64_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_05_64x64"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -32,
+              "y": 3
+            },
+            {
+              "x": -31,
+              "y": 3
+            },
+            {
+              "x": -31,
+              "y": 0
+            },
+            {
+              "x": -29,
+              "y": -2
+            },
+            {
+              "x": -27,
+              "y": -2
+            },
+            {
+              "x": -27,
+              "y": -6
+            },
+            {
+              "x": -25,
+              "y": -9
+            },
+            {
+              "x": -23,
+              "y": -9
+            },
+            {
+              "x": -22,
+              "y": -15
+            },
+            {
+              "x": -20,
+              "y": -16
+            },
+            {
+              "x": -20,
+              "y": -29
+            },
+            {
+              "x": -18,
+              "y": -31
+            },
+            {
+              "x": -16,
+              "y": -32
+            },
+            {
+              "x": 22,
+              "y": -32
+            },
+            {
+              "x": 22,
+              "y": -31
+            },
+            {
+              "x": 24,
+              "y": -31
+            },
+            {
+              "x": 26,
+              "y": -29
+            },
+            {
+              "x": 26,
+              "y": -16
+            },
+            {
+              "x": 27,
+              "y": -16
+            },
+            {
+              "x": 27,
+              "y": -2
+            },
+            {
+              "x": 29,
+              "y": -2
+            },
+            {
+              "x": 31,
+              "y": 0
+            },
+            {
+              "x": 31,
+              "y": 32
+            },
+            {
+              "x": -32,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_06_32x32_platform",
+      "id": "tiny_swords_ground_platform_06_32x32_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_06_32x32"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -16,
+              "y": -13
+            },
+            {
+              "x": -15,
+              "y": -13
+            },
+            {
+              "x": -15,
+              "y": -14
+            },
+            {
+              "x": -14,
+              "y": -14
+            },
+            {
+              "x": -14,
+              "y": -15
+            },
+            {
+              "x": -12,
+              "y": -15
+            },
+            {
+              "x": -12,
+              "y": -16
+            },
+            {
+              "x": 12,
+              "y": -16
+            },
+            {
+              "x": 12,
+              "y": -15
+            },
+            {
+              "x": 14,
+              "y": -15
+            },
+            {
+              "x": 14,
+              "y": -14
+            },
+            {
+              "x": 15,
+              "y": -14
+            },
+            {
+              "x": 15,
+              "y": -13
+            },
+            {
+              "x": 16,
+              "y": -13
+            },
+            {
+              "x": 16,
+              "y": 16
+            },
+            {
+              "x": -16,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_07_32x96_platform",
+      "id": "tiny_swords_ground_platform_07_32x96_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_07_32x96"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -16,
+              "y": -45
+            },
+            {
+              "x": -15,
+              "y": -45
+            },
+            {
+              "x": -15,
+              "y": -46
+            },
+            {
+              "x": -14,
+              "y": -46
+            },
+            {
+              "x": -14,
+              "y": -47
+            },
+            {
+              "x": -12,
+              "y": -47
+            },
+            {
+              "x": -12,
+              "y": -48
+            },
+            {
+              "x": 12,
+              "y": -48
+            },
+            {
+              "x": 12,
+              "y": -47
+            },
+            {
+              "x": 14,
+              "y": -47
+            },
+            {
+              "x": 14,
+              "y": -46
+            },
+            {
+              "x": 15,
+              "y": -46
+            },
+            {
+              "x": 15,
+              "y": -45
+            },
+            {
+              "x": 16,
+              "y": -45
+            },
+            {
+              "x": 16,
+              "y": 48
+            },
+            {
+              "x": -16,
+              "y": 48
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_08_32x32_platform",
+      "id": "tiny_swords_ground_platform_08_32x32_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_08_32x32"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -16,
+              "y": -13
+            },
+            {
+              "x": -15,
+              "y": -13
+            },
+            {
+              "x": -15,
+              "y": -14
+            },
+            {
+              "x": -14,
+              "y": -14
+            },
+            {
+              "x": -14,
+              "y": -15
+            },
+            {
+              "x": -12,
+              "y": -15
+            },
+            {
+              "x": -12,
+              "y": -16
+            },
+            {
+              "x": 12,
+              "y": -16
+            },
+            {
+              "x": 12,
+              "y": -15
+            },
+            {
+              "x": 14,
+              "y": -15
+            },
+            {
+              "x": 14,
+              "y": -14
+            },
+            {
+              "x": 15,
+              "y": -14
+            },
+            {
+              "x": 15,
+              "y": -13
+            },
+            {
+              "x": 16,
+              "y": -13
+            },
+            {
+              "x": 16,
+              "y": 16
+            },
+            {
+              "x": -16,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_09_96x32_platform",
+      "id": "tiny_swords_ground_platform_09_96x32_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_09_96x32"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -48,
+              "y": -13
+            },
+            {
+              "x": -47,
+              "y": -13
+            },
+            {
+              "x": -47,
+              "y": -14
+            },
+            {
+              "x": -46,
+              "y": -14
+            },
+            {
+              "x": -46,
+              "y": -15
+            },
+            {
+              "x": -44,
+              "y": -15
+            },
+            {
+              "x": -44,
+              "y": -16
+            },
+            {
+              "x": 44,
+              "y": -16
+            },
+            {
+              "x": 44,
+              "y": -15
+            },
+            {
+              "x": 46,
+              "y": -15
+            },
+            {
+              "x": 46,
+              "y": -14
+            },
+            {
+              "x": 47,
+              "y": -14
+            },
+            {
+              "x": 47,
+              "y": -13
+            },
+            {
+              "x": 48,
+              "y": -13
+            },
+            {
+              "x": 48,
+              "y": 16
+            },
+            {
+              "x": -48,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "id": "tiny_swords_ground_platform_10_96x32_platform",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "tiny_swords_ground_platform_10_96x32"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {
+              "x": -48,
+              "y": -13
+            },
+            {
+              "x": -47,
+              "y": -13
+            },
+            {
+              "x": -47,
+              "y": -14
+            },
+            {
+              "x": -46,
+              "y": -14
+            },
+            {
+              "x": -46,
+              "y": -15
+            },
+            {
+              "x": -44,
+              "y": -15
+            },
+            {
+              "x": -44,
+              "y": -16
+            },
+            {
+              "x": 44,
+              "y": -16
+            },
+            {
+              "x": 44,
+              "y": -15
+            },
+            {
+              "x": 46,
+              "y": -15
+            },
+            {
+              "x": 46,
+              "y": -14
+            },
+            {
+              "x": 47,
+              "y": -14
+            },
+            {
+              "x": 47,
+              "y": -13
+            },
+            {
+              "x": 48,
+              "y": -13
+            },
+            {
+              "x": 48,
+              "y": 16
+            },
+            {
+              "x": -48,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ground",
+        "tiny_swords"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_hay_01",
+      "id": "tiny_swords_hay_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_hay_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": 19
+            },
+            {
+              "x": -30,
+              "y": 18
+            },
+            {
+              "x": -29,
+              "y": 13
+            },
+            {
+              "x": -26,
+              "y": 11
+            },
+            {
+              "x": -26,
+              "y": 8
+            },
+            {
+              "x": -21,
+              "y": 3
+            },
+            {
+              "x": -21,
+              "y": 1
+            },
+            {
+              "x": -16,
+              "y": -2
+            },
+            {
+              "x": -13,
+              "y": -7
+            },
+            {
+              "x": -7,
+              "y": -8
+            },
+            {
+              "x": -6,
+              "y": -10
+            },
+            {
+              "x": 6,
+              "y": -9
+            },
+            {
+              "x": 7,
+              "y": -7
+            },
+            {
+              "x": 10,
+              "y": -7
+            },
+            {
+              "x": 12,
+              "y": -3
+            },
+            {
+              "x": 15,
+              "y": -3
+            },
+            {
+              "x": 19,
+              "y": 1
+            },
+            {
+              "x": 21,
+              "y": 4
+            },
+            {
+              "x": 21,
+              "y": 7
+            },
+            {
+              "x": 24,
+              "y": 8
+            },
+            {
+              "x": 25,
+              "y": 13
+            },
+            {
+              "x": 28,
+              "y": 15
+            },
+            {
+              "x": 30,
+              "y": 24
+            },
+            {
+              "x": -32,
+              "y": 24
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_hay_02",
+      "id": "tiny_swords_hay_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_hay_02"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -20,
+              "y": -4
+            },
+            {
+              "x": -19,
+              "y": -10
+            },
+            {
+              "x": -17,
+              "y": -12
+            },
+            {
+              "x": -11,
+              "y": -13
+            },
+            {
+              "x": -8,
+              "y": -13
+            },
+            {
+              "x": -3,
+              "y": -12
+            },
+            {
+              "x": -3,
+              "y": -13
+            },
+            {
+              "x": 3,
+              "y": -12
+            },
+            {
+              "x": 3,
+              "y": -13
+            },
+            {
+              "x": 10,
+              "y": -12
+            },
+            {
+              "x": 10,
+              "y": -13
+            },
+            {
+              "x": 18,
+              "y": -12
+            },
+            {
+              "x": 20,
+              "y": -10
+            },
+            {
+              "x": 21,
+              "y": -1
+            },
+            {
+              "x": 20,
+              "y": 6
+            },
+            {
+              "x": 21,
+              "y": 12
+            },
+            {
+              "x": 17,
+              "y": 16
+            },
+            {
+              "x": -16,
+              "y": 16
+            },
+            {
+              "x": -20,
+              "y": 12
+            },
+            {
+              "x": -19,
+              "y": 9
+            },
+            {
+              "x": -20,
+              "y": 9
+            },
+            {
+              "x": -19,
+              "y": 3
+            },
+            {
+              "x": -20,
+              "y": 3
+            },
+            {
+              "x": -19,
+              "y": -4
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_mat_01",
+      "id": "tiny_swords_mat_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_mat_01"
+      },
+      "anchorXPx": 8,
+      "anchorYPx": 48,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_sawbuck_01",
+      "id": "tiny_swords_sawbuck_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_sawbuck_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -23,
+              "y": 18
+            },
+            {
+              "x": -6,
+              "y": 3
+            },
+            {
+              "x": -7,
+              "y": 0
+            },
+            {
+              "x": -15,
+              "y": -6
+            },
+            {
+              "x": -15,
+              "y": -8
+            },
+            {
+              "x": -21,
+              "y": -13
+            },
+            {
+              "x": -22,
+              "y": -20
+            },
+            {
+              "x": -13,
+              "y": -18
+            },
+            {
+              "x": -4,
+              "y": -9
+            },
+            {
+              "x": -3,
+              "y": -11
+            },
+            {
+              "x": 3,
+              "y": -11
+            },
+            {
+              "x": 4,
+              "y": -9
+            },
+            {
+              "x": 14,
+              "y": -18
+            },
+            {
+              "x": 22,
+              "y": -19
+            },
+            {
+              "x": 20,
+              "y": -11
+            },
+            {
+              "x": 6,
+              "y": 2
+            },
+            {
+              "x": 22,
+              "y": 17
+            },
+            {
+              "x": 18,
+              "y": 24
+            },
+            {
+              "x": 15,
+              "y": 24
+            },
+            {
+              "x": 1,
+              "y": 9
+            },
+            {
+              "x": -8,
+              "y": 15
+            },
+            {
+              "x": -15,
+              "y": 24
+            },
+            {
+              "x": -18,
+              "y": 24
+            },
+            {
+              "x": -23,
+              "y": 20
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_scarecrow_01",
+      "id": "tiny_swords_scarecrow_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_scarecrow_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": -3
+            },
+            {
+              "x": -31,
+              "y": -7
+            },
+            {
+              "x": -7,
+              "y": -8
+            },
+            {
+              "x": -18,
+              "y": -24
+            },
+            {
+              "x": -10,
+              "y": -26
+            },
+            {
+              "x": -2,
+              "y": -42
+            },
+            {
+              "x": 3,
+              "y": -42
+            },
+            {
+              "x": 7,
+              "y": -27
+            },
+            {
+              "x": 18,
+              "y": -28
+            },
+            {
+              "x": 7,
+              "y": -8
+            },
+            {
+              "x": 31,
+              "y": -7
+            },
+            {
+              "x": 32,
+              "y": -3
+            },
+            {
+              "x": 26,
+              "y": 2
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 32
+            },
+            {
+              "x": 9,
+              "y": 29
+            },
+            {
+              "x": 5,
+              "y": 33
+            },
+            {
+              "x": 3,
+              "y": 48
+            },
+            {
+              "x": -2,
+              "y": 48
+            },
+            {
+              "x": -5,
+              "y": 31
+            },
+            {
+              "x": -10,
+              "y": 33
+            },
+            {
+              "x": -10,
+              "y": 0
+            },
+            {
+              "x": -26,
+              "y": 2
+            },
+            {
+              "x": -25,
+              "y": -2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_sunflower_01",
+      "id": "tiny_swords_sunflower_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_sunflower_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_sunflower_02",
+      "id": "tiny_swords_sunflower_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_sunflower_02"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_table_01",
+      "id": "tiny_swords_table_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_table_01"
+      },
+      "anchorXPx": 40,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -36,
+              "y": -10
+            },
+            {
+              "x": 34,
+              "y": -10
+            },
+            {
+              "x": 34,
+              "y": 16
+            },
+            {
+              "x": -36,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_tombstone_01",
+      "id": "tiny_swords_tombstone_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_tombstone_01"
+      },
+      "anchorXPx": 24,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -17,
+              "y": 11
+            },
+            {
+              "x": -16,
+              "y": 11
+            },
+            {
+              "x": -16,
+              "y": 10
+            },
+            {
+              "x": -14,
+              "y": 10
+            },
+            {
+              "x": -14,
+              "y": -6
+            },
+            {
+              "x": -13,
+              "y": -6
+            },
+            {
+              "x": -13,
+              "y": -7
+            },
+            {
+              "x": -10,
+              "y": -7
+            },
+            {
+              "x": -10,
+              "y": -8
+            },
+            {
+              "x": -6,
+              "y": -8
+            },
+            {
+              "x": -6,
+              "y": -9
+            },
+            {
+              "x": 6,
+              "y": -9
+            },
+            {
+              "x": 6,
+              "y": -8
+            },
+            {
+              "x": 10,
+              "y": -8
+            },
+            {
+              "x": 10,
+              "y": -7
+            },
+            {
+              "x": 13,
+              "y": -7
+            },
+            {
+              "x": 13,
+              "y": -6
+            },
+            {
+              "x": 14,
+              "y": -6
+            },
+            {
+              "x": 14,
+              "y": 10
+            },
+            {
+              "x": 16,
+              "y": 10
+            },
+            {
+              "x": 16,
+              "y": 11
+            },
+            {
+              "x": 17,
+              "y": 11
+            },
+            {
+              "x": 17,
+              "y": 16
+            },
+            {
+              "x": -17,
+              "y": 16
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_tombstone_02",
+      "id": "tiny_swords_tombstone_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_tombstone_02"
+      },
+      "anchorXPx": 24,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -17,
+              "y": 24
+            },
+            {
+              "x": -16,
+              "y": 19
+            },
+            {
+              "x": -12,
+              "y": 19
+            },
+            {
+              "x": -12,
+              "y": 15
+            },
+            {
+              "x": -9,
+              "y": 13
+            },
+            {
+              "x": -9,
+              "y": -3
+            },
+            {
+              "x": -12,
+              "y": -5
+            },
+            {
+              "x": -12,
+              "y": -15
+            },
+            {
+              "x": -7,
+              "y": -16
+            },
+            {
+              "x": -7,
+              "y": -19
+            },
+            {
+              "x": -3,
+              "y": -23
+            },
+            {
+              "x": 4,
+              "y": -23
+            },
+            {
+              "x": 7,
+              "y": -21
+            },
+            {
+              "x": 7,
+              "y": -19
+            },
+            {
+              "x": 8,
+              "y": -19
+            },
+            {
+              "x": 8,
+              "y": -16
+            },
+            {
+              "x": 13,
+              "y": -15
+            },
+            {
+              "x": 13,
+              "y": -5
+            },
+            {
+              "x": 10,
+              "y": -3
+            },
+            {
+              "x": 10,
+              "y": 13
+            },
+            {
+              "x": 13,
+              "y": 15
+            },
+            {
+              "x": 13,
+              "y": 19
+            },
+            {
+              "x": 18,
+              "y": 20
+            },
+            {
+              "x": 18,
+              "y": 24
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_tombstone_03",
+      "id": "tiny_swords_tombstone_03",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_tombstone_03"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -13,
+              "y": -10
+            },
+            {
+              "x": -12,
+              "y": -11
+            },
+            {
+              "x": -3,
+              "y": -11
+            },
+            {
+              "x": -3,
+              "y": -20
+            },
+            {
+              "x": -2,
+              "y": -21
+            },
+            {
+              "x": 3,
+              "y": -21
+            },
+            {
+              "x": 4,
+              "y": -20
+            },
+            {
+              "x": 4,
+              "y": -11
+            },
+            {
+              "x": 13,
+              "y": -11
+            },
+            {
+              "x": 14,
+              "y": -10
+            },
+            {
+              "x": 14,
+              "y": -5
+            },
+            {
+              "x": 13,
+              "y": -4
+            },
+            {
+              "x": 4,
+              "y": -4
+            },
+            {
+              "x": 4,
+              "y": 13
+            },
+            {
+              "x": 6,
+              "y": 13
+            },
+            {
+              "x": 10,
+              "y": 17
+            },
+            {
+              "x": 10,
+              "y": 24
+            },
+            {
+              "x": -9,
+              "y": 24
+            },
+            {
+              "x": -9,
+              "y": 17
+            },
+            {
+              "x": -5,
+              "y": 13
+            },
+            {
+              "x": -3,
+              "y": 13
+            },
+            {
+              "x": -3,
+              "y": -4
+            },
+            {
+              "x": -12,
+              "y": -4
+            },
+            {
+              "x": -13,
+              "y": -5
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_tombstone_04",
+      "id": "tiny_swords_tombstone_04",
+      "revision": 6,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_tombstone_04"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -13,
+              "y": -7
+            },
+            {
+              "x": -9,
+              "y": -8
+            },
+            {
+              "x": -8,
+              "y": -12
+            },
+            {
+              "x": -1,
+              "y": -15
+            },
+            {
+              "x": -1,
+              "y": -19
+            },
+            {
+              "x": 2,
+              "y": -19
+            },
+            {
+              "x": 2,
+              "y": -15
+            },
+            {
+              "x": 7,
+              "y": -14
+            },
+            {
+              "x": 8,
+              "y": -10
+            },
+            {
+              "x": 9,
+              "y": -8
+            },
+            {
+              "x": 13,
+              "y": -8
+            },
+            {
+              "x": 13,
+              "y": -4
+            },
+            {
+              "x": 10,
+              "y": -4
+            },
+            {
+              "x": 8,
+              "y": 0
+            },
+            {
+              "x": 3,
+              "y": 5
+            },
+            {
+              "x": 3,
+              "y": 16
+            },
+            {
+              "x": 8,
+              "y": 16
+            },
+            {
+              "x": 11,
+              "y": 23
+            },
+            {
+              "x": -12,
+              "y": 23
+            },
+            {
+              "x": -8,
+              "y": 16
+            },
+            {
+              "x": -2,
+              "y": 16
+            },
+            {
+              "x": -2,
+              "y": 6
+            },
+            {
+              "x": -6,
+              "y": 2
+            },
+            {
+              "x": -9,
+              "y": -4
+            },
+            {
+              "x": -12,
+              "y": -3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_training_dummy_01",
+      "id": "tiny_swords_training_dummy_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_training_dummy_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 40,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -23,
+              "y": -1
+            },
+            {
+              "x": -22,
+              "y": -5
+            },
+            {
+              "x": -6,
+              "y": -7
+            },
+            {
+              "x": -10,
+              "y": -21
+            },
+            {
+              "x": -6,
+              "y": -27
+            },
+            {
+              "x": 5,
+              "y": -27
+            },
+            {
+              "x": 9,
+              "y": -22
+            },
+            {
+              "x": 7,
+              "y": -7
+            },
+            {
+              "x": 23,
+              "y": -5
+            },
+            {
+              "x": 24,
+              "y": -1
+            },
+            {
+              "x": 13,
+              "y": 4
+            },
+            {
+              "x": 10,
+              "y": 2
+            },
+            {
+              "x": 11,
+              "y": 14
+            },
+            {
+              "x": 8,
+              "y": 14
+            },
+            {
+              "x": 9,
+              "y": 25
+            },
+            {
+              "x": 5,
+              "y": 24
+            },
+            {
+              "x": 3,
+              "y": 40
+            },
+            {
+              "x": -2,
+              "y": 40
+            },
+            {
+              "x": -2,
+              "y": 24
+            },
+            {
+              "x": -8,
+              "y": 25
+            },
+            {
+              "x": -6,
+              "y": 20
+            },
+            {
+              "x": -9,
+              "y": 2
+            },
+            {
+              "x": -12,
+              "y": 5
+            },
+            {
+              "x": -15,
+              "y": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_training_target_01",
+      "id": "tiny_swords_training_target_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_training_target_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -19,
+              "y": 11
+            },
+            {
+              "x": -18,
+              "y": 9
+            },
+            {
+              "x": -15,
+              "y": 9
+            },
+            {
+              "x": -15,
+              "y": -1
+            },
+            {
+              "x": -12,
+              "y": -9
+            },
+            {
+              "x": -4,
+              "y": -18
+            },
+            {
+              "x": 0,
+              "y": -20
+            },
+            {
+              "x": 6,
+              "y": -19
+            },
+            {
+              "x": 12,
+              "y": -15
+            },
+            {
+              "x": 14,
+              "y": -10
+            },
+            {
+              "x": 13,
+              "y": 0
+            },
+            {
+              "x": 12,
+              "y": 0
+            },
+            {
+              "x": 18,
+              "y": 17
+            },
+            {
+              "x": 19,
+              "y": 24
+            },
+            {
+              "x": 14,
+              "y": 24
+            },
+            {
+              "x": 10,
+              "y": 15
+            },
+            {
+              "x": 11,
+              "y": 24
+            },
+            {
+              "x": 4,
+              "y": 24
+            },
+            {
+              "x": 3,
+              "y": 15
+            },
+            {
+              "x": -7,
+              "y": 15
+            },
+            {
+              "x": -11,
+              "y": 24
+            },
+            {
+              "x": -18,
+              "y": 24
+            },
+            {
+              "x": -14,
+              "y": 15
+            },
+            {
+              "x": -18,
+              "y": 15
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_tree_01",
+      "id": "tiny_swords_tree_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_tree_01"
+      },
+      "anchorXPx": 64,
+      "anchorYPx": 72,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_tree_02",
+      "id": "tiny_swords_tree_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_tree_02"
+      },
+      "anchorXPx": 88,
+      "anchorYPx": 88,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wall_01",
+      "id": "tiny_swords_wall_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wall_01"
+      },
+      "anchorXPx": 80,
+      "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_well_01",
+      "id": "tiny_swords_well_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_well_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 48,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -31,
+              "y": -42
+            },
+            {
+              "x": 33,
+              "y": -42
+            },
+            {
+              "x": 33,
+              "y": 48
+            },
+            {
+              "x": -31,
+              "y": 48
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wheat_01",
+      "id": "tiny_swords_wheat_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wheat_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wheat_02",
+      "id": "tiny_swords_wheat_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wheat_02"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wheat_03",
+      "id": "tiny_swords_wheat_03",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wheat_03"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wheat_04",
+      "id": "tiny_swords_wheat_04",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wheat_04"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wheat_05",
+      "id": "tiny_swords_wheat_05",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wheat_05"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wood_log_01",
+      "id": "tiny_swords_wood_log_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wood_log_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -47,
+              "y": 4
+            },
+            {
+              "x": -44,
+              "y": 1
+            },
+            {
+              "x": -26,
+              "y": 2
+            },
+            {
+              "x": -17,
+              "y": 0
+            },
+            {
+              "x": -13,
+              "y": -5
+            },
+            {
+              "x": -11,
+              "y": -5
+            },
+            {
+              "x": -13,
+              "y": 2
+            },
+            {
+              "x": -3,
+              "y": 3
+            },
+            {
+              "x": 23,
+              "y": 1
+            },
+            {
+              "x": 25,
+              "y": 2
+            },
+            {
+              "x": 28,
+              "y": 1
+            },
+            {
+              "x": 28,
+              "y": 3
+            },
+            {
+              "x": 44,
+              "y": 2
+            },
+            {
+              "x": 47,
+              "y": 5
+            },
+            {
+              "x": 46,
+              "y": 8
+            },
+            {
+              "x": 47,
+              "y": 8
+            },
+            {
+              "x": 46,
+              "y": 14
+            },
+            {
+              "x": 44,
+              "y": 16
+            },
+            {
+              "x": 9,
+              "y": 14
+            },
+            {
+              "x": -6,
+              "y": 16
+            },
+            {
+              "x": -6,
+              "y": 15
+            },
+            {
+              "x": -31,
+              "y": 16
+            },
+            {
+              "x": -44,
+              "y": 15
+            },
+            {
+              "x": -47,
+              "y": 12
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_wood_logs_01",
+      "id": "tiny_swords_wood_logs_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_wood_logs_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 24,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -45,
+              "y": 21
+            },
+            {
+              "x": -44,
+              "y": 12
+            },
+            {
+              "x": -41,
+              "y": 9
+            },
+            {
+              "x": -42,
+              "y": 2
+            },
+            {
+              "x": -36,
+              "y": -1
+            },
+            {
+              "x": -37,
+              "y": -8
+            },
+            {
+              "x": -34,
+              "y": -12
+            },
+            {
+              "x": -31,
+              "y": -12
+            },
+            {
+              "x": -32,
+              "y": -20
+            },
+            {
+              "x": -29,
+              "y": -23
+            },
+            {
+              "x": -2,
+              "y": -24
+            },
+            {
+              "x": 5,
+              "y": -22
+            },
+            {
+              "x": 21,
+              "y": -22
+            },
+            {
+              "x": 27,
+              "y": -18
+            },
+            {
+              "x": 27,
+              "y": -12
+            },
+            {
+              "x": 33,
+              "y": -10
+            },
+            {
+              "x": 33,
+              "y": -1
+            },
+            {
+              "x": 37,
+              "y": -1
+            },
+            {
+              "x": 40,
+              "y": 2
+            },
+            {
+              "x": 38,
+              "y": 11
+            },
+            {
+              "x": 44,
+              "y": 13
+            },
+            {
+              "x": 45,
+              "y": 21
+            },
+            {
+              "x": 42,
+              "y": 24
+            },
+            {
+              "x": -42,
+              "y": 24
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_002",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 41,
+              "y": 7
+            },
+            {
+              "x": 42,
+              "y": 7
+            },
+            {
+              "x": 42,
+              "y": 10
+            },
+            {
+              "x": 41,
+              "y": 10
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_003",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 44,
+              "y": 9
+            },
+            {
+              "x": 46,
+              "y": 9
+            },
+            {
+              "x": 46,
+              "y": 11
+            },
+            {
+              "x": 45,
+              "y": 11
+            },
+            {
+              "x": 45,
+              "y": 10
+            },
+            {
+              "x": 44,
+              "y": 10
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "woods_barrel_01",
+      "id": "woods_barrel_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_barrel_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -7,
+              "y": 1
+            },
+            {
+              "x": -6,
+              "y": 1
+            },
+            {
+              "x": -6,
+              "y": -1
+            },
+            {
+              "x": -5,
+              "y": -1
+            },
+            {
+              "x": -5,
+              "y": -2
+            },
+            {
+              "x": 6,
+              "y": -2
+            },
+            {
+              "x": 6,
+              "y": -1
+            },
+            {
+              "x": 7,
+              "y": -1
+            },
+            {
+              "x": 7,
+              "y": 1
+            },
+            {
+              "x": 8,
+              "y": 1
+            },
+            {
+              "x": 8,
+              "y": 14
+            },
+            {
+              "x": 7,
+              "y": 14
+            },
+            {
+              "x": 7,
+              "y": 16
+            },
+            {
+              "x": -6,
+              "y": 16
+            },
+            {
+              "x": -6,
+              "y": 14
+            },
+            {
+              "x": -7,
+              "y": 14
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_clothline_01",
+      "id": "woods_clothline_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_clothline_01"
+      },
+      "anchorXPx": 80,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_crate_01",
+      "id": "woods_crate_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_crate_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -14,
+              "y": 0
+            },
+            {
+              "x": 13,
+              "y": 0
+            },
+            {
+              "x": 13,
+              "y": 2
+            },
+            {
+              "x": 12,
+              "y": 2
+            },
+            {
+              "x": 12,
+              "y": 14
+            },
+            {
+              "x": 13,
+              "y": 14
+            },
+            {
+              "x": 13,
+              "y": 16
+            },
+            {
+              "x": -14,
+              "y": 16
+            },
+            {
+              "x": -14,
+              "y": 14
+            },
+            {
+              "x": -13,
+              "y": 14
+            },
+            {
+              "x": -13,
+              "y": 2
+            },
+            {
+              "x": -14,
+              "y": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_crate_02",
+      "id": "woods_crate_02",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_crate_02"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -14,
+              "y": -16
+            },
+            {
+              "x": 13,
+              "y": -16
+            },
+            {
+              "x": 13,
+              "y": -14
+            },
+            {
+              "x": 12,
+              "y": -14
+            },
+            {
+              "x": 12,
+              "y": -2
+            },
+            {
+              "x": 13,
+              "y": -2
+            },
+            {
+              "x": 13,
+              "y": 2
+            },
+            {
+              "x": 12,
+              "y": 2
+            },
+            {
+              "x": 12,
+              "y": 14
+            },
+            {
+              "x": 13,
+              "y": 14
+            },
+            {
+              "x": 13,
+              "y": 16
+            },
+            {
+              "x": -14,
+              "y": 16
+            },
+            {
+              "x": -14,
+              "y": 14
+            },
+            {
+              "x": -13,
+              "y": 14
+            },
+            {
+              "x": -13,
+              "y": 2
+            },
+            {
+              "x": -14,
+              "y": 2
+            },
+            {
+              "x": -14,
+              "y": -2
+            },
+            {
+              "x": -13,
+              "y": -2
+            },
+            {
+              "x": -13,
+              "y": -14
+            },
+            {
+              "x": -14,
+              "y": -14
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_logs_01",
+      "id": "woods_logs_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_logs_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "collisionShapes": [],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_scarecrow_01",
+      "id": "woods_scarecrow_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_scarecrow_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -16,
+              "y": -3
+            },
+            {
+              "x": -6,
+              "y": -12
+            },
+            {
+              "x": 5,
+              "y": -12
+            },
+            {
+              "x": 16,
+              "y": -4
+            },
+            {
+              "x": 2,
+              "y": 32
+            },
+            {
+              "x": -1,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_statue_01",
+      "id": "woods_statue_01",
+      "revision": 3,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_statue_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -10,
+              "y": 5
+            },
+            {
+              "x": -9,
+              "y": -2
+            },
+            {
+              "x": -4,
+              "y": -13
+            },
+            {
+              "x": 0,
+              "y": -15
+            },
+            {
+              "x": 3,
+              "y": -21
+            },
+            {
+              "x": 7,
+              "y": -21
+            },
+            {
+              "x": 9,
+              "y": -18
+            },
+            {
+              "x": 6,
+              "y": -14
+            },
+            {
+              "x": 12,
+              "y": -7
+            },
+            {
+              "x": 12,
+              "y": -1
+            },
+            {
+              "x": 9,
+              "y": 5
+            },
+            {
+              "x": 6,
+              "y": 12
+            },
+            {
+              "x": 6,
+              "y": 20
+            },
+            {
+              "x": 11,
+              "y": 27
+            },
+            {
+              "x": 9,
+              "y": 32
+            },
+            {
+              "x": -9,
+              "y": 32
+            },
+            {
+              "x": -10,
+              "y": 27
+            },
+            {
+              "x": -5,
+              "y": 21
+            },
+            {
+              "x": -6,
+              "y": 10
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_tent_01",
+      "id": "woods_tent_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_tent_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 32,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -47,
+              "y": 26
+            },
+            {
+              "x": -45,
+              "y": 26
+            },
+            {
+              "x": -44,
+              "y": 28
+            },
+            {
+              "x": -42,
+              "y": 28
+            },
+            {
+              "x": -38,
+              "y": 24
+            },
+            {
+              "x": -34,
+              "y": 16
+            },
+            {
+              "x": -30,
+              "y": -1
+            },
+            {
+              "x": -30,
+              "y": -7
+            },
+            {
+              "x": -28,
+              "y": -7
+            },
+            {
+              "x": -27,
+              "y": -5
+            },
+            {
+              "x": -19,
+              "y": -3
+            },
+            {
+              "x": 8,
+              "y": -3
+            },
+            {
+              "x": 25,
+              "y": -5
+            },
+            {
+              "x": 26,
+              "y": -7
+            },
+            {
+              "x": 28,
+              "y": -7
+            },
+            {
+              "x": 29,
+              "y": 3
+            },
+            {
+              "x": 36,
+              "y": 22
+            },
+            {
+              "x": 38,
+              "y": 23
+            },
+            {
+              "x": 38,
+              "y": 25
+            },
+            {
+              "x": 44,
+              "y": 30
+            },
+            {
+              "x": 45,
+              "y": 27
+            },
+            {
+              "x": 47,
+              "y": 27
+            },
+            {
+              "x": 46,
+              "y": 32
+            },
+            {
+              "x": -46,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    },
+    {
+      "prefabKey": "woods_tent_02",
+      "id": "woods_tent_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "woods_tent_02"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "decor",
+        "woods"
+      ]
+    }
+  ]
 }

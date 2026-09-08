@@ -93,6 +93,10 @@ void main() {
       final selectedOwner = workspaceBefore.selectedChunkKey;
       expect(session.pendingChanges.hasChanges, isTrue);
       expect(workspaceBefore.playtestReadiness.isReady, isTrue);
+      expect(find.text('Chunk v2 authoring'), findsNothing);
+      expect(find.textContaining('pending chunk change'), findsNothing);
+      expect(find.textContaining('Play ready:'), findsNothing);
+      expect(find.textContaining('Current-schema workspace:'), findsNothing);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_show_grid_toggle')),
@@ -377,6 +381,26 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_playtest_button')),
     );
     expect(playButton.onPressed, isNull);
+    await _openDiagnostics(tester);
+    final diagnostics = find.byKey(
+      const ValueKey<String>('chunk_diagnostics_card'),
+    );
+    expect(
+      find.descendant(
+        of: diagnostics,
+        matching: find.text('playtest_unavailable'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: diagnostics,
+        matching: find.text(
+          'Play mode is available only in the Windows Chunk-v2 editor.',
+        ),
+      ),
+      findsOneWidget,
+    );
     expect(
       _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.f5),
       isFalse,
@@ -405,8 +429,33 @@ void main() {
       _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.f5),
       isFalse,
     );
-    expect(find.textContaining('Finish, save, or cancel'), findsOneWidget);
+    await _openDiagnostics(tester);
+    final draftDiagnostics = find.byKey(
+      const ValueKey<String>('chunk_diagnostics_card'),
+    );
+    expect(
+      find.descendant(
+        of: draftDiagnostics,
+        matching: find.textContaining('Finish, save, or cancel'),
+      ),
+      findsOneWidget,
+    );
   });
+}
+
+Future<void> _openDiagnostics(WidgetTester tester) async {
+  final diagnosticsList = find.byKey(
+    const ValueKey<String>('chunk_diagnostics_list'),
+  );
+  if (diagnosticsList.evaluate().isNotEmpty) return;
+  final toggle = find.byKey(
+    const ValueKey<String>('chunk_diagnostics_card_toggle'),
+  );
+  await tester.ensureVisible(toggle);
+  final bounds = tester.getRect(toggle);
+  await tester.tapAt(Offset(bounds.right - 20, bounds.center.dy));
+  await tester.pumpAndSettle();
+  expect(diagnosticsList, findsOneWidget);
 }
 
 Future<EditorSessionController> _loadedSession(String workspaceRoot) async {

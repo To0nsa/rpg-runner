@@ -44,6 +44,11 @@ and no blocking validation issue are required. Accepted session pending
 changes are deliberately not a blocker. Migration-required or unavailable
 source never exposes a usable Play action.
 
+The workspace header contains only the level selector, owner selector, and Play
+button. It does not repeat route/schema, pending-change, or always-on readiness
+status. Failed readiness disables Play and appends one `playtest_unavailable`
+error with the current reason to the document-wide Diagnostics panel.
+
 `ChunkCreatorPage` owns four route-local states: edit, preparing, playing, and
 preparation failed. Starting preparation captures the document identity,
 owner input, and workspace path under a monotonic generation. Stop, disposal,

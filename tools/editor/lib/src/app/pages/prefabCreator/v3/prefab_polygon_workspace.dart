@@ -98,14 +98,17 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   final EditorOwnerDraftState<PrefabV3Def, PrefabV3Document> _ownerDraft =
       EditorOwnerDraftState<PrefabV3Def, PrefabV3Document>();
   String? _selectedPrefabKey;
-  PrefabWorkspaceView _workspaceView = PrefabWorkspaceView.prefabs;
+  late PrefabWorkspaceView _workspaceView;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
   late EditorUiImageCache _prefabImageCache;
   late PrefabVisualAlphaMaskCache _prefabMaskCache;
   PrefabCollisionCreationMethod _creationMethod =
       PrefabCollisionCreationMethod.traceVisibleOutline;
-  PrefabCollisionFitSettings _fitSettings = const PrefabCollisionFitSettings();
+  PrefabCollisionFitSettings _fitSettings =
+      PrefabCollisionFitSettings.defaultsFor(
+        PrefabCollisionCreationMethod.traceVisibleOutline,
+      );
   String? _pendingRefitShapeId;
   bool _fitAdvancedExpanded = false;
   bool _observedFitDraft = false;
@@ -201,6 +204,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   @override
   void initState() {
     super.initState();
+    _workspaceView = _initialWorkspaceView();
     _prefabImageCache = EditorUiImageCache();
     _prefabMaskCache = PrefabVisualAlphaMaskCache();
     _exactEditController.addListener(_handleExactEditChanged);
@@ -218,15 +222,18 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _clearOwnerEditorState();
       _clearOwnerCreateState();
       _selectedPrefabKey = null;
-      _workspaceView = PrefabWorkspaceView.prefabs;
+      _workspaceView = _initialWorkspaceView();
       _selectInitialOwner();
       return;
     }
     if (oldWidget.initialPrefabKey != widget.initialPrefabKey) {
       final targetKey = _requestedOwnerKey(_documentOrNull);
-      if (targetKey != null && targetKey != _selectedPrefabKey) {
-        _bindOwner(targetKey);
-        _resetViewportValues();
+      if (targetKey != null) {
+        if (targetKey != _selectedPrefabKey) {
+          _bindOwner(targetKey);
+          _resetViewportValues();
+        }
+        _workspaceView = PrefabWorkspaceView.prefabs;
       }
     }
   }
@@ -305,7 +312,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   controller: widget.controller,
                   document: document,
                   atlasImageFilePicker: widget.atlasImageFilePicker,
-                  onPrefabCreated: _handleAtlasPrefabCreated,
                 ),
                 PrefabV3ModuleCatalogWorkspace(
                   key: _moduleWorkspaceKey,
@@ -1022,14 +1028,18 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }) async {
     final document = _documentOrNull;
     if (document == null || !identical(authoring, _authoring)) return;
+    final fitSettings = method == _creationMethod
+        ? _fitSettings
+        : PrefabCollisionFitSettings.defaultsFor(method);
     final token = authoring.startFitGeneration(
       method: method,
-      settings: _fitSettings,
+      settings: fitSettings,
       refitShapeId: refitShapeId,
     );
     if (token == 0) return;
     setState(() {
       _creationMethod = method;
+      _fitSettings = fitSettings;
       _pendingRefitShapeId = null;
     });
     final projection = PrefabPolygonVisualProjection.fromDocument(
@@ -1053,7 +1063,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final result = PrefabCollisionFitter.generate(
       mask: loaded.mask!,
       method: method,
-      settings: _fitSettings,
+      settings: fitSettings,
     );
     authoring.completeFitGeneration(
       token: token,
@@ -1123,9 +1133,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       currentSourceIdentity: current.sourceIdentity!,
     );
     if (saved) {
+      final defaultMethod = _defaultCreationMethod(authoring.prefab.kind);
       setState(() {
         _pendingRefitShapeId = null;
-        _fitSettings = const PrefabCollisionFitSettings();
+        _fitSettings = PrefabCollisionFitSettings.defaultsFor(defaultMethod);
         _fitAdvancedExpanded = false;
       });
     }
@@ -1134,11 +1145,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   void _cancelFitDraft() {
     final authoring = _authoring;
     if (authoring == null || !authoring.cancelFitDraft()) return;
+    final defaultMethod = _defaultCreationMethod(authoring.prefab.kind);
     setState(() {
       _pendingRefitShapeId = null;
-      _fitSettings = const PrefabCollisionFitSettings();
+      _fitSettings = PrefabCollisionFitSettings.defaultsFor(defaultMethod);
       _fitAdvancedExpanded = false;
-      _creationMethod = _defaultCreationMethod(authoring.prefab.kind);
+      _creationMethod = defaultMethod;
     });
   }
 
@@ -1179,7 +1191,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_delete_shape'),
-              onPressed: !canEditShape || isFitCandidate || hasPendingExactEdit
+              onPressed: !canEditShape || hasPendingExactEdit
                   ? null
                   : authoring.deleteSelection,
               icon: const Icon(Icons.delete_outline),
@@ -1920,22 +1932,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     await _selectOwnerFromHeader(prefabKey);
   }
 
-  void _handleAtlasPrefabCreated(PrefabV3Def prefab) {
-    if (!mounted || prefab.kind != PrefabKind.obstacle) return;
-    final document = _documentOrNull;
-    if (document == null ||
-        !document.data.prefabs.any(
-          (candidate) => candidate.prefabKey == prefab.prefabKey,
-        )) {
-      return;
-    }
-    setState(() {
-      _bindOwner(prefab.prefabKey);
-      _resetViewportValues();
-      _workspaceView = PrefabWorkspaceView.collision;
-    });
-  }
-
   PrefabV3Document? _dispatchCatalog(
     PrefabV3Document document,
     PrefabV3CatalogOperation operation,
@@ -2078,6 +2074,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         ? requestedKey
         : null;
   }
+
+  PrefabWorkspaceView _initialWorkspaceView() =>
+      _requestedOwnerKey(_documentOrNull) == null
+      ? PrefabWorkspaceView.atlasSlices
+      : PrefabWorkspaceView.prefabs;
 
   Future<void> _selectOrOpenOwner(PrefabV3Def target) async {
     if (_authoring?.hasActiveOperation ?? false) {
@@ -2290,7 +2291,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     _exactEditController.discard();
     _shapeNameDrafts.clear();
     _pendingRefitShapeId = null;
-    _fitSettings = const PrefabCollisionFitSettings();
     _fitAdvancedExpanded = false;
     _observedFitDraft = false;
     _selectedPrefabKey = prefabKey;
@@ -2299,6 +2299,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       prefabKey: prefabKey,
     )..addListener(_handleAuthoringChanged);
     _creationMethod = _defaultCreationMethod(_authoring!.prefab.kind);
+    _fitSettings = PrefabCollisionFitSettings.defaultsFor(_creationMethod);
   }
 
   void _disposeAuthoring() {
@@ -2315,10 +2316,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final hasFitDraft = authoring?.hasFitDraft ?? false;
     setState(() {
       if (_observedFitDraft && !hasFitDraft && authoring != null) {
+        final defaultMethod = _defaultCreationMethod(authoring.prefab.kind);
         _pendingRefitShapeId = null;
-        _fitSettings = const PrefabCollisionFitSettings();
+        _fitSettings = PrefabCollisionFitSettings.defaultsFor(defaultMethod);
         _fitAdvancedExpanded = false;
-        _creationMethod = _defaultCreationMethod(authoring.prefab.kind);
+        _creationMethod = defaultMethod;
       }
       _observedFitDraft = hasFitDraft;
     });

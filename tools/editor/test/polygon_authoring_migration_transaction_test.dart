@@ -9,6 +9,8 @@ import 'package:runner_editor/src/migration/polygon_authoring_migration_transact
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
+import 'test_support/polygon_migration_fixture.dart';
+
 void main() {
   test('reviewed legacy batch installs one validated current generation', () {
     final fixture = _copyMigrationSources();
@@ -204,24 +206,8 @@ Map<String, String> _sourceDigests(String rootPath) {
   };
 }
 
-Directory _copyMigrationSources() {
-  final sourceRoot = _repoRootPath();
-  final targetRoot = Directory.systemTemp.createTempSync(
-    'polygon_migration_transaction_',
-  );
-  final relativePaths = <String>[
-    PrefabStore.prefabDefsPath,
-    for (final file in _chunkFiles(sourceRoot))
-      p.relative(file.path, from: sourceRoot),
-  ];
-  for (final relativePath in relativePaths) {
-    final source = File(p.join(sourceRoot, relativePath));
-    final target = File(p.join(targetRoot.path, relativePath))
-      ..parent.createSync(recursive: true);
-    source.copySync(target.path);
-  }
-  return targetRoot;
-}
+Directory _copyMigrationSources() =>
+    createPolygonMigrationFixture('polygon_migration_transaction_');
 
 void _demoteFixtureToLegacy(String rootPath) {
   final prefabFile = File(p.join(rootPath, PrefabStore.prefabDefsPath));
@@ -293,12 +279,3 @@ List<FileSystemEntity> _transactionFiles(Directory root) => root
           (entity.path.endsWith('.tmp') || entity.path.endsWith('.bak')),
     )
     .toList(growable: false);
-
-String _repoRootPath() {
-  final cwd = p.normalize(Directory.current.path);
-  if (p.basename(cwd).toLowerCase() == 'editor' &&
-      p.basename(p.dirname(cwd)).toLowerCase() == 'tools') {
-    return p.normalize(p.join(cwd, '..', '..'));
-  }
-  return cwd;
-}

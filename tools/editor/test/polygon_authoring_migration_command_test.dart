@@ -8,9 +8,13 @@ import 'package:runner_editor/src/migration/polygon_authoring_migration_command.
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
+import 'test_support/polygon_migration_fixture.dart';
+
 void main() {
   test('no mode defaults to a successful read-only check', () {
-    final root = _repoRootPath();
+    final fixture = _copyMigrationSources();
+    addTearDown(() => fixture.deleteSync(recursive: true));
+    final root = fixture.path;
     final before = _sourceDigests(root);
     final output = StringBuffer();
     final errors = StringBuffer();
@@ -443,24 +447,8 @@ Map<String, String> _sourceDigests(String rootPath) {
   };
 }
 
-Directory _copyMigrationSources() {
-  final sourceRoot = _repoRootPath();
-  final targetRoot = Directory.systemTemp.createTempSync(
-    'polygon_migration_command_',
-  );
-  final relativePaths = <String>[
-    PrefabStore.prefabDefsPath,
-    for (final file in _chunkFiles(sourceRoot))
-      p.relative(file.path, from: sourceRoot),
-  ];
-  for (final relativePath in relativePaths) {
-    final source = File(p.join(sourceRoot, relativePath));
-    final target = File(p.join(targetRoot.path, relativePath))
-      ..parent.createSync(recursive: true);
-    source.copySync(target.path);
-  }
-  return targetRoot;
-}
+Directory _copyMigrationSources() =>
+    createPolygonMigrationFixture('polygon_migration_command_');
 
 void _demoteFixtureToLegacy(String rootPath) {
   final prefabFile = File(p.join(rootPath, PrefabStore.prefabDefsPath));

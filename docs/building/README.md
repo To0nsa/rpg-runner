@@ -11,3 +11,10 @@
 
 Use the status line in each plan as the source of truth. If a plan has open
 phases or pending implementation scope, leave it outside the archive.
+
+## Editor planning
+
+- [Level Creator UI/UX redesign](editor/levelCreator/ui-ux-redesign-plan.md):
+  proposed content-creation workflow, visual level workspace, authored Chunk
+  and Level Play, and source/build feedback; includes the audited plan,
+  implementation checklist, and illustrative layout concept.
