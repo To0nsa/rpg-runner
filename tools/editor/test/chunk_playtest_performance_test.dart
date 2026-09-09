@@ -21,7 +21,7 @@ void main() {
       EditorWorkspace(rootPath: workspaceRoot),
     );
     final selectedChunkKey = document.chunks
-        .singleWhere((chunk) => chunk.levelId == 'forest')
+        .singleWhere((chunk) => chunk.chunkKey == 'forest_rocky_grove_easy_001')
         .chunkKey;
 
     for (var index = 0; index < _warmupCount; index += 1) {

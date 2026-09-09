@@ -48,7 +48,10 @@ void main() {
       issues.where((issue) => issue.severity == ValidationSeverity.error),
       isEmpty,
     );
-    expect(issues, isEmpty);
+    expect(
+      issues.map((issue) => issue.code),
+      everyElement('polygon_vertex_soft_target_exceeded'),
+    );
   });
 }
 

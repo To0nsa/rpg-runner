@@ -98,7 +98,14 @@ void main() {
         'Focused Forest Play',
       );
       final handler = page as EditorPagePlaytestHandler;
-      expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.f5), isTrue);
+      // Large authored JSON uses Flutter's isolate decoder. Start real I/O
+      // outside the fake-async zone so its completion can reach the widget.
+      expect(
+        await tester.runAsync(
+          () async => handler.handlePlaytestShortcut(LogicalKeyboardKey.f5),
+        ),
+        isTrue,
+      );
       expect(handler.locksEditorShell, isTrue);
       expect((page as EditorPageSaveHandler).canSaveEditorPage, isFalse);
       await until(
@@ -198,7 +205,10 @@ void main() {
           return preparePlaytest(input);
         },
       );
-      await tester.tap(find.byKey(const ValueKey('level_sample_button')));
+      await tester.runAsync(
+        () async =>
+            tester.tap(find.byKey(const ValueKey('level_sample_button'))),
+      );
       await until(
         tester,
         () =>
@@ -208,7 +218,10 @@ void main() {
       expect(find.textContaining('seed 4401'), findsOneWidget);
       expect(find.textContaining('Source:'), findsWidgets);
       expect(capturedSeeds, [4401]);
-      await tester.tap(find.byKey(const ValueKey('level_new_variation')));
+      await tester.runAsync(
+        () async =>
+            tester.tap(find.byKey(const ValueKey('level_new_variation'))),
+      );
       await until(
         tester,
         () =>
@@ -242,7 +255,9 @@ void main() {
     final handler = tester.state(
       find.byType(LevelCreatorPage),
     ) as EditorPagePlaytestHandler;
-    handler.handlePlaytestShortcut(LogicalKeyboardKey.f5);
+    await tester.runAsync(
+      () async => handler.handlePlaytestShortcut(LogicalKeyboardKey.f5),
+    );
     await until(tester, () => started);
     expect(find.text('Preparing level playtest'), findsOneWidget);
     expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.escape), isTrue);

@@ -49,7 +49,9 @@ void main() {
         document: repositoryDocument,
         workspaceRoot: workspaceRoot,
         selectedChunkKey: repositoryDocument.chunks
-            .singleWhere((chunk) => chunk.levelId == 'forest')
+            .singleWhere(
+              (chunk) => chunk.chunkKey == 'forest_rocky_grove_easy_001',
+            )
             .chunkKey,
       ),
     );
@@ -114,8 +116,10 @@ void main() {
       });
       await tester.pump();
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_playtest_button')),
+      await tester.runAsync(
+        () async => tester.tap(
+          find.byKey(const ValueKey<String>('chunk_playtest_button')),
+        ),
       );
       await tester.pump();
       final pageHandler = _pageHandler(tester);
@@ -226,8 +230,10 @@ void main() {
       workspaceFinder,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_playtest_button')),
+    await tester.runAsync(
+      () async => tester.tap(
+        find.byKey(const ValueKey<String>('chunk_playtest_button')),
+      ),
     );
     await tester.pump();
     expect(find.text('Preparing chunk playtest'), findsOneWidget);
@@ -241,7 +247,9 @@ void main() {
     expect(_pageHandler(tester).locksEditorShell, isFalse);
     completer.complete(repositoryPrepared);
     await tester.pump();
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     await tester.pump();
 
     expect(find.byType(RunnerPlaytestHost), findsNothing);
@@ -277,8 +285,10 @@ void main() {
         AppLifecycleState.hidden,
         AppLifecycleState.detached,
       ]) {
-        await tester.tap(
-          find.byKey(const ValueKey<String>('chunk_playtest_button')),
+        await tester.runAsync(
+          () async => tester.tap(
+            find.byKey(const ValueKey<String>('chunk_playtest_button')),
+          ),
         );
         await tester.pump();
         await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
@@ -350,8 +360,10 @@ void main() {
       },
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_playtest_button')),
+    await tester.runAsync(
+      () async => tester.tap(
+        find.byKey(const ValueKey<String>('chunk_playtest_button')),
+      ),
     );
     await _pumpUntilVisible(
       tester,
@@ -360,8 +372,10 @@ void main() {
     expect(find.text('Chunk playtest could not start'), findsOneWidget);
     expect(find.textContaining('fixture_blocked'), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_playtest_retry_button')),
+    await tester.runAsync(
+      () async => tester.tap(
+        find.byKey(const ValueKey<String>('chunk_playtest_retry_button')),
+      ),
     );
     await tester.pump();
     await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
@@ -411,7 +425,7 @@ void main() {
     expect(workspace.playtestReadiness.isReady, isFalse);
     final play = find.byKey(const ValueKey<String>('chunk_playtest_button'));
     expect(tester.widget<FilledButton>(play).onPressed, isNotNull);
-    await tester.tap(play);
+    await tester.runAsync(() async => tester.tap(play));
     await tester.pumpAndSettle();
     expect(capturedInput, isNull);
     expect(find.text('Enter a whole number.'), findsOneWidget);
@@ -422,7 +436,7 @@ void main() {
     await tester.enterText(groundBand, '0');
     await tester.enterText(tags, 'focused_play_input');
     await tester.pump();
-    await tester.tap(play);
+    await tester.runAsync(() async => tester.tap(play));
     await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
     expect(
       capturedInput!.chunkSources.values.join(),
@@ -549,7 +563,7 @@ void _stageAcceptedPendingChange(EditorSessionController session) {
   );
   final document = session.document! as ChunkV2Document;
   final chunk = document.chunks.singleWhere(
-    (candidate) => candidate.levelId == 'forest',
+    (candidate) => candidate.chunkKey == 'forest_rocky_grove_easy_001',
   );
   final before = ChunkV2MetadataSnapshot.fromChunk(chunk);
   final tags = <String>[...before.tags, 'phase5_pending']..sort();
@@ -623,9 +637,13 @@ Future<void> _pumpUntilHostPhase(
   WidgetTester tester,
   RunnerPlaytestPhase phase,
 ) async {
-  for (var attempt = 0; attempt < 240; attempt += 1) {
+  // Source capture and isolate decoding use real I/O, not simulated frame time.
+  final watch = Stopwatch()..start();
+  while (watch.elapsed < const Duration(seconds: 30)) {
     await tester.pump(const Duration(milliseconds: 25));
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     final hostFinder = find.byType(RunnerPlaytestHost);
     if (hostFinder.evaluate().isEmpty) continue;
     final controller = tester.widget<RunnerPlaytestHost>(hostFinder).controller;
@@ -644,7 +662,9 @@ Future<void> _pumpUntilHostPhase(
 Future<void> _pumpUntilHostRemoved(WidgetTester tester) async {
   for (var attempt = 0; attempt < 120; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 25));
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     if (find.byType(RunnerPlaytestHost).evaluate().isEmpty) {
       await tester.pump();
       await tester.pump();

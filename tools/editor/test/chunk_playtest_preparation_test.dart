@@ -29,7 +29,7 @@ void main() {
     captured = await captureChunkPlaytestPreparationInput(
       document: repositoryDocument,
       selectedChunkKey: repositoryDocument.chunks
-          .singleWhere((c) => c.levelId == 'forest')
+          .singleWhere((c) => c.chunkKey == 'forest_rocky_grove_easy_001')
           .chunkKey,
       workspaceRoot: workspaceRoot,
     );
@@ -57,7 +57,7 @@ void main() {
     'accepted Chunk edits compile without changing persisted baseline',
     () async {
       final source = repositoryDocument.chunks.singleWhere(
-        (c) => c.levelId == 'forest',
+        (c) => c.chunkKey == 'forest_rocky_grove_easy_001',
       );
       final edited = source.copyWith(revision: source.revision + 1);
       final input = await captureChunkPlaytestPreparationInput(
@@ -87,7 +87,7 @@ void main() {
 
   test('new level, first chunk, and theme need no generated identities', () {
     final chunk = repositoryDocument.chunks
-        .singleWhere((c) => c.levelId == 'forest')
+        .singleWhere((c) => c.chunkKey == 'forest_rocky_grove_easy_001')
         .copyWith(
           chunkKey: 'prototype_first',
           id: 'first',
