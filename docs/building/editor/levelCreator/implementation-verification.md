@@ -140,3 +140,86 @@ Additional affected-layer validation completed during implementation:
 The remaining work is the Phase 6 independent creator session, including real
 workflow observations and responsiveness measurements. Address findings from
 that session before closing and archiving the Level plan.
+
+## Phase 6 continuation — native and larger-pool evidence
+
+On September 9, the native profile acceptance was extended from Chunk Play to
+both Chunk and Level Play. The existing test's removed `forest_early_00.json`
+fixture reference was replaced with complete current chunk-tree hashing and
+the Level/theme/material sources plus all seven generated outputs. Its document
+baseline is taken after startup selection restoration, before entering Play.
+
+The Windows profile build and both lifecycle cases passed. Chunk reached Ready
+in 1,233,708 microseconds; Level reached Ready in 991,839 microseconds. Each
+case exercised keyboard rollover, both mouse buttons, resize/DPI changes,
+deactivation pause, explicit resume, frozen restart at tick zero, and Stop
+restoring the same page/document. Source hashes stayed equal. Lifecycle shortcuts
+are delivered through the route contract; deactivation is an injected app event,
+not a literal operating-system Alt+Tab action.
+
+The driver persisted both results in `.tmp/windows_chunk_playtest_phase6.json`.
+As in the earlier Windows acceptance, the integration plugin warning appeared
+after the tests completed; the driver connected, received both result payloads,
+and exited successfully. Native Level editing/Ready captures under
+`.tmp/level-native-acceptance/` were inspected. The native harness mounts the
+individual routes; full-shell handoffs remain covered by the separate shell
+journey tests. Ready text was simplified to "Click Start or press Enter."
+
+Reproduce native automation from `tools/editor`:
+
+```powershell
+flutter drive --profile --no-pub `
+  --driver=test_driver/chunk_playtest_windows_acceptance_driver.dart `
+  --target=integration_test/chunk_playtest_windows_acceptance_test.dart -d windows
+```
+
+The opt-in `level_playtest_performance_test.dart` profiles disposable current
+sources at three pool sizes. Every chunk has flat terrain in one group; the
+material and runtime sprites are reused. Each size has one warmup and five
+observations. Compilation and complete image capture use the production
+background preparation path. No native build ran concurrently with this profile.
+
+Environment: Windows 11 Famille build 26200, 16 logical processors, Dart 3.13.1
+stable on windows_x64. The fixture adds source cardinality, not complex geometry,
+many independent textures, or many active enemies.
+
+| Chunks | Median source capture | Median prepare with assets | Maximum prepare with assets | Session cancellation |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 21.50 ms | 290.99 ms | 314.54 ms | 0.453 ms |
+| 25 | 91.55 ms | 507.46 ms | 584.65 ms | 0.016 ms |
+| 100 | 286.25 ms | 2,630.59 ms | 2,827.71 ms | 0.006 ms |
+
+All three cancellations occurred during real preparation. They immediately
+returned the session to Edit, and the completed background result neither
+mounted a controller nor replaced the edit state. These cancellation values
+measure the session transition, not screen-paint latency or termination of the
+background worker. The worker finishes and its result is discarded. The initial
+default 30-second test timeout was insufficient for all warmups/observations;
+an initial expanded run passed in 38 seconds. The final rerun passed in 28
+seconds with a three-minute harness limit. The earlier 100-chunk median was
+3.21 seconds versus 2.63 seconds in the final run, illustrating normal run-to-run
+variation. The table records the final run.
+
+```powershell
+$env:LEVEL_EDITOR_PROFILE = '1'
+flutter test test/level_playtest_performance_test.dart --no-pub
+Remove-Item Env:LEVEL_EDITOR_PROFILE
+```
+
+These observations are machine-specific; no portable performance threshold or
+human time-to-first-Play is inferred. A [creator session](creator-acceptance-session.md)
+and a disposable checkout at `.tmp/level-creator-acceptance` are prepared for
+independent observations. Its locked dependencies were provisioned offline.
+
+The disposable checkout also completed its initial content generation and a
+subsequent dry-run with no blockers. Fresh checkout CRLF bytes were normalized
+by the canonical generator; its tracked content is unchanged after Git newline
+normalization. The main authoring sources were not changed.
+
+Continuation checks: editor analyzer clean; 749 editor tests passed with two
+opt-in cases skipped; the new performance case passed separately; all seven
+shared Play host regressions passed. Native profile acceptance passed both
+Chunk and Level cases.
+The final release editor rebuilt successfully in 114.3 seconds; scoped Play-host
+analysis was clean. `.tmp/Open Level Creator acceptance.lnk` targets this release
+and starts it in the prepared disposable checkout.

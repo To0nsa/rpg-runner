@@ -51,7 +51,7 @@ Keep the editor small, focused, and extensible.
 - chunk roadmap/checklists: `docs/building/editor/chunkCreator/**` when changing
   prefab/chunk contracts or milestone status
 - Windows playtest roadmap/checklists:
-  `docs/building/editor/windowsChunkPlaytest/**` when changing desktop input,
+  `docs/building/archived/editor/windowsChunkPlaytest/**` when changing desktop input,
   preview preparation, or Play mode
 - active Level Creator implementation and acceptance:
   `docs/building/editor/levelCreator/ui-ux-redesign-plan.md` and its checklist

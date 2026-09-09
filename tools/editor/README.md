@@ -175,6 +175,11 @@ dart run tool/generate_chunk_runtime_data.dart --dry-run
 See [workspace contracts](../../docs/tdd/editor_level_workspace.md) and
 [Build contracts](../../docs/tdd/editor_content_build.md).
 
+The remaining independent creator pass uses the
+[acceptance session](../../docs/building/editor/levelCreator/creator-acceptance-session.md).
+Native Windows and larger-pool preparation measurements are recorded separately
+in the [verification ledger](../../docs/building/editor/levelCreator/implementation-verification.md).
+
 ## Entity Collider Preview
 
 The entity scene presents combat geometry using the runtime field meanings:
@@ -680,22 +685,18 @@ unsaved-work guard, loads the current Prefab-v3 document, and selects the exact
 stable source owner for shape editing. Chunk placements continue to own
 transforms only; the editor does not create per-instance polygon overrides.
 
-Normal loading now detects strict Prefab-v3 and complete Chunk-v2 source and
-selects these polygon workflows. Changed current documents can be applied only
-through their confirmed, source-drift-guarded transactional stores, then are
+Normal loading detects strict Prefab-v3 and complete Chunk-v2 source and
+selects these polygon workflows. Save writes changed current documents
+through their source-drift-guarded transactional stores, then they are
 reloaded from the exact installed bytes. Legacy or missing source opens one
 shared migration-required workspace with no editable data, pending diff, or
 export path. It shows the read-only readiness command and can atomically
 recheck source after an external migration; it never exposes Prefab-v2
 rectangle or Chunk-v1 ground/gap controls. The one-time migration command is
-complete; live polygon runtime authority remains unavailable.
+complete. Authored Play compiles current polygons into the deterministic Core
+through the shared content pipeline.
 
 The release-signoff walkthrough uses a disposable Git worktree so a
-non-developer can exercise diagnostics, editing, apply/reload, narrow-window,
-and keyboard behavior without changing the main workspace. See the
-[Phase 4 manual polygon usability pass](../../docs/building/slopes/phase4-manual-usability-pass.md).
-
-The release-signoff walkthrough uses a disposable Git worktree so a
-non-developer can exercise diagnostics, editing, apply/reload, narrow-window,
+creator can exercise diagnostics, editing, Save/reload, narrow-window,
 and keyboard behavior without changing the main workspace. See the
 [Phase 4 manual polygon usability pass](../../docs/building/slopes/phase4-manual-usability-pass.md).

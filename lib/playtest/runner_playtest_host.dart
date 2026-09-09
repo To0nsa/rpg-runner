@@ -665,7 +665,7 @@ class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
       case RunnerPlaytestPhase.ready:
         return _RunnerPlaytestPanel(
           title: 'Ready',
-          detail: 'Click Start or press Enter from the editor host.',
+          detail: 'Click Start or press Enter.',
           actions: <Widget>[
             FilledButton(onPressed: start, child: const Text('Start')),
             OutlinedButton(onPressed: stop, child: const Text('Stop')),

@@ -5,6 +5,10 @@ Status: Implementation and automated regression verification complete; independe
 
 Evidence: [Implementation verification](implementation-verification.md), updated September 9, 2026.
 
+The [creator session](creator-acceptance-session.md) is prepared in a disposable
+workspace. Native Windows Play and larger-pool profiling have passed; human
+observations remain unrecorded.
+
 Source: [UI/UX redesign plan](ui-ux-redesign-plan.md), incorporating
 [workflow audit findings F1–F6](ui-ux-workflow-audit.md).
 
@@ -333,7 +337,9 @@ the actual sequence; a static sample or single-chunk loop does not satisfy it.
       and Built; confirm default/last-included-level errors are actionable. (F4)
 - [x] Validate 1440×900, 1280×800, 1024×768, 800×600, text scaling, keyboard,
       focus, color-independent state, and preview state retention.
-- [ ] Record time-to-first-Play/confusion points and measure preview/preparation/
+- [x] Measure native Play readiness and preparation/session cancellation for
+      1, 25, and 100 chunks; record fixture and measurement limitations.
+- [ ] Record human time-to-first-Play, confusion points, and perceived preview/
       cancel responsiveness on the reference Windows machine with larger fixtures.
 - [ ] Exercise real handoffs and recovery states in the implemented workflow;
       an illustrative concept's mock Play/starter interactions do not establish
