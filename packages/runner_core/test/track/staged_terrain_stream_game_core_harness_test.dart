@@ -59,7 +59,7 @@ void main() {
     var restorationCount = 0;
     const markerPattern = ChunkPattern(
       name: 'forest_flat_marker_fixture',
-      chunkKey: 'forest_earlt_flat',
+      chunkKey: 'forest_early_flat',
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,
@@ -131,7 +131,7 @@ void main() {
   test('normal construction admits current streamed enemy policies', () {
     const pattern = ChunkPattern(
       name: 'all_enemy_policies',
-      chunkKey: 'forest_earlt_flat',
+      chunkKey: 'forest_early_flat',
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,

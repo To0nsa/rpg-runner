@@ -14,7 +14,7 @@ import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:test/test.dart';
 
-const _selectedKey = 'forest_earlt_flat';
+const _selectedKey = 'forest_early_flat';
 const _draftMaterial = 'chunk_playtest_draft_material';
 const _draftAsset = 'playtest/draft-only.png';
 

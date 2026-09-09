@@ -31,8 +31,8 @@ void main() {
     );
 
     expect(catalog.chunksByKey, hasLength(stagedAuthoredTerrain.chunks.length));
-    expect(geometry.polygons, hasLength(3));
-    expect(geometry.edges, hasLength(10));
+    expect(geometry.polygons, hasLength(48));
+    expect(geometry.edges, hasLength(451));
     expect(
       geometry.polygons.map((polygon) => polygon.identity.chunkKey).toSet(),
       stagedAuthoredTerrain.chunks.map((chunk) => chunk.chunkKey).toSet(),
@@ -43,7 +43,7 @@ void main() {
             polygon.surfaceKind == 'ground' &&
             polygon.materialKey == 'grass_dirt',
       ),
-      hasLength(3),
+      hasLength(15),
     );
     expect(
       geometry.polygons.where(

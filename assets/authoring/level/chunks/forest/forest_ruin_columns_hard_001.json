@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_columns_hard_001",
+  "id": "forest_ruin_columns_hard_001",
+  "revision": 36,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_ground_platform_06_32x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_06_32x32_platform",
+      "x": 352,
+      "y": 128,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "ancient_forest_ruin_pillar_01",
+      "prefabKey": "ancient_forest_ruin_pillar_01",
+      "x": 432,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 224,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "ancient_forest_ruin_pillar_02",
+      "prefabKey": "ancient_forest_ruin_pillar_02",
+      "x": 144,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

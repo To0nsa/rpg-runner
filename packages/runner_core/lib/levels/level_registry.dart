@@ -7,7 +7,7 @@ library;
 
 import '../track/authored_chunk_patterns.dart';
 import '../track/chunk_pattern_source.dart';
-
+import 'level_assembly.dart';
 import 'level_availability.dart';
 import 'level_definition.dart';
 import 'level_id.dart';
@@ -53,6 +53,18 @@ class LevelRegistry {
           normalPatternChunks: 15,
           noEnemyChunks: 3,
           visualThemeId: 'forest',
+          assembly: const LevelAssemblyDefinition(
+            loopSegments: false,
+            segments: <LevelAssemblySegment>[
+              LevelAssemblySegment(
+                segmentId: 'default',
+                groupId: 'default',
+                minChunkCount: 1,
+                maxChunkCount: 1,
+                requireDistinctChunks: false,
+              ),
+            ],
+          ),
         );
       case LevelId.field:
         return LevelDefinition(

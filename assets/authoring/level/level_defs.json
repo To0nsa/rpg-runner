@@ -3,10 +3,10 @@
   "levels": [
     {
       "levelId": "field",
-      "revision": 5,
+      "revision": 10,
       "displayName": "Field",
       "visualThemeId": "field",
-      "chunkThemeGroups": ["default"],
+      "chunkThemeGroups": ["default", "cimetery", "field", "grove", "rocky_grove", "ruins"],
       "cameraCenterY": 135,
       "groundTopY": 222,
       "earlyPatternChunks": 3,
@@ -19,10 +19,10 @@
     },
     {
       "levelId": "forest",
-      "revision": 3,
+      "revision": 6,
       "displayName": "Forest",
       "visualThemeId": "forest",
-      "chunkThemeGroups": ["default", "ruin", "trainingcamp", "woodcamp"],
+      "chunkThemeGroups": ["default", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -31,7 +31,19 @@
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
       "includeInBuild": true,
-      "status": "active"
+      "status": "active",
+      "assembly": {
+        "loopSegments": false,
+        "segments": [
+          {
+            "segmentId": "default",
+            "groupId": "default",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": false
+          }
+        ]
+      }
     },
     {
       "levelId": "new_level",

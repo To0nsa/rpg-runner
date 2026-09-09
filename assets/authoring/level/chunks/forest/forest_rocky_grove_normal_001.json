@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_rocky_grove_normal_001",
+  "id": "forest_rocky_grove_normal_001",
+  "revision": 10,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "assemblyGroupId": "rocky_grove",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_tree_02",
+      "prefabKey": "tiny_swords_tree_02",
+      "x": 352,
+      "y": 128,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "dark_forest_rock_04",
+      "prefabKey": "dark_forest_rock_04",
+      "x": 448,
+      "y": 157,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_tree_01",
+      "prefabKey": "tiny_swords_tree_01",
+      "x": 112,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "dark_forest_rock_02",
+      "prefabKey": "dark_forest_rock_02",
+      "x": 208,
+      "y": 169,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 64,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "dark_forest_herb_05",
+      "prefabKey": "dark_forest_herb_05",
+      "x": 144,
+      "y": 224,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "dark_forest_herb_04",
+      "prefabKey": "dark_forest_herb_04",
+      "x": 240,
+      "y": 224,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

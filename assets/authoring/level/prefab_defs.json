@@ -329,9 +329,9 @@
       "id": "dark_forest_rock_01",
       "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
       "x": 0,
-      "y": 192,
-      "width": 144,
-      "height": 144,
+      "y": 200,
+      "width": 136,
+      "height": 136,
       "tags": [
         "dark_forest",
         "rock_terrain"
@@ -341,9 +341,9 @@
       "id": "dark_forest_rock_02",
       "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
       "x": 144,
-      "y": 192,
+      "y": 200,
       "width": 128,
-      "height": 128,
+      "height": 120,
       "tags": [
         "dark_forest",
         "rock_terrain"
@@ -353,9 +353,9 @@
       "id": "dark_forest_rock_03",
       "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
       "x": 272,
-      "y": 192,
+      "y": 200,
       "width": 64,
-      "height": 128,
+      "height": 120,
       "tags": [
         "dark_forest",
         "rock_terrain"
@@ -365,9 +365,9 @@
       "id": "dark_forest_rock_04",
       "sourceImagePath": "assets/images/level/atlases/dark_forest/rock_terrain.png",
       "x": 0,
-      "y": 336,
-      "width": 240,
-      "height": 144,
+      "y": 340,
+      "width": 228,
+      "height": 140,
       "tags": [
         "dark_forest",
         "rock_terrain"
@@ -2785,7 +2785,7 @@
     {
       "prefabKey": "dark_forest_rock_01",
       "id": "dark_forest_rock_01",
-      "revision": 2,
+      "revision": 4,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2801,79 +2801,79 @@
           "vertices": [
             {
               "x": -72,
-              "y": 68
+              "y": 60
             },
             {
               "x": -56,
-              "y": 58
+              "y": 50
             },
             {
               "x": -53,
-              "y": 53
+              "y": 45
             },
             {
               "x": -52,
-              "y": 39
+              "y": 31
             },
             {
               "x": -53,
-              "y": 29
+              "y": 21
             },
             {
               "x": -47,
-              "y": 0
+              "y": -8
             },
             {
               "x": -51,
-              "y": -14
-            },
-            {
-              "x": -49,
-              "y": -35
-            },
-            {
-              "x": -11,
-              "y": -52
-            },
-            {
-              "x": 40,
-              "y": -53
-            },
-            {
-              "x": 45,
-              "y": -51
-            },
-            {
-              "x": 48,
-              "y": -41
-            },
-            {
-              "x": 47,
-              "y": -27
-            },
-            {
-              "x": 49,
               "y": -22
             },
             {
+              "x": -49,
+              "y": -43
+            },
+            {
+              "x": -11,
+              "y": -60
+            },
+            {
+              "x": 40,
+              "y": -61
+            },
+            {
+              "x": 45,
+              "y": -59
+            },
+            {
+              "x": 48,
+              "y": -49
+            },
+            {
+              "x": 47,
+              "y": -35
+            },
+            {
+              "x": 49,
+              "y": -30
+            },
+            {
               "x": 52,
-              "y": -9
+              "y": -17
             },
             {
               "x": 56,
-              "y": 15
+              "y": 7
             },
             {
               "x": 54,
-              "y": 20
+              "y": 12
             },
             {
               "x": 60,
-              "y": 71
+              "y": 63
             },
             {
               "x": -72,
-              "y": 72
+              "y": 64
             }
           ]
         }
@@ -2886,16 +2886,71 @@
     {
       "prefabKey": "dark_forest_rock_02",
       "id": "dark_forest_rock_02",
-      "revision": 1,
+      "revision": 14,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "dark_forest_rock_02"
       },
       "anchorXPx": 64,
       "anchorYPx": 64,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -63,
+              "y": 55
+            },
+            {
+              "x": -57,
+              "y": 40
+            },
+            {
+              "x": -39,
+              "y": 24
+            },
+            {
+              "x": -33,
+              "y": -9
+            },
+            {
+              "x": -36,
+              "y": -18
+            },
+            {
+              "x": -27,
+              "y": -39
+            },
+            {
+              "x": -14,
+              "y": -46
+            },
+            {
+              "x": 24,
+              "y": -47
+            },
+            {
+              "x": 38,
+              "y": -33
+            },
+            {
+              "x": 44,
+              "y": 24
+            },
+            {
+              "x": 58,
+              "y": 48
+            },
+            {
+              "x": 62,
+              "y": 55
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark_forest",
         "rock_terrain"
@@ -2904,7 +2959,7 @@
     {
       "prefabKey": "dark_forest_rock_03",
       "id": "dark_forest_rock_03",
-      "revision": 9,
+      "revision": 14,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2919,92 +2974,92 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -32,
-              "y": -23
+              "x": -31,
+              "y": -30
             },
             {
-              "x": -23,
-              "y": -29
-            },
-            {
-              "x": -10,
-              "y": -32
-            },
-            {
-              "x": 6,
+              "x": -29,
               "y": -35
             },
             {
-              "x": 14,
+              "x": -24,
               "y": -38
             },
             {
-              "x": 19,
-              "y": -40
+              "x": -11,
+              "y": -41
             },
             {
-              "x": 23,
-              "y": -26
+              "x": 5,
+              "y": -44
             },
             {
-              "x": 26,
-              "y": -13
+              "x": 13,
+              "y": -47
+            },
+            {
+              "x": 18,
+              "y": -49
+            },
+            {
+              "x": 22,
+              "y": -35
             },
             {
               "x": 25,
-              "y": 24
+              "y": -22
+            },
+            {
+              "x": 24,
+              "y": 15
+            },
+            {
+              "x": 27,
+              "y": 21
             },
             {
               "x": 28,
-              "y": 30
+              "y": 40
             },
             {
-              "x": 29,
-              "y": 49
+              "x": 31,
+              "y": 55
             },
             {
-              "x": 32,
-              "y": 64
+              "x": -11,
+              "y": 55
             },
             {
-              "x": -13,
-              "y": 63
-            },
-            {
-              "x": -24,
-              "y": 49
-            },
-            {
-              "x": -29,
-              "y": 34
-            },
-            {
-              "x": -27,
-              "y": 32
-            },
-            {
-              "x": -29,
-              "y": 32
-            },
-            {
-              "x": -26,
-              "y": 3
-            },
-            {
-              "x": -24,
-              "y": 1
-            },
-            {
-              "x": -27,
-              "y": 2
-            },
-            {
-              "x": -29,
-              "y": -6
+              "x": -25,
+              "y": 40
             },
             {
               "x": -30,
-              "y": -21
+              "y": 25
+            },
+            {
+              "x": -28,
+              "y": 23
+            },
+            {
+              "x": -30,
+              "y": 23
+            },
+            {
+              "x": -27,
+              "y": -6
+            },
+            {
+              "x": -25,
+              "y": -8
+            },
+            {
+              "x": -28,
+              "y": -7
+            },
+            {
+              "x": -30,
+              "y": -15
             }
           ]
         }
@@ -3017,16 +3072,95 @@
     {
       "prefabKey": "dark_forest_rock_04",
       "id": "dark_forest_rock_04",
-      "revision": 1,
+      "revision": 17,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "dark_forest_rock_04"
       },
       "anchorXPx": 120,
       "anchorYPx": 72,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -120,
+              "y": 67
+            },
+            {
+              "x": -117,
+              "y": 56
+            },
+            {
+              "x": -99,
+              "y": 43
+            },
+            {
+              "x": -93,
+              "y": 25
+            },
+            {
+              "x": -90,
+              "y": -8
+            },
+            {
+              "x": -85,
+              "y": -15
+            },
+            {
+              "x": -79,
+              "y": -26
+            },
+            {
+              "x": -54,
+              "y": -31
+            },
+            {
+              "x": 3,
+              "y": -36
+            },
+            {
+              "x": 25,
+              "y": -50
+            },
+            {
+              "x": 42,
+              "y": -59
+            },
+            {
+              "x": 76,
+              "y": -58
+            },
+            {
+              "x": 89,
+              "y": -49
+            },
+            {
+              "x": 88,
+              "y": -33
+            },
+            {
+              "x": 96,
+              "y": 6
+            },
+            {
+              "x": 96,
+              "y": 31
+            },
+            {
+              "x": 103,
+              "y": 64
+            },
+            {
+              "x": 103,
+              "y": 67
+            }
+          ]
+        }
+      ],
       "tags": [
         "dark_forest",
         "rock_terrain"
@@ -3035,7 +3169,7 @@
     {
       "prefabKey": "dark_forest_trees_01",
       "id": "dark_forest_trees_01",
-      "revision": 2,
+      "revision": 9,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -3050,8 +3184,8 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -137,
-              "y": 123
+              "x": -132,
+              "y": 111
             },
             {
               "x": -128,
@@ -3072,26 +3206,6 @@
             {
               "x": -96,
               "y": -14
-            },
-            {
-              "x": -101,
-              "y": -23
-            },
-            {
-              "x": -89,
-              "y": -24
-            },
-            {
-              "x": -100,
-              "y": -46
-            },
-            {
-              "x": -85,
-              "y": -43
-            },
-            {
-              "x": -82,
-              "y": -47
             },
             {
               "x": -64,
@@ -3134,8 +3248,8 @@
               "y": 95
             },
             {
-              "x": 77,
-              "y": 115
+              "x": 74,
+              "y": 112
             }
           ]
         }
@@ -3148,9 +3262,9 @@
     {
       "prefabKey": "dark_forest_trees_02",
       "id": "dark_forest_trees_02",
-      "revision": 1,
+      "revision": 5,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "dark_forest_trees_02"
@@ -3166,9 +3280,9 @@
     {
       "prefabKey": "dark_forest_trees_03",
       "id": "dark_forest_trees_03",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "dark_forest_trees_03"
@@ -3184,9 +3298,9 @@
     {
       "prefabKey": "dark_forest_trees_04",
       "id": "dark_forest_trees_04",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "dark_forest_trees_04"
