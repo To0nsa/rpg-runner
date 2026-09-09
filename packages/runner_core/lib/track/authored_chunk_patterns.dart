@@ -6,6 +6,7 @@
 /// - assets/authoring/level/tile_defs.json
 library;
 
+import '../enemies/enemy_id.dart';
 import 'chunk_pattern.dart';
 import 'chunk_pattern_source.dart';
 
@@ -118,6 +119,62 @@ const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
         y: 200.0,
         width: 144.0,
         height: 48.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.unocoDemon, x: 336.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_rocky_grove_easy_002',
+    chunkKey: 'forest_rocky_grove_easy_002',
+    assemblyGroupId: 'rocky_grove',
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 0,
+        srcY: 304,
+        srcWidth: 136,
+        srcHeight: 184,
+        x: 220.0,
+        y: 20.0,
+        width: 136.0,
+        height: 184.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/rock_terrain.png',
+        srcX: 272,
+        srcY: 200,
+        srcWidth: 64,
+        srcHeight: 120,
+        x: 416.0,
+        y: 105.0,
+        width: 64.0,
+        height: 120.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.grojib, x: 119.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_rocky_grove_easy_003',
+    chunkKey: 'forest_rocky_grove_easy_003',
+    assemblyGroupId: 'rocky_grove',
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/rock_terrain.png',
+        srcX: 0,
+        srcY: 340,
+        srcWidth: 228,
+        srcHeight: 140,
+        x: 24.0,
+        y: 85.0,
+        width: 228.0,
+        height: 140.0,
         zIndex: 0,
       ),
     ],
@@ -245,6 +302,7 @@ const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.hashash, x: 385.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
 ];
@@ -337,6 +395,60 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
         y: 200.0,
         width: 144.0,
         height: 48.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_rocky_grove_normal_002',
+    chunkKey: 'forest_rocky_grove_normal_002',
+    assemblyGroupId: 'rocky_grove',
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 0,
+        srcY: 304,
+        srcWidth: 136,
+        srcHeight: 184,
+        x: 220.0,
+        y: 20.0,
+        width: 136.0,
+        height: 184.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/rock_terrain.png',
+        srcX: 272,
+        srcY: 200,
+        srcWidth: 64,
+        srcHeight: 120,
+        x: 464.0,
+        y: 105.0,
+        width: 64.0,
+        height: 120.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_rocky_grove_normal_003',
+    chunkKey: 'forest_rocky_grove_normal_003',
+    assemblyGroupId: 'rocky_grove',
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/rock_terrain.png',
+        srcX: 0,
+        srcY: 340,
+        srcWidth: 228,
+        srcHeight: 140,
+        x: 24.0,
+        y: 85.0,
+        width: 228.0,
+        height: 140.0,
         zIndex: 0,
       ),
     ],
@@ -596,6 +708,89 @@ const List<ChunkPattern> forestHardPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.derf, x: 215.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.obstacleTop),
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_rocky_grove_hard_002',
+    chunkKey: 'forest_rocky_grove_hard_002',
+    assemblyGroupId: 'rocky_grove',
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 0,
+        srcY: 304,
+        srcWidth: 136,
+        srcHeight: 184,
+        x: 220.0,
+        y: 20.0,
+        width: 136.0,
+        height: 184.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/rock_terrain.png',
+        srcX: 272,
+        srcY: 200,
+        srcWidth: 64,
+        srcHeight: 120,
+        x: 512.0,
+        y: 105.0,
+        width: 64.0,
+        height: 120.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.grojib, x: 465.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_rocky_grove_hard_003',
+    chunkKey: 'forest_rocky_grove_hard_003',
+    assemblyGroupId: 'rocky_grove',
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 416,
+        srcY: 336,
+        srcWidth: 128,
+        srcHeight: 168,
+        x: 400.0,
+        y: 34.0,
+        width: 128.0,
+        height: 168.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/tiny_swords/ground.png',
+        srcX: 128,
+        srcY: 96,
+        srcWidth: 32,
+        srcHeight: 32,
+        x: 16.0,
+        y: 128.0,
+        width: 32.0,
+        height: 32.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/rock_terrain.png',
+        srcX: 0,
+        srcY: 340,
+        srcWidth: 228,
+        srcHeight: 140,
+        x: 52.0,
+        y: 85.0,
+        width: 228.0,
+        height: 140.0,
+        zIndex: 0,
+        flipX: true,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.unocoDemon, x: 32.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+      SpawnMarker(enemyId: EnemyId.hashash, x: 192.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -665,6 +860,7 @@ const List<ChunkPattern> forestHardPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.derf, x: 244.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.obstacleTop),
     ],
   ),
   ChunkPattern(
@@ -722,6 +918,9 @@ const List<ChunkPattern> forestHardPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.hashash, x: 221.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+      SpawnMarker(enemyId: EnemyId.unocoDemon, x: 504.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+      SpawnMarker(enemyId: EnemyId.grojib, x: 63.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(

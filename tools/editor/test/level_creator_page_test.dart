@@ -70,6 +70,48 @@ void main() {
     },
   );
 
+  testWidgets('level Advanced expands after leaving section settings', (
+    tester,
+  ) async {
+    final document = _initialDocument.copyWith(
+      levels: [
+        for (final level in _initialDocument.levels)
+          if (level.levelId == 'forest')
+            level.copyWith(
+              chunkThemeGroups: const ['default', 'rocky_grove'],
+              assembly: const LevelAssemblyDef(
+                segments: [
+                  LevelAssemblySegmentDef(
+                    segmentId: 'rocky_grove',
+                    groupId: 'rocky_grove',
+                    minChunkCount: 1,
+                    maxChunkCount: 1,
+                    requireDistinctChunks: false,
+                  ),
+                ],
+              ),
+            )
+          else
+            level,
+      ],
+    );
+    await _mountLevelPage(tester, plugin: _InMemoryLevelPlugin(document));
+    await _showTab(tester, 'Flow');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('level_section_rocky_grove')),
+    );
+    await _flush(tester);
+
+    await tester.enterText(_textFieldByLabel('maxChunkCount'), '2');
+    await tester.tap(find.byTooltip('Show level settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Advanced').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level ID'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'section diagnostic opens its exact field and reveals compact Settings',
     (tester) async {

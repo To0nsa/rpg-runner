@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_statue_easy_001",
   "id": "forest_ruin_statue_easy_001",
-  "revision": 46,
+  "revision": 47,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -39,7 +39,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "hashash",
+      "x": 385,
+      "y": 91,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

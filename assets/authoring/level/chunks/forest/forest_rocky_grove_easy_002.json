@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_002",
   "id": "forest_rocky_grove_easy_002",
-  "revision": 32,
+  "revision": 33,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -30,7 +30,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 119,
+      "y": 130,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

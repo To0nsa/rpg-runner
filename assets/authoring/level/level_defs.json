@@ -19,7 +19,7 @@
     },
     {
       "levelId": "forest",
-      "revision": 13,
+      "revision": 39,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
@@ -31,7 +31,67 @@
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
       "includeInBuild": true,
-      "status": "active"
+      "status": "active",
+      "assembly": {
+        "loopSegments": false,
+        "segments": [
+          {
+            "segmentId": "default",
+            "groupId": "default",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "default_2",
+            "groupId": "rocky_grove",
+            "difficulty": "easy",
+            "minChunkCount": 3,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "rocky_grove",
+            "groupId": "ruin",
+            "difficulty": "easy",
+            "minChunkCount": 3,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "ruin_2",
+            "groupId": "rocky_grove",
+            "difficulty": "normal",
+            "minChunkCount": 3,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "ruin",
+            "groupId": "ruin",
+            "difficulty": "normal",
+            "minChunkCount": 3,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "ruin_3",
+            "groupId": "rocky_grove",
+            "difficulty": "hard",
+            "minChunkCount": 3,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "rocky_grove_2",
+            "groupId": "ruin",
+            "difficulty": "hard",
+            "minChunkCount": 3,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          }
+        ]
+      }
     },
     {
       "levelId": "new_level",

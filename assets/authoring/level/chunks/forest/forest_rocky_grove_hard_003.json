@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_003",
   "id": "forest_rocky_grove_hard_003",
-  "revision": 19,
+  "revision": 26,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -39,7 +39,24 @@
       "flipX": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 32,
+      "y": 49,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    },
+    {
+      "markerId": "hashash",
+      "x": 192,
+      "y": 66,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",
