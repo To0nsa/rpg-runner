@@ -10,12 +10,11 @@ import '../../../../chunks/chunk_v2_models.dart';
 ///
 /// Dimensions, composition, markers, and collision geometry are excluded so
 /// an inline owner edit cannot mutate them accidentally. Identity changes are
-/// explicit fields and are committed atomically with the metadata below.
+/// represented by one Chunk key committed atomically with the metadata below.
 @immutable
 final class ChunkV2OwnerFormValue {
   ChunkV2OwnerFormValue({
     required this.chunkKey,
-    required this.id,
     required this.status,
     required this.levelId,
     required this.difficulty,
@@ -25,7 +24,6 @@ final class ChunkV2OwnerFormValue {
   }) : tags = List<String>.unmodifiable(tags);
 
   final String chunkKey;
-  final String id;
   final String status;
   final String levelId;
   final String difficulty;
@@ -70,7 +68,6 @@ class ChunkV2OwnerForm extends StatefulWidget {
 class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _chunkKeyController;
-  late final TextEditingController _idController;
   late final TextEditingController _tagsController;
   late final TextEditingController _groundBandZIndexController;
   late final String _initialStatus;
@@ -88,7 +85,6 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
 
   bool get isDirty =>
       _chunkKeyController.text != widget.chunk.chunkKey ||
-      _idController.text != widget.chunk.id ||
       _status != _initialStatus ||
       _levelId != _initialLevelId ||
       _difficulty != _initialDifficulty ||
@@ -101,7 +97,6 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     super.initState();
     final chunk = widget.chunk;
     _chunkKeyController = TextEditingController(text: chunk.chunkKey);
-    _idController = TextEditingController(text: chunk.id);
     _status = chunk.status;
     _levelId = chunk.levelId;
     _difficulty = chunk.difficulty;
@@ -121,7 +116,6 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     _initialGroundBandZIndex = _groundBandZIndexController.text;
     for (final controller in <TextEditingController>[
       _chunkKeyController,
-      _idController,
       _tagsController,
       _groundBandZIndexController,
     ]) {
@@ -133,7 +127,6 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   void dispose() {
     for (final controller in <TextEditingController>[
       _chunkKeyController,
-      _idController,
       _tagsController,
       _groundBandZIndexController,
     ]) {
@@ -150,7 +143,6 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     final accepted = await widget.onSubmit(
       ChunkV2OwnerFormValue(
         chunkKey: _chunkKeyController.text,
-        id: _idController.text,
         status: _status,
         levelId: _levelId,
         difficulty: _difficulty,
@@ -184,24 +176,9 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
             controller: _chunkKeyController,
             decoration: const InputDecoration(
               labelText: 'Chunk key',
-              helperText:
-                  'Runtime identity. Changing it explicitly rekeys this owner.',
+              helperText: 'Chunk identity and managed filename.',
             ),
             validator: (value) => validateChunkV2OwnerKey(
-              value ?? '',
-              document: widget.document,
-              exceptChunkKey: widget.chunk.chunkKey,
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            key: const ValueKey<String>('chunk_v2_owner_id_field'),
-            controller: _idController,
-            decoration: const InputDecoration(
-              labelText: 'Human ID',
-              helperText: 'Readable owner name used for its managed filename.',
-            ),
-            validator: (value) => validateChunkV2OwnerId(
               value ?? '',
               document: widget.document,
               exceptChunkKey: widget.chunk.chunkKey,
@@ -395,26 +372,6 @@ List<String> _canonicalTags(Iterable<String> tags) {
   canonical.sort();
   return canonical;
 }
-
-/// Returns the user-facing Chunk-v2 owner ID validation error, if any.
-String? validateChunkV2OwnerId(
-  String raw, {
-  required ChunkV2Document document,
-  String? exceptChunkKey,
-}) {
-  final id = raw.trim();
-  if (id != raw || !_stableChunkOwnerId.hasMatch(id)) {
-    return 'Use a lowercase ID beginning with a letter; digits and underscores are allowed.';
-  }
-  if (document.chunks.any(
-    (chunk) => chunk.chunkKey != exceptChunkKey && chunk.id == id,
-  )) {
-    return 'Enter a unique chunk ID.';
-  }
-  return null;
-}
-
-final RegExp _stableChunkOwnerId = RegExp(r'^[a-z][a-z0-9_]*$');
 
 /// Returns the user-facing Chunk-v2 owner key validation error, if any.
 String? validateChunkV2OwnerKey(

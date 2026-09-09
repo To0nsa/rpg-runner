@@ -14,6 +14,7 @@ import '../../../domain/authoring_dependency_repair.dart';
 import '../../../levels/level_domain_models.dart';
 import '../../../levels/level_domain_plugin.dart';
 import '../levelCreator/level_creator_navigation.dart';
+import '../prefabCreator/prefab_creator_navigation.dart';
 import '../shared/authoring_conflict_dialog.dart';
 import '../../../parallax/parallax_domain_models.dart';
 import '../../../parallax/parallax_domain_plugin.dart';
@@ -61,7 +62,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   bool _isShowingDiscardDialog = false;
   bool _isSavingCurrentPage = false;
   String _selectedRouteId = entitiesRouteId;
-  String? _initialPrefabKey;
+  PrefabCreatorTarget? _initialPrefabTarget;
   LevelCreatorReturnContext? _levelReturnContext;
   LevelCreatorReturnContext? _restoreLevelContext;
   ChunkFlatStarterIntent? _pendingStarterIntent;
@@ -306,7 +307,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return routeBinding.buildPage(
       controller,
       navigation: EditorHomeRouteNavigation(
-        initialPrefabKey: _initialPrefabKey,
+        initialPrefabTarget: _initialPrefabTarget,
         initialLevelReturnContext: _restoreLevelContext,
         onOpenChunkForLevel: _handleOpenChunkForLevel,
         onRepairDependency: _beginDependencyRepair,
@@ -316,8 +317,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
             setState(() {});
           }
         },
-        onOpenOwningPrefab: (prefabKey) {
-          unawaited(_handleOpenOwningPrefabRequested(prefabKey));
+        onOpenPrefabTarget: (target) {
+          unawaited(_handleOpenPrefabTargetRequested(target));
         },
         onOpenParallaxForLevel: (target) {
           unawaited(_handleOpenParallaxForLevelRequested(target));
@@ -562,7 +563,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     setState(() {
       _selectedRouteId = routeId;
-      _initialPrefabKey = null;
+      _initialPrefabTarget = null;
       _levelReturnContext = null;
       _restoreLevelContext = null;
       _pendingStarterIntent = null;
@@ -570,8 +571,10 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _syncPluginForRoute(routeId);
   }
 
-  Future<void> _handleOpenOwningPrefabRequested(String prefabKey) async {
-    final targetPrefabKey = prefabKey.trim();
+  Future<void> _handleOpenPrefabTargetRequested(
+    PrefabCreatorTarget target,
+  ) async {
+    final targetPrefabKey = target.prefabKey.trim();
     if (targetPrefabKey.isEmpty ||
         _controller.isLoading ||
         _repairController != null) {
@@ -622,7 +625,10 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     setState(() {
-      _initialPrefabKey = targetPrefabKey;
+      _initialPrefabTarget = PrefabCreatorTarget(
+        prefabKey: targetPrefabKey,
+        destination: target.destination,
+      );
       _selectedRouteId = prefabCreatorRouteId;
     });
   }
@@ -680,7 +686,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     setState(() {
       _selectedRouteId = parallaxEditorRouteId;
-      _initialPrefabKey = null;
+      _initialPrefabTarget = null;
       _levelReturnContext = returnContext;
     });
   }
@@ -769,7 +775,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     if (starterCommand != null) _controller.applyCommand(starterCommand!);
     setState(() {
       _selectedRouteId = chunkCreatorRouteId;
-      _initialPrefabKey = null;
+      _initialPrefabTarget = null;
       _levelReturnContext = target.returnContext;
       _restoreLevelContext = null;
     });

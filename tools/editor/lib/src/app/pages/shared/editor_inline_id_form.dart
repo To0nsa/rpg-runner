@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 typedef EditorInlineIdValidator = String? Function(String value);
 typedef EditorInlineIdSubmit = FutureOr<bool> Function(String value);
 
-/// Small reusable lifecycle form for stable-key-preserving IDs.
+/// Small reusable lifecycle form for one validated identifier.
 ///
-/// The form owns only the visible human ID. It reports local dirty state and
+/// The caller supplies its domain label. The form reports local dirty state and
 /// leaves command selection, optimistic snapshots, and persistence to its
 /// containing route.
 class EditorInlineIdForm extends StatefulWidget {
@@ -21,6 +21,7 @@ class EditorInlineIdForm extends StatefulWidget {
     required this.validator,
     required this.onSubmit,
     required this.onCancel,
+    this.fieldLabel = 'Human ID',
     this.cancelKey,
     this.onDirtyChanged,
     this.autofocus = false,
@@ -32,6 +33,7 @@ class EditorInlineIdForm extends StatefulWidget {
   final Key? cancelKey;
   final String submitLabel;
   final String helperText;
+  final String fieldLabel;
   final EditorInlineIdValidator validator;
   final EditorInlineIdSubmit onSubmit;
   final VoidCallback onCancel;
@@ -93,7 +95,7 @@ class EditorInlineIdFormState extends State<EditorInlineIdForm> {
         controller: _controller,
         autofocus: widget.autofocus,
         decoration: InputDecoration(
-          labelText: 'Human ID',
+          labelText: widget.fieldLabel,
           helperText: widget.helperText,
           errorText: _fieldError,
         ),

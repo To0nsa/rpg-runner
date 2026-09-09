@@ -41,7 +41,7 @@ final class ChunkV2CollisionCommitPolicy {
           severity: ValidationSeverity.error,
           code: 'chunk_polygon_commit_stale',
           message:
-              'Chunk ${chunk.id} changed after this polygon gesture began; '
+              'Chunk ${chunk.chunkKey} changed after this polygon gesture began; '
               'reload its current collision source before committing.',
           sourcePath: sourcePath,
         ),
@@ -65,7 +65,7 @@ final class ChunkV2CollisionCommitPolicy {
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'chunk_collision_shape_identity_invalid',
-          message: 'Chunk ${chunk.id} has invalid shape identity: $error',
+          message: 'Chunk ${chunk.chunkKey} has invalid shape identity: $error',
           sourcePath: sourcePath,
         ),
       );
@@ -77,7 +77,7 @@ final class ChunkV2CollisionCommitPolicy {
           severity: ValidationSeverity.error,
           code: 'chunk_collision_shape_order_noncanonical',
           message:
-              'Chunk ${chunk.id} collision shapes must be ordered by stable '
+              'Chunk ${chunk.chunkKey} collision shapes must be ordered by stable '
               'shape ID before commit.',
           sourcePath: sourcePath,
         ),

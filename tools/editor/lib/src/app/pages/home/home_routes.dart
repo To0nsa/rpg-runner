@@ -14,6 +14,7 @@ import '../levelCreator/level_creator_page.dart';
 import '../levelCreator/level_creator_navigation.dart';
 import '../parallaxEditor/parallax_editor_page.dart';
 import '../prefabCreator/prefab_creator_page.dart';
+import '../prefabCreator/prefab_creator_navigation.dart';
 import '../terrainMaterials/terrain_materials_page.dart';
 
 /// Defines one top-level page shown in the editor home shell.
@@ -52,22 +53,22 @@ class EditorHomeRoute {
 /// Shell-owned navigation capabilities exposed to domain route pages.
 ///
 /// Domain pages can request a guarded transition without owning route or
-/// plugin-session state. The optional prefab key is consumed only by the
-/// Prefab-v3 surface as its initial stable owner selection.
+/// plugin-session state. The optional prefab target is consumed only by the
+/// Prefab-v3 surface as its initial owner and workflow selection.
 @immutable
 class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({
-    this.initialPrefabKey,
+    this.initialPrefabTarget,
     this.initialLevelReturnContext,
     this.onOpenChunkForLevel,
     this.onShellStateChanged,
     this.onRepairDependency,
-    this.onOpenOwningPrefab,
+    this.onOpenPrefabTarget,
     this.onOpenParallaxForLevel,
   });
 
-  /// Stable Prefab-v3 owner to select after a successful guarded transition.
-  final String? initialPrefabKey;
+  /// Stable Prefab-v3 owner and workflow to select after guarded navigation.
+  final PrefabCreatorTarget? initialPrefabTarget;
   final LevelCreatorReturnContext? initialLevelReturnContext;
   final Future<bool> Function(LevelCreatorChunkTarget)? onOpenChunkForLevel;
 
@@ -75,8 +76,8 @@ class EditorHomeRouteNavigation {
   final VoidCallback? onShellStateChanged;
   final Future<bool> Function(String pluginId)? onRepairDependency;
 
-  /// Requests shell-owned navigation to a placed collision's source owner.
-  final ValueChanged<String>? onOpenOwningPrefab;
+  /// Requests shell-owned navigation to an exact Prefab Creator target.
+  final ValueChanged<PrefabCreatorTarget>? onOpenPrefabTarget;
 
   /// Requests a guarded transition to one freshly resolved Level/theme pair.
   final ValueChanged<ParallaxLevelTarget>? onOpenParallaxForLevel;
@@ -152,7 +153,7 @@ Widget _buildPrefabCreatorPage({
   return PrefabCreatorPage(
     key: key,
     controller: controller,
-    initialPrefabKey: navigation.initialPrefabKey,
+    initialTarget: navigation.initialPrefabTarget,
     onShellStateChanged: navigation.onShellStateChanged,
   );
 }
@@ -166,7 +167,7 @@ Widget _buildChunkCreatorPage({
     key: key,
     controller: controller,
     onShellStateChanged: navigation.onShellStateChanged,
-    onOpenOwningPrefab: navigation.onOpenOwningPrefab,
+    onOpenPrefabTarget: navigation.onOpenPrefabTarget,
   );
 }
 

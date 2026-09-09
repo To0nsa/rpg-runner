@@ -15,6 +15,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordina
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_v2_composition_forms.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_navigation.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
@@ -955,7 +956,7 @@ void main() {
     },
   );
 
-  testWidgets('owner search combines name difficulty and group filters', (
+  testWidgets('owner search combines chunk key difficulty and group filters', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1800, 1000);
@@ -1008,7 +1009,7 @@ void main() {
     expect(find.text('4 of 4 owners'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey<String>('chunk_owner_search')),
-      'ruin',
+      'easy',
     );
     await tester.pump();
     expect(find.text('2 of 4 owners'), findsOneWidget);
@@ -1018,7 +1019,7 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_c')),
-      findsNothing,
+      findsOneWidget,
     );
 
     await tester.tap(
@@ -1027,7 +1028,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(chunkDifficultyEasy).last);
     await tester.pump();
-    expect(find.text('1 of 4 owners'), findsOneWidget);
+    expect(find.text('2 of 4 owners'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_hard_b')),
       findsNothing,
@@ -1049,9 +1050,13 @@ void main() {
     await tester.pump();
     expect(
       find.byKey(const ValueKey<String>('chunk_owner_filter_empty')),
+      findsNothing,
+    );
+    expect(find.text('1 of 4 owners'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_c')),
       findsOneWidget,
     );
-    expect(find.text('0 of 4 owners'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_owner_clear_filters')),
@@ -1527,7 +1532,7 @@ void main() {
   });
 
   testWidgets(
-    'visual prefab library drives creation and inline placement editing',
+    'visual prefab library drives creation while placement editing preserves its owner',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -1675,32 +1680,22 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.enterText(
+      expect(find.byType(ChunkPrefabCatalogBrowser), findsOneWidget);
+      expect(
         find.byKey(
           const ValueKey<String>(
             'chunk_v2_placement_inline_catalog_${placementKey}_search',
           ),
         ),
-        'foliage',
+        findsNothing,
       );
-      await tester.pump();
-      final inlineTreeCard = find.byKey(
-        const ValueKey<String>(
-          'chunk_v2_placement_inline_catalog_'
-          '${placementKey}_card_prefab_tree',
-        ),
-      );
-      await tester.ensureVisible(inlineTreeCard);
-      await tester.pumpAndSettle();
-      await tester.tap(inlineTreeCard);
-      await tester.pump();
       expect(
         tester
             .widget<ChunkV2PlacementForm>(
               find.byType(ChunkV2PlacementForm).last,
             )
             .prefab,
-        same(tree),
+        isNot(same(tree)),
       );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(
@@ -1708,45 +1703,14 @@ void main() {
         'prefab_rock',
       );
 
-      tester
-          .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
-          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.markers});
-      await tester.pump();
-      expect(inlineEditor, findsNothing);
-      expect(
-        find.byKey(const ValueKey<String>('chunk_markers_sections')),
-        findsOne,
-      );
-      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
-      expect(reloadHandler.canReloadEditorPage, isTrue);
-      expect(localDraftState.hasLocalDraftChanges, isFalse);
-
-      tester
-          .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
-          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
-      await tester.pump();
-      await _openSection(
-        tester,
-        toggleKey: 'chunk_prefab_placements_section_toggle',
-        bodyKey: 'chunk_v2_placement_prefab_rock|95|10|0',
-      );
-      expect(inlineEditor, findsNothing);
-      await tester.ensureVisible(placementCard);
-      await tester.tap(placementCard);
-      await tester.pumpAndSettle();
-      expect(inlineEditor, findsOneWidget);
       await tester.enterText(
         find.byKey(
           const ValueKey<String>(
-            'chunk_v2_placement_inline_catalog_${placementKey}_search',
+            'chunk_v2_placement_inline_${placementKey}_x_field',
           ),
         ),
-        'foliage',
+        '96',
       );
-      await tester.pump();
-      await tester.ensureVisible(inlineTreeCard);
-      await tester.pumpAndSettle();
-      await tester.tap(inlineTreeCard);
       await tester.pump();
 
       final apply = find.byKey(
@@ -1758,20 +1722,21 @@ void main() {
 
       final edited = _chunk(harness.session, 'forest_chunk');
       expect(edited.revision, 5);
-      expect(edited.prefabs.single.prefabKey, 'prefab_tree');
-      expect(edited.prefabs.single.prefabId, 'tree');
+      expect(edited.prefabs.single.prefabKey, 'prefab_rock');
+      expect(edited.prefabs.single.prefabId, 'rock');
+      expect(edited.prefabs.single.x, 96);
       expect(inlineEditor, findsNothing);
       expect(reloadHandler.canReloadEditorPage, isTrue);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
 
       final editedPlacementCard = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_prefab_tree|95|10|0'),
+        const ValueKey<String>('chunk_v2_placement_prefab_rock|96|10|0'),
       );
       await tester.ensureVisible(editedPlacementCard);
       await tester.tap(editedPlacementCard);
       await tester.pumpAndSettle();
       final deletePlacement = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_delete_prefab_tree|95|10|0'),
+        const ValueKey<String>('chunk_v2_placement_delete_prefab_rock|96|10|0'),
       );
       await tester.scrollUntilVisible(
         deletePlacement,
@@ -1788,7 +1753,7 @@ void main() {
       expect(_chunk(harness.session, 'forest_chunk').revision, 5);
       expect(
         _chunk(harness.session, 'forest_chunk').prefabs.single.prefabKey,
-        'prefab_tree',
+        'prefab_rock',
       );
     },
   );
@@ -3189,7 +3154,7 @@ void main() {
     );
   });
 
-  testWidgets('placed prefab opens its exact source owner', (tester) async {
+  testWidgets('placed prefab opens its exact prefab workflows', (tester) async {
     tester.view.physicalSize = const Size(1800, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -3197,14 +3162,14 @@ void main() {
 
     final harness = await _buildHarness();
     addTearDown(harness.dispose);
-    final openedPrefabKeys = <String>[];
+    final openedTargets = <PrefabCreatorTarget>[];
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
         home: Scaffold(
           body: ChunkCreatorPage(
             controller: harness.session,
-            onOpenOwningPrefab: openedPrefabKeys.add,
+            onOpenPrefabTarget: openedTargets.add,
           ),
         ),
       ),
@@ -3235,7 +3200,34 @@ void main() {
     await tester.tap(openOwner);
     await tester.pump();
 
-    expect(openedPrefabKeys, <String>['prefab_rock']);
+    for (final destination in <(String, PrefabCreatorDestination)>[
+      ('atlas', PrefabCreatorDestination.atlas),
+      ('collision', PrefabCreatorDestination.collision),
+    ]) {
+      final button = find.byKey(
+        ValueKey<String>(
+          'chunk_v2_placement_open_${destination.$1}_prefab_rock|95|10|0',
+        ),
+      );
+      await Scrollable.ensureVisible(tester.element(button), alignment: 0.5);
+      await tester.pumpAndSettle();
+      await tester.tap(button);
+      await tester.pump();
+    }
+
+    expect(openedTargets, hasLength(3));
+    expect(
+      openedTargets.map((target) => target.prefabKey),
+      everyElement('prefab_rock'),
+    );
+    expect(
+      openedTargets.map((target) => target.destination),
+      <PrefabCreatorDestination>[
+        PrefabCreatorDestination.prefab,
+        PrefabCreatorDestination.atlas,
+        PrefabCreatorDestination.collision,
+      ],
+    );
     expect(_chunk(harness.session, 'forest_chunk').revision, 4);
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
@@ -3342,24 +3334,17 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_v2_owner_rename')),
         findsNothing,
       );
-      await tester.enterText(
+      expect(
         find.byKey(const ValueKey<String>('chunk_v2_owner_id_field')),
+        findsNothing,
+      );
+      expect(find.text('Human ID'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_chunk_key_field')),
         'meadow_chunk',
       );
       final renameApply = find.byKey(
         const ValueKey<String>('chunk_v2_owner_inline_apply_forest_chunk'),
-      );
-      await tester.ensureVisible(renameApply);
-      await tester.tap(renameApply);
-      await tester.pump();
-      expect(find.text('Enter a unique chunk ID.'), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_id_field')),
-        'forest_renamed',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_chunk_key_field')),
-        'meadow_chunk',
       );
       await tester.ensureVisible(renameApply);
       await tester.tap(renameApply);
@@ -3373,7 +3358,7 @@ void main() {
       await tester.tap(renameApply);
       await tester.pumpAndSettle();
       edited = _chunk(harness.session, 'forest_rekeyed');
-      expect(edited.id, 'forest_renamed');
+      expect(edited.id, 'forest_rekeyed');
       expect(edited.chunkKey, 'forest_rekeyed');
       expect(edited.revision, 6);
 
@@ -3391,8 +3376,8 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_v2_owner_duplicate')),
       );
       await tester.pump();
-      final duplicate = _chunk(harness.session, 'forest_renamed_copy');
-      expect(duplicate.id, 'forest_renamed_copy');
+      final duplicate = _chunk(harness.session, 'forest_rekeyed_copy');
+      expect(duplicate.id, 'forest_rekeyed_copy');
       expect(duplicate.revision, 1);
       expect(duplicate.status, chunkStatusActive);
       expect(duplicate.levelId, edited.levelId);
@@ -3410,6 +3395,7 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_v2_inline_create_id')),
         'forest_empty',
       );
+      expect(find.text('Chunk key'), findsWidgets);
       final createApply = find.byKey(
         const ValueKey<String>('chunk_v2_inline_create_apply'),
       );
@@ -3417,6 +3403,7 @@ void main() {
       await tester.tap(createApply);
       await tester.pumpAndSettle();
       final created = _chunk(harness.session, 'forest_empty');
+      expect(created.id, created.chunkKey);
       expect(created.revision, 1);
       expect(created.status, chunkStatusDeprecated);
       expect(created.levelId, 'forest');
@@ -3639,7 +3626,7 @@ void main() {
     expect(harness.session.canUndo, isFalse);
     expect(
       (harness.session.document! as ChunkV2Document).chunks.any(
-        (chunk) => chunk.id == 'draft_chunk',
+        (chunk) => chunk.chunkKey == 'draft_chunk',
       ),
       isFalse,
     );

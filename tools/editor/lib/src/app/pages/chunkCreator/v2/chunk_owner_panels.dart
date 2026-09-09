@@ -116,7 +116,7 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
             searchController: _searchController,
             searchKey: const ValueKey<String>('chunk_owner_search'),
             searchLabel: 'Search chunk owners',
-            searchHint: 'Name contains…',
+            searchHint: 'Chunk key contains…',
             clearSearchKey: const ValueKey<String>('chunk_owner_clear_search'),
             clearSearchTooltip: 'Clear owner search',
             filters: <Widget>[
@@ -221,7 +221,7 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
                     key: ValueKey<String>(
                       'chunk_v2_owner_edit_${chunk.chunkKey}',
                     ),
-                    tooltip: 'Edit ${chunk.id}',
+                    tooltip: 'Edit ${chunk.chunkKey}',
                     onPressed: () => onEdit(chunk),
                     icon: const Icon(Icons.edit_outlined),
                   ),
@@ -255,7 +255,7 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text(
-                  chunk.id,
+                  chunk.chunkKey,
                   key: ValueKey<String>('chunk_owner_name_${chunk.chunkKey}'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -285,9 +285,7 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
     return chunks
         .where(
           (chunk) =>
-              (query.isEmpty ||
-                  chunk.id.toLowerCase().contains(query) ||
-                  chunk.chunkKey.toLowerCase().contains(query)) &&
+              (query.isEmpty || chunk.chunkKey.toLowerCase().contains(query)) &&
               (_difficultyFilter.isEmpty ||
                   chunk.difficulty == _difficultyFilter) &&
               (_groupFilter.isEmpty || chunk.assemblyGroupId == _groupFilter),
@@ -357,6 +355,7 @@ class ChunkOwnerCreateSection extends StatelessWidget {
             submitKey: const ValueKey<String>('chunk_v2_inline_create_apply'),
             cancelKey: const ValueKey<String>('chunk_v2_inline_create_cancel'),
             submitLabel: 'Create owner',
+            fieldLabel: 'Chunk key',
             helperText: 'The owner starts deprecated with locked dimensions and an empty composition.',
             validator: validator,
             onDirtyChanged: onDirtyChanged,
@@ -400,12 +399,12 @@ class ChunkOwnerEditDetails extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
       Text(
-        'Edit ${currentChunk.id}',
+        'Edit ${currentChunk.chunkKey}',
         style: Theme.of(context).textTheme.titleSmall,
       ),
       const SizedBox(height: 8),
       Text(
-        'chunkKey: ${source.chunkKey} · revision ${source.revision}\n'
+        'revision ${source.revision}\n'
         '${source.width}×${source.height} px · tile ${source.tileSize} px · '
         '${source.collisionShapes.length} shape(s) · '
         '${source.prefabs.length} prefab(s) · ${source.markers.length} marker(s)',
@@ -416,7 +415,7 @@ class ChunkOwnerEditDetails extends StatelessWidget {
         runSpacing: 8,
         children: <Widget>[
           Tooltip(
-            message: 'Duplicate ${source.id} with a new stable chunk key.',
+            message: 'Duplicate ${source.chunkKey} with a new chunk key.',
             child: OutlinedButton.icon(
               key: const ValueKey<String>('chunk_v2_owner_duplicate'),
               onPressed: _lifecycleEnabled ? onDuplicate : null,
@@ -425,7 +424,7 @@ class ChunkOwnerEditDetails extends StatelessWidget {
             ),
           ),
           Tooltip(
-            message: 'Delete ${source.id} and its authored composition.',
+            message: 'Delete ${source.chunkKey} and its authored composition.',
             child: OutlinedButton.icon(
               key: const ValueKey<String>('chunk_v2_owner_delete'),
               onPressed: _lifecycleEnabled ? onDelete : null,

@@ -239,9 +239,19 @@ separate inline stable-key-preserving lifecycle form. Creation and rename no
 longer open routine modals. Their dirty values use the same Save/Discard/Cancel
 navigation guard, and deletion retains its reference-aware confirmation.
 
+An existing Chunk prefab placement is transform-only: its stable Prefab owner
+cannot be replaced from the inline editor. **Open prefab**, **Open atlas**, and
+**Open collision** navigate through the guarded shell to that placement's exact
+owner, prefab atlas slice, or collision workspace; collision is unavailable for
+Decoration Prefabs. The separate Chunk Prefab library remains the source for
+creating new placements and for scene Place selection.
+
 Prefab Creator separates **Prefabs and Platforms** from **Collision**. The
-former owns inline creation, a visual-only selected-source preview, and the
-searchable library with row-local metadata and lifecycle actions. Collision
+former owns inline creation with visual-source selection, a visual-only
+selected-source preview, and the searchable library with row-local metadata
+and lifecycle actions. An existing Prefab's visual source is read-only in its
+library editor: Apply preserves the bound atlas slice or platform module, and
+compatible kind changes cannot implicitly rebind it. Collision
 owns the missing-setup queue, an Obstacle/Platform-only visual selector, the collision scene,
 shape creation/editing, and diagnostics. Selecting **Set up collision** or
 **Edit collision** in an expanded Prefab carries that same stable selection
@@ -560,11 +570,12 @@ then places metadata on the lower left and the visual preview on the lower
 right. Above the cards, case-insensitive partial name search combines with
 current-level Difficulty and Group filters; all active criteria intersect, and
 **Clear filters** restores the complete owner list without changing the scene's
-selected owner. The form exposes editable **Chunk key** and **Human ID** fields.
-Apply commits identity and metadata together in one revision. An explicit key
+selected owner. The form exposes **Chunk key** as the single author-facing
+identity. Apply commits identity and metadata together in one revision. A key
 change rekeys the owner, source/baseline bindings, pending state, and selection
-atomically,
-while the human ID continues to determine the managed filename. Duplicate and
+atomically and determines the managed filename. The schema-v2 `id` field remains
+a compatibility mirror written from the key; it is not independently editable.
+Duplicate and
 Delete remain contextual actions; Chunk has no separate Rename action. On
 narrow windows, both scroll areas
 sit below a bounded scene, with owners on the left. Persistent

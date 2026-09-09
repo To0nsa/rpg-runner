@@ -17,9 +17,9 @@ building.
   source or hand-editing JSON
 - level-scoped chunk ownership: each chunk belongs to exactly one level
   context and must validate against that level's rules/content
-- explicit identity safety: each chunk has independently editable `chunkKey`
-  and human-readable `id` fields; key edits atomically rekey all document-owned
-  references instead of being inferred from the human ID
+- explicit identity safety: each chunk exposes `chunkKey` as its single
+  author-facing identity; key edits atomically rekey all document-owned
+  references, while schema-v2 `id` remains a non-editable compatibility mirror
 - reuse-first implementation: existing editor code that is applicable must be
   modularized and reused across domains instead of duplicated
 - evolution-friendly architecture: new gameplay authoring features (hazards,

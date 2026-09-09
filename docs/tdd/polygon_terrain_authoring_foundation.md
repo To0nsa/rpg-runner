@@ -183,6 +183,12 @@ document arrives. Rejected or stale commands retain the local field values and
 surface the command diagnostic inline. Cancel and clean closure do not create
 a revision, history entry, or pending diff.
 
+Prefab visual-source selection belongs only to creation. The existing-owner
+form renders its bound atlas slice or platform module read-only, limits kind
+choices to that source family, and copies the captured visual source into the
+metadata commit. Editing status, kind, anchor, or tags therefore cannot rebind
+an existing stable Prefab owner to different artwork.
+
 Dirty owner forms are part of the route's local-draft projection. Source apply
 and session undo/redo cannot bypass them: undo cancels the local form before
 session history and redo is unavailable. Owner, level, or Prefab workspace
@@ -194,15 +200,16 @@ discarding unfinished collision work.
 Prefab and Chunk lifecycle creation is also route-local. A collapsed creation
 section captures the document snapshot used by the existing lifecycle command;
 Prefab creation reuses the owner source/kind/anchor/tag form, while Chunk
-creation exposes only its validated human ID and explains the locked template
+creation exposes only its validated Chunk key and explains the locked template
 dimensions and deprecated initial status. Cancel or Discard removes the draft
 without source/history changes, and a stale rejection keeps it mounted.
 
 Prefab Rename, Duplicate, and Delete remain contextual to its expanded stable
-owner key. Chunk instead exposes explicit Chunk key and Human ID fields in its
-normal owner form; one lifecycle command commits identity and metadata together
+owner key. Chunk exposes only its Chunk key in the normal owner form; one
+lifecycle command commits identity and metadata together
 with exactly one revision increment. A key edit atomically rekeys source,
-baseline, created/changed, and selected-owner bindings. Duplicate
+baseline, created/changed, and selected-owner bindings and mirrors the key into
+the schema-v2 `id` compatibility field. Duplicate
 deterministically selects the new key. Delete retains the owner-impact
 confirmation and rebinds to the deterministic remaining owner. The old
 create/edit/rename owner dialog entry points are not part of either normal
@@ -352,12 +359,12 @@ prevents an unfinished blank chunk from entering scheduler/seam pools. The
 default assembly group is `default` when declared, otherwise the first lexical
 declared group.
 
-Duplicate copies the complete source owner, allocates a fresh ID/key/path,
+Duplicate copies the complete source owner, allocates a fresh key/path,
 resets revision to 1, and starts active because its terrain has already passed
-source validation. Owner edit validates Chunk key and Human ID independently,
-may replace either alongside metadata, and advances revision exactly once. A
-key replacement atomically moves all key-indexed document ownership; an ID or
-level replacement lets the ownership plan describe the managed file move. A
+source validation. Owner edit validates the Chunk key, mirrors it into the
+required schema-v2 `id` field, and advances revision exactly once. A key
+replacement atomically moves all key-indexed document ownership; a key or level
+replacement lets the ownership plan describe the managed file move. A
 created owner's path is updated directly because it has no old baseline; a
 loaded owner retains its old path as move evidence.
 
@@ -776,9 +783,9 @@ scene and sidebar subtrees are repositioned; tab changes replace only the
 sidebar section group. Existing owner-row input only binds the shared selected
 chunk and scene; its dedicated Edit action opens the route-local inline owner
 form, so selection never implicitly expands or closes metadata editing. Owner
-cards render name/Edit on the first row and metadata/preview on the second,
+cards render key/Edit on the first row and metadata/preview on the second,
 with the preview to the metadata's right. Case-insensitive substring search on
-human ID or stable key intersects optional current-level difficulty and
+the Chunk key intersects optional current-level difficulty and
 assembly-group filters. Filtering is route-local presentation state: it may
 hide the selected card but cannot change the selected owner or source. The tabs
 and section rows share typed per-domain prefab
@@ -1505,7 +1512,7 @@ viewport anchored rather than terrain anchored.
 
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain
-(`chunk` or `prefab`), stable owner key and human ID, positive owner revision,
+(`chunk` or `prefab`), stable owner key and schema-compatible owner ID, positive owner revision,
 stable shape ID, authoring mode (`solid`, `oneWay`, or `none`), optional surface/material metadata, vertex
 count, and every ordered half-pixel integer coordinate. Records sort by owner
 domain, owner key, then shape ID; duplicate owner-local shape identities fail

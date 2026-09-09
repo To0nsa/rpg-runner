@@ -312,18 +312,21 @@ final class ChunkV2LifecycleCommitPolicy {
         chunkKey: operation.sourceChunkKey,
       );
     }
-    final targetId = operation.targetId ?? _allocateCopyId(document, source.id);
-    final idIssue = _idIssue(document, targetId);
-    if (idIssue != null) return idIssue;
-    final chunkKey = _allocateChunkKey(
-      document.sourcePathByChunkKey.keys.toSet(),
-      targetId,
+    final chunkKey =
+        operation.targetId ?? _allocateCopyIdentity(document, source.chunkKey);
+    final keyIssue = _chunkKeyIssue(
+      document,
+      chunkKey,
+      exceptChunkKey: source.chunkKey,
     );
+    if (keyIssue != null) return keyIssue;
+    final idIssue = _idIssue(document, chunkKey);
+    if (idIssue != null) return idIssue;
     return _addCreatedOwner(
       document,
       source.copyWith(
         chunkKey: chunkKey,
-        id: targetId,
+        id: chunkKey,
         revision: 1,
         status: chunkStatusActive,
       ),
@@ -560,12 +563,15 @@ Map<String, String> _rekeyMap(
   return result;
 }
 
-String _allocateCopyId(ChunkV2Document document, String sourceId) {
-  final existingIds = document.chunks.map((chunk) => chunk.id).toSet();
-  final base = '${sourceId}_copy';
-  if (!existingIds.contains(base)) return base;
+String _allocateCopyIdentity(ChunkV2Document document, String sourceChunkKey) {
+  final claimed = <String>{
+    ...document.chunks.map((chunk) => chunk.id),
+    ...document.sourcePathByChunkKey.keys,
+  };
+  final base = '${sourceChunkKey}_copy';
+  if (!claimed.contains(base)) return base;
   var suffix = 2;
-  while (existingIds.contains('${base}_$suffix')) {
+  while (claimed.contains('${base}_$suffix')) {
     suffix += 1;
   }
   return '${base}_$suffix';

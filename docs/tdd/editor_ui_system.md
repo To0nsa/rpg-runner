@@ -92,18 +92,23 @@ The Prefabs section group starts with one persistent
 projections plus a browser-owned,
 workspace-path-scoped image cache for thumbnail rendering, token search across
 identity/kind/tags, and route-local kind/usage filters. Its
-stable-key selection feeds the scene Place tool and inline placement form but
+stable-key selection feeds the scene Place tool and placement-creation form but
 does not enter the plugin document, history, validation, or pending diff. The
 selected retained placement, whether chosen from the list or scene, reveals a
-sibling editor directly below its row and composes the same browser with
-row-local selection and transform drafts. Unselected rows expose no Edit/Delete
-icon cluster. The editor owns labeled Open and Delete actions; Delete dispatches
-one immediately undoable revision-aware composition operation without a modal.
-Apply uses the same captured operation. The expanded form is not itself a
-route-wide operation: selecting the row again, Cancel, or a domain, owner, or
-source-revision change discards its un-applied draft without changing the route
-catalog choice or source. Genuine composition dialogs and scene gestures
-continue to lock conflicting scene tools and route operations.
+sibling transform-only editor directly below its row. The saved stable
+`prefabKey` is fixed; replacing a placement's Prefab through a second catalog is
+not an edit operation. Unselected rows expose no Edit/Delete icon cluster. The
+editor owns labeled **Open prefab**, source-appropriate **Open atlas**,
+**Open collision**, and Delete actions. Cross-route actions carry the exact
+owner and requested Prefab Creator workflow through the shell's guarded
+navigation; atlas navigation additionally reveals the owner's exact prefab
+slice, while Decoration collision navigation remains disabled. Delete
+dispatches one immediately undoable revision-aware composition operation
+without a modal. Apply uses the same captured operation. The expanded form is
+not itself a route-wide operation: selecting the row again, Cancel, or a domain,
+owner, or source-revision change discards its un-applied draft without changing
+the route catalog choice or source. Genuine composition dialogs and scene
+gestures continue to lock conflicting scene tools and route operations.
 
 The Markers section group starts with `ChunkEnemyCatalogBrowser`. Its immutable
 entries project `EnemyId`, `EnemyCatalog` render-animation metadata, and the
@@ -168,6 +173,8 @@ Save/Discard/Cancel, while a rejected or stale command leaves the mounted form,
 values, and diagnostic intact. Dirty owner forms participate in
 `EditorPageLocalDraftState`, block source apply, consume undo before it can
 reach session history, disable redo, and guard Prefab workspace-view changes.
+Chunk presents `chunkKey` as its sole identity field; accepted edits mirror it
+into the required schema-v2 `id` value instead of exposing a second name.
 An active Prefab polygon gesture also blocks
 owner replacement, so route-controller disposal cannot discard authored work.
 Owner creation mounts in an independently collapsed inline section and reuses
@@ -186,16 +193,20 @@ visual/identity authoring from collision geometry authoring, while labels such a
 workflow. Owner terms remain implementation language for stable diagnostic and
 mutation contracts.
 
-Obstacle and decoration owner forms choose their atlas slice through an inline
-visual catalog rather than a text dropdown. Token search covers slice identity,
-source path, dimensions, tags, usage state, and referencing owner IDs. All,
-Unused, and Used filters remain presentation-only. Atlas-source filtering uses
-a compact file-explorer popover that groups repository paths by directory,
-shows per-file slice counts, and preserves an explicit all-sources root. Every
-card shows its exact region and whether existing Prefab owners reference it.
+Obstacle and decoration creation forms choose their atlas slice through an
+inline visual catalog rather than a text dropdown. Token search covers slice
+identity, source path, dimensions, tags, usage state, and referencing owner
+IDs. All, Unused, and Used filters remain presentation-only. Atlas-source
+filtering uses a compact file-explorer popover that groups repository paths by
+directory, shows per-file slice counts, and preserves an explicit all-sources
+root. Every card shows its exact region and whether existing Prefab owners
+reference it.
 Usage is informative rather than exclusive because multiple owners may
 intentionally share one authored visual source. Selecting a card remains part
-of the local owner draft and recenters its anchor from the chosen slice bounds.
+of the local creation draft and recenters its anchor from the chosen slice
+bounds. Existing Prefab editors expose the bound atlas slice or platform module
+as read-only metadata. Their kind choices remain source-compatible, and Apply
+copies the captured visual source so metadata edits cannot rebind the Prefab.
 
 The Prefabs library and Collision selector compose the same neutral visual-
 catalog controls and thumbnail renderer as Chunk prefab selection. Prefabs

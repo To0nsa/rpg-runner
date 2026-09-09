@@ -398,7 +398,7 @@ class ChunkStore {
     p.join(
       chunksDirectoryPath,
       _slugify(chunk.levelId),
-      '${_slugify(chunk.id)}.json',
+      '${_slugify(chunk.chunkKey)}.json',
     ),
   );
 

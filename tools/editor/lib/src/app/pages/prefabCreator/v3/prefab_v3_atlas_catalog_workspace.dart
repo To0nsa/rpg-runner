@@ -43,12 +43,16 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
     this.onDraftStateChanged,
     required this.document,
     required this.atlasImageFilePicker,
+    this.initialPrefabSliceId,
   });
 
   final EditorSessionController controller;
   final VoidCallback? onDraftStateChanged;
   final PrefabV3Document document;
   final AtlasImageFilePicker atlasImageFilePicker;
+
+  /// Prefab slice to reveal when another authoring surface opens its atlas.
+  final String? initialPrefabSliceId;
 
   @override
   State<PrefabV3AtlasCatalogWorkspace> createState() =>
@@ -107,6 +111,10 @@ class PrefabV3AtlasCatalogWorkspaceState
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.document, widget.document)) {
       _reconcile(widget.document);
+      return;
+    }
+    if (oldWidget.initialPrefabSliceId != widget.initialPrefabSliceId) {
+      _selectRequestedPrefabSlice(widget.document);
     }
   }
 
@@ -239,7 +247,35 @@ class PrefabV3AtlasCatalogWorkspaceState
     _atlasState = AtlasSelectionState(
       selectedSourcePath: document.atlasImagePaths.firstOrNull,
     );
+    _selectRequestedPrefabSlice(document, notify: false);
     _syncSelectedDraft(document);
+  }
+
+  void _selectRequestedPrefabSlice(
+    PrefabV3Document document, {
+    bool notify = true,
+  }) {
+    final requestedId = widget.initialPrefabSliceId?.trim();
+    if (requestedId == null || requestedId.isEmpty) return;
+    final requested = document.data.slices
+        .where((slice) => slice.id == requestedId)
+        .firstOrNull;
+    if (requested == null) return;
+
+    void select() {
+      _selectedSliceKind = AtlasSliceKind.prefab;
+      _selectedPrefabSliceId = requested.id;
+      _atlasState = _atlasState.withSelectedSourcePath(
+        requested.sourceImagePath,
+      );
+      _syncSelectedDraft(document);
+    }
+
+    if (notify) {
+      setState(select);
+    } else {
+      select();
+    }
   }
 
   void _reconcile(PrefabV3Document document) {

@@ -34,6 +34,7 @@ import '../../shared/terrain_polygon_rectangle_editor.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
 import '../atlas_slicer/atlas_image_file_picker.dart';
+import '../prefab_creator_navigation.dart';
 import '../shared/prefab_polygon_authoring_controller.dart';
 import '../shared/prefab_polygon_scene_surface.dart';
 import '../shared/prefab_polygon_visual_source.dart';
@@ -62,15 +63,15 @@ class PrefabPolygonWorkspace extends StatefulWidget {
     required this.controller,
     this.onDraftStateChanged,
     required this.atlasImageFilePicker,
-    this.initialPrefabKey,
+    this.initialTarget,
   });
 
   final EditorSessionController controller;
   final VoidCallback? onDraftStateChanged;
   final AtlasImageFilePicker atlasImageFilePicker;
 
-  /// Stable owner to prefer over the workspace's deterministic default.
-  final String? initialPrefabKey;
+  /// Stable owner and workflow to prefer over deterministic defaults.
+  final PrefabCreatorTarget? initialTarget;
 
   @override
   State<PrefabPolygonWorkspace> createState() => PrefabPolygonWorkspaceState();
@@ -225,14 +226,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       _selectInitialOwner();
       return;
     }
-    if (oldWidget.initialPrefabKey != widget.initialPrefabKey) {
+    if (oldWidget.initialTarget != widget.initialTarget) {
       final targetKey = _requestedOwnerKey(_documentOrNull);
       if (targetKey != null) {
         if (targetKey != _selectedPrefabKey) {
           _bindOwner(targetKey);
           _resetViewportValues();
         }
-        _workspaceView = PrefabWorkspaceView.prefabs;
+        _workspaceView = _requestedWorkspaceView;
       }
     }
   }
@@ -313,6 +314,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   controller: widget.controller,
                   document: document,
                   atlasImageFilePicker: widget.atlasImageFilePicker,
+                  initialPrefabSliceId: _requestedAtlasSliceId(document),
                 ),
                 PrefabV3ModuleCatalogWorkspace(
                   key: _moduleWorkspaceKey,
@@ -1766,7 +1768,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final after = PrefabV3MetadataSnapshot(
       status: edit.status,
       kind: edit.kind,
-      visualSource: edit.visualSource,
+      visualSource: before.visualSource,
       anchorXPx: edit.anchorXPx,
       anchorYPx: edit.anchorYPx,
       tags: edit.tags,
@@ -2080,7 +2082,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   String? _requestedOwnerKey(PrefabV3Document? document) {
     if (document == null) return null;
-    final requestedKey = widget.initialPrefabKey?.trim();
+    final requestedKey = widget.initialTarget?.prefabKey.trim();
     if (requestedKey == null || requestedKey.isEmpty) return null;
     return document.data.prefabs.any(
           (prefab) => prefab.prefabKey == requestedKey,
@@ -2092,7 +2094,26 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   PrefabWorkspaceView _initialWorkspaceView() =>
       _requestedOwnerKey(_documentOrNull) == null
       ? PrefabWorkspaceView.atlasSlices
-      : PrefabWorkspaceView.prefabs;
+      : _requestedWorkspaceView;
+
+  PrefabWorkspaceView get _requestedWorkspaceView =>
+      switch (widget.initialTarget?.destination) {
+        PrefabCreatorDestination.atlas => PrefabWorkspaceView.atlasSlices,
+        PrefabCreatorDestination.collision => PrefabWorkspaceView.collision,
+        PrefabCreatorDestination.prefab || null => PrefabWorkspaceView.prefabs,
+      };
+
+  String? _requestedAtlasSliceId(PrefabV3Document document) {
+    if (widget.initialTarget?.destination != PrefabCreatorDestination.atlas) {
+      return null;
+    }
+    final prefabKey = _requestedOwnerKey(document);
+    if (prefabKey == null) return null;
+    final prefab = document.data.prefabs
+        .where((prefab) => prefab.prefabKey == prefabKey)
+        .firstOrNull;
+    return prefab?.usesAtlasSlice == true ? prefab!.sliceId : null;
+  }
 
   Future<void> _selectOrOpenOwner(PrefabV3Def target) async {
     if (_authoring?.hasActiveOperation ?? false) {

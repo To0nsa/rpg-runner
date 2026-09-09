@@ -13,6 +13,8 @@ import '../shared/ui/prefab_editor_atlas_slice_selector.dart';
 ///
 /// Collision geometry and stable identity are absent. [id] is populated only
 /// for creation so an existing-owner metadata command cannot rename its owner.
+/// [visualSource] is selected during creation and is preserved by existing-owner
+/// metadata editing.
 @immutable
 final class PrefabV3OwnerFormValue {
   const PrefabV3OwnerFormValue({
@@ -102,7 +104,7 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
       _idController.text != _initialId ||
       _status != _initialStatus ||
       _kind != _initialKind ||
-      _sourceId != _initialSourceId ||
+      (_isCreating && _sourceId != _initialSourceId) ||
       _anchorXController.text != _initialAnchorX ||
       _anchorYController.text != _initialAnchorY ||
       _tagsController.text != _initialTags;
@@ -118,9 +120,7 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
     _status = current?.status ?? PrefabStatus.active;
     final sourceIds = _sourceIds(_kind);
     final currentSourceId = current?.visualSource.referenceId;
-    _sourceId = currentSourceId != null && sourceIds.contains(currentSourceId)
-        ? currentSourceId
-        : sourceIds.firstOrNull;
+    _sourceId = current == null ? sourceIds.firstOrNull : currentSourceId;
     final bounds = _selectedBounds;
     _idController = TextEditingController(text: current?.id ?? '');
     _anchorXController = TextEditingController(
@@ -186,9 +186,11 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
         id: _isCreating ? _idController.text.trim() : null,
         status: _status,
         kind: _kind,
-        visualSource: _kind == PrefabKind.platform
-            ? PrefabVisualSource.platformModule(sourceId)
-            : PrefabVisualSource.atlasSlice(sourceId),
+        visualSource:
+            widget.prefab?.visualSource ??
+            (_kind == PrefabKind.platform
+                ? PrefabVisualSource.platformModule(sourceId)
+                : PrefabVisualSource.atlasSlice(sourceId)),
         anchorXPx: anchorX,
         anchorYPx: anchorY,
         tags: PrefabDeterminism.normalizeTags(_tagsController.text.split(',')),
@@ -269,15 +271,34 @@ class PrefabV3OwnerFormState extends State<PrefabV3OwnerForm> {
               if (value == null || value == _kind) return;
               setState(() {
                 _kind = value;
-                _sourceId = _sourceIds(value).firstOrNull;
-                _centerAnchorOnSelectedSource();
+                if (_isCreating) {
+                  _sourceId = _sourceIds(value).firstOrNull;
+                  _centerAnchorOnSelectedSource();
+                }
                 _submissionError = null;
               });
               _reportDirty();
             },
           ),
           const SizedBox(height: 12),
-          if (_kind == PrefabKind.platform)
+          if (!_isCreating)
+            InputDecorator(
+              key: const ValueKey<String>(
+                'prefab_v3_owner_visual_source_read_only',
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Visual source',
+                helperText:
+                    'Fixed for existing prefabs. Create a new prefab to use '
+                    'another visual.',
+                border: OutlineInputBorder(),
+              ),
+              child: Text(
+                '${widget.prefab!.visualSource.type.jsonValue}:'
+                '${widget.prefab!.sourceRefId}',
+              ),
+            )
+          else if (_kind == PrefabKind.platform)
             DropdownButtonFormField<String>(
               key: ValueKey<String>(
                 'prefab_v3_owner_source_${_kind.name}_$_sourceId',
@@ -488,11 +509,21 @@ List<PrefabKind> _resolveAvailableKinds(
   final allOneWay = shapes.every(
     (shape) => shape.collisionMode == TerrainSourceCollisionMode.oneWay,
   );
-  final kinds = <PrefabKind>[
-    if (hasAtlas && (!hasCollision || allSolid)) PrefabKind.obstacle,
-    if (hasModules && (!hasCollision || allOneWay)) PrefabKind.platform,
-    if (hasAtlas && !hasCollision) PrefabKind.decoration,
-  ];
+  final List<PrefabKind> kinds;
+  if (prefab == null) {
+    kinds = <PrefabKind>[
+      if (hasAtlas) PrefabKind.obstacle,
+      if (hasModules) PrefabKind.platform,
+      if (hasAtlas) PrefabKind.decoration,
+    ];
+  } else if (prefab.usesPlatformModule) {
+    kinds = <PrefabKind>[if (!hasCollision || allOneWay) PrefabKind.platform];
+  } else {
+    kinds = <PrefabKind>[
+      if (!hasCollision || allSolid) PrefabKind.obstacle,
+      if (!hasCollision) PrefabKind.decoration,
+    ];
+  }
   if (kinds.isNotEmpty) return kinds;
   return <PrefabKind>[prefab?.kind ?? PrefabKind.decoration];
 }

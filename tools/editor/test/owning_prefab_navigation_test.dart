@@ -24,7 +24,7 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   testWidgets(
-    'placed prefab opens its v3 owner without using the legacy loader',
+    'placed prefab opens its exact atlas slice without using the legacy loader',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -79,12 +79,14 @@ void main() {
       );
       await tester.tap(placementCard);
       await tester.pumpAndSettle();
-      final openOwner = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_open_prefab_target|20|10|0'),
+      final openAtlas = find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_open_atlas_prefab_target|20|10|0',
+        ),
       );
-      await tester.ensureVisible(openOwner);
+      await tester.ensureVisible(openAtlas);
       await tester.pumpAndSettle();
-      await tester.tap(openOwner);
+      await tester.tap(openAtlas);
       await tester.pumpAndSettle();
 
       expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
@@ -95,33 +97,21 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
         findsOneWidget,
       );
-      await tester.tap(
+      final atlasView = tester.widget<ChoiceChip>(
+        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      );
+      expect(atlasView.selected, isTrue);
+      expect(
         find.byKey(
-          const ValueKey<String>('prefab_owner_library_section_toggle'),
+          const ValueKey<String>('atlas_slice_selected_editor_target_slice'),
         ),
-      );
-      await tester.pumpAndSettle();
-      final targetOwner = find.byKey(
-        const ValueKey<String>('prefab_polygon_owner_prefab_target'),
-      );
-      final otherOwner = find.byKey(
-        const ValueKey<String>('prefab_polygon_owner_prefab_other'),
+        findsOneWidget,
       );
       expect(
-        tester
-            .widget<ListTile>(
-              find.descendant(of: targetOwner, matching: find.byType(ListTile)),
-            )
-            .selected,
-        isTrue,
-      );
-      expect(
-        tester
-            .widget<ListTile>(
-              find.descendant(of: otherOwner, matching: find.byType(ListTile)),
-            )
-            .selected,
-        isFalse,
+        find.byKey(
+          const ValueKey<String>('atlas_slice_selected_editor_other_slice'),
+        ),
+        findsNothing,
       );
       expect(fixture.chunk.revision, 1);
 

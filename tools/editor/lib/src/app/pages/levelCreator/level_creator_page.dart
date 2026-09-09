@@ -540,7 +540,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           _content?.document.chunks
               .where((chunk) => chunk.chunkKey == key)
               .firstOrNull
-              ?.id ??
+              ?.chunkKey ??
           key,
       previewBuilder: (key) {
         final chunk = _content?.document.chunks
@@ -931,7 +931,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 ? 'Sampled run'
                 : selectedChunk == null
                 ? 'Level preview'
-                : 'Chunk preview · ${selectedChunk.id}',
+                : 'Chunk preview · ${selectedChunk.chunkKey}',
             bodyMode: EditorPanelBodyMode.expanded,
             trailing: IconButton(
               tooltip: 'Refresh content',

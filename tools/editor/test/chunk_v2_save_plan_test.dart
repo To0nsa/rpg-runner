@@ -24,18 +24,24 @@ void main() {
 
       expect(store.buildV2SavePlan(document: document).writes, isEmpty);
 
-      final renamed = document.chunks.single.copyWith(
-        id: 'forest_renamed',
-        revision: 5,
-      );
-      final edited = document.copyWith(
-        chunks: <ChunkV2FileData>[renamed],
-        changedChunkKeys: <String>[renamed.chunkKey],
-      );
+      final edited = const ChunkV2LifecycleCommitPolicy()
+          .apply(
+            document: document,
+            commit: ChunkV2LifecycleCommit(
+              before: ChunkV2LifecycleSnapshot.fromDocument(document),
+              operation: _ownerEditOperation(
+                document,
+                chunkKey: 'forest_original',
+                nextChunkKey: 'forest_renamed',
+                nextId: 'forest_renamed',
+              ),
+            ),
+          )
+          .document;
       final plan = store.buildV2SavePlan(document: edited);
 
       expect(plan.writes, hasLength(1));
-      expect(plan.changedChunkKeys, <String>['forest_original']);
+      expect(plan.changedChunkKeys, <String>['forest_renamed']);
       expect(
         plan.writes.single.relativePath.replaceAll('\\', '/'),
         '${ChunkStore.chunksDirectoryPath}/forest/forest_renamed.json',
@@ -137,6 +143,7 @@ void main() {
 
     final replacement = existing.copyWith(
       chunkKey: 'forest_replacement',
+      id: 'forest_replacement',
       revision: 1,
     );
     final reusedPath = document.sourcePathByChunkKey[existing.chunkKey]!;
@@ -155,7 +162,7 @@ void main() {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          contains('chunk_v2_deleted_source_path_reused'),
+          contains('chunk_v2_created_owner_path_noncanonical'),
         ),
       ),
     );
@@ -233,13 +240,16 @@ void main() {
           operation: _ownerEditOperation(
             createdDocument,
             chunkKey: 'forest_created',
+            nextChunkKey: 'forest_created_renamed',
             nextId: 'forest_created_renamed',
           ),
         ),
       );
       expect(renamedCreatedResult.accepted, isTrue);
       expect(
-        renamedCreatedResult.document.sourcePathByChunkKey['forest_created']
+        renamedCreatedResult
+            .document
+            .sourcePathByChunkKey['forest_created_renamed']
             ?.replaceAll('\\', '/'),
         '${ChunkStore.chunksDirectoryPath}/forest/'
         'forest_created_renamed.json',
@@ -311,7 +321,7 @@ void main() {
       );
       expect(
         renameWrite.relativePath.replaceAll('\\', '/'),
-        '${ChunkStore.chunksDirectoryPath}/forest/forest_renamed.json',
+        '${ChunkStore.chunksDirectoryPath}/forest/forest_rekeyed.json',
       );
 
       final deletedResult = policy.apply(
@@ -413,21 +423,28 @@ void main() {
     final document = _document();
     final fixture = _ChunkFixture.create(document);
     addTearDown(fixture.dispose);
-    final renamed = document.chunks.single.copyWith(
-      id: 'forest_renamed',
-      revision: 5,
-    );
-    final edited = document.copyWith(
-      chunks: <ChunkV2FileData>[renamed],
-      changedChunkKeys: <String>[renamed.chunkKey],
-    );
+    final edited = const ChunkV2LifecycleCommitPolicy()
+        .apply(
+          document: document,
+          commit: ChunkV2LifecycleCommit(
+            before: ChunkV2LifecycleSnapshot.fromDocument(document),
+            operation: _ownerEditOperation(
+              document,
+              chunkKey: 'forest_original',
+              nextChunkKey: 'forest_renamed',
+              nextId: 'forest_renamed',
+            ),
+          ),
+        )
+        .document;
+    final renamed = edited.chunks.single;
     final plan = store.buildV2SavePlan(document: edited);
 
     store.applyV2SavePlan(fixture.workspace, document: edited, savePlan: plan);
 
     final oldFile = File(
       fixture.workspace.resolve(
-        document.sourcePathByChunkKey[renamed.chunkKey]!,
+        document.sourcePathByChunkKey['forest_original']!,
       ),
     );
     final newFile = File(

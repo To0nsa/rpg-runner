@@ -50,7 +50,7 @@ class ChunkCompositionPreview extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       image: true,
-      label: 'Preview of ${chunk.id}',
+      label: 'Preview of ${chunk.chunkKey}',
       child: RepaintBoundary(
         child: Container(
           clipBehavior: Clip.antiAlias,

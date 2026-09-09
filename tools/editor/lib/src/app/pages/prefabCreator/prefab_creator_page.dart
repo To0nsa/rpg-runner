@@ -6,6 +6,7 @@ import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
 import 'atlas_slicer/atlas_image_file_picker.dart';
+import 'prefab_creator_navigation.dart';
 import 'v3/prefab_polygon_workspace.dart';
 
 /// Current prefab-v3 editor route.
@@ -17,15 +18,19 @@ class PrefabCreatorPage extends StatefulWidget {
   const PrefabCreatorPage({
     super.key,
     required this.controller,
+    this.initialTarget,
     this.initialPrefabKey,
     this.onShellStateChanged,
     this.atlasImageFilePicker = pickAtlasImageFilePath,
-  });
+  }) : assert(initialTarget == null || initialPrefabKey == null);
 
   final EditorSessionController controller;
   final VoidCallback? onShellStateChanged;
 
-  /// Stable owner requested by guarded chunk-v2 collision navigation.
+  /// Stable owner and workflow requested by guarded cross-route navigation.
+  final PrefabCreatorTarget? initialTarget;
+
+  /// Backward-compatible owner-only request for embedded callers.
   final String? initialPrefabKey;
 
   /// Native atlas-source picker, replaceable for deterministic widget tests.
@@ -143,7 +148,14 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
         key: _workspaceKey,
         onDraftStateChanged: widget.onShellStateChanged,
         controller: widget.controller,
-        initialPrefabKey: widget.initialPrefabKey,
+        initialTarget:
+            widget.initialTarget ??
+            (widget.initialPrefabKey == null
+                ? null
+                : PrefabCreatorTarget(
+                    prefabKey: widget.initialPrefabKey!,
+                    destination: PrefabCreatorDestination.prefab,
+                  )),
         atlasImageFilePicker: widget.atlasImageFilePicker,
       );
     }

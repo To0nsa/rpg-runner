@@ -59,26 +59,27 @@ String chunkV2MarkerContractMessage({
   required PlacedMarkerDef marker,
   required String code,
 }) => switch (code) {
-  'missing_marker_id' => 'Chunk ${chunk.id} has a marker with no enemy ID.',
+  'missing_marker_id' =>
+    'Chunk ${chunk.chunkKey} has a marker with no enemy ID.',
   'unknown_enemy_marker_id' =>
-    'Chunk ${chunk.id} marker references unknown enemy '
+    'Chunk ${chunk.chunkKey} marker references unknown enemy '
         '"${marker.markerId}".',
   'marker_invalid_placement' =>
-    'Chunk ${chunk.id} marker ${marker.markerId} uses unsupported placement '
+    'Chunk ${chunk.chunkKey} marker ${marker.markerId} uses unsupported placement '
         '"${marker.placement}".',
   'marker_x_out_of_bounds' =>
-    'Chunk ${chunk.id} marker ${marker.markerId} x ${marker.x} is outside '
+    'Chunk ${chunk.chunkKey} marker ${marker.markerId} x ${marker.x} is outside '
         'closed chunk bounds 0..${chunk.width}.',
   'marker_y_out_of_bounds' =>
-    'Chunk ${chunk.id} marker ${marker.markerId} editor anchor y ${marker.y} '
+    'Chunk ${chunk.chunkKey} marker ${marker.markerId} editor anchor y ${marker.y} '
         'is outside closed chunk bounds 0..${chunk.height}.',
   'marker_chance_out_of_range' =>
-    'Chunk ${chunk.id} marker ${marker.markerId} chancePercent must be '
+    'Chunk ${chunk.chunkKey} marker ${marker.markerId} chancePercent must be '
         'between 0 and 100.',
   'marker_salt_negative' =>
-    'Chunk ${chunk.id} marker ${marker.markerId} salt must be non-negative.',
+    'Chunk ${chunk.chunkKey} marker ${marker.markerId} salt must be non-negative.',
   'marker_level_ground_context_missing' =>
-    'Chunk ${chunk.id} has authored markers but level ${chunk.levelId} has '
+    'Chunk ${chunk.chunkKey} has authored markers but level ${chunk.levelId} has '
         'no finite deterministic groundTopY context.',
-  _ => 'Chunk ${chunk.id} marker ${marker.markerId} violates $code.',
+  _ => 'Chunk ${chunk.chunkKey} marker ${marker.markerId} violates $code.',
 };

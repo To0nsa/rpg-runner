@@ -11,6 +11,7 @@ import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/authored_playtest_session.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
+import '../prefabCreator/prefab_creator_navigation.dart';
 import 'v2/chunk_authoring_workspace.dart';
 
 /// Current chunk-v2 editor route with an isolated Windows Play mode.
@@ -22,7 +23,7 @@ class ChunkCreatorPage extends StatefulWidget {
   const ChunkCreatorPage({
     super.key,
     required this.controller,
-    this.onOpenOwningPrefab,
+    this.onOpenPrefabTarget,
     this.onShellStateChanged,
     this.playtestPlatformSupported,
     this.preparationRunner = preparePlaytestInBackground,
@@ -31,8 +32,8 @@ class ChunkCreatorPage extends StatefulWidget {
 
   final EditorSessionController controller;
 
-  /// Delegates placed-collision source navigation to the owning app shell.
-  final ValueChanged<String>? onOpenOwningPrefab;
+  /// Delegates exact Prefab Creator navigation to the owning app shell.
+  final ValueChanged<PrefabCreatorTarget>? onOpenPrefabTarget;
 
   /// Requests a shell-control rebuild after route-local lock state changes.
   final VoidCallback? onShellStateChanged;
@@ -200,7 +201,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 key: _workspaceKey,
                 onDraftStateChanged: widget.onShellStateChanged,
                 controller: widget.controller,
-                onOpenOwningPrefab: widget.onOpenOwningPrefab,
+                onOpenPrefabTarget: widget.onOpenPrefabTarget,
                 onPlayRequested: _requestPlay,
                 playtestPlatformSupported: _platformSupportsPlaytest,
               ),

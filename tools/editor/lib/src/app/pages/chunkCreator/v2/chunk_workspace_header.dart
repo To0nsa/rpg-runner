@@ -82,7 +82,7 @@ class ChunkWorkspaceHeader extends StatelessWidget {
                 .map(
                   (chunk) => DropdownMenuItem<String>(
                     value: chunk.chunkKey,
-                    child: Text(chunk.id),
+                    child: Text(chunk.chunkKey),
                   ),
                 )
                 .toList(growable: false),

@@ -18,15 +18,13 @@ final class ChunkLevelTarget {
 final class ChunkFlatStarterIntent {
   const ChunkFlatStarterIntent(
     this.levelId,
-    this.chunkKey,
-    this.id, {
+    this.chunkKey, {
     this.groupId = defaultChunkAssemblyGroupId,
     this.materialKey = 'grass_dirt',
   });
 
   final String levelId;
   final String chunkKey;
-  final String id;
   final String groupId;
   final String materialKey;
 }
@@ -91,7 +89,6 @@ ChunkFlatStarterIntent allocateFlatStarterIntent(
     return ChunkFlatStarterIntent(
       levelId,
       chunk.chunkKey,
-      chunk.id,
       groupId: chunk.assemblyGroupId,
     );
   }
@@ -99,12 +96,12 @@ ChunkFlatStarterIntent allocateFlatStarterIntent(
     ...document.chunks.map((chunk) => chunk.id.toLowerCase()),
     ...document.sourcePathByChunkKey.keys.map((key) => key.toLowerCase()),
   };
-  var id = base;
+  var chunkKey = base;
   var suffix = 2;
-  while (claimed.contains(id)) {
-    id = '${base}_${suffix++}';
+  while (claimed.contains(chunkKey)) {
+    chunkKey = '${base}_${suffix++}';
   }
-  return ChunkFlatStarterIntent(levelId, id, id, groupId: group);
+  return ChunkFlatStarterIntent(levelId, chunkKey, groupId: group);
 }
 
 /// Builds the standard authoring preset using the loaded Level ground and a
@@ -155,7 +152,7 @@ ChunkV2FileData buildFlatStarter(
   final y = ground.toInt() * 2;
   return ChunkV2FileData(
     chunkKey: intent.chunkKey,
-    id: intent.id,
+    id: intent.chunkKey,
     revision: 1,
     status: chunkStatusActive,
     levelId: intent.levelId,

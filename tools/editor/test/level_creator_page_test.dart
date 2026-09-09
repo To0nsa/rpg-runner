@@ -116,7 +116,7 @@ void main() {
       await controller.loadWorkspace();
       await _flush(tester);
       expect(loads, 2);
-      expect(find.text('forest_second'), findsOneWidget);
+      expect(find.text('new-second-key'), findsOneWidget);
       expect(
         tester
             .widget<TextField>(_textFieldByLabel('earlyPatternChunks'))
@@ -353,8 +353,8 @@ void main() {
     'workspace shows real chunks and preserves preview across tab changes and resize',
     (tester) async {
       final controller = await _mountLevelPage(tester);
-      expect(find.text('forest_flat'), findsWidgets);
-      expect(find.text('field_flat'), findsNothing);
+      expect(find.text('forest-flat-key'), findsWidgets);
+      expect(find.text('field-flat-key'), findsNothing);
       final preview = tester.element(
         find.byKey(const ValueKey<String>('level_persistent_preview')),
       );

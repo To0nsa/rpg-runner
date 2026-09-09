@@ -12,8 +12,10 @@ import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../prefabCreator/v3/prefab_owner_order.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_section_card.dart';
+import '../../prefabCreator/prefab_creator_navigation.dart';
 import 'chunk_enemy_catalog_browser.dart';
 import 'chunk_prefab_catalog_browser.dart';
 import 'chunk_v2_composition_dialog.dart';
@@ -40,7 +42,7 @@ class ChunkCompositionCard extends StatefulWidget {
     required this.selectedMarkerKey,
     required this.selectedCatalogPrefabKey,
     required this.selectedCatalogMarkerId,
-    this.onOpenOwningPrefab,
+    this.onOpenPrefabTarget,
     required this.onPrefabSelectionChanged,
     required this.onMarkerSelectionChanged,
     required this.onCatalogPrefabSelected,
@@ -57,7 +59,7 @@ class ChunkCompositionCard extends StatefulWidget {
   final String? selectedMarkerKey;
   final String? selectedCatalogPrefabKey;
   final String? selectedCatalogMarkerId;
-  final ValueChanged<String>? onOpenOwningPrefab;
+  final ValueChanged<PrefabCreatorTarget>? onOpenPrefabTarget;
   final ValueChanged<ChunkPlacedPrefabSelection?> onPrefabSelectionChanged;
   final ValueChanged<ChunkPlacedMarkerSelection?> onMarkerSelectionChanged;
   final ValueChanged<PrefabV3Def> onCatalogPrefabSelected;
@@ -81,7 +83,8 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   String? get selectedMarkerKey => widget.selectedMarkerKey;
   String? get selectedCatalogPrefabKey => widget.selectedCatalogPrefabKey;
   String? get selectedCatalogMarkerId => widget.selectedCatalogMarkerId;
-  ValueChanged<String>? get onOpenOwningPrefab => widget.onOpenOwningPrefab;
+  ValueChanged<PrefabCreatorTarget>? get onOpenPrefabTarget =>
+      widget.onOpenPrefabTarget;
   ValueChanged<ChunkPlacedPrefabSelection?> get onPrefabSelectionChanged =>
       widget.onPrefabSelectionChanged;
   ValueChanged<ChunkPlacedMarkerSelection?> get onMarkerSelectionChanged =>
@@ -340,11 +343,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                           selection.selectionKey)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                          child: _buildPlacementEditDetails(
-                            context,
-                            selection,
-                            usedPrefabKeys,
-                          ),
+                          child: _buildPlacementEditDetails(context, selection),
                         ),
                     ],
                   ],
@@ -571,7 +570,6 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     return _InlinePlacementEdit(
       selectionKey: selection.selectionKey,
       placement: selection.prefab,
-      selectedPrefabKey: owner.prefabKey,
       operation: operation,
     );
   }
@@ -579,23 +577,12 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
   Widget _buildPlacementEditDetails(
     BuildContext context,
     ChunkPlacedPrefabSelection selection,
-    Set<String> usedPrefabKeys,
   ) {
     final edit = _placementEdit!;
     final currentOwner = resolveChunkV2PlacementPrefab(
       document.prefabData.prefabs,
       edit.placement,
     )!;
-    final selectableOwners = PrefabDeterminism.sortPrefabV3ByIdThenKey(
-      document.prefabData.prefabs.where(
-        (prefab) =>
-            prefab.status == PrefabStatus.active ||
-            prefab.prefabKey == currentOwner.prefabKey,
-      ),
-    );
-    final selectedOwner = selectableOwners.singleWhere(
-      (prefab) => prefab.prefabKey == edit.selectedPrefabKey,
-    );
     final keySuffix = selection.selectionKey;
     return Column(
       key: ValueKey<String>('chunk_v2_placement_inline_editor_$keySuffix'),
@@ -610,18 +597,55 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
           spacing: 8,
           runSpacing: 8,
           children: <Widget>[
-            if (onOpenOwningPrefab != null)
+            if (onOpenPrefabTarget != null)
               OutlinedButton.icon(
                 key: ValueKey<String>(
                   'chunk_v2_placement_open_${selection.selectionKey}',
                 ),
                 onPressed: controlsEnabled
-                    ? () => onOpenOwningPrefab!(
-                        selection.prefab.resolvedPrefabRef,
+                    ? () => onOpenPrefabTarget!(
+                        PrefabCreatorTarget(
+                          prefabKey: currentOwner.prefabKey,
+                          destination: PrefabCreatorDestination.prefab,
+                        ),
                       )
                     : null,
                 icon: const Icon(Icons.open_in_new),
                 label: const Text('Open prefab'),
+              ),
+            if (onOpenPrefabTarget != null && currentOwner.usesAtlasSlice)
+              OutlinedButton.icon(
+                key: ValueKey<String>(
+                  'chunk_v2_placement_open_atlas_${selection.selectionKey}',
+                ),
+                onPressed: controlsEnabled
+                    ? () => onOpenPrefabTarget!(
+                        PrefabCreatorTarget(
+                          prefabKey: currentOwner.prefabKey,
+                          destination: PrefabCreatorDestination.atlas,
+                        ),
+                      )
+                    : null,
+                icon: const Icon(Icons.grid_view_outlined),
+                label: const Text('Open atlas'),
+              ),
+            if (onOpenPrefabTarget != null)
+              OutlinedButton.icon(
+                key: ValueKey<String>(
+                  'chunk_v2_placement_open_collision_'
+                  '${selection.selectionKey}',
+                ),
+                onPressed:
+                    controlsEnabled && canAuthorPrefabCollision(currentOwner)
+                    ? () => onOpenPrefabTarget!(
+                        PrefabCreatorTarget(
+                          prefabKey: currentOwner.prefabKey,
+                          destination: PrefabCreatorDestination.collision,
+                        ),
+                      )
+                    : null,
+                icon: const Icon(Icons.polyline_outlined),
+                label: const Text('Open collision'),
               ),
             OutlinedButton.icon(
               key: ValueKey<String>(
@@ -637,34 +661,13 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Choose a prefab and adjust this saved placement. Changes are '
+          'Adjust this saved placement. Changes are '
           'staged only after Apply. Switching context discards this draft.',
         ),
         const SizedBox(height: 12),
-        ChunkPrefabCatalogBrowser(
-          prefabs: selectableOwners,
-          prefabData: document.prefabData,
-          tileData: document.tileData,
-          visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
-          workspaceRootPath: controller.workspacePath,
-          selectedPrefabKey: selectedOwner.prefabKey,
-          usedPrefabKeys: usedPrefabKeys,
-          autofocusSearch: true,
-          gridHeight: 248,
-          keyPrefix: 'chunk_v2_placement_inline_catalog_$keySuffix',
-          enabled: controlsEnabled,
-          onSelected: (prefab) {
-            setState(() {
-              _placementEdit = edit.copyWith(
-                selectedPrefabKey: prefab.prefabKey,
-              );
-            });
-          },
-        ),
-        const Divider(height: 32),
         ChunkV2PlacementForm(
           key: ValueKey<String>('chunk_v2_placement_inline_form_$keySuffix'),
-          prefab: selectedOwner,
+          prefab: currentOwner,
           placement: edit.placement,
           fieldKeyPrefix: 'chunk_v2_placement_inline_$keySuffix',
           submitKey: 'chunk_v2_placement_inline_apply_$keySuffix',
@@ -971,22 +974,12 @@ final class _InlinePlacementEdit {
   const _InlinePlacementEdit({
     required this.selectionKey,
     required this.placement,
-    required this.selectedPrefabKey,
     required this.operation,
   });
 
   final String selectionKey;
   final PlacedPrefabDef placement;
-  final String selectedPrefabKey;
   final ChunkV2CompositionOperation operation;
-
-  _InlinePlacementEdit copyWith({required String selectedPrefabKey}) =>
-      _InlinePlacementEdit(
-        selectionKey: selectionKey,
-        placement: placement,
-        selectedPrefabKey: selectedPrefabKey,
-        operation: operation,
-      );
 }
 
 final class _InlineMarkerEdit {

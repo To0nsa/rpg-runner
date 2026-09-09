@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_navigation.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
@@ -22,6 +23,49 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('cross-route target opens the requested collision owner', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: harness.session,
+            initialTarget: const PrefabCreatorTarget(
+              prefabKey: 'obstacle',
+              destination: PrefabCreatorDestination.collision,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('prefab_v3_view_collision')),
+          )
+          .selected,
+      isTrue,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('prefab_scene_owner_context')),
+        matching: find.textContaining('obstacle'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('current route honors a requested stable prefab', (tester) async {
     tester.view.physicalSize = const Size(1800, 1000);
     tester.view.devicePixelRatio = 1;
@@ -103,6 +147,23 @@ void main() {
     await tester.ensureVisible(requestedOwner);
     await tester.tap(requestedOwner);
     await tester.pump();
+    final readOnlyPlatformVisual = find.byKey(
+      const ValueKey<String>('prefab_v3_owner_visual_source_read_only'),
+    );
+    expect(readOnlyPlatformVisual, findsOneWidget);
+    expect(
+      find.descendant(
+        of: readOnlyPlatformVisual,
+        matching: find.text('platform_module:module_a'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('prefab_v3_owner_source_platform_module_a'),
+      ),
+      findsNothing,
+    );
     final editCollision = find.byKey(
       const ValueKey<String>('prefab_v3_owner_edit_collision'),
     );
@@ -1410,6 +1471,23 @@ void main() {
         ),
         findsOneWidget,
       );
+      final readOnlyVisual = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_visual_source_read_only'),
+      );
+      expect(readOnlyVisual, findsOneWidget);
+      expect(
+        find.descendant(
+          of: readOnlyVisual,
+          matching: find.text('atlas_slice:obstacle_slice'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('prefab_v3_owner_atlas_slice_search'),
+        ),
+        findsNothing,
+      );
       final statusField = find.byKey(
         const ValueKey<String>('prefab_v3_owner_status_field'),
       );
@@ -1439,6 +1517,10 @@ void main() {
       expect(obstacle.status, PrefabStatus.deprecated);
       expect(obstacle.anchorXPx, 9);
       expect(obstacle.tags, <String>['boss', 'test']);
+      expect(
+        obstacle.visualSource,
+        const PrefabVisualSource.atlasSlice('obstacle_slice'),
+      );
       expect(obstacle.collisionShapes, originalShapes);
 
       expect(

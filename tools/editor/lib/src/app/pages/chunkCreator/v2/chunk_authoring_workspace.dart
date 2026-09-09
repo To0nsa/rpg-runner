@@ -35,6 +35,7 @@ import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
+import '../../prefabCreator/prefab_creator_navigation.dart';
 import '../../shared/terrain_material_preview.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
 import '../../shared/terrain_polygon_exact_edit_controller.dart';
@@ -72,7 +73,7 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
     super.key,
     required this.controller,
     this.onDraftStateChanged,
-    this.onOpenOwningPrefab,
+    this.onOpenPrefabTarget,
     this.onPlayRequested,
     this.playtestPlatformSupported = false,
   });
@@ -80,8 +81,8 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
   final EditorSessionController controller;
   final VoidCallback? onDraftStateChanged;
 
-  /// Opens a read-only expanded shape's stable owner outside this workspace.
-  final ValueChanged<String>? onOpenOwningPrefab;
+  /// Opens a placed prefab in a specific Prefab Creator workflow.
+  final ValueChanged<PrefabCreatorTarget>? onOpenPrefabTarget;
 
   /// Requests a snapshot playtest after [ChunkPlaytestWorkspaceReadiness]
   /// reports ready; lifecycle ownership remains with the route page.
@@ -500,7 +501,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           controlsEnabled: canCreate,
         ),
       ),
-      validator: (value) => validateChunkV2OwnerId(value, document: source),
+      validator: (value) => validateChunkV2OwnerKey(value, document: source),
       onDirtyChanged: _setOwnerCreateDirty,
       onCancel: _closeOwnerCreateSection,
       onSubmit: _createOwner,
@@ -660,7 +661,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
       selectedCatalogPrefabKey: _selectedPrefabCatalogKey,
       selectedCatalogMarkerId: _selectedMarkerCatalogId,
-      onOpenOwningPrefab: widget.onOpenOwningPrefab,
+      onOpenPrefabTarget: widget.onOpenPrefabTarget,
       onCatalogPrefabSelected: _selectCatalogPrefab,
       onCatalogMarkerSelected: (enemyId) =>
           setState(() => _selectedMarkerCatalogId = enemyId),
@@ -2191,11 +2192,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  bool _createOwner(String id) {
+  bool _createOwner(String chunkKey) {
     final document = _ownerCreateSource;
     if (document == null) return false;
     final beforeKeys = document.chunks.map((chunk) => chunk.chunkKey).toSet();
-    final next = _dispatchLifecycle(document, ChunkV2CreateOperation(id: id));
+    final next = _dispatchLifecycle(
+      document,
+      ChunkV2CreateOperation(id: chunkKey),
+    );
     if (next == null) return false;
     final createdKeys = next.chunks
         .map((chunk) => chunk.chunkKey)
@@ -2220,7 +2224,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       groundBandZIndex: edit.groundBandZIndex,
     );
     if (chunk.chunkKey == edit.chunkKey &&
-        chunk.id == edit.id &&
+        chunk.id == edit.chunkKey &&
         before == after) {
       _closeOwnerEditor();
       return true;
@@ -2231,7 +2235,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         chunkKey: chunk.chunkKey,
         expectedRevision: chunk.revision,
         nextChunkKey: edit.chunkKey,
-        nextId: edit.id,
+        nextId: edit.chunkKey,
         beforeMetadata: before,
         metadata: after,
       ),
@@ -2268,7 +2272,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete ${chunk.id}?'),
+        title: Text('Delete ${chunk.chunkKey}?'),
         content: Text(
           'This stages deletion of the chunk owner and all of its tile '
           'layers, prefab placements, enemy markers, and collision polygons.'
@@ -2460,7 +2464,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       dialogKey: const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog'),
       title: 'Save chunk owner changes?',
       content: Text(
-        'Save the pending changes to ${_ownerEditSource!.id} before closing '
+        'Save the pending changes to ${_ownerEditSource!.chunkKey} before closing '
         'its editor?',
       ),
       cancelKey: const ValueKey<String>('chunk_v2_owner_unsaved_edit_cancel'),

@@ -202,7 +202,7 @@ class LevelInspector extends StatelessWidget {
   ];
 
   List<Widget> _chunkFields(BuildContext context) => [
-    Text(chunk!.id, style: Theme.of(context).textTheme.titleMedium),
+    Text(chunk!.chunkKey, style: Theme.of(context).textTheme.titleMedium),
     const SizedBox(height: 8),
     Text('${chunk!.difficulty} · ${chunk!.assemblyGroupId} · ${chunk!.status}'),
     const SizedBox(height: 8),

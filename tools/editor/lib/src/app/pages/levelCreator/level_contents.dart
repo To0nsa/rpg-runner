@@ -45,7 +45,7 @@ class LevelContents extends StatelessWidget {
         .where(
           (chunk) =>
               (groupFilter == null || chunk.assemblyGroupId == groupFilter) &&
-              (chunk.id.toLowerCase().contains(query) ||
+              (chunk.chunkKey.toLowerCase().contains(query) ||
                   chunk.difficulty.toLowerCase().contains(query) ||
                   chunk.tags.any((tag) => tag.toLowerCase().contains(query))),
         )
@@ -134,7 +134,7 @@ class LevelContents extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      chunk.id,
+                      chunk.chunkKey,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     Text(
