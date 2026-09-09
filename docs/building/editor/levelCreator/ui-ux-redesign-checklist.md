@@ -129,7 +129,7 @@ the recommended Play boundary is proven before full integration proceeds.
       readable labels; define the reference-aware removal and no-silent-rename
       policy using the existing string-group schema.
 - [x] Automatic maps to absent assembly; no mandatory synthetic section.
-- [x] Ordered sections expose group, count range, within-section repeats, and
+- [x] Ordered sections expose group, exact or Automatic difficulty, count range, within-section repeats, and
       repeat-all/continue-last behavior with friendly explanatory text.
 - [x] New section defaults work with the current one-chunk pool; capacity feedback
       uses resolved tier pools to explain readiness while allowing a saveable

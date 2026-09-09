@@ -123,7 +123,13 @@ tab, viewport, undo/redo history, and pending diff.
    use **Save and return to level**. **Add chunk** supports further content;
    Chunk Creator owns geometry, Prefabs, enemy markers, activation, and groups.
 4. Use **Contents**, **Flow**, and **Appearance** to inspect the Level. Automatic
-   selection needs no section. Ordered sections select from Level-local groups;
+   selection needs no section. **Ordered sections** compose the level from top
+   to bottom. Add a section, choose its **Chunk group** and **Section difficulty**,
+   then set **At least** and **At most** to `3` for exactly three chunks. Leave
+   **Use each chunk at most once in this section** enabled for no repeats.
+   **Duplicate section** copies its settings; drag or use **Move earlier/later**
+   to arrange the sequence. Flow shows chunk positions and matching pool counts.
+   Explicit difficulty requires matching active chunks without tier fallback;
    incomplete but structurally valid sequences can be saved before adding their
    missing content. Runtime capacity and seam errors still block Play.
 5. Use **Sample run** or **Play** to inspect the current accepted design. Edit a
@@ -133,6 +139,14 @@ tab, viewport, undo/redo history, and pending diff.
    The report lists all included/excluded levels and source failures, with
    navigation to repair them. **Check freshness** compares saved content to
    generated outputs without replacing files.
+
+For example, compose Default/Early × 3, Grove/Easy × 3, Ruins/Easy × 3, then
+Grove/Normal × 3, Ruins/Normal × 3, and the Hard sections. Each three-chunk section
+needs three different active chunks of its group and difficulty. Choose
+**Continue the last section** to stay at the final difficulty or **Repeat all
+sections** to replay the composition. Uniqueness resets each time a section runs.
+**Automatic progression** remains available for sections that should follow the
+Level's global difficulty windows.
 
 **Copy level settings** starts Automatic and copies no chunks. **Copy section
 design** explicitly preserves groups and ordered rules; it may require new

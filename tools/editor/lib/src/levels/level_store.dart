@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
+import 'package:runner_core/track/chunk_pattern_tier.dart';
 
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_store.dart';
@@ -114,6 +116,7 @@ class LevelStore {
             ),
           ),
       chunkCountSourceAvailable: chunkCountSnapshot.sourceAvailable,
+      authoredSchedulerChunks: chunkCountSnapshot.schedulerChunks,
       parallaxDocument: parallaxDocument,
       loadIssues: List<ValidationIssue>.unmodifiable(loadIssues),
     );
@@ -452,6 +455,7 @@ class LevelStore {
       );
     }
     final countsByLevelId = <String, int>{};
+    final schedulerChunks = <TerrainAuthoringSchedulerChunk>[];
     final assemblyGroupCountsByLevelId = <String, Map<String, int>>{};
     final files =
         chunkDirectory
@@ -483,6 +487,21 @@ class LevelStore {
         () => <String, int>{},
       );
       groupCounts[assemblyGroupId] = (groupCounts[assemblyGroupId] ?? 0) + 1;
+      final difficulty = ChunkPatternTier.values
+          .where((tier) => tier.name == map['difficulty'])
+          .firstOrNull;
+      final chunkKey = _normalizedString(map['chunkKey']);
+      if (difficulty != null && chunkKey.isNotEmpty) {
+        schedulerChunks.add(
+          TerrainAuthoringSchedulerChunk(
+            chunkKey: chunkKey,
+            levelId: levelId,
+            tier: difficulty,
+            assemblyGroupId: assemblyGroupId,
+            isActive: true,
+          ),
+        );
+      }
     }
     final sortedEntries = countsByLevelId.entries.toList(growable: false)
       ..sort((a, b) => a.key.compareTo(b.key));
@@ -503,6 +522,7 @@ class LevelStore {
           },
       },
       sourceAvailable: true,
+      schedulerChunks: List.unmodifiable(schedulerChunks),
     );
   }
 
@@ -560,11 +580,13 @@ class _ChunkCountSnapshot {
     required this.countsByLevelId,
     required this.assemblyGroupCountsByLevelId,
     required this.sourceAvailable,
+    this.schedulerChunks = const [],
   });
 
   final Map<String, int> countsByLevelId;
   final Map<String, Map<String, int>> assemblyGroupCountsByLevelId;
   final bool sourceAvailable;
+  final List<TerrainAuthoringSchedulerChunk> schedulerChunks;
 }
 
 String? _resolveActiveLevelId(List<LevelDef> levels, String? preferredLevelId) {
@@ -863,6 +885,23 @@ LevelAssemblySegmentDef? _parseAssemblySegment(
     prefix: prefix,
     issues: issues,
   );
+  final difficultyRaw = raw['difficulty'];
+  final difficulty = ChunkPatternTier.values
+      .where((tier) => tier.name == difficultyRaw)
+      .firstOrNull;
+  if (raw.containsKey('difficulty') && difficulty == null) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'invalid_section_difficulty',
+        message: '$prefix.difficulty must be early, easy, normal, or hard.',
+        sourcePath: sourcePath,
+        elementId: segmentId,
+        fieldKey: 'difficulty',
+      ),
+    );
+    return null;
+  }
   final requireDistinctChunks = _readRequiredBool(
     raw,
     field: 'requireDistinctChunks',
@@ -883,6 +922,7 @@ LevelAssemblySegmentDef? _parseAssemblySegment(
     minChunkCount: minChunkCount,
     maxChunkCount: maxChunkCount,
     requireDistinctChunks: requireDistinctChunks,
+    difficulty: difficulty,
   ).normalized();
 }
 

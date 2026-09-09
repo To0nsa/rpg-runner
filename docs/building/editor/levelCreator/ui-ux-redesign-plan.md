@@ -10,6 +10,13 @@ and problem statements below describe the pre-redesign baseline.
 
 Deliverables:
 
+Composition extension: sections now accept explicit difficulty, retain exact
+group/tier uniqueness, show fixed chunk positions and matching capacity, and
+support duplication. Current semantics are recorded in
+[Level workspace contracts](../../../tdd/editor_level_workspace.md) and
+[level composition rules](../../../gdd/level_composition.md); the baseline
+audit below describes the earlier global-difficulty-only design.
+
 - [Implementation checklist](ui-ux-redesign-checklist.md)
 - [Workflow audit and resolution map](ui-ux-workflow-audit.md)
 - [Interactive layout concept](level-creator-ux-wireframe.html) — illustrative UI, not a running game

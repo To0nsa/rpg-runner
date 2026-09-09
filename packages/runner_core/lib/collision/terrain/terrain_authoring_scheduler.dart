@@ -54,6 +54,7 @@ final class TerrainAuthoringSchedulerSegment {
   const TerrainAuthoringSchedulerSegment({
     required this.segmentId,
     required this.groupId,
+    this.difficulty,
     required this.minChunkCount,
     required this.maxChunkCount,
     required this.requireDistinctChunks,
@@ -61,6 +62,9 @@ final class TerrainAuthoringSchedulerSegment {
 
   final String segmentId;
   final String groupId;
+
+  /// Exact section tier; null uses the level's progression and fallback.
+  final ChunkPatternTier? difficulty;
   final int minChunkCount;
   final int maxChunkCount;
   final bool requireDistinctChunks;
@@ -269,7 +273,9 @@ final class _SchedulerEnumerator {
     TerrainAuthoringSchedulerAssembly assembly,
   ) {
     final transitions = <TerrainAuthoringReachableTransition>[];
-    final hardStart = _hardStart(level);
+    final hardStart = assembly.segments.every((s) => s.difficulty != null)
+        ? 0
+        : _hardStart(level);
     if (hardStart > maxTerrainAuthoringFiniteWindowChunks) {
       _addIssue(
         key: 'capacity|${level.levelId}',
@@ -306,8 +312,8 @@ final class _SchedulerEnumerator {
                   'segment=${segment.segmentId}:within-run',
               description:
                   'within ${segment.segmentId} (${segment.groupId}) run',
-              left: _resolvePool(tier: leftTier, groupId: segment.groupId),
-              right: _resolvePool(tier: rightTier, groupId: segment.groupId),
+              left: _resolveSegmentPool(segment, leftTier),
+              right: _resolveSegmentPool(segment, rightTier),
               distinctWithinRun: segment.requireDistinctChunks,
             );
             continue;
@@ -341,8 +347,8 @@ final class _SchedulerEnumerator {
             description:
                 'between ${segment.segmentId} (${segment.groupId}) and '
                 '${nextSegment.segmentId} (${nextSegment.groupId}) runs',
-            left: _resolvePool(tier: leftTier, groupId: segment.groupId),
-            right: _resolvePool(tier: rightTier, groupId: nextSegment.groupId),
+            left: _resolveSegmentPool(segment, leftTier),
+            right: _resolveSegmentPool(nextSegment, rightTier),
             distinctWithinRun: false,
           );
         }
@@ -363,14 +369,8 @@ final class _SchedulerEnumerator {
           transitionId: 'steady-hard:segment=${segment.segmentId}:within-run',
           description:
               'within ${segment.segmentId} (${segment.groupId}) hard run',
-          left: _resolvePool(
-            tier: ChunkPatternTier.hard,
-            groupId: segment.groupId,
-          ),
-          right: _resolvePool(
-            tier: ChunkPatternTier.hard,
-            groupId: segment.groupId,
-          ),
+          left: _resolveSegmentPool(segment, ChunkPatternTier.hard),
+          right: _resolveSegmentPool(segment, ChunkPatternTier.hard),
           distinctWithinRun: segment.requireDistinctChunks,
         );
       }
@@ -384,14 +384,8 @@ final class _SchedulerEnumerator {
         description:
             'between ${segment.segmentId} (${segment.groupId}) and '
             '${nextSegment.segmentId} (${nextSegment.groupId}) hard runs',
-        left: _resolvePool(
-          tier: ChunkPatternTier.hard,
-          groupId: segment.groupId,
-        ),
-        right: _resolvePool(
-          tier: ChunkPatternTier.hard,
-          groupId: nextSegment.groupId,
-        ),
+        left: _resolveSegmentPool(segment, ChunkPatternTier.hard),
+        right: _resolveSegmentPool(nextSegment, ChunkPatternTier.hard),
         distinctWithinRun: false,
       );
     }
@@ -403,7 +397,8 @@ final class _SchedulerEnumerator {
     ChunkPatternTier tier,
   ) {
     if (!segment.requireDistinctChunks) return;
-    final pool = _resolvePool(tier: tier, groupId: segment.groupId);
+    tier = segment.difficulty ?? tier;
+    final pool = _resolveSegmentPool(segment, tier);
     if (pool == null || pool.chunks.length >= segment.maxChunkCount) return;
     _addIssue(
       key: 'distinct|${level.levelId}|${segment.segmentId}|${tier.name}',
@@ -416,11 +411,22 @@ final class _SchedulerEnumerator {
     );
   }
 
+  _ResolvedPool? _resolveSegmentPool(
+    TerrainAuthoringSchedulerSegment segment,
+    ChunkPatternTier tier,
+  ) => _resolvePool(
+    tier: segment.difficulty ?? tier,
+    groupId: segment.groupId,
+    allowFallback: segment.difficulty == null,
+  );
+
   _ResolvedPool? _resolvePool({
     required ChunkPatternTier tier,
     String? groupId,
+    bool allowFallback = true,
   }) {
-    for (final candidateTier in fallbackOrderForTier(tier)) {
+    for (final candidateTier
+        in allowFallback ? fallbackOrderForTier(tier) : [tier]) {
       final eligible =
           chunks
               .where(
@@ -442,7 +448,8 @@ final class _SchedulerEnumerator {
       key: 'empty|${level.levelId}|${tier.name}|${groupId ?? '*'}',
       code: 'terrain_authoring_scheduler_pool_empty',
       message:
-          'Level ${level.levelId} has no active chunk in any fallback tier '
+          'Level ${level.levelId} has no active chunk '
+          '${allowFallback ? 'in any fallback tier ' : 'in the exact section tier '}'
           'for requested ${tier.name}'
           '${groupId == null ? '' : ' and assembly group $groupId'}.',
     );

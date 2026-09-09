@@ -301,6 +301,26 @@ The handoff never applies, discards, or bypasses the unsaved-work guard.
 
 ## Generated Runtime Publication
 
+Schema-v2 assembly segments accept optional `difficulty` with one of `early`,
+`easy`, `normal`, or `hard`. Omission selects global progression and existing tier
+fallback; explicit null or any other value is invalid. Canonical output omits
+Automatic difficulty. This additive setting round-trips through commands, Save,
+copy, history and generated `LevelAssemblySegment` definitions.
+
+Explicit difficulty fixes the eligible pool for the whole section occurrence.
+`AssembledChunkPatternSource` uses the existing seed/run permutation to select
+distinct chunks without replacement, or indexed selection when repeats are
+allowed. Source list ordering and stable hash tie-breaks remain deterministic.
+The Core seam scheduler, shared pipeline, Chunk seam checks and whole-Level
+playtest preparation carry the same optional tier. Exact pools do not fall back;
+capacity is checked against the section's maximum count. Fully explicit schedules
+do not require enumeration of unused global difficulty windows. Sample requested
+tiers report the section override, matching runtime selection.
+
+Existing sources without section difficulty keep their selection behavior. No
+run-ticket or replay payload changes are required: client and replay validator
+consume the same generated Core level definitions and deterministic scheduler.
+
 The compound apply updates authored JSON only. Runtime output is published
 explicitly after Level and Parallax authoring is complete:
 

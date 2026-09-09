@@ -3,6 +3,75 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'explicit sections validate exact pools and only composed boundaries',
+    () {
+      final chunks = [
+        _chunk('grove_easy_a', ChunkPatternTier.easy, groupId: 'grove'),
+        _chunk('grove_easy_b', ChunkPatternTier.easy, groupId: 'grove'),
+        _chunk('grove_hard', ChunkPatternTier.hard, groupId: 'grove'),
+        _chunk('ruins_normal', ChunkPatternTier.normal, groupId: 'ruins'),
+      ];
+      TerrainAuthoringSchedulerResult enumerate({
+        int count = 2,
+        ChunkPatternTier tier = ChunkPatternTier.easy,
+      }) => enumerateTerrainAuthoringReachability(
+        chunks: chunks,
+        levels: [
+          TerrainAuthoringSchedulerLevel(
+            levelId: 'forest',
+            earlyPatternChunks: 300,
+            easyPatternChunks: 0,
+            normalPatternChunks: 0,
+            assembly: TerrainAuthoringSchedulerAssembly(
+              loopSegments: false,
+              segments: [
+                TerrainAuthoringSchedulerSegment(
+                  segmentId: 'grove',
+                  groupId: 'grove',
+                  difficulty: tier,
+                  minChunkCount: count,
+                  maxChunkCount: count,
+                  requireDistinctChunks: true,
+                ),
+                const TerrainAuthoringSchedulerSegment(
+                  segmentId: 'ruins',
+                  groupId: 'ruins',
+                  difficulty: ChunkPatternTier.normal,
+                  minChunkCount: 1,
+                  maxChunkCount: 1,
+                  requireDistinctChunks: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final result = enumerate();
+      expect(result.issues, isEmpty);
+      expect(
+        result.transitions
+            .map((t) => '${t.leftChunkKey}>${t.rightChunkKey}')
+            .toSet(),
+        {
+          'grove_easy_a>grove_easy_b',
+          'grove_easy_b>grove_easy_a',
+          'grove_easy_a>ruins_normal',
+          'grove_easy_b>ruins_normal',
+          'ruins_normal>ruins_normal',
+        },
+      );
+      expect(
+        enumerate(count: 3).issues.map((i) => i.code),
+        contains('terrain_authoring_scheduler_distinct_pool_too_small'),
+      );
+      expect(
+        enumerate(tier: ChunkPatternTier.early).issues.map((i) => i.code),
+        contains('terrain_authoring_scheduler_pool_empty'),
+      );
+    },
+  );
+
   test('tier reachability preserves the reviewed seam signature', () {
     final chunks = <TerrainAuthoringSchedulerChunk>[
       _chunk('early_a', ChunkPatternTier.early),

@@ -270,6 +270,7 @@ bool _assemblySegmentsEqual(
 ) {
   return left.segmentId == right.segmentId &&
       left.groupId == right.groupId &&
+      left.difficulty == right.difficulty &&
       left.minChunkCount == right.minChunkCount &&
       left.maxChunkCount == right.maxChunkCount &&
       left.requireDistinctChunks == right.requireDistinctChunks;

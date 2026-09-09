@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:rpg_runner/playtest.dart';
+import 'package:runner_core/track/chunk_pattern_tier.dart';
 
+import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../domain/authoring_identifiers.dart';
 import '../../../domain/authoring_types.dart';
@@ -596,6 +598,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       ..._levelInputs.keys,
       ..._segmentInputs.keys,
       'requireDistinctChunks',
+      'difficulty',
     ]) {
       final node = FocusNode(debugLabel: 'Level $key');
       node.addListener(() {
@@ -1150,6 +1153,23 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         _segmentGroupIdController.text = group;
         _flushInspectorEdits();
       },
+      onDifficultyChanged: (difficulty) {
+        if (!_flushInspectorEdits()) return;
+        if (_selectedAssemblySegment case final current?) {
+          setState(
+            () => _updateSelectedAssemblySegment(
+              current.copyWith(
+                difficulty: difficulty,
+                clearDifficulty: difficulty == null,
+              ),
+            ),
+          );
+          _flushInspectorEdits();
+        }
+      },
+      onDuplicateSection: () => unawaited(
+        _changeAssemblyStructure(_duplicateSelectedAssemblySegment),
+      ),
       onDistinctChanged: (value) {
         setState(() {
           _selectedSegmentRequireDistinct = value;
@@ -2632,7 +2652,20 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         ).copyWith(
           minChunkCount: 1,
           maxChunkCount: 1,
-          requireDistinctChunks: false,
+          difficulty:
+              selectedSegment?.difficulty ??
+              _content
+                  ?.chunksFor(activeLevel.levelId, groupId: preferredGroupId)
+                  .where((chunk) => chunk.status == chunkStatusActive)
+                  .map(
+                    (chunk) => ChunkPatternTier.values
+                        .where((tier) => tier.name == chunk.difficulty)
+                        .firstOrNull,
+                  )
+                  .whereType<ChunkPatternTier>()
+                  .firstOrNull ??
+              ChunkPatternTier.easy,
+          requireDistinctChunks: true,
         );
     nextSegments.add(nextSegment);
     setState(() {
@@ -2641,6 +2674,24 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       );
       _selectedAssemblySegmentIndex = nextSegments.length - 1;
       _showLevelSettings = false;
+      _syncSelectedAssemblySegmentControllers();
+    });
+  }
+
+  void _duplicateSelectedAssemblySegment() {
+    final segment = _selectedAssemblySegment;
+    final index = _selectedAssemblySegmentIndex;
+    if (segment == null || index == null) return;
+    final segments = List<LevelAssemblySegmentDef>.from(_assemblySegmentsDraft);
+    segments.insert(
+      index + 1,
+      segment.copyWith(
+        segmentId: allocateUniqueAssemblySegmentId(segments, segment.segmentId),
+      ),
+    );
+    setState(() {
+      _assemblySegmentsDraft = List.unmodifiable(segments);
+      _selectedAssemblySegmentIndex = index + 1;
       _syncSelectedAssemblySegmentControllers();
     });
   }

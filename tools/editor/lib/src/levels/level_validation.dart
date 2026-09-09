@@ -566,20 +566,40 @@ void _validateAssembly(
       );
     }
 
-    if (segment.requireDistinctChunks &&
+    final availableCount = segment.difficulty == null
+        ? (availableGroupCounts[segment.groupId] ?? 0)
+        : document.authoredSchedulerChunks
+              .where(
+                (chunk) =>
+                    chunk.levelId == level.levelId &&
+                    chunk.assemblyGroupId == segment.groupId &&
+                    chunk.tier == segment.difficulty,
+              )
+              .map((chunk) => chunk.chunkKey)
+              .toSet()
+              .length;
+    final requiredCount = segment.requireDistinctChunks
+        ? segment.maxChunkCount
+        : 1;
+    if ((segment.requireDistinctChunks || segment.difficulty != null) &&
         groupIsResolvable &&
         document.chunkCountSourceAvailable &&
-        (availableGroupCounts[segment.groupId] ?? 0) < segment.maxChunkCount) {
+        availableCount < requiredCount) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
-          code: 'insufficient_distinct_group_chunks',
+          code: segment.difficulty == null
+              ? 'insufficient_distinct_group_chunks'
+              : 'insufficient_section_chunks',
           elementId: segment.segmentId,
-          fieldKey: 'requireDistinctChunks',
+          fieldKey: segment.difficulty == null
+              ? 'requireDistinctChunks'
+              : 'difficulty',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" '
-              'requires ${segment.maxChunkCount} distinct chunks, but group '
-              '"${segment.groupId}" only has ${availableGroupCounts[segment.groupId] ?? 0}.',
+              'requires $requiredCount ${segment.requireDistinctChunks ? 'distinct ' : ''}'
+              '${segment.difficulty == null ? '' : '${segment.difficulty!.name} '}chunks, '
+              'but group "${segment.groupId}" only has $availableCount matching active chunks.',
           sourcePath: sourcePath,
           ownerKey: level.levelId,
           blockingOperations: <AuthoringOperation>{

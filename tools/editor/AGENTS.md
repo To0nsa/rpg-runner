@@ -311,6 +311,10 @@ maintainability concerns.
   independent store saves for this workflow
 - keep canonical file ordering by `levelId`, stable `enumOrdinal`, source-drift
   checks, and export gating in the plugin/store path
+- Flow composes ordered sections with optional exact difficulty, group, count
+  range and per-occurrence uniqueness. Carry difficulty through Save, generated
+  Core, seam admission and authored Play; exact pools must never tier-fallback.
+  Runtime readiness permits saving incomplete designs and blocks Play/Build.
 
 ### Future Authoring Domains
 

@@ -58,6 +58,7 @@ final class PolygonTerrainSchedulerSegmentSource {
   const PolygonTerrainSchedulerSegmentSource({
     required this.segmentId,
     required this.groupId,
+    this.difficulty,
     required this.minChunkCount,
     required this.maxChunkCount,
     required this.requireDistinctChunks,
@@ -65,6 +66,9 @@ final class PolygonTerrainSchedulerSegmentSource {
 
   final String segmentId;
   final String groupId;
+
+  /// Exact section difficulty; null follows global progression and fallback.
+  final ChunkPatternTier? difficulty;
   final int minChunkCount;
   final int maxChunkCount;
   final bool requireDistinctChunks;
@@ -286,6 +290,7 @@ TerrainAuthoringSchedulerLevel _schedulerLevel(
             (segment) => TerrainAuthoringSchedulerSegment(
               segmentId: segment.segmentId,
               groupId: segment.groupId,
+              difficulty: segment.difficulty,
               minChunkCount: segment.minChunkCount,
               maxChunkCount: segment.maxChunkCount,
               requireDistinctChunks: segment.requireDistinctChunks,

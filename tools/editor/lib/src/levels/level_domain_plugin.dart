@@ -1,3 +1,5 @@
+import 'package:runner_core/track/chunk_pattern_tier.dart';
+
 import '../domain/authoring_identifiers.dart';
 import '../domain/authoring_intent_reconciliation.dart';
 import '../domain/authoring_session_semantics.dart';
@@ -1221,6 +1223,16 @@ _AssemblyPayloadParseResult _parseAssemblyPayload(Object? raw) {
     final groupId = _normalizedString(rawSegment['groupId']);
     final minChunkCount = _intOrNull(rawSegment['minChunkCount']);
     final maxChunkCount = _intOrNull(rawSegment['maxChunkCount']);
+    final difficultyRaw = rawSegment['difficulty'];
+    final difficulty = ChunkPatternTier.values
+        .where((tier) => tier.name == difficultyRaw)
+        .firstOrNull;
+    if (rawSegment.containsKey('difficulty') && difficulty == null) {
+      return _AssemblyPayloadParseResult(
+        issueMessage:
+            'assembly.segments[$i].difficulty must be early, easy, normal, or hard.',
+      );
+    }
     final requireDistinctChunks = _boolOrNull(
       rawSegment['requireDistinctChunks'],
     );
@@ -1241,6 +1253,7 @@ _AssemblyPayloadParseResult _parseAssemblyPayload(Object? raw) {
         minChunkCount: minChunkCount,
         maxChunkCount: maxChunkCount,
         requireDistinctChunks: requireDistinctChunks,
+        difficulty: difficulty,
       ).normalized(),
     );
   }

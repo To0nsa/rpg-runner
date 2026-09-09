@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:runner_core/track/chunk_pattern_tier.dart';
 
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../levels/level_domain_models.dart';
@@ -17,8 +18,10 @@ class LevelInspector extends StatelessWidget {
     required this.onCompleted,
     required this.onShowLevel,
     required this.onGroupChanged,
+    required this.onDifficultyChanged,
     required this.onDistinctChanged,
     required this.onRemoveSection,
+    required this.onDuplicateSection,
     required this.onIncludeInBuildChanged,
     this.chunk,
     this.segment,
@@ -39,8 +42,10 @@ class LevelInspector extends StatelessWidget {
   final VoidCallback onCompleted;
   final VoidCallback onShowLevel;
   final ValueChanged<String> onGroupChanged;
+  final ValueChanged<ChunkPatternTier?> onDifficultyChanged;
   final ValueChanged<bool> onDistinctChanged;
   final VoidCallback onRemoveSection;
+  final VoidCallback onDuplicateSection;
   final ValueChanged<bool> onIncludeInBuildChanged;
   final VoidCallback? onEarlier;
   final VoidCallback? onLater;
@@ -90,7 +95,7 @@ class LevelInspector extends StatelessWidget {
     ),
     const SizedBox(height: 6),
     const Text(
-      'Consecutive stages, measured in chunks. Sections do not reset progression.',
+      'Consecutive stages for Automatic difficulty, measured in chunks. A section with its own difficulty overrides these stages.',
     ),
     _field('earlyPatternChunks', 'Early', numeric: true),
     _field('easyPatternChunks', 'Easy', numeric: true),
@@ -121,7 +126,12 @@ class LevelInspector extends StatelessWidget {
         ListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Level ID'),
-          subtitle: SelectableText(level.levelId),
+          // Expansion state and SelectableText's scroll offset must not share
+          // the same PageStorage path; they persist different value types.
+          subtitle: SelectableText(
+            level.levelId,
+            key: PageStorageKey<String>('level_id_storage_${level.levelId}'),
+          ),
         ),
         _field('cameraCenterY', 'Camera center', readOnly: true),
         _field('groundTopY', 'Ground reference', readOnly: true),
@@ -155,11 +165,43 @@ class LevelInspector extends StatelessWidget {
         if (value != null) onGroupChanged(value);
       },
     ),
+    const SizedBox(height: 12),
+    DropdownButtonFormField<String>(
+      key: ValueKey<String>(
+        'level_section_difficulty_${segment!.segmentId}_${segment!.difficulty?.name}',
+      ),
+      focusNode: focusNodes['difficulty'],
+      initialValue: segment!.difficulty?.name ?? 'automatic',
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Section difficulty',
+        helperText: 'Selects only chunks matching this group and difficulty.',
+        helperMaxLines: 2,
+        errorText: errors['difficulty'],
+      ),
+      items: [
+        const DropdownMenuItem(
+          value: 'automatic',
+          child: Text('Automatic progression'),
+        ),
+        for (final tier in ChunkPatternTier.values)
+          DropdownMenuItem(value: tier.name, child: Text(tier.name)),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          onDifficultyChanged(
+            ChunkPatternTier.values
+                .where((tier) => tier.name == value)
+                .firstOrNull,
+          );
+        }
+      },
+    ),
     _field(
       'minChunkCount',
       'At least',
       numeric: true,
-      helper: 'Number of chunks in this section.',
+      helper: 'Set both counts to the same value for an exact length.',
     ),
     _field('maxChunkCount', 'At most', numeric: true),
     Focus(
@@ -177,6 +219,11 @@ class LevelInspector extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
+        OutlinedButton.icon(
+          onPressed: onDuplicateSection,
+          icon: const Icon(Icons.copy_outlined),
+          label: const Text('Duplicate section'),
+        ),
         OutlinedButton.icon(
           onPressed: onEarlier,
           icon: const Icon(Icons.arrow_upward),
@@ -253,6 +300,7 @@ class LevelInspector extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         helperText: helper,
+        helperMaxLines: 2,
         errorText: errors[key],
         border: const OutlineInputBorder(),
         isDense: true,

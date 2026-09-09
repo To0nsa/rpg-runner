@@ -5,8 +5,8 @@ import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../levels/level_domain_models.dart';
 
-/// Ordered group rules and coverage; the displayed fallback order comes from
-/// Core and does not replace canonical scenario admission or sampling.
+/// Composes ordered sections with group, difficulty, length, and pool coverage.
+/// Sampling and play admission remain owned by Core.
 class LevelFlow extends StatelessWidget {
   const LevelFlow({
     super.key,
@@ -54,7 +54,7 @@ class LevelFlow extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             ordered
-                ? 'Each section selects a group for its chunk-count range. Selecting a section opens its settings.'
+                ? 'Compose the level from top to bottom. Add sections, choose their group, difficulty and length, then drag them into order. Select a section to edit or duplicate it.'
                 : 'The level selects eligible chunks as difficulty advances. Group filters do not restrict this pool.',
           ),
           const SizedBox(height: 12),
@@ -80,6 +80,28 @@ class LevelFlow extends StatelessWidget {
       onReorderItem: onReorder,
       itemBuilder: (context, index) {
         final segment = segments[index];
+        final matchingCount = chunks
+            .where(
+              (chunk) =>
+                  chunk.status == chunkStatusActive &&
+                  chunk.assemblyGroupId == segment.groupId &&
+                  (segment.difficulty == null ||
+                      chunk.difficulty == segment.difficulty!.name),
+            )
+            .map((chunk) => chunk.chunkKey)
+            .toSet()
+            .length;
+        final requiredCount = segment.requireDistinctChunks
+            ? segment.maxChunkCount
+            : 1;
+        final fixedPosition = segments
+            .take(index + 1)
+            .every((s) => s.minChunkCount == s.maxChunkCount);
+        final start =
+            1 + segments.take(index).fold(0, (sum, s) => sum + s.minChunkCount);
+        final length = segment.minChunkCount == segment.maxChunkCount
+            ? '${segment.minChunkCount}'
+            : '${segment.minChunkCount}–${segment.maxChunkCount}';
         return Card.outlined(
           key: ValueKey<String>('level_section_${segment.segmentId}'),
           color: selectedSegmentId == segment.segmentId
@@ -94,9 +116,22 @@ class LevelFlow extends StatelessWidget {
               height: 52,
               child: previewForGroup(segment.groupId),
             ),
-            title: Text('${index + 1}. ${segment.groupId}'),
-            subtitle: Text(
-              '${segment.minChunkCount}–${segment.maxChunkCount} chunks · ${segment.requireDistinctChunks ? 'Each chunk once per section' : 'Repeats allowed'}',
+            title: Text(
+              '${index + 1}. ${segment.groupId} · ${segment.difficulty?.name ?? 'Automatic'}',
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${fixedPosition ? 'Chunks $start–${start + segment.maxChunkCount - 1} · ' : ''}$length chunks · ${segment.requireDistinctChunks ? 'Each chunk once per section' : 'Repeats allowed'}',
+                ),
+                Text(
+                  '$matchingCount matching active chunks${matchingCount < requiredCount ? '; needs $requiredCount' : ''}',
+                  style: matchingCount < requiredCount
+                      ? TextStyle(color: Theme.of(context).colorScheme.error)
+                      : null,
+                ),
+              ],
             ),
             trailing: ReorderableDragStartListener(
               index: index,
@@ -142,7 +177,7 @@ class LevelFlow extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Both choices keep the run going. Sections do not reset difficulty or change the background.',
+              'Both choices keep the run going. Each repeated section keeps its chosen difficulty and starts a fresh no-repeat selection. The background stays the same.',
             ),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:runner_core/track/chunk_pattern_tier.dart';
+
 import 'content_build_report.dart';
 
 const int levelDefsSchemaVersion = 2;
@@ -540,6 +542,21 @@ LevelAssemblySegmentSource? _parseAssemblySegment(
     path: path,
     fieldPrefix: fieldPrefix,
   );
+  final difficultyRaw = raw['difficulty'];
+  final difficulty = ChunkPatternTier.values
+      .where((tier) => tier.name == difficultyRaw)
+      .firstOrNull;
+  if (raw.containsKey('difficulty') && difficulty == null) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: path,
+        code: 'invalid_section_difficulty',
+        message:
+            '$fieldPrefix.difficulty must be early, easy, normal, or hard.',
+      ),
+    );
+    return null;
+  }
   final requireDistinctChunksRaw = raw['requireDistinctChunks'];
   if (requireDistinctChunksRaw is! bool) {
     issues.add(
@@ -563,6 +580,7 @@ LevelAssemblySegmentSource? _parseAssemblySegment(
     minChunkCount: minChunkCount,
     maxChunkCount: maxChunkCount,
     requireDistinctChunks: requireDistinctChunksRaw,
+    difficulty: difficulty,
   );
 }
 
@@ -732,6 +750,11 @@ void _writeAssembly(StringBuffer buffer, LevelAssemblySource assembly) {
       '            "segmentId": ${jsonEncode(segment.segmentId)},',
     );
     buffer.writeln('            "groupId": ${jsonEncode(segment.groupId)},');
+    if (segment.difficulty != null) {
+      buffer.writeln(
+        '            "difficulty": ${jsonEncode(segment.difficulty!.name)},',
+      );
+    }
     buffer.writeln('            "minChunkCount": ${segment.minChunkCount},');
     buffer.writeln('            "maxChunkCount": ${segment.maxChunkCount},');
     buffer.writeln(
@@ -956,6 +979,11 @@ String _renderLevelAssemblyDart(LevelAssemblySource assembly) {
       ..writeln('              LevelAssemblySegment(')
       ..writeln("                segmentId: '${_escape(segment.segmentId)}',")
       ..writeln("                groupId: '${_escape(segment.groupId)}',")
+      ..write(
+        segment.difficulty == null
+            ? ''
+            : '                difficulty: ChunkPatternTier.${segment.difficulty!.name},\n',
+      )
       ..writeln('                minChunkCount: ${segment.minChunkCount},')
       ..writeln('                maxChunkCount: ${segment.maxChunkCount},')
       ..writeln(
@@ -1243,6 +1271,7 @@ class LevelAssemblySegmentSource {
   const LevelAssemblySegmentSource({
     required this.segmentId,
     required this.groupId,
+    this.difficulty,
     required this.minChunkCount,
     required this.maxChunkCount,
     required this.requireDistinctChunks,
@@ -1250,6 +1279,9 @@ class LevelAssemblySegmentSource {
 
   final String segmentId;
   final String groupId;
+
+  /// Exact section difficulty; null follows global progression and fallback.
+  final ChunkPatternTier? difficulty;
   final int minChunkCount;
   final int maxChunkCount;
   final bool requireDistinctChunks;

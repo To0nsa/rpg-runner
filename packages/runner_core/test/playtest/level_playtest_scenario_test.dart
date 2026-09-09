@@ -22,6 +22,83 @@ const _player = PlayerCharacterRegistry.eloise;
 const _loadout = EquippedLoadoutDef();
 
 void main() {
+  test('sample and restarted Core preserve explicit section tiers', () {
+    final level = _level().copyWith(
+      chunkPatternSource: ChunkPatternListSource(
+        earlyPatterns: [_pattern('opening')],
+        easyPatterns: [_pattern('easy_a'), _pattern('easy_b')],
+        hardPatterns: [_pattern('hard')],
+      ),
+      assembly: const LevelAssemblyDefinition(
+        loopSegments: false,
+        segments: [
+          LevelAssemblySegment(
+            segmentId: 'opening',
+            groupId: 'default',
+            difficulty: ChunkPatternTier.early,
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: true,
+          ),
+          LevelAssemblySegment(
+            segmentId: 'easy',
+            groupId: 'default',
+            difficulty: ChunkPatternTier.easy,
+            minChunkCount: 2,
+            maxChunkCount: 2,
+            requireDistinctChunks: true,
+          ),
+          LevelAssemblySegment(
+            segmentId: 'hard',
+            groupId: 'default',
+            difficulty: ChunkPatternTier.hard,
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: true,
+          ),
+        ],
+      ),
+    );
+    final scenario = _scenario(
+      level: level,
+      chunks: [
+        _terrain('opening'),
+        _terrain('easy_a', difficulty: 'easy'),
+        _terrain('easy_b', difficulty: 'easy'),
+        _terrain('hard', difficulty: 'hard'),
+      ],
+    );
+    final sample = scenario.sampleChunks(count: 6);
+    expect(sample.map((s) => s.requestedTier), [
+      ChunkPatternTier.early,
+      ChunkPatternTier.easy,
+      ChunkPatternTier.easy,
+      ChunkPatternTier.hard,
+      ChunkPatternTier.hard,
+      ChunkPatternTier.hard,
+    ]);
+    expect(
+      sample.map((s) => s.resolvedTier),
+      sample.map((s) => s.requestedTier),
+    );
+    expect(sample.skip(1).take(2).map((s) => s.chunkKey).toSet(), {
+      'easy_a',
+      'easy_b',
+    });
+    expect(sample.map((s) => s.enemiesSuppressed), [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]);
+    _expectSameRun(
+      GameCore.levelPlaytest(scenario: scenario),
+      GameCore.levelPlaytest(scenario: scenario),
+    );
+  });
+
   test(
     'identity preserves provenance, including authored registered names',
     () {

@@ -438,7 +438,7 @@ void main() {
   );
 
   testWidgets(
-    'section creation defaults to one repeatable chunk and automatic removal is undoable',
+    'section creation defaults to one unique chunk and automatic removal is undoable',
     (tester) async {
       final controller = await _mountLevelPage(tester);
       await _addSection(tester);
@@ -450,7 +450,8 @@ void main() {
       expect(section.groupId, defaultAssemblyGroupId);
       expect(section.minChunkCount, 1);
       expect(section.maxChunkCount, 1);
-      expect(section.requireDistinctChunks, isFalse);
+      expect(section.requireDistinctChunks, isTrue);
+      expect(section.difficulty?.name, 'early');
       await tester.tap(find.text('Automatic'));
       await _flush(tester);
       await tester.tap(find.text('Cancel').last);

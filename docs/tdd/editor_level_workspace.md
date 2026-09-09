@@ -23,8 +23,22 @@ the editor does not silently select unrelated content. A typed handoff context
 also retains the seed and selected source Chunk/section.
 
 Automatic Flow is absent assembly. Ordered sections retain stable IDs and
-reference Level-local groups. Difficulty windows remain global consecutive
-windows, followed by Hard continuation; section boundaries do not reset pacing.
+reference Level-local groups. Each section can choose an exact Early, Easy,
+Normal, or Hard difficulty; omitted difficulty means Automatic progression.
+Explicit sections select only active chunks matching both group and difficulty,
+without tier fallback. Global consecutive difficulty windows and their Hard
+continuation apply to Automatic selection and Automatic sections.
+Authors add, duplicate, remove and reorder sections in Flow. Duplication allocates
+a new section ID and preserves the selected group, difficulty, count range and
+distinctness. Equal minimum/maximum counts specify an exact length; Flow shows
+one-based chunk positions when the preceding lengths are exact. These positions
+are schedule indexes, not elapsed player travel. New sections use one unique
+chunk, inherit the selected section's difficulty or a matching active chunk's
+tier, and use Easy when the group has no loaded content.
+Distinct selection resets per section occurrence, including repeat-all and
+continue-last cycles. Repetition keeps each explicit difficulty. Pool readiness
+counts unique active identities at the exact group/tier intersection and blocks
+Play and included Build when insufficient; incomplete sections remain saveable.
 Sample run and New variation prepare the real Core scenario's first 12 selections,
 resolved tiers, section occurrences, and enemy-opening flags.
 Each sampled occurrence names its reusable source; selecting it opens source

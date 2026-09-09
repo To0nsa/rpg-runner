@@ -533,6 +533,7 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
                   LevelAssemblySegment(
                     segmentId: s.segmentId,
                     groupId: s.groupId,
+                    difficulty: s.difficulty,
                     minChunkCount: s.minChunkCount,
                     maxChunkCount: s.maxChunkCount,
                     requireDistinctChunks: s.requireDistinctChunks,

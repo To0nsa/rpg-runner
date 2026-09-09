@@ -184,7 +184,7 @@ final class LevelPlaytestScenario implements PlaytestScenario {
           chunkIndex: index,
           chunkKey: terrain.chunkKey,
           groupId: terrain.assemblyGroupId,
-          requestedTier: tier,
+          requestedTier: selected.assembly?.difficulty ?? tier,
           resolvedTier: playtestTierForDifficulty(terrain.difficulty),
           enemiesSuppressed: index < level.noEnemyChunks,
           assembly: selected.assembly,

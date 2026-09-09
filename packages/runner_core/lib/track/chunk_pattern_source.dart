@@ -4,9 +4,9 @@ library;
 import '../levels/level_assembly.dart';
 import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_pattern.dart';
+import 'chunk_pattern_tier.dart';
 
-/// Requested chunk pacing tier for a streamed chunk index.
-enum ChunkPatternTier { early, easy, normal, hard }
+export 'chunk_pattern_tier.dart';
 
 /// Canonical progression tier shared by streaming and authored previews.
 ChunkPatternTier chunkPatternTierForIndex({
@@ -34,6 +34,7 @@ final class ChunkAssemblySelection {
     required this.startChunkIndex,
     required this.chunkCount,
     required this.repeatsFinalSegment,
+    this.difficulty,
   });
 
   final String segmentId;
@@ -43,6 +44,9 @@ final class ChunkAssemblySelection {
   final int startChunkIndex;
   final int chunkCount;
   final bool repeatsFinalSegment;
+
+  /// Explicit section difficulty, or null when following global progression.
+  final ChunkPatternTier? difficulty;
 }
 
 /// Deterministic pattern + render-theme selection for a chunk index.
@@ -59,7 +63,8 @@ abstract class ChunkPatternSource {
 
   /// Returns the full deterministic chunk selection for [chunkIndex].
   ///
-  /// [tier] is the requested authored pacing bucket for this chunk.
+  /// [tier] is the global pacing bucket; an explicit section difficulty takes
+  /// precedence and requires an exact matching authored pool.
   ChunkPatternSelection selectionFor({
     required int seed,
     required int chunkIndex,
@@ -139,14 +144,16 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
     required ChunkPatternTier tier,
   }) {
     final run = _resolvedRunFor(seed: seed, chunkIndex: chunkIndex);
+    final effectiveTier = run.segment.difficulty ?? tier;
     final eligiblePatterns = _eligiblePatternsForSegment(
-      tier: tier,
+      tier: effectiveTier,
       groupId: run.segment.groupId,
+      allowFallback: run.segment.difficulty == null,
     );
     if (eligiblePatterns == null || eligiblePatterns.isEmpty) {
       throw StateError(
         'AssembledChunkPatternSource has no patterns available for '
-        'groupId="${run.segment.groupId}", tier=${tier.name}, '
+        'groupId="${run.segment.groupId}", tier=${effectiveTier.name}, '
         'chunkIndex=$chunkIndex.',
       );
     }
@@ -169,6 +176,7 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
       pattern: selectedPattern,
       assembly: ChunkAssemblySelection(
         segmentId: run.segment.segmentId,
+        difficulty: run.segment.difficulty,
         segmentIndex: run.segmentIndex,
         runSequence: run.sequence,
         cycleIndex: run.cycleIndex,
@@ -261,8 +269,10 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
   List<ChunkPattern>? _eligiblePatternsForSegment({
     required ChunkPatternTier tier,
     required String groupId,
+    required bool allowFallback,
   }) {
-    for (final candidateTier in fallbackOrderForTier(tier)) {
+    for (final candidateTier
+        in allowFallback ? fallbackOrderForTier(tier) : [tier]) {
       final patterns = switch (candidateTier) {
         ChunkPatternTier.early => baseSource.earlyPatterns,
         ChunkPatternTier.easy => baseSource.easyPatterns,

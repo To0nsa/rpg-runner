@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
+import 'package:runner_core/track/chunk_pattern_tier.dart';
 
 import '../domain/authoring_identifiers.dart';
 import '../domain/authoring_types.dart';
@@ -27,6 +29,7 @@ class LevelAssemblySegmentDef {
   const LevelAssemblySegmentDef({
     required this.segmentId,
     required this.groupId,
+    this.difficulty,
     required this.minChunkCount,
     required this.maxChunkCount,
     required this.requireDistinctChunks,
@@ -34,6 +37,9 @@ class LevelAssemblySegmentDef {
 
   final String segmentId;
   final String groupId;
+
+  /// Exact section difficulty; null follows global progression and fallback.
+  final ChunkPatternTier? difficulty;
   final int minChunkCount;
   final int maxChunkCount;
   final bool requireDistinctChunks;
@@ -41,6 +47,8 @@ class LevelAssemblySegmentDef {
   LevelAssemblySegmentDef copyWith({
     String? segmentId,
     String? groupId,
+    ChunkPatternTier? difficulty,
+    bool clearDifficulty = false,
     int? minChunkCount,
     int? maxChunkCount,
     bool? requireDistinctChunks,
@@ -48,6 +56,7 @@ class LevelAssemblySegmentDef {
     return LevelAssemblySegmentDef(
       segmentId: segmentId ?? this.segmentId,
       groupId: groupId ?? this.groupId,
+      difficulty: clearDifficulty ? null : (difficulty ?? this.difficulty),
       minChunkCount: minChunkCount ?? this.minChunkCount,
       maxChunkCount: maxChunkCount ?? this.maxChunkCount,
       requireDistinctChunks:
@@ -59,6 +68,7 @@ class LevelAssemblySegmentDef {
     return LevelAssemblySegmentDef(
       segmentId: segmentId.trim(),
       groupId: groupId.trim(),
+      difficulty: difficulty,
       minChunkCount: minChunkCount,
       maxChunkCount: maxChunkCount,
       requireDistinctChunks: requireDistinctChunks,
@@ -70,6 +80,8 @@ class LevelAssemblySegmentDef {
     return <String, Object?>{
       'segmentId': normalizedValue.segmentId,
       'groupId': normalizedValue.groupId,
+      if (normalizedValue.difficulty != null)
+        'difficulty': normalizedValue.difficulty!.name,
       'minChunkCount': normalizedValue.minChunkCount,
       'maxChunkCount': normalizedValue.maxChunkCount,
       'requireDistinctChunks': normalizedValue.requireDistinctChunks,
@@ -242,6 +254,7 @@ class LevelDefsDocument extends AuthoringDocument {
     required this.authoredChunkCountsByLevelId,
     required this.authoredChunkAssemblyGroupCountsByLevelId,
     required this.chunkCountSourceAvailable,
+    this.authoredSchedulerChunks = const [],
     this.parallaxDocument,
     this.sessionCreatedParallaxThemeIds = const <String>{},
     this.loadIssues = const <ValidationIssue>[],
@@ -258,6 +271,9 @@ class LevelDefsDocument extends AuthoringDocument {
   final Map<String, int> authoredChunkCountsByLevelId;
   final Map<String, Map<String, int>> authoredChunkAssemblyGroupCountsByLevelId;
   final bool chunkCountSourceAvailable;
+
+  /// Captured active chunk identities and tiers for section capacity admission.
+  final List<TerrainAuthoringSchedulerChunk> authoredSchedulerChunks;
   final ParallaxDefsDocument? parallaxDocument;
   final Set<String> sessionCreatedParallaxThemeIds;
   final List<ValidationIssue> loadIssues;
@@ -276,6 +292,7 @@ class LevelDefsDocument extends AuthoringDocument {
     Map<String, int>? authoredChunkCountsByLevelId,
     Map<String, Map<String, int>>? authoredChunkAssemblyGroupCountsByLevelId,
     bool? chunkCountSourceAvailable,
+    List<TerrainAuthoringSchedulerChunk>? authoredSchedulerChunks,
     ParallaxDefsDocument? parallaxDocument,
     bool clearParallaxDocument = false,
     Set<String>? sessionCreatedParallaxThemeIds,
@@ -303,6 +320,8 @@ class LevelDefsDocument extends AuthoringDocument {
           this.authoredChunkAssemblyGroupCountsByLevelId,
       chunkCountSourceAvailable:
           chunkCountSourceAvailable ?? this.chunkCountSourceAvailable,
+      authoredSchedulerChunks:
+          authoredSchedulerChunks ?? this.authoredSchedulerChunks,
       parallaxDocument: clearParallaxDocument
           ? null
           : (parallaxDocument ?? this.parallaxDocument),
@@ -474,6 +493,7 @@ bool levelAssemblySegmentEquals(
   final right = b.normalized();
   return left.segmentId == right.segmentId &&
       left.groupId == right.groupId &&
+      left.difficulty == right.difficulty &&
       left.minChunkCount == right.minChunkCount &&
       left.maxChunkCount == right.maxChunkCount &&
       left.requireDistinctChunks == right.requireDistinctChunks;
@@ -489,6 +509,11 @@ void _writeAssembly(StringBuffer buffer, LevelAssemblyDef assembly) {
     buffer.writeln('          {');
     buffer.writeln('            "segmentId": ${_quoted(segment.segmentId)},');
     buffer.writeln('            "groupId": ${_quoted(segment.groupId)},');
+    if (segment.difficulty != null) {
+      buffer.writeln(
+        '            "difficulty": ${_quoted(segment.difficulty!.name)},',
+      );
+    }
     buffer.writeln('            "minChunkCount": ${segment.minChunkCount},');
     buffer.writeln('            "maxChunkCount": ${segment.maxChunkCount},');
     buffer.writeln(

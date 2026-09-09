@@ -227,6 +227,7 @@ TerrainAuthoringSchedulerLevel _schedulerLevel(LevelDef level) =>
                 (segment) => TerrainAuthoringSchedulerSegment(
                   segmentId: segment.segmentId,
                   groupId: segment.groupId,
+                  difficulty: segment.difficulty,
                   minChunkCount: segment.minChunkCount,
                   maxChunkCount: segment.maxChunkCount,
                   requireDistinctChunks: segment.requireDistinctChunks,

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:runner_core/track/chunk_pattern_tier.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -152,6 +154,7 @@ void main() {
           {
             "segmentId": "cemetery_run",
             "groupId": "cemetery",
+            "difficulty": "easy",
             "minChunkCount": 2,
             "maxChunkCount": 5,
             "requireDistinctChunks": true
@@ -176,12 +179,37 @@ void main() {
       expect(assembly, isNotNull);
       expect(assembly!.segments.length, 2);
       expect(assembly.segments.first.groupId, 'cemetery');
+      expect(assembly.segments.first.difficulty, ChunkPatternTier.easy);
+      expect(assembly.segments.last.difficulty, isNull);
+      expect(
+        renderLevelRegistryDartOutput(result.levels),
+        contains('difficulty: ChunkPatternTier.easy,'),
+      );
+      expect(
+        renderCanonicalLevelDefsJson(result.levels),
+        contains('"difficulty": "easy"'),
+      );
       expect(assembly.segments.first.requireDistinctChunks, isTrue);
       expect(assembly.segments.last.groupId, 'none');
 
       final canonical = renderCanonicalLevelDefsJson(result.levels);
       expect(canonical, contains('"assembly": {'));
       expect(canonical, contains('"segmentId": "cemetery_run"'));
+      for (final invalid in ['"impossible"', 'null', '4']) {
+        defsFile.writeAsStringSync(
+          canonical.replaceFirst(
+            '"difficulty": "easy"',
+            '"difficulty": $invalid',
+          ),
+        );
+        final invalidResult = await loadLevelDefinitions(
+          defsPath: defsFile.path,
+        );
+        expect(
+          invalidResult.issues.map((i) => i.code),
+          contains('invalid_section_difficulty'),
+        );
+      }
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -270,9 +298,8 @@ void main() {
     expect(result.issues, isEmpty);
 
     final generated = renderLevelIdDartOutput(result.levels);
-    final checkedIn = File(
-      'packages/runner_core/lib/levels/level_id.dart',
-    ).readAsStringSync();
+    final checkedIn = File('packages/runner_core/lib/levels/level_id.dart')
+        .readAsStringSync();
 
     expect(generated, checkedIn);
   });
@@ -358,9 +385,9 @@ void main() {
         expect(generated, isNot(contains('LevelAssemblyRenderThemeMode')));
         expect(generated, contains("groupId: 'cemetery'"));
         expect(
-          RegExp(
-            r'assembly: const LevelAssemblyDefinition\(',
-          ).allMatches(generated).length,
+          RegExp(r'assembly: const LevelAssemblyDefinition\(')
+              .allMatches(generated)
+              .length,
           1,
         );
       } finally {
@@ -379,9 +406,8 @@ void main() {
       expect(result.issues, isEmpty);
 
       final generated = renderLevelUiMetadataDartOutput(result.levels);
-      final checkedIn = File(
-        'lib/ui/levels/generated_level_ui_metadata.dart',
-      ).readAsStringSync();
+      final checkedIn = File('lib/ui/levels/generated_level_ui_metadata.dart')
+          .readAsStringSync();
 
       expect(generated, checkedIn);
     },
