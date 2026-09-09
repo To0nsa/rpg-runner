@@ -94,6 +94,10 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 - Launch → **Loader** → (if name prompt pending) **Profile Name Setup** → **Play Hub**
 - Resume → **Loader** → return to the prior screen
+- Play Games sign-in must succeed before entering the hub. If sign-in fails or
+  is canceled, stay on the loader with **Retry Play Games sign-in**. Opening or
+  dismissing the native sign-in screen must not automatically reopen it. Resume
+  during the splash or loader keeps the existing startup screen in place.
 - From Play Hub:
   - `Start Run` → In-Game (starts the **selected level** using the **selected run type**: Practice/Competitive)
   - `Edit Level` → Setup Level (route)

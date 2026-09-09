@@ -54,6 +54,15 @@ Boot route flow:
 
 This means bootstrap is intentionally fail-closed until Play Games auth succeeds.
 
+Lifecycle ownership flushes (inactive, paused, detached, and reconnect/resume)
+are deferred until bootstrap succeeds. The app shell also suppresses these
+flushes while the splash or loader route is visible, including a resume loader
+for a previously bootstrapped session. Native Play Games activity transitions
+therefore cannot retrigger sign-in behind a failed loader. Returning to the
+splash keeps its existing transition to the loader instead of stacking a resume
+loader. A failed loader remains available for an explicit **Retry Play Games
+sign-in** action.
+
 ## 4) App-level session shape
 
 `AuthSession` (in `lib/ui/state/auth_api.dart`) carries:
@@ -97,6 +106,24 @@ UI entry point:
 - Runtime bootstrap requires Play Games identity, so anonymous-upgrade UI is
   not part of the normal startup path. It remains a safe recovery path for a
   pre-existing anonymous session.
+
+### Local Android sign-in troubleshooting
+
+If the native bridge reports `play-games-not-authenticated`, the rejection
+occurs before a server auth code is exchanged with Firebase. Verify the Play
+Games Android credential uses the built application's package name and signing
+certificate SHA-1. A new workstation or regenerated debug keystore can change
+the certificate even when the package name is unchanged. Register the current
+debug certificate in Firebase and link its Android OAuth credential in Play
+Console; retain credentials needed by other builds. Refresh
+`android/app/google-services.json` after updating Firebase configuration.
+
+For unpublished Play Games configuration, enable the device's Google account
+as a Play Games tester. Check the game server credential and Firebase Play
+Games provider configuration if authentication succeeds but the server auth
+code or Firebase exchange fails. See Google's
+[Play Games troubleshooting guide](https://developer.android.com/games/pgs/android/troubleshooting)
+and [Firebase Play Games setup](https://firebase.google.com/docs/auth/android/play-games).
 
 ## 6) Callable request auth contract (server-side)
 

@@ -49,6 +49,10 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   bool _hasSeenRoute = false;
   bool _resumeInFlight = false;
 
+  bool get _isStartupRoute =>
+      _currentRouteName == UiRoutes.brandSplash ||
+      _currentRouteName == UiRoutes.loader;
+
   @override
   void initState() {
     super.initState();
@@ -82,7 +86,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     final appState = ctx == null
         ? null
         : Provider.of<AppState>(ctx, listen: false);
-    if (ctx != null) {
+    if (ctx != null && !_isStartupRoute) {
       switch (state) {
         case AppLifecycleState.inactive:
           unawaited(
@@ -112,7 +116,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       }
     }
     if (state == AppLifecycleState.resumed) {
-      if (appState != null) {
+      if (appState != null && !_isStartupRoute) {
         unawaited(
           appState.flushOwnershipEdits(
             trigger: OwnershipFlushTrigger.connectivityRestored,
@@ -195,7 +199,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
 
   void _showResumeLoader() {
     if (_resumeInFlight) return;
-    if (!_hasSeenRoute || _currentRouteName == UiRoutes.loader) {
+    if (!_hasSeenRoute || _isStartupRoute) {
       return;
     }
     if (_currentRouteName == UiRoutes.runBootstrap ||

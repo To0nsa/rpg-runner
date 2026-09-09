@@ -5,6 +5,15 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
   Future<void> flushOwnershipEdits({
     required OwnershipFlushTrigger trigger,
   }) async {
+    // Play Games opens a native activity during bootstrap. Its lifecycle
+    // events must not start another sign-in when that attempt fails.
+    if (!_bootstrapped &&
+        (trigger == OwnershipFlushTrigger.lifecycleInactive ||
+            trigger == OwnershipFlushTrigger.lifecyclePaused ||
+            trigger == OwnershipFlushTrigger.lifecycleDetached ||
+            trigger == OwnershipFlushTrigger.connectivityRestored)) {
+      return;
+    }
     final active = _activeOwnershipFlush;
     if (active != null) {
       await active;

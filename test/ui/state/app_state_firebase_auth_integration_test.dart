@@ -7,11 +7,62 @@ import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/auth/firebase_auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/ownership/ownership_sync_policy.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('lifecycle sync waits for bootstrap and resumes after an explicit auth retry', () async {
+    final now = DateTime.utc(2026, 3, 10, 12);
+    final source = _FakeFirebaseAuthSessionSource(current: null);
+    final appState = AppState(
+      authApi: FirebaseAuthApi(source: source, now: () => now),
+      loadoutOwnershipApi: _SessionScopedOwnershipApi(
+        profileId: 'test_profile',
+      ),
+    );
+    addTearDown(appState.dispose);
+    const lifecycleTriggers = <OwnershipFlushTrigger>[
+      OwnershipFlushTrigger.lifecycleInactive,
+      OwnershipFlushTrigger.lifecyclePaused,
+      OwnershipFlushTrigger.lifecycleDetached,
+      OwnershipFlushTrigger.connectivityRestored,
+    ];
+
+    for (final trigger in lifecycleTriggers) {
+      await appState.flushOwnershipEdits(trigger: trigger);
+    }
+    expect(source.tryRestorePlayGamesSessionCalls, 0);
+
+    await expectLater(
+      appState.bootstrap(),
+      throwsA(isA<PlayGamesAuthRequiredException>()),
+    );
+    for (final trigger in lifecycleTriggers) {
+      await appState.flushOwnershipEdits(trigger: trigger);
+    }
+    expect(source.tryRestorePlayGamesSessionCalls, 1);
+    expect(appState.isBootstrapped, isFalse);
+    expect(appState.ownershipSyncStatus.lastSyncError, isNull);
+
+    source.restoredSession = _snapshot(
+      userId: 'restored_u1',
+      token: 'token_restored',
+      now: now,
+    );
+    await appState.bootstrap();
+    expect(source.tryRestorePlayGamesSessionCalls, 2);
+
+    await appState.setRunMode(RunMode.competitive);
+    expect(appState.ownershipSyncStatus.pendingCount, 1);
+    await appState.flushOwnershipEdits(
+      trigger: OwnershipFlushTrigger.connectivityRestored,
+    );
+    expect(appState.ownershipSyncStatus.pendingCount, 0);
+    expect(appState.ownershipSyncStatus.lastSyncError, isNull);
+  });
 
   test(
     'bootstrap requires Play Games auth when Firebase session is missing',

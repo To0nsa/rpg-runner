@@ -324,6 +324,8 @@ class AppState extends ChangeNotifier {
     refreshGrantId: refreshGrantId,
   );
 
+  /// Flushes queued edits; lifecycle and reconnect triggers wait for bootstrap
+  /// so native sign-in activity transitions cannot initiate authentication.
   Future<void> flushOwnershipEdits({required OwnershipFlushTrigger trigger}) =>
       _ownershipSyncController.flushOwnershipEdits(trigger: trigger);
 

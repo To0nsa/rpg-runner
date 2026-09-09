@@ -45,6 +45,12 @@ flutter pub get
 flutter run
 ```
 
+Android startup requires Play Games sign-in. On a new workstation, register
+the debug signing certificate in Firebase and Play Games; a regenerated
+debug keystore has a different SHA-1. See
+[local Android sign-in troubleshooting](docs/tdd/authentication_flow_and_authorization.md#local-android-sign-in-troubleshooting)
+for credential and tester setup checks.
+
 The root app and shared Dart packages use one Pub workspace and the root
 `pubspec.lock`. Run their dependency resolution and upgrades from the
 repository root. The editor and Dart-only replay validator are independently
