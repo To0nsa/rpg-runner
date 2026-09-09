@@ -45,6 +45,15 @@ flutter pub get
 flutter run
 ```
 
+The root app and shared Dart packages use one Pub workspace and the root
+`pubspec.lock`. Run their dependency resolution and upgrades from the
+repository root. The editor and Dart-only replay validator are independently
+executable applications, so each intentionally retains its own lockfile and
+toolchain-specific resolution.
+
+See [Pub workspace and dependency resolution](docs/tdd/pub_workspace.md) for
+the package boundary and validation commands.
+
 Run tests:
 
 ```bash

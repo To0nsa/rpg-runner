@@ -19,31 +19,19 @@
     },
     {
       "levelId": "forest",
-      "revision": 6,
+      "revision": 13,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
-      "easyPatternChunks": 10,
-      "normalPatternChunks": 15,
+      "easyPatternChunks": 6,
+      "normalPatternChunks": 6,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
       "includeInBuild": true,
-      "status": "active",
-      "assembly": {
-        "loopSegments": false,
-        "segments": [
-          {
-            "segmentId": "default",
-            "groupId": "default",
-            "minChunkCount": 1,
-            "maxChunkCount": 1,
-            "requireDistinctChunks": false
-          }
-        ]
-      }
+      "status": "active"
     },
     {
       "levelId": "new_level",

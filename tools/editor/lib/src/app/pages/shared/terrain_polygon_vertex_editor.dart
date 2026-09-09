@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../terrain_authoring/terrain_half_pixel_text.dart';
@@ -21,6 +23,7 @@ class TerrainPolygonVertexEditor extends StatefulWidget {
     this.applyButtonKey,
     this.applyLabel = 'Apply exact vertex',
     this.applyEnabled = true,
+    this.autoApplyDelay,
     this.coordinateStepHalfPixels = 1,
     this.controlGap = 8,
   }) : assert(coordinateStepHalfPixels > 0);
@@ -35,6 +38,12 @@ class TerrainPolygonVertexEditor extends StatefulWidget {
   final Key? applyButtonKey;
   final String applyLabel;
   final bool applyEnabled;
+
+  /// Optional idle interval before valid field input enters the owner draft.
+  ///
+  /// Each keystroke restarts the interval. Invalid or incomplete coordinates
+  /// remain field-local, and callers can omit this to require explicit apply.
+  final Duration? autoApplyDelay;
   final int coordinateStepHalfPixels;
   final double controlGap;
 
@@ -47,6 +56,7 @@ class _TerrainPolygonVertexEditorState
     extends State<TerrainPolygonVertexEditor> {
   late final TextEditingController _xController;
   late final TextEditingController _yController;
+  Timer? _autoApplyTimer;
   String? _xError;
   String? _yError;
 
@@ -65,13 +75,20 @@ class _TerrainPolygonVertexEditorState
   @override
   void didUpdateWidget(covariant TerrainPolygonVertexEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.editController == widget.editController) return;
-    oldWidget.editController?.detach(this);
-    _attachEditController();
+    if (oldWidget.autoApplyDelay != widget.autoApplyDelay ||
+        !widget.applyEnabled) {
+      _autoApplyTimer?.cancel();
+      _autoApplyTimer = null;
+    }
+    if (oldWidget.editController != widget.editController) {
+      oldWidget.editController?.detach(this);
+      _attachEditController();
+    }
   }
 
   @override
   void dispose() {
+    _autoApplyTimer?.cancel();
     widget.editController?.detach(this);
     _xController.dispose();
     _yController.dispose();
@@ -103,7 +120,7 @@ class _TerrainPolygonVertexEditorState
                   errorText: _xError,
                   border: const OutlineInputBorder(),
                 ),
-                onChanged: (_) => widget.editController?.markChanged(),
+                onChanged: (_) => _handleChanged(),
                 onSubmitted: (_) => _apply(),
               ),
             ),
@@ -121,7 +138,7 @@ class _TerrainPolygonVertexEditorState
                   errorText: _yError,
                   border: const OutlineInputBorder(),
                 ),
-                onChanged: (_) => widget.editController?.markChanged(),
+                onChanged: (_) => _handleChanged(),
                 onSubmitted: (_) => _apply(),
               ),
             ),
@@ -141,6 +158,8 @@ class _TerrainPolygonVertexEditorState
   }
 
   bool _apply() {
+    _autoApplyTimer?.cancel();
+    _autoApplyTimer = null;
     final xHalfPixels = TerrainHalfPixelText.tryParseTicks(_xController.text);
     final yHalfPixels = TerrainHalfPixelText.tryParseTicks(_yController.text);
     final coordinateError = widget.coordinateStepHalfPixels == 1
@@ -160,6 +179,18 @@ class _TerrainPolygonVertexEditorState
   bool _isOnAuthoringGrid(int? halfPixels) =>
       halfPixels != null && halfPixels % widget.coordinateStepHalfPixels == 0;
 
+  void _handleChanged() {
+    widget.editController?.markChanged();
+    _autoApplyTimer?.cancel();
+    _autoApplyTimer = null;
+    final delay = widget.autoApplyDelay;
+    if (delay == null || !widget.applyEnabled) return;
+    _autoApplyTimer = Timer(delay, () {
+      _autoApplyTimer = null;
+      if (mounted && widget.applyEnabled) _apply();
+    });
+  }
+
   bool get _hasChanges =>
       TerrainHalfPixelText.tryParseTicks(_xController.text) !=
           widget.vertex.xHalfPixels ||
@@ -176,6 +207,8 @@ class _TerrainPolygonVertexEditorState
   }
 
   void _restoreSourceValues() {
+    _autoApplyTimer?.cancel();
+    _autoApplyTimer = null;
     _xController.text = TerrainHalfPixelText.formatTicks(
       widget.vertex.xHalfPixels,
     );

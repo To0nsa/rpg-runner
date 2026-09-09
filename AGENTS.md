@@ -64,6 +64,20 @@ Also consult:
 - `.agent/workflows/`: task-specific workflow notes
 - `assets/`: runtime art/audio/fonts content
 
+## Pub Workspace
+
+The root app and packages under `packages/*` share the root Pub workspace and
+root `pubspec.lock`. Run `flutter pub get`, dependency upgrades, and workspace
+inspection from the repository root. Do not recreate member lockfiles for
+those packages.
+
+`tools/editor` and `services/replay_validator` intentionally remain independent
+applications with their own checked-in lockfiles. The editor directly consumes
+the Analyzer package while Flutter pins its test infrastructure; keeping its
+Flutter resolution separate avoids unsafe overrides or downgrades. Resolve the
+validator with `dart pub get` from its directory so CI and container builds do
+not require the Flutter SDK.
+
 ## Current Architectural Split
 
 - `packages/runner_core/lib/` is the authoritative deterministic gameplay layer

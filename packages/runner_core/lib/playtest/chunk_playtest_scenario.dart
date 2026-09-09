@@ -233,9 +233,11 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
   final LevelDefinition levelDefinition;
   final String visualThemeId;
   final int seed;
+  @override
   final int tickHz;
   final ChunkPattern draftPattern;
   final StagedTerrainChunkData draftTerrain;
+  @override
   final PlayerCharacterDefinition playerCharacter;
   final EquippedLoadoutDef equippedLoadout;
   final ChunkPlaytestScenarioPath path;

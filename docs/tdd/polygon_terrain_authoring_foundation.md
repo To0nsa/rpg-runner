@@ -1830,9 +1830,13 @@ editor immediately below the row, so creation defaults cannot be mistaken for
 selected-source metadata. Its material selector reuses the creation menu's
 per-option preview action. Its editable name follows the same source-ID syntax
 and owner-unique rules as creation. Rectangle dimensions or the selected exact
-vertex render as one contextual editor below the vertex list and commit through
-one bottom `Save edit` action. A simultaneous name and exact-geometry edit is
-validated and committed as one owner replacement and one revision. Re-selecting
+vertex render as one contextual editor below the vertex list. Valid selected-
+vertex coordinates auto-apply through the existing semantic commit path after
+a 400ms idle interval; invalid or incomplete text remains field-local, and
+`Save edit` flushes valid input immediately. Rectangle dimensions retain the
+explicit `Save edit` action. A pending name is included when vertex input
+auto-applies, so that combined change remains one owner replacement and one
+revision. Re-selecting
 the active shape row closes a clean editor; pending name or geometry text opens
 a Save/Discard/Cancel decision. Save uses that combined semantic commit,
 Discard restores the accepted source values, and Cancel leaves the editor and

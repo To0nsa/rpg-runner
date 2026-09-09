@@ -7,8 +7,13 @@ truth remains in `packages/runner_core/lib/**`.
 
 ## Run
 
+The editor is independently resolved from the root workspace because its
+direct Analyzer dependency and Flutter's pinned test infrastructure follow
+different compatible release lines. Its checked-in lockfile is authoritative.
+
 ```bash
 cd tools/editor
+flutter pub get --enforce-lockfile
 flutter run -d windows
 ```
 
@@ -539,8 +544,11 @@ a row expands its metadata, lifecycle actions, and geometry editor directly
 below that row. Its material dropdown uses the same per-option eye previews as
 creation. The shape name is editable under the same lowercase, owner-unique
 rules. Rectangle dimensions and selected-vertex coordinates share one
-contextual editor ending in **Save edit**; a name and exact geometry change are
-committed together as one revision. Clicking the active shape row again closes
+contextual editor. Valid selected-vertex coordinates automatically enter the
+pending Chunk draft after a short typing pause; **Save edit** remains available
+to apply them immediately. Rectangle dimensions still use **Save edit**. A
+shape name present when vertex coordinates auto-apply is committed with them as
+one revision. Clicking the active shape row again closes
 a clean editor. If the name or exact geometry fields have changed, the editor
 instead offers **Save**, **Discard**, and **Cancel** before closing. A freeform
 draft begins rendering its material after its third vertex; rectangle, vertex,

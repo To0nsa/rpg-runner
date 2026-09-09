@@ -148,7 +148,9 @@ final class LevelPlaytestScenario implements PlaytestScenario {
   final LevelDefinition levelDefinition;
   final StagedTerrainChunkCatalog terrainCatalog;
   final int seed;
+  @override
   final int tickHz;
+  @override
   final PlayerCharacterDefinition playerCharacter;
   final EquippedLoadoutDef equippedLoadout;
 

@@ -22,6 +22,9 @@ environment:
   sdk: ^3.13.1
   flutter: ">=3.47.1"
 
+workspace:
+  - packages/*
+
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,

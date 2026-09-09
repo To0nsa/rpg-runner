@@ -29,9 +29,12 @@ Current scope:
 
 ## Local Run
 
+The validator intentionally uses its own Dart-only dependency resolution and
+checked-in lockfile rather than the repository's Flutter Pub workspace.
+
 ```bash
 cd services/replay_validator
-dart pub get
+dart pub get --enforce-lockfile
 dart run bin/server.dart
 ```
 

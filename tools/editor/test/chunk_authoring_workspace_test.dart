@@ -793,13 +793,7 @@ void main() {
       await tester.ensureVisible(xField);
       await tester.enterText(xField, '12.5');
       await tester.enterText(yField, '10');
-      await Scrollable.ensureVisible(
-        tester.element(applyVertex),
-        alignment: 0.5,
-      );
-      await tester.pump();
-      await tester.tap(applyVertex);
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
 
       expect(find.text('Use a whole-pixel value.'), findsOneWidget);
       forestChunk = _chunk(harness.session, 'forest_chunk');
@@ -807,8 +801,7 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
 
       await tester.enterText(xField, '12');
-      await tester.tap(applyVertex);
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
 
       forestChunk = _chunk(harness.session, 'forest_chunk');
       expect(forestChunk.revision, 5);

@@ -463,12 +463,9 @@ ChunkPlaytestScenario _scenario() {
     AssembledChunkPatternSource source => source.baseSource,
     _ => throw StateError('Forest test level must be list-backed.'),
   };
-  final draftPattern = <ChunkPattern>[
-    ...listSource.earlyPatterns,
-    ...listSource.easyPatterns,
-    ...listSource.normalPatterns,
-    ...listSource.hardPatterns,
-  ].single;
+  final draftPattern = listSource.earlyPatterns.singleWhere(
+    (pattern) => pattern.chunkKey == 'forest_early_flat',
+  );
   final draftTerrain = stagedAuthoredTerrain.chunks.singleWhere(
     (chunk) => chunk.chunkKey == draftPattern.chunkKey,
   );

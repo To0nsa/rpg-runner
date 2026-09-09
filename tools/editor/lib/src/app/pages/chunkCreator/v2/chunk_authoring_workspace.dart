@@ -104,6 +104,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   static const double _gap = 12;
   static const double _minimumWideWorkspaceWidth = 1080;
 
+  /// Vertex text enters the pending Chunk draft after 400ms without typing.
+  /// This combines normal X/Y entry without making the canvas feel delayed.
+  static const Duration _terrainVertexAutoApplyDelay = Duration(
+    milliseconds: 400,
+  );
+
   ChunkPolygonAuthoringController? _authoring;
   final GlobalKey<ChunkV2OwnerFormState> _ownerEditFormKey =
       GlobalKey<ChunkV2OwnerFormState>();
@@ -2015,6 +2021,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             applyButtonKey: const ValueKey<String>('chunk_polygon_save_edit'),
             applyLabel: 'Save edit',
             applyEnabled: shapeNameError == null,
+            autoApplyDelay: _terrainVertexAutoApplyDelay,
             coordinateStepHalfPixels: 2,
             editController: _exactEditController,
             onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
