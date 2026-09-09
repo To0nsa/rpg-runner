@@ -1,21 +1,19 @@
 # Level Creator acceptance session
 
-Status: Prepared; independent creator observations pending.
+Status: Session guide prepared; temporary workspace removed; independent creator observations pending.
 
 Use this session with a game creator who did not implement the editor. Familiarity
 with chunks, Prefabs, groups, layers, and placement tools is expected. This is a
 workflow assessment, not a beginner tutorial. Automated evidence is recorded in
 [implementation verification](implementation-verification.md).
 
-## Prepared workspace
+## Workspace setup
 
-The September 9 session workspace is `.tmp/level-creator-acceptance`, a detached
-checkout of implementation revision `4c8c92e8`. Its authoring files and generated
-outputs are independent of the main checkout. Open
-`.tmp/Open Level Creator acceptance.lnk`, then choose Level Creator. The shortcut
-starts the release editor with this
-checkout as its working directory. Keep this checkout until observations and
-any authored examples have been reviewed; do not reset it between tasks.
+The temporary September 9 acceptance checkout and launch shortcut were removed
+at the user's request after confirming the checkout had no pending changes.
+No separate acceptance workspace is currently retained. Before running a future
+session, provision a disposable checkout and launch the editor with that checkout
+as its working directory. Keep any authored examples until they have been reviewed.
 
 A facilitator provisions the SDK, dependencies, existing image assets, and
 workspace. The participant performs the tasks inside the editor. Build changes

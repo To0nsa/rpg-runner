@@ -208,7 +208,7 @@ Remove-Item Env:LEVEL_EDITOR_PROFILE
 
 These observations are machine-specific; no portable performance threshold or
 human time-to-first-Play is inferred. A [creator session](creator-acceptance-session.md)
-and a disposable checkout at `.tmp/level-creator-acceptance` are prepared for
+and a disposable checkout at `.tmp/level-creator-acceptance` were prepared for
 independent observations. Its locked dependencies were provisioned offline.
 
 The disposable checkout also completed its initial content generation and a
@@ -221,5 +221,6 @@ opt-in cases skipped; the new performance case passed separately; all seven
 shared Play host regressions passed. Native profile acceptance passed both
 Chunk and Level cases.
 The final release editor rebuilt successfully in 114.3 seconds; scoped Play-host
-analysis was clean. `.tmp/Open Level Creator acceptance.lnk` targets this release
-and starts it in the prepared disposable checkout.
+analysis was clean. A launch shortcut targeted this release in the disposable
+checkout. The clean checkout and shortcut were subsequently removed at the
+user's request on September 9; the verification evidence and session guide remain.

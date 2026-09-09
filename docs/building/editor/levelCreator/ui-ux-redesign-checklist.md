@@ -5,9 +5,9 @@ Status: Implementation and automated regression verification complete; independe
 
 Evidence: [Implementation verification](implementation-verification.md), updated September 9, 2026.
 
-The [creator session](creator-acceptance-session.md) is prepared in a disposable
-workspace. Native Windows Play and larger-pool profiling have passed; human
-observations remain unrecorded.
+The [creator session guide](creator-acceptance-session.md) is prepared. Its
+temporary workspace has been removed. Native Windows Play and larger-pool
+profiling have passed; human observations remain unrecorded.
 
 Source: [UI/UX redesign plan](ui-ux-redesign-plan.md), incorporating
 [workflow audit findings F1–F6](ui-ux-workflow-audit.md).
