@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "964001571974-6ippj9peidgob9kb3j4dj71dj1j91610.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.rpg_runner",
+            "certificate_hash": "74b0816a97fe848635c8bd30f970a918e3eb6a6e"
+          }
+        },
+        {
           "client_id": "964001571974-dajrtiro395fjpise2ibskleearagtgm.apps.googleusercontent.com",
           "client_type": 3
         }
