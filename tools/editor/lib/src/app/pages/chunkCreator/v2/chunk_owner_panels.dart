@@ -164,16 +164,10 @@ class ChunkOwnerEditDetails extends StatelessWidget {
     required this.currentChunk,
     required this.source,
     required this.editFormKey,
-    required this.renameFormKey,
     required this.isDirty,
-    required this.renameActive,
-    required this.renameValidator,
-    required this.onBeginRename,
     required this.onDuplicate,
     required this.onDelete,
     required this.onDirtyChanged,
-    required this.onCancelRename,
-    required this.onRename,
     required this.onCancelEdit,
     required this.onApplyEdit,
   });
@@ -182,20 +176,14 @@ class ChunkOwnerEditDetails extends StatelessWidget {
   final ChunkV2FileData currentChunk;
   final ChunkV2FileData source;
   final GlobalKey<ChunkV2OwnerFormState> editFormKey;
-  final GlobalKey<EditorInlineIdFormState> renameFormKey;
   final bool isDirty;
-  final bool renameActive;
-  final EditorInlineIdValidator renameValidator;
-  final VoidCallback onBeginRename;
   final VoidCallback onDuplicate;
   final VoidCallback onDelete;
   final ValueChanged<bool> onDirtyChanged;
-  final VoidCallback onCancelRename;
-  final EditorInlineIdSubmit onRename;
   final VoidCallback onCancelEdit;
   final ChunkV2OwnerFormSubmit onApplyEdit;
 
-  bool get _lifecycleEnabled => !isDirty && !renameActive;
+  bool get _lifecycleEnabled => !isDirty;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -218,15 +206,6 @@ class ChunkOwnerEditDetails extends StatelessWidget {
         runSpacing: 8,
         children: <Widget>[
           Tooltip(
-            message: 'Rename ${source.id} while preserving its chunk key.',
-            child: OutlinedButton.icon(
-              key: const ValueKey<String>('chunk_v2_owner_rename'),
-              onPressed: _lifecycleEnabled ? onBeginRename : null,
-              icon: const Icon(Icons.drive_file_rename_outline),
-              label: const Text('Rename'),
-            ),
-          ),
-          Tooltip(
             message: 'Duplicate ${source.id} with a new stable chunk key.',
             child: OutlinedButton.icon(
               key: const ValueKey<String>('chunk_v2_owner_duplicate'),
@@ -247,35 +226,20 @@ class ChunkOwnerEditDetails extends StatelessWidget {
         ],
       ),
       const SizedBox(height: 12),
-      if (renameActive)
-        EditorInlineIdForm(
-          key: renameFormKey,
-          initialValue: source.id,
-          fieldKey: const ValueKey<String>('chunk_v2_inline_rename_id'),
-          submitKey: const ValueKey<String>('chunk_v2_inline_rename_apply'),
-          cancelKey: const ValueKey<String>('chunk_v2_inline_rename_cancel'),
-          submitLabel: 'Rename owner',
-          helperText: 'The stable chunk key is preserved.',
-          validator: renameValidator,
-          onDirtyChanged: onDirtyChanged,
-          onCancel: onCancelRename,
-          onSubmit: onRename,
-        )
-      else
-        ChunkV2OwnerForm(
-          key: editFormKey,
-          document: document,
-          chunk: source,
-          submitKey: ValueKey<String>(
-            'chunk_v2_owner_inline_apply_${source.chunkKey}',
-          ),
-          cancelKey: ValueKey<String>(
-            'chunk_v2_owner_inline_cancel_${source.chunkKey}',
-          ),
-          onDirtyChanged: onDirtyChanged,
-          onCancel: onCancelEdit,
-          onSubmit: onApplyEdit,
+      ChunkV2OwnerForm(
+        key: editFormKey,
+        document: document,
+        chunk: source,
+        submitKey: ValueKey<String>(
+          'chunk_v2_owner_inline_apply_${source.chunkKey}',
         ),
+        cancelKey: ValueKey<String>(
+          'chunk_v2_owner_inline_cancel_${source.chunkKey}',
+        ),
+        onDirtyChanged: onDirtyChanged,
+        onCancel: onCancelEdit,
+        onSubmit: onApplyEdit,
+      ),
     ],
   );
 }

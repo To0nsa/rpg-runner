@@ -8,11 +8,14 @@ import '../../../../chunks/chunk_v2_models.dart';
 
 /// Validated editable metadata owned by one Chunk-v2 owner form.
 ///
-/// Stable identity, dimensions, composition, markers, and collision geometry
-/// are excluded so an inline metadata edit cannot mutate them accidentally.
+/// Dimensions, composition, markers, and collision geometry are excluded so
+/// an inline owner edit cannot mutate them accidentally. Identity changes are
+/// explicit fields and are committed atomically with the metadata below.
 @immutable
 final class ChunkV2OwnerFormValue {
   ChunkV2OwnerFormValue({
+    required this.chunkKey,
+    required this.id,
     required this.status,
     required this.levelId,
     required this.difficulty,
@@ -21,6 +24,8 @@ final class ChunkV2OwnerFormValue {
     required this.groundBandZIndex,
   }) : tags = List<String>.unmodifiable(tags);
 
+  final String chunkKey;
+  final String id;
   final String status;
   final String levelId;
   final String difficulty;
@@ -64,6 +69,8 @@ class ChunkV2OwnerForm extends StatefulWidget {
 /// Submission handle used when owner or level navigation requests Save.
 class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _chunkKeyController;
+  late final TextEditingController _idController;
   late final TextEditingController _tagsController;
   late final TextEditingController _groundBandZIndexController;
   late final String _initialStatus;
@@ -80,6 +87,8 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   bool _reportedDirty = false;
 
   bool get isDirty =>
+      _chunkKeyController.text != widget.chunk.chunkKey ||
+      _idController.text != widget.chunk.id ||
       _status != _initialStatus ||
       _levelId != _initialLevelId ||
       _difficulty != _initialDifficulty ||
@@ -91,6 +100,8 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   void initState() {
     super.initState();
     final chunk = widget.chunk;
+    _chunkKeyController = TextEditingController(text: chunk.chunkKey);
+    _idController = TextEditingController(text: chunk.id);
     _status = chunk.status;
     _levelId = chunk.levelId;
     _difficulty = chunk.difficulty;
@@ -108,18 +119,28 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     _initialAssemblyGroupId = _assemblyGroupId;
     _initialTags = _tagsController.text;
     _initialGroundBandZIndex = _groundBandZIndexController.text;
-    _tagsController.addListener(_handleFieldChanged);
-    _groundBandZIndexController.addListener(_handleFieldChanged);
+    for (final controller in <TextEditingController>[
+      _chunkKeyController,
+      _idController,
+      _tagsController,
+      _groundBandZIndexController,
+    ]) {
+      controller.addListener(_handleFieldChanged);
+    }
   }
 
   @override
   void dispose() {
-    _tagsController
-      ..removeListener(_handleFieldChanged)
-      ..dispose();
-    _groundBandZIndexController
-      ..removeListener(_handleFieldChanged)
-      ..dispose();
+    for (final controller in <TextEditingController>[
+      _chunkKeyController,
+      _idController,
+      _tagsController,
+      _groundBandZIndexController,
+    ]) {
+      controller
+        ..removeListener(_handleFieldChanged)
+        ..dispose();
+    }
     super.dispose();
   }
 
@@ -128,6 +149,8 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     if (!(_formKey.currentState?.validate() ?? false)) return false;
     final accepted = await widget.onSubmit(
       ChunkV2OwnerFormValue(
+        chunkKey: _chunkKeyController.text,
+        id: _idController.text,
         status: _status,
         levelId: _levelId,
         difficulty: _difficulty,
@@ -156,6 +179,35 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          TextFormField(
+            key: const ValueKey<String>('chunk_v2_owner_chunk_key_field'),
+            controller: _chunkKeyController,
+            decoration: const InputDecoration(
+              labelText: 'Chunk key',
+              helperText:
+                  'Runtime identity. Changing it explicitly rekeys this owner.',
+            ),
+            validator: (value) => validateChunkV2OwnerKey(
+              value ?? '',
+              document: widget.document,
+              exceptChunkKey: widget.chunk.chunkKey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            key: const ValueKey<String>('chunk_v2_owner_id_field'),
+            controller: _idController,
+            decoration: const InputDecoration(
+              labelText: 'Human ID',
+              helperText: 'Readable owner name used for its managed filename.',
+            ),
+            validator: (value) => validateChunkV2OwnerId(
+              value ?? '',
+              document: widget.document,
+              exceptChunkKey: widget.chunk.chunkKey,
+            ),
+          ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             key: ValueKey<String>('chunk_v2_owner_status_$_status'),
             initialValue: _status,
@@ -363,3 +415,22 @@ String? validateChunkV2OwnerId(
 }
 
 final RegExp _stableChunkOwnerId = RegExp(r'^[a-z][a-z0-9_]*$');
+
+/// Returns the user-facing Chunk-v2 owner key validation error, if any.
+String? validateChunkV2OwnerKey(
+  String raw, {
+  required ChunkV2Document document,
+  String? exceptChunkKey,
+}) {
+  final key = raw.trim();
+  if (key != raw || !ChunkKey(key).isValid) {
+    return 'Use a lowercase key containing only letters, digits, and underscores.';
+  }
+  final folded = key.toLowerCase();
+  if (document.sourcePathByChunkKey.keys.any(
+    (claimed) => claimed != exceptChunkKey && claimed.toLowerCase() == folded,
+  )) {
+    return 'Enter a unique chunk key.';
+  }
+  return null;
+}

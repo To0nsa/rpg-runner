@@ -3135,35 +3135,50 @@ void main() {
       await tester.ensureVisible(forestOwner);
       await tester.tap(forestOwner);
       await tester.pump();
-      await tester.tap(
+      expect(
         find.byKey(const ValueKey<String>('chunk_v2_owner_rename')),
+        findsNothing,
       );
-      await tester.pump();
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_inline_rename_id')),
+        find.byKey(const ValueKey<String>('chunk_v2_owner_id_field')),
         'meadow_chunk',
       );
       final renameApply = find.byKey(
-        const ValueKey<String>('chunk_v2_inline_rename_apply'),
+        const ValueKey<String>('chunk_v2_owner_inline_apply_forest_chunk'),
       );
       await tester.ensureVisible(renameApply);
       await tester.tap(renameApply);
       await tester.pump();
       expect(find.text('Enter a unique chunk ID.'), findsOneWidget);
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_inline_rename_id')),
+        find.byKey(const ValueKey<String>('chunk_v2_owner_id_field')),
         'forest_renamed',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_chunk_key_field')),
+        'meadow_chunk',
+      );
+      await tester.ensureVisible(renameApply);
+      await tester.tap(renameApply);
+      await tester.pump();
+      expect(find.text('Enter a unique chunk key.'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_chunk_key_field')),
+        'forest_rekeyed',
       );
       await tester.ensureVisible(renameApply);
       await tester.tap(renameApply);
       await tester.pumpAndSettle();
-      edited = _chunk(harness.session, 'forest_chunk');
+      edited = _chunk(harness.session, 'forest_rekeyed');
       expect(edited.id, 'forest_renamed');
-      expect(edited.chunkKey, 'forest_chunk');
+      expect(edited.chunkKey, 'forest_rekeyed');
       expect(edited.revision, 6);
 
-      await tester.ensureVisible(forestOwner);
-      await tester.tap(forestOwner);
+      final rekeyedOwner = find.byKey(
+        const ValueKey<String>('chunk_polygon_owner_forest_rekeyed'),
+      );
+      await tester.ensureVisible(rekeyedOwner);
+      await tester.tap(rekeyedOwner);
       await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_duplicate')),

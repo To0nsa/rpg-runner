@@ -8,6 +8,7 @@ import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_lifecycle_commit.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
@@ -229,7 +230,8 @@ void main() {
         document: createdDocument,
         commit: ChunkV2LifecycleCommit(
           before: ChunkV2LifecycleSnapshot.fromDocument(createdDocument),
-          operation: const ChunkV2RenameOperation(
+          operation: _ownerEditOperation(
+            createdDocument,
             chunkKey: 'forest_created',
             nextId: 'forest_created_renamed',
           ),
@@ -246,7 +248,7 @@ void main() {
   );
 
   test(
-    'v2 lifecycle duplicates, renames, and deletes with exact ownership',
+    'v2 lifecycle duplicates, edits identity, and deletes with exact ownership',
     () {
       const policy = ChunkV2LifecycleCommitPolicy();
       final document = _document();
@@ -272,16 +274,33 @@ void main() {
         document: document,
         commit: ChunkV2LifecycleCommit(
           before: ChunkV2LifecycleSnapshot.fromDocument(document),
-          operation: const ChunkV2RenameOperation(
+          operation: _ownerEditOperation(
+            document,
             chunkKey: 'forest_original',
+            nextChunkKey: 'forest_rekeyed',
             nextId: 'forest_renamed',
           ),
         ),
       );
       expect(renamedResult.accepted, isTrue);
-      expect(renamedResult.document.chunks.single.chunkKey, 'forest_original');
+      expect(renamedResult.document.chunks.single.chunkKey, 'forest_rekeyed');
       expect(renamedResult.document.chunks.single.id, 'forest_renamed');
       expect(renamedResult.document.chunks.single.revision, 5);
+      expect(
+        renamedResult.document.sourcePathByChunkKey,
+        containsPair(
+          'forest_rekeyed',
+          '${ChunkStore.chunksDirectoryPath}/forest/forest_original.json',
+        ),
+      );
+      expect(
+        renamedResult.document.baselineContentsByChunkKey,
+        contains('forest_rekeyed'),
+      );
+      expect(
+        renamedResult.document.sourcePathByChunkKey,
+        isNot(contains('forest_original')),
+      );
       final renameWrite = const ChunkStore()
           .buildV2SavePlan(document: renamedResult.document)
           .writes
@@ -358,7 +377,8 @@ void main() {
       );
       final noOp = apply(
         document,
-        const ChunkV2RenameOperation(
+        _ownerEditOperation(
+          document,
           chunkKey: 'forest_original',
           nextId: 'forest_original',
         ),
@@ -569,6 +589,25 @@ void main() {
     );
     expect(fixture.transactionFiles, isEmpty);
   });
+}
+
+ChunkV2OwnerEditOperation _ownerEditOperation(
+  ChunkV2Document document, {
+  required String chunkKey,
+  required String nextId,
+  String? nextChunkKey,
+}) {
+  final chunk = document.chunks.singleWhere(
+    (candidate) => candidate.chunkKey == chunkKey,
+  );
+  return ChunkV2OwnerEditOperation(
+    chunkKey: chunkKey,
+    expectedRevision: chunk.revision,
+    nextChunkKey: nextChunkKey ?? chunkKey,
+    nextId: nextId,
+    beforeMetadata: ChunkV2MetadataSnapshot.fromChunk(chunk),
+    metadata: ChunkV2MetadataSnapshot.fromChunk(chunk),
+  );
 }
 
 ChunkV2Document _document() {

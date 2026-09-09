@@ -198,13 +198,15 @@ creation exposes only its validated human ID and explains the locked template
 dimensions and deprecated initial status. Cancel or Discard removes the draft
 without source/history changes, and a stale rejection keeps it mounted.
 
-Rename, Duplicate, and Delete are contextual to the expanded stable owner key.
-Rename uses a dedicated inline human-ID form and cannot run concurrently with
-a dirty metadata form, keeping its separate revision-producing lifecycle
-command explicit. Duplicate deterministically selects the new key. Delete
-retains the owner-impact confirmation and rebinds to the deterministic
-remaining owner. The old create/edit/rename owner dialog entry points are not
-part of either normal current-schema route.
+Prefab Rename, Duplicate, and Delete remain contextual to its expanded stable
+owner key. Chunk instead exposes explicit Chunk key and Human ID fields in its
+normal owner form; one lifecycle command commits identity and metadata together
+with exactly one revision increment. A key edit atomically rekeys source,
+baseline, created/changed, and selected-owner bindings. Duplicate
+deterministically selects the new key. Delete retains the owner-impact
+confirmation and rebinds to the deterministic remaining owner. The old
+create/edit/rename owner dialog entry points are not part of either normal
+current-schema route.
 
 Normal Prefab-v3 owner navigation is a visual projection over the immutable
 Prefab and tile documents. Atlas-slice and platform-module thumbnails share a
@@ -316,10 +318,12 @@ to describe deletion without consulting mutable filesystem bytes.
 paths remain stable, while editor-managed paths follow the canonical
 `assets/authoring/level/chunks/<level>/<id>.json` rule. Therefore a retained
 owner's level or display-ID change is represented as one write with an explicit
-previous path; stable `chunkKey` remains the owner identity. New owners require
-their canonical path, and deleted owners produce an exact baseline-backed
-delete entry. Pending diffs use repository-portable `/` paths and show distinct
-old/new paths for moves.
+previous path. An explicit `chunkKey` edit moves the loaded owner's exact source
+and baseline bindings to the new identity before planning, so it remains one
+write rather than a delete/create pair. New owners require their canonical
+path, and deleted owners produce an exact baseline-backed delete entry. Pending
+diffs use repository-portable `/` paths and show distinct old/new paths for
+moves.
 
 Planning rejects absent baselines, absent ownership paths, absolute or escaping
 paths, case-insensitive final-path collisions, and reuse of a path still owned
@@ -332,9 +336,9 @@ lets the session reload the installed source.
 
 ## Chunk V2 Lifecycle Contract
 
-`ChunkV2LifecycleCommit` combines a typed create, duplicate, rename, or delete
-operation with an immutable snapshot of current owners, revisions, created
-state, source paths, exact baseline contents, active level, and level
+`ChunkV2LifecycleCommit` combines a typed create, duplicate, owner edit, or
+delete operation with an immutable snapshot of current owners, revisions,
+created state, source paths, exact baseline contents, active level, and level
 revision/group tokens. Any intervening owner, metadata/composition/polygon
 revision, ownership, active-level, or relevant level-definition change makes
 the command stale. Rejected, malformed, missing-owner, colliding, and no-op
@@ -350,11 +354,12 @@ declared group.
 
 Duplicate copies the complete source owner, allocates a fresh ID/key/path,
 resets revision to 1, and starts active because its terrain has already passed
-source validation. Rename preserves `chunkKey`, advances revision exactly once,
-and lets the ownership plan describe a managed file move. This intentionally
-strengthens legacy behavior, where rename changed source bytes without a
-revision bump. A created owner's path is updated directly because it has no old
-baseline; a loaded owner retains its old path as move evidence.
+source validation. Owner edit validates Chunk key and Human ID independently,
+may replace either alongside metadata, and advances revision exactly once. A
+key replacement atomically moves all key-indexed document ownership; an ID or
+level replacement lets the ownership plan describe the managed file move. A
+created owner's path is updated directly because it has no old baseline; a
+loaded owner retains its old path as move evidence.
 
 Deleting a loaded owner removes it from the current set while retaining exact
 path/baseline deletion evidence. Deleting a newly created unsaved owner removes
@@ -1939,9 +1944,10 @@ The foundation is covered by:
   moves, baseline deletion, portable old/new diffs, missing ownership,
   workspace escape, case-insensitive collision, and deleted-path reuse
 - Chunk-v2 lifecycle snapshot freshness across owners/revisions/source/levels,
-  deprecated blank create, active exact duplicate, stable-key/revisioned rename,
-  loaded deletion, unsaved cancellation, canonical created-owner path refresh,
-  full candidate validation, typed dispatch, and rejection/no-op identity
+  deprecated blank create, active exact duplicate, atomic key/ID/metadata owner
+  edit, loaded deletion, unsaved cancellation, canonical created-owner path
+  refresh, full candidate validation, typed dispatch, and rejection/no-op
+  identity
 - Chunk current-scene routing without a legacy reload, active-level owner
   isolation, guarded reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and fail-closed legacy route tests

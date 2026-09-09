@@ -105,8 +105,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkPolygonAuthoringController? _authoring;
   final GlobalKey<ChunkV2OwnerFormState> _ownerEditFormKey =
       GlobalKey<ChunkV2OwnerFormState>();
-  final GlobalKey<EditorInlineIdFormState> _ownerRenameFormKey =
-      GlobalKey<EditorInlineIdFormState>();
   final GlobalKey<EditorInlineIdFormState> _ownerCreateFormKey =
       GlobalKey<EditorInlineIdFormState>();
   final EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document> _ownerDraft =
@@ -143,7 +141,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   ChunkV2FileData? get _ownerEditSource => _ownerDraft.editSource;
   bool get _ownerEditDirty => _ownerDraft.editDirty;
-  bool get _ownerRenameActive => _ownerDraft.renameActive;
   bool get _ownerCreateExpanded => _ownerDraft.createExpanded;
   bool get _ownerCreateDirty => _ownerDraft.createDirty;
   ChunkV2Document? get _ownerCreateSource => _ownerDraft.createSource;
@@ -410,9 +407,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     }
     if (!mounted) return false;
     if (_ownerEditDirty &&
-        !await ((_ownerRenameActive
-                ? _ownerRenameFormKey.currentState?.submit()
-                : _ownerEditFormKey.currentState?.submit()) ??
+        !await (_ownerEditFormKey.currentState?.submit() ??
             Future<bool>.value(false))) {
       return false;
     }
@@ -509,20 +504,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       currentChunk: currentChunk,
       source: source,
       editFormKey: _ownerEditFormKey,
-      renameFormKey: _ownerRenameFormKey,
       isDirty: _ownerEditDirty,
-      renameActive: _ownerRenameActive,
-      renameValidator: (value) => validateChunkV2OwnerId(
-        value,
-        document: document,
-        exceptChunkKey: source.chunkKey,
-      ),
-      onBeginRename: _beginOwnerRename,
       onDuplicate: () => _duplicateOwner(document, source),
       onDelete: () => _deleteOwner(document, _sceneOrNull!, source),
       onDirtyChanged: _setOwnerEditDirty,
-      onCancelRename: _cancelOwnerRename,
-      onRename: _renameOwner,
       onCancelEdit: _closeOwnerEditor,
       onApplyEdit: _applyOwnerEdit,
     );
@@ -2197,8 +2182,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool _applyOwnerEdit(ChunkV2OwnerFormValue edit) {
+    final document = _documentOrNull;
     final chunk = _ownerEditSource;
-    if (chunk == null) return false;
+    if (document == null || chunk == null) return false;
     final before = ChunkV2MetadataSnapshot.fromChunk(chunk);
     final after = ChunkV2MetadataSnapshot(
       status: edit.status,
@@ -2208,26 +2194,26 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       tags: edit.tags,
       groundBandZIndex: edit.groundBandZIndex,
     );
-    if (before == after) {
+    if (chunk.chunkKey == edit.chunkKey &&
+        chunk.id == edit.id &&
+        before == after) {
       _closeOwnerEditor();
       return true;
     }
-    final beforeDocument = widget.controller.document;
-    widget.controller.applyCommand(
-      AuthoringCommand(
-        kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
-        payload: <String, Object?>{
-          'chunkKey': chunk.chunkKey,
-          'commit': ChunkV2MetadataCommit(before: before, after: after),
-        },
+    final next = _dispatchLifecycle(
+      document,
+      ChunkV2OwnerEditOperation(
+        chunkKey: chunk.chunkKey,
+        expectedRevision: chunk.revision,
+        nextChunkKey: edit.chunkKey,
+        nextId: edit.id,
+        beforeMetadata: before,
+        metadata: after,
       ),
     );
-    if (identical(widget.controller.document, beforeDocument)) {
-      _showOwnerMutationRejected();
-      return false;
-    }
+    if (next == null) return false;
     _clearOwnerEditorState();
-    _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
+    _syncOwnerAfterSessionMutation(preferredChunkKey: edit.chunkKey);
     return true;
   }
 
@@ -2246,24 +2232,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _syncOwnerAfterSessionMutation(
       preferredChunkKey: duplicateKeys.firstOrNull,
     );
-  }
-
-  bool _renameOwner(String nextId) {
-    final document = _documentOrNull;
-    final chunk = _ownerEditSource;
-    if (document == null || chunk == null) return false;
-    if (nextId == chunk.id) {
-      _closeOwnerEditor();
-      return true;
-    }
-    final next = _dispatchLifecycle(
-      document,
-      ChunkV2RenameOperation(chunkKey: chunk.chunkKey, nextId: nextId),
-    );
-    if (next == null) return false;
-    _clearOwnerEditorState();
-    _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
-    return true;
   }
 
   Future<void> _deleteOwner(
@@ -2444,16 +2412,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _ownerDraft.beginEdit(chunk);
   }
 
-  void _beginOwnerRename() {
-    if (!_ownerDraft.beginRename()) return;
-    setState(() {});
-  }
-
-  void _cancelOwnerRename() {
-    if (!_ownerDraft.cancelRename()) return;
-    setState(() {});
-  }
-
   void _setOwnerEditDirty(bool dirty) {
     if (!mounted || !_ownerDraft.setEditDirty(dirty)) return;
     setState(() {});
@@ -2490,9 +2448,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (!mounted) return false;
     return switch (action) {
       EditorPendingChangesAction.save =>
-        await ((_ownerRenameActive
-                ? _ownerRenameFormKey.currentState?.submit()
-                : _ownerEditFormKey.currentState?.submit()) ??
+        await (_ownerEditFormKey.currentState?.submit() ??
             Future<bool>.value(false)),
       EditorPendingChangesAction.discard => () {
         _closeOwnerEditor();

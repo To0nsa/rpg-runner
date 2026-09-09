@@ -226,7 +226,7 @@ authoring warning.
 
 Selecting an existing Prefab-v3 or Chunk-v2 record expands its metadata
 editor directly below that row. These mounted forms are route-local drafts:
-Apply dispatches the existing stale-checked metadata command, Cancel changes no
+Apply dispatches the domain-owned stale-checked owner command, Cancel changes no
 source or history, and a rejected command keeps the entered values and error
 visible. Save finalizes valid metadata, exact shape fields, atlas slicing, and module
 forms through domain commands before writing files. Invalid input blocks Save
@@ -553,7 +553,13 @@ left, while one tab-specific group of sibling authoring sections occupies the
 right-side scroll area above shared, document-wide **Diagnostics**. There is no
 redundant Terrain, Prefabs, Markers, or Layers wrapper card. Owner rows include
 a read-only thumbnail built from the same background, terrain-material, prefab,
-and foreground projections as the scene. On narrow windows, both scroll areas
+and foreground projections as the scene. Expanding an owner exposes editable
+**Chunk key** and **Human ID** fields in the normal owner form; Apply commits
+identity and metadata together in one revision. An explicit key change rekeys
+the owner, source/baseline bindings, pending state, and selection atomically,
+while the human ID continues to determine the managed filename. Duplicate and
+Delete remain contextual actions; Chunk has no separate Rename action. On
+narrow windows, both scroll areas
 sit below a bounded scene, with owners on the left. Persistent
 visual/viewport controls sit above the **Terrain / Prefabs / Markers / Layers**
 selector, which swaps only the domain's sections; it never replaces or rebuilds

@@ -4,6 +4,7 @@ import '../domain/authoring_types.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
 import 'chunk_v2_file_data.dart';
+import 'chunk_v2_metadata_commit.dart';
 import 'chunk_v2_models.dart';
 import 'chunk_v2_validation.dart';
 
@@ -96,13 +97,28 @@ final class ChunkV2DuplicateOperation extends ChunkV2LifecycleOperation {
   final String? targetId;
 }
 
-/// Renames one owner while retaining its stable chunk key.
+/// Replaces one owner's explicit identity and metadata in one revision.
+///
+/// Rekeying is deliberate rather than inferred from the human ID. The policy
+/// moves every document-owned key binding atomically so an accepted edit
+/// cannot leave source, baseline, selection, or pending-change state orphaned.
 @immutable
-final class ChunkV2RenameOperation extends ChunkV2LifecycleOperation {
-  const ChunkV2RenameOperation({required this.chunkKey, required this.nextId});
+final class ChunkV2OwnerEditOperation extends ChunkV2LifecycleOperation {
+  const ChunkV2OwnerEditOperation({
+    required this.chunkKey,
+    required this.expectedRevision,
+    required this.nextChunkKey,
+    required this.nextId,
+    required this.beforeMetadata,
+    required this.metadata,
+  });
 
   final String chunkKey;
+  final int expectedRevision;
+  final String nextChunkKey;
   final String nextId;
+  final ChunkV2MetadataSnapshot beforeMetadata;
+  final ChunkV2MetadataSnapshot metadata;
 }
 
 /// Removes one owner; a loaded owner retains baseline deletion evidence.
@@ -165,7 +181,10 @@ final class ChunkV2LifecycleCommitPolicy {
         document,
         operation,
       ),
-      final ChunkV2RenameOperation operation => _rename(document, operation),
+      final ChunkV2OwnerEditOperation operation => _editOwner(
+        document,
+        operation,
+      ),
       final ChunkV2DeleteOperation operation => _delete(document, operation),
     };
     if (identical(candidate, document)) {
@@ -311,43 +330,113 @@ final class ChunkV2LifecycleCommitPolicy {
     );
   }
 
-  Object _rename(ChunkV2Document document, ChunkV2RenameOperation operation) {
+  Object _editOwner(
+    ChunkV2Document document,
+    ChunkV2OwnerEditOperation operation,
+  ) {
     final index = document.chunks.indexWhere(
       (chunk) => chunk.chunkKey == operation.chunkKey,
     );
     if (index < 0) {
       return _LifecycleRejection(
-        code: 'chunk_v2_rename_owner_missing',
-        message: 'Cannot rename unknown chunk ${operation.chunkKey}.',
+        code: 'chunk_v2_edit_owner_missing',
+        message: 'Cannot edit unknown chunk ${operation.chunkKey}.',
         chunkKey: operation.chunkKey,
       );
     }
     final current = document.chunks[index];
-    if (current.id == operation.nextId) return document;
+    if (current.revision != operation.expectedRevision ||
+        ChunkV2MetadataSnapshot.fromChunk(current) !=
+            operation.beforeMetadata) {
+      return _LifecycleRejection(
+        code: 'chunk_v2_edit_owner_stale',
+        message:
+            'Chunk ${operation.chunkKey} changed after this owner edit began; '
+            'reload its current source before committing.',
+        chunkKey: operation.chunkKey,
+      );
+    }
+    final identityChanged =
+        current.chunkKey != operation.nextChunkKey ||
+        current.id != operation.nextId;
+    if (!identityChanged && operation.beforeMetadata == operation.metadata) {
+      return document;
+    }
+    final keyIssue = _chunkKeyIssue(
+      document,
+      operation.nextChunkKey,
+      exceptChunkKey: operation.chunkKey,
+    );
+    if (keyIssue != null) return keyIssue;
     final idIssue = _idIssue(
       document,
       operation.nextId,
       exceptChunkKey: operation.chunkKey,
     );
     if (idIssue != null) return idIssue;
-    final renamed = current.copyWith(
+
+    final metadataResult = const ChunkV2MetadataCommitPolicy().apply(
+      chunk: current,
+      commit: ChunkV2MetadataCommit(
+        before: operation.beforeMetadata,
+        after: operation.metadata,
+      ),
+      knownLevelIds: document.availableLevelIds,
+      allowedAssemblyGroupIdsByLevelId: <String, Iterable<String>>{
+        for (final level in document.levels)
+          level.levelId: level.chunkThemeGroups,
+      },
+      sourcePath:
+          document.sourcePathByChunkKey[operation.chunkKey] ??
+          operation.chunkKey,
+    );
+    if (!metadataResult.accepted) {
+      return _LifecycleRejection(
+        code: metadataResult.issues.first.code,
+        message: metadataResult.issues.first.message,
+        chunkKey: operation.chunkKey,
+      );
+    }
+    final edited = metadataResult.chunk.copyWith(
+      chunkKey: operation.nextChunkKey,
       id: operation.nextId,
       revision: current.revision + 1,
     );
     final chunks = document.chunks.toList(growable: false);
-    chunks[index] = renamed;
-    Map<String, String>? sourcePaths;
-    if (document.createdChunkKeys.contains(operation.chunkKey)) {
-      sourcePaths = Map<String, String>.of(document.sourcePathByChunkKey);
-      sourcePaths[operation.chunkKey] = _store.canonicalV2SourcePath(renamed);
+    chunks[index] = edited;
+
+    final sourcePaths = _rekeyMap(
+      document.sourcePathByChunkKey,
+      from: operation.chunkKey,
+      to: operation.nextChunkKey,
+    );
+    final baselineContents = _rekeyMap(
+      document.baselineContentsByChunkKey,
+      from: operation.chunkKey,
+      to: operation.nextChunkKey,
+    );
+    final isCreated = document.createdChunkKeys.contains(operation.chunkKey);
+    if (isCreated) {
+      sourcePaths[operation.nextChunkKey] = _store.canonicalV2SourcePath(
+        edited,
+      );
+    }
+    final changedKeys = document.changedChunkKeys.toSet()
+      ..remove(operation.chunkKey)
+      ..add(operation.nextChunkKey);
+    final createdKeys = document.createdChunkKeys.toSet();
+    if (createdKeys.remove(operation.chunkKey)) {
+      createdKeys.add(operation.nextChunkKey);
     }
     return document.copyWith(
       chunks: _sortedChunks(chunks),
       sourcePathByChunkKey: sourcePaths,
-      changedChunkKeys: <String>{
-        ...document.changedChunkKeys,
-        operation.chunkKey,
-      },
+      baselineContentsByChunkKey: baselineContents,
+      selectedChunkKey: document.selectedChunkKey == operation.chunkKey
+          ? operation.nextChunkKey
+          : document.selectedChunkKey,
+      changedChunkKeys: changedKeys,
+      createdChunkKeys: createdKeys,
     );
   }
 
@@ -429,6 +518,46 @@ _LifecycleRejection? _idIssue(
     );
   }
   return null;
+}
+
+_LifecycleRejection? _chunkKeyIssue(
+  ChunkV2Document document,
+  String chunkKey, {
+  required String exceptChunkKey,
+}) {
+  if (!ChunkKey(chunkKey).isValid) {
+    return _LifecycleRejection(
+      code: 'chunk_v2_lifecycle_chunk_key_invalid',
+      message:
+          'Chunk key "$chunkKey" must contain only lowercase letters, '
+          'digits, and underscores.',
+      chunkKey: exceptChunkKey,
+    );
+  }
+  final folded = chunkKey.toLowerCase();
+  final collision = document.sourcePathByChunkKey.keys.any(
+    (claimed) => claimed != exceptChunkKey && claimed.toLowerCase() == folded,
+  );
+  if (collision) {
+    return _LifecycleRejection(
+      code: 'chunk_v2_lifecycle_chunk_key_collision',
+      message: 'Chunk key "$chunkKey" is already owned.',
+      chunkKey: exceptChunkKey,
+    );
+  }
+  return null;
+}
+
+Map<String, String> _rekeyMap(
+  Map<String, String> source, {
+  required String from,
+  required String to,
+}) {
+  final result = Map<String, String>.of(source);
+  if (from == to) return result;
+  final value = result.remove(from);
+  if (value != null) result[to] = value;
+  return result;
 }
 
 String _allocateCopyId(ChunkV2Document document, String sourceId) {

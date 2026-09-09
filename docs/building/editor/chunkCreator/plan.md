@@ -17,8 +17,9 @@ building.
   source or hand-editing JSON
 - level-scoped chunk ownership: each chunk belongs to exactly one level
   context and must validate against that level's rules/content
-- immutable identity + rename safety: each chunk has a stable `chunkKey` that
-  never changes, while human-readable `id` can change via explicit rename flow
+- explicit identity safety: each chunk has independently editable `chunkKey`
+  and human-readable `id` fields; key edits atomically rekey all document-owned
+  references instead of being inferred from the human ID
 - reuse-first implementation: existing editor code that is applicable must be
   modularized and reused across domains instead of duplicated
 - evolution-friendly architecture: new gameplay authoring features (hazards,
@@ -217,7 +218,7 @@ Parallax route now exists as a dedicated theme-authoring workflow:
   - tile/prefab/marker definition authoring
   - collider/anchor/tag defaults
 - Chunk operations workflow:
-  - chunk create/duplicate/rename/deprecate operations
+  - chunk create/duplicate/owner-edit/deprecate operations
   - stable ID/revision handling and reference-safe updates
 - Parallax workflow:
   - theme-scoped parallax layer set authoring reusable across levels
@@ -274,8 +275,9 @@ Rules:
 
 - every file has `schemaVersion`
 - every chunk has `levelId`
-- every chunk has stable identity + revision metadata for migration-safe updates:
-  `chunkKey` is immutable, `id` is renameable label identity
+- every chunk has explicit identity + revision metadata for migration-safe
+  updates: `chunkKey` is runtime identity and `id` is the human label/managed
+  filename identity; either changes only through the stale-checked owner form
 - integer grid coordinates only for baseline authoring
 - deterministic filename policy is explicit and collision-safe on case-sensitive
   and case-insensitive filesystems
@@ -488,8 +490,8 @@ Scope:
   in Core chunk build/stream flow
 - add runtime chunk-source abstraction so `TrackStreamer` is not hard-bound to
   any legacy static pattern library
-- add immutable `chunkKey` + rename-safe identity semantics (`id` may change;
-  `chunkKey` may not)
+- add explicit `chunkKey` + independently editable identity semantics; `id`
+  and key may change only through validated owner edits
 - add explicit deterministic filename strategy and case-insensitive collision
   handling for chunk files
 - introduce explicit floor/gap contract fields (`groundProfile`, `groundGaps`)
@@ -512,12 +514,13 @@ Scope:
 Gate:
 
 - chunk files load/save/validate in editor
-- chunk create/duplicate/rename/deprecate operations are deterministic and
+- chunk create/duplicate/owner-edit/deprecate operations are deterministic and
   reference-safe
 - Core chunk geometry validation is enforced in all build modes (not `assert`-only)
 - `TrackStreamer` consumes chunk data via abstraction seam, not direct hardcoded
   pattern dependency
-- immutable `chunkKey` survives rename operations and is validated
+- explicit `chunkKey` edits rekey source/baseline/pending/selection ownership
+  atomically and are validated independently from Human ID
 - active level context is enforced for load/save/export validation paths
 - grid/chunk-width invariants are validated before write/export
 - deterministic filename policy avoids case-collision and rename drift
@@ -535,13 +538,15 @@ Finalized Phase 1 policy decisions:
 - revision policy:
   - create: `revision = 1`
   - duplicate: new identity with `revision = 1`
-  - rename: updates `id` only and preserves `chunkKey` + revision
+  - owner edit: updates `chunkKey`, Human ID, and/or metadata in one revision
   - metadata/ground edits: bump revision by `+1` when values change
   - deprecate: idempotent; first transition to deprecated bumps revision by `+1`
 - deprecate representation: explicit schema field `status: deprecated`
 - deterministic filename policy:
-  - loaded chunks preserve baseline source path even when `id` is renamed
-  - new chunks default to `assets/authoring/level/chunks/<slug(chunkKey)>.json`
+  - loaded chunks preserve baseline source-path evidence when ID or level edits
+    move the managed target
+  - new chunks default to
+    `assets/authoring/level/chunks/<level>/<id>.json`
   - export blocks case-insensitive filename collisions deterministically
 - active level-context precedence (implemented):
   1. `assets/authoring/level/level_defs.json`
