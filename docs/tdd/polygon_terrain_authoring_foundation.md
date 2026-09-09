@@ -773,7 +773,10 @@ to one matching flat group of sibling authoring sections with no domain-level
 wrapper card. Every owner, authoring, visual-stack, and Diagnostics section
 starts collapsed. On narrow layouts, the same
 scene and sidebar subtrees are repositioned; tab changes replace only the
-sidebar section group. The tabs and section rows share typed per-domain prefab
+sidebar section group. Existing owner-row input only binds the shared selected
+chunk and scene; its dedicated Edit action opens the route-local inline owner
+form, so selection never implicitly expands or closes metadata editing. The
+tabs and section rows share typed per-domain prefab
 and marker selection. The Prefab and Marker groups each begin with a searchable
 visual library whose route-local selection feeds the matching scene Place tool
 and controlled creation form. The enemy library projects stable `EnemyId`,

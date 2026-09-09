@@ -3139,7 +3139,7 @@ void main() {
 
       final original = _chunk(harness.session, 'forest_chunk');
       await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
+        find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_chunk')),
       );
       await tester.pump();
       expect(
@@ -3148,9 +3148,11 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_v2_owner_status_active')),
+      final statusField = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_status_active'),
       );
+      await tester.ensureVisible(statusField);
+      await tester.tap(statusField);
       await tester.pumpAndSettle();
       await tester.tap(find.text(chunkStatusDeprecated).last);
       final difficultyField = find.byKey(
@@ -3206,7 +3208,9 @@ void main() {
         const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
       );
       await tester.ensureVisible(forestOwner);
-      await tester.tap(forestOwner);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_chunk')),
+      );
       await tester.pump();
       expect(
         find.byKey(const ValueKey<String>('chunk_v2_owner_rename')),
@@ -3251,7 +3255,11 @@ void main() {
         const ValueKey<String>('chunk_polygon_owner_forest_rekeyed'),
       );
       await tester.ensureVisible(rekeyedOwner);
-      await tester.tap(rekeyedOwner);
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_owner_edit_forest_rekeyed'),
+        ),
+      );
       await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_owner_duplicate')),
@@ -3298,7 +3306,9 @@ void main() {
         const ValueKey<String>('chunk_polygon_owner_forest_empty'),
       );
       await tester.ensureVisible(createdOwner);
-      await tester.tap(createdOwner);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_empty')),
+      );
       await tester.pump();
       final deleteOwner = find.byKey(
         const ValueKey<String>('chunk_v2_owner_delete'),
@@ -3355,17 +3365,11 @@ void main() {
       find.byKey(
         const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
       ),
-      findsOneWidget,
-    );
-    tester.widget<EditorListCard>(ownerRow).onTap!();
-    await tester.pump();
-    expect(
-      find.byKey(
-        const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
-      ),
       findsNothing,
     );
-    tester.widget<EditorListCard>(ownerRow).onTap!();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_chunk')),
+    );
     await tester.pump();
     expect(
       find.byKey(
@@ -3405,14 +3409,7 @@ void main() {
 
     tester.widget<EditorListCard>(ownerRow).onTap!();
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog')),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_cancel')),
-    );
-    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
     expect(
       find.byKey(
         const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
@@ -3420,8 +3417,16 @@ void main() {
       findsOneWidget,
     );
 
-    tester.widget<EditorListCard>(ownerRow).onTap!();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_level_selector')),
+    );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('meadow').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_dialog')),
+      findsOneWidget,
+    );
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_v2_owner_unsaved_edit_discard')),
     );
@@ -3431,6 +3436,10 @@ void main() {
         const ValueKey<String>('chunk_v2_owner_inline_editor_forest_chunk'),
       ),
       findsNothing,
+    );
+    expect(
+      (harness.session.document! as ChunkV2Document).activeLevelId,
+      'meadow',
     );
     expect(_chunk(harness.session, 'forest_chunk').tags, <String>['forest']);
   });
@@ -3541,7 +3550,9 @@ void main() {
       const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
     );
     await tester.ensureVisible(ownerRow);
-    await tester.tap(ownerRow);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_chunk')),
+    );
     await tester.pump();
     final tagsField = find.byKey(
       const ValueKey<String>('chunk_v2_owner_tags_field'),
@@ -4162,7 +4173,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
+      find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_chunk')),
     );
     await tester.pump();
     await tester.tap(

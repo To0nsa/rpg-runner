@@ -20,6 +20,7 @@ class ChunkOwnerListSection extends StatelessWidget {
     required this.workspaceRootPath,
     required this.expandedPrefabShapeCount,
     required this.onSelected,
+    required this.onEdit,
     required this.selectedDetailsBuilder,
   });
 
@@ -30,6 +31,7 @@ class ChunkOwnerListSection extends StatelessWidget {
   final String workspaceRootPath;
   final int Function(String chunkKey) expandedPrefabShapeCount;
   final ValueChanged<ChunkV2FileData> onSelected;
+  final ValueChanged<ChunkV2FileData> onEdit;
   final Widget Function(BuildContext context, ChunkV2FileData chunk)
   selectedDetailsBuilder;
 
@@ -62,12 +64,24 @@ class ChunkOwnerListSection extends StatelessWidget {
                 chunk: chunk,
                 scene: scene,
               ),
-              trailing: document.changedChunkKeys.contains(chunk.chunkKey)
-                  ? const Tooltip(
+              trailing: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  IconButton(
+                    key: ValueKey<String>(
+                      'chunk_v2_owner_edit_${chunk.chunkKey}',
+                    ),
+                    tooltip: 'Edit ${chunk.id}',
+                    onPressed: () => onEdit(chunk),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  if (document.changedChunkKeys.contains(chunk.chunkKey))
+                    const Tooltip(
                       message: 'Pending geometry changed',
                       child: Icon(Icons.circle, size: 12),
-                    )
-                  : null,
+                    ),
+                ],
+              ),
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 selected: chunk.chunkKey == selectedChunk?.chunkKey,

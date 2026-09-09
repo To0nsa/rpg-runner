@@ -77,7 +77,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
-          const ValueKey<String>('chunk_polygon_owner_forest_early_00'),
+          const ValueKey<String>('chunk_v2_owner_edit_forest_early_00'),
         ),
       );
       await tester.pump();

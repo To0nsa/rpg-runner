@@ -138,7 +138,7 @@ void main() {
           .byKey(const ValueKey('chunk_v2_owner_status_deprecated'))
           .evaluate()
           .isEmpty) {
-        await _tapKey(tester, 'chunk_polygon_owner_forest_encounter');
+        await _tapKey(tester, 'chunk_v2_owner_edit_forest_encounter');
       }
       await _choose(tester, 'chunk_v2_owner_status_deprecated', 'active');
       await _choose(

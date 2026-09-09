@@ -290,6 +290,8 @@ adding direct non-terrain manipulation.
       command ownership.
 - [x] Bind the header owner selector and owner-card selected row to the same
       route-local selected chunk key.
+- [x] Keep owner-row selection separate from inline editing; expose a dedicated
+      Edit button on each existing owner row.
 - [x] Add a fit-to-chunk visual preview to every owner row using the scene's
       normal visual projections.
 - [x] Keep terrain creation and existing shapes as compact sections, while

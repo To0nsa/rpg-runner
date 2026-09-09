@@ -553,8 +553,9 @@ left, while one tab-specific group of sibling authoring sections occupies the
 right-side scroll area above shared, document-wide **Diagnostics**. There is no
 redundant Terrain, Prefabs, Markers, or Layers wrapper card. Owner rows include
 a read-only thumbnail built from the same background, terrain-material, prefab,
-and foreground projections as the scene. Expanding an owner exposes editable
-**Chunk key** and **Human ID** fields in the normal owner form; Apply commits
+and foreground projections as the scene. Selecting an owner card only binds it
+to the scene; the row's pencil **Edit** button explicitly opens the inline
+owner form with editable **Chunk key** and **Human ID** fields. Apply commits
 identity and metadata together in one revision. An explicit key change rekeys
 the owner, source/baseline bindings, pending state, and selection atomically,
 while the human ID continues to determine the managed filename. Duplicate and

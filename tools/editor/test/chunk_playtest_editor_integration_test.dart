@@ -396,11 +396,11 @@ void main() {
     final workspace = tester.state<ChunkAuthoringWorkspaceState>(
       find.byType(ChunkAuthoringWorkspace),
     );
-    final owner = find.byKey(
-      ValueKey<String>('chunk_polygon_owner_${workspace.selectedChunkKey}'),
+    final editOwner = find.byKey(
+      ValueKey<String>('chunk_v2_owner_edit_${workspace.selectedChunkKey}'),
     );
-    await tester.ensureVisible(owner);
-    await tester.tap(owner);
+    await tester.ensureVisible(editOwner);
+    await tester.tap(editOwner);
     await tester.pumpAndSettle();
     final groundBand = find.byKey(
       const ValueKey<String>('chunk_v2_owner_ground_band_z_field'),

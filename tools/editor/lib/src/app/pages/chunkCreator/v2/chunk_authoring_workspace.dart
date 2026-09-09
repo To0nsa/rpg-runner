@@ -474,7 +474,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     workspaceRootPath: widget.controller.workspacePath,
     expandedPrefabShapeCount: (chunkKey) =>
         _expansionFor(chunkKey)?.expansion?.expandedPrefabShapeCount ?? 0,
-    onSelected: (chunk) => unawaited(_selectOrOpenOwner(chunk)),
+    onSelected: (chunk) => unawaited(_selectOwner(chunk.chunkKey)),
+    onEdit: (chunk) => unawaited(_openOwnerEditor(chunk)),
     selectedDetailsBuilder: (context, chunk) =>
         _buildOwnerEditDetails(document, chunk),
   );
@@ -2402,16 +2403,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     }
   }
 
-  Future<void> _selectOrOpenOwner(ChunkV2FileData target) async {
+  Future<void> _openOwnerEditor(ChunkV2FileData target) async {
     if (_hasActiveOperation) {
       _showOwnerSwitchBlocked();
       return;
     }
     if (!await _resolveOwnerCreateDraft() || !mounted) return;
-    if (_ownerEditSource?.chunkKey == target.chunkKey) {
-      await _resolveOwnerEditor();
-      return;
-    }
+    if (_ownerEditSource?.chunkKey == target.chunkKey) return;
     if (!await _resolveOwnerEditor() || !mounted) return;
     final authoring = _authoring;
     if (authoring != null &&

@@ -284,8 +284,10 @@ available only when that domain has a local redo. Only when no local operation
 exists may either action delegate to session history.
 
 The header owner selector remains the fast switcher. The owner list in the left
-rail remains the lifecycle surface for create, duplicate, rename, and delete.
-Both project one `_selectedChunkKey`; neither keeps independent owner selection.
+rail remains the lifecycle surface for create, duplicate, metadata/identity
+edits, and delete. Selecting an owner row only changes `_selectedChunkKey`; a
+dedicated row Edit button opens its inline owner form. The header and list keep
+no independent owner selection.
 
 Deleting the selected owner preserves the current lifecycle behavior: bind the
 first remaining owner in canonical order and reset owner-scoped scene state. If
