@@ -107,7 +107,9 @@ class LevelInspector extends StatelessWidget {
       helper: 'No enemies for the first N chunks. Other hazards remain.',
     ),
     ExpansionTile(
-      key: ValueKey('level_advanced_settings_$revealedFieldKey'),
+      key: PageStorageKey<String>(
+        'level_advanced_settings_${level.levelId}_$revealedFieldKey',
+      ),
       initiallyExpanded: const [
         'cameraCenterY',
         'groundTopY',
@@ -193,7 +195,10 @@ class LevelInspector extends StatelessWidget {
       ],
     ),
     ExpansionTile(
-      key: ValueKey('section_advanced_$revealedFieldKey'),
+      key: PageStorageKey<String>(
+        'section_advanced_${level.levelId}_${segment!.segmentId}_'
+        '$revealedFieldKey',
+      ),
       initiallyExpanded: revealedFieldKey == 'segmentId',
       title: const Text('Advanced'),
       tilePadding: EdgeInsets.zero,
@@ -234,6 +239,9 @@ class LevelInspector extends StatelessWidget {
     bool readOnly = false,
     String? helper,
   }) => Padding(
+    // Expansion state and TextField's inner scroll position both use the
+    // nearest PageStorage bucket; the field needs its own typed storage path.
+    key: PageStorageKey<String>('level_input_storage_$key'),
     padding: const EdgeInsets.only(top: 12),
     child: TextField(
       key: ValueKey<String>('level_input_$key'),

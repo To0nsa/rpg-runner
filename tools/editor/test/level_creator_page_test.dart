@@ -20,6 +20,57 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   testWidgets(
+    'section Advanced expands while a range edit commits on focus loss',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(500, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final document = _initialDocument.copyWith(
+        levels: [
+          for (final level in _initialDocument.levels)
+            if (level.levelId == 'forest')
+              level.copyWith(
+                chunkThemeGroups: const ['default', 'rocky_grove'],
+                assembly: const LevelAssemblyDef(
+                  segments: [
+                    LevelAssemblySegmentDef(
+                      segmentId: 'rocky_grove',
+                      groupId: 'rocky_grove',
+                      minChunkCount: 1,
+                      maxChunkCount: 1,
+                      requireDistinctChunks: true,
+                    ),
+                    LevelAssemblySegmentDef(
+                      segmentId: 'default',
+                      groupId: 'default',
+                      minChunkCount: 1,
+                      maxChunkCount: 1,
+                      requireDistinctChunks: false,
+                    ),
+                  ],
+                ),
+              )
+            else
+              level,
+        ],
+      );
+      await _mountLevelPage(tester, plugin: _InMemoryLevelPlugin(document));
+      await _showTab(tester, 'Flow');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level_section_rocky_grove')),
+      );
+      await _flush(tester);
+
+      await tester.enterText(_textFieldByLabel('minChunkCount'), '3');
+      await tester.enterText(_textFieldByLabel('maxChunkCount'), '3');
+      await tester.tap(find.text('Advanced').last);
+      await tester.pumpAndSettle();
+
+      expect(_textFieldByLabel('segmentId'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'section diagnostic opens its exact field and reveals compact Settings',
     (tester) async {
       final document = _initialDocument.copyWith(
