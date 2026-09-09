@@ -143,7 +143,7 @@ String _snapshotDigest(GameStateSnapshot s) {
     'dist=${s.distance.toStringAsFixed(6)}',
     'camx=${s.camera.centerX.toStringAsFixed(6)}',
     'camy=${s.camera.centerY.toStringAsFixed(6)}',
-    'level=${s.levelId.name}',
+    'level=${s.levelIdentity.value}',
     'theme=${s.visualThemeId}',
     'hp=${s.hud.hp.toStringAsFixed(6)}',
     'mana=${s.hud.mana.toStringAsFixed(6)}',

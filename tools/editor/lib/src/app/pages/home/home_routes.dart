@@ -11,6 +11,7 @@ import '../../../terrain_materials/terrain_material_domain_plugin.dart';
 import '../chunkCreator/chunk_creator_page.dart';
 import '../entities/entities_editor_page.dart';
 import '../levelCreator/level_creator_page.dart';
+import '../levelCreator/level_creator_navigation.dart';
 import '../parallaxEditor/parallax_editor_page.dart';
 import '../prefabCreator/prefab_creator_page.dart';
 import '../terrainMaterials/terrain_materials_page.dart';
@@ -57,16 +58,22 @@ class EditorHomeRoute {
 class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({
     this.initialPrefabKey,
+    this.initialLevelReturnContext,
+    this.onOpenChunkForLevel,
     this.onShellStateChanged,
+    this.onRepairDependency,
     this.onOpenOwningPrefab,
     this.onOpenParallaxForLevel,
   });
 
   /// Stable Prefab-v3 owner to select after a successful guarded transition.
   final String? initialPrefabKey;
+  final LevelCreatorReturnContext? initialLevelReturnContext;
+  final Future<bool> Function(LevelCreatorChunkTarget)? onOpenChunkForLevel;
 
   /// Requests a shell-control rebuild after page-owned lock state changes.
   final VoidCallback? onShellStateChanged;
+  final Future<bool> Function(String pluginId)? onRepairDependency;
 
   /// Requests shell-owned navigation to a placed collision's source owner.
   final ValueChanged<String>? onOpenOwningPrefab;
@@ -130,7 +137,11 @@ Widget _buildEntitiesPage({
   required EditorSessionController controller,
   required EditorHomeRouteNavigation navigation,
 }) {
-  return EntitiesEditorPage(key: key, controller: controller);
+  return EntitiesEditorPage(
+    key: key,
+    controller: controller,
+    onShellStateChanged: navigation.onShellStateChanged,
+  );
 }
 
 Widget _buildPrefabCreatorPage({
@@ -142,6 +153,7 @@ Widget _buildPrefabCreatorPage({
     key: key,
     controller: controller,
     initialPrefabKey: navigation.initialPrefabKey,
+    onShellStateChanged: navigation.onShellStateChanged,
   );
 }
 
@@ -166,7 +178,11 @@ Widget _buildLevelCreatorPage({
   return LevelCreatorPage(
     key: key,
     controller: controller,
+    onShellStateChanged: navigation.onShellStateChanged,
     onOpenInParallax: navigation.onOpenParallaxForLevel,
+    onOpenChunk: navigation.onOpenChunkForLevel,
+    initialReturnContext: navigation.initialLevelReturnContext,
+    onRepairDependency: navigation.onRepairDependency,
   );
 }
 
@@ -175,7 +191,11 @@ Widget _buildParallaxEditorPage({
   required EditorSessionController controller,
   required EditorHomeRouteNavigation navigation,
 }) {
-  return ParallaxEditorPage(key: key, controller: controller);
+  return ParallaxEditorPage(
+    key: key,
+    controller: controller,
+    onShellStateChanged: navigation.onShellStateChanged,
+  );
 }
 
 Widget _buildTerrainMaterialsPage({

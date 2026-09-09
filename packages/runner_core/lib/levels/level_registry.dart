@@ -8,18 +8,36 @@ library;
 import '../track/authored_chunk_patterns.dart';
 import '../track/chunk_pattern_source.dart';
 
+import 'level_availability.dart';
 import 'level_definition.dart';
 import 'level_id.dart';
 
 /// Default runtime-authored chunk pattern source.
 final ChunkPatternSource defaultChunkPatternSource =
-    authoredChunkPatternSourceForLevel(LevelId.field.name);
+    authoredChunkPatternSourceForLevel(LevelRegistry.defaultLevelId.name);
 
 /// Resolves level definitions by stable [LevelId].
 class LevelRegistry {
   const LevelRegistry._();
 
-  /// Returns the level definition for a given [LevelId].
+  /// Included active default; enum order remains protocol-stable.
+  static const LevelId defaultLevelId = LevelId.field;
+
+  /// Included active and deprecated gameplay identities.
+  static const Set<LevelId> compiledLevelIds = <LevelId>{
+    LevelId.forest,
+    LevelId.field,
+    LevelId.new_level,
+  };
+
+  static bool isAvailable(LevelId id) => compiledLevelIds.contains(id);
+
+  /// Rejects unavailable content without changing the requested identity.
+  static void requireAvailable(LevelId id) {
+    if (!isAvailable(id)) throw LevelUnavailableException(id);
+  }
+
+  /// Resolves gameplay content or throws [LevelUnavailableException].
   static LevelDefinition byId(LevelId id) {
     switch (id) {
       case LevelId.forest:

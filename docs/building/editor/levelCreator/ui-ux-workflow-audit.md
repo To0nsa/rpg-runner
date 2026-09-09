@@ -2,9 +2,10 @@
 
 Date: September 8, 2026
 
-Status: Findings F1–F6 addressed in the revised plan and checklist.
-Implementation and acceptance verification remain pending. The simulations below
-record the pre-correction audit; production code has not been changed.
+Status: Findings F1–F5 implemented with source, domain, runtime, and UI regression
+coverage. F6's independent creator session remains pending. Final verification
+is recorded in [implementation evidence](implementation-verification.md).
+The simulations below preserve the pre-correction audit, not current behavior.
 
 Reviewed:
 
@@ -24,7 +25,7 @@ of this audit.
 **Pre-correction verdict:** the design direction fit that author, but four
 interactions lacked explicit implementation decisions and two recovery/testing
 gaps remained. The revised plan now specifies these decisions and corresponding
-acceptance cases. This resolves the planning findings, not their implementation.
+acceptance cases. The delivery evidence now records implementation and automated regression coverage; independent human acceptance is still separate.
 
 This was a source-based workflow simulation, with independent reviews of content
 authoring, persistence/recovery, and runtime dependencies. It was not a usability
@@ -42,9 +43,9 @@ cannot validate the real authoring/save/gameplay transitions.
 | F5 — Recovery | [Recovery and reopening](ui-ux-redesign-plan.md#recovery-and-reopening): conflict-aware reapply, refresh-only retry after committed writes, identity-aware starter continuation, safe saved selection restoration, and saved-source-only crash recovery. | Phases 1/3/5, F5 acceptance in Phase 6 |
 | F6 — Real authoring acceptance | [Verification](ui-ux-redesign-plan.md#9-verification-and-definition-of-done): create a second useful chunk, geometry/Prefab/enemy placement, activation, group reassignment, repeated-source edits, and all F1–F5 transitions with a game content creator. | Phases 2/3/4 behavior, F6 acceptance in Phase 6 |
 
-All implementation boxes remain unchecked in the [checklist](ui-ux-redesign-checklist.md).
-The concept remains a layout illustration; these decisions are not claimed as
-implemented interactions or results from a human usability test.
+Verified implementation is marked in the [checklist](ui-ux-redesign-checklist.md).
+The concept remains a layout illustration; automated source/UI/runtime evidence
+is recorded separately and is not represented as a human usability test.
 
 ## Simulated content-creation workflow before correction
 
@@ -137,12 +138,14 @@ visible Play action without generation or restart. Repeat with a newly authored
 material/theme and changed level settings. Both launchers must state their test
 scope and return to the correct editing context.
 
-Evidence:
-[Chunk preparation](../../../../tools/editor/lib/src/playtest/chunk_playtest_preparation.dart)
-lines 221–269;
-[Chunk scenario](../../../../packages/runner_core/lib/playtest/chunk_playtest_scenario.dart)
-lines 172–208;
-[revised runtime contract](ui-ux-redesign-plan.md#runtime-construction-and-identity).
+Historical evidence: the pre-implementation `chunk_playtest_preparation.dart`
+lines 221–269 and Chunk scenario lines 172–208 contained those generated-data
+dependencies. The deleted preparation has been replaced by
+[shared authored preparation](../../../../tools/editor/lib/src/playtest/authored_playtest_preparation.dart);
+the [current Chunk scenario](../../../../packages/runner_core/lib/playtest/chunk_playtest_scenario.dart)
+now uses authored content. See the
+[revised runtime contract](ui-ux-redesign-plan.md#runtime-construction-and-identity)
+and [implementation evidence](implementation-verification.md) for delivered behavior.
 
 ## F3 — P1: Save/Discard scope and history boundaries are ambiguous
 

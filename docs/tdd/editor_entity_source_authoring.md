@@ -113,6 +113,11 @@ from artifact names.
 ## Interaction invariants
 
 Inspector text remains page-local until **Apply Values** emits a typed command.
+Shared **Save** finalizes that same visible input before exporting. Every
+numeric input must be finite. Rejected commands preserve the exact entered
+text, block Save, and leave history unchanged. The page rebases only when the
+current entry semantically matches the requested typed update; numerically
+equivalent text normalizes without creating history or exporting files.
 Route changes, reload, and app exit include that local draft in the shared
 discard guard. Once inspector values enter session history, the page rebases
 its draft baseline so Undo and Redo project the restored snapshot instead of
@@ -128,4 +133,6 @@ final drift, first/middle/last installation failures, verification rollback,
 pre-existing persistent backups, cleanup-required reporting, typed command
 rejection, numeric tolerance, cached asset availability, shared Apply failure
 feedback, scene hit testing/pointer cancel/coalesced undo, and guarded local
-draft reload behavior.
+draft reload behavior. `entities_save_admission_test.dart` covers focused-field
+Save, non-finite input, rejected/throwing command preservation, and normalized
+numeric no-ops.

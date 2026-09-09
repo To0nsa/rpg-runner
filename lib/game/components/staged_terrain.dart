@@ -22,11 +22,19 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     required this.controller,
     required this.virtualWidth,
     required this.virtualHeight,
-  });
+    Map<String, TerrainMaterialSpec>? materials,
+  }) : materialCatalog = Map<String, TerrainMaterialSpec>.unmodifiable(
+         materials ?? TerrainMaterialRegistry.byKey,
+       );
 
   final GameController controller;
   final int virtualWidth;
   final int virtualHeight;
+  final Map<String, TerrainMaterialSpec> materialCatalog;
+
+  TerrainMaterialSpec _requireMaterial(String key) =>
+      materialCatalog[key] ??
+      (throw StateError('Captured terrain material "$key" is unavailable.'));
 
   final Map<String, _LoadedTerrainMaterial> _materials =
       <String, _LoadedTerrainMaterial>{};
@@ -59,7 +67,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     final sourceImagesByPath = <String, ui.Image>{};
     try {
       final assetPaths =
-          TerrainMaterialRegistry.byKey.values
+          materialCatalog.values
               .expand((spec) => spec.assetPaths)
               .toSet()
               .toList(growable: false)
@@ -67,7 +75,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       for (final assetPath in assetPaths) {
         sourceImagesByPath[assetPath] = await game.images.load(assetPath);
       }
-      for (final spec in TerrainMaterialRegistry.byKey.values) {
+      for (final spec in materialCatalog.values) {
         for (final region in spec.regions) {
           _regionImages[region] ??= await extractTerrainRegionImage(
             sourceImagesByPath[region.assetPath]!,
@@ -243,7 +251,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     final meshes = <_CachedTerrainMesh>[];
     final meshesBySourceId = <TerrainSourceIdentity, _CachedTerrainMesh>{};
     for (final mesh in StagedTerrainMeshLayout.build(snapshot)) {
-      TerrainMaterialRegistry.require(mesh.materialKey);
+      _requireMaterial(mesh.materialKey);
       if (mesh.positions.isEmpty || mesh.triangleIndices.isEmpty) continue;
       final cachedMesh = _CachedTerrainMesh.fromData(mesh);
       if (meshesBySourceId.containsKey(mesh.sourceId)) {
@@ -280,7 +288,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       edgePaintOrder.map((index) => surfaceEdges[index]),
     );
     for (final edge in orderedSurfaceEdges) {
-      final material = TerrainMaterialRegistry.require(edge.materialKey);
+      final material = _requireMaterial(edge.materialKey);
       final profile = StagedTerrainEdgeLayout.profileFor(
         material,
         edge.orientation,

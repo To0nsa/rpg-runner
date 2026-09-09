@@ -3,31 +3,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:rpg_runner/playtest.dart';
 
 import '../../../chunks/chunk_v2_models.dart';
-import '../../../playtest/chunk_playtest_preparation.dart';
+import '../../../playtest/authored_playtest_preparation.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/authored_playtest_session.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
 import 'v2/chunk_authoring_workspace.dart';
-
-/// Builds the runtime host while keeping its implementation injectable in
-/// editor widget tests.
-typedef ChunkPlaytestHostBuilder =
-    Widget Function({
-      required ChunkPlaytestScenario scenario,
-      required RunnerChunkPlaytestController controller,
-      required AssetBundle assetBundle,
-      required VoidCallback onStop,
-    });
-
-/// Resolves the read-only repository bundle for one captured workspace.
-typedef ChunkPlaytestAssetBundleFactory =
-    AssetBundle Function(String workspaceRoot);
-
-enum _ChunkCreatorPlayMode { edit, preparing, playing, preparationFailed }
 
 /// Current chunk-v2 editor route with an isolated Windows Play mode.
 ///
@@ -41,9 +25,8 @@ class ChunkCreatorPage extends StatefulWidget {
     this.onOpenOwningPrefab,
     this.onShellStateChanged,
     this.playtestPlatformSupported,
-    this.preparationRunner = prepareChunkPlaytestInBackground,
-    this.playtestHostBuilder = buildDefaultChunkPlaytestHost,
-    this.assetBundleFactory = buildDefaultChunkPlaytestAssetBundle,
+    this.preparationRunner = preparePlaytestInBackground,
+    this.playtestHostBuilder = buildDefaultAuthoredPlaytestHost,
   });
 
   final EditorSessionController controller;
@@ -58,13 +41,10 @@ class ChunkCreatorPage extends StatefulWidget {
   final bool? playtestPlatformSupported;
 
   /// Pure preparation runner; production uses a background isolate.
-  final ChunkPlaytestPreparationRunner preparationRunner;
+  final PlaytestPreparationRunner preparationRunner;
 
-  /// Runtime host factory; production mounts [RunnerChunkPlaytestHost].
-  final ChunkPlaytestHostBuilder playtestHostBuilder;
-
-  /// Read-only workspace bundle factory used after preparation succeeds.
-  final ChunkPlaytestAssetBundleFactory assetBundleFactory;
+  /// Runtime host factory shared with authored Level Play.
+  final AuthoredPlaytestHostBuilder playtestHostBuilder;
 
   @override
   State<ChunkCreatorPage> createState() => _ChunkCreatorPageState();
@@ -75,21 +55,13 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         EditorPageLocalDraftState,
         EditorPageSessionShortcutHandler,
         EditorPageReloadHandler,
-        EditorPageApplyHandler,
+        EditorPageSaveHandler,
         EditorPagePlaytestHandler {
   final GlobalKey<ChunkAuthoringWorkspaceState> _workspaceKey =
       GlobalKey<ChunkAuthoringWorkspaceState>();
 
-  _ChunkCreatorPlayMode _playMode = _ChunkCreatorPlayMode.edit;
-  int _preparationGeneration = 0;
-  ChunkV2Document? _capturedDocument;
-  ChunkPlaytestPreparationInput? _capturedInput;
-  String? _capturedWorkspacePath;
-  List<ChunkPlaytestPreparationIssue> _preparationIssues =
-      const <ChunkPlaytestPreparationIssue>[];
-  ChunkPlaytestScenario? _scenario;
-  AssetBundle? _playtestAssetBundle;
-  RunnerChunkPlaytestController? _playtestController;
+  final AuthoredPlaytestSession _playtest = AuthoredPlaytestSession();
+  bool _finalizingForPlay = false;
 
   bool get _migrationRequired =>
       widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
@@ -99,7 +71,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows);
 
   @override
-  bool get locksEditorShell => _playMode != _ChunkCreatorPlayMode.edit;
+  bool get locksEditorShell => _playtest.locksEditor || _finalizingForPlay;
 
   @override
   bool get hasLocalDraftChanges => _migrationRequired
@@ -151,21 +123,25 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   @override
-  bool get canApplyEditorPage =>
+  bool get canSaveEditorPage =>
       !locksEditorShell &&
       !_migrationRequired &&
       (_workspaceKey.currentState?.canApplyToFiles ?? false);
 
   @override
-  Future<void> applyEditorPage() async {
-    if (locksEditorShell || _migrationRequired) return;
+  Future<EditorPageSaveResult> saveEditorPage() async {
+    if (locksEditorShell || _migrationRequired) {
+      return EditorPageSaveResult.blocked;
+    }
     await _workspaceKey.currentState?.applyToFiles();
+    return EditorPageSaveResult.fromSession(widget.controller);
   }
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_handleControllerChanged);
+    _playtest.addListener(_handlePlaytestChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted ||
           widget.controller.isLoading ||
@@ -182,17 +158,15 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller == widget.controller) return;
     oldWidget.controller.removeListener(_handleControllerChanged);
-    _cancelForContextChange();
+    _playtest.stop();
     widget.controller.addListener(_handleControllerChanged);
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_handleControllerChanged);
-    _preparationGeneration += 1;
-    final controller = _playtestController;
-    _playtestController = null;
-    if (controller != null) _retirePlaytestController(controller);
+    _playtest.removeListener(_handlePlaytestChanged);
+    _playtest.dispose();
     super.dispose();
   }
 
@@ -212,7 +186,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   Widget _buildCurrentSchemaWorkspace() {
-    final isEditing = _playMode == _ChunkCreatorPlayMode.edit;
+    final isEditing = !_playtest.locksEditor;
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -224,6 +198,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               ignoring: !isEditing,
               child: ChunkAuthoringWorkspace(
                 key: _workspaceKey,
+                onDraftStateChanged: widget.onShellStateChanged,
                 controller: widget.controller,
                 onOpenOwningPrefab: widget.onOpenOwningPrefab,
                 onPlayRequested: _requestPlay,
@@ -232,58 +207,47 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             ),
           ),
         ),
-        if (!isEditing) Positioned.fill(child: _buildPlaytestBody()),
+        if (!isEditing)
+          Positioned.fill(
+            child: AuthoredPlaytestOverlay(
+              session: _playtest,
+              subject: 'Chunk',
+              keyPrefix: 'chunk_playtest',
+              hostBuilder: widget.playtestHostBuilder,
+              onRetry: _retryPreparation,
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildPlaytestBody() => switch (_playMode) {
-    _ChunkCreatorPlayMode.edit => const SizedBox.shrink(),
-    _ChunkCreatorPlayMode.preparing => _ChunkPlaytestPreparationPanel(
-      title: 'Preparing chunk playtest',
-      detail:
-          'Compiling the accepted in-memory document. No files are being '
-          'written.',
-      primaryLabel: null,
-      onPrimary: null,
-      onReturnToEdit: _stopPlaytest,
-    ),
-    _ChunkCreatorPlayMode.preparationFailed => _ChunkPlaytestPreparationPanel(
-      title: 'Chunk playtest could not start',
-      detail: _preparationIssues
-          .map((issue) => '${issue.code}: ${issue.message}')
-          .join('\n'),
-      primaryLabel: 'Retry',
-      onPrimary: _retryPreparation,
-      onReturnToEdit: _stopPlaytest,
-    ),
-    _ChunkCreatorPlayMode.playing => _buildRuntimeHost(),
-  };
-
-  Widget _buildRuntimeHost() {
-    final scenario = _scenario;
-    final controller = _playtestController;
-    final assetBundle = _playtestAssetBundle;
-    if (scenario == null || controller == null || assetBundle == null) {
-      return const _ChunkPlaytestPreparationPanel(
-        title: 'Chunk playtest state is incomplete',
-        detail: 'Return to Edit and prepare the scenario again.',
-        primaryLabel: null,
-        onPrimary: null,
-        onReturnToEdit: null,
+  Future<void> _requestPlay() async {
+    if (locksEditorShell || _finalizingForPlay) return;
+    if (!_platformSupportsPlaytest ||
+        (_workspaceKey.currentState?.hasActiveOperation ?? true)) {
+      _showPlaytestBlocked(
+        _workspaceKey.currentState?.playtestReadiness.message ??
+            'The Chunk workspace is not ready for Play.',
       );
+      return;
     }
-    final generation = _preparationGeneration;
-    return widget.playtestHostBuilder(
-      scenario: scenario,
-      controller: controller,
-      assetBundle: assetBundle,
-      onStop: () => _handleRuntimeStopped(generation, controller),
-    );
-  }
-
-  void _requestPlay() {
-    if (_playMode != _ChunkCreatorPlayMode.edit) return;
+    _finalizingForPlay = true;
+    _handlePlaytestChanged();
+    final requestedController = widget.controller;
+    final requestedWorkspace = widget.controller.workspacePath;
+    var accepted = false;
+    try {
+      accepted =
+          await _workspaceKey.currentState?.finalizeLocalEdits() ?? false;
+    } finally {
+      _finalizingForPlay = false;
+      _handlePlaytestChanged();
+    }
+    if (!mounted || !accepted) return;
+    if (!identical(requestedController, widget.controller) ||
+        requestedWorkspace != widget.controller.workspacePath) {
+      return;
+    }
     final readiness = _workspaceKey.currentState?.playtestReadiness;
     if (readiness == null || !readiness.isReady) {
       _showPlaytestBlocked(
@@ -298,354 +262,55 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       return;
     }
 
-    late final ChunkPlaytestPreparationInput input;
-    try {
-      input = captureChunkPlaytestPreparationInput(
+    FocusManager.instance.primaryFocus?.unfocus();
+    await _playtest.prepare(
+      source: document,
+      isSourceCurrent: () =>
+          mounted && identical(widget.controller.document, document),
+      capture: () => captureChunkPlaytestPreparationInput(
         document: document,
         selectedChunkKey: selectedChunkKey,
-      );
-    } on ChunkPlaytestPreparationException catch (error) {
-      _showPreparationFailure(
-        document: document,
-        issues: <ChunkPlaytestPreparationIssue>[
-          ChunkPlaytestPreparationIssue(
-            code: error.code,
-            message: error.message,
-          ),
-        ],
-      );
-      return;
-    }
-
-    FocusManager.instance.primaryFocus?.unfocus();
-    _startPreparation(
-      document: document,
-      input: input,
-      workspacePath: widget.controller.workspacePath,
-    );
-  }
-
-  void _startPreparation({
-    required ChunkV2Document document,
-    required ChunkPlaytestPreparationInput input,
-    required String workspacePath,
-  }) {
-    final generation = ++_preparationGeneration;
-    _capturedDocument = document;
-    _capturedInput = input;
-    _capturedWorkspacePath = workspacePath;
-    _preparationIssues = const <ChunkPlaytestPreparationIssue>[];
-    _scenario = null;
-    _playtestAssetBundle = null;
-    _setPlayMode(_ChunkCreatorPlayMode.preparing);
-    unawaited(
-      _completePreparation(
-        generation: generation,
-        document: document,
-        input: input,
-        workspacePath: workspacePath,
+        workspaceRoot: widget.controller.workspacePath,
       ),
+      runner: widget.preparationRunner,
     );
-  }
-
-  Future<void> _completePreparation({
-    required int generation,
-    required ChunkV2Document document,
-    required ChunkPlaytestPreparationInput input,
-    required String workspacePath,
-  }) async {
-    late final ChunkPlaytestPreparationResult result;
-    try {
-      result = await widget.preparationRunner(input);
-    } on Object catch (error) {
-      result = ChunkPlaytestPreparationResult.failure(
-        <ChunkPlaytestPreparationIssue>[
-          ChunkPlaytestPreparationIssue(
-            code: 'chunk_playtest_preparation_failed',
-            message: error.toString(),
-          ),
-        ],
-      );
-    }
-    if (!_acceptsPreparationResult(generation, document)) return;
-    final scenario = result.scenario;
-    if (scenario == null) {
-      _preparationIssues = result.issues;
-      _setPlayMode(_ChunkCreatorPlayMode.preparationFailed);
-      return;
-    }
-
-    late final AssetBundle assetBundle;
-    try {
-      assetBundle = widget.assetBundleFactory(workspacePath);
-    } on Object catch (error) {
-      final issue = error is RunnerWorkspaceAssetException
-          ? ChunkPlaytestPreparationIssue(
-              code: error.code,
-              message: error.message,
-            )
-          : ChunkPlaytestPreparationIssue(
-              code: 'chunk_playtest_asset_bundle_failed',
-              message: error.toString(),
-            );
-      _preparationIssues = <ChunkPlaytestPreparationIssue>[issue];
-      _setPlayMode(_ChunkCreatorPlayMode.preparationFailed);
-      return;
-    }
-    if (!_acceptsPreparationResult(generation, document)) return;
-
-    _scenario = scenario;
-    _playtestAssetBundle = assetBundle;
-    _playtestController = RunnerChunkPlaytestController();
-    _setPlayMode(_ChunkCreatorPlayMode.playing);
-  }
-
-  bool _acceptsPreparationResult(int generation, ChunkV2Document document) =>
-      mounted &&
-      generation == _preparationGeneration &&
-      _playMode == _ChunkCreatorPlayMode.preparing &&
-      identical(_capturedDocument, document) &&
-      identical(widget.controller.document, document);
-
-  void _showPreparationFailure({
-    required ChunkV2Document document,
-    required List<ChunkPlaytestPreparationIssue> issues,
-  }) {
-    _preparationGeneration += 1;
-    _capturedDocument = document;
-    _capturedInput = null;
-    _capturedWorkspacePath = widget.controller.workspacePath;
-    _preparationIssues = issues;
-    _setPlayMode(_ChunkCreatorPlayMode.preparationFailed);
   }
 
   void _retryPreparation() {
-    final document = _capturedDocument;
-    final input = _capturedInput;
-    final workspacePath = _capturedWorkspacePath;
-    if (document == null ||
-        input == null ||
-        workspacePath == null ||
-        !identical(widget.controller.document, document)) {
-      _returnToEdit();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _requestPlay();
-      });
-      return;
-    }
-    _startPreparation(
-      document: document,
-      input: input,
-      workspacePath: workspacePath,
-    );
+    _playtest.stop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_requestPlay());
+    });
   }
 
-  bool _stopPlaytest() {
-    switch (_playMode) {
-      case _ChunkCreatorPlayMode.edit:
-        return false;
-      case _ChunkCreatorPlayMode.preparing ||
-          _ChunkCreatorPlayMode.preparationFailed:
-        _returnToEdit();
-        return true;
-      case _ChunkCreatorPlayMode.playing:
-        final controller = _playtestController;
-        if (controller == null) {
-          _returnToEdit();
-          return true;
-        }
-        controller.stop();
-        return true;
-    }
-  }
-
-  void _handleRuntimeStopped(
-    int generation,
-    RunnerChunkPlaytestController controller,
-  ) {
-    if (generation != _preparationGeneration ||
-        !identical(controller, _playtestController)) {
-      _retirePlaytestController(controller);
-      return;
-    }
-    _playtestController = null;
-    _returnToEdit();
-    _retirePlaytestController(controller);
-  }
-
-  void _returnToEdit() {
-    _preparationGeneration += 1;
-    _capturedDocument = null;
-    _capturedInput = null;
-    _capturedWorkspacePath = null;
-    _preparationIssues = const <ChunkPlaytestPreparationIssue>[];
-    _scenario = null;
-    _playtestAssetBundle = null;
-    _setPlayMode(_ChunkCreatorPlayMode.edit);
-  }
-
-  void _cancelForContextChange() {
-    if (_playMode == _ChunkCreatorPlayMode.edit) return;
-    final controller = _playtestController;
-    if (controller != null) {
-      controller.stop();
-    } else {
-      _returnToEdit();
-    }
-  }
-
-  void _setPlayMode(_ChunkCreatorPlayMode mode) {
-    if (_playMode == mode) return;
-    if (mounted) {
-      setState(() => _playMode = mode);
-    } else {
-      _playMode = mode;
-    }
+  void _handlePlaytestChanged() {
+    if (!mounted) return;
+    setState(() {});
     widget.onShellStateChanged?.call();
-  }
-
-  void _retirePlaytestController(RunnerChunkPlaytestController controller) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
   }
 
   void _showPlaytestBlocked(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   bool handlePlaytestShortcut(LogicalKeyboardKey key) {
-    if (key == LogicalKeyboardKey.f5) {
-      if (_playMode == _ChunkCreatorPlayMode.edit) {
-        _requestPlay();
-        return _playMode != _ChunkCreatorPlayMode.edit;
-      }
-      return _stopPlaytest();
+    if (key == LogicalKeyboardKey.f5 && !locksEditorShell) {
+      unawaited(_requestPlay());
+      return locksEditorShell;
     }
-    if (_playMode == _ChunkCreatorPlayMode.preparing ||
-        _playMode == _ChunkCreatorPlayMode.preparationFailed) {
-      return key == LogicalKeyboardKey.escape && _stopPlaytest();
-    }
-    if (_playMode != _ChunkCreatorPlayMode.playing) return false;
-    final controller = _playtestController;
-    if (controller == null) return false;
-    if (key == LogicalKeyboardKey.escape) return _stopPlaytest();
-    if (key == LogicalKeyboardKey.f6) return controller.restart();
-    if (key == LogicalKeyboardKey.keyP) return controller.togglePause();
-    if (key == LogicalKeyboardKey.enter) return controller.start();
-    return false;
+    return _playtest.handleShortcut(key);
   }
 
   @override
-  void handlePlaytestAppLifecycleState(AppLifecycleState state) {
-    if (_playMode != _ChunkCreatorPlayMode.playing ||
-        state == AppLifecycleState.resumed) {
-      return;
-    }
-    _playtestController?.releaseFocus();
-  }
+  void handlePlaytestAppLifecycleState(AppLifecycleState state) =>
+      _playtest.handleAppLifecycleState(state);
 
   void _handleControllerChanged() {
     if (!mounted) return;
-    final capturedDocument = _capturedDocument;
-    if (locksEditorShell &&
-        capturedDocument != null &&
-        !identical(widget.controller.document, capturedDocument)) {
-      _cancelForContextChange();
-      return;
-    }
+    _playtest.reconcileSource(widget.controller.document);
     setState(() {});
-  }
-}
-
-/// Production host composition used by the Chunk Creator route.
-Widget buildDefaultChunkPlaytestHost({
-  required ChunkPlaytestScenario scenario,
-  required RunnerChunkPlaytestController controller,
-  required AssetBundle assetBundle,
-  required VoidCallback onStop,
-}) => RunnerChunkPlaytestHost(
-  scenario: scenario,
-  controller: controller,
-  assetBundle: assetBundle,
-  onStop: onStop,
-);
-
-/// Production read-only asset bundle composition for the captured workspace.
-AssetBundle buildDefaultChunkPlaytestAssetBundle(String workspaceRoot) =>
-    RunnerWorkspaceAssetBundle(workspaceRoot: workspaceRoot);
-
-class _ChunkPlaytestPreparationPanel extends StatelessWidget {
-  const _ChunkPlaytestPreparationPanel({
-    required this.title,
-    required this.detail,
-    required this.primaryLabel,
-    required this.onPrimary,
-    required this.onReturnToEdit,
-  });
-
-  final String title;
-  final String detail;
-  final String? primaryLabel;
-  final VoidCallback? onPrimary;
-  final VoidCallback? onReturnToEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFF0B1118),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    title,
-                    key: const ValueKey<String>('chunk_playtest_state_title'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    detail,
-                    key: const ValueKey<String>('chunk_playtest_state_detail'),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: <Widget>[
-                      if (primaryLabel != null)
-                        FilledButton(
-                          key: const ValueKey<String>(
-                            'chunk_playtest_retry_button',
-                          ),
-                          onPressed: onPrimary,
-                          child: Text(primaryLabel!),
-                        ),
-                      if (onReturnToEdit != null)
-                        OutlinedButton(
-                          key: const ValueKey<String>(
-                            'chunk_playtest_return_button',
-                          ),
-                          onPressed: onReturnToEdit,
-                          child: const Text('Return to Edit'),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

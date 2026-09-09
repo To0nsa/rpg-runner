@@ -1,5 +1,4 @@
 import 'package:runner_core/levels/level_id.dart';
-import 'package:runner_core/levels/level_registry.dart';
 
 import 'generated_level_ui_metadata.dart';
 
@@ -14,14 +13,8 @@ extension LevelIdUi on LevelId {
 
   /// Theme identifier used for asset lookup.
   ///
-  /// Resolves through [LevelRegistry] to get the authoritative visualThemeId.
-  /// Returns 'field' as fallback if the level has no theme set.
-  String get visualThemeId => LevelRegistry.byId(this).visualThemeId ?? 'field';
+  /// Metadata remains readable even when this identity is excluded from Build.
+  String get visualThemeId => generatedLevelUiMetadataFor(this).visualThemeId;
 }
 
-List<LevelId> selectableLevelIdsForUi() {
-  if (generatedSelectableLevelIds.isNotEmpty) {
-    return generatedSelectableLevelIds;
-  }
-  return LevelId.values;
-}
+List<LevelId> selectableLevelIdsForUi() => generatedSelectableLevelIds;

@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_definition.dart';
+import 'package:runner_core/levels/level_identity.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
@@ -17,6 +19,8 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/playtest.dart';
+import 'package:rpg_runner/game/themes/authored_parallax_themes.dart';
+import 'package:rpg_runner/game/themes/terrain_material_registry.dart';
 import 'package:rpg_runner/ui/input/desktop/runner_desktop_input_adapter.dart';
 
 void main() {
@@ -34,10 +38,69 @@ void main() {
   tearDownAll(() => fixtureImage.dispose());
 
   testWidgets(
+    'whole-Level host uses authored identity, captured theme, and frozen restart',
+    (tester) async {
+      final focused = _scenario();
+      final scenario = LevelPlaytestScenario(
+        levelDefinition: LevelDefinition.authored(
+          identity: AuthoredLevelIdentity('forest'),
+          chunkPatternSource: focused.levelDefinition.chunkPatternSource,
+          visualThemeId: 'draft_background',
+          cameraCenterY: 121,
+          groundTopY: 217,
+          assembly: focused.levelDefinition.assembly,
+        ),
+        terrainChunks: focused.terrainCatalog.chunksByKey.values,
+        seed: 740,
+        playerCharacter: focused.playerCharacter,
+        equippedLoadout: focused.equippedLoadout,
+      );
+      final controller = RunnerPlaytestController();
+      final images = _FixtureImages(fixtureImage);
+      await _mountHost(
+        tester,
+        scenario: scenario,
+        controller: controller,
+        onStop: () {},
+        imagesFactory: (_) => images,
+        appearance: RunnerPlaytestAppearance(
+          parallaxThemes: {
+            'draft_background': const ParallaxTheme(
+              backgroundLayers: [
+                PixelParallaxLayerSpec(
+                  assetPath: 'parallax/draft_background/layer_01.png',
+                  parallaxFactor: .2,
+                ),
+              ],
+              foregroundLayers: [],
+            ),
+          },
+          terrainMaterials: TerrainMaterialRegistry.byKey,
+        ),
+      );
+      await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
+      final initial = _snapshotRecord(controller.snapshot!);
+      expect(
+        controller.snapshot!.levelIdentity,
+        AuthoredLevelIdentity('forest'),
+      );
+      expect(controller.snapshot!.visualThemeId, 'draft_background');
+      expect(controller.start(), isTrue);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(controller.pause(), isTrue);
+      expect(controller.restart(), isTrue);
+      await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
+      expect(_snapshotRecord(controller.snapshot!), initial);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
     'ready, input, pause, focus loss, restart, and stop are deterministic',
     (tester) async {
       final scenario = _scenario();
-      final controller = RunnerChunkPlaytestController();
+      final controller = RunnerPlaytestController();
       final imageCaches = <_FixtureImages>[];
       var stopCount = 0;
       await _mountHost(
@@ -51,7 +114,7 @@ void main() {
         },
         onStop: () => stopCount += 1,
       );
-      await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+      await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
 
       final initialRecord = _snapshotRecord(controller.snapshot!);
       expect(controller.status.runtimeGeneration, 1);
@@ -59,7 +122,7 @@ void main() {
       expect(controller.start(), isTrue);
       expect(controller.start(), isFalse);
       await tester.pump();
-      expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+      expect(controller.status.phase, RunnerPlaytestPhase.running);
 
       await tester.sendKeyDownEvent(
         LogicalKeyboardKey.keyD,
@@ -84,13 +147,13 @@ void main() {
 
       expect(controller.releaseFocus(), isTrue);
       await tester.pump();
-      expect(controller.status.phase, RunnerChunkPlaytestPhase.paused);
+      expect(controller.status.phase, RunnerPlaytestPhase.paused);
       expect(controller.resume(), isTrue);
       await tester.pump();
 
       expect(controller.restart(), isTrue);
       expect(controller.status.runtimeGeneration, 2);
-      await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+      await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
       expect(controller.snapshot!.tick, 0);
       expect(_snapshotRecord(controller.snapshot!), initialRecord);
       expect(imageCaches, hasLength(2));
@@ -110,7 +173,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(stopCount, 1);
-      expect(controller.status.phase, RunnerChunkPlaytestPhase.stopped);
+      expect(controller.status.phase, RunnerPlaytestPhase.stopped);
       expect(controller.snapshot, isNull);
       expect(imageCaches.last.clearCount, greaterThan(0));
 
@@ -122,7 +185,7 @@ void main() {
   testWidgets('game over stays backend-free and offers deterministic restart', (
     tester,
   ) async {
-    final controller = RunnerChunkPlaytestController();
+    final controller = RunnerPlaytestController();
     await _mountHost(
       tester,
       scenario: _scenario(),
@@ -130,7 +193,7 @@ void main() {
       imagesFactory: (_) => _FixtureImages(fixtureImage),
       onStop: () {},
     );
-    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
     controller.start();
     await tester.pump();
 
@@ -140,14 +203,14 @@ void main() {
     gameWidget.game!.controller.giveUp();
     await tester.pump();
 
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.gameOver);
+    expect(controller.status.phase, RunnerPlaytestPhase.gameOver);
     expect(find.text('Playtest ended'), findsOneWidget);
     expect(
       find.text('No rewards, replay, or score were recorded.'),
       findsOneWidget,
     );
     expect(controller.restart(), isTrue);
-    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
     expect(controller.snapshot!.gameOver, isFalse);
     expect(controller.snapshot!.tick, 0);
 
@@ -158,7 +221,7 @@ void main() {
   testWidgets('asset failure is explicit, retryable, and stoppable once', (
     tester,
   ) async {
-    final controller = RunnerChunkPlaytestController();
+    final controller = RunnerPlaytestController();
     final imageCaches = <_FailingImages>[];
     final reportedErrors = <Object>[];
     var stopCount = 0;
@@ -176,7 +239,7 @@ void main() {
     await _pumpUntilPhase(
       tester,
       controller,
-      RunnerChunkPlaytestPhase.failed,
+      RunnerPlaytestPhase.failed,
       reportedErrors: reportedErrors,
     );
 
@@ -191,7 +254,7 @@ void main() {
     await _pumpUntilPhase(
       tester,
       controller,
-      RunnerChunkPlaytestPhase.failed,
+      RunnerPlaytestPhase.failed,
       reportedErrors: reportedErrors,
     );
     expect(controller.status.runtimeGeneration, firstGeneration + 1);
@@ -209,7 +272,7 @@ void main() {
   testWidgets('widget disposal cancels runtime without implying host stop', (
     tester,
   ) async {
-    final controller = RunnerChunkPlaytestController();
+    final controller = RunnerPlaytestController();
     var stopCount = 0;
     await _mountHost(
       tester,
@@ -218,7 +281,7 @@ void main() {
       imagesFactory: (_) => _FixtureImages(fixtureImage),
       onStop: () => stopCount += 1,
     );
-    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
     controller.start();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -233,7 +296,7 @@ void main() {
   testWidgets('rapid restart and stop ignore every stale runtime callback', (
     tester,
   ) async {
-    final controller = RunnerChunkPlaytestController();
+    final controller = RunnerPlaytestController();
     var stopCount = 0;
     await _mountHost(
       tester,
@@ -246,7 +309,7 @@ void main() {
     expect(controller.restart(), isTrue);
     expect(controller.restart(), isTrue);
     expect(controller.status.runtimeGeneration, 3);
-    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
     expect(controller.status.runtimeGeneration, 3);
     expect(controller.snapshot!.tick, 0);
 
@@ -259,7 +322,7 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.stopped);
+    expect(controller.status.phase, RunnerPlaytestPhase.stopped);
     expect(controller.status.runtimeGeneration, 4);
     expect(stopCount, 1);
     expect(tester.takeException(), isNull);
@@ -275,7 +338,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final controller = RunnerChunkPlaytestController();
+    final controller = RunnerPlaytestController();
     var stopCount = 0;
     await _mountHost(
       tester,
@@ -284,11 +347,11 @@ void main() {
       imagesFactory: (_) => _FixtureImages(fixtureImage),
       onStop: () => stopCount += 1,
     );
-    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.25;
     await tester.pump();
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.ready);
+    expect(controller.status.phase, RunnerPlaytestPhase.ready);
     expect(controller.start(), isTrue);
     await tester.pump(const Duration(milliseconds: 100));
     final tickBeforeResize = controller.snapshot!.tick;
@@ -308,7 +371,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await mouse.moveTo(tester.getCenter(adapter) + const Offset(80, -40));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+    expect(controller.status.phase, RunnerPlaytestPhase.running);
     expect(controller.snapshot!.tick, greaterThan(tickBeforeResize));
 
     await tester.sendKeyUpEvent(
@@ -320,9 +383,9 @@ void main() {
     tester.view.physicalSize = const Size(1440, 900);
     tester.view.devicePixelRatio = 1.25;
     await tester.pump();
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.paused);
+    expect(controller.status.phase, RunnerPlaytestPhase.paused);
     expect(controller.restart(), isTrue);
-    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilPhase(tester, controller, RunnerPlaytestPhase.ready);
     expect(controller.snapshot!.tick, 0);
 
     expect(controller.stop(), isTrue);
@@ -338,16 +401,23 @@ void main() {
 
 Future<void> _mountHost(
   WidgetTester tester, {
-  required ChunkPlaytestScenario scenario,
-  required RunnerChunkPlaytestController controller,
+  required PlaytestScenario scenario,
+  required RunnerPlaytestController controller,
   required VoidCallback onStop,
   AssetBundle? assetBundle,
-  RunnerChunkPlaytestImagesFactory? imagesFactory,
+  RunnerPlaytestImagesFactory? imagesFactory,
+  RunnerPlaytestAppearance? appearance,
 }) {
   return tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: RunnerChunkPlaytestHost(
+        body: RunnerPlaytestHost(
+          appearance:
+              appearance ??
+              RunnerPlaytestAppearance(
+                parallaxThemes: authoredParallaxThemesById,
+                terrainMaterials: TerrainMaterialRegistry.byKey,
+              ),
           scenario: scenario,
           controller: controller,
           assetBundle: assetBundle,
@@ -361,8 +431,8 @@ Future<void> _mountHost(
 
 Future<void> _pumpUntilPhase(
   WidgetTester tester,
-  RunnerChunkPlaytestController controller,
-  RunnerChunkPlaytestPhase phase, {
+  RunnerPlaytestController controller,
+  RunnerPlaytestPhase phase, {
   List<Object>? reportedErrors,
 }) async {
   for (var attempt = 0; attempt < 200; attempt += 1) {
@@ -403,6 +473,9 @@ ChunkPlaytestScenario _scenario() {
     (chunk) => chunk.chunkKey == draftPattern.chunkKey,
   );
   return ChunkPlaytestScenario(
+    terrainChunks: stagedAuthoredTerrain.chunks.where(
+      (chunk) => chunk.levelId == 'forest',
+    ),
     levelDefinition: level,
     visualThemeId: level.visualThemeId ?? 'forest',
     seed: 4401,
@@ -417,7 +490,7 @@ String _snapshotRecord(GameStateSnapshot snapshot) => <Object?>[
   snapshot.tick,
   snapshot.runId,
   snapshot.seed,
-  snapshot.levelId,
+  snapshot.levelIdentity,
   snapshot.visualThemeId,
   snapshot.distance,
   snapshot.camera.centerX,

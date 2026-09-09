@@ -1,10 +1,19 @@
+import '../domain/authoring_session_semantics.dart';
+import '../domain/authoring_intent_reconciliation.dart';
+import 'parallax_intent_reconciliation.dart';
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
 import 'parallax_domain_models.dart';
+import 'parallax_history_reconciliation.dart';
 import 'parallax_store.dart';
 import 'parallax_validation.dart';
 
-class ParallaxDomainPlugin implements AuthoringDomainPlugin {
+class ParallaxDomainPlugin
+    implements
+        AuthoringDomainPlugin,
+        AuthoringSessionSemantics,
+        AuthoringHistoryReconciliation,
+        AuthoringIntentReconciliation {
   ParallaxDomainPlugin({ParallaxStore store = const ParallaxStore()})
     : _store = store;
 
@@ -15,6 +24,46 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   String get id => pluginId;
+
+  @override
+  AuthoringReapplyPlan planReapply({
+    required AuthoringDocument current,
+    required AuthoringDocument original,
+    required Map<String, AuthoringConflictChoice> resolutions,
+  }) => planParallaxIntentReapply(
+    current: _asParallaxDocument(current),
+    original: _asParallaxDocument(original),
+    resolutions: resolutions,
+  );
+
+  @override
+  bool isPresentationCommand(AuthoringCommand command) =>
+      command.kind == 'set_active_level';
+
+  @override
+  AuthoringDocument retainPresentation({
+    required AuthoringDocument current,
+    required AuthoringDocument restored,
+  }) {
+    final restoredParallax = _asParallaxDocument(restored);
+    final currentLevelId = _asParallaxDocument(current).activeLevelId;
+    final selectedId =
+        restoredParallax.availableLevelIds.contains(currentLevelId)
+        ? currentLevelId
+        : restoredParallax.activeLevelId;
+    _preferredActiveLevelId = selectedId;
+    if (selectedId == restoredParallax.activeLevelId) return restored;
+    return restoredParallax.copyWith(activeLevelId: selectedId);
+  }
+
+  @override
+  AuthoringDocument? restoreContent({
+    required AuthoringDocument current,
+    required AuthoringDocument historical,
+  }) => restoreParallaxHistoryContent(
+    current: _asParallaxDocument(current),
+    historical: _asParallaxDocument(historical),
+  );
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
@@ -62,9 +111,9 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         'Visual theme "$themeId" is no longer authored for Level "$levelId".',
       );
     }
-    final blockingIssues = validateParallaxDocument(
-      loaded,
-    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    final blockingIssues = validateParallaxDocument(loaded)
+        .where((issue) => issue.severity == ValidationSeverity.error)
+        .toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
         'Parallax handoff target is invalid: '
@@ -142,9 +191,9 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) async {
     final parallaxDocument = _asParallaxDocument(document);
-    final blockingIssues = validateParallaxDocument(
-      parallaxDocument,
-    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    final blockingIssues = validateParallaxDocument(parallaxDocument)
+        .where((issue) => issue.severity == ValidationSeverity.error)
+        .toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
         'Cannot export parallax while validation has '
@@ -162,8 +211,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         artifacts: const <ExportArtifact>[
           ExportArtifact(
             title: 'parallax_summary.md',
-            content:
-                '# Parallax Export\n\nchangedThemes: 0\n\nNo parallax edits detected.',
+            content: '# Parallax Export\n\nchangedThemes: 0\n\nNo parallax edits detected.',
           ),
         ],
       );

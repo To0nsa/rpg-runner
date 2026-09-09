@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/camera/autoscroll_camera.dart';
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/game_core.dart';
+
 import '../support/test_level.dart';
+
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -105,7 +107,7 @@ void main() {
       );
       final baseLevel = LevelRegistry.byId(LevelId.field);
       final level = LevelDefinition(
-        id: baseLevel.id,
+        id: baseLevel.identity.requireRegisteredId(),
         chunkPatternSource: baseLevel.chunkPatternSource,
         cameraCenterY: baseLevel.cameraCenterY,
         groundTopY: baseLevel.groundTopY,

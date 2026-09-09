@@ -60,11 +60,13 @@ class PrefabPolygonWorkspace extends StatefulWidget {
   const PrefabPolygonWorkspace({
     super.key,
     required this.controller,
+    this.onDraftStateChanged,
     required this.atlasImageFilePicker,
     this.initialPrefabKey,
   });
 
   final EditorSessionController controller;
+  final VoidCallback? onDraftStateChanged;
   final AtlasImageFilePicker atlasImageFilePicker;
 
   /// Stable owner to prefer over the workspace's deterministic default.
@@ -147,15 +149,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   /// True when the shell may apply the current prefab source atomically.
   bool get canApplyToFiles =>
-      widget.controller.pendingChanges.hasChanges &&
+      hasLocalDraftChanges &&
       !(_authoring?.hasActiveOperation ?? false) &&
-      !_hasPendingSelectedShapeEdit &&
-      !_ownerEditDirty &&
-      !_ownerCreateDirty &&
-      !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
-      !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       !widget.controller.isLoading &&
-      !widget.controller.isExporting;
+      !widget.controller.isExporting &&
+      !widget.controller.requiresSavedRefresh &&
+      !widget.controller.requiresTransactionRecovery;
 
   bool handleUndoShortcut() {
     if (_ownerCreateDirty) {
@@ -259,6 +258,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   void _handleExactEditChanged() {
     if (mounted) setState(() {});
+    widget.onDraftStateChanged?.call();
   }
 
   void _discardSelectedShapeEdit() {
@@ -309,12 +309,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 collisionWorkspace,
                 PrefabV3AtlasCatalogWorkspace(
                   key: _atlasWorkspaceKey,
+                  onDraftStateChanged: widget.onDraftStateChanged,
                   controller: widget.controller,
                   document: document,
                   atlasImageFilePicker: widget.atlasImageFilePicker,
                 ),
                 PrefabV3ModuleCatalogWorkspace(
                   key: _moduleWorkspaceKey,
+                  onDraftStateChanged: widget.onDraftStateChanged,
                   controller: widget.controller,
                   document: document,
                   onEditCollision: (moduleId) =>
@@ -386,41 +388,53 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// Confirms and applies the current source through the shared session.
+  /// Saves the current source through the shared session.
   Future<void> applyToFiles() async {
     if (!canApplyToFiles) return;
+    if (_ownerCreateDirty &&
+        !await (_ownerCreateFormKey.currentState?.submit() ??
+            Future<bool>.value(false))) {
+      return;
+    }
+    if (!mounted) return;
+    if (_ownerEditDirty &&
+        !await ((_ownerRenameActive
+                ? _ownerRenameFormKey.currentState?.submit()
+                : _ownerEditFormKey.currentState?.submit()) ??
+            Future<bool>.value(false))) {
+      return;
+    }
+    if (!mounted) return;
+    final authoring = _authoring;
+    final shapeId = authoring?.state.selection?.shapeId;
+    if (_hasPendingSelectedShapeEdit && authoring != null && shapeId != null) {
+      final shape = _findShape(authoring.state.shapes, shapeId);
+      if (shape == null) return;
+      final saved = _exactEditController.hasEditor
+          ? _exactEditController.save()
+          : _saveShapeName(authoring, shape);
+      if (!saved || !mounted) return;
+    }
+    if (!(_atlasWorkspaceKey.currentState?.finalizeLocalDraft() ?? true)) {
+      return;
+    }
+    if (!(_moduleWorkspaceKey.currentState?.finalizeLocalDraft() ?? true)) {
+      return;
+    }
     final pendingChanges = widget.controller.pendingChanges;
     if (!pendingChanges.hasChanges) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Apply Prefab-v3 Changes'),
-        content: Text(
-          'Write ${pendingChanges.changedItemIds.length} prefab change(s) '
-          'across ${pendingChanges.fileDiffs.length} current-schema file(s)?',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
     await widget.controller.exportDirectWrite();
     if (!mounted) return;
-    final error = widget.controller.exportError;
+    final error =
+        widget.controller.refreshError ?? widget.controller.exportError;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           error == null
-              ? 'Prefab-v3 changes applied.'
-              : 'Prefab-v3 apply failed: $error',
+              ? 'Prefab changes saved.'
+              : widget.controller.requiresSavedRefresh
+              ? 'Saved; refresh failed: $error'
+              : 'Prefab save failed: $error',
         ),
       ),
     );
@@ -2157,6 +2171,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   void _setOwnerEditDirty(bool dirty) {
     if (!mounted || !_ownerDraft.setEditDirty(dirty)) return;
     setState(() {});
+    widget.onDraftStateChanged?.call();
   }
 
   void _closeOwnerEditor() {
@@ -2239,6 +2254,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   void _setOwnerCreateDirty(bool dirty) {
     if (!mounted || !_ownerDraft.setCreateDirty(dirty)) return;
     setState(() {});
+    widget.onDraftStateChanged?.call();
   }
 
   void _closeOwnerCreateSection() {

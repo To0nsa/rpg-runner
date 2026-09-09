@@ -4,7 +4,7 @@
 /// contract between Core and the Flame/Flutter layer—treat as read-only.
 library;
 
-import '../levels/level_id.dart';
+import '../levels/level_identity.dart';
 import 'camera_snapshot.dart';
 import 'entity_render_snapshot.dart';
 import 'enums.dart';
@@ -21,7 +21,7 @@ class GameStateSnapshot {
     required this.tick,
     required this.runId,
     required this.seed,
-    required this.levelId,
+    required this.levelIdentity,
     required this.visualThemeId,
     required this.distance,
     required this.paused,
@@ -42,8 +42,8 @@ class GameStateSnapshot {
   /// Seed used for deterministic generation/RNG.
   final int seed;
 
-  /// Level identifier for this run (stable across sessions).
-  final LevelId levelId;
+  /// Stable registered identity or explicit authored playtest provenance.
+  final LevelIdentity levelIdentity;
 
   /// Optional render theme identifier for this run.
   ///

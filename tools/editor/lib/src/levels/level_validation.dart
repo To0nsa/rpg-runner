@@ -42,6 +42,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'unknown_level_id',
           message: 'Active level "$activeLevelId" is not authored.',
           sourcePath: sourcePath,
+          ownerKey: activeLevelId,
         ),
       );
     }
@@ -49,7 +50,53 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
 
   final seenLevelIds = <String>{};
   final seenEnumOrdinals = <int>{};
+  final persistedById = <String, LevelDef>{
+    for (final level in document.baselineLevels) level.levelId: level,
+  };
+  var highestPersistedOrdinal = 0;
+  for (final persisted in persistedById.values) {
+    if (persisted.enumOrdinal > highestPersistedOrdinal) {
+      highestPersistedOrdinal = persisted.enumOrdinal;
+    }
+    if (findLevelDefById(document.levels, persisted.levelId) == null) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'persisted_level_removed',
+          message:
+              'Persisted Level "${persisted.levelId}" cannot be removed. Exclude or deprecate it instead.',
+          sourcePath: sourcePath,
+          ownerKey: persisted.levelId,
+        ),
+      );
+    }
+  }
   for (final level in canonicalLevels) {
+    final persisted = persistedById[level.levelId];
+    if (persisted != null && persisted.enumOrdinal != level.enumOrdinal) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'persisted_level_ordinal_changed',
+          message:
+              'Persisted Level "${level.levelId}" must retain ordinal ${persisted.enumOrdinal}.',
+          sourcePath: sourcePath,
+          ownerKey: level.levelId,
+        ),
+      );
+    } else if (persisted == null &&
+        level.enumOrdinal <= highestPersistedOrdinal) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'new_level_ordinal_not_appended',
+          message:
+              'New Level "${level.levelId}" must use an ordinal above $highestPersistedOrdinal.',
+          sourcePath: sourcePath,
+          ownerKey: level.levelId,
+        ),
+      );
+    }
     if (level.levelId.isEmpty) {
       issues.add(
         ValidationIssue(
@@ -57,6 +104,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'missing_level_id',
           message: 'A level is missing levelId.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!stableLevelIdentifierPattern.hasMatch(level.levelId)) {
@@ -68,6 +116,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'levelId "${level.levelId}" must match '
               '${stableLevelIdentifierPattern.pattern}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!seenLevelIds.add(level.levelId)) {
@@ -77,6 +126,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'duplicate_level_id',
           message: 'Duplicate levelId "${level.levelId}".',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -89,6 +139,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           message:
               'Level "${level.levelId}" enumOrdinal must be a positive integer.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!seenEnumOrdinals.add(level.enumOrdinal)) {
@@ -98,6 +149,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'duplicate_enum_ordinal',
           message: 'Duplicate enumOrdinal ${level.enumOrdinal}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -110,6 +162,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           message:
               'Level "${level.levelId}" has invalid revision ${level.revision}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -121,6 +174,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'missing_display_name',
           message: 'Level "${level.levelId}" must have a displayName.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -132,6 +186,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'missing_theme_id',
           message: 'Level "${level.levelId}" must have a visualThemeId.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!stableLevelIdentifierPattern.hasMatch(level.visualThemeId)) {
@@ -143,6 +198,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'Level "${level.levelId}" visualThemeId "${level.visualThemeId}" must match '
               '${stableLevelIdentifierPattern.pattern}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (document.parallaxThemeSourceAvailable &&
@@ -157,6 +213,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'Level "${level.levelId}" references unauthored visualThemeId '
               '"${level.visualThemeId}".',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -170,6 +227,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           message:
               'Level "${level.levelId}" must define at least one chunkThemeGroups value.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -182,6 +240,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
             message:
                 'Level "${level.levelId}" has an empty chunkThemeGroups entry.',
             sourcePath: sourcePath,
+            ownerKey: level.levelId,
           ),
         );
         continue;
@@ -195,6 +254,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
                 'Level "${level.levelId}" chunkThemeGroups entry "$chunkThemeGroupId" must match '
                 '${stableLevelIdentifierPattern.pattern}.',
             sourcePath: sourcePath,
+            ownerKey: level.levelId,
           ),
         );
       }
@@ -206,6 +266,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
             message:
                 'Level "${level.levelId}" has duplicate chunkThemeGroups entry "$chunkThemeGroupId".',
             sourcePath: sourcePath,
+            ownerKey: level.levelId,
           ),
         );
       }
@@ -219,6 +280,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'Level "${level.levelId}" chunkThemeGroups must include '
               '"$defaultLevelChunkThemeGroupId".',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -230,6 +292,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'invalid_camera_center_y',
           message: 'Level "${level.levelId}" cameraCenterY must be finite.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (level.cameraCenterY < 0 || level.cameraCenterY > 2000) {
@@ -241,6 +304,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'Level "${level.levelId}" uses unusual cameraCenterY '
               '${formatCanonicalLevelNumber(level.cameraCenterY)}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -252,6 +316,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'invalid_ground_top_y',
           message: 'Level "${level.levelId}" groundTopY must be finite.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (level.groundTopY < 0 || level.groundTopY > 2000) {
@@ -263,6 +328,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'Level "${level.levelId}" uses unusual groundTopY '
               '${formatCanonicalLevelNumber(level.groundTopY)}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -306,6 +372,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
               'Level "${level.levelId}" status must be "$levelStatusActive" '
               'or "$levelStatusDeprecated".',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (level.status == levelStatusDeprecated &&
@@ -316,6 +383,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'deprecated_active_level',
           message: 'Active level "${level.levelId}" is deprecated.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -328,6 +396,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
           code: 'level_has_no_chunks',
           message: 'Level "${level.levelId}" has no authored chunks.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -368,9 +437,12 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'missing_segment_id',
+          elementId: segment.segmentId,
+          fieldKey: 'segmentId',
           message:
               'Level "${level.levelId}" contains an assembly segment without segmentId.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!stableLevelIdentifierPattern.hasMatch(segment.segmentId)) {
@@ -378,10 +450,13 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_segment_id',
+          elementId: segment.segmentId,
+          fieldKey: 'segmentId',
           message:
               'Level "${level.levelId}" segmentId "${segment.segmentId}" must match '
               '${stableLevelIdentifierPattern.pattern}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!seenSegmentIds.add(segment.segmentId)) {
@@ -389,9 +464,12 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'duplicate_segment_id',
+          elementId: segment.segmentId,
+          fieldKey: 'segmentId',
           message:
               'Level "${level.levelId}" has duplicate segmentId "${segment.segmentId}".',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -401,9 +479,12 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'missing_group_id',
+          elementId: segment.segmentId,
+          fieldKey: 'groupId',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" must have a groupId.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!stableLevelIdentifierPattern.hasMatch(segment.groupId)) {
@@ -411,11 +492,14 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_group_id',
+          elementId: segment.segmentId,
+          fieldKey: 'groupId',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" groupId '
               '"${segment.groupId}" must match '
               '${stableLevelIdentifierPattern.pattern}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (!levelChunkThemeGroups.contains(segment.groupId)) {
@@ -423,11 +507,14 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'unknown_assembly_group_id',
+          elementId: segment.segmentId,
+          fieldKey: 'groupId',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" '
               'references groupId "${segment.groupId}" that is not defined '
               'in chunkThemeGroups.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else {
@@ -439,10 +526,13 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_min_chunk_count',
+          elementId: segment.segmentId,
+          fieldKey: 'minChunkCount',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" '
               'minChunkCount must be > 0.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -451,10 +541,13 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_max_chunk_count',
+          elementId: segment.segmentId,
+          fieldKey: 'maxChunkCount',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" '
               'maxChunkCount must be > 0.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     } else if (segment.maxChunkCount < segment.minChunkCount) {
@@ -462,10 +555,13 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_chunk_count_range',
+          elementId: segment.segmentId,
+          fieldKey: 'maxChunkCount',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" must '
               'satisfy minChunkCount <= maxChunkCount.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
         ),
       );
     }
@@ -478,11 +574,18 @@ void _validateAssembly(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'insufficient_distinct_group_chunks',
+          elementId: segment.segmentId,
+          fieldKey: 'requireDistinctChunks',
           message:
               'Level "${level.levelId}" segment "${segment.segmentId}" '
               'requires ${segment.maxChunkCount} distinct chunks, but group '
               '"${segment.groupId}" only has ${availableGroupCounts[segment.groupId] ?? 0}.',
           sourcePath: sourcePath,
+          ownerKey: level.levelId,
+          blockingOperations: <AuthoringOperation>{
+            AuthoringOperation.play,
+            if (level.includeInBuild) AuthoringOperation.build,
+          },
         ),
       );
     }
@@ -501,8 +604,10 @@ void _validateChunkWindow(
       ValidationIssue(
         severity: ValidationSeverity.error,
         code: 'invalid_$fieldLabel',
+        fieldKey: fieldLabel,
         message: 'Level "${level.levelId}" $fieldLabel must be >= 0.',
         sourcePath: sourcePath,
+        ownerKey: level.levelId,
       ),
     );
   }

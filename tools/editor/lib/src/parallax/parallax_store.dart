@@ -507,7 +507,7 @@ class ParallaxStore {
     }
     final file = File(workspace.resolve(baseline.sourcePath));
     if (!file.existsSync()) {
-      throw StateError(
+      throw AuthoringSourceDrift(
         'Source drift detected for ${baseline.sourcePath}: file no longer '
         'exists. Reload before export.',
       );
@@ -516,7 +516,7 @@ class ParallaxStore {
       file.readAsStringSync(),
     );
     if (currentFingerprint != baseline.fingerprint) {
-      throw StateError(
+      throw AuthoringSourceDrift(
         'Source drift detected for ${baseline.sourcePath}. Reload before '
         'export.',
       );

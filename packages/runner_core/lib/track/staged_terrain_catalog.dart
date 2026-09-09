@@ -321,47 +321,39 @@ final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
   }
 }
 
-/// One-record authoring overlay on an admitted generated artifact.
+/// Captured compiled terrain for tooling, independent of generated artifacts.
 ///
-/// The replacement must retain the generated record's stable key and chunk
-/// dimensions. Every other lookup delegates to [base], so tooling cannot
-/// accidentally replace or synthesize neighboring runtime terrain.
-final class StagedTerrainOverlayCatalog implements StagedTerrainCatalog {
-  factory StagedTerrainOverlayCatalog({
-    required StagedTerrainArtifactCatalog base,
-    required StagedTerrainChunkData replacement,
+/// Structural record validation is identical to generated catalog admission.
+/// Scenario construction owns scheduler and seam admission before Core receives it.
+final class StagedTerrainChunkCatalog implements StagedTerrainCatalog {
+  factory StagedTerrainChunkCatalog({
+    required Iterable<StagedTerrainChunkData> chunks,
   }) {
-    final admitted = base.requireChunk(replacement.chunkKey);
-    StagedTerrainArtifactCatalog._validateChunk(replacement);
-    if (replacement.tileSize != admitted.tileSize ||
-        replacement.width != admitted.width ||
-        replacement.height != admitted.height) {
-      throw ArgumentError.value(
-        replacement,
-        'replacement',
-        'A staged terrain overlay must retain admitted tileSize, width, and '
-            'height for chunk ${replacement.chunkKey}.',
-      );
+    final ordered = chunks.toList()
+      ..sort((left, right) => left.chunkKey.compareTo(right.chunkKey));
+    final byKey = <String, StagedTerrainChunkData>{};
+    for (final chunk in ordered) {
+      StagedTerrainArtifactCatalog._validateChunk(chunk);
+      if (byKey.containsKey(chunk.chunkKey)) {
+        throw ArgumentError(
+          'Duplicate captured chunk key "${chunk.chunkKey}".',
+        );
+      }
+      byKey[chunk.chunkKey] = chunk;
     }
-    return StagedTerrainOverlayCatalog._(base: base, replacement: replacement);
+    return StagedTerrainChunkCatalog._(
+      Map<String, StagedTerrainChunkData>.unmodifiable(byKey),
+    );
   }
 
-  const StagedTerrainOverlayCatalog._({
-    required this.base,
-    required this.replacement,
-  });
+  const StagedTerrainChunkCatalog._(this.chunksByKey);
 
-  /// Generated catalog used for every non-selected record.
-  final StagedTerrainArtifactCatalog base;
-
-  /// Structurally admitted draft replacing one stable generated key.
-  final StagedTerrainChunkData replacement;
+  final Map<String, StagedTerrainChunkData> chunksByKey;
 
   @override
-  StagedTerrainChunkData requireChunk(String chunkKey) {
-    if (chunkKey == replacement.chunkKey) return replacement;
-    return base.requireChunk(chunkKey);
-  }
+  StagedTerrainChunkData requireChunk(String chunkKey) =>
+      chunksByKey[chunkKey] ??
+      (throw StateError('Captured terrain has no chunk "$chunkKey".'));
 
   @override
   StagedTerrainChunkBinding bind({
@@ -373,7 +365,7 @@ final class StagedTerrainOverlayCatalog implements StagedTerrainCatalog {
       throw ArgumentError.value(
         chunkIndex,
         'chunkIndex',
-        'Must be non-negative for a streamed chunk.',
+        'Must be non-negative.',
       );
     }
     return _bindChunk(

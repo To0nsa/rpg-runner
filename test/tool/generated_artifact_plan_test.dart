@@ -5,6 +5,41 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/generated_artifact_plan.dart';
 
 void main() {
+  test(
+    'final source gate rejects staged output without replacing targets',
+    () async {
+      final root = Directory.systemTemp.createTempSync('generated_plan_gate_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final target = File(_path(root, 'existing.dart'))
+        ..writeAsStringSync('original');
+      final plan = GeneratedArtifactPlan([
+        GeneratedArtifact(path: target.path, content: 'replacement'),
+        GeneratedArtifact(path: _path(root, 'new.dart'), content: 'new'),
+      ]);
+      var replacementStarted = false;
+      await expectLater(
+        plan.writeAll(
+          beforeReplacement: () async {
+            expect(target.readAsStringSync(), 'original');
+            expect(root.listSync().whereType<File>().length, greaterThan(1));
+            throw StateError('captured source changed');
+          },
+          onReplacementStarted: () => replacementStarted = true,
+        ),
+        throwsA(
+          isA<GeneratedArtifactWriteException>()
+              .having((e) => e.outputsCommitted, 'outputsCommitted', isFalse)
+              .having((e) => e.rollbackComplete, 'rollbackComplete', isTrue),
+        ),
+      );
+      expect(replacementStarted, isFalse);
+      expect(target.readAsStringSync(), 'original');
+      expect(root.listSync().whereType<File>().map((f) => f.path), [
+        target.path,
+      ]);
+    },
+  );
+
   test('drift inspection is sorted, exact, and write-free', () async {
     final root = Directory.systemTemp.createTempSync('generated_plan_drift_');
     addTearDown(() => root.deleteSync(recursive: true));

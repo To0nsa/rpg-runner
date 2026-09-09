@@ -30,17 +30,16 @@ Implemented authoring domains:
   active-level parallax and terrain-material scene preview, Core-backed
   actor-traversability and marker-placement previews, scene-based composition,
   shared pan/zoom/grid controls, and Prefab transform editing
-- level metadata authoring with list/inspector editing, lifecycle controls,
-  assembly segment sequencing, explicit new/existing visual-theme assignment,
-  atomic Level-plus-theme pending/apply, repair of unresolved references, and
-  guarded handoff to Parallax
+- Level Creator workspace with searchable library, visual Contents, ordered
+  sections in Flow, Appearance, contextual inspection, complete diagnostics,
+  seeded Core sample runs, whole-Level Play, and guarded Chunk/Parallax handoffs
 - parallax theme authoring scoped by active level, with ordered layer editing,
   deterministic save output, validation, preview pan/zoom, and an absolute
   numeric all-layer Y-offset preview/save control (`0` is the viewport bottom)
 
 Editor foundations shared across those domains:
 
-- one shared top toolbar for page selection, reload, apply, undo, redo, pending
+- one shared top toolbar for page selection, Reload, Save, Undo, Redo, Build, pending
   file state, validation counts, and operation progress
 - startup workspace binding and plugin-backed route selection
 - session-managed load, validation, pending-change previews, and direct-write export
@@ -51,21 +50,27 @@ Editor foundations shared across those domains:
 - shared atlas PNG discovery, integer region/grid math, grid/manual selection,
   image viewport controls, selection painters, and exact-region thumbnails
 
-## Windows Chunk Play Mode
+## Windows Level And Chunk Play
 
-Chunk Creator can run the selected current-schema chunk through the real Core
-simulation and Flame renderer without leaving the editor. On Windows, use the
-**Play** button or press `F5`. Valid accepted pending changes are included in
-the in-memory snapshot; entering, restarting, and stopping Play mode do not
-apply source files, regenerate Dart, create a replay, or contact the backend.
+Level Creator runs the whole selected level through the real Core simulation
+and Flame renderer. Chunk Creator runs a focused loop of the selected chunk,
+including its enemy markers without the Level's enemy-free opening. Use
+**Play** or `F5`; valid visible inputs are accepted before capture. Invalid
+inputs and active gestures must be resolved first. Neither mode writes sources,
+regenerates Dart, creates a replay, or contacts the backend.
 
-Play is unavailable until the current chunk validates and every route-local
-draft, gesture, dialog, or unsaved inspector edit has been saved or discarded.
-When unavailable, the Play button is disabled and the reason appears as an
-error in the shared **Diagnostics** panel.
-Preparation uses fixed scenario seed `4401`, Eloise, and an empty loadout.
-Other platforms, custom seeds/characters/loadouts, remapping, and gamepads are
-not supported by this editor mode.
+Both modes support new levels, chunks, backgrounds, and terrain materials that
+have never been generated into the app. Preparation freezes authored sources,
+render catalogs, and image bytes; Restart uses that same snapshot. Level Play
+preserves the actual progression windows, section rules, tier fallback, and
+opening suppression. The Level sample preview shows the first 12 canonical
+selections with a seed (initially `4401`) and **New variation**. Samples show
+source chunk occurrences, not elapsed play time.
+
+Play uses Eloise and an empty loadout. Other platforms, character/loadout
+selection, remapping, and gamepads are outside this editor mode. Blockers and
+asset/source errors appear in diagnostics; a failed capture starts no partial
+scenario.
 
 Gameplay controls:
 
@@ -99,34 +104,76 @@ press `P` explicitly.
 
 The host is always labelled **PLAYTEST - NO REWARDS/REPLAY**. It creates no
 run ticket, score submission, reward, leaderboard entry, ghost, replay spool,
-or player-state mutation. Stopping restores the same Chunk Editor selection,
+or player-state mutation. Stopping restores the same editor selection,
 tab, viewport, undo/redo history, and pending diff.
 
-## Level And Visual Theme Workflow
+## Create, Save, Play, And Build A Level
 
-Level Creator no longer requires an invalid two-step Level-then-Parallax save.
-For a new Level, choose **Create new theme** (the default) or **Use existing
-theme**. Create-new stages a revision-1 empty Parallax theme and assigns its ID
-to the Level as one undoable command. Reuse changes only Level source. Existing
-Levels can also use **Create and assign new theme**, and a loaded missing
-reference opens a repair state instead of a fake dropdown entry.
+1. Open **Level Creator**, choose **New level**, and enter its name. IDs are
+   allocated by the domain; Advanced allows an explicit stable ID. Choose an
+   independent background copy, a shared background, or an empty background.
+2. **Save** commits the Level and any new background together. New levels and
+   copies begin **Excluded from game build**, so unfinished work can be saved.
+3. **Add flat starter** opens a valid ground chunk in Chunk Creator. Edit it and
+   use **Save and return to level**. **Add chunk** supports further content;
+   Chunk Creator owns geometry, Prefabs, enemy markers, activation, and groups.
+4. Use **Contents**, **Flow**, and **Appearance** to inspect the Level. Automatic
+   selection needs no section. Ordered sections select from Level-local groups;
+   incomplete but structurally valid sequences can be saved before adding their
+   missing content. Runtime capacity and seam errors still block Play.
+5. Use **Sample run** or **Play** to inspect the current accepted design. Edit a
+   sampled source chunk through its contextual action. Background editing opens
+   the exact Level/theme in Parallax; **Make a copy** separates shared layers.
+6. Enable **Include in game build**, Save, then use the shell **Build** action.
+   The report lists all included/excluded levels and source failures, with
+   navigation to repair them. **Check freshness** compares saved content to
+   generated outputs without replacing files.
 
-Applying a new Level/theme previews and commits
-`assets/authoring/level/level_defs.json` and
-`assets/authoring/level/parallax_defs.json` through one rollback-safe
-transaction. After a successful canonical reload, **Open in Parallax** selects
-the exact saved Level/theme so its first layer can be added normally.
+**Copy level settings** starts Automatic and copies no chunks. **Copy section
+design** explicitly preserves groups and ordered rules; it may require new
+content before Play. Copying a background preserves its layer data under a new
+identity. Sharing a background intentionally affects every referencing Level.
 
-Authoring apply does not regenerate runtime Dart. When Level and layer work is
-complete, run from repository root:
+Save finalizes valid focused fields and saves all accepted edits in that domain,
+including changes to multiple levels or themes. Dirty summaries name affected
+records. Invalid raw text remains visible and cannot silently become an older
+value. Ordinary Level/Parallax edits remain undoable after Save against fresh
+source revisions; the first Save seals each newly created identity. Cross-domain
+handoffs and deliberate reloads establish fresh history.
+
+A failed Save retains edits. Source drift offers review and conflict-aware
+reapplication onto current sources. A bounded dependency-repair route retains
+the origin's exact buffers while another domain is repaired. Committed writes
+with failed refresh use **Retry refresh** without writing again; transaction
+recovery retries only the recorded verified cleanup/rollback operation.
+
+Build uses saved repository-wide sources and one child generator process. It
+locks editor writes, checks captured inputs again before replacement, performs
+atomic output replacement, and verifies freshness afterward. Cancellation is
+available before replacement; once replacement starts it finishes safely.
+**Saved**, Play readiness, inclusion, and generated-content freshness are
+separate states. Restart/rebuild running applications to load changed generated
+constants; shipping compatible app/validator content and online configuration
+remains a release task.
+
+Older Level source schema is upgraded explicitly from repository root:
+
+```bash
+dart run tool/migrate_level_build_inclusion.dart --check
+dart run tool/migrate_level_build_inclusion.dart --apply
+```
+
+The editor requires current schema v2. Migration preserves existing inclusion
+and identity ordinals. Excluded levels retain identity metadata but cannot be
+started through the normal compiled runtime. CLI generation remains available:
 
 ```bash
 dart run tool/generate_chunk_runtime_data.dart
 dart run tool/generate_chunk_runtime_data.dart --dry-run
 ```
 
-The first command publishes generated registries; the second verifies that no
-generated drift remains.
+See [workspace contracts](../../docs/tdd/editor_level_workspace.md) and
+[Build contracts](../../docs/tdd/editor_content_build.md).
 
 ## Entity Collider Preview
 
@@ -152,10 +199,10 @@ Actor previews call Core's quantized AABB-to-capsule derivation. The editor
 still writes the existing catalog-bound size and offset fields; it does not
 introduce an independent combat-hurtbox schema.
 
-Entity Apply edits only the bound numeric expressions, preserving surrounding
+Entity Save edits only the bound numeric expressions, preserving surrounding
 argument order, comments, formatting, and unrelated source. Patched sources
 and their persistent `.bak` files are committed as one verified transaction
-with a final source-drift check. A rejected Apply is rolled back and reported
+with a final source-drift check. A rejected Save is rolled back and reported
 immediately; if verified outputs commit but transaction cleanup cannot finish,
 the result is reported as applied with exact recovery paths for review.
 
@@ -176,9 +223,9 @@ Selecting an existing Prefab-v3 or Chunk-v2 record expands its metadata
 editor directly below that row. These mounted forms are route-local drafts:
 Apply dispatches the existing stale-checked metadata command, Cancel changes no
 source or history, and a rejected command keeps the entered values and error
-visible. Dirty metadata forms block Apply-to-files and prevent undo/redo from
-reaching session history: undo cancels the local form first and redo remains
-unavailable. Prefab, level, or workspace navigation must resolve the
+visible. Save finalizes valid metadata, exact shape fields, atlas slicing, and module
+forms through domain commands before writing files. Invalid input blocks Save
+and cannot expose older session history underneath the buffer. Prefab, level, or workspace navigation must resolve the
 draft through Save, Discard, or Cancel.
 Active Prefab polygon operations receive the same prefab-switch protection.
 Prefab creation is a collapsed inline section. Rename, Duplicate, and Delete

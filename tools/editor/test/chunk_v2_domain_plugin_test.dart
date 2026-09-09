@@ -26,9 +26,9 @@ void main() {
       );
 
       final document = await plugin.loadV2FromRepo(workspace);
-      final scene =
-          plugin.buildEditableScene(document.copyWith(activeLevelId: 'field'))
-              as ChunkV2Scene;
+      final scene = plugin.buildEditableScene(
+        document.copyWith(activeLevelId: 'field'),
+      ) as ChunkV2Scene;
 
       expect(scene.activeParallaxTheme?.parallaxThemeId, 'field');
     },
@@ -181,7 +181,7 @@ void main() {
   });
 
   test(
-    'polygon metadata and export cross complete current validation',
+    'runtime seam blockers allow structural edits and Save admission',
     () async {
       final plugin = ChunkDomainPlugin();
       final valid = _seamDocument(leftTop: 20, rightTop: 20);
@@ -201,7 +201,19 @@ void main() {
           },
         ),
       );
-      expect(polygonEdit, same(valid));
+      expect(polygonEdit, isNot(same(valid)));
+      expect(
+        plugin
+            .validate(polygonEdit)
+            .any((issue) => issue.blocks(AuthoringOperation.save)),
+        isFalse,
+      );
+      expect(
+        plugin
+            .validate(polygonEdit)
+            .any((issue) => issue.blocks(AuthoringOperation.play)),
+        isTrue,
+      );
 
       final invalid = _seamDocument(leftTop: 20, rightTop: 24);
       expect(
@@ -232,7 +244,7 @@ void main() {
           },
         ),
       );
-      expect(metadataEdit, same(invalid));
+      expect(metadataEdit, isNot(same(invalid)));
 
       final root = Directory.systemTemp.createTempSync(
         'chunk_v2_validation_gate_',
@@ -241,13 +253,13 @@ void main() {
       await expectLater(
         plugin.exportToRepo(
           EditorWorkspace(rootPath: root.path),
-          document: invalid,
+          document: metadataEdit,
         ),
         throwsA(
-          isA<StateError>().having(
-            (error) => error.message,
-            'message',
-            contains('Cannot export chunk-v2 while validation has'),
+          isA<ChunkV2SaveException>().having(
+            (error) => error.code,
+            'code',
+            'chunk_v2_save_source_set_drift',
           ),
         ),
       );
@@ -261,28 +273,26 @@ void main() {
       final plugin = ChunkDomainPlugin();
       final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
       final before = document.chunks.single;
-      final edited =
-          plugin.applyEdit(
-                document,
-                AuthoringCommand(
-                  kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
-                  payload: <String, Object?>{
-                    'chunkKey': before.chunkKey,
-                    'commit': ChunkV2MetadataCommit(
-                      before: ChunkV2MetadataSnapshot.fromChunk(before),
-                      after: ChunkV2MetadataSnapshot(
-                        status: chunkStatusDeprecated,
-                        levelId: before.levelId,
-                        difficulty: chunkDifficultyHard,
-                        assemblyGroupId: before.assemblyGroupId,
-                        tags: const <String>['boss', 'forest'],
-                        groundBandZIndex: 3,
-                      ),
-                    ),
-                  },
-                ),
-              )
-              as ChunkV2Document;
+      final edited = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+          payload: <String, Object?>{
+            'chunkKey': before.chunkKey,
+            'commit': ChunkV2MetadataCommit(
+              before: ChunkV2MetadataSnapshot.fromChunk(before),
+              after: ChunkV2MetadataSnapshot(
+                status: chunkStatusDeprecated,
+                levelId: before.levelId,
+                difficulty: chunkDifficultyHard,
+                assemblyGroupId: before.assemblyGroupId,
+                tags: const <String>['boss', 'forest'],
+                groundBandZIndex: 3,
+              ),
+            ),
+          },
+        ),
+      ) as ChunkV2Document;
 
       final after = edited.chunks.single;
       expect(after.revision, before.revision + 1);
@@ -391,79 +401,74 @@ void main() {
     );
   });
 
-  test(
-    'typed composition commit validates retained authoring and protects terrain',
-    () {
-      final plugin = ChunkDomainPlugin();
-      final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
-      final before = document.chunks.single;
-      final commit = ChunkV2CompositionCommit(
-        expectedChunkKey: before.chunkKey,
-        expectedRevision: before.revision,
-        before: ChunkV2CompositionSnapshot.fromChunk(before),
-        after: ChunkV2CompositionSnapshot(
-          tileLayers: const <TileLayerDef>[TileLayerDef(id: 'foreground')],
-          prefabs: const <PlacedPrefabDef>[
-            PlacedPrefabDef(
-              prefabId: 'shrub',
-              prefabKey: 'prefab_shrub',
-              x: 40,
-              y: 20,
-            ),
-          ],
-          markers: const <PlacedMarkerDef>[
-            PlacedMarkerDef(markerId: 'grojib', x: 50, y: 20),
-          ],
-        ),
-      );
-      final policyResult = const ChunkV2CompositionCommitPolicy().apply(
-        document: document,
-        chunkIndex: 0,
-        commit: commit,
-      );
-      expect(
-        policyResult.issues.map((issue) => '${issue.code}: ${issue.message}'),
-        isEmpty,
-      );
-      expect(policyResult.accepted, isTrue);
-      final edited =
-          plugin.applyEdit(
-                document,
-                AuthoringCommand(
-                  kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
-                  payload: <String, Object?>{
-                    'chunkKey': before.chunkKey,
-                    'commit': commit,
-                  },
-                ),
-              )
-              as ChunkV2Document;
+  test('typed composition commit validates retained authoring and protects terrain', () {
+    final plugin = ChunkDomainPlugin();
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
+    final before = document.chunks.single;
+    final commit = ChunkV2CompositionCommit(
+      expectedChunkKey: before.chunkKey,
+      expectedRevision: before.revision,
+      before: ChunkV2CompositionSnapshot.fromChunk(before),
+      after: ChunkV2CompositionSnapshot(
+        tileLayers: const <TileLayerDef>[TileLayerDef(id: 'foreground')],
+        prefabs: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'shrub',
+            prefabKey: 'prefab_shrub',
+            x: 40,
+            y: 20,
+          ),
+        ],
+        markers: const <PlacedMarkerDef>[
+          PlacedMarkerDef(markerId: 'grojib', x: 50, y: 20),
+        ],
+      ),
+    );
+    final policyResult = const ChunkV2CompositionCommitPolicy().apply(
+      document: document,
+      chunkIndex: 0,
+      commit: commit,
+    );
+    expect(
+      policyResult.issues.map((issue) => '${issue.code}: ${issue.message}'),
+      isEmpty,
+    );
+    expect(policyResult.accepted, isTrue);
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': before.chunkKey,
+          'commit': commit,
+        },
+      ),
+    ) as ChunkV2Document;
 
-      final after = edited.chunks.single;
-      expect(after.revision, before.revision + 1);
-      expect(after.tileLayers.single.id, 'foreground');
-      expect(after.prefabs.single.prefabKey, 'prefab_shrub');
-      expect(after.markers.single.markerId, 'grojib');
-      expect(after.chunkKey, before.chunkKey);
-      expect(after.id, before.id);
-      expect(after.status, before.status);
-      expect(after.levelId, before.levelId);
-      expect(after.difficulty, before.difficulty);
-      expect(after.tags, before.tags);
-      expect(after.groundBandZIndex, before.groundBandZIndex);
-      expect(after.collisionShapes, before.collisionShapes);
-      expect(plugin.validate(edited), isEmpty);
+    final after = edited.chunks.single;
+    expect(after.revision, before.revision + 1);
+    expect(after.tileLayers.single.id, 'foreground');
+    expect(after.prefabs.single.prefabKey, 'prefab_shrub');
+    expect(after.markers.single.markerId, 'grojib');
+    expect(after.chunkKey, before.chunkKey);
+    expect(after.id, before.id);
+    expect(after.status, before.status);
+    expect(after.levelId, before.levelId);
+    expect(after.difficulty, before.difficulty);
+    expect(after.tags, before.tags);
+    expect(after.groundBandZIndex, before.groundBandZIndex);
+    expect(after.collisionShapes, before.collisionShapes);
+    expect(plugin.validate(edited), isEmpty);
 
-      final pending = plugin.describePendingChanges(
-        EditorWorkspace(rootPath: Directory.current.path),
-        document: edited,
-      );
-      expect(pending.changedItemIds, <String>['forest_target']);
-      expect(pending.fileDiffs, hasLength(1));
-      expect(pending.fileDiffs.single.unifiedDiff, contains('prefab_shrub'));
-      expect(pending.fileDiffs.single.unifiedDiff, contains('grojib'));
-    },
-  );
+    final pending = plugin.describePendingChanges(
+      EditorWorkspace(rootPath: Directory.current.path),
+      document: edited,
+    );
+    expect(pending.changedItemIds, <String>['forest_target']);
+    expect(pending.fileDiffs, hasLength(1));
+    expect(pending.fileDiffs.single.unifiedDiff, contains('prefab_shrub'));
+    expect(pending.fileDiffs.single.unifiedDiff, contains('grojib'));
+  });
 
   test('stale noncanonical and invalid composition commits keep identity', () {
     final plugin = ChunkDomainPlugin();

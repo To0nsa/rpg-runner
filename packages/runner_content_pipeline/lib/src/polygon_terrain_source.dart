@@ -4,6 +4,11 @@ import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signatur
 
 const int polygonPrefabSchemaVersion = 3;
 const int polygonChunkSchemaVersion = 2;
+
+/// Shared pool-admission rule for generation, authored Play and capacity checks.
+/// Deprecated chunks remain structurally validated but cannot enter runtime pools.
+bool isRuntimeEligibleChunkStatus(String status) => status == 'active';
+
 const int _defaultScaleTenths = 10;
 const int _minScaleTenths = 3;
 const int _maxScaleTenths = 30;

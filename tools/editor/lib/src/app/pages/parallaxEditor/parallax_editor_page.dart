@@ -9,6 +9,7 @@ import '../../../parallax/parallax_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../workspace/editor_workspace.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_scene_view_utils.dart';
 import '../shared/editor_panel_card.dart';
 import '../shared/editor_list_card.dart';
 import '../shared/editor_workspace_card.dart';
@@ -21,6 +22,7 @@ class ParallaxEditorPage extends StatefulWidget {
     required this.controller,
     this.previewBuilder,
     this.assetFilePicker = pickParallaxAssetFilePath,
+    this.onShellStateChanged,
   });
 
   final EditorSessionController controller;
@@ -30,13 +32,18 @@ class ParallaxEditorPage extends StatefulWidget {
   })?
   previewBuilder;
   final ParallaxAssetFilePicker assetFilePicker;
+  final VoidCallback? onShellStateChanged;
 
   @override
   State<ParallaxEditorPage> createState() => _ParallaxEditorPageState();
 }
 
 class _ParallaxEditorPageState extends State<ParallaxEditorPage>
-    implements EditorPageLocalDraftState, EditorPageApplyHandler {
+    implements
+        EditorPageLocalDraftState,
+        EditorPageSaveHandler,
+        EditorPageSessionShortcutHandler,
+        EditorPageReloadHandler {
   final TextEditingController _layerKeyController = TextEditingController();
   final TextEditingController _assetPathController = TextEditingController();
   final TextEditingController _parallaxFactorController =
@@ -48,16 +55,24 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   String? _selectedLayerKey;
   String? _selectedParallaxThemeId;
   String _selectedGroup = parallaxGroupBackground;
+  ParallaxLayerDef? _boundLayer;
+  AuthoringDocument? _boundDocument;
+  bool _syncingInspector = false;
+  bool _shellNotificationPending = false;
+  String? _inputError;
+
+  List<TextEditingController> get _draftControllers => [
+    _layerKeyController,
+    _assetPathController,
+    _parallaxFactorController,
+    _zOrderController,
+    _opacityController,
+    _yOffsetController,
+  ];
 
   @override
   bool get hasLocalDraftChanges {
-    final scene = widget.controller.scene;
-    if (scene is! ParallaxScene) {
-      return false;
-    }
-    final activeTheme = scene.activeTheme;
-    if (activeTheme == null) return false;
-    final layer = _selectedLayer(activeTheme);
+    final layer = _boundLayer;
     if (layer == null) {
       return false;
     }
@@ -74,29 +89,125 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   }
 
   @override
-  bool get canApplyEditorPage =>
+  bool get canSaveEditorPage =>
       !widget.controller.isLoading &&
       !widget.controller.isExporting &&
-      widget.controller.errorCount == 0 &&
-      widget.controller.pendingChanges.hasChanges &&
-      !hasLocalDraftChanges;
+      !widget.controller.requiresSavedRefresh &&
+      (widget.controller.pendingChanges.hasChanges || hasLocalDraftChanges);
 
   @override
-  Future<void> applyEditorPage() async {
-    if (!canApplyEditorPage) return;
-    await _confirmAndApplyToFiles();
+  Future<EditorPageSaveResult> saveEditorPage() async {
+    if (!canSaveEditorPage) return EditorPageSaveResult.blocked;
+    if (hasLocalDraftChanges && !_applySelectedLayerChanges()) {
+      return EditorPageSaveResult.blocked;
+    }
+    if (widget.controller.saveBlockingErrorCount > 0) {
+      return EditorPageSaveResult.blocked;
+    }
+    await _saveToFiles();
+    return EditorPageSaveResult.fromSession(widget.controller);
+  }
+
+  @override
+  bool get canHandleUndoSessionShortcut =>
+      hasLocalDraftChanges || widget.controller.canUndo;
+  @override
+  bool get canHandleRedoSessionShortcut =>
+      !hasLocalDraftChanges && widget.controller.canRedo;
+  @override
+  bool handleUndoSessionShortcut() {
+    if (hasLocalDraftChanges && !_applySelectedLayerChanges()) return true;
+    if (!widget.controller.canUndo) return false;
+    widget.controller.undo();
+    return true;
+  }
+
+  @override
+  bool handleRedoSessionShortcut() {
+    if (hasLocalDraftChanges) return true;
+    if (!widget.controller.canRedo) return false;
+    widget.controller.redo();
+    return true;
   }
 
   @override
   void initState() {
     super.initState();
+    for (final controller in _draftControllers) {
+      controller.addListener(_handleDraftChanged);
+    }
+    widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.controller.loadWorkspace();
+      if (!mounted) return;
+      if (widget.controller.scene is ParallaxScene) {
+        _handleControllerChanged();
+      } else {
+        widget.controller.loadWorkspace();
+      }
     });
   }
 
   @override
+  void didUpdateWidget(covariant ParallaxEditorPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller.removeListener(_handleControllerChanged);
+    widget.controller.addListener(_handleControllerChanged);
+    _boundDocument = null;
+    _boundLayer = null;
+    _handleControllerChanged();
+  }
+
+  void _handleDraftChanged() {
+    if (!mounted || _syncingInspector) return;
+    setState(() => _inputError = null);
+    _notifyShell();
+  }
+
+  void _notifyShell() {
+    if (_shellNotificationPending) return;
+    _shellNotificationPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _shellNotificationPending = false;
+      if (mounted) widget.onShellStateChanged?.call();
+    });
+  }
+
+  void _handleControllerChanged() {
+    if (!mounted ||
+        widget.controller.isLoading ||
+        identical(_boundDocument, widget.controller.document)) {
+      return;
+    }
+    final hadDraft = hasLocalDraftChanges;
+    _boundDocument = widget.controller.document;
+    if (!hadDraft) {
+      final scene = widget.controller.scene;
+      _syncSelection(scene is ParallaxScene ? scene : null);
+      final theme = scene is ParallaxScene ? scene.activeTheme : null;
+      final layer = theme == null ? null : _selectedLayer(theme);
+      if (layer != null) _syncLayerInspector(layer);
+    }
+    setState(() {});
+    _notifyShell();
+  }
+
+  @override
+  bool get canReloadEditorPage =>
+      !widget.controller.isLoading && !widget.controller.isExporting;
+
+  @override
+  Future<void> reloadEditorPage() async {
+    await widget.controller.loadWorkspace();
+    if (!mounted || widget.controller.loadError != null) return;
+    _boundLayer = null;
+    _boundDocument = null;
+    _handleControllerChanged();
+  }
+
+  @override
   void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
     _layerKeyController.dispose();
     _assetPathController.dispose();
     _parallaxFactorController.dispose();
@@ -117,7 +228,6 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 
         final scene = widget.controller.scene;
         final parallaxScene = scene is ParallaxScene ? scene : null;
-        _syncSelection(parallaxScene);
 
         return EditorWorkspaceCard(
           child: Column(
@@ -189,7 +299,10 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                 if (value == null) {
                   return;
                 }
-                widget.controller.applyCommand(
+                if (hasLocalDraftChanges && !_applySelectedLayerChanges()) {
+                  return;
+                }
+                widget.controller.applyPresentationCommand(
                   AuthoringCommand(
                     kind: 'set_active_level',
                     payload: <String, Object?>{'levelId': value},
@@ -346,6 +459,8 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
       key: ValueKey<String>('parallax_layer_entry_${layer.layerKey}'),
       isSelected: isSelected,
       onTap: () {
+        if (layer.layerKey == _selectedLayerKey) return;
+        if (hasLocalDraftChanges && !_applySelectedLayerChanges()) return;
         setState(() {
           _selectedLayerKey = layer.layerKey;
           _syncLayerInspector(layer);
@@ -360,9 +475,8 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
         children: [
           Text(
             layer.layerKey,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
@@ -404,7 +518,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
       return false;
     }
     if (hasLocalDraftChanges) {
-      _showSnackBar('Apply or discard the selected layer draft first.');
+      _showSnackBar('Finish or discard the selected layer edit first.');
       return false;
     }
 
@@ -431,6 +545,24 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     return true;
   }
 
+  Widget _layerTextField({
+    required TextEditingController controller,
+    required InputDecoration decoration,
+    TextInputType? keyboardType,
+  }) => Focus(
+    onFocusChange: (focused) {
+      if (!focused && mounted && !_syncingInspector && hasLocalDraftChanges) {
+        _applySelectedLayerChanges();
+      }
+    },
+    child: TextField(
+      controller: controller,
+      decoration: decoration,
+      keyboardType: keyboardType,
+      onSubmitted: (_) => _applySelectedLayerChanges(),
+    ),
+  );
+
   Widget _buildInspectorPane(ParallaxScene scene) {
     final activeTheme = scene.activeTheme;
     final selectedLayer = activeTheme == null
@@ -450,7 +582,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
-          TextField(
+          _layerTextField(
             controller: _layerKeyController,
             decoration: const InputDecoration(
               labelText: 'layerKey',
@@ -459,7 +591,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
+          _layerTextField(
             controller: _assetPathController,
             decoration: InputDecoration(
               labelText: 'assetPath',
@@ -505,10 +637,11 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                     setState(() {
                       _selectedGroup = value;
                     });
+                    _notifyShell();
                   },
           ),
           const SizedBox(height: 8),
-          TextField(
+          _layerTextField(
             controller: _parallaxFactorController,
             decoration: const InputDecoration(
               labelText: 'parallaxFactor',
@@ -518,7 +651,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 8),
-          TextField(
+          _layerTextField(
             controller: _zOrderController,
             decoration: const InputDecoration(
               labelText: 'zOrder',
@@ -528,7 +661,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 8),
-          TextField(
+          _layerTextField(
             controller: _opacityController,
             decoration: const InputDecoration(
               labelText: 'opacity',
@@ -538,7 +671,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 8),
-          TextField(
+          _layerTextField(
             controller: _yOffsetController,
             decoration: const InputDecoration(
               labelText: 'yOffset',
@@ -548,12 +681,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 8),
-          FilledButton(
-            onPressed: selectedLayer == null
-                ? null
-                : _applySelectedLayerChanges,
-            child: const Text('Apply Layer'),
-          ),
+          if (_inputError != null) _buildErrorBanner(_inputError!),
           const SizedBox(height: 16),
           Text(
             'Validation (${widget.controller.errorCount} errors, '
@@ -679,6 +807,8 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   }
 
   void _syncLayerInspector(ParallaxLayerDef layer) {
+    _syncingInspector = true;
+    _boundLayer = layer;
     _layerKeyController.text = layer.layerKey;
     _assetPathController.text = layer.assetPath;
     _selectedGroup = layer.group;
@@ -688,9 +818,13 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     _zOrderController.text = layer.zOrder.toString();
     _opacityController.text = formatCanonicalParallaxNumber(layer.opacity);
     _yOffsetController.text = formatCanonicalParallaxNumber(layer.yOffset);
+    _syncingInspector = false;
+    _inputError = null;
   }
 
   void _clearLayerInspector() {
+    _syncingInspector = true;
+    _boundLayer = null;
     _layerKeyController.text = '';
     _assetPathController.text = '';
     _selectedGroup = parallaxGroupBackground;
@@ -698,6 +832,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     _zOrderController.text = '';
     _opacityController.text = '';
     _yOffsetController.text = '';
+    _syncingInspector = false;
   }
 
   Future<void> _pickAssetPath(ParallaxScene scene) async {
@@ -765,12 +900,33 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     return null;
   }
 
-  void _applySelectedLayerChanges() {
+  bool _applySelectedLayerChanges() {
     final scene = widget.controller.scene;
     if (scene is! ParallaxScene ||
         scene.activeTheme == null ||
         _selectedLayerKey == null) {
-      return;
+      return false;
+    }
+    if (!hasLocalDraftChanges) return true;
+    final factor = double.tryParse(_parallaxFactorController.text.trim());
+    final opacity = double.tryParse(_opacityController.text.trim());
+    final offset = double.tryParse(_yOffsetController.text.trim());
+    final order = int.tryParse(_zOrderController.text.trim());
+    final error = factor == null || !factor.isFinite
+        ? 'Parallax factor must be a finite number.'
+        : opacity == null || !opacity.isFinite
+        ? 'Opacity must be a finite number.'
+        : offset == null || !offset.isFinite
+        ? 'Y offset must be a finite number.'
+        : order == null
+        ? 'Z order must be a whole number.'
+        : _layerKeyController.text.trim().isEmpty
+        ? 'Enter a layer key.'
+        : null;
+    if (error != null) {
+      setState(() => _inputError = error);
+      _showSnackBar(error);
+      return false;
     }
     final previousLayerKey = _selectedLayerKey!;
     final nextLayerKey = _layerKeyController.text.trim();
@@ -782,16 +938,16 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           'nextLayerKey': nextLayerKey,
           'assetPath': _assetPathController.text.trim(),
           'group': _selectedGroup,
-          'parallaxFactor': _parallaxFactorController.text.trim(),
-          'zOrder': _zOrderController.text.trim(),
-          'opacity': _opacityController.text.trim(),
-          'yOffset': _yOffsetController.text.trim(),
+          'parallaxFactor': factor,
+          'zOrder': order,
+          'opacity': opacity,
+          'yOffset': offset,
         },
       ),
     );
     final updatedScene = widget.controller.scene;
     if (updatedScene is! ParallaxScene || updatedScene.activeTheme == null) {
-      return;
+      return false;
     }
     final targetLayerKey = nextLayerKey.isEmpty
         ? previousLayerKey
@@ -800,12 +956,27 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
         .where((layer) => layer.layerKey == targetLayerKey)
         .cast<ParallaxLayerDef?>()
         .firstWhere((layer) => layer != null, orElse: () => null);
-    if (updatedLayer != null) {
-      setState(() {
-        _selectedLayerKey = updatedLayer.layerKey;
-        _syncLayerInspector(updatedLayer);
-      });
+    final accepted =
+        updatedLayer != null &&
+        updatedLayer.assetPath == _assetPathController.text.trim() &&
+        updatedLayer.group == _selectedGroup &&
+        updatedLayer.parallaxFactor == factor &&
+        updatedLayer.zOrder == order &&
+        updatedLayer.opacity == opacity &&
+        updatedLayer.yOffset == offset;
+    if (!accepted) {
+      setState(
+        () => _inputError =
+            'This layer edit was rejected. Review its validation issues.',
+      );
+      return false;
     }
+    setState(() {
+      _selectedLayerKey = updatedLayer.layerKey;
+      _syncLayerInspector(updatedLayer);
+    });
+    _notifyShell();
+    return true;
   }
 
   void _createLayer(ParallaxScene scene) {
@@ -885,40 +1056,10 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     );
   }
 
-  Future<void> _confirmAndApplyToFiles() async {
+  Future<void> _saveToFiles() async {
     final pendingChanges = widget.controller.pendingChanges;
     if (!pendingChanges.hasChanges) {
-      _showSnackBar('No pending changes to apply.');
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Apply Parallax Changes'),
-          content: Text(
-            'Write ${pendingChanges.changedItemIds.length} theme change(s) '
-            'across ${pendingChanges.fileDiffs.length} file(s)?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: const Text('Apply'),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || !mounted) {
+      _showSnackBar('No pending changes to save.');
       return;
     }
 
@@ -926,17 +1067,22 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     if (!mounted) {
       return;
     }
-    if (widget.controller.exportError != null) {
-      _showSnackBar('Apply failed: ${widget.controller.exportError}');
+    final error =
+        widget.controller.refreshError ?? widget.controller.exportError;
+    if (error != null) {
+      _showSnackBar(
+        widget.controller.requiresSavedRefresh
+            ? 'Saved; refresh failed: $error'
+            : 'Save failed: $error',
+      );
       return;
     }
-    _showSnackBar('Parallax changes applied.');
+    _showSnackBar('Parallax changes saved.');
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -945,49 +1091,89 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 /// The thumbnail helps authors match a layer key to its art without making the
 /// layer list another asset-management surface. Invalid or missing paths stay
 /// selectable and are represented by the fallback icon.
-class _ParallaxLayerAssetThumbnail extends StatelessWidget {
+class _ParallaxLayerAssetThumbnail extends StatefulWidget {
   const _ParallaxLayerAssetThumbnail({
     required this.workspaceRootPath,
     required this.layer,
   });
-
-  static const double _width = 112;
-  static const double _height = 64;
-
   final String workspaceRootPath;
   final ParallaxLayerDef layer;
 
   @override
+  State<_ParallaxLayerAssetThumbnail> createState() =>
+      _ParallaxLayerAssetThumbnailState();
+}
+
+class _ParallaxLayerAssetThumbnailState
+    extends State<_ParallaxLayerAssetThumbnail> {
+  final EditorUiImageCache _images = EditorUiImageCache();
+  String _path = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ParallaxLayerAssetThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
+        !identical(oldWidget.layer, widget.layer)) {
+      _loadImage();
+    }
+  }
+
+  Future<void> _loadImage() async {
+    final path = p.normalize(
+      p.join(widget.workspaceRootPath, widget.layer.assetPath),
+    );
+    _path = path;
+    // Decode from copied bytes so a visible thumbnail cannot keep the source
+    // PNG memory-mapped and prevent an artist from replacing it on Windows.
+    await _images.ensureRasterLoaded(path, refresh: true);
+    if (mounted && path == _path) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _images.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = Theme.of(context).colorScheme;
+    final image = _images.imageFor(_path);
     return SizedBox(
-      width: _width,
-      height: _height,
+      key: ValueKey<String>(
+        'parallax_layer_asset_preview_${widget.layer.layerKey}',
+      ),
+      width: 112,
+      height: 64,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
+          color: colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: colorScheme.outlineVariant),
+          border: Border.all(color: colors.outlineVariant),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(3),
-          child: Image.file(
-            File(p.normalize(p.join(workspaceRootPath, layer.assetPath))),
-            key: ValueKey<String>(
-              'parallax_layer_asset_preview_${layer.layerKey}',
-            ),
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.none,
-            errorBuilder: (context, error, stackTrace) => Center(
-              child: Icon(
-                Icons.broken_image_outlined,
-                key: ValueKey<String>(
-                  'parallax_layer_asset_preview_missing_${layer.layerKey}',
+          child: image == null
+              ? Center(
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    key: ValueKey<String>(
+                      'parallax_layer_asset_preview_missing_${widget.layer.layerKey}',
+                    ),
+                    color: colors.onSurfaceVariant,
+                  ),
+                )
+              : RawImage(
+                  image: image,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
                 ),
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
         ),
       ),
     );

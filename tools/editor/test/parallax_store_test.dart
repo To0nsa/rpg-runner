@@ -127,7 +127,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('parallax_store_fixture_');
   _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -141,6 +141,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active"
     },
     {
@@ -155,6 +156,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": true,
       "status": "active"
     }
   ]

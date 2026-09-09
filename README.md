@@ -26,6 +26,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Backend-authenticated player profile plus ownership/progression persistence via Firebase Functions + Firestore
 - 100+ Dart test files (`*_test.dart`) in `test/`
 - Firebase Auth + callable backend integration
+- Windows content editor with visual Level/Chunk authoring, authored Play,
+  guarded source Save/recovery, and repository-wide generated-content Build
 
 ## Architecture (Simple View)
 
@@ -54,6 +56,15 @@ Run integration benchmark test:
 ```bash
 flutter drive --driver=test_driver/integration_test.dart --target=test/integration_test/core-fixed-point/core_fixed_point_benchmark_test.dart -d <deviceId> --profile
 ```
+
+## Author Content
+
+Run `flutter run -d windows` from `tools/editor`. Level Creator connects Contents,
+Flow, Appearance, Chunk/Parallax editing, seeded sample runs, and real Level Play.
+New levels can be saved and tested before inclusion in generated game content.
+The editor's Build action uses the existing repository generator and reports
+source errors and generated freshness. See the [editor guide](tools/editor/README.md)
+for creation, Save/recovery, inclusion, Play controls, and schema migration.
 
 ## Deploy The Web Client
 

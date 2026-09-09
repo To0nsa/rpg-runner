@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/playtest/chunk_playtest_scenario.dart';
+import 'package:runner_core/playtest/level_playtest_scenario.dart';
+import 'package:runner_core/playtest/playtest_scenario.dart';
+
+import 'runner_playtest_appearance.dart';
+
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 
@@ -20,11 +25,10 @@ import '../ui/viewport/viewport_metrics.dart';
 import 'runner_workspace_asset_bundle.dart';
 
 /// Creates a fresh isolated Flame image cache for one runtime generation.
-typedef RunnerChunkPlaytestImagesFactory =
-    Images Function(AssetBundle? assetBundle);
+typedef RunnerPlaytestImagesFactory = Images Function(AssetBundle? assetBundle);
 
-/// Backend-free lifecycle states published by the chunk playtest host.
-enum RunnerChunkPlaytestPhase {
+/// Backend-free lifecycle states published by the authored playtest host.
+enum RunnerPlaytestPhase {
   /// A fresh runtime is resolving and loading its render assets.
   loading,
 
@@ -49,8 +53,8 @@ enum RunnerChunkPlaytestPhase {
 
 /// Immutable host status suitable for editor presentation and shortcuts.
 @immutable
-final class RunnerChunkPlaytestStatus {
-  const RunnerChunkPlaytestStatus({
+final class RunnerPlaytestStatus {
+  const RunnerPlaytestStatus({
     required this.phase,
     required this.runtimeGeneration,
     required this.loadProgress,
@@ -59,7 +63,7 @@ final class RunnerChunkPlaytestStatus {
   });
 
   /// Current lifecycle phase for the active generation.
-  final RunnerChunkPlaytestPhase phase;
+  final RunnerPlaytestPhase phase;
 
   /// Monotonic host-local generation; restart always increments it.
   final int runtimeGeneration;
@@ -68,28 +72,28 @@ final class RunnerChunkPlaytestStatus {
   final double loadProgress;
 
   /// Stable tooling-facing code when [phase] is
-  /// [RunnerChunkPlaytestPhase.failed].
+  /// [RunnerPlaytestPhase.failed].
   final String? failureCode;
 
   /// Human-readable failure detail; never use it for programmatic branching.
   final String? failureMessage;
 }
 
-/// External lifecycle handle for one mounted [RunnerChunkPlaytestHost].
+/// External lifecycle handle for one mounted [RunnerPlaytestHost].
 ///
 /// The host owns and disposes runtime resources. Callers own this controller,
 /// must keep it unique to one mounted host, and dispose it after unmounting.
-final class RunnerChunkPlaytestController extends ChangeNotifier {
-  RunnerChunkPlaytestStatus _status = const RunnerChunkPlaytestStatus(
-    phase: RunnerChunkPlaytestPhase.loading,
+final class RunnerPlaytestController extends ChangeNotifier {
+  RunnerPlaytestStatus _status = const RunnerPlaytestStatus(
+    phase: RunnerPlaytestPhase.loading,
     runtimeGeneration: 0,
     loadProgress: 0,
   );
-  _RunnerChunkPlaytestDelegate? _delegate;
+  _RunnerPlaytestDelegate? _delegate;
   bool _disposed = false;
 
   /// Latest lifecycle status published synchronously by the mounted host.
-  RunnerChunkPlaytestStatus get status => _status;
+  RunnerPlaytestStatus get status => _status;
 
   /// Current deterministic snapshot, or `null` when no runtime is mounted.
   GameStateSnapshot? get snapshot => _delegate?.snapshot;
@@ -126,27 +130,24 @@ final class RunnerChunkPlaytestController extends ChangeNotifier {
   /// Permanently stops this mount and schedules its one-shot stop callback.
   bool stop() => _delegate?.stop() ?? false;
 
-  void _attach(
-    _RunnerChunkPlaytestDelegate delegate,
-    RunnerChunkPlaytestStatus status,
-  ) {
+  void _attach(_RunnerPlaytestDelegate delegate, RunnerPlaytestStatus status) {
     if (_disposed) {
       throw StateError('Cannot attach a disposed playtest controller.');
     }
     if (_delegate != null && !identical(_delegate, delegate)) {
       throw StateError(
-        'RunnerChunkPlaytestController is already attached to another host.',
+        'RunnerPlaytestController is already attached to another host.',
       );
     }
     _delegate = delegate;
     _status = status;
   }
 
-  void _detach(_RunnerChunkPlaytestDelegate delegate) {
+  void _detach(_RunnerPlaytestDelegate delegate) {
     if (identical(_delegate, delegate)) _delegate = null;
   }
 
-  void _publish(RunnerChunkPlaytestStatus status) {
+  void _publish(RunnerPlaytestStatus status) {
     if (_disposed) return;
     _status = status;
     notifyListeners();
@@ -166,10 +167,11 @@ final class RunnerChunkPlaytestController extends ChangeNotifier {
 /// [scenario]. [assetBundle] defaults to the normal Flutter bundle; the editor
 /// should supply [RunnerWorkspaceAssetBundle]. [onStop] fires once after the
 /// runtime has been removed and disposed.
-class RunnerChunkPlaytestHost extends StatefulWidget {
-  const RunnerChunkPlaytestHost({
+class RunnerPlaytestHost extends StatefulWidget {
+  const RunnerPlaytestHost({
     super.key,
     required this.scenario,
+    required this.appearance,
     required this.controller,
     required this.onStop,
     this.assetBundle,
@@ -177,10 +179,13 @@ class RunnerChunkPlaytestHost extends StatefulWidget {
   });
 
   /// Immutable, already-validated inputs used to construct every generation.
-  final ChunkPlaytestScenario scenario;
+  final PlaytestScenario scenario;
+
+  /// Captured render inputs; authored content never resolves generated fallbacks.
+  final RunnerPlaytestAppearance appearance;
 
   /// Caller-owned lifecycle handle; it must not be shared by mounted hosts.
-  final RunnerChunkPlaytestController controller;
+  final RunnerPlaytestController controller;
 
   /// Called once after an explicit stop has retired runtime resources.
   final VoidCallback onStop;
@@ -193,14 +198,13 @@ class RunnerChunkPlaytestHost extends StatefulWidget {
   /// Production editor hosts normally supply only [assetBundle]. The factory
   /// must return a new cache for every invocation because restart transfers
   /// ownership of the previous cache to runtime disposal.
-  final RunnerChunkPlaytestImagesFactory? imagesFactory;
+  final RunnerPlaytestImagesFactory? imagesFactory;
 
   @override
-  State<RunnerChunkPlaytestHost> createState() =>
-      _RunnerChunkPlaytestHostState();
+  State<RunnerPlaytestHost> createState() => _RunnerPlaytestHostState();
 }
 
-abstract interface class _RunnerChunkPlaytestDelegate {
+abstract interface class _RunnerPlaytestDelegate {
   GameStateSnapshot? get snapshot;
   bool start();
   bool pause();
@@ -212,14 +216,14 @@ abstract interface class _RunnerChunkPlaytestDelegate {
   bool stop();
 }
 
-class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
-    implements _RunnerChunkPlaytestDelegate {
+class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
+    implements _RunnerPlaytestDelegate {
   final GlobalKey _surfaceKey = GlobalKey();
-  final Set<_RunnerChunkPlaytestRuntime> _retiredRuntimes =
-      <_RunnerChunkPlaytestRuntime>{};
+  final Set<_RunnerPlaytestRuntime> _retiredRuntimes =
+      <_RunnerPlaytestRuntime>{};
 
-  _RunnerChunkPlaytestRuntime? _runtime;
-  RunnerChunkPlaytestPhase _phase = RunnerChunkPlaytestPhase.loading;
+  _RunnerPlaytestRuntime? _runtime;
+  RunnerPlaytestPhase _phase = RunnerPlaytestPhase.loading;
   int _runtimeGeneration = 0;
   String? _failureCode;
   String? _failureMessage;
@@ -234,7 +238,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   }
 
   @override
-  void didUpdateWidget(covariant RunnerChunkPlaytestHost oldWidget) {
+  void didUpdateWidget(covariant RunnerPlaytestHost oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
       oldWidget.controller._detach(this);
@@ -242,14 +246,15 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     }
     if (!identical(oldWidget.scenario, widget.scenario) ||
         !identical(oldWidget.assetBundle, widget.assetBundle) ||
-        !identical(oldWidget.imagesFactory, widget.imagesFactory)) {
+        !identical(oldWidget.imagesFactory, widget.imagesFactory) ||
+        !identical(oldWidget.appearance, widget.appearance)) {
       _installFreshRuntime();
     }
   }
 
-  RunnerChunkPlaytestStatus get _status {
+  RunnerPlaytestStatus get _status {
     final progress = _runtime?.game.loadState.value.progress ?? 0.0;
-    return RunnerChunkPlaytestStatus(
+    return RunnerPlaytestStatus(
       phase: _phase,
       runtimeGeneration: _runtimeGeneration,
       loadProgress: progress.clamp(0.0, 1.0),
@@ -264,12 +269,12 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   @override
   bool start() {
     final runtime = _runtime;
-    if (_phase != RunnerChunkPlaytestPhase.ready || runtime == null) {
+    if (_phase != RunnerPlaytestPhase.ready || runtime == null) {
       return false;
     }
     runtime.desktopInput.setEnabled(true);
     runtime.controller.setPaused(false);
-    _setPhase(RunnerChunkPlaytestPhase.running);
+    _setPhase(RunnerPlaytestPhase.running);
     _requestRuntimeFocus(runtime);
     return true;
   }
@@ -277,24 +282,24 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   @override
   bool pause() {
     final runtime = _runtime;
-    if (_phase != RunnerChunkPlaytestPhase.running || runtime == null) {
+    if (_phase != RunnerPlaytestPhase.running || runtime == null) {
       return false;
     }
     runtime.desktopInput.setEnabled(false);
     runtime.controller.setPaused(true);
-    _setPhase(RunnerChunkPlaytestPhase.paused);
+    _setPhase(RunnerPlaytestPhase.paused);
     return true;
   }
 
   @override
   bool resume() {
     final runtime = _runtime;
-    if (_phase != RunnerChunkPlaytestPhase.paused || runtime == null) {
+    if (_phase != RunnerPlaytestPhase.paused || runtime == null) {
       return false;
     }
     runtime.desktopInput.setEnabled(true);
     runtime.controller.setPaused(false);
-    _setPhase(RunnerChunkPlaytestPhase.running);
+    _setPhase(RunnerPlaytestPhase.running);
     _requestRuntimeFocus(runtime);
     return true;
   }
@@ -302,19 +307,19 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   @override
   bool togglePause() {
     return switch (_phase) {
-      RunnerChunkPlaytestPhase.running => pause(),
-      RunnerChunkPlaytestPhase.paused => resume(),
-      RunnerChunkPlaytestPhase.loading ||
-      RunnerChunkPlaytestPhase.ready ||
-      RunnerChunkPlaytestPhase.gameOver ||
-      RunnerChunkPlaytestPhase.failed ||
-      RunnerChunkPlaytestPhase.stopped => false,
+      RunnerPlaytestPhase.running => pause(),
+      RunnerPlaytestPhase.paused => resume(),
+      RunnerPlaytestPhase.loading ||
+      RunnerPlaytestPhase.ready ||
+      RunnerPlaytestPhase.gameOver ||
+      RunnerPlaytestPhase.failed ||
+      RunnerPlaytestPhase.stopped => false,
     };
   }
 
   @override
   bool restart() {
-    if (_phase == RunnerChunkPlaytestPhase.stopped) return false;
+    if (_phase == RunnerPlaytestPhase.stopped) return false;
     _installFreshRuntime();
     return true;
   }
@@ -323,9 +328,9 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   bool requestFocus() {
     final runtime = _runtime;
     if (runtime == null ||
-        _phase == RunnerChunkPlaytestPhase.loading ||
-        _phase == RunnerChunkPlaytestPhase.failed ||
-        _phase == RunnerChunkPlaytestPhase.stopped) {
+        _phase == RunnerPlaytestPhase.loading ||
+        _phase == RunnerPlaytestPhase.failed ||
+        _phase == RunnerPlaytestPhase.stopped) {
       return false;
     }
     runtime.desktopInput.requestFocus();
@@ -342,11 +347,11 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
 
   @override
   bool stop() {
-    if (_phase == RunnerChunkPlaytestPhase.stopped) return false;
+    if (_phase == RunnerPlaytestPhase.stopped) return false;
     final oldRuntime = _runtime;
     oldRuntime?.prepareForRemoval();
     _runtime = null;
-    _phase = RunnerChunkPlaytestPhase.stopped;
+    _phase = RunnerPlaytestPhase.stopped;
     _failureCode = null;
     _failureMessage = null;
     _stopCallbackPending = true;
@@ -365,7 +370,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     final oldRuntime = _runtime;
     oldRuntime?.prepareForRemoval();
     _runtimeGeneration += 1;
-    _phase = RunnerChunkPlaytestPhase.loading;
+    _phase = RunnerPlaytestPhase.loading;
     _failureCode = null;
     _failureMessage = null;
 
@@ -373,7 +378,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
       _runtime = _createRuntime(_runtimeGeneration);
     } on Object catch (error) {
       _runtime = null;
-      _phase = RunnerChunkPlaytestPhase.failed;
+      _phase = RunnerPlaytestPhase.failed;
       _recordFailure(error, construction: true);
     }
 
@@ -382,9 +387,17 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     if (oldRuntime != null) _retireRuntime(oldRuntime);
   }
 
-  _RunnerChunkPlaytestRuntime _createRuntime(int generation) {
+  _RunnerPlaytestRuntime _createRuntime(int generation) {
     final controller = GameController(
-      core: GameCore.chunkPlaytest(scenario: widget.scenario),
+      core: switch (widget.scenario) {
+        ChunkPlaytestScenario scenario => GameCore.chunkPlaytest(
+          scenario: scenario,
+        ),
+        LevelPlaytestScenario scenario => GameCore.levelPlaytest(
+          scenario: scenario,
+        ),
+        _ => throw ArgumentError('Unsupported playtest scenario type.'),
+      },
       tickHz: widget.scenario.tickHz,
     )..setPaused(true);
     final input = RunnerInputRouter(controller: controller);
@@ -404,6 +417,8 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
       meleeAimPreview: meleePreview,
       playerCharacter: widget.scenario.playerCharacter,
       imageCache: imageCache,
+      parallaxThemes: widget.appearance.parallaxThemes,
+      terrainMaterials: widget.appearance.terrainMaterials,
     );
     final desktopInput = RunnerDesktopInputController(
       dispatcher: actions,
@@ -426,8 +441,8 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
       },
     )..setEnabled(false);
 
-    late final _RunnerChunkPlaytestRuntime runtime;
-    runtime = _RunnerChunkPlaytestRuntime(
+    late final _RunnerPlaytestRuntime runtime;
+    runtime = _RunnerPlaytestRuntime(
       generation: generation,
       controller: controller,
       game: game,
@@ -489,13 +504,13 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     );
   }
 
-  void _handleLoadState(_RunnerChunkPlaytestRuntime runtime) {
+  void _handleLoadState(_RunnerPlaytestRuntime runtime) {
     if (!identical(_runtime, runtime) ||
-        _phase != RunnerChunkPlaytestPhase.loading) {
+        _phase != RunnerPlaytestPhase.loading) {
       return;
     }
     if (runtime.game.loadState.value.phase == RunLoadPhase.worldReady) {
-      _phase = RunnerChunkPlaytestPhase.ready;
+      _phase = RunnerPlaytestPhase.ready;
       runtime.desktopInput.setEnabled(false);
       if (mounted) setState(() {});
       widget.controller._publish(_status);
@@ -506,27 +521,27 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     widget.controller._publish(_status);
   }
 
-  void _handleControllerState(_RunnerChunkPlaytestRuntime runtime) {
+  void _handleControllerState(_RunnerPlaytestRuntime runtime) {
     if (!identical(_runtime, runtime) ||
         !runtime.controller.snapshot.gameOver ||
-        _phase == RunnerChunkPlaytestPhase.gameOver ||
-        _phase == RunnerChunkPlaytestPhase.stopped) {
+        _phase == RunnerPlaytestPhase.gameOver ||
+        _phase == RunnerPlaytestPhase.stopped) {
       return;
     }
     runtime.desktopInput.setEnabled(false);
-    _setPhase(RunnerChunkPlaytestPhase.gameOver);
+    _setPhase(RunnerPlaytestPhase.gameOver);
   }
 
   void _handleFocusLost(int generation) {
     final runtime = _runtime;
     if (runtime == null ||
         runtime.generation != generation ||
-        _phase != RunnerChunkPlaytestPhase.running) {
+        _phase != RunnerPlaytestPhase.running) {
       return;
     }
     runtime.controller.setPaused(true);
     runtime.desktopInput.setEnabled(false);
-    _setPhase(RunnerChunkPlaytestPhase.paused);
+    _setPhase(RunnerPlaytestPhase.paused);
   }
 
   void _handleLoadFailure(int generation, Object error) {
@@ -535,7 +550,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     runtime.desktopInput.setEnabled(false);
     runtime.controller.setPaused(true);
     _recordFailure(error, construction: false);
-    _setPhase(RunnerChunkPlaytestPhase.failed, preserveFailure: true);
+    _setPhase(RunnerPlaytestPhase.failed, preserveFailure: true);
   }
 
   void _recordFailure(Object error, {required bool construction}) {
@@ -550,10 +565,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     _failureMessage = error.toString();
   }
 
-  void _setPhase(
-    RunnerChunkPlaytestPhase phase, {
-    bool preserveFailure = false,
-  }) {
+  void _setPhase(RunnerPlaytestPhase phase, {bool preserveFailure = false}) {
     _phase = phase;
     if (!preserveFailure) {
       _failureCode = null;
@@ -563,7 +575,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
     widget.controller._publish(_status);
   }
 
-  void _requestRuntimeFocus(_RunnerChunkPlaytestRuntime runtime) {
+  void _requestRuntimeFocus(_RunnerPlaytestRuntime runtime) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(_runtime, runtime)) {
         runtime.desktopInput.requestFocus();
@@ -572,7 +584,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   }
 
   void _retireRuntime(
-    _RunnerChunkPlaytestRuntime runtime, {
+    _RunnerPlaytestRuntime runtime, {
     VoidCallback? afterDispose,
   }) {
     runtime.detachHostListeners();
@@ -641,7 +653,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
 
   Widget _buildLifecycleOverlay() {
     switch (_phase) {
-      case RunnerChunkPlaytestPhase.loading:
+      case RunnerPlaytestPhase.loading:
         final progress = _runtime?.game.loadState.value.progress ?? 0.0;
         return _RunnerPlaytestPanel(
           title: 'Preparing playtest',
@@ -650,7 +662,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
             OutlinedButton(onPressed: stop, child: const Text('Stop')),
           ],
         );
-      case RunnerChunkPlaytestPhase.ready:
+      case RunnerPlaytestPhase.ready:
         return _RunnerPlaytestPanel(
           title: 'Ready',
           detail: 'Click Start or press Enter from the editor host.',
@@ -659,13 +671,13 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
             OutlinedButton(onPressed: stop, child: const Text('Stop')),
           ],
         );
-      case RunnerChunkPlaytestPhase.running:
+      case RunnerPlaytestPhase.running:
         return _RunnerPlaytestToolbar(
           onPause: pause,
           onRestart: restart,
           onStop: stop,
         );
-      case RunnerChunkPlaytestPhase.paused:
+      case RunnerPlaytestPhase.paused:
         return _RunnerPlaytestPanel(
           title: 'Paused',
           detail: 'Input is neutral. Resume explicitly to continue.',
@@ -675,7 +687,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
             OutlinedButton(onPressed: stop, child: const Text('Stop')),
           ],
         );
-      case RunnerChunkPlaytestPhase.gameOver:
+      case RunnerPlaytestPhase.gameOver:
         return _RunnerPlaytestPanel(
           title: 'Playtest ended',
           detail: 'No rewards, replay, or score were recorded.',
@@ -684,7 +696,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
             OutlinedButton(onPressed: stop, child: const Text('Stop')),
           ],
         );
-      case RunnerChunkPlaytestPhase.failed:
+      case RunnerPlaytestPhase.failed:
         return _RunnerPlaytestPanel(
           title: 'Playtest failed',
           detail: <String>[?_failureCode, ?_failureMessage].join('\n'),
@@ -693,7 +705,7 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
             OutlinedButton(onPressed: stop, child: const Text('Stop')),
           ],
         );
-      case RunnerChunkPlaytestPhase.stopped:
+      case RunnerPlaytestPhase.stopped:
         return const _RunnerPlaytestPanel(
           title: 'Stopped',
           detail: 'Returning to the editor.',
@@ -719,8 +731,8 @@ class _RunnerChunkPlaytestHostState extends State<RunnerChunkPlaytestHost>
   }
 }
 
-final class _RunnerChunkPlaytestRuntime {
-  _RunnerChunkPlaytestRuntime({
+final class _RunnerPlaytestRuntime {
+  _RunnerPlaytestRuntime({
     required this.generation,
     required this.controller,
     required this.game,

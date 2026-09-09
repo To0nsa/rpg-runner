@@ -27,6 +27,10 @@ final class ChunkPlaytestWorkspaceReadiness {
   final String? selectedChunkKey;
 
   bool get isReady => code == 'ready';
+
+  /// A Play request may first accept completed inspector text; capture stays
+  /// blocked until the route finalizes and checks [isReady] again.
+  bool get canRequestPlay => isReady || code == 'pendingInspectorInput';
 }
 
 /// Route header for level/owner context and Play readiness.
@@ -90,7 +94,7 @@ class ChunkWorkspaceHeader extends StatelessWidget {
         message: readiness.message,
         child: FilledButton.icon(
           key: const ValueKey<String>('chunk_playtest_button'),
-          onPressed: readiness.isReady ? onPlayRequested : null,
+          onPressed: readiness.canRequestPlay ? onPlayRequested : null,
           icon: const Icon(Icons.play_arrow),
           label: const Text('Play (F5)'),
         ),

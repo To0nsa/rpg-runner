@@ -8,22 +8,21 @@ import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
+
 import '../sprite_anim/deterministic_anim_view.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 
-typedef ProjectileAnimLoader =
-    Future<SpriteAnimSet> Function(
-      Images images, {
-      required RenderAnimSetDefinition renderAnim,
-      required Set<AnimKey> oneShotKeys,
-    });
+typedef ProjectileAnimLoader = Future<SpriteAnimSet> Function(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+  required Set<AnimKey> oneShotKeys,
+});
 
-typedef ProjectileViewFactory =
-    DeterministicAnimView Function(
-      SpriteAnimSet animSet,
-      Vector2 renderScale,
-    );
+typedef ProjectileViewFactory = DeterministicAnimView Function(
+  SpriteAnimSet animSet,
+  Vector2 renderScale,
+);
 
 const Set<AnimKey> _defaultProjectileOneShotKeys = <AnimKey>{
   AnimKey.spawn,
@@ -161,6 +160,11 @@ class ProjectileRenderRegistry {
     if (entry == null || !entry.isRenderable) return null;
     return entry;
   }
+
+  /// Exact image sources preloaded by this registry.
+  Iterable<String> get assetPaths => _entries.values.expand(
+    (entry) => _projectileCatalog.get(entry.id).sourcesByKey.values,
+  );
 
   Future<void> load(Images images) async {
     for (final entry in _entries.values) {

@@ -1,9 +1,56 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/playtest/runner_workspace_asset_bundle.dart';
 
 void main() {
+  test(
+    'captured bytes survive file deletion and caller mutation across restarts',
+    () async {
+      final workspace = await _workspace();
+      addTearDown(() => workspace.delete(recursive: true));
+      final file = File('${workspace.path}/assets/captured.bin');
+      await file.writeAsBytes([1, 2, 3]);
+      final frozen = await RunnerWorkspaceAssetBundle(
+        workspaceRoot: workspace.path,
+      ).capture(['assets/captured.bin']);
+      final fingerprint = frozen.fingerprint;
+      await file.writeAsBytes([9, 8, 7]);
+      await file.delete();
+      final first = await frozen.load('assets/captured.bin');
+      first.setUint8(0, 99);
+      expect((await frozen.load('assets/captured.bin')).buffer.asUint8List(), [
+        1,
+        2,
+        3,
+      ]);
+      expect(frozen.fingerprint, fingerprint);
+      await expectLater(
+        frozen.load('assets/uncaptured.bin'),
+        throwsA(
+          isA<RunnerWorkspaceAssetException>().having(
+            (e) => e.code,
+            'code',
+            'runner_captured_asset_missing',
+          ),
+        ),
+      );
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final supplied = RunnerCapturedAssetBundle({
+        'assets/captured.bin': bytes,
+      });
+      bytes[0] = 99;
+      expect(supplied.fingerprint, fingerprint);
+      expect(
+        RunnerCapturedAssetBundle({
+          'assets/captured.bin': Uint8List.fromList([2, 2, 3]),
+        }).fingerprint,
+        isNot(fingerprint),
+      );
+    },
+  );
+
   test(
     'reads nested workspace assets without modifying the workspace',
     () async {
@@ -30,9 +77,8 @@ void main() {
       expect(bundle.workspaceRoot, await workspace.resolveSymbolicLinks());
       expect(
         bundle.assetRoot,
-        await Directory(
-          '${workspace.path}${Platform.pathSeparator}assets',
-        ).resolveSymbolicLinks(),
+        await Directory('${workspace.path}${Platform.pathSeparator}assets')
+            .resolveSymbolicLinks(),
       );
     },
   );

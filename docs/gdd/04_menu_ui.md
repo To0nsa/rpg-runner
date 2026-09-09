@@ -34,6 +34,12 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
   - `selectedCharacterId`
   - `equippedLoadout` (slot → abilityId)
 - **Legality is enforced at equip-time**. In-run assumes loadout is valid.
+- Level choices contain active content included in the current game build.
+  A saved choice that is no longer selectable restores an available default.
+  Tickets and ghosts retain their original level identity; unavailable content
+  explains how to return to the hub and choose another level. Weekly Play is
+  disabled with an explanation when its server-assigned level is absent from
+  the local build.
 
 ### 2.2 UI responsibilities
 

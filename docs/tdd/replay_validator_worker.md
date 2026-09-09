@@ -176,6 +176,14 @@ Worker reconstructs `GameCore` from ticket data and passes it to the shared
 - drains events and captures final `RunEndedEvent`
 - checks a monotonic simulation deadline throughout the tick loop
 
+The ticket's registered level must exist in `LevelRegistry.compiledLevelIds`.
+Excluded identities retain stable enum slots but fail with
+`LevelUnavailableException` before Core or terrain pool construction. A worker
+build missing ticket content follows the existing internal/configuration-error
+retry and grace path. It never substitutes another level, classifies absence
+as replay fraud, or creates an accepted reward outcome. Compatible backend
+catalog, app content, and validator content remain a release responsibility.
+
 If no end event is produced, worker forces give-up and requires a terminal `RunEndedEvent`.
 
 From terminal event it computes authoritative result:
@@ -192,8 +200,8 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 
 The server executable accepts a non-HTTP `benchmark` subcommand. It uses the
 same `runReplaySimulation` function as `DeterministicValidatorWorker`, records
-deterministic no-enemy command streams for the normal generated Field and
-Forest terrain, then replays 36,000 ticks per level through fresh normal
+deterministic no-enemy command streams for every included generated level,
+then replays 36,000 ticks per level through fresh normal
 `GameCore` construction. Auto-scroll is disabled only for this bounded fixture
 so the simulation measures the complete ten-minute stream instead of ending at
 the normal runner pressure limit.

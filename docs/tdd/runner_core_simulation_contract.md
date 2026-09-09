@@ -90,39 +90,76 @@ fixtures compile one deterministic flat polygon at the level's authored ground
 reference. The test/tool-only `GameCore.terrainMotionHarness` factory remains
 available only to inject focused polygon geometry.
 
-`GameCore.chunkPlaytest` is a second explicit tool-only construction boundary.
-It accepts one already validated, immutable `ChunkPlaytestScenario`; it is not
-an optional flag on the production constructor and is not represented in a run
-ticket, replay blob, or validator payload. Scenario preparation:
+`LevelDefinition.identity`, `GameCore.levelIdentity`, and
+`GameStateSnapshot.levelIdentity` carry one typed provenance value.
+`RegisteredLevelIdentity` wraps the existing protocol-stable `LevelId`;
+`AuthoredLevelIdentity` retains a validated authored string, including identities
+that have never been generated. Their equality preserves provenance even when
+the strings match. Normal `LevelDefinition(id: LevelId, ...)` remains available;
+`LevelDefinition.authored` is the explicit tooling configuration constructor.
+Copies retain identity. Normal `GameCore(...)` rejects authored identity before
+world initialization; production consumers resolve `requireRegisteredId()` at
+registered-only boundaries. This does not change ticket/replay identities or
+backend authorization.
 
-1. requires the draft `ChunkPattern` and staged-terrain record to share one
-   admitted generated chunk key, level, assembly group, active status, and
-   streamed dimensions;
-2. replaces that record in a read-only `StagedTerrainOverlayCatalog`, while all
-   other keys still resolve from `stagedAuthoredTerrain`;
-3. re-runs the existing authoring scheduler reachability analysis using the
-   draft's current tier/group/status metadata;
-4. chooses a real incoming transition when available, then follows canonical
+Registered identity is separate from compiled content availability. Generated
+`LevelRegistry.compiledLevelIds` includes Build-enabled active and deprecated
+levels, while `defaultLevelId` is an included active level. An excluded stable
+enum remains addressable as metadata; `requireAvailable` and `byId` fail with
+`LevelUnavailableException` before absent terrain pools can be constructed.
+Normal app selection uses generated selectable metadata and restores stale
+local choices to the generated default. Ticket, replay, and ghost IDs are never
+substituted. Validator content absence remains an internal/configuration failure
+through the worker's existing retry/grace policy rather than a replay rejection.
+
+`GameCore.chunkPlaytest` and `GameCore.levelPlaytest` are explicit tool-only
+construction boundaries. They accept validated immutable scenarios, never a
+flag on the production constructor or a serialized ticket/replay option.
+`StagedTerrainChunkCatalog` admits captured, individually compiled terrain
+records with the same structural checks and world bindings as generated terrain.
+Scenario construction owns the scheduler/seam checks; Core does not import the
+content pipeline or read repository sources.
+
+`ChunkPlaytestScenario` receives the captured level terrain pool plus the selected
+pattern/terrain draft. It replaces or adds that stable key, so the first chunk of
+a never-generated level needs no generated placeholder. Preparation:
+
+1. freezes pattern and assembly collections and requires matching selected key,
+   level, group, active status, and streamed width;
+2. re-runs canonical authoring reachability using captured tier/group/status;
+3. chooses an incoming transition when available, then follows canonical
    transition-record order until the finite path has a deterministic loop; and
-5. checks every reachable seam touching the draft, plus every path/loop seam,
-   with Core's exact terrain-boundary signatures before construction.
+4. validates every reachable seam touching the selected chunk and every loop/path
+   seam using Core's exact boundary signatures.
 
-The resulting path-backed pattern source relocates the selected chunk near the
-start for authoring feedback. It is therefore a scheduler-reachable playtest
-sequence, not a claim that the same finite sequence is a normal production
-schedule. It adds no flat pad or substitute collision. The selected draft
-pattern and terrain replace every occurrence of that key; non-selected path
-records remain generated products. The opening no-enemy suppression is cleared
-because the authored path has been deliberately relocated and its markers are
-part of the content under test.
+The resulting focused path places the selected chunk near the start. It adds no
+flat pad or substitute collision and uses captured content for every key. Opening
+enemy suppression is cleared to test authored markers. This focused loop does
+not claim to reproduce the actual seeded whole-level sequence.
 
-Each `GameCore.chunkPlaytest` call creates a fresh level and path source, then
-uses the same scheduler prewarm, terrain authority, player/loadout setup,
-systems, tick ordering, and snapshots as a normal Core. Restart is therefore a
-new factory call with the same scenario, seed, player, loadout, and tick rate;
-neither wall-clock time nor retained Core/input state participates. The tooling
-run ID is always zero. Normal, ghost, and replay-validator callers continue to
-use `GameCore(...)`, which always admits the checked-in artifact directly.
+`LevelPlaytestScenario` preserves real automatic/ordered selection, consecutive
+pacing windows, enemy suppression, seed, camera, and ground values. Admission
+requires the complete active pattern pool to match its captured terrain by unique
+key, level, tier, group, and runtime width. It rejects missing/foreign records,
+empty pools, impossible resolved distinct capacity, and every incompatible
+reachable seam before Core construction. Inactive terrain cannot enter a playable
+pool. Source compilation and fresh semantic signatures remain the content
+pipeline's responsibility; typed records do not bypass that preparation boundary.
+
+`LevelPlaytestScenario.sampleChunks(count: 12)` provides a bounded read-only
+opening projection from a fresh instance of that same seeded source. Streaming
+and projection share the canonical pacing-tier function. Each selected chunk
+reports its requested/resolved tier, group, opening enemy suppression and resolved
+section run/boundary, including repeated final sections for non-looping assembly.
+The projection does not predict individual enemy spawn rolls or mutate the
+running simulation. The editor uses returned chunk keys to select source
+thumbnails instead of implementing its own scheduler.
+
+Each playtest factory creates a fresh level/source with the same normal scheduler
+prewarm, terrain authority, player/loadout setup, tick ordering, and snapshots.
+Restart uses the captured seed/character/loadout/tick rate with run ID zero and
+no retained simulation/input state. Normal, ghost, and replay-validator callers
+continue using the registered `GameCore(...)` path with generated terrain.
 
 All construction paths follow the same ordering seam:
 

@@ -37,6 +37,38 @@ final class EntityUpdate {
     payload: <String, Object?>{_payloadKey: this},
   );
 
+  /// Whether a committed entry contains every requested value. Source-backed
+  /// fields omitted by the update are intentionally outside this comparison.
+  /// UI adapters use this before replacing local text after a rejected command.
+  bool isAppliedTo(EntityEntry entry) {
+    final reference = entry.referenceVisual;
+    return entry.id == entryId &&
+        EntityNumericPolicy.equal(entry.halfX, halfX) &&
+        EntityNumericPolicy.equal(entry.halfY, halfY) &&
+        EntityNumericPolicy.equal(entry.offsetX, offsetX) &&
+        EntityNumericPolicy.equal(entry.offsetY, offsetY) &&
+        (renderScale == null ||
+            EntityNumericPolicy.nullableEqual(
+              reference?.renderScale,
+              renderScale,
+            )) &&
+        (anchorXPx == null ||
+            EntityNumericPolicy.nullableEqual(
+              reference?.anchorXPx,
+              anchorXPx,
+            )) &&
+        (anchorYPx == null ||
+            EntityNumericPolicy.nullableEqual(
+              reference?.anchorYPx,
+              anchorYPx,
+            )) &&
+        (castOriginOffset == null ||
+            EntityNumericPolicy.nullableEqual(
+              entry.castOriginOffset,
+              castOriginOffset,
+            ));
+  }
+
   /// Decodes a known entity-update command or fails fast on programmer error.
   ///
   /// Unknown command kinds return null so the plugin can preserve its normal

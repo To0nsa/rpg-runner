@@ -4,6 +4,7 @@ import 'package:image/image.dart' as image;
 import 'package:terrain_materials/terrain_materials.dart';
 
 import 'generated_artifact_plan.dart';
+import 'content_build_report.dart';
 
 const String terrainMaterialDefsPath =
     'assets/authoring/level/terrain_material_defs.json';
@@ -47,10 +48,11 @@ final class TerrainMaterialGenerationResult {
 Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
   String defsPath = terrainMaterialDefsPath,
   String outputPath = terrainMaterialRegistryOutputPath,
+  ContentBuildSnapshot? capturedInput,
 }) async {
   final issues = <TerrainMaterialGenerationIssue>[];
   final file = File(defsPath);
-  if (!await file.exists()) {
+  if (!(capturedInput?.contains(defsPath) ?? await file.exists())) {
     return TerrainMaterialGenerationResult(
       catalog: null,
       output: null,
@@ -65,7 +67,7 @@ Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
   }
   late final String source;
   try {
-    source = await file.readAsString();
+    source = capturedInput?.readString(defsPath) ?? await file.readAsString();
   } on Object catch (error) {
     return TerrainMaterialGenerationResult(
       catalog: null,
@@ -114,7 +116,7 @@ Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
     for (final assetPath in terrainMaterialAssetPaths(material)) {
       if (dimensionsByPath.containsKey(assetPath)) continue;
       final assetFile = File(assetPath);
-      if (!await assetFile.exists()) {
+      if (!(capturedInput?.contains(assetPath) ?? await assetFile.exists())) {
         issues.add(
           TerrainMaterialGenerationIssue(
             path: assetPath,
@@ -125,7 +127,9 @@ Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
         continue;
       }
       try {
-        final decodedImage = image.decodePng(await assetFile.readAsBytes());
+        final decodedImage = image.decodePng(
+          capturedInput?.readBytes(assetPath) ?? await assetFile.readAsBytes(),
+        );
         if (decodedImage == null) {
           throw const FormatException('PNG decoder returned no image.');
         }

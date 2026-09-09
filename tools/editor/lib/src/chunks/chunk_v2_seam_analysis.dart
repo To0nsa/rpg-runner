@@ -147,6 +147,21 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
         severity: ValidationSeverity.error,
         code: _editorSchedulerIssueCode(issue.code),
         message: issue.message,
+        ownerKey: issue.levelId,
+        sourcePath: levelDefsSourcePath,
+        blockingOperations: switch (issue.code) {
+          'terrain_authoring_scheduler_analysis_capacity_exceeded' ||
+          'terrain_authoring_scheduler_distinct_pool_too_small' ||
+          'terrain_authoring_scheduler_pool_empty' => _runtimeOperations(
+            orderedLevels,
+            issue.levelId,
+          ),
+          _ => const {
+            AuthoringOperation.save,
+            AuthoringOperation.play,
+            AuthoringOperation.build,
+          },
+        },
       ),
     ),
   );
@@ -178,6 +193,11 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
               'Expected/right ${left.digest} ${left.physicalRecord}; '
               'actual/left ${right.digest} ${right.physicalRecord}.',
           sourcePath: sourcePathByChunkKey[transition.leftChunkKey],
+          ownerKey: transition.leftChunkKey,
+          blockingOperations: _runtimeOperations(
+            orderedLevels,
+            transition.levelId,
+          ),
         ),
       );
     }
@@ -214,6 +234,15 @@ TerrainAuthoringSchedulerLevel _schedulerLevel(LevelDef level) =>
               ),
             ),
     );
+
+Set<AuthoringOperation> _runtimeOperations(
+  List<LevelDef> levels,
+  String levelId,
+) => {
+  AuthoringOperation.play,
+  if (levels.any((level) => level.levelId == levelId && level.includeInBuild))
+    AuthoringOperation.build,
+};
 
 String _editorSchedulerIssueCode(String code) => switch (code) {
   'terrain_authoring_scheduler_level_context_missing' =>

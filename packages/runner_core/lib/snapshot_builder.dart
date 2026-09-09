@@ -28,7 +28,7 @@ import 'ecs/world.dart';
 import 'ecs/world_support_view.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'ecs/stores/restoration_item_store.dart';
-import 'levels/level_id.dart';
+import 'levels/level_identity.dart';
 import 'enemies/enemy_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/camera_snapshot.dart';
@@ -132,7 +132,7 @@ class SnapshotBuilder {
   /// - [tick]: Current simulation tick number.
   /// - [runId]: Unique identifier for this run session.
   /// - [seed]: RNG seed for this run (stored for replay/debug).
-  /// - [levelId]: Level identifier for this run (stored for replay/debug).
+  /// - [levelIdentity]: Level identifier for this run (stored for replay/debug).
   /// - [visualThemeId]: Optional render theme identifier (stored for debug/UI).
   /// - [distance]: Total distance traveled (world units).
   /// - [paused]: Whether the game is currently paused.
@@ -147,7 +147,7 @@ class SnapshotBuilder {
     required int tick,
     required int runId,
     required int seed,
-    required LevelId levelId,
+    required LevelIdentity levelIdentity,
     required String? visualThemeId,
     required double distance,
     required bool paused,
@@ -440,7 +440,7 @@ class SnapshotBuilder {
       tick: tick,
       runId: runId,
       seed: seed,
-      levelId: levelId,
+      levelIdentity: levelIdentity,
       visualThemeId: visualThemeId,
       distance: distance,
       paused: paused,

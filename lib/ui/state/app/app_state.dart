@@ -9,6 +9,7 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/meta/equipped_gear.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
@@ -18,6 +19,7 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/run_ticket.dart';
+
 import '../../app/ui_routes.dart';
 import '../profile/account_deletion_api.dart';
 import '../auth/auth_api.dart';
@@ -226,6 +228,8 @@ class AppState extends ChangeNotifier {
 
   SelectionState get selection => _selection;
   LevelId get weeklyFeaturedLevelId => _defaultWeeklyFeaturedLevelId;
+  bool get weeklyFeaturedLevelAvailable =>
+      LevelRegistry.isAvailable(_defaultWeeklyFeaturedLevelId);
   MetaState get meta => _meta;
   ProgressionState get progression => _progression;
   UserProfile get profile => _profile;

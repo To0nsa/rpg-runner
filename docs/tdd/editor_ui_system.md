@@ -33,17 +33,31 @@ store owners.
 ## Shared action toolbar
 
 `EditorHomePage` owns the single toolbar rendered above every top-level route:
-page selector, Reload, Apply To Files, Undo, and Redo. Route pages do not
+page selector, Reload, Save, Undo, Redo, and repository Build. Route pages do not
 render duplicate copies of those actions. A trailing status area projects the
 session's loading/exporting state, pending item/file counts, pending-summary
 failure, and validation counts without introducing route-specific meaning.
 
 The shell delegates Reload through `EditorPageReloadHandler`, Undo/Redo through
-`EditorPageSessionShortcutHandler`, and Apply To Files through
-`EditorPageApplyHandler`. This preserves route-local safeguards and result
+`EditorPageSessionShortcutHandler`, and Save through
+`EditorPageSaveHandler`. Its semantic outcomes distinguish no-op, rejection,
+committed changes, post-write refresh failure, and transaction recovery. Save
+accepts completed visible inputs before exporting the whole current domain;
+invalid input stays visible. Reactive local and accepted draft state drive the
+same toolbar summary. Ctrl+S uses this path; focused text retains text Undo.
+This preserves route-local safeguards and result
 handling—for example, active polygon-operation guards and Level-to-Parallax
 handoff reconciliation—without coupling the shell to individual route ids.
-Plugins and `EditorSessionController` remain the only repository write path.
+Plugins and `EditorSessionController` remain the authoring source-write path.
+The shell owns one `ContentBuildService` for generated outputs, using the root
+generator's captured-input and atomic writer contracts. Build resolves Save or
+Discard first, locks source actions, and reports independent generated freshness.
+See [Build contracts](editor_content_build.md).
+
+`EditorThreePanelLayout` keeps all three subtrees mounted at wide and narrow
+widths. Narrow tab visibility uses Offstage/TickerMode/ExcludeFocus; it does not
+remount editor state when resizing. `EditorThreePanelController.revealPanel`
+reveals a contextual or diagnostic destination without destroying other panels.
 
 `EditorPanelCard` has explicit natural, expanded, and scrollable body modes.
 Expanded and scrollable modes require a bounded parent height. Collapsible
@@ -468,21 +482,29 @@ and Inspector. Layer rows use `EditorListCard` with their asset thumbnail
 in the leading slot, preserving selection and edit ownership in the page while
 removing its custom border, fill, and padding implementation.
 
-Level Creator uses one compound Level/Parallax session document. Its new-Level
-form makes create-new versus reuse intent explicit, its inspector exposes
-reference repair and create-and-assign, and pending state can contain exact
-diffs for both authoring sources. Apply remains one confirmation and one
-rollback-safe transaction. After successful apply and canonical reload, the
-page may pass a typed Level/theme target to the shell; the shell atomically
-loads it through the Parallax plugin before changing routes. Page-local form
-drafts and handoff intent are transient and never become persistence authority.
-The route state retains those controllers, validation decisions, command
-dispatch, and handoff lifecycle, while `LevelCatalogPane`,
-`LevelRuntimeMetrics`, and the small Level presentation widgets render the
-catalog, creation form, metrics, errors, and validation rows through callbacks.
+Level Creator uses one compound Level/Parallax session document. `LevelLibrary`
+and a focused New/Copy dialog replace the permanent creation form. Friendly
+names allocate stable domain identities; independent/shared/empty background
+choices remain explicit. Contents, Flow, and Appearance share one mounted visual
+preview, contextual inspector, full diagnostic review, and source diffs.
+Immutable Chunk projections reuse Chunk rendering without changing active
+plugins. The real Core sample shows seeded source occurrences and section/tier
+semantics; whole-Level Play and focused Chunk Play share captured preparation,
+render catalogs, image bytes, and lifecycle control.
+
+Level/Parallax Save finalizes valid focused input and commits the compound source
+transaction without an ordinary confirmation dialog. Source drift, invalid
+input, destructive departure, and actual recovery have explicit resolution.
+Level/Parallax content Undo survives Save against current baselines; newly saved
+identities are sealed. Typed Chunk/Parallax handoffs preflight exact targets and
+restore Level view context. A separate bounded repair session retains the mounted
+origin and reconciles compatible intent over freshly loaded dependencies.
+`sourceGeneration` invalidates projections after reload/Save/reconciliation.
+See [Level workspace contracts](editor_level_workspace.md) and
+[authored Play contracts](editor_chunk_playtest_host.md).
 
 Entities uses the shared outer workspace, Entries panel, load-error panel, and
-bounded Validation, Pending File Diff, and Apply Result panels. The scene and
+bounded Validation, Pending File Diff, and Save result panels. The scene and
 inspector remain domain widgets because they own specialized interactive
 viewport and field composition; their authoring state still belongs to the
 Entities page and plugin paths.

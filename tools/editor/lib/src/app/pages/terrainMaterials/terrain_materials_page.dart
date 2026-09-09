@@ -26,21 +26,22 @@ class TerrainMaterialsPage extends StatefulWidget {
 }
 
 class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
-    implements EditorPageApplyHandler {
+    implements EditorPageSaveHandler {
   final AtlasGridSettingsCache _gridSettingsCache = AtlasGridSettingsCache();
   String? _selectedKey;
 
   @override
-  bool get canApplyEditorPage =>
+  bool get canSaveEditorPage =>
       !widget.controller.isLoading &&
       !widget.controller.isExporting &&
       widget.controller.errorCount == 0 &&
       widget.controller.pendingChanges.hasChanges;
 
   @override
-  Future<void> applyEditorPage() async {
-    if (!canApplyEditorPage) return;
+  Future<EditorPageSaveResult> saveEditorPage() async {
+    if (!canSaveEditorPage) return EditorPageSaveResult.blocked;
     await _applyChanges();
+    return EditorPageSaveResult.fromSession(widget.controller);
   }
 
   @override
@@ -49,7 +50,9 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
     _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
     widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(widget.controller.loadWorkspace());
+      if (mounted && widget.controller.document == null) {
+        unawaited(widget.controller.loadWorkspace());
+      }
     });
   }
 
@@ -434,9 +437,7 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error == null
-              ? 'Terrain material manifest applied.'
-              : 'Apply failed: $error',
+          error == null ? 'Terrain materials saved.' : 'Save failed: $error',
         ),
       ),
     );

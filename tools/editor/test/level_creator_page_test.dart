@@ -1,12 +1,17 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/app/pages/levelCreator/level_creator_page.dart';
+import 'package:runner_editor/src/app/pages/levelCreator/level_creator_navigation.dart';
+import 'package:runner_editor/src/app/pages/levelCreator/level_content_projection.dart';
+import 'package:runner_editor/src/app/pages/levelCreator/level_view_preferences.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/domain/authoring_session_semantics.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_domain_plugin.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
@@ -14,317 +19,444 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  testWidgets('level creator creates edits duplicates and updates status', (
+  testWidgets(
+    'section diagnostic opens its exact field and reveals compact Settings',
+    (tester) async {
+      final document = _initialDocument.copyWith(
+        levels: [
+          for (final level in _initialDocument.levels)
+            if (level.levelId == 'forest')
+              level.copyWith(
+                assembly: const LevelAssemblyDef(
+                  segments: [
+                    LevelAssemblySegmentDef(
+                      segmentId: 'first',
+                      groupId: 'default',
+                      minChunkCount: 1,
+                      maxChunkCount: 1,
+                      requireDistinctChunks: false,
+                    ),
+                    LevelAssemblySegmentDef(
+                      segmentId: 'second',
+                      groupId: 'default',
+                      minChunkCount: 1,
+                      maxChunkCount: 1,
+                      requireDistinctChunks: false,
+                    ),
+                  ],
+                ),
+              )
+            else
+              level,
+        ],
+      );
+      final plugin = _InMemoryLevelPlugin(document)
+        ..extraIssues = const [
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_chunk_count_range',
+            message: 'Review the second section range.',
+            ownerKey: 'forest',
+            elementId: 'second',
+            fieldKey: 'maxChunkCount',
+            sourcePath: levelDefsSourcePath,
+          ),
+        ];
+      await _mountLevelPage(tester, plugin: plugin);
+      await tester.binding.setSurfaceSize(const Size(980, 720));
+      await _flush(tester);
+      await tester.tap(find.byKey(const ValueKey('level_diagnostics_button')));
+      await _flush(tester);
+      await tester.tap(find.text('Open').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Section settings'), findsOneWidget);
+      expect(
+        (tester.state(
+          find.byType(LevelCreatorPage),
+        ) as LevelCreatorNavigationState).returnContext.selectedSegmentId,
+        'second',
+      );
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('maxChunkCount'))
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
+    },
+  );
+  testWidgets(
+    'canonical source refresh reloads content while retaining invalid raw fields',
+    (tester) async {
+      var loads = 0;
+      final controller = await _mountLevelPage(
+        tester,
+        contentLoader: (root) async {
+          loads++;
+          final projection = await _testContentLoader(root);
+          if (loads == 1) return projection;
+          return LevelContentProjection(
+            document: projection.document.copyWith(
+              chunks: [
+                ...projection.document.chunks,
+                projection.document.chunks
+                    .firstWhere((chunk) => chunk.levelId == 'forest')
+                    .copyWith(chunkKey: 'new-second-key', id: 'forest_second'),
+              ],
+            ),
+          );
+        },
+      );
+      expect(loads, 1);
+      await tester.enterText(_textFieldByLabel('displayName'), 'Accepted edit');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await _flush(tester);
+      expect(loads, 1);
+      await _enterInspectorText(tester, 'earlyPatternChunks', '-');
+      await controller.loadWorkspace();
+      await _flush(tester);
+      expect(loads, 2);
+      expect(find.text('forest_second'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('earlyPatternChunks'))
+            .controller!
+            .text,
+        '-',
+      );
+    },
+  );
+  testWidgets(
+    'normal reopen restores valid level and tab without source history',
+    (tester) async {
+      final store = _MemoryViewStore(
+        const LevelCreatorReturnContext(
+          levelId: 'field',
+          tab: LevelCreatorTab.flow,
+          groupFilter: 'missing-group',
+        ),
+      );
+      final controller = await _mountLevelPage(tester, viewStore: store);
+      expect((controller.scene as LevelScene).activeLevelId, 'field');
+      expect(find.text('Difficulty coverage'), findsOneWidget);
+      expect(store.saved!.groupFilter, isNull);
+      expect(controller.canUndo, isFalse);
+      expect(controller.pendingChanges.hasChanges, isFalse);
+    },
+  );
+
+  testWidgets('missing restored level asks for an explicit current selection', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
-
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[
-          _InMemoryLevelPlugin(_initialDocument),
-        ],
-      ),
-      initialPluginId: LevelDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
+    final store = _MemoryViewStore(
+      const LevelCreatorReturnContext(levelId: 'removed-level'),
     );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: LevelCreatorPage(controller: controller)),
-      ),
-    );
-    await _flush(tester);
-
-    expect(controller.scene, isA<LevelScene>());
-    expect((controller.scene as LevelScene).activeLevelId, 'forest');
-
-    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-    await _flush(tester);
-    await tester.tap(find.text('field').last);
-    await _flush(tester);
-    expect((controller.scene as LevelScene).activeLevelId, 'field');
-
-    for (final label in const <String>['cameraCenterY', 'groundTopY']) {
-      final field = tester.widget<TextField>(_textFieldByLabel(label));
-      expect(field.readOnly, isTrue);
-    }
-    for (final label in const <String>[
-      'earlyPatternChunks',
-      'easyPatternChunks',
-      'normalPatternChunks',
-      'noEnemyChunks',
-    ]) {
-      final field = tester.widget<TextField>(_textFieldByLabel(label));
-      expect(field.readOnly, isFalse);
-    }
-
-    await tester.enterText(_textFieldByLabel('New levelId'), 'cave');
-    await tester.tap(find.text('Create Level'));
-    await _flush(tester);
-
-    var scene = controller.scene as LevelScene;
-    expect(scene.activeLevelId, 'cave');
-    expect(scene.levels.any((level) => level.levelId == 'cave'), isTrue);
-
-    await tester.enterText(_textFieldByLabel('displayName'), 'Crystal Cave');
-    await _selectDropdownByLabel(
-      tester,
-      label: 'Visual theme (Parallax)',
-      value: 'forest',
-    );
-    await tester.enterText(_textFieldByLabel('enumOrdinal'), '30');
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('new_chunk_theme_group_id')),
-      'forest',
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('add_chunk_theme_group_button')),
-    );
-    await _flush(tester);
-    await tester.tap(find.text('Add Segment'));
-    await _flush(tester);
-    await tester.ensureVisible(_dropdownFieldByLabel('groupId'));
-    await _flush(tester);
-    await _selectDropdownByLabel(tester, label: 'groupId', value: 'forest');
-    await tester.enterText(_textFieldByLabel('segmentId'), 'forest_run');
-    await tester.drag(
-      find.byKey(const ValueKey<String>('level_inspector_scroll')),
-      const Offset(0, -600),
-    );
-    await _flush(tester);
-    final applyLevel = find.byKey(const ValueKey<String>('apply_level_button'));
-    await tester.tap(applyLevel);
-    await _flush(tester);
-
-    scene = controller.scene as LevelScene;
-    final cave = scene.levels.firstWhere((level) => level.levelId == 'cave');
-    expect(cave.displayName, 'Crystal Cave');
-    expect(cave.visualThemeId, 'forest');
-    expect(cave.cameraCenterY, 135);
-    expect(cave.assembly?.segments.single.segmentId, 'forest_run');
-    expect(cave.revision, 2);
-
-    await tester.tap(find.text('Duplicate'));
-    await _flush(tester);
-    scene = controller.scene as LevelScene;
-    expect(scene.levels.any((level) => level.levelId == 'cave_copy'), isTrue);
-
-    await tester.tap(find.text('Deprecate'));
-    await _flush(tester);
-    scene = controller.scene as LevelScene;
-    expect(scene.activeLevel?.status, levelStatusDeprecated);
-
-    await tester.tap(find.text('Reactivate'));
-    await _flush(tester);
-    scene = controller.scene as LevelScene;
-    expect(scene.activeLevel?.status, levelStatusActive);
-    expect(controller.pendingChanges.hasChanges, isTrue);
-  });
-
-  testWidgets('level creator seeds new segments with the default group', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
-
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[
-          _InMemoryLevelPlugin(_initialDocument),
-        ],
-      ),
-      initialPluginId: LevelDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: LevelCreatorPage(controller: controller)),
-      ),
-    );
-    await _flush(tester);
-
-    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-    await _flush(tester);
-    await tester.tap(find.text('field').last);
-    await _flush(tester);
-
+    final controller = await _mountLevelPage(tester, viewStore: store);
+    expect(find.textContaining('Previously selected level'), findsOneWidget);
     expect(
-      find.text(
-        'When disabled, runtime holds on the final authored segment after the ordered run list completes.',
-      ),
+      find.byKey(const ValueKey('level_persistent_preview')),
+      findsNothing,
+    );
+    expect(store.saved, isNull);
+    await tester.tap(find.byKey(const ValueKey('level_library_forest')));
+    await _flush(tester);
+    expect(
+      find.byKey(const ValueKey('level_persistent_preview')),
       findsOneWidget,
     );
-
-    await tester.tap(find.text('Add Segment'));
+    expect(find.textContaining('Previously selected level'), findsNothing);
+    expect(controller.canUndo, isFalse);
+  });
+  testWidgets('build inclusion is explicit and does not change level status', (
+    tester,
+  ) async {
+    final controller = await _mountLevelPage(tester);
+    final before = (controller.scene as LevelScene).activeLevel!;
+    expect(before.includeInBuild, isFalse);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('level_include_in_build')),
+    );
     await _flush(tester);
-
-    expect(_dropdownFieldByLabel('groupId'), findsOneWidget);
-    expect(_textFieldByLabel('segmentId'), findsOneWidget);
-    final groupField = tester.widget<DropdownButtonFormField<String>>(
-      _dropdownFieldByLabel('groupId'),
+    final after = (controller.scene as LevelScene).activeLevel!;
+    expect(after.includeInBuild, isTrue);
+    expect(after.status, before.status);
+    controller.undo();
+    await _flush(tester);
+    expect(
+      (controller.scene as LevelScene).activeLevel!.includeInBuild,
+      isFalse,
     );
-    final segmentField = tester.widget<TextField>(
-      _textFieldByLabel('segmentId'),
-    );
-    expect(groupField.initialValue, defaultAssemblyGroupId);
-    expect(segmentField.controller?.text, defaultAssemblyGroupId);
   });
 
   testWidgets(
-    'new-theme suggestion detaches after manual editing and undoes atomically',
+    'dependency repair retains raw invalid input and targets its source owner',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1800, 1200));
-      addTearDown(() async => tester.binding.setSurfaceSize(null));
-      final controller = _buildController();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: LevelCreatorPage(controller: controller)),
-        ),
+      String? repairTarget;
+      final plugin = _InMemoryLevelPlugin(_initialDocument)
+        ..extraIssues = const [
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'test_background_source_invalid',
+            message: 'The background source needs repair.',
+            sourcePath: parallaxDefsSourcePath,
+          ),
+        ];
+      await _mountLevelPage(
+        tester,
+        plugin: plugin,
+        onRepairDependency: (id) async {
+          repairTarget = id;
+          return true;
+        },
+      );
+      await _enterInspectorText(tester, 'earlyPatternChunks', '-');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level_diagnostics_button')),
       );
       await _flush(tester);
-
-      expect(find.text('Create new theme'), findsOneWidget);
-      expect(_textFieldByLabel('New visual theme ID'), findsOneWidget);
-      await tester.enterText(_textFieldByLabel('New levelId'), 'crystal');
+      await tester.tap(find.text('Repair background'));
       await _flush(tester);
+      expect(repairTarget, 'parallax');
       expect(
         tester
-            .widget<TextField>(_textFieldByLabel('New visual theme ID'))
-            .controller
-            ?.text,
-        'crystal',
+            .widget<TextField>(_textFieldByLabel('earlyPatternChunks'))
+            .controller!
+            .text,
+        '-',
       );
-      await tester.enterText(
-        _textFieldByLabel('New visual theme ID'),
-        'violet_depths',
+      expect(
+        (tester.state(
+          find.byType(LevelCreatorPage),
+        ) as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isTrue,
       );
+    },
+  );
+  testWidgets(
+    'friendly creation allocates IDs and an independent background by default',
+    (tester) async {
+      final controller = await _mountLevelPage(tester);
+      await _openCreate(tester);
+      expect(find.text('Make an independent copy'), findsOneWidget);
       await tester.enterText(
-        _textFieldByLabel('New levelId'),
-        'crystal_depths',
+        find.byKey(const ValueKey('new_level_name')),
+        'Crystal Depths',
       );
       await _flush(tester);
-      expect(
-        tester
-            .widget<TextField>(_textFieldByLabel('New visual theme ID'))
-            .controller
-            ?.text,
-        'violet_depths',
+      await tester.tap(find.byKey(const ValueKey('create_level_button')));
+      await tester.pumpAndSettle();
+      final document = controller.document as LevelDefsDocument;
+      final created = document.levels.singleWhere(
+        (level) => level.displayName == 'Crystal Depths',
       );
-
-      await tester.tap(find.text('Create Level'));
-      await _flush(tester);
-      var document = controller.document as LevelDefsDocument;
+      expect(created.levelId, 'crystal_depths');
+      expect(created.visualThemeId, isNot('forest'));
+      expect(created.includeInBuild, isFalse);
+      expect(created.assembly, isNull);
       expect(
-        findLevelDefById(document.levels, 'crystal_depths')?.visualThemeId,
-        'violet_depths',
-      );
-      expect(
-        findParallaxThemeById(
-          document.parallaxDocument!.themes,
-          'violet_depths',
+        document.parallaxDocument!.themes.any(
+          (theme) => theme.parallaxThemeId == created.visualThemeId,
         ),
-        isNotNull,
+        isTrue,
       );
       expect(controller.pendingChanges.fileDiffs, hasLength(2));
-
+      expect(find.byKey(const ValueKey('level_creation_dialog')), findsNothing);
       controller.undo();
       await _flush(tester);
-      document = controller.document as LevelDefsDocument;
-      expect(findLevelDefById(document.levels, 'crystal_depths'), isNull);
       expect(
-        findParallaxThemeById(
-          document.parallaxDocument!.themes,
-          'violet_depths',
+        (controller.document as LevelDefsDocument).levels.any(
+          (level) => level.levelId == created.levelId,
         ),
-        isNull,
+        isFalse,
       );
       controller.redo();
       await _flush(tester);
-      document = controller.document as LevelDefsDocument;
-      expect(findLevelDefById(document.levels, 'crystal_depths'), isNotNull);
       expect(
-        findParallaxThemeById(
-          document.parallaxDocument!.themes,
-          'violet_depths',
+        (controller.document as LevelDefsDocument).levels.any(
+          (level) => level.levelId == created.levelId,
         ),
-        isNotNull,
+        isTrue,
       );
     },
   );
 
   testWidgets(
-    'reuse mode requires an explicit authored theme and plans one file',
+    'sharing is explicit and cancelling named creation leaves no draft',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1800, 1200));
-      addTearDown(() async => tester.binding.setSurfaceSize(null));
-      final controller = _buildController();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: LevelCreatorPage(controller: controller)),
-        ),
+      final controller = await _mountLevelPage(tester);
+      await _openCreate(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('new_level_name')),
+        'Cancelled',
       );
-      await _flush(tester);
-
-      await tester.tap(find.text('Use existing theme'));
-      await _flush(tester);
+      await tester.tap(find.text('Cancel').last);
+      await tester.pumpAndSettle();
       expect(
-        find.text('Choose an existing visual theme explicitly.'),
-        findsOneWidget,
+        (tester.state(
+          find.byType(LevelCreatorPage),
+        ) as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isFalse,
       );
-      final createButton = find.byKey(
-        const ValueKey<String>('create_level_button'),
+      expect(controller.pendingChanges.hasChanges, isFalse);
+      await _openCreate(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('new_level_name')),
+        'Shared Field',
       );
-      expect(tester.widget<FilledButton>(createButton).onPressed, isNull);
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('new_level_existing_theme')),
-      );
+      await tester.tap(find.text('Make an independent copy'));
       await _flush(tester);
-      await tester.tap(find.text('field').last);
-      await tester.enterText(_textFieldByLabel('New levelId'), 'shared_field');
+      await tester.tap(find.text('Share an existing background').last);
       await _flush(tester);
-      await tester.tap(createButton);
-      await _flush(tester);
-
-      final document = controller.document as LevelDefsDocument;
-      expect(
-        findLevelDefById(document.levels, 'shared_field')?.visualThemeId,
-        'field',
+      await _selectDropdownByLabel(
+        tester,
+        label: 'Source background',
+        value: 'field',
       );
+      await tester.tap(find.byKey(const ValueKey('create_level_button')));
+      await tester.pumpAndSettle();
       expect(controller.pendingChanges.fileDiffs, hasLength(1));
       expect(
-        controller.pendingChanges.fileDiffs.single.relativePath,
-        levelDefsSourcePath,
+        (controller.scene as LevelScene).activeLevel!.visualThemeId,
+        'field',
       );
     },
   );
 
   testWidgets(
-    'existing level can create and assign a theme from the inspector',
+    'copy settings defaults to Automatic and an independent background',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1800, 1200));
-      addTearDown(() async => tester.binding.setSurfaceSize(null));
-      final controller = _buildController();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: LevelCreatorPage(controller: controller)),
-        ),
-      );
+      final controller = await _mountLevelPage(tester);
+      await _addSection(tester);
+      await tester.tap(find.byTooltip('Level actions'));
       await _flush(tester);
-
-      final action = find.byKey(
-        const ValueKey<String>('create_assign_visual_theme_button'),
+      await tester.tap(find.text('Copy level settings').last);
+      await _flush(tester);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey('copy_level_section_design')),
+            )
+            .value,
+        isFalse,
       );
-      await tester.ensureVisible(action);
-      await tester.tap(action);
+      await tester.tap(find.byKey(const ValueKey('create_level_button')));
+      await tester.pumpAndSettle();
+      final copied = (controller.scene as LevelScene).activeLevel!;
+      expect(copied.levelId, isNot('forest'));
+      expect(copied.assembly, isNull);
+      expect(copied.visualThemeId, isNot('forest'));
+      expect(copied.includeInBuild, isFalse);
+    },
+  );
+
+  testWidgets(
+    'workspace shows real chunks and preserves preview across tab changes and resize',
+    (tester) async {
+      final controller = await _mountLevelPage(tester);
+      expect(find.text('forest_flat'), findsWidgets);
+      expect(find.text('field_flat'), findsNothing);
+      final preview = tester.element(
+        find.byKey(const ValueKey<String>('level_persistent_preview')),
+      );
+      await _showTab(tester, 'Flow');
+      expect(
+        identical(
+          preview,
+          tester.element(
+            find.byKey(const ValueKey<String>('level_persistent_preview')),
+          ),
+        ),
+        isTrue,
+      );
+      await _showTab(tester, 'Appearance');
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await _flush(tester);
+      expect(
+        identical(
+          preview,
+          tester.element(
+            find.byKey(const ValueKey<String>('level_persistent_preview')),
+          ),
+        ),
+        isTrue,
+      );
+      expect(controller.pendingChanges.hasChanges, isFalse);
+      expect(controller.canUndo, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'section creation defaults to one repeatable chunk and automatic removal is undoable',
+    (tester) async {
+      final controller = await _mountLevelPage(tester);
+      await _addSection(tester);
+      var section = (controller.scene as LevelScene)
+          .activeLevel!
+          .assembly!
+          .segments
+          .single;
+      expect(section.groupId, defaultAssemblyGroupId);
+      expect(section.minChunkCount, 1);
+      expect(section.maxChunkCount, 1);
+      expect(section.requireDistinctChunks, isFalse);
+      await tester.tap(find.text('Automatic'));
+      await _flush(tester);
+      await tester.tap(find.text('Cancel').last);
+      await _flush(tester);
+      expect((controller.scene as LevelScene).activeLevel!.assembly, isNotNull);
+      await tester.tap(find.text('Automatic'));
+      await _flush(tester);
+      await tester.tap(find.text('Use Automatic'));
+      await _flush(tester);
+      expect((controller.scene as LevelScene).activeLevel!.assembly, isNull);
+      controller.undo();
+      await _flush(tester);
+      section = (controller.scene as LevelScene)
+          .activeLevel!
+          .assembly!
+          .segments
+          .single;
+      expect(section.minChunkCount, 1);
+    },
+  );
+
+  testWidgets('content handoff carries exact chunk group and return context', (
+    tester,
+  ) async {
+    LevelCreatorChunkTarget? target;
+    await _mountLevelPage(
+      tester,
+      onOpenChunk: (value) async {
+        target = value;
+        return true;
+      },
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('level_chunk_forest-flat-key')),
+    );
+    await _flush(tester);
+    await tester.tap(find.text('Edit chunk').last);
+    await _flush(tester);
+    expect(target?.levelId, 'forest');
+    expect(target?.chunkKey, 'forest-flat-key');
+    expect(target?.groupId, 'default');
+    expect(target?.intent, LevelCreatorChunkIntent.edit);
+    expect(target?.returnContext.tab, LevelCreatorTab.contents);
+    expect(target?.returnContext.selectedChunkKey, 'forest-flat-key');
+  });
+
+  testWidgets(
+    'appearance handoff delegates the accepted background without an implicit export',
+    (tester) async {
+      ParallaxLevelTarget? opened;
+      final controller = await _mountLevelPage(
+        tester,
+        applyExports: true,
+        onOpenInParallax: (target) => opened = target,
+      );
+      await _showTab(tester, 'Appearance');
+      await tester.tap(find.text('Create empty background'));
       await _flush(tester);
       await tester.enterText(
         find.byKey(const ValueKey<String>('create_assign_theme_id_field')),
@@ -333,180 +465,530 @@ void main() {
       await _flush(tester);
       await tester.tap(find.text('Create and assign').last);
       await _flush(tester);
+      await tester.tap(find.text('Add background layers'));
+      await _flush(tester);
+      expect(opened?.levelId, 'forest');
+      expect(opened?.parallaxThemeId, 'forest_night');
+      expect(controller.lastExportResult, isNull);
+    },
+  );
 
-      final document = controller.document as LevelDefsDocument;
-      expect(
-        document.levels
-            .firstWhere((level) => level.levelId == 'forest')
-            .revision,
-        2,
-      );
-      expect(
-        document.levels
-            .firstWhere((level) => level.levelId == 'forest')
-            .visualThemeId,
-        'forest_night',
-      );
-      expect(
-        findParallaxThemeById(
-          document.parallaxDocument!.themes,
-          'forest_night',
+  testWidgets('switching levels accepts visible edits without losing them', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+    final controller = _buildController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LevelCreatorPage(
+            viewStore: null,
+            controller: controller,
+            contentLoader: _testContentLoader,
+          ),
         ),
-        isNotNull,
+      ),
+    );
+    await _flush(tester);
+
+    await tester.enterText(_textFieldByLabel('displayName'), 'Forest draft');
+    await _selectDropdownByLabel(tester, label: 'Active Level', value: 'field');
+    expect(
+      findLevelDefById(
+        (controller.document as LevelDefsDocument).levels,
+        'forest',
+      )?.displayName,
+      'Forest draft',
+    );
+    await _selectDropdownByLabel(
+      tester,
+      label: 'Active Level',
+      value: 'forest',
+    );
+    expect(
+      tester
+          .widget<TextField>(_textFieldByLabel('displayName'))
+          .controller
+          ?.text,
+      'Forest draft',
+    );
+  });
+
+  testWidgets('same-level undo refreshes visible fields from accepted state', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+    final controller = _buildController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LevelCreatorPage(
+            viewStore: null,
+            controller: controller,
+            contentLoader: _testContentLoader,
+          ),
+        ),
+      ),
+    );
+    await _flush(tester);
+    await tester.enterText(_textFieldByLabel('displayName'), 'Forest accepted');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _flush(tester);
+    controller.undo();
+    await _flush(tester);
+    expect(
+      tester
+          .widget<TextField>(_textFieldByLabel('displayName'))
+          .controller
+          ?.text,
+      'Forest',
+    );
+  });
+
+  testWidgets('invalid section input participates in dirty state', (
+    tester,
+  ) async {
+    await _mountLevelPage(tester);
+    await _addSection(tester);
+    await _flush(tester);
+    await _enterInspectorText(tester, 'minChunkCount', '-');
+    final state = tester.state(
+      find.byType(LevelCreatorPage),
+    ) as EditorPageLocalDraftState;
+    expect(state.hasLocalDraftChanges, isTrue);
+  });
+
+  testWidgets(
+    'Save accepts a focused local-only edit and exports its visible value',
+    (tester) async {
+      final controller = await _mountLevelPage(tester, applyExports: true);
+      await tester.enterText(
+        _textFieldByLabel('displayName'),
+        'Focused Forest',
+      );
+      expect(controller.pendingChanges.hasChanges, isFalse);
+      final handler =
+          tester.state(find.byType(LevelCreatorPage)) as EditorPageSaveHandler;
+      expect(handler.canSaveEditorPage, isTrue);
+      expect(await handler.saveEditorPage(), EditorPageSaveResult.saved);
+      await _flush(tester);
+      expect(
+        findLevelDefById(
+          (controller.document as LevelDefsDocument).levels,
+          'forest',
+        )?.displayName,
+        'Focused Forest',
+      );
+      expect(
+        (handler as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isFalse,
+      );
+      expect(controller.pendingChanges.hasChanges, isFalse);
+    },
+  );
+
+  testWidgets('Save exports focused B after accepted A and reload retains B', (
+    tester,
+  ) async {
+    final controller = await _mountLevelPage(tester, applyExports: true);
+    await tester.enterText(_textFieldByLabel('displayName'), 'Accepted A');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _flush(tester);
+    expect(
+      findLevelDefById(
+        (controller.document as LevelDefsDocument).levels,
+        'forest',
+      )?.displayName,
+      'Accepted A',
+    );
+    await tester.enterText(_textFieldByLabel('displayName'), 'Visible B');
+    final handler =
+        tester.state(find.byType(LevelCreatorPage)) as EditorPageSaveHandler;
+    expect(await handler.saveEditorPage(), EditorPageSaveResult.saved);
+    await _flush(tester);
+    await (handler as EditorPageReloadHandler).reloadEditorPage();
+    await _flush(tester);
+    expect(
+      tester
+          .widget<TextField>(_textFieldByLabel('displayName'))
+          .controller
+          ?.text,
+      'Visible B',
+    );
+  });
+
+  for (final invalid in <String>['', '-', '1.5', '-1']) {
+    testWidgets(
+      'Save preserves invalid pacing text "$invalid" and writes nothing',
+      (tester) async {
+        final plugin = _InMemoryLevelPlugin(
+          _initialDocument,
+          applyExports: true,
+        );
+        final controller = await _mountLevelPage(tester, plugin: plugin);
+        await _enterInspectorText(tester, 'earlyPatternChunks', invalid);
+        final handler = tester.state(
+          find.byType(LevelCreatorPage),
+        ) as EditorPageSaveHandler;
+        expect(await handler.saveEditorPage(), EditorPageSaveResult.blocked);
+        await _flush(tester);
+        expect(plugin.exportCount, 0);
+        expect(
+          tester
+              .widget<TextField>(_textFieldByLabel('earlyPatternChunks'))
+              .controller
+              ?.text,
+          invalid,
+        );
+        expect(
+          findLevelDefById(
+            (controller.document as LevelDefsDocument).levels,
+            'forest',
+          )?.earlyPatternChunks,
+          3,
+        );
+        expect(
+          (handler as EditorPageLocalDraftState).hasLocalDraftChanges,
+          isTrue,
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'invalid section text survives selection cancellation and undo cancellation',
+    (tester) async {
+      final controller = await _mountLevelPage(tester);
+      await _addSection(tester);
+      await _flush(tester);
+      await _enterInspectorText(tester, 'minChunkCount', '-');
+      await _selectDropdownByLabel(
+        tester,
+        label: 'Active Level',
+        value: 'field',
+      );
+      expect(
+        find.byKey(const ValueKey<String>('level_invalid_input_dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Keep editing'));
+      await _flush(tester);
+      expect((controller.scene as LevelScene).activeLevelId, 'forest');
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('minChunkCount'))
+            .controller
+            ?.text,
+        '-',
+      );
+      final handler = tester.state(
+        find.byType(LevelCreatorPage),
+      ) as EditorPageSessionShortcutHandler;
+      expect(handler.handleUndoSessionShortcut(), isTrue);
+      await _flush(tester);
+      await tester.tap(find.text('Keep editing'));
+      await _flush(tester);
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('minChunkCount'))
+            .controller
+            ?.text,
+        '-',
+      );
+      expect((controller.scene as LevelScene).activeLevel?.assembly, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'discarding only invalid input preserves valid pending changes during selection',
+    (tester) async {
+      final controller = await _mountLevelPage(tester);
+      await tester.enterText(
+        _textFieldByLabel('displayName'),
+        'Forest renamed',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await _flush(tester);
+      await _enterInspectorText(tester, 'earlyPatternChunks', '-');
+      await _selectDropdownByLabel(
+        tester,
+        label: 'Active Level',
+        value: 'field',
+      );
+      await tester.tap(find.text('Discard this edit'));
+      await _flush(tester);
+      expect((controller.scene as LevelScene).activeLevelId, 'field');
+      expect(
+        findLevelDefById(
+          (controller.document as LevelDefsDocument).levels,
+          'forest',
+        )?.displayName,
+        'Forest renamed',
+      );
+      expect(controller.pendingChanges.hasChanges, isTrue);
+    },
+  );
+
+  testWidgets(
+    'same-ID reload clears discarded raw input and restores the persisted baseline',
+    (tester) async {
+      await _mountLevelPage(tester);
+      await tester.enterText(_textFieldByLabel('displayName'), 'Pending name');
+      await _enterInspectorText(tester, 'earlyPatternChunks', '-');
+      final handler = tester.state(
+        find.byType(LevelCreatorPage),
+      ) as EditorPageReloadHandler;
+      await handler.reloadEditorPage();
+      await _flush(tester);
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('displayName'))
+            .controller
+            ?.text,
+        'Forest',
+      );
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('earlyPatternChunks'))
+            .controller
+            ?.text,
+        '3',
+      );
+      expect(
+        (handler as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isFalse,
       );
     },
   );
 
   testWidgets(
-    'successful apply exposes generation guidance and typed handoff',
+    'selection does not occupy undo and pending summary covers every changed level',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1800, 1200));
-      addTearDown(() async => tester.binding.setSurfaceSize(null));
-      final controller = _buildController(applyExports: true);
-      ParallaxLevelTarget? openedTarget;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LevelCreatorPage(
-              controller: controller,
-              onOpenInParallax: (target) => openedTarget = target,
-            ),
-          ),
-        ),
+      var notifications = 0;
+      final controller = await _mountLevelPage(
+        tester,
+        onShellStateChanged: () => notifications++,
+      );
+      await _selectDropdownByLabel(
+        tester,
+        label: 'Active Level',
+        value: 'field',
+      );
+      expect(controller.canUndo, isFalse);
+      await tester.enterText(_textFieldByLabel('displayName'), 'Field changed');
+      await _selectDropdownByLabel(
+        tester,
+        label: 'Active Level',
+        value: 'forest',
+      );
+      await tester.enterText(
+        _textFieldByLabel('displayName'),
+        'Forest changed',
       );
       await _flush(tester);
-
-      await tester.enterText(_textFieldByLabel('New levelId'), 'crystal');
-      await tester.tap(find.text('Create Level'));
-      await _flush(tester);
-      final routeState = tester.state(find.byType(LevelCreatorPage));
-      final applyHandler = routeState as EditorPageApplyHandler;
-      expect(applyHandler.canApplyEditorPage, isTrue);
-      unawaited(applyHandler.applyEditorPage());
-      await _flush(tester);
-      expect(find.textContaining(parallaxDefsSourcePath), findsOneWidget);
-      await tester.tap(find.text('Apply').last);
-      await _flush(tester);
-
-      expect(find.text('Authoring sources saved'), findsOneWidget);
+      final summary = tester.state(
+        find.byType(LevelCreatorPage),
+      ) as EditorPagePendingChangesSummary;
+      expect(summary.pendingChangesSummary, '2 levels have changes');
       expect(
-        find.textContaining('dart run tool/generate_chunk_runtime_data.dart'),
-        findsOneWidget,
+        summary.pendingChangeDescriptions,
+        containsAll(<String>['Level: Field changed', 'Level: Forest changed']),
       );
-      final openButton = find.byKey(
-        const ValueKey<String>('open_level_in_parallax_button'),
-      );
-      await tester.drag(
-        find.byKey(const ValueKey<String>('level_inspector_scroll')),
-        const Offset(0, -300),
-      );
+      expect(notifications, greaterThan(0));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await _flush(tester);
-      await tester.tap(openButton);
+      controller.undo();
       await _flush(tester);
-      expect(openedTarget?.levelId, 'crystal');
-      expect(openedTarget?.parallaxThemeId, 'crystal');
+      expect((controller.scene as LevelScene).activeLevelId, 'forest');
+      expect(
+        tester
+            .widget<TextField>(_textFieldByLabel('displayName'))
+            .controller
+            ?.text,
+        'Forest',
+      );
+      controller.undo();
+      await _flush(tester);
+      expect(controller.canUndo, isFalse);
+      expect(controller.pendingChanges.hasChanges, isFalse);
     },
   );
 
-  testWidgets('missing reference is a repair state that can create its theme', (
+  testWidgets('failed save retains input and accepted changes for retry', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async => tester.binding.setSurfaceSize(null));
-    final missingLevels = _initialDocument.levels
-        .map(
-          (level) => level.levelId == 'forest'
-              ? level.copyWith(visualThemeId: 'missing_forest')
-              : level,
-        )
-        .toList(growable: false);
-    final missingDocument = _initialDocument.copyWith(
-      levels: missingLevels,
-      baselineLevels: missingLevels,
-      parallaxDocument: _initialDocument.parallaxDocument!.copyWith(
-        parallaxThemeIdByLevelId: const <String, String>{
-          'field': 'field',
-          'forest': 'missing_forest',
-        },
-      ),
+    final plugin = _InMemoryLevelPlugin(_initialDocument, applyExports: true)
+      ..failExports = true;
+    final controller = await _mountLevelPage(tester, plugin: plugin);
+    await tester.enterText(
+      _textFieldByLabel('displayName'),
+      'Retain after failure',
     );
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[_InMemoryLevelPlugin(missingDocument)],
-      ),
-      initialPluginId: LevelDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: LevelCreatorPage(controller: controller)),
-      ),
-    );
-    await _flush(tester);
-
-    expect(
-      find.byKey(const ValueKey<String>('missing_visual_theme_repair')),
-      findsOneWidget,
-    );
-    final repair = find.byKey(
-      const ValueKey<String>('create_missing_visual_theme_button'),
-    );
-    await tester.ensureVisible(repair);
-    await tester.tap(repair);
+    final handler =
+        tester.state(find.byType(LevelCreatorPage)) as EditorPageSaveHandler;
+    expect(await handler.saveEditorPage(), EditorPageSaveResult.failed);
     await _flush(tester);
     expect(
-      find.byKey(const ValueKey<String>('create_assign_theme_id_field')),
-      findsOneWidget,
+      tester
+          .widget<TextField>(_textFieldByLabel('displayName'))
+          .controller
+          ?.text,
+      'Retain after failure',
     );
-    await tester.tap(find.text('Create and assign').last);
+    expect(controller.pendingChanges.hasChanges, isTrue);
+    plugin.failExports = false;
+    expect(await handler.saveEditorPage(), EditorPageSaveResult.saved);
     await _flush(tester);
-
-    final document = controller.document as LevelDefsDocument;
-    expect(
-      findParallaxThemeById(
-        document.parallaxDocument!.themes,
-        'missing_forest',
-      ),
-      isNotNull,
-    );
-    expect(
-      document.levels.firstWhere((level) => level.levelId == 'forest').revision,
-      2,
-    );
-    expect(
-      controller.issues.where(
-        (issue) => issue.code == 'missing_parallax_theme',
-      ),
-      isEmpty,
-    );
+    expect(controller.pendingChanges.hasChanges, isFalse);
   });
 
-  testWidgets('narrow layout keeps the full workflow scrollable', (
+  testWidgets('small windows and text scaling keep fields reachable', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(760, 900));
-    addTearDown(() async => tester.binding.setSurfaceSize(null));
-    final controller = _buildController();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: LevelCreatorPage(controller: controller)),
-      ),
-    );
+    await _mountLevelPage(tester);
+    await tester.binding.setSurfaceSize(const Size(800, 600));
     await _flush(tester);
-
+    await tester.tap(find.text('Settings'));
+    await _flush(tester);
+    await _enterInspectorText(tester, 'displayName', 'Small window edit');
     expect(
-      find.byKey(const ValueKey<String>('level_creator_narrow_layout')),
-      findsOneWidget,
+      tester
+          .widget<TextField>(_textFieldByLabel('displayName'))
+          .controller
+          ?.text,
+      'Small window edit',
     );
-    expect(find.text('Create new theme'), findsOneWidget);
-    await tester.drag(
-      find.byKey(const ValueKey<String>('level_creator_narrow_layout')),
-      const Offset(0, -650),
-    );
-    await _flush(tester);
-    expect(find.text('Inspector'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _openCreate(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey<String>('new_level_button')));
+  await _flush(tester);
+}
+
+Future<void> _showTab(WidgetTester tester, String label) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byKey(const ValueKey<String>('level_workspace_tabs')),
+      matching: find.text(label),
+    ),
+  );
+  await _flush(tester);
+}
+
+Future<void> _addSection(WidgetTester tester) async {
+  await _showTab(tester, 'Flow');
+  await tester.tap(find.text('Ordered sections'));
+  await _flush(tester);
+}
+
+Future<LevelContentProjection> _testContentLoader(String _) async =>
+    LevelContentProjection(
+      document: ChunkV2Document(
+        chunks: [
+          for (final level in ['field', 'forest'])
+            ChunkV2FileData(
+              chunkKey: '$level-flat-key',
+              id: '${level}_flat',
+              revision: 1,
+              status: 'active',
+              levelId: level,
+              tileSize: 16,
+              width: 600,
+              height: 270,
+              difficulty: 'early',
+              assemblyGroupId: 'default',
+              tags: const [],
+              tileLayers: const [],
+              prefabs: const [],
+              markers: const [],
+              groundBandZIndex: 0,
+              collisionShapes: const [],
+            ),
+        ],
+        sourcePathByChunkKey: const {},
+        baselineContentsByChunkKey: const {},
+        prefabData: PrefabV3FileData(slices: const [], prefabs: const []),
+        tileData: PrefabTileFileData(
+          tileSlices: const [],
+          platformModules: const [],
+        ),
+        visualBoundsByPrefabKey: const {},
+        levels: _initialDocument.levels,
+        parallaxThemes: _initialThemes,
+        availableLevelIds: const ['field', 'forest'],
+        activeLevelId: 'forest',
+      ),
+    );
+
+Future<EditorSessionController> _mountLevelPage(
+  WidgetTester tester, {
+  bool applyExports = false,
+  _InMemoryLevelPlugin? plugin,
+  VoidCallback? onShellStateChanged,
+  Future<bool> Function(LevelCreatorChunkTarget)? onOpenChunk,
+  ValueChanged<ParallaxLevelTarget>? onOpenInParallax,
+  Future<bool> Function(String)? onRepairDependency,
+  LevelCreatorViewStore? viewStore,
+  LevelContentProjectionLoader contentLoader = _testContentLoader,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1800, 1600));
+  addTearDown(() async => tester.binding.setSurfaceSize(null));
+  final controller = EditorSessionController(
+    pluginRegistry: AuthoringPluginRegistry(
+      plugins: <AuthoringDomainPlugin>[
+        plugin ??
+            _InMemoryLevelPlugin(_initialDocument, applyExports: applyExports),
+      ],
+    ),
+    initialPluginId: LevelDomainPlugin.pluginId,
+    initialWorkspacePath: '.',
+  );
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: LevelCreatorPage(
+          viewStore: viewStore,
+          controller: controller,
+          onShellStateChanged: onShellStateChanged,
+          onOpenChunk: onOpenChunk,
+          onOpenInParallax: onOpenInParallax,
+          onRepairDependency: onRepairDependency,
+          contentLoader: contentLoader,
+        ),
+      ),
+    ),
+  );
+  await _flush(tester);
+  return controller;
+}
+
+Future<void> _enterInspectorText(
+  WidgetTester tester,
+  String label,
+  String text,
+) async {
+  final finder = _textFieldByLabel(label);
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      finder,
+      220,
+      scrollable: find
+          .descendant(
+            of: find.byKey(
+              const PageStorageKey<String>('level_settings_scroll'),
+            ),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+  }
+  await tester.ensureVisible(finder);
+  await tester.enterText(finder, text);
+  await _flush(tester);
 }
 
 EditorSessionController _buildController({bool applyExports = false}) {
@@ -629,7 +1111,24 @@ const List<ParallaxThemeDef> _initialThemes = <ParallaxThemeDef>[
   ),
 ];
 
-class _InMemoryLevelPlugin implements AuthoringDomainPlugin {
+class _MemoryViewStore extends LevelCreatorViewStore {
+  _MemoryViewStore(this.initial) : super.local();
+  final LevelCreatorReturnContext initial;
+  LevelCreatorReturnContext? saved;
+  @override
+  Future<LevelCreatorReturnContext?> read(String workspacePath) async =>
+      initial;
+  @override
+  Future<void> write(
+    String workspacePath,
+    LevelCreatorReturnContext view,
+  ) async {
+    saved = view;
+  }
+}
+
+class _InMemoryLevelPlugin
+    implements AuthoringDomainPlugin, AuthoringSessionSemantics {
   _InMemoryLevelPlugin(
     LevelDefsDocument initialDocument, {
     this.applyExports = false,
@@ -637,7 +1136,20 @@ class _InMemoryLevelPlugin implements AuthoringDomainPlugin {
 
   LevelDefsDocument _persistedDocument;
   final bool applyExports;
+  bool failExports = false;
+  List<ValidationIssue> extraIssues = const [];
+  int exportCount = 0;
   final LevelDomainPlugin _delegate = LevelDomainPlugin();
+
+  @override
+  bool isPresentationCommand(AuthoringCommand command) =>
+      _delegate.isPresentationCommand(command);
+
+  @override
+  AuthoringDocument retainPresentation({
+    required AuthoringDocument current,
+    required AuthoringDocument restored,
+  }) => _delegate.retainPresentation(current: current, restored: restored);
 
   @override
   String get id => LevelDomainPlugin.pluginId;
@@ -649,7 +1161,7 @@ class _InMemoryLevelPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
-    return _delegate.validate(document);
+    return [..._delegate.validate(document), ...extraIssues];
   }
 
   @override
@@ -746,6 +1258,14 @@ class _InMemoryLevelPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
+    exportCount += 1;
+    if (failExports) {
+      return ExportResult(
+        applied: false,
+        outcome: ExportOutcome.failed,
+        message: 'Source is locked; retry when the lock is released.',
+      );
+    }
     if (!applyExports) return ExportResult(applied: false);
     _persistedDocument = document as LevelDefsDocument;
     return LevelThemeExportResult(applied: true);
@@ -777,6 +1297,7 @@ bool _sameLevel(LevelDef a, LevelDef b) {
       a.normalPatternChunks == b.normalPatternChunks &&
       a.noEnemyChunks == b.noEnemyChunks &&
       a.enumOrdinal == b.enumOrdinal &&
+      a.includeInBuild == b.includeInBuild &&
       a.status == b.status &&
       levelAssemblyEquals(a.assembly, b.assembly);
 }
@@ -802,6 +1323,22 @@ bool _stringListEquals(List<String> a, List<String> b) {
 }
 
 Finder _textFieldByLabel(String label) {
+  const keys = {
+    'displayName',
+    'cameraCenterY',
+    'groundTopY',
+    'earlyPatternChunks',
+    'easyPatternChunks',
+    'normalPatternChunks',
+    'noEnemyChunks',
+    'enumOrdinal',
+    'segmentId',
+    'minChunkCount',
+    'maxChunkCount',
+  };
+  if (keys.contains(label)) {
+    return find.byKey(ValueKey<String>('level_input_$label'));
+  }
   return find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
   );
@@ -820,6 +1357,11 @@ Future<void> _selectDropdownByLabel(
   required String label,
   required String value,
 }) async {
+  if (label == 'Active Level') {
+    await tester.tap(find.byKey(ValueKey<String>('level_library_$value')));
+    await _flush(tester);
+    return;
+  }
   await tester.tap(_dropdownFieldByLabel(label));
   await _flush(tester);
   await tester.tap(find.text(value).last);

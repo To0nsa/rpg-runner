@@ -1,5 +1,6 @@
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 
 import 'polygon_terrain_compilation.dart';
@@ -25,6 +26,7 @@ final class PolygonTerrainSchedulerLevelSource {
     required this.earlyPatternChunks,
     required this.easyPatternChunks,
     required this.normalPatternChunks,
+    this.includeInBuild = true,
     this.assembly,
   });
 
@@ -32,6 +34,9 @@ final class PolygonTerrainSchedulerLevelSource {
   final int earlyPatternChunks;
   final int easyPatternChunks;
   final int normalPatternChunks;
+
+  /// Exclusion skips whole-level readiness, never source or geometry validation.
+  final bool includeInBuild;
   final PolygonTerrainSchedulerAssemblySource? assembly;
 }
 
@@ -87,15 +92,18 @@ final class PolygonTerrainRepositoryGenerationResult {
   }) : chunks = List<PolygonTerrainRepositoryChunk>.unmodifiable(chunks),
        issues = canonicalTerrainAuthoringIssues(issues);
 
+  /// All structurally compiled source chunks, including excluded/deprecated ones.
   final List<PolygonTerrainRepositoryChunk> chunks;
+
+  /// Only eligible chunks of included levels with proven reachable seams.
   final PolygonTerrainValidatedBatch? validatedBatch;
   final List<TerrainAuthoringIssue> issues;
 }
 
 /// Builds the complete current-schema terrain products used by generation.
 ///
-/// Source decoding, Core compilation, scheduler reachability, compiled seam
-/// validation and staged rendering eligibility are one fail-closed operation.
+/// Every source is decoded and compiled. Only included levels and active chunks
+/// enter scheduler/seam readiness and the runtime render batch.
 /// No partial product is returned when any source, scheduler, geometry, or seam
 /// blocker exists.
 PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
@@ -161,17 +169,52 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
     if (result.compiled case final accepted?) compiled.add(accepted);
   }
 
+  final allLevelIds = orderedLevels.map((level) => level.levelId).toSet();
+  final includedLevels = orderedLevels
+      .where((level) => level.includeInBuild)
+      .toList();
+  final includedLevelIds = includedLevels.map((level) => level.levelId).toSet();
+  for (final item in parsed) {
+    if (!allLevelIds.contains(item.source.levelId)) {
+      issues.add(
+        _issue(
+          code: 'terrain_authoring_scheduler_level_context_missing',
+          message:
+              'Chunk ${item.source.chunkKey} references unauthored Level ${item.source.levelId}.',
+          sourcePath: item.sourcePath,
+          ownerKey: item.source.chunkKey,
+        ),
+      );
+    }
+  }
+  // Reuse the seam input validator for global identity uniqueness before any
+  // exclusion. An empty manifest asks it to check identities, not reachability.
+  final structuralBatch = validatePolygonTerrainSeams(
+    chunks: compiled,
+    manifest: PolygonTerrainSeamManifest(
+      signature: TerrainAuthoringSeamSignature(const []),
+      sourcePath: schedulerSourcePath,
+    ),
+  );
+  issues.addAll(structuralBatch.issues);
+  final runtimeSources = parsed
+      .where(
+        (item) =>
+            includedLevelIds.contains(item.source.levelId) &&
+            isRuntimeEligibleChunkStatus(item.source.status),
+      )
+      .toList();
   final scheduler = enumerateTerrainAuthoringReachability(
-    chunks: parsed.map(
+    chunks: runtimeSources.map(
       (item) => TerrainAuthoringSchedulerChunk(
         chunkKey: item.source.chunkKey,
         levelId: item.source.levelId,
         tier: _tier(item.source.difficulty),
         assemblyGroupId: item.source.assemblyGroupId,
-        isActive: item.source.status == 'active',
+        isActive: isRuntimeEligibleChunkStatus(item.source.status),
       ),
     ),
-    levels: orderedLevels.map(_schedulerLevel),
+    levels: includedLevels.map(_schedulerLevel),
   );
   issues.addAll(
     scheduler.issues.map(
@@ -188,7 +231,11 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
   }
 
   final seamResult = validatePolygonTerrainSeams(
-    chunks: compiled,
+    chunks: compiled.where(
+      (item) =>
+          includedLevelIds.contains(item.chunk.levelId) &&
+          isRuntimeEligibleChunkStatus(item.chunk.status),
+    ),
     manifest: PolygonTerrainSeamManifest(
       signature: scheduler.signature,
       sourcePath: schedulerSourcePath,
@@ -204,7 +251,7 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
       };
   return PolygonTerrainRepositoryGenerationResult(
     chunks: <PolygonTerrainRepositoryChunk>[
-      for (final item in batch.chunks)
+      for (final item in structuralBatch.batch!.chunks)
         PolygonTerrainRepositoryChunk(
           sourcePath: parsedByKey[item.chunk.chunkKey]!.sourcePath,
           source: parsedByKey[item.chunk.chunkKey]!.source,

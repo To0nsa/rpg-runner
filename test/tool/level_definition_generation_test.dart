@@ -63,7 +63,7 @@ void main() {
         defsFile.parent.createSync(recursive: true);
         defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "forest",
@@ -78,6 +78,7 @@ void main() {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": true,
       "status": "active"
     },
     {
@@ -93,6 +94,7 @@ void main() {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active"
     }
   ]
@@ -127,7 +129,7 @@ void main() {
       defsFile.parent.createSync(recursive: true);
       defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -142,6 +144,7 @@ void main() {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active",
       "assembly": {
         "loopSegments": true,
@@ -202,7 +205,7 @@ void main() {
       defsFile.parent.createSync(recursive: true);
       defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -217,6 +220,7 @@ void main() {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active"
     },
     {
@@ -232,6 +236,7 @@ void main() {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": true,
       "status": "deprecated"
     }
   ]
@@ -309,7 +314,7 @@ void main() {
         defsFile.parent.createSync(recursive: true);
         defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -324,6 +329,7 @@ void main() {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active",
       "assembly": {
         "loopSegments": true,

@@ -19,7 +19,7 @@ import 'replay_simulation.dart';
 int runReplayBenchmark(List<String> args) {
   final config = _ReplayBenchmarkConfig.fromArgs(args);
   final measurements = <_ReplayBenchmarkMeasurement>[
-    for (final levelId in <LevelId>[LevelId.field, LevelId.forest])
+    for (final levelId in LevelRegistry.compiledLevelIds)
       _measureLevel(levelId: levelId, config: config),
   ];
   final gates = <String, bool>{
@@ -43,7 +43,7 @@ int runReplayBenchmark(List<String> args) {
     'os': Platform.operatingSystem,
     'osVersion': Platform.operatingSystemVersion,
     'dartVersion': Platform.version,
-    'fixture': 'normal-field-forest-no-enemy-stream',
+    'fixture': 'normal-included-levels-no-enemy-stream',
     'tickHz': config.tickHz,
     'ticksPerLevel': config.ticks,
     'measurements': <String, Object?>{

@@ -31,6 +31,12 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+
+# Authored-content Build orchestration is source code, not compiler output.
+!/lib/src/build/
+!/lib/src/build/**
+!/test/build/
+!/test/build/**
 /coverage/
 
 # Symbolication related

@@ -1853,6 +1853,42 @@ build/raster budgets. The ignored compact artifact is
 `.tmp/slopes_phase4_polygon_interaction.json`; live authoring source and runtime
 authority are not part of the benchmark.
 
+## Level Handoff And Flat Starter
+
+`ChunkDomainPlugin.loadForLevel` resolves a typed `ChunkLevelTarget` against fresh
+authored Level and current Chunk/Prefab/tile sources. The target may name an exact
+chunk key and a group. Missing owners or groups produce actionable typed errors;
+the loader never substitutes another Level. A valid authored Level can be opened
+before its first Chunk exists, including an empty current chunk source directory.
+Legacy or mixed generations still fail strict current-schema decoding. The scene
+projects `selectedChunkKey` and `targetGroupId`; ordinary empty creation honors the
+requested group and retains its existing deprecated-empty preset semantics.
+An authored Level with no template owner uses the same domain-owned 600 by 270,
+16-pixel grid defaults for custom empty creation. It remains deprecated until
+the author supplies geometry and activates it.
+
+The domain allocates a `ChunkFlatStarterIntent` once per handoff. The caller keeps
+this stable key/ID intent across retries. `create_flat_starter` builds one active
+Early chunk, 600 by 270 pixels, tile grid 16, with no Prefabs or enemy markers and
+one solid `ground` polygon from the Level's authored ground height to the bottom.
+The starter uses the `grass_dirt` catalog key only when its current definition and
+source images validate. Invalid material or unsupported ground coordinates return
+an actionable failure; arbitrary material substitution is prohibited. Explicit
+section-design copies seed their first referenced group; Automatic uses `default`.
+The preset passes normal direct-geometry and ownership validation and persists
+only through Chunk Save. Repeating an intent opens its existing key, preserving
+saved edits, renames and revision without creating another source file.
+
+Scheduler pool/capacity and reachable seam diagnostics remain errors that block
+Play, and block Build for included Levels. They do not block structurally valid
+Chunk edits, lifecycle operations or Save. This permits a first chunk to be saved
+while a distinct section still needs another member, and permits repairing both
+sides of a seam over separate edits. Structural schema, geometry, ownership,
+references and source-drift checks remain Save blockers. Findings carry typed
+Level or Chunk owners for navigation. `chunk_flat_starter_test.dart` covers empty
+creation, saved and unsaved retry, section capacity and source-material rejection;
+Chunk domain tests prove runtime blockers preserve strict Save drift admission.
+
 ## Determinism And Validation Evidence
 
 The foundation is covered by:

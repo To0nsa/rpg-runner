@@ -124,9 +124,12 @@ class ChunkStore {
   /// Normal loading selects this path only after [detectSourceGeneration]
   /// proves that every source file is v2. Repository writes remain controlled
   /// by the separate export cutover gate.
-  Future<ChunkV2LoadResult> loadV2(EditorWorkspace workspace) async {
+  Future<ChunkV2LoadResult> loadV2(
+    EditorWorkspace workspace, {
+    bool allowEmpty = false,
+  }) async {
     final chunkFiles = _listChunkFiles(workspace);
-    if (chunkFiles.isEmpty) {
+    if (chunkFiles.isEmpty && !allowEmpty) {
       throw StateError(
         'chunk_v2_source_missing: expected JSON files under '
         '${workspace.resolve(chunksDirectoryPath)}.',

@@ -53,6 +53,10 @@ Keep the editor small, focused, and extensible.
 - Windows playtest roadmap/checklists:
   `docs/building/editor/windowsChunkPlaytest/**` when changing desktop input,
   preview preparation, or Play mode
+- active Level Creator implementation and acceptance:
+  `docs/building/editor/levelCreator/ui-ux-redesign-plan.md` and its checklist
+- implemented Level workspace, Save/repair, and Build contracts:
+  `docs/tdd/editor_level_workspace.md` and `docs/tdd/editor_content_build.md`
 - archived level creator plan:
   `docs/building/archived/editor/levelCreator/plan.md` for historical level
   authoring context
@@ -99,6 +103,8 @@ reading five other files first.
   - `tools/editor/lib/src/app/pages/home/editor_home_page.dart`
 - shared scene/view primitives:
   - `tools/editor/lib/src/app/pages/shared/**`
+- shared Save, local-buffer, and pending-resolution contracts:
+  - `tools/editor/lib/src/app/pages/shared/editor_page_local_draft_state.dart`
 - shared owner-draft and pending-resolution contracts:
   - `tools/editor/lib/src/app/pages/shared/editor_owner_draft_state.dart`
   - `tools/editor/lib/src/app/pages/shared/editor_pending_changes_dialog.dart`
@@ -444,3 +450,25 @@ When editor contracts or workflows change:
   TDD/GDD documentation for delivered behavior
 - for newly added authoring domains, add focused documentation only for the
   implemented workflow; keep future ideas separate from current behavior
+
+## Level Workspace And Generated Content
+
+- Use `EditorPageSaveHandler` and semantic Save outcomes for shell actions; Save
+  accepts valid visible input before domain export. Do not reintroduce a second
+  Apply-to-files flow or treat committed-refresh-failed as a failed write.
+- Keep Level/Parallax history reconciliation in their plugins. Undo after Save
+  retains current source baselines and dependencies; persisted creation cannot
+  be undone into identity deletion/recycling.
+- Reapply authored intent using stable IDs and current sources. Dependency
+  repair retains one mounted origin; never overwrite dependencies with retained
+  document bytes. Refresh dependent projections on session `sourceGeneration`.
+- Level sources require explicit schema-v2 `includeInBuild`. Exclusion changes
+  runtime availability, not identity ordinals or structural source validation.
+  Schema upgrades belong to the explicit offline migration tool.
+- Chunk and Level Play use the shared authored preparation/session/host, typed
+  authoring identity, and frozen render assets. Never substitute a generated
+  Level ID for an unsaved/uncompiled authored identity.
+- `src/build` owns the single shell Build process and freshness state. Use the
+  root generator's structured report, captured-input checks, cancellation gate,
+  and atomic writer; no page-level generated-file writer or process kill during
+  output replacement.

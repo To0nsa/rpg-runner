@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-const int levelDefsSchemaVersion = 1;
+import 'content_build_report.dart';
+
+const int levelDefsSchemaVersion = 2;
 
 const String activeLevelStatus = 'active';
 const String deprecatedLevelStatus = 'deprecated';
@@ -16,10 +18,11 @@ final RegExp _stableIdentifierPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 
 Future<LevelDefsLoadResult> loadLevelDefinitions({
   required String defsPath,
+  ContentBuildSnapshot? capturedInput,
 }) async {
   final issues = <LevelDefinitionValidationIssue>[];
   final file = File(defsPath);
-  if (!await file.exists()) {
+  if (!(capturedInput?.contains(defsPath) ?? await file.exists())) {
     issues.add(
       LevelDefinitionValidationIssue(
         path: defsPath,
@@ -35,7 +38,7 @@ Future<LevelDefsLoadResult> loadLevelDefinitions({
 
   late final String raw;
   try {
-    raw = await file.readAsString();
+    raw = capturedInput?.readString(defsPath) ?? await file.readAsString();
   } on Object catch (error) {
     issues.add(
       LevelDefinitionValidationIssue(
@@ -50,6 +53,17 @@ Future<LevelDefsLoadResult> loadLevelDefinitions({
     );
   }
 
+  return decodeLevelDefinitions(raw, defsPath: defsPath);
+}
+
+/// Decodes strict current-schema Level source and verifies its canonical bytes.
+/// Explicit offline migrations may validate their proposed current output here;
+/// this parser never accepts or silently upgrades legacy source.
+LevelDefsLoadResult decodeLevelDefinitions(
+  String raw, {
+  required String defsPath,
+}) {
+  final issues = <LevelDefinitionValidationIssue>[];
   Object? decoded;
   try {
     decoded = jsonDecode(raw);
@@ -267,6 +281,17 @@ LevelDefinitionSource? _parseLevelEntry(
     path: defsPath,
     fieldPrefix: fieldPrefix,
   );
+  final includeInBuild = entry['includeInBuild'];
+  if (includeInBuild is! bool) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: defsPath,
+        code: 'invalid_include_in_build',
+        message: '$fieldPrefix.includeInBuild must be a boolean.',
+      ),
+    );
+    return null;
+  }
   final status = _readRequiredString(
     entry,
     field: 'status',
@@ -349,6 +374,7 @@ LevelDefinitionSource? _parseLevelEntry(
     normalPatternChunks: normalPatternChunks,
     noEnemyChunks: noEnemyChunks,
     enumOrdinal: enumOrdinal,
+    includeInBuild: includeInBuild,
     status: status,
     assembly: assembly,
   );
@@ -659,6 +685,7 @@ String renderCanonicalLevelDefsJson(List<LevelDefinitionSource> levels) {
     );
     buffer.writeln('      "noEnemyChunks": ${level.noEnemyChunks},');
     buffer.writeln('      "enumOrdinal": ${level.enumOrdinal},');
+    buffer.writeln('      "includeInBuild": ${level.includeInBuild},');
     if (level.assembly == null) {
       buffer.writeln('      "status": ${jsonEncode(level.status)}');
     } else {
@@ -724,11 +751,21 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
   final enumOrderedLevels = _levelsInEnumOrder(levels);
   final canonicalLevels = List<LevelDefinitionSource>.from(levels)
     ..sort(_compareLevels);
-  final hasAssembly = enumOrderedLevels.any((level) => level.assembly != null);
-  if (canonicalLevels.isEmpty) {
-    throw StateError('Cannot render level registry without authored levels.');
+  final includedLevels = enumOrderedLevels.where(
+    (level) => level.includeInBuild,
+  );
+  final hasAssembly = includedLevels.any((level) => level.assembly != null);
+  final selectableLevels = canonicalLevels
+      .where(
+        (level) => level.includeInBuild && level.status == activeLevelStatus,
+      )
+      .toList();
+  if (selectableLevels.isEmpty) {
+    throw StateError(
+      'Cannot render level registry without an included active level.',
+    );
   }
-  final defaultChunkPatternLevelId = canonicalLevels.first.levelId;
+  final defaultChunkPatternLevelId = selectableLevels.first.levelId;
 
   final buffer = StringBuffer()
     ..writeln('/// GENERATED FILE. DO NOT EDIT BY HAND.')
@@ -741,13 +778,14 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
     ..writeln("import '../track/authored_chunk_patterns.dart';")
     ..writeln("import '../track/chunk_pattern_source.dart';")
     ..writeln(hasAssembly ? "import 'level_assembly.dart';" : '')
+    ..writeln("import 'level_availability.dart';")
     ..writeln("import 'level_definition.dart';")
     ..writeln("import 'level_id.dart';")
     ..writeln()
     ..writeln('/// Default runtime-authored chunk pattern source.')
     ..writeln('final ChunkPatternSource defaultChunkPatternSource =')
     ..writeln(
-      '    authoredChunkPatternSourceForLevel(LevelId.$defaultChunkPatternLevelId.name);',
+      '    authoredChunkPatternSourceForLevel(LevelRegistry.defaultLevelId.name);',
     )
     ..writeln();
 
@@ -756,11 +794,45 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
     ..writeln('class LevelRegistry {')
     ..writeln('  const LevelRegistry._();')
     ..writeln()
-    ..writeln('  /// Returns the level definition for a given [LevelId].')
+    ..writeln(
+      '  /// Included active default; enum order remains protocol-stable.',
+    )
+    ..writeln(
+      '  static const LevelId defaultLevelId = LevelId.$defaultChunkPatternLevelId;',
+    )
+    ..writeln()
+    ..writeln('  /// Included active and deprecated gameplay identities.')
+    ..writeln('  static const Set<LevelId> compiledLevelIds = <LevelId>{');
+  for (final level in includedLevels) {
+    buffer.writeln('    LevelId.${level.levelId},');
+  }
+  buffer
+    ..writeln('  };')
+    ..writeln()
+    ..writeln(
+      '  static bool isAvailable(LevelId id) => compiledLevelIds.contains(id);',
+    )
+    ..writeln()
+    ..writeln(
+      '  /// Rejects unavailable content without changing the requested identity.',
+    )
+    ..writeln('  static void requireAvailable(LevelId id) {')
+    ..writeln('    if (!isAvailable(id)) throw LevelUnavailableException(id);')
+    ..writeln('  }')
+    ..writeln()
+    ..writeln(
+      '  /// Resolves gameplay content or throws [LevelUnavailableException].',
+    )
     ..writeln('  static LevelDefinition byId(LevelId id) {')
     ..writeln('    switch (id) {');
 
   for (final level in enumOrderedLevels) {
+    if (!level.includeInBuild) {
+      buffer
+        ..writeln('      case LevelId.${level.levelId}:')
+        ..writeln('        throw LevelUnavailableException(id);');
+      continue;
+    }
     buffer
       ..writeln('      case LevelId.${level.levelId}:')
       ..writeln('        return LevelDefinition(')
@@ -798,7 +870,9 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
 String renderLevelUiMetadataDartOutput(List<LevelDefinitionSource> levels) {
   final enumOrderedLevels = _levelsInEnumOrder(levels);
   final selectableLevels = enumOrderedLevels
-      .where((level) => level.status == activeLevelStatus)
+      .where(
+        (level) => level.includeInBuild && level.status == activeLevelStatus,
+      )
       .toList(growable: false);
   final buffer = StringBuffer()
     ..writeln('/// GENERATED FILE. DO NOT EDIT BY HAND.')
@@ -816,13 +890,17 @@ String renderLevelUiMetadataDartOutput(List<LevelDefinitionSource> levels) {
     ..writeln('  const GeneratedLevelUiMetadata({')
     ..writeln('    required this.displayName,')
     ..writeln('    required this.status,')
+    ..writeln('    required this.visualThemeId,')
+    ..writeln('    required this.includeInBuild,')
     ..writeln('  });')
     ..writeln()
     ..writeln('  final String displayName;')
     ..writeln('  final LevelUiStatus status;')
+    ..writeln('  final String visualThemeId;')
+    ..writeln('  final bool includeInBuild;')
     ..writeln()
     ..writeln(
-      '  bool get isSelectableInStandardUi => status == LevelUiStatus.active;',
+      '  bool get isSelectableInStandardUi => includeInBuild && status == LevelUiStatus.active;',
     )
     ..writeln('}')
     ..writeln()
@@ -836,6 +914,8 @@ String renderLevelUiMetadataDartOutput(List<LevelDefinitionSource> levels) {
       ..writeln('  LevelId.${level.levelId}: GeneratedLevelUiMetadata(')
       ..writeln("    displayName: '${_escape(level.displayName)}',")
       ..writeln('    status: ${_renderLevelUiStatus(level.status)},')
+      ..writeln("    visualThemeId: '${_escape(level.visualThemeId)}',")
+      ..writeln('    includeInBuild: ${level.includeInBuild},')
       ..writeln('  ),');
   }
 
@@ -1127,6 +1207,7 @@ class LevelDefinitionSource {
     required this.normalPatternChunks,
     required this.noEnemyChunks,
     required this.enumOrdinal,
+    required this.includeInBuild,
     required this.status,
     this.assembly,
   });
@@ -1143,6 +1224,7 @@ class LevelDefinitionSource {
   final int normalPatternChunks;
   final int noEnemyChunks;
   final int enumOrdinal;
+  final bool includeInBuild;
   final String status;
   final LevelAssemblySource? assembly;
 }

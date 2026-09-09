@@ -7,6 +7,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
       mode: _selection.selectedRunMode,
       selectedLevelId: levelId,
     );
+    LevelRegistry.requireAvailable(resolvedLevelId);
     final nextSelection = _selection.copyWith(selectedLevelId: resolvedLevelId);
     await _updateSelectionOptimistically(nextSelection);
   }
@@ -16,6 +17,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
       mode: runMode,
       selectedLevelId: _selection.selectedLevelId,
     );
+    LevelRegistry.requireAvailable(resolvedLevelId);
     final nextSelection = _selection.copyWith(
       selectedRunMode: runMode,
       selectedLevelId: resolvedLevelId,
@@ -31,6 +33,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
       mode: runMode,
       selectedLevelId: levelId,
     );
+    LevelRegistry.requireAvailable(resolvedLevelId);
     final nextSelection = _selection.copyWith(
       selectedRunMode: runMode,
       selectedLevelId: resolvedLevelId,

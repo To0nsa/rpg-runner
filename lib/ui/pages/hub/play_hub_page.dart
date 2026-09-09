@@ -125,7 +125,9 @@ class _PlayHubPageState extends State<PlayHubPage> {
                     isWeeklyLoading:
                         _preparingRunStart &&
                         _runStartSource == _RunStartSource.weekly,
-                    onWeeklyPressed: _preparingRunStart
+                    onWeeklyPressed:
+                        _preparingRunStart ||
+                            !appState.weeklyFeaturedLevelAvailable
                         ? null
                         : () => _startWeeklyRun(appState),
                     onWeeklyLeaderboardPressed: () =>
@@ -143,16 +145,16 @@ class _PlayHubPageState extends State<PlayHubPage> {
                           runModeLabel: _runModeLabel(
                             selection.selectedRunMode,
                           ),
-                          onChange: () => Navigator.of(
-                            context,
-                          ).pushNamed(UiRoutes.setupLevel),
+                          onChange: () =>
+                              Navigator.of(context)
+                                  .pushNamed(UiRoutes.setupLevel),
                         ),
                         HubSelectCharacterCard(
                           characterId: selection.selectedCharacterId,
                           buildName: selection.buildName,
-                          onChange: () => Navigator.of(
-                            context,
-                          ).pushNamed(UiRoutes.setupLoadout),
+                          onChange: () =>
+                              Navigator.of(context)
+                                  .pushNamed(UiRoutes.setupLoadout),
                         ),
                       ],
                     ),
@@ -191,6 +193,9 @@ String _runModeLabel(RunMode runMode) {
 }
 
 String _weeklyBadgeTitle(ProgressionState progression, AppState appState) {
+  if (!appState.weeklyFeaturedLevelAvailable) {
+    return 'WEEKLY • Unavailable in this build';
+  }
   final weeklyLevelName = appState.weeklyFeaturedLevelId.displayName
       .toUpperCase();
   final weekly = progression.weekly;

@@ -1,7 +1,12 @@
 # Level Creator UI/UX Redesign
 
 Date: September 8, 2026  
-Status: Proposed; workflow audit corrections applied, implementation has not started
+Status: Implemented and regression verified; independent creator acceptance pending
+
+Implementation update: September 9, 2026. The baseline was checkpointed in
+`9d958389` before implementation. Current behavior and test evidence are recorded
+in [implementation verification](implementation-verification.md). The evidence
+and problem statements below describe the pre-redesign baseline.
 
 Deliverables:
 

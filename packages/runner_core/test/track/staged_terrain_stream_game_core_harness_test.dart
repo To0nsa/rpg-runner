@@ -19,9 +19,8 @@ void main() {
   test('normal stream republishes one deterministic terrain world', () {
     GameCore build() => GameCore(
       seed: 9127,
-      levelDefinition: LevelRegistry.byId(
-        LevelId.field,
-      ).copyWith(noEnemyChunks: 9999),
+      levelDefinition: LevelRegistry.byId(LevelId.field)
+          .copyWith(noEnemyChunks: 9999),
       playerCharacter: PlayerCharacterRegistry.eloise,
     );
 
@@ -162,7 +161,7 @@ void main() {
     );
     final registered = LevelRegistry.byId(LevelId.forest);
     final level = LevelDefinition(
-      id: registered.id,
+      id: registered.identity.requireRegisteredId(),
       chunkPatternSource: patternSource,
       groundTopY: registered.groundTopY,
       tuning: registered.tuning,
@@ -232,9 +231,8 @@ void main() {
   test('normal construction integrates ballistic projectiles', () {
     final core = GameCore(
       seed: 29,
-      levelDefinition: LevelRegistry.byId(
-        LevelId.field,
-      ).copyWith(noEnemyChunks: 9999),
+      levelDefinition: LevelRegistry.byId(LevelId.field)
+          .copyWith(noEnemyChunks: 9999),
       playerCharacter: PlayerCharacterRegistry.eloise,
       projectileCatalog: const _BallisticProjectileCatalog(),
     );
@@ -275,9 +273,8 @@ void main() {
     test('$levelId long command run stays deterministic', () {
       GameCore build() => GameCore(
         seed: 4401,
-        levelDefinition: LevelRegistry.byId(
-          levelId,
-        ).copyWith(noEnemyChunks: 9999),
+        levelDefinition: LevelRegistry.byId(levelId)
+            .copyWith(noEnemyChunks: 9999),
         playerCharacter: PlayerCharacterRegistry.eloise,
       );
       final first = build();

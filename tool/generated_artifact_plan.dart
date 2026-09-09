@@ -37,8 +37,7 @@ final class GeneratedArtifactDrift
       'Expected generated output is missing.',
     GeneratedArtifactDriftKind.stale =>
       'Committed generated output differs from the in-memory render.',
-    GeneratedArtifactDriftKind.unexpected =>
-      'File carries this generator ownership marker but is not an expected output.',
+    GeneratedArtifactDriftKind.unexpected => 'File carries this generator ownership marker but is not an expected output.',
     GeneratedArtifactDriftKind.unreadable =>
       'Generated output could not be read${detail == null ? '.' : ': $detail'}',
   };
@@ -194,7 +193,13 @@ final class GeneratedArtifactPlan {
   /// keeping staging and replacement on the target volume. Existing outputs
   /// move to sibling backups before staged files are installed. Any staging,
   /// replacement, or verification failure restores all original targets.
-  Future<void> writeAll() async {
+  /// [beforeReplacement] can reject changed inputs or cancellation after staging;
+  /// [onReplacementStarted] marks the boundary after which callers must await the
+  /// transaction result rather than interrupting the process.
+  Future<void> writeAll({
+    Future<void> Function()? beforeReplacement,
+    void Function()? onReplacementStarted,
+  }) async {
     final transactionId = _nextTransactionId();
     final entries = <_GeneratedArtifactTransactionEntry>[
       for (var index = 0; index < artifacts.length; index += 1)
@@ -212,6 +217,11 @@ final class GeneratedArtifactPlan {
         await _requireTransactionPathAvailable(entry.backup);
         await entry.staged.writeAsBytes(entry.expectedBytes, flush: true);
       }
+
+      // Input checks and cancellation remain safe after staging and before the
+      // first target is moved. Once announced, replacement must finish or roll back.
+      await beforeReplacement?.call();
+      onReplacementStarted?.call();
 
       for (final entry in entries) {
         final targetType = await FileSystemEntity.type(

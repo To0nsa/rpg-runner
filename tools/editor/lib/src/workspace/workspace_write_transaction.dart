@@ -30,6 +30,7 @@ final class WorkspaceWriteTransactionException implements Exception {
     required this.rollbackFailures,
     required this.outputsCommitted,
     required this.recoveryPaths,
+    this.recovery,
   });
 
   final Object cause;
@@ -40,6 +41,7 @@ final class WorkspaceWriteTransactionException implements Exception {
 
   /// Exact transaction-owned temp/backup paths that still exist.
   final List<String> recoveryPaths;
+  final WorkspaceWriteRecovery? recovery;
 
   /// True only when no replacement remains after a failed write.
   bool get rollbackComplete => !outputsCommitted && rollbackFailures.isEmpty;
@@ -138,6 +140,9 @@ final class WorkspaceWriteTransaction {
           followLinks: false,
         );
         if (type == FileSystemEntityType.file) {
+          entry.originalBytes = List<int>.unmodifiable(
+            entry.target.readAsBytesSync(),
+          );
           entry.target.renameSync(entry.backup.path);
           entry.wasBackedUp = true;
         } else if (type != FileSystemEntityType.notFound) {
@@ -179,6 +184,9 @@ final class WorkspaceWriteTransaction {
           rollbackFailures: List<String>.unmodifiable(failures),
           outputsCommitted: false,
           recoveryPaths: _remainingRecoveryPaths(entries),
+          recovery: failures.isEmpty
+              ? null
+              : WorkspaceWriteRecovery._(entries, false),
         ),
         stackTrace,
       );
@@ -191,6 +199,7 @@ final class WorkspaceWriteTransaction {
         rollbackFailures: List<String>.unmodifiable(cleanupFailures),
         outputsCommitted: true,
         recoveryPaths: _remainingRecoveryPaths(entries),
+        recovery: WorkspaceWriteRecovery._(entries, true),
       );
     }
   }
@@ -218,6 +227,66 @@ final class _WorkspaceWriteTransactionEntry {
   final File backup;
   bool wasBackedUp = false;
   bool wasCommitted = false;
+  List<int>? originalBytes;
+}
+
+/// In-session evidence for retrying this transaction's remaining work. Paths
+/// and original/output bytes are captured by the transaction, not the UI.
+final class WorkspaceWriteRecovery {
+  WorkspaceWriteRecovery._(this._entries, this.outputsCommitted);
+  final List<_WorkspaceWriteTransactionEntry> _entries;
+  final bool outputsCommitted;
+
+  List<String> get remainingPaths => _remainingRecoveryPaths(_entries);
+
+  void retry() {
+    // Preflight every file before touching any of them. External edits to an
+    // installed target or retained backup require manual review, never deletion.
+    for (final entry in _entries) {
+      for (final file in [entry.target, entry.backup, entry.staged]) {
+        final type = FileSystemEntity.typeSync(file.path, followLinks: false);
+        if (type != FileSystemEntityType.file &&
+            type != FileSystemEntityType.notFound) {
+          throw FileSystemException(
+            'Recovery path is not a regular file.',
+            file.path,
+          );
+        }
+      }
+      if (entry.backup.existsSync()) {
+        final original = entry.originalBytes;
+        if (original == null) {
+          throw StateError('Recovery backup has no original byte evidence.');
+        }
+        _requireExpectedBytes(entry.backup, original);
+      }
+      if (entry.staged.existsSync()) {
+        _requireExpectedBytes(entry.staged, entry.expectedBytes);
+      }
+      if (entry.target.existsSync()) {
+        final expected = outputsCommitted || entry.wasCommitted
+            ? entry.expectedBytes
+            : entry.originalBytes;
+        if (expected == null ||
+            (outputsCommitted && entry.artifact.deleteFile)) {
+          throw StateError('An unexpected file occupies a transaction target.');
+        }
+        _requireExpectedBytes(entry.target, expected);
+      } else if (outputsCommitted && !entry.artifact.deleteFile) {
+        throw StateError(
+          'A committed transaction output was removed externally.',
+        );
+      }
+    }
+    final failures = outputsCommitted
+        ? _cleanup(_entries)
+        : _rollback(_entries);
+    if (failures.isNotEmpty) {
+      throw StateError(
+        'Transaction recovery is incomplete: ${failures.join('; ')}',
+      );
+    }
+  }
 }
 
 void _requireAvailable(File file) {
@@ -244,6 +313,7 @@ List<String> _rollback(List<_WorkspaceWriteTransactionEntry> entries) {
     if (entry.wasCommitted) {
       try {
         if (entry.target.existsSync()) entry.target.deleteSync();
+        entry.wasCommitted = false;
       } on Object catch (error) {
         failures.add('${entry.target.path} delete: $error');
       }

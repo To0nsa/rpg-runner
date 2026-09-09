@@ -18,6 +18,28 @@ import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  testWidgets(
+    'unavailable compiled level explains recovery without entering a run',
+    (tester) async {
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: _ThrowingRunSessionApi(code: 'level-unavailable'),
+      );
+      addTearDown(appState.dispose);
+      await appState.bootstrap(force: true);
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'This level is unavailable in this build. Return to the hub and select an available level.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Run Route Placeholder'), findsNothing);
+    },
+  );
+
   testWidgets('bootstrap page replaces itself with run route on success', (
     tester,
   ) async {
@@ -193,6 +215,8 @@ class _SuccessRunSessionApi implements RunSessionApi {
 }
 
 class _ThrowingRunSessionApi implements RunSessionApi {
+  _ThrowingRunSessionApi({this.code = 'unavailable'});
+  final String code;
   int createRunSessionCalls = 0;
 
   @override
@@ -204,10 +228,7 @@ class _ThrowingRunSessionApi implements RunSessionApi {
     required String gameCompatVersion,
   }) async {
     createRunSessionCalls += 1;
-    throw const RunStartRemoteException(
-      code: 'unavailable',
-      message: 'network unavailable',
-    );
+    throw RunStartRemoteException(code: code, message: 'network unavailable');
   }
 
   @override

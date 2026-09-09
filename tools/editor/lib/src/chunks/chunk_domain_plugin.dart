@@ -7,8 +7,11 @@ import '../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../prefabs/store/prefab_store.dart';
 import '../terrain_authoring/terrain_polygon_interaction.dart';
 import '../terrain_authoring/polygon_authoring_migration_required.dart';
+import '../terrain_materials/terrain_material_domain_models.dart';
+import '../terrain_materials/terrain_material_domain_plugin.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_store.dart';
+import 'chunk_level_target.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_composition_commit.dart';
@@ -32,6 +35,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   static const String pluginId = 'chunks';
 
+  static const String createFlatStarterCommandKind = 'create_flat_starter';
+
   /// Current command for one accepted chunk-local polygon interaction commit.
   static const String commitChunkPolygonCommandKind = 'commit_chunk_polygon';
 
@@ -52,6 +57,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   final LevelStore _levelStore;
   final ParallaxStore _parallaxStore;
   String? _preferredActiveLevelId;
+  String? _preferredChunkKey;
+  String? _preferredGroupId;
 
   @override
   String get id => pluginId;
@@ -78,11 +85,28 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   /// This also requires strict prefab-v3/tile-v2 source so placement preview
   /// expands one coherent future-source generation. Normal legacy/missing
   /// source resolves to the migration-required document.
-  Future<ChunkV2Document> loadV2FromRepo(EditorWorkspace workspace) async {
-    final chunkLoad = await _store.loadV2(workspace);
+  Future<ChunkV2Document> loadV2FromRepo(
+    EditorWorkspace workspace, {
+    bool allowEmpty = false,
+    bool requireLevelSource = false,
+  }) async {
+    final chunkLoad = await _store.loadV2(workspace, allowEmpty: allowEmpty);
     final prefabLoad = await _prefabStore.loadV3(workspace.rootPath);
     final levelLoad = await _levelStore.load(workspace);
+    final levelIssues = levelLoad.loadIssues
+        .where((issue) => issue.blocks(AuthoringOperation.save))
+        .toList();
+    if (requireLevelSource && levelIssues.isNotEmpty) {
+      throw ChunkTargetException(
+        'chunk_target_level_source_invalid',
+        'Repair the Level source before opening this target.',
+        issues: levelIssues,
+      );
+    }
     final parallaxLoad = await _parallaxStore.load(workspace);
+    final materialPlugin = TerrainMaterialDomainPlugin();
+    final materials =
+        await materialPlugin.loadFromRepo(workspace) as TerrainMaterialDocument;
     final chunks = chunkLoad.sources.map((source) => source.data).toList()
       ..sort((left, right) {
         var order = left.levelId.compareTo(right.levelId);
@@ -97,8 +121,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       baselineContentsByChunkKey[source.data.chunkKey] =
           source.baselineContents;
     }
-    final availableLevelIds = chunks.map((chunk) => chunk.levelId).toSet()
-      ..removeWhere((levelId) => levelId.isEmpty);
+    final availableLevelIds = <String>{
+      ...chunks.map((chunk) => chunk.levelId),
+      ...levelLoad.levels.map((level) => level.levelId),
+    }..removeWhere((levelId) => levelId.isEmpty);
     final sortedLevelIds = availableLevelIds.toList()..sort();
     final preferredLevelId = _preferredActiveLevelId;
     final activeLevelId =
@@ -123,8 +149,77 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       parallaxThemes: parallaxLoad.themes,
       availableLevelIds: sortedLevelIds,
       activeLevelId: activeLevelId,
+      selectedChunkKey:
+          chunks.any(
+            (chunk) =>
+                chunk.chunkKey == _preferredChunkKey &&
+                chunk.levelId == activeLevelId,
+          )
+          ? _preferredChunkKey
+          : null,
+      targetGroupId: _preferredGroupId,
+      availableTerrainMaterialKeys: materials.materials.map(
+        (material) => material.key,
+      ),
+      starterMaterialIssues: materialPlugin.validate(materials),
     );
   }
+
+  /// Loads current sources for an exact authored identity, including a Level
+  /// that has no chunks yet. Legacy/mixed sources still fail strict decoding.
+  Future<ChunkV2Document> loadForLevel(
+    EditorWorkspace workspace, {
+    required ChunkLevelTarget target,
+  }) async {
+    final document = await loadV2FromRepo(
+      workspace,
+      allowEmpty: true,
+      requireLevelSource: true,
+    );
+    final level = document.levels
+        .where((level) => level.levelId == target.levelId)
+        .firstOrNull;
+    if (level == null) {
+      throw ChunkTargetException(
+        'chunk_target_level_missing',
+        'Level "${target.levelId}" is no longer present. Refresh the Level library.',
+      );
+    }
+    if (target.groupId != null &&
+        !level.chunkThemeGroups.contains(target.groupId)) {
+      throw ChunkTargetException(
+        'chunk_target_group_missing',
+        'Group "${target.groupId}" is no longer present. Choose a current group.',
+      );
+    }
+    final owner = document.chunks
+        .where((chunk) => chunk.chunkKey == target.chunkKey)
+        .firstOrNull;
+    if (target.chunkKey != null &&
+        (owner == null || owner.levelId != target.levelId)) {
+      throw ChunkTargetException(
+        'chunk_target_owner_missing',
+        'Chunk "${target.chunkKey}" is no longer owned by ${target.levelId}. '
+            'Refresh the Level contents.',
+      );
+    }
+    _preferredActiveLevelId = target.levelId;
+    _preferredChunkKey = target.chunkKey;
+    _preferredGroupId = target.groupId;
+    return document.copyWith(
+      activeLevelId: target.levelId,
+      selectedChunkKey: target.chunkKey,
+      clearSelectedChunkKey: target.chunkKey == null,
+      targetGroupId: target.groupId,
+      clearTargetGroupId: target.groupId == null,
+    );
+  }
+
+  ChunkFlatStarterIntent flatStarterIntentForLevel(
+    ChunkV2Document document, {
+    required String levelId,
+    String? groupId,
+  }) => allocateFlatStarterIntent(document, levelId: levelId, groupId: groupId);
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
@@ -193,6 +288,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       ),
       availableLevelIds: document.availableLevelIds,
       activeLevelId: document.activeLevelId,
+      selectedChunkKey: document.selectedChunkKey,
+      targetGroupId: document.targetGroupId,
     );
   }
 
@@ -222,7 +319,13 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         return document;
       }
       _preferredActiveLevelId = levelId;
-      return document.copyWith(activeLevelId: levelId);
+      _preferredChunkKey = null;
+      _preferredGroupId = null;
+      return document.copyWith(
+        activeLevelId: levelId,
+        clearSelectedChunkKey: true,
+        clearTargetGroupId: true,
+      );
     }
     return _applyV2Edit(document, command);
   }
@@ -239,9 +342,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       );
     }
     if (document is! ChunkV2Document) throw _unexpectedDocument(document);
-    final blockingIssues = validateChunkV2Document(
-      document,
-    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    final blockingIssues = validateChunkV2Document(document)
+        .where((issue) => issue.blocks(AuthoringOperation.save))
+        .toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
         'Cannot export chunk-v2 while validation has '
@@ -255,8 +358,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         artifacts: <ExportArtifact>[
           const ExportArtifact(
             title: 'chunk_summary.md',
-            content:
-                '# Chunk Export\n\nchangedChunks: 0\nchangedFiles: 0\n\nNo chunk-v2 edits detected.',
+            content: '# Chunk Export\n\nchangedChunks: 0\nchangedFiles: 0\n\nNo chunk-v2 edits detected.',
           ),
         ],
       );
@@ -305,12 +407,16 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     ChunkV2Document document,
     AuthoringCommand command,
   ) {
+    if (command.kind == createFlatStarterCommandKind) {
+      final intent = command.payload['intent'];
+      if (intent is! ChunkFlatStarterIntent) return document;
+      return _createFlatStarter(document, intent);
+    }
     if (command.kind == commitChunkLifecycleCommandKind) {
       final commit = command.payload['commit'];
       if (commit is! ChunkV2LifecycleCommit) return document;
-      final result = ChunkV2LifecycleCommitPolicy(
-        store: _store,
-      ).apply(document: document, commit: commit);
+      final result = ChunkV2LifecycleCommitPolicy(store: _store)
+          .apply(document: document, commit: commit);
       return result.accepted && result.changed ? result.document : document;
     }
     final chunkKey = command.payload['chunkKey'];
@@ -385,9 +491,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     ChunkV2Document original,
     ChunkV2Document candidate,
   ) {
-    final hasBlockingIssue = validateChunkV2Document(
-      candidate,
-    ).any((issue) => issue.severity == ValidationSeverity.error);
+    final hasBlockingIssue = validateChunkV2Document(candidate)
+        .any((issue) => issue.blocks(AuthoringOperation.save));
     if (hasBlockingIssue) return original;
     try {
       _store.buildV2SavePlan(document: candidate);
@@ -395,6 +500,62 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       return original;
     }
     return candidate;
+  }
+
+  ChunkV2Document _createFlatStarter(
+    ChunkV2Document document,
+    ChunkFlatStarterIntent intent,
+  ) {
+    if (document.activeLevelId != intent.levelId) {
+      throw const ChunkTargetException(
+        'flat_starter_active_level_changed',
+        'Open the intended Level before adding its flat starter.',
+      );
+    }
+    final existing = document.chunks
+        .where((chunk) => chunk.chunkKey == intent.chunkKey)
+        .firstOrNull;
+    if (existing != null) {
+      if (existing.levelId != intent.levelId) {
+        throw const ChunkTargetException(
+          'flat_starter_identity_collision',
+          'The reserved starter identity belongs to another Level. Refresh the target.',
+        );
+      }
+      _preferredChunkKey = existing.chunkKey;
+      _preferredGroupId = existing.assemblyGroupId;
+      if (document.selectedChunkKey == existing.chunkKey) return document;
+      return document.copyWith(
+        selectedChunkKey: existing.chunkKey,
+        targetGroupId: existing.assemblyGroupId,
+      );
+    }
+    final chunk = buildFlatStarter(document, intent);
+    final next = document.copyWith(
+      chunks: <ChunkV2FileData>[...document.chunks, chunk],
+      sourcePathByChunkKey: <String, String>{
+        ...document.sourcePathByChunkKey,
+        chunk.chunkKey: _store.canonicalV2SourcePath(chunk),
+      },
+      changedChunkKeys: <String>{...document.changedChunkKeys, chunk.chunkKey},
+      createdChunkKeys: <String>{...document.createdChunkKeys, chunk.chunkKey},
+      selectedChunkKey: chunk.chunkKey,
+      targetGroupId: chunk.assemblyGroupId,
+    );
+    final blocking = validateChunkV2Document(next)
+        .where((issue) => issue.blocks(AuthoringOperation.save))
+        .toList();
+    if (blocking.isNotEmpty) {
+      throw ChunkTargetException(
+        'flat_starter_source_invalid',
+        'Repair the reported source issues before adding a flat starter.',
+        issues: blocking,
+      );
+    }
+    _store.buildV2SavePlan(document: next);
+    _preferredChunkKey = chunk.chunkKey;
+    _preferredGroupId = chunk.assemblyGroupId;
+    return next;
   }
 
   String _buildSummary(ChunkSavePlan savePlan) {

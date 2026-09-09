@@ -49,6 +49,7 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
           if (pendingChanges.fileDiffs.length > 1) ...[
             const SizedBox(height: 8),
             DropdownButton<String>(
+              isExpanded: true,
               value: selectedDiff?.relativePath,
               items: [
                 for (final fileDiff in pendingChanges.fileDiffs)
@@ -56,6 +57,7 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
                     value: fileDiff.relativePath,
                     child: Text(
                       '${fileDiff.relativePath} (${fileDiff.editCount})',
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
               ],
@@ -78,9 +80,8 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
                 : SingleChildScrollView(
                     child: SelectableText(
                       selectedDiff.unifiedDiff,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(fontFamily: 'monospace'),
                     ),
                   ),
           ),
@@ -95,7 +96,7 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
     final artifact = _selectedArtifact(exportResult);
 
     return EditorPanelCard(
-      title: 'Apply Result',
+      title: 'Save result',
       bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,9 +104,8 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
           if (exportError != null) ...[
             SelectableText(
               exportError,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.redAccent),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: Colors.redAccent),
             ),
             const SizedBox(height: 8),
           ],
@@ -115,12 +115,13 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
             if (exportResult.artifacts.length > 1) ...[
               const SizedBox(height: 8),
               DropdownButton<String>(
+                isExpanded: true,
                 value: artifact?.title,
                 items: [
                   for (final item in exportResult.artifacts)
                     DropdownMenuItem<String>(
                       value: item.title,
-                      child: Text(item.title),
+                      child: Text(item.title, overflow: TextOverflow.ellipsis),
                     ),
                 ],
                 onChanged: (value) {

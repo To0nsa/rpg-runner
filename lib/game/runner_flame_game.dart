@@ -33,6 +33,8 @@ import 'runner_flame/live_world_sync_system.dart';
 import 'runner_flame/load_state.dart';
 import 'runner_flame/render_constants.dart';
 import 'themes/parallax_theme_registry.dart';
+import 'themes/parallax_theme.dart';
+import 'themes/terrain_material_registry.dart';
 import 'tuning/combat_feedback_tuning.dart';
 import 'util/math_util.dart' as math;
 
@@ -50,6 +52,8 @@ class RunnerFlameGame extends FlameGame {
     required this.meleeAimPreview,
     required this.playerCharacter,
     Images? imageCache,
+    this.parallaxThemes,
+    this.terrainMaterials,
     this.ghostSnapshotListenable,
     this.ghostEventsListenable,
     this.ghostReplayBlobListenable,
@@ -99,6 +103,10 @@ class RunnerFlameGame extends FlameGame {
       ghostReplayBlobListenable: ghostReplayBlobListenable,
     );
   }
+
+  /// Captured tooling catalogs; null preserves the normal generated app catalog.
+  final Map<String, ParallaxTheme>? parallaxThemes;
+  final Map<String, TerrainMaterialSpec>? terrainMaterials;
 
   /// Bridge/controller that owns the simulation and produces snapshots.
   final GameController controller;
@@ -160,6 +168,7 @@ class RunnerFlameGame extends FlameGame {
       controller: controller,
       virtualWidth: virtualWidth,
       virtualHeight: virtualHeight,
+      materials: terrainMaterials,
     )..priority = priorityStagedTerrain;
     camera.backdrop.add(_stagedTerrain!);
     _applyRenderTheme(controller.snapshot.visualThemeId);
@@ -461,7 +470,14 @@ class RunnerFlameGame extends FlameGame {
     _backgroundParallax?.removeFromParent();
     _backgroundParallax = null;
 
-    final theme = ParallaxThemeRegistry.maybeForParallaxThemeId(visualThemeId);
+    final theme = parallaxThemes == null
+        ? ParallaxThemeRegistry.maybeForParallaxThemeId(visualThemeId)
+        : parallaxThemes![visualThemeId];
+    if (parallaxThemes != null && theme == null) {
+      throw StateError(
+        'Captured parallax theme "$visualThemeId" is unavailable.',
+      );
+    }
     if (theme == null) {
       return;
     }

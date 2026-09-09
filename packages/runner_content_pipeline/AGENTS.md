@@ -16,6 +16,14 @@ package. Preserve deterministic ordering, exact signatures, strict Prefab-v3
 and Chunk-v2 validation, and generated-byte parity when changing the pipeline.
 Do not add legacy schema fallback paths.
 
+Repository generation validates all source schemas, identities and individual
+geometry even for excluded levels. The separate runtime batch contains only
+active chunks of included levels and must pass scheduler/seam readiness. Keep
+`isRuntimeEligibleChunkStatus` shared by generation, authored Play and editor
+capacity admission; deprecation cannot contribute to a runtime pool. The root
+generator owns Level schema migration, stable enum availability and the policy
+requiring included playable content before publication.
+
 Validate changes with:
 
 ```powershell

@@ -66,7 +66,7 @@ void main() {
 
       expect(snapshot.runId, 0);
       expect(snapshot.seed, scenario.seed);
-      expect(snapshot.levelId, LevelId.forest);
+      expect(snapshot.levelIdentity.requireRegisteredId(), LevelId.forest);
       expect(snapshot.visualThemeId, 'forest_chunk_playtest');
       expect(
         snapshot.staticPrefabSprites.where(
@@ -179,6 +179,9 @@ void main() {
       ),
     ];
     final scenario = ChunkPlaytestScenario(
+      terrainChunks: stagedAuthoredTerrain.chunks.where(
+        (chunk) => chunk.levelId == 'forest',
+      ),
       levelDefinition: LevelRegistry.byId(LevelId.forest),
       visualThemeId: 'forest_chunk_playtest',
       seed: 4401,
@@ -213,7 +216,7 @@ void main() {
     expect(
       () => _scenario(draftTerrain: _draftTerrain(status: 'deprecated')),
       throwsA(
-        isA<ChunkPlaytestScenarioException>().having(
+        isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
           'chunk_playtest_selected_chunk_inactive',
@@ -223,7 +226,7 @@ void main() {
     expect(
       () => _scenario(draftTerrain: _draftTerrain(breakRightBoundary: true)),
       throwsA(
-        isA<ChunkPlaytestScenarioException>().having(
+        isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
           'staged_reachable_seam_mismatch',
@@ -236,7 +239,7 @@ void main() {
     expect(
       () => _scenario(draftTerrain: _draftTerrain(levelId: 'field')),
       throwsA(
-        isA<ChunkPlaytestScenarioException>().having(
+        isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
           'chunk_playtest_selected_level_mismatch',
@@ -246,7 +249,7 @@ void main() {
     expect(
       () => _scenario(draftTerrain: _draftTerrain(assemblyGroupId: 'woodcamp')),
       throwsA(
-        isA<ChunkPlaytestScenarioException>().having(
+        isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
           'chunk_playtest_selected_group_mismatch',
@@ -256,7 +259,7 @@ void main() {
     expect(
       () => _scenario(draftTerrain: _draftTerrain(width: 599)),
       throwsA(
-        isA<ChunkPlaytestScenarioException>().having(
+        isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
           'chunk_playtest_selected_width_mismatch',
@@ -270,6 +273,9 @@ ChunkPlaytestScenario _scenario({
   LevelDefinition? levelDefinition,
   StagedTerrainChunkData? draftTerrain,
 }) => ChunkPlaytestScenario(
+  terrainChunks: stagedAuthoredTerrain.chunks.where(
+    (chunk) => chunk.levelId == 'forest',
+  ),
   levelDefinition: levelDefinition ?? LevelRegistry.byId(LevelId.forest),
   visualThemeId: 'forest_chunk_playtest',
   seed: 4401,
@@ -389,7 +395,7 @@ String _snapshotRecord(GameCore core) {
     snapshot.tick,
     snapshot.runId,
     snapshot.seed,
-    snapshot.levelId,
+    snapshot.levelIdentity,
     snapshot.visualThemeId,
     snapshot.distance,
     snapshot.paused,

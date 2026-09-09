@@ -1,6 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../domain/authoring_types.dart';
+import '../../../session/editor_session_controller.dart';
+
 /// Implemented by route pages that keep authoring drafts outside the shared
 /// [EditorSessionController].
 ///
@@ -33,7 +36,7 @@ abstract interface class EditorPageSessionShortcutHandler {
 ///
 /// Most routes can reload by calling [EditorSessionController.loadWorkspace].
 /// Pages that project extra local state over the controller, such as prefab
-/// authoring, can implement this so shell-owned reload/apply flows keep page
+/// authoring, can implement this so shell-owned Reload/Save flows keep page
 /// state and controller state in sync.
 abstract interface class EditorPageReloadHandler {
   bool get canReloadEditorPage;
@@ -41,16 +44,57 @@ abstract interface class EditorPageReloadHandler {
   Future<void> reloadEditorPage();
 }
 
-/// Implemented by routes whose Apply To Files action needs page-owned guards,
-/// confirmation, or post-export state reconciliation.
+/// The result of resolving visible input and saving a route's source document.
+///
+/// A committed save whose refresh failed cannot authorize departure: the
+/// retained page is still needed to reconcile its inputs against canonical data.
+enum EditorPageSaveResult {
+  saved,
+  noChanges,
+  blocked,
+  failed,
+  savedRefreshFailed;
+
+  bool get permitsDeparture =>
+      this == EditorPageSaveResult.saved ||
+      this == EditorPageSaveResult.noChanges;
+
+  /// Converts the session's completed export into a navigation-safe result.
+  /// Callers must first resolve every local field or return [blocked].
+  static EditorPageSaveResult fromSession(EditorSessionController controller) {
+    if (controller.requiresSavedRefresh) return savedRefreshFailed;
+    if (controller.exportError != null ||
+        controller.requiresTransactionRecovery) {
+      return failed;
+    }
+    final result = controller.lastExportResult;
+    if (result == null) return blocked;
+    if (result.outcome.isFailure) return failed;
+    if (controller.pendingChanges.hasChanges) return blocked;
+    return result.applied ? saved : noChanges;
+  }
+}
+
+/// Implemented by routes whose Save action needs page-owned input validation
+/// or post-export state reconciliation.
 ///
 /// The home shell renders the common control, while this contract keeps
 /// domain-specific safety checks and user feedback with the page that owns
 /// them. Repository writes still flow through [EditorSessionController].
-abstract interface class EditorPageApplyHandler {
-  bool get canApplyEditorPage;
+abstract interface class EditorPageSaveHandler {
+  bool get canSaveEditorPage;
 
-  Future<void> applyEditorPage();
+  Future<EditorPageSaveResult> saveEditorPage();
+}
+
+/// Friendly document-wide scope, including accepted edits and local input.
+///
+/// The page resolves opaque domain IDs to names; the shell displays this same
+/// scope beside Save and before Save all/Discard all navigation decisions.
+abstract interface class EditorPagePendingChangesSummary {
+  String get pendingChangesSummary;
+
+  List<String> get pendingChangeDescriptions;
 }
 
 /// Implemented by a route that temporarily owns shell shortcuts and locking.
@@ -59,7 +103,7 @@ abstract interface class EditorPageApplyHandler {
 /// page receives commands only while its route is current and no modal or
 /// editable text field owns the event.
 abstract interface class EditorPagePlaytestHandler {
-  /// Prevents route, reload, apply, undo, and redo transitions while true.
+  /// Prevents route, Reload, Save, Undo, and redo transitions while true.
   bool get locksEditorShell;
 
   /// Handles one unmodified host key-down admitted by the home shell.

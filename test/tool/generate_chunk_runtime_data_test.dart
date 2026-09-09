@@ -3,7 +3,376 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../tool/level_definition_generation.dart' as level_source;
+
 void main() {
+  test(
+    'machine reports exact included/excluded source and content freshness',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'build_machine_report_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      Future<Map<String, dynamic>> run({bool dryRun = false}) async {
+        final result = await Process.run(_resolveDartExecutable(), [
+          File('tool/generate_chunk_runtime_data.dart').absolute.path,
+          '--machine-readable',
+          if (dryRun) '--dry-run',
+        ], workingDirectory: root.path);
+        final records = const LineSplitter()
+            .convert(result.stdout as String)
+            .map((line) => jsonDecode(line) as Map<String, dynamic>)
+            .toList();
+        expect(
+          records.every((record) => record['protocolVersion'] == 1),
+          isTrue,
+        );
+        final report = records.singleWhere(
+          (record) => record['type'] == 'result',
+        );
+        expect(report['inputFingerprint'], matches(RegExp(r'^[a-f0-9]{64}$')));
+        return report;
+      }
+
+      final generated = await run();
+      expect(generated['outcome'], 'built');
+      expect(generated['outputsCommitted'], isTrue);
+      final levels = (generated['levels'] as List).cast<Map<String, dynamic>>();
+      expect(
+        levels.singleWhere((l) => l['levelId'] == 'field')['includeInBuild'],
+        isTrue,
+      );
+      expect(
+        levels.singleWhere((l) => l['levelId'] == 'forest')['includeInBuild'],
+        isFalse,
+      );
+      final current = await run(dryRun: true);
+      expect(current['outcome'], 'current');
+      expect(current['inputFingerprint'], generated['inputFingerprint']);
+      final output = File(
+        '${root.path}/${(generated['outputs'] as List).first}',
+      );
+      output.writeAsStringSync('modified generated output');
+      final drift = await run(dryRun: true);
+      expect(drift['outcome'], 'drift');
+      expect(drift['outputsCommitted'], isFalse);
+      expect(drift['changes'], isNotEmpty);
+      _updateLevelSource(root.path, (level) => level['includeInBuild'] = true);
+      final invalid = await run();
+      expect(invalid['outcome'], 'invalid');
+      expect(
+        (invalid['issues'] as List)
+            .where(
+              (issue) => issue['code'] == 'included_level_has_no_active_chunks',
+            )
+            .single['levelId'],
+        'forest',
+      );
+      expect(output.readAsStringSync(), 'modified generated output');
+    },
+  );
+
+  test(
+    'machine cancellation finishes without publishing any generated output',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'build_machine_cancel_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      final process = await Process.start(_resolveDartExecutable(), [
+        File('tool/generate_chunk_runtime_data.dart').absolute.path,
+        '--machine-readable',
+      ], workingDirectory: root.path);
+      final output = process.stdout.transform(utf8.decoder).join();
+      final errors = process.stderr.transform(utf8.decoder).join();
+      process.stdin.writeln('cancel');
+      await process.stdin.close();
+      expect(await process.exitCode, 1);
+      await errors;
+      final records = const LineSplitter()
+          .convert(await output)
+          .map((line) => jsonDecode(line) as Map<String, dynamic>);
+      final report = records.singleWhere(
+        (record) => record['type'] == 'result',
+      );
+      expect(report['outcome'], 'cancelled');
+      expect(report['outputsCommitted'], isFalse);
+      expect(
+        Directory('${root.path}/packages/runner_core/lib').existsSync(),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'source additions during generation cancel before output replacement',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'build_machine_drift_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      final process = await Process.start(_resolveDartExecutable(), [
+        File('tool/generate_chunk_runtime_data.dart').absolute.path,
+        '--machine-readable',
+      ], workingDirectory: root.path);
+      var edited = false;
+      final reports = <Map<String, dynamic>>[];
+      final readOutput = process.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .forEach((line) {
+            final report = jsonDecode(line) as Map<String, dynamic>;
+            reports.add(report);
+            if (report['phase'] == 'validating') {
+              _writeFile(
+                root.path,
+                'assets/authoring/level/concurrent_source.json',
+                '{}',
+              );
+              edited = true;
+            }
+          });
+      final errors = process.stderr.transform(utf8.decoder).join();
+      expect(await process.exitCode, 1);
+      await readOutput;
+      await errors;
+      expect(edited, isTrue);
+      final report = reports.singleWhere(
+        (record) => record['type'] == 'result',
+      );
+      expect(report['outcome'], 'stale');
+      expect(report['outputsCommitted'], isFalse);
+      expect(
+        Directory('${root.path}/packages/runner_core/lib').existsSync(),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'excluded Field keeps enum metadata while Forest supplies runtime defaults',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'level_inclusion_defaults_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      _updateLevelSource(root.path, (level) {
+        level['includeInBuild'] = level['levelId'] == 'forest';
+      });
+      _writeCurrentChunkFixture(
+        root.path,
+        'assets/authoring/level/chunks/forest/ready.json',
+        '{"chunkKey":"forest_ready","id":"forest_ready","levelId":"forest","difficulty":"early"}',
+      );
+
+      final generated = await _runGenerate(workingDirectory: root.path);
+
+      expect(generated.exitCode, 0, reason: generated.stderr);
+      final registry = File(
+        _joinPath(<String>[
+          root.path,
+          'packages/runner_core/lib/levels/level_registry.dart',
+        ]),
+      ).readAsStringSync();
+      expect(registry, contains('defaultLevelId = LevelId.forest'));
+      expect(
+        registry,
+        contains(
+          'case LevelId.field:\n        throw LevelUnavailableException(id);',
+        ),
+      );
+      final enums = File(
+        _joinPath(<String>[
+          root.path,
+          'packages/runner_core/lib/levels/level_id.dart',
+        ]),
+      ).readAsStringSync();
+      expect(enums, contains('enum LevelId { forest, field }'));
+      final metadata = File(
+        _joinPath(<String>[
+          root.path,
+          'lib/ui/levels/generated_level_ui_metadata.dart',
+        ]),
+      ).readAsStringSync();
+      expect(metadata, contains('LevelId.field: GeneratedLevelUiMetadata'));
+      expect(
+        metadata,
+        contains(
+          'generatedSelectableLevelIds = <LevelId>[\n  LevelId.forest,\n]',
+        ),
+      );
+      for (final output in <String>[
+        'authored_chunk_patterns.dart',
+        'staged_authored_terrain.dart',
+      ]) {
+        final content = File(
+          _joinPath(<String>[
+            root.path,
+            'packages/runner_core/lib/track',
+            output,
+          ]),
+        ).readAsStringSync();
+        expect(content, contains('forest_ready'));
+        expect(content, isNot(contains('chunk_ok')));
+      }
+      final probe = await _runCompiledRegistryProbe(root.path, '''
+  if (LevelRegistry.defaultLevelId != LevelId.forest) throw StateError('wrong default');
+  if (LevelRegistry.isAvailable(LevelId.field)) throw StateError('excluded available');
+  try {
+    LevelRegistry.byId(LevelId.field);
+    throw StateError('excluded definition constructed');
+  } on LevelUnavailableException catch (error) {
+    if (error.levelId != LevelId.field) throw StateError('identity substituted');
+  }
+  if (LevelRegistry.byId(LevelId.forest).identity.requireRegisteredId() != LevelId.forest) {
+    throw StateError('included identity changed');
+  }
+''');
+      expect(probe.exitCode, 0, reason: probe.stderr);
+    },
+  );
+
+  test('excluded incomplete design resumes with the same rules and blocks inclusion until ready', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'level_inclusion_resume_',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    _writeValidSmokeFixture(root.path);
+    _updateLevelSource(root.path, (level) {
+      if (level['levelId'] == 'forest') {
+        level['assembly'] = <String, Object?>{
+          'loopSegments': true,
+          'segments': <Object?>[
+            <String, Object?>{
+              'segmentId': 'opening',
+              'groupId': 'default',
+              'minChunkCount': 2,
+              'maxChunkCount': 2,
+              'requireDistinctChunks': true,
+            },
+          ],
+        };
+      }
+    });
+    final source = File(
+      _joinPath(<String>[root.path, 'assets/authoring/level/level_defs.json']),
+    );
+    final excludedSource = source.readAsStringSync();
+    expect((await _runGenerate(workingDirectory: root.path)).exitCode, 0);
+    _updateLevelSource(root.path, (level) {
+      level['includeInBuild'] = true;
+    });
+    final failed = await _runGenerate(workingDirectory: root.path);
+    expect(failed.exitCode, 1);
+    expect(failed.stderr, contains('included_level_has_no_active_chunks'));
+    expect(
+      source.readAsStringSync(),
+      excludedSource.replaceFirst(
+        '"includeInBuild": false',
+        '"includeInBuild": true',
+      ),
+    );
+    for (var index = 1; index <= 2; index++) {
+      _writeCurrentChunkFixture(
+        root.path,
+        'assets/authoring/level/chunks/forest/ready_$index.json',
+        '{"chunkKey":"ready_$index","id":"ready_$index","levelId":"forest","difficulty":"early"}',
+      );
+    }
+    final ready = await _runGenerate(workingDirectory: root.path);
+    expect(ready.exitCode, 0, reason: ready.stderr);
+    expect(
+      source.readAsStringSync(),
+      excludedSource.replaceFirst(
+        '"includeInBuild": false',
+        '"includeInBuild": true',
+      ),
+    );
+    _updateLevelSource(root.path, (level) {
+      if (level['levelId'] == 'forest') level['status'] = 'deprecated';
+    });
+    final deprecated = await _runGenerate(workingDirectory: root.path);
+    expect(deprecated.exitCode, 0, reason: deprecated.stderr);
+    final probe = await _runCompiledRegistryProbe(root.path, '''
+  if (!LevelRegistry.isAvailable(LevelId.forest)) throw StateError('deprecated unavailable');
+  if (LevelRegistry.byId(LevelId.forest).identity.requireRegisteredId() != LevelId.forest) {
+    throw StateError('deprecated identity changed');
+  }
+  if (LevelRegistry.defaultLevelId != LevelId.field) throw StateError('deprecated default');
+''');
+    expect(probe.exitCode, 0, reason: probe.stderr);
+  });
+
+  test(
+    'all excluded and included-empty levels cannot replace generated outputs',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'level_inclusion_rejection_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      expect((await _runGenerate(workingDirectory: root.path)).exitCode, 0);
+      final registry = File(
+        _joinPath(<String>[
+          root.path,
+          'packages/runner_core/lib/levels/level_registry.dart',
+        ]),
+      );
+      final before = registry.readAsStringSync();
+      _updateLevelSource(root.path, (level) {
+        level['includeInBuild'] = false;
+      });
+      final excluded = await _runGenerate(workingDirectory: root.path);
+      expect(excluded.exitCode, 1);
+      expect(excluded.stderr, contains('no_included_active_level'));
+      expect(registry.readAsStringSync(), before);
+      _updateLevelSource(root.path, (level) {
+        level['includeInBuild'] = level['levelId'] == 'forest';
+      });
+      final empty = await _runGenerate(workingDirectory: root.path);
+      expect(empty.exitCode, 1);
+      expect(empty.stderr, contains('included_level_has_no_active_chunks'));
+      expect(registry.readAsStringSync(), before);
+    },
+  );
+
+  test(
+    'excluded structural corruption and deprecated chunk capacity stay strict',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'level_inclusion_structure_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      _writeCurrentChunkFixture(
+        root.path,
+        'assets/authoring/level/chunks/forest/bad.json',
+        '{"chunkKey":"bad","id":"bad","levelId":"forest","difficulty":"early","unknown":true}',
+      );
+      final corrupt = await _runGenerate(workingDirectory: root.path);
+      expect(corrupt.exitCode, 1);
+      expect(corrupt.stderr, contains('chunk_source_invalid'));
+      expect(corrupt.stderr, contains('forest/bad.json'));
+      _writeCurrentChunkFixture(
+        root.path,
+        'assets/authoring/level/chunks/forest/bad.json',
+        '{"chunkKey":"bad","id":"bad","levelId":"forest","difficulty":"early","status":"deprecated"}',
+      );
+      final excluded = await _runGenerate(workingDirectory: root.path);
+      expect(excluded.exitCode, 0, reason: excluded.stderr);
+      _updateLevelSource(root.path, (level) {
+        level['includeInBuild'] = true;
+      });
+      final included = await _runGenerate(workingDirectory: root.path);
+      expect(included.exitCode, 1);
+      expect(included.stderr, contains('included_level_has_no_active_chunks'));
+    },
+  );
+
   test('generator dry-run validates chunk contract smoke input', () async {
     final fixtureRoot = await Directory.systemTemp.createTemp(
       'chunk_generator_smoke_',
@@ -565,7 +934,7 @@ void main() {
         levelRegistryOutput,
         contains(
           'defaultChunkPatternSource =\n'
-          '    authoredChunkPatternSourceForLevel(LevelId.field.name);',
+          '    authoredChunkPatternSourceForLevel(LevelRegistry.defaultLevelId.name);',
         ),
       );
       expect(levelRegistryOutput, contains('case LevelId.forest:'));
@@ -1010,6 +1379,74 @@ void _writeValidSmokeFixture(String rootPath) {
   );
 }
 
+Future<ProcessResult> _runCompiledRegistryProbe(
+  String rootPath,
+  String checks,
+) async {
+  final coreSource = Directory('packages/runner_core/lib').absolute;
+  final fixtureCore = Directory(
+    _joinPath(<String>[rootPath, 'packages/runner_core/lib']),
+  );
+  for (final entity in coreSource.listSync(
+    recursive: true,
+    followLinks: false,
+  )) {
+    if (entity is! File || !entity.path.endsWith('.dart')) continue;
+    final relative = entity.path.substring(coreSource.path.length + 1);
+    final target = File(_joinPath(<String>[fixtureCore.path, relative]));
+    if (target.existsSync()) continue;
+    target.parent.createSync(recursive: true);
+    entity.copySync(target.path);
+  }
+  final configFile = File('.dart_tool/package_config.json').absolute;
+  final config =
+      jsonDecode(configFile.readAsStringSync()) as Map<String, Object?>;
+  for (final entry in config['packages'] as List<Object?>) {
+    final package = entry as Map<String, Object?>;
+    package['rootUri'] = package['name'] == 'runner_core'
+        ? fixtureCore.parent.uri.toString()
+        : configFile.uri.resolve(package['rootUri'] as String).toString();
+  }
+  _writeFile(rootPath, '.dart_tool/package_config.json', jsonEncode(config));
+  _writeFile(rootPath, 'registry_probe.dart', '''
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/levels/level_availability.dart';
+void main() {
+$checks
+}
+''');
+  return Process.run(_resolveDartExecutable(), <String>[
+    'registry_probe.dart',
+  ], workingDirectory: rootPath);
+}
+
+void _updateLevelSource(
+  String rootPath,
+  void Function(Map<String, Object?>) mutate,
+) {
+  final path = _joinPath(<String>[
+    rootPath,
+    'assets/authoring/level/level_defs.json',
+  ]);
+  final file = File(path);
+  final decoded = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
+  for (final entry in decoded['levels'] as List<Object?>) {
+    mutate(entry as Map<String, Object?>);
+  }
+  final parsed = level_source.decodeLevelDefinitions(
+    jsonEncode(decoded),
+    defsPath: path,
+  );
+  expect(
+    parsed.issues.where((issue) => issue.code != 'non_canonical_level_defs'),
+    isEmpty,
+  );
+  file.writeAsStringSync(
+    level_source.renderCanonicalLevelDefsJson(parsed.levels),
+  );
+}
+
 Future<ProcessResult> _runDryRun({required String workingDirectory}) {
   final scriptPath = _joinPath(<String>[
     Directory.current.path,
@@ -1122,7 +1559,7 @@ void _writeTerrainMaterialDefs(String rootPath) {
 void _writeLevelDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -1137,6 +1574,7 @@ void _writeLevelDefs(String rootPath) {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active"
     },
     {
@@ -1152,6 +1590,7 @@ void _writeLevelDefs(String rootPath) {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": false,
       "status": "active"
     }
   ]
@@ -1162,7 +1601,7 @@ void _writeLevelDefs(String rootPath) {
 void _writeLevelDefsWithAssembly(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -1177,6 +1616,7 @@ void _writeLevelDefsWithAssembly(String rootPath) {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active",
       "assembly": {
         "loopSegments": true,
@@ -1204,6 +1644,7 @@ void _writeLevelDefsWithAssembly(String rootPath) {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": false,
       "status": "active"
     }
   ]

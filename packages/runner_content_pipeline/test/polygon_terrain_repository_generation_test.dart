@@ -73,7 +73,131 @@ void main() {
     expect(result.chunks, hasLength(1));
     expect(result.chunks.single.compiled.geometry.polygons, hasLength(1));
   });
+
+  test(
+    'excluded unfinished seams are validated individually but not published',
+    () {
+      final excluded = _experiment(included: false);
+      expect(excluded.issues, isEmpty);
+      expect(excluded.chunks, hasLength(3));
+      expect(
+        excluded.validatedBatch!.chunks.map((chunk) => chunk.chunk.levelId),
+        <String>['field'],
+      );
+      expect(
+        excluded.validatedBatch!.seamSignature.canonicalRecord,
+        isNot(contains('forest')),
+      );
+
+      final included = _experiment(included: true);
+      expect(included.validatedBatch, isNull);
+      expect(
+        included.issues.map((issue) => issue.code),
+        contains('staged_reachable_seam_mismatch'),
+      );
+    },
+  );
+
+  test(
+    'excluded invalid geometry and duplicate identities still block the batch',
+    () {
+      final invalid = _experiment(
+        included: false,
+        experimentChunk: _edgeChunk.replaceFirst(
+          '"x": 80, "y": 40',
+          '"x": -2, "y": 40',
+        ),
+      );
+      expect(invalid.issues, isNotEmpty);
+      expect(invalid.validatedBatch, isNull);
+      final duplicate = _experiment(
+        included: false,
+        experimentChunk: _emptyEasyChunk,
+      );
+      expect(
+        duplicate.issues.map((issue) => issue.code),
+        contains('staged_seam_chunk_duplicate'),
+      );
+      expect(duplicate.validatedBatch, isNull);
+    },
+  );
+
+  test(
+    'deprecated chunks cannot satisfy capacity or enter generated terrain',
+    () {
+      final result = _experiment(
+        included: false,
+        extraChunk: _emptyChunk
+            .replaceAll('"empty"', '"deprecated"')
+            .replaceFirst('"forest"', '"field"')
+            .replaceFirst('"active"', '"deprecated"'),
+      );
+      expect(result.issues, isEmpty);
+      expect(result.chunks, hasLength(4));
+      expect(result.validatedBatch!.chunks, hasLength(1));
+
+      final empty = buildPolygonTerrainRepository(
+        prefabSourcePath: 'assets/authoring/level/prefab_defs.json',
+        prefabContents: _emptyPrefabs,
+        chunkInputs: <PolygonTerrainRepositoryChunkInput>[
+          PolygonTerrainRepositoryChunkInput(
+            sourcePath: 'assets/authoring/level/chunks/forest/empty.json',
+            contents: _emptyChunk.replaceFirst('"active"', '"deprecated"'),
+          ),
+        ],
+        levels: <PolygonTerrainSchedulerLevelSource>[_level()],
+        schedulerSourcePath: 'assets/authoring/level/level_defs.json',
+      );
+      expect(empty.issues, isEmpty);
+      expect(empty.chunks, hasLength(1));
+      expect(empty.validatedBatch!.chunks, isEmpty);
+    },
+  );
 }
+
+PolygonTerrainRepositoryGenerationResult _experiment({
+  required bool included,
+  String experimentChunk = _edgeChunk,
+  String? extraChunk,
+}) => buildPolygonTerrainRepository(
+  prefabSourcePath: 'assets/authoring/level/prefab_defs.json',
+  prefabContents: _emptyPrefabs,
+  chunkInputs: <PolygonTerrainRepositoryChunkInput>[
+    PolygonTerrainRepositoryChunkInput(
+      sourcePath: 'assets/authoring/level/chunks/field/empty.json',
+      contents: _emptyChunk.replaceFirst('"forest"', '"field"'),
+    ),
+    PolygonTerrainRepositoryChunkInput(
+      sourcePath: 'assets/authoring/level/chunks/forest/early.json',
+      contents: experimentChunk,
+    ),
+    const PolygonTerrainRepositoryChunkInput(
+      sourcePath: 'assets/authoring/level/chunks/forest/easy.json',
+      contents: _emptyEasyChunk,
+    ),
+    if (extraChunk != null)
+      PolygonTerrainRepositoryChunkInput(
+        sourcePath: 'assets/authoring/level/chunks/field/deprecated.json',
+        contents: extraChunk,
+      ),
+  ],
+  levels: <PolygonTerrainSchedulerLevelSource>[
+    const PolygonTerrainSchedulerLevelSource(
+      levelId: 'field',
+      earlyPatternChunks: 0,
+      easyPatternChunks: 0,
+      normalPatternChunks: 0,
+    ),
+    PolygonTerrainSchedulerLevelSource(
+      levelId: 'forest',
+      earlyPatternChunks: 1,
+      easyPatternChunks: 1,
+      normalPatternChunks: 0,
+      includeInBuild: included,
+    ),
+  ],
+  schedulerSourcePath: 'assets/authoring/level/level_defs.json',
+);
 
 PolygonTerrainSchedulerLevelSource _level({int earlyPatternChunks = 0}) =>
     PolygonTerrainSchedulerLevelSource(

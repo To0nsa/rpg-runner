@@ -5,14 +5,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:runner_editor/src/app/pages/parallaxEditor/parallax_editor_page.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
+import 'test_support/level_parallax_fixture.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/domain/authoring_session_semantics.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_plugin.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('Save includes focused Parallax input and invalid text blocks history and writes', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = (await tester.runAsync(() => createLevelParallaxTestSession(ParallaxDomainPlugin())))!;
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      // Complete already-started file reads in both the real I/O zone and the
+      // widget fake-async zone before the fixture removes its source images.
+      for (var frame = 0; frame < 6; frame++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+        await tester.pump();
+      }
+    });
+    final pageKey = GlobalKey();
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: ParallaxEditorPage(
+      key: pageKey, controller: controller,
+      previewBuilder: ({required workspaceRootPath, required theme}) => const SizedBox(),
+    ))));
+    await tester.pumpAndSettle();
+    final opacity = _textFieldByLabel('opacity');
+    await tester.enterText(opacity, '0.6');
+    final save = pageKey.currentState! as EditorPageSaveHandler;
+    expect(save.canSaveEditorPage, isTrue);
+    expect(await tester.runAsync(save.saveEditorPage), EditorPageSaveResult.saved);
+    await tester.pumpAndSettle();
+    expect((controller.document! as ParallaxDefsDocument).themes.first.layers.single.opacity, 0.6);
+    final savedWrites = controller.sourceWriteCount;
+    await tester.enterText(opacity, '0.8');
+    expect(await tester.runAsync(save.saveEditorPage), EditorPageSaveResult.saved);
+    await tester.pumpAndSettle();
+    expect((controller.document! as ParallaxDefsDocument).themes.first.layers.single.opacity, 0.8);
+    expect(controller.sourceWriteCount, savedWrites + 1);
+    final accepted = controller.document;
+    await tester.enterText(opacity, 'not a number');
+    expect(await tester.runAsync(save.saveEditorPage), EditorPageSaveResult.blocked);
+    expect(controller.document, same(accepted));
+    final shortcuts = pageKey.currentState! as EditorPageSessionShortcutHandler;
+    expect(shortcuts.handleUndoSessionShortcut(), isTrue);
+    await tester.pump();
+    expect(controller.document, same(accepted));
+    expect(tester.widget<TextField>(opacity).controller!.text, 'not a number');
+    expect(controller.sourceWriteCount, savedWrites + 1);
+  });
+
   testWidgets('parallax editor switches levels and edits layers', (
     tester,
   ) async {
@@ -125,7 +174,7 @@ void main() {
     );
     await tester.enterText(_textFieldByLabel('parallaxFactor').first, '1.1');
     await tester.enterText(_textFieldByLabel('zOrder').first, '20');
-    await tester.tap(find.text('Apply Layer'));
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await _flush(tester);
 
     scene = controller.scene as ParallaxScene;
@@ -217,7 +266,16 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
   },
 );
 
-class _InMemoryParallaxPlugin implements AuthoringDomainPlugin {
+class _InMemoryParallaxPlugin
+    implements AuthoringDomainPlugin, AuthoringSessionSemantics {
+  @override
+  bool isPresentationCommand(AuthoringCommand command) =>
+      command.kind == 'set_active_level';
+  @override
+  AuthoringDocument retainPresentation({
+    required AuthoringDocument current,
+    required AuthoringDocument restored,
+  }) => restored;
   _InMemoryParallaxPlugin(this._initialDocument);
 
   final ParallaxDefsDocument _initialDocument;

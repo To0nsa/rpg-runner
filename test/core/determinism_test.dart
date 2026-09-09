@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
+
 import '../support/test_level.dart';
+
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -14,7 +16,7 @@ String _digest(GameCore core) {
     'dist=${s.distance.toStringAsFixed(6)}',
     'camx=${s.camera.centerX.toStringAsFixed(6)}',
     'camy=${s.camera.centerY.toStringAsFixed(6)}',
-    'level=${s.levelId.name}',
+    'level=${s.levelIdentity.value}',
     'theme=${s.visualThemeId}',
     'hp=${s.hud.hp.toStringAsFixed(6)}',
     'mana=${s.hud.mana.toStringAsFixed(6)}',

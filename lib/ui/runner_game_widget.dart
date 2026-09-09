@@ -16,6 +16,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
+
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_gameplay_action.dart';
@@ -416,8 +417,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       if (!mounted) return;
       setState(() {
         _runReplayJournalInFlight = false;
-        _runReplayJournalError =
-            'Replay saving prerequisites were unavailable. Retry before leaving.';
+        _runReplayJournalError = 'Replay saving prerequisites were unavailable. Retry before leaving.';
         _runSubmissionStatus = RunSubmissionStatus(
           runSessionId: _runSessionId,
           phase: RunSubmissionPhase.internalError,
@@ -783,8 +783,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _showRestartFailure(Object error) {
-    final message =
-        error is RunStartRemoteException && error.isPreconditionFailed
+    final message = error is RunStartRemoteException && error.isLevelUnavailable
+        ? 'This level is unavailable in this build. Return to the hub and select an available level.'
+        : error is RunStartRemoteException && error.isPreconditionFailed
         ? 'Run restart requirements changed. Return to hub and start a new run.'
         : 'Unable to restart run right now. Check your connection and try again.';
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -1014,7 +1015,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     restartInProgress: _restartInFlight,
                     onExit: widget.onExit,
                     showExitButton: widget.showExitButton,
-                    levelId: _controller.snapshot.levelId,
+                    levelId: _controller.snapshot.levelIdentity
+                        .requireRegisteredId(),
                     runMode: _runMode,
                     runEndedEvent: runEndedEvent,
                     scoreTuning: _controller.scoreTuning,

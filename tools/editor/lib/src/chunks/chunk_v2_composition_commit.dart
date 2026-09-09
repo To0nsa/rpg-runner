@@ -118,7 +118,7 @@ final class ChunkV2CompositionCommitPolicy {
     final chunks = document.chunks.toList(growable: false);
     chunks[chunkIndex] = nextChunk;
     final issues = validateChunkV2Document(document.copyWith(chunks: chunks));
-    if (issues.any((issue) => issue.severity == ValidationSeverity.error)) {
+    if (issues.any((issue) => issue.blocks(AuthoringOperation.save))) {
       return ChunkV2CompositionCommitResult(
         chunk: chunk,
         accepted: false,

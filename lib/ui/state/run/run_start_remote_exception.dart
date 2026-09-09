@@ -20,6 +20,8 @@ class RunStartRemoteException implements Exception {
   bool get isPreconditionFailed =>
       code == 'failed-precondition' || code == 'aborted';
 
+  bool get isLevelUnavailable => code == 'level-unavailable';
+
   @override
   String toString() {
     final resolvedMessage = message?.trim();

@@ -943,6 +943,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       ticket.levelId,
       fieldName: 'runTicket.levelId',
     );
+    // Missing compiled content is worker configuration failure, not replay fraud.
+    LevelRegistry.requireAvailable(levelId);
     final characterId = _enumByName(
       PlayerCharacterId.values,
       ticket.playerCharacterId,

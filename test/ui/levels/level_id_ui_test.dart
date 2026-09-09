@@ -29,12 +29,18 @@ void main() {
     },
   );
 
-  test(
-    'LevelIdUi visualThemeId stays aligned with runtime registry theme lookup',
-    () {
-      for (final levelId in LevelId.values) {
-        expect(levelId.visualThemeId, LevelRegistry.byId(levelId).visualThemeId ?? 'field');
+  test('LevelIdUi theme metadata stays readable independently of runtime availability', () {
+    for (final levelId in LevelId.values) {
+      expect(
+        levelId.visualThemeId,
+        generatedLevelUiMetadataFor(levelId).visualThemeId,
+      );
+      if (LevelRegistry.isAvailable(levelId)) {
+        expect(
+          levelId.visualThemeId,
+          LevelRegistry.byId(levelId).visualThemeId,
+        );
       }
-    },
-  );
+    }
+  });
 }

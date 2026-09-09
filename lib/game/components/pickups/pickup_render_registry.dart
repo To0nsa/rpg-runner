@@ -8,22 +8,21 @@ import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/pickups/pickup_render_catalog.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
+
 import '../sprite_anim/deterministic_anim_view.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 
-typedef PickupAnimLoader =
-    Future<SpriteAnimSet> Function(
-      Images images, {
-      required RenderAnimSetDefinition renderAnim,
-      required Set<AnimKey> oneShotKeys,
-    });
+typedef PickupAnimLoader = Future<SpriteAnimSet> Function(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+  required Set<AnimKey> oneShotKeys,
+});
 
-typedef PickupViewFactory =
-    DeterministicAnimView Function(
-      SpriteAnimSet animSet,
-      Vector2 renderScale,
-    );
+typedef PickupViewFactory = DeterministicAnimView Function(
+  SpriteAnimSet animSet,
+  Vector2 renderScale,
+);
 
 DeterministicAnimView _defaultPickupViewFactory(
   SpriteAnimSet animSet,
@@ -118,6 +117,11 @@ class PickupRenderRegistry {
     }
     return entry;
   }
+
+  /// Exact image sources preloaded by this registry.
+  Iterable<String> get assetPaths => _entries.values.expand(
+    (entry) => _catalog.get(entry.variant).sourcesByKey.values,
+  );
 
   Future<void> load(Images images) async {
     for (final entry in _entries.values) {

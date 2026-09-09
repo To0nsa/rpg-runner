@@ -13,25 +13,22 @@ import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
-import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
-import 'package:runner_editor/src/levels/level_domain_models.dart';
-import 'package:runner_editor/src/playtest/chunk_playtest_preparation.dart';
-import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/playtest/authored_playtest_preparation.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
-import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
+
+late ChunkV2Document _repositoryDocument;
 
 void main() {
   late String workspaceRoot;
   late ui.Image fixtureImage;
   late ChunkPlaytestScenario repositoryScenario;
+  late PlaytestPreparationResult repositoryPrepared;
 
   setUpAll(() async {
     workspaceRoot = p.normalize(
@@ -46,15 +43,23 @@ void main() {
     final repositoryDocument = await ChunkDomainPlugin().loadV2FromRepo(
       EditorWorkspace(rootPath: workspaceRoot),
     );
-    final prepared = prepareChunkPlaytest(
-      captureChunkPlaytestPreparationInput(
+    _repositoryDocument = repositoryDocument;
+    final prepared = preparePlaytest(
+      await captureChunkPlaytestPreparationInput(
         document: repositoryDocument,
+        workspaceRoot: workspaceRoot,
         selectedChunkKey: repositoryDocument.chunks
             .singleWhere((chunk) => chunk.levelId == 'forest')
             .chunkKey,
       ),
     );
-    repositoryScenario = prepared.scenario!;
+    repositoryScenario = prepared.scenario! as ChunkPlaytestScenario;
+    repositoryPrepared = PlaytestPreparationResult.success(
+      scenario: repositoryScenario,
+      appearance: prepared.appearance!,
+      fingerprint: prepared.fingerprint!,
+      assetBundle: RunnerCapturedAssetBundle({}),
+    );
   });
 
   tearDownAll(() => fixtureImage.dispose());
@@ -70,7 +75,7 @@ void main() {
       final canUndoBefore = session.canUndo;
       final filesBefore = _sourceHashes(workspaceRoot);
       var shellNotifications = 0;
-      ChunkPlaytestPreparationInput? capturedInput;
+      PlaytestPreparationInput? capturedInput;
 
       await _mountPage(
         tester,
@@ -79,7 +84,7 @@ void main() {
         onShellStateChanged: () => shellNotifications += 1,
         preparationRunner: (input) async {
           capturedInput = input;
-          return ChunkPlaytestPreparationResult.success(repositoryScenario);
+          return repositoryPrepared;
         },
       );
 
@@ -119,23 +124,27 @@ void main() {
         find.byType(ChunkAuthoringWorkspace, skipOffstage: false),
         findsOneWidget,
       );
-      await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
-      expect(capturedInput!.chunkContents, contains('phase5_pending'));
+      await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
+      expect(find.textContaining('Test chunk — focused loop'), findsOneWidget);
+      expect(
+        capturedInput!.chunkSources.values.join(),
+        contains('phase5_pending'),
+      );
 
-      final host = tester.widget<RunnerChunkPlaytestHost>(
-        find.byType(RunnerChunkPlaytestHost),
+      final host = tester.widget<RunnerPlaytestHost>(
+        find.byType(RunnerPlaytestHost),
       );
       expect(
         pageHandler.handlePlaytestShortcut(LogicalKeyboardKey.enter),
         isTrue,
       );
       await tester.pump(const Duration(milliseconds: 100));
-      expect(host.controller.status.phase, RunnerChunkPlaytestPhase.running);
+      expect(host.controller.status.phase, RunnerPlaytestPhase.running);
 
       final firstGeneration = host.controller.status.runtimeGeneration;
       expect(pageHandler.handlePlaytestShortcut(LogicalKeyboardKey.f6), isTrue);
       expect(host.controller.status.runtimeGeneration, firstGeneration + 1);
-      await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
+      await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
       expect(
         pageHandler.handlePlaytestShortcut(LogicalKeyboardKey.enter),
         isTrue,
@@ -145,7 +154,7 @@ void main() {
         pageHandler.handlePlaytestShortcut(LogicalKeyboardKey.keyP),
         isTrue,
       );
-      expect(host.controller.status.phase, RunnerChunkPlaytestPhase.paused);
+      expect(host.controller.status.phase, RunnerPlaytestPhase.paused);
       expect(
         pageHandler.handlePlaytestShortcut(LogicalKeyboardKey.keyP),
         isTrue,
@@ -153,7 +162,7 @@ void main() {
       await tester.pump();
       pageHandler.handlePlaytestAppLifecycleState(AppLifecycleState.inactive);
       await tester.pump();
-      expect(host.controller.status.phase, RunnerChunkPlaytestPhase.paused);
+      expect(host.controller.status.phase, RunnerPlaytestPhase.paused);
 
       expect(
         pageHandler.handlePlaytestShortcut(LogicalKeyboardKey.escape),
@@ -162,7 +171,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(RunnerChunkPlaytestHost), findsNothing);
+      expect(find.byType(RunnerPlaytestHost), findsNothing);
       expect(_pageHandler(tester).locksEditorShell, isFalse);
       final workspaceAfter = tester.state<ChunkAuthoringWorkspaceState>(
         workspaceFinder,
@@ -202,7 +211,7 @@ void main() {
   ) async {
     final session = await _loadedSession(workspaceRoot);
     addTearDown(session.dispose);
-    final completer = Completer<ChunkPlaytestPreparationResult>();
+    final completer = Completer<PlaytestPreparationResult>();
     await _mountPage(
       tester,
       session: session,
@@ -230,14 +239,12 @@ void main() {
     );
     await tester.pump();
     expect(_pageHandler(tester).locksEditorShell, isFalse);
-    completer.complete(
-      ChunkPlaytestPreparationResult.success(repositoryScenario),
-    );
+    completer.complete(repositoryPrepared);
     await tester.pump();
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pump();
 
-    expect(find.byType(RunnerChunkPlaytestHost), findsNothing);
+    expect(find.byType(RunnerPlaytestHost), findsNothing);
     expect(
       tester.state<ChunkAuthoringWorkspaceState>(workspaceFinder),
       same(workspaceState),
@@ -254,8 +261,7 @@ void main() {
         tester,
         session: session,
         fixtureImage: fixtureImage,
-        preparationRunner: (_) async =>
-            ChunkPlaytestPreparationResult.success(repositoryScenario),
+        preparationRunner: (_) async => repositoryPrepared,
       );
       final workspaceFinder = find.byType(
         ChunkAuthoringWorkspace,
@@ -275,35 +281,33 @@ void main() {
           find.byKey(const ValueKey<String>('chunk_playtest_button')),
         );
         await tester.pump();
-        await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
+        await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
         final controller = tester
-            .widget<RunnerChunkPlaytestHost>(
-              find.byType(RunnerChunkPlaytestHost),
-            )
+            .widget<RunnerPlaytestHost>(find.byType(RunnerPlaytestHost))
             .controller;
         expect(
           _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.enter),
           isTrue,
         );
         await tester.pump(const Duration(milliseconds: 100));
-        expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+        expect(controller.status.phase, RunnerPlaytestPhase.running);
 
         _pageHandler(tester).handlePlaytestAppLifecycleState(lifecycleState);
         await tester.pump();
-        expect(controller.status.phase, RunnerChunkPlaytestPhase.paused);
+        expect(controller.status.phase, RunnerPlaytestPhase.paused);
         expect(
           _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.keyP),
           isTrue,
         );
         await tester.pump();
-        expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+        expect(controller.status.phase, RunnerPlaytestPhase.running);
         expect(
           _pageHandler(tester)
               .handlePlaytestShortcut(LogicalKeyboardKey.escape),
           isTrue,
         );
         await _pumpUntilHostRemoved(tester);
-        expect(controller.status.phase, RunnerChunkPlaytestPhase.stopped);
+        expect(controller.status.phase, RunnerPlaytestPhase.stopped);
         expect(
           () => controller.addListener(_unusedListener),
           throwsFlutterError,
@@ -320,7 +324,7 @@ void main() {
     },
   );
 
-  testWidgets('preparation failure is retryable with the same captured input', (
+  testWidgets('preparation failure recaptures accepted input before retry', (
     tester,
   ) async {
     final session = await _loadedSession(workspaceRoot);
@@ -333,24 +337,26 @@ void main() {
       preparationRunner: (input) async {
         attempts += 1;
         if (attempts == 1) {
-          return ChunkPlaytestPreparationResult.failure(
-            const <ChunkPlaytestPreparationIssue>[
-              ChunkPlaytestPreparationIssue(
+          return PlaytestPreparationResult.failure(
+            const <PlaytestPreparationIssue>[
+              PlaytestPreparationIssue(
                 code: 'fixture_blocked',
                 message: 'Deliberate preparation failure.',
               ),
             ],
           );
         }
-        return ChunkPlaytestPreparationResult.success(repositoryScenario);
+        return repositoryPrepared;
       },
     );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_playtest_button')),
     );
-    await tester.pump();
-    await tester.pump();
+    await _pumpUntilVisible(
+      tester,
+      find.text('Chunk playtest could not start'),
+    );
     expect(find.text('Chunk playtest could not start'), findsOneWidget);
     expect(find.textContaining('fixture_blocked'), findsOneWidget);
 
@@ -358,10 +364,73 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_playtest_retry_button')),
     );
     await tester.pump();
-    await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
     expect(attempts, 2);
 
     _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.f5);
+    await tester.pump();
+    await tester.pump();
+  });
+
+  testWidgets('Play validates focused metadata and captures accepted input', (
+    tester,
+  ) async {
+    final session = await _loadedSession(workspaceRoot);
+    addTearDown(session.dispose);
+    PlaytestPreparationInput? capturedInput;
+    await _mountPage(
+      tester,
+      session: session,
+      fixtureImage: fixtureImage,
+      preparationRunner: (input) async {
+        capturedInput = input;
+        return repositoryPrepared;
+      },
+    );
+    final toggle = find.byKey(
+      const ValueKey<String>('chunk_owner_section_toggle'),
+    );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    final workspace = tester.state<ChunkAuthoringWorkspaceState>(
+      find.byType(ChunkAuthoringWorkspace),
+    );
+    final owner = find.byKey(
+      ValueKey<String>('chunk_polygon_owner_${workspace.selectedChunkKey}'),
+    );
+    await tester.ensureVisible(owner);
+    await tester.tap(owner);
+    await tester.pumpAndSettle();
+    final groundBand = find.byKey(
+      const ValueKey<String>('chunk_v2_owner_ground_band_z_field'),
+    );
+    await tester.ensureVisible(groundBand);
+    await tester.enterText(groundBand, '-');
+    await tester.pump();
+    expect(workspace.playtestReadiness.isReady, isFalse);
+    final play = find.byKey(const ValueKey<String>('chunk_playtest_button'));
+    expect(tester.widget<FilledButton>(play).onPressed, isNotNull);
+    await tester.tap(play);
+    await tester.pumpAndSettle();
+    expect(capturedInput, isNull);
+    expect(find.text('Enter a whole number.'), findsOneWidget);
+    expect(tester.widget<TextFormField>(groundBand).controller!.text, '-');
+    final tags = find.byKey(
+      const ValueKey<String>('chunk_v2_owner_tags_field'),
+    );
+    await tester.enterText(groundBand, '0');
+    await tester.enterText(tags, 'focused_play_input');
+    await tester.pump();
+    await tester.tap(play);
+    await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
+    expect(
+      capturedInput!.chunkSources.values.join(),
+      contains('focused_play_input'),
+    );
+    expect(session.pendingChanges.hasChanges, isTrue);
+    expect(session.lastExportResult, isNull);
+    _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.escape);
     await tester.pump();
     await tester.pump();
   });
@@ -459,69 +528,7 @@ Future<void> _openDiagnostics(WidgetTester tester) async {
 }
 
 Future<EditorSessionController> _loadedSession(String workspaceRoot) async {
-  final chunk = ChunkV2FileData(
-    chunkKey: 'forest_early_00',
-    id: 'forest_early_00',
-    revision: 1,
-    status: chunkStatusActive,
-    levelId: 'forest',
-    tileSize: 16,
-    width: 100,
-    height: 50,
-    difficulty: chunkDifficultyNormal,
-    assemblyGroupId: defaultChunkAssemblyGroupId,
-    tags: const <String>['forest'],
-    tileLayers: const [],
-    prefabs: const [],
-    markers: const [],
-    groundBandZIndex: 0,
-    collisionShapes: <TerrainSourceShapeDef>[
-      TerrainSourceShapeDef(
-        shapeId: 'ground_001',
-        vertices: const <TerrainSourceVertexDef>[
-          TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
-          TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
-          TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
-          TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
-        ],
-      ),
-    ],
-  );
-  const level = LevelDef(
-    levelId: 'forest',
-    revision: 1,
-    displayName: 'Forest',
-    visualThemeId: 'forest',
-    cameraCenterY: 25,
-    groundTopY: 10,
-    earlyPatternChunks: 0,
-    easyPatternChunks: 0,
-    normalPatternChunks: 0,
-    noEnemyChunks: 0,
-    enumOrdinal: 1,
-    status: levelStatusActive,
-  );
-  final document = ChunkV2Document(
-    chunks: <ChunkV2FileData>[chunk],
-    sourcePathByChunkKey: const <String, String>{
-      'forest_early_00':
-          'assets/authoring/level/chunks/forest/forest_early_00.json',
-    },
-    baselineContentsByChunkKey: <String, String>{
-      chunk.chunkKey: ChunkV2FileCodec.encode(chunk),
-    },
-    prefabData: PrefabV3FileData(slices: const [], prefabs: const []),
-    tileData: PrefabTileFileData(
-      tileSlices: const [],
-      platformModules: const [],
-    ),
-    visualBoundsByPrefabKey: const {},
-    groundTopYByLevelId: const <String, double>{'forest': 10},
-    levels: const <LevelDef>[level],
-    parallaxThemes: const [],
-    availableLevelIds: const <String>['forest'],
-    activeLevelId: 'forest',
-  );
+  final document = _repositoryDocument.copyWith(activeLevelId: 'forest');
   final controller = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
       plugins: <AuthoringDomainPlugin>[_MemoryChunkPlugin(document)],
@@ -542,7 +549,7 @@ void _stageAcceptedPendingChange(EditorSessionController session) {
   );
   final document = session.document! as ChunkV2Document;
   final chunk = document.chunks.singleWhere(
-    (candidate) => candidate.chunkKey == 'forest_early_00',
+    (candidate) => candidate.levelId == 'forest',
   );
   final before = ChunkV2MetadataSnapshot.fromChunk(chunk);
   final tags = <String>[...before.tags, 'phase5_pending']..sort();
@@ -571,8 +578,7 @@ Future<void> _mountPage(
   WidgetTester tester, {
   required EditorSessionController session,
   required ui.Image fixtureImage,
-  ChunkPlaytestPreparationRunner preparationRunner =
-      prepareChunkPlaytestInBackground,
+  PlaytestPreparationRunner preparationRunner = preparePlaytestInBackground,
   bool playtestPlatformSupported = true,
   VoidCallback? onShellStateChanged,
 }) async {
@@ -592,10 +598,12 @@ Future<void> _mountPage(
           playtestHostBuilder:
               ({
                 required scenario,
+                required appearance,
                 required controller,
                 required assetBundle,
                 required onStop,
-              }) => RunnerChunkPlaytestHost(
+              }) => RunnerPlaytestHost(
+                appearance: appearance,
                 scenario: scenario,
                 controller: controller,
                 assetBundle: assetBundle,
@@ -613,29 +621,31 @@ EditorPagePlaytestHandler _pageHandler(WidgetTester tester) =>
 
 Future<void> _pumpUntilHostPhase(
   WidgetTester tester,
-  RunnerChunkPlaytestPhase phase,
+  RunnerPlaytestPhase phase,
 ) async {
   for (var attempt = 0; attempt < 240; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 25));
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    final hostFinder = find.byType(RunnerChunkPlaytestHost);
+    final hostFinder = find.byType(RunnerPlaytestHost);
     if (hostFinder.evaluate().isEmpty) continue;
-    final controller = tester
-        .widget<RunnerChunkPlaytestHost>(hostFinder)
-        .controller;
+    final controller = tester.widget<RunnerPlaytestHost>(hostFinder).controller;
     if (controller.status.phase == phase) {
       await tester.pump();
       return;
     }
   }
-  fail('Timed out waiting for editor host phase ${phase.name}.');
+  final visible = tester
+      .widgetList<Text>(find.byType(Text))
+      .map((w) => w.data)
+      .join(' | ');
+  fail('Timed out waiting for editor host phase ${phase.name}: $visible');
 }
 
 Future<void> _pumpUntilHostRemoved(WidgetTester tester) async {
   for (var attempt = 0; attempt < 120; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 25));
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    if (find.byType(RunnerChunkPlaytestHost).evaluate().isEmpty) {
+    if (find.byType(RunnerPlaytestHost).evaluate().isEmpty) {
       await tester.pump();
       await tester.pump();
       return;
@@ -717,4 +727,15 @@ final class _MemoryChunkPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) => _delegate.describePendingChanges(workspace, document: document);
+}
+
+Future<void> _pumpUntilVisible(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 250; i += 1) {
+    await tester.pump(const Duration(milliseconds: 25));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 2)),
+    );
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  fail('Expected preparation state did not appear.');
 }

@@ -577,7 +577,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('level_theme_workflow_');
   _writeFile(root.path, levelDefsSourcePath, '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -592,6 +592,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": true,
       "status": "active"
     }
   ]

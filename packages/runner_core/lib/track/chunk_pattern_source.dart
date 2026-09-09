@@ -8,11 +8,49 @@ import 'chunk_pattern.dart';
 /// Requested chunk pacing tier for a streamed chunk index.
 enum ChunkPatternTier { early, easy, normal, hard }
 
+/// Canonical progression tier shared by streaming and authored previews.
+ChunkPatternTier chunkPatternTierForIndex({
+  required int chunkIndex,
+  required int earlyPatternChunks,
+  required int easyPatternChunks,
+  required int normalPatternChunks,
+}) {
+  if (chunkIndex < earlyPatternChunks) return ChunkPatternTier.early;
+  final normalStart = earlyPatternChunks + easyPatternChunks;
+  if (chunkIndex < normalStart) return ChunkPatternTier.easy;
+  if (chunkIndex < normalStart + normalPatternChunks) {
+    return ChunkPatternTier.normal;
+  }
+  return ChunkPatternTier.hard;
+}
+
+/// Resolved section run selected by the canonical assembly scheduler.
+final class ChunkAssemblySelection {
+  const ChunkAssemblySelection({
+    required this.segmentId,
+    required this.segmentIndex,
+    required this.runSequence,
+    required this.cycleIndex,
+    required this.startChunkIndex,
+    required this.chunkCount,
+    required this.repeatsFinalSegment,
+  });
+
+  final String segmentId;
+  final int segmentIndex;
+  final int runSequence;
+  final int cycleIndex;
+  final int startChunkIndex;
+  final int chunkCount;
+  final bool repeatsFinalSegment;
+}
+
 /// Deterministic pattern + render-theme selection for a chunk index.
 class ChunkPatternSelection {
-  const ChunkPatternSelection({required this.pattern});
+  const ChunkPatternSelection({required this.pattern, this.assembly});
 
   final ChunkPattern pattern;
+  final ChunkAssemblySelection? assembly;
 }
 
 /// Resolves a [ChunkPattern] for a given chunk index and progression state.
@@ -34,11 +72,7 @@ abstract class ChunkPatternSource {
     required int chunkIndex,
     required ChunkPatternTier tier,
   }) {
-    return selectionFor(
-      seed: seed,
-      chunkIndex: chunkIndex,
-      tier: tier,
-    ).pattern;
+    return selectionFor(seed: seed, chunkIndex: chunkIndex, tier: tier).pattern;
   }
 }
 
@@ -131,7 +165,19 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
             eligiblePatterns: eligiblePatterns,
           );
 
-    return ChunkPatternSelection(pattern: selectedPattern);
+    return ChunkPatternSelection(
+      pattern: selectedPattern,
+      assembly: ChunkAssemblySelection(
+        segmentId: run.segment.segmentId,
+        segmentIndex: run.segmentIndex,
+        runSequence: run.sequence,
+        cycleIndex: run.cycleIndex,
+        startChunkIndex: run.startChunkIndex,
+        chunkCount: run.length,
+        repeatsFinalSegment:
+            !assembly.loopSegments && run.sequence >= assembly.segments.length,
+      ),
+    );
   }
 
   _ResolvedAssemblyRun _resolvedRunFor({

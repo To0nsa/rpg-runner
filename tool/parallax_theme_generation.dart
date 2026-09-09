@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'content_build_report.dart';
+
 const int parallaxSchemaVersion = 2;
 
 const String _assetsImagesPrefix = 'assets/images/';
@@ -17,10 +19,11 @@ const double _maxAbsYOffset = 4096.0;
 
 Future<ParallaxLoadResult> loadParallaxThemes({
   required String defsPath,
+  ContentBuildSnapshot? capturedInput,
 }) async {
   final issues = <ParallaxValidationIssue>[];
   final file = File(defsPath);
-  if (!await file.exists()) {
+  if (!(capturedInput?.contains(defsPath) ?? await file.exists())) {
     issues.add(
       ParallaxValidationIssue(
         path: defsPath,
@@ -36,7 +39,7 @@ Future<ParallaxLoadResult> loadParallaxThemes({
 
   late final String raw;
   try {
-    raw = await file.readAsString();
+    raw = capturedInput?.readString(defsPath) ?? await file.readAsString();
   } on Object catch (error) {
     issues.add(
       ParallaxValidationIssue(
@@ -128,6 +131,7 @@ Future<ParallaxLoadResult> loadParallaxThemes({
       issues: issues,
       defsPath: defsPath,
       themeIndex: i,
+      capturedInput: capturedInput,
     );
     if (theme == null) {
       continue;
@@ -185,6 +189,7 @@ ParallaxThemeSource? _parseThemeEntry(
   required List<ParallaxValidationIssue> issues,
   required String defsPath,
   required int themeIndex,
+  ContentBuildSnapshot? capturedInput,
 }) {
   final fieldPrefix = 'themes[$themeIndex]';
   final parallaxThemeId = _readRequiredString(
@@ -245,6 +250,7 @@ ParallaxThemeSource? _parseThemeEntry(
       issues: issues,
       path: defsPath,
       fieldPrefix: '$fieldPrefix.layers[$i]',
+      capturedInput: capturedInput,
     );
     if (layer == null) {
       continue;
@@ -279,6 +285,7 @@ ParallaxLayerSource? _parseLayerEntry(
   required List<ParallaxValidationIssue> issues,
   required String path,
   required String fieldPrefix,
+  ContentBuildSnapshot? capturedInput,
 }) {
   final layerKey = _readRequiredString(
     entry,
@@ -293,6 +300,7 @@ ParallaxLayerSource? _parseLayerEntry(
     issues: issues,
     path: path,
     fieldPrefix: fieldPrefix,
+    capturedInput: capturedInput,
   );
   final group = _readRequiredString(
     entry,
@@ -550,6 +558,7 @@ String _readRequiredAssetPath(
   required List<ParallaxValidationIssue> issues,
   required String path,
   required String fieldPrefix,
+  ContentBuildSnapshot? capturedInput,
 }) {
   final normalized = _readRequiredString(
     map,
@@ -561,7 +570,7 @@ String _readRequiredAssetPath(
   if (normalized.isEmpty) {
     return '';
   }
-  if (!File(normalized).existsSync()) {
+  if (!(capturedInput?.contains(normalized) ?? File(normalized).existsSync())) {
     issues.add(
       ParallaxValidationIssue(
         path: path,

@@ -14,7 +14,7 @@ pipeline. Read `AGENTS.md`, `lib/AGENTS.md`,
 Do not hand-edit generated runtime files.
 
 - source data: `assets/authoring/level/level_defs.json`
-- chunk source data: `assets/authoring/level/chunks/*.json`
+- chunk source data: `assets/authoring/level/chunks/**/*.json`
 - parallax source data: `assets/authoring/level/parallax_defs.json`
 - generator: `tool/generate_chunk_runtime_data.dart`
 - generated core files:
@@ -32,9 +32,19 @@ Do not hand-edit generated runtime files.
    Prefer the Level Creator in `tools/editor` when practical. If editing JSON
    directly, preserve canonical field order, stable `levelId`, stable
    `enumOrdinal`, deterministic chunk theme groups, camera/ground values, and
-   explicit `status`.
+   explicit `status` and schema-v2 `includeInBuild`. New/Copy start excluded;
+   identity ordinals persist regardless of inclusion or deprecation. Use the
+   offline `tool/migrate_level_build_inclusion.dart --apply` only when upgrading
+   an older source file, never as a normal editor load fallback.
 
 2. Provide gameplay chunks and assembly inputs.
+
+   The Level Creator's **Add flat starter** saves Level/background changes and
+   opens a valid Chunk-owned ground preset. **Save and return to level** refreshes
+   Level content and restores the selected view. Use **Add chunk** for further
+   geometry, Prefabs, and enemy placement. New custom chunks remain deprecated
+   until authored and explicitly activated. Ordered sections can be saved with
+   incomplete capacity, then repaired through the intended Chunk group.
 
    Add or reuse chunk definitions under `assets/authoring/level/chunks/`.
    Keep authored chunk keys stable and validate that the level references only
@@ -46,7 +56,17 @@ Do not hand-edit generated runtime files.
    `assets/authoring/level/parallax_defs.json`. Gameplay collision remains in
    core/chunk data; parallax is visual-only.
 
-4. Regenerate runtime data.
+4. Play and build runtime data.
+
+   Both Level and focused Chunk **Play** use accepted authored sources and
+   captured assets directly, including never-generated/excluded levels. No
+   generated registry entry or file Save is required to test valid edits. Once
+   ready, enable **Include in Build**, Save, and use the shell **Build** action.
+   The report offers source navigation, exclusion/restoration, safe cancellation,
+   and **Check freshness**. At least one included active playable Level is
+   required; malformed excluded sources still fail structural validation.
+
+   Equivalent CLI generation remains available:
 
    ```bash
    dart run tool/generate_chunk_runtime_data.dart
@@ -87,9 +107,16 @@ flutter test
 
 ## Manual Verification
 
-- level appears only when `status` should make it selectable
+- normal selection includes only active, included, compiled playable Levels
+- excluded Level identity remains stable and explicit starts fail as unavailable
+- authored Chunk/Level Play works before generation and leaves sources unchanged
 - level loads through the normal hub/setup/run route
 - generated `LevelId` ordering is intentional and stable
 - chunks stream without missing references
 - parallax/theme assets render without changing gameplay behavior
 - replay validation assumptions still hold for the level seed/tick path
+
+Generated content is local build input, not a deployment. Rebuild/restart apps
+that embed changed constants and release compatible app/validator content.
+Online level/weekly-board availability remains a separate backend configuration
+concern; this workflow does not publish backend state.

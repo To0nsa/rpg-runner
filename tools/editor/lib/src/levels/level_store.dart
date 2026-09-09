@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_store.dart';
 import '../workspace/editor_workspace.dart';
@@ -379,6 +381,19 @@ class LevelStore {
       prefix: prefix,
       issues: issues,
     );
+    final includeInBuild = raw['includeInBuild'];
+    if (includeInBuild is! bool) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_include_in_build',
+          message: '$prefix.includeInBuild must be a boolean.',
+          sourcePath: sourcePath,
+          ownerKey: levelId,
+        ),
+      );
+      return null;
+    }
     final status = _readRequiredString(
       raw,
       field: 'status',
@@ -421,6 +436,7 @@ class LevelStore {
       normalPatternChunks: normalPatternChunks,
       noEnemyChunks: noEnemyChunks,
       enumOrdinal: enumOrdinal,
+      includeInBuild: includeInBuild,
       status: status,
       assembly: assembly,
     ).normalized();
@@ -454,11 +470,8 @@ class LevelStore {
         continue;
       }
       countsByLevelId[levelId] = (countsByLevelId[levelId] ?? 0) + 1;
-      final status = _normalizedString(
-        map['status'],
-        fallback: levelStatusActive,
-      );
-      if (status == levelStatusDeprecated) {
+      final status = _normalizedString(map['status']);
+      if (!isRuntimeEligibleChunkStatus(status)) {
         continue;
       }
       final assemblyGroupId = _normalizedString(
@@ -504,7 +517,7 @@ class LevelStore {
     }
     final file = File(workspace.resolve(baseline.sourcePath));
     if (!file.existsSync()) {
-      throw StateError(
+      throw AuthoringSourceDrift(
         'Source drift detected for ${baseline.sourcePath}: file no longer '
         'exists. Reload before export.',
       );
@@ -513,7 +526,7 @@ class LevelStore {
       file.readAsStringSync(),
     );
     if (currentFingerprint != baseline.fingerprint) {
-      throw StateError(
+      throw AuthoringSourceDrift(
         'Source drift detected for ${baseline.sourcePath}. Reload before '
         'export.',
       );

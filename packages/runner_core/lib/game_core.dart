@@ -83,7 +83,7 @@ import 'events/game_event.dart';
 import 'events/entity_visual_cue_coalescer.dart';
 import 'events/player_impact_feedback_gate.dart';
 import 'levels/level_definition.dart';
-import 'levels/level_id.dart';
+import 'levels/level_identity.dart';
 import 'navigation/terrain_runtime_bundle.dart';
 import 'navigation/terrain_spawn_placement.dart';
 import 'navigation/terrain_surface_navigator.dart';
@@ -95,6 +95,7 @@ import 'players/player_catalog.dart';
 import 'players/player_archetype.dart';
 import 'players/player_character_definition.dart';
 import 'playtest/chunk_playtest_scenario.dart';
+import 'playtest/level_playtest_scenario.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spellBook/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
@@ -168,7 +169,7 @@ class GameCore {
          seed: seed,
          runId: runId,
          tickHz: tickHz,
-         levelDefinition: levelDefinition,
+         levelDefinition: _requireRegisteredLevel(levelDefinition),
          projectileCatalog: projectileCatalog,
          spellBookCatalog: spellBookCatalog,
          enemyCatalog: enemyCatalog,
@@ -187,6 +188,34 @@ class GameCore {
   /// deterministic Core state used by playtest restart.
   factory GameCore.chunkPlaytest({
     required ChunkPlaytestScenario scenario,
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
+  }) {
+    return GameCore._fromLevel(
+      seed: scenario.seed,
+      runId: 0,
+      tickHz: scenario.tickHz,
+      levelDefinition: scenario.buildRuntimeLevelDefinition(),
+      projectileCatalog: projectileCatalog,
+      spellBookCatalog: spellBookCatalog,
+      enemyCatalog: enemyCatalog,
+      playerCharacter: scenario.playerCharacter,
+      weaponCatalog: weaponCatalog,
+      accessoryCatalog: accessoryCatalog,
+      equippedLoadoutOverride: scenario.equippedLoadout,
+      terrainHarnessGeometry: null,
+      stagedTerrainCatalogOverride: scenario.terrainCatalog,
+    );
+  }
+
+  /// Runs captured whole-level content with its real authored stream rules.
+  ///
+  /// This tooling boundary has no ticket, replay, or settlement integration.
+  factory GameCore.levelPlaytest({
+    required LevelPlaytestScenario scenario,
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -978,8 +1007,8 @@ class GameCore {
   // Public Accessors
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Level identifier for this run (stable across sessions).
-  LevelId get levelId => _levelDefinition.id;
+  /// Stable registered identity or explicit authored playtest provenance.
+  LevelIdentity get levelIdentity => _levelDefinition.identity;
 
   /// Optional render theme identifier for this run.
   String? get visualThemeId => _trackManager.resolveRenderVisualThemeId(
@@ -2149,7 +2178,7 @@ class GameCore {
       tick: tick,
       runId: runId,
       seed: seed,
-      levelId: levelId,
+      levelIdentity: levelIdentity,
       visualThemeId: visualThemeId,
       distance: distance,
       paused: paused,
@@ -2168,4 +2197,9 @@ class GameCore {
           _stagedTerrainCandidate?.renderSnapshot,
     );
   }
+}
+
+LevelDefinition _requireRegisteredLevel(LevelDefinition level) {
+  level.identity.requireRegisteredId();
+  return level;
 }

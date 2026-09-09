@@ -26,6 +26,7 @@ final class _AppStateRunStartController extends _AppStateController {
       mode: mode,
       selectedLevelId: levelId,
     );
+    if (!LevelRegistry.isAvailable(effectiveLevelId)) return;
     final key = _runTicketPrefetchKeyFor(
       userId: session.userId,
       mode: mode,
@@ -82,19 +83,18 @@ final class _AppStateRunStartController extends _AppStateController {
     if (expectedMode != null && expectedMode != canonicalMode) {
       throw const RunStartRemoteException(
         code: 'failed-precondition',
-        message:
-            'Run mode changed in canonical state. Return to hub before restart.',
+        message: 'Run mode changed in canonical state. Return to hub before restart.',
       );
     }
     if (expectedLevelId != null && expectedLevelId != canonicalLevelId) {
       throw const RunStartRemoteException(
         code: 'failed-precondition',
-        message:
-            'Selected level changed in canonical state. Return to hub before restart.',
+        message: 'Selected level changed in canonical state. Return to hub before restart.',
       );
     }
     final mode = expectedMode ?? canonicalMode;
     final levelId = expectedLevelId ?? canonicalLevelId;
+    _requireAvailableLevel(levelId);
     final runTicket = expectedMode != null || expectedLevelId != null
         ? null
         : _takeValidPrefetchedRunTicket(
@@ -213,7 +213,23 @@ final class _AppStateRunStartController extends _AppStateController {
   }
 
   LevelId _levelIdFromWire(String levelId) {
-    return _enumByName(LevelId.values, levelId, fieldName: 'runTicket.levelId');
+    final parsed = _enumByName(
+      LevelId.values,
+      levelId,
+      fieldName: 'runTicket.levelId',
+    );
+    _requireAvailableLevel(parsed);
+    return parsed;
+  }
+
+  void _requireAvailableLevel(LevelId levelId) {
+    if (!LevelRegistry.isAvailable(levelId)) {
+      throw RunStartRemoteException(
+        code: 'level-unavailable',
+        message:
+            'Level "${levelId.name}" is unavailable in this build. Return to the hub and choose an available level.',
+      );
+    }
   }
 
   PlayerCharacterId _characterIdFromWire(String characterId) {

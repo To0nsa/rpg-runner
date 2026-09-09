@@ -169,7 +169,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('level_plugin_fixture_');
   _writeFile(root.path, levelDefsSourcePath, '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "levels": [
     {
       "levelId": "field",
@@ -184,6 +184,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
+      "includeInBuild": true,
       "status": "active"
     },
     {
@@ -199,6 +200,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "normalPatternChunks": 0,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "includeInBuild": true,
       "status": "active"
     }
   ]
@@ -226,12 +228,12 @@ Future<Directory> _createFixtureWorkspace() async {
   _writeFile(
     root.path,
     'assets/authoring/level/chunks/field/chunk_field_001.json',
-    '{"levelId":"field","assemblyGroupId":"forest"}\n',
+    '{"levelId":"field","status":"active","assemblyGroupId":"forest"}\n',
   );
   _writeFile(
     root.path,
     'assets/authoring/level/chunks/forest/chunk_forest_001.json',
-    '{"levelId":"forest","assemblyGroupId":"forest"}\n',
+    '{"levelId":"forest","status":"active","assemblyGroupId":"forest"}\n',
   );
   return root;
 }

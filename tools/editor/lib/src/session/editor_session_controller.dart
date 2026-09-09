@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/authoring_plugin_registry.dart';
+import '../domain/authoring_intent_reconciliation.dart';
+import '../domain/authoring_session_semantics.dart';
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
 
@@ -37,6 +39,12 @@ class EditorSessionController extends ChangeNotifier {
   bool _isExporting = false;
   String? _loadError;
   String? _exportError;
+  String? _refreshError;
+  bool _requiresSavedRefresh = false;
+  bool _requiresTransactionRecovery = false;
+  bool _requiresSourceReconciliation = false;
+  int _sourceWriteCount = 0;
+  int _sourceGeneration = 0;
   EditorWorkspace? _workspace;
   AuthoringDocument? _document;
   EditableScene? _scene;
@@ -47,6 +55,8 @@ class EditorSessionController extends ChangeNotifier {
   final List<AuthoringDocument> _undoStack = <AuthoringDocument>[];
   final List<AuthoringDocument> _redoStack = <AuthoringDocument>[];
   AuthoringDocument? _coalescedUndoBaseDocument;
+  AuthoringDocument? _recoveryCopy;
+  String? _recoveryError;
 
   /// All registered domain plugins available for route/session selection.
   List<AuthoringDomainPlugin> get availablePlugins => _pluginRegistry.all;
@@ -56,6 +66,22 @@ class EditorSessionController extends ChangeNotifier {
 
   /// Workspace root path set when this editor session starts.
   String get workspacePath => _workspacePath;
+
+  /// A read-only originating intent copy retained through recovery decisions.
+  AuthoringDocument? get recoveryCopy => _recoveryCopy;
+  String? get recoveryError => _recoveryError;
+  bool get canReapplyIntent =>
+      _pluginRegistry.requireById(_selectedPluginId)
+          is AuthoringIntentReconciliation;
+
+  /// Creates the single dependency session owned by the shell's repair journey.
+  /// Loading it cannot replace this controller's document or page buffers.
+  EditorSessionController createDependencySession(String pluginId) =>
+      EditorSessionController(
+        pluginRegistry: _pluginRegistry,
+        initialPluginId: pluginId,
+        initialWorkspacePath: _workspacePath,
+      );
 
   /// True while a normal reload or guarded plugin transition is resolving a
   /// repository document.
@@ -69,6 +95,22 @@ class EditorSessionController extends ChangeNotifier {
 
   /// Last export failure for the current loaded document, if any.
   String? get exportError => _exportError;
+
+  /// True after committed writes until their canonical document is reloaded.
+  /// Further edits/exports are blocked so retry cannot write the same intent twice.
+  bool get requiresSavedRefresh => _requiresSavedRefresh;
+
+  /// Last refresh failure following a committed export, separate from write failure.
+  String? get refreshError => _refreshError;
+
+  /// Whether transaction-owned recovery must be resolved before another write.
+  bool get requiresTransactionRecovery => _requiresTransactionRecovery;
+  bool get requiresSourceReconciliation => _requiresSourceReconciliation;
+  int get sourceWriteCount => _sourceWriteCount;
+
+  /// Changes after a successful source reload, Save refresh, or reconciliation.
+  /// Dependent views use this to retire projections built from older sources.
+  int get sourceGeneration => _sourceGeneration;
 
   /// Loaded workspace handle bound to the current document snapshot.
   EditorWorkspace? get workspace => _workspace;
@@ -118,6 +160,10 @@ class EditorSessionController extends ChangeNotifier {
       .where((issue) => issue.severity == ValidationSeverity.error)
       .length;
 
+  /// Source-integrity findings that prevent Save, excluding runtime readiness.
+  int get saveBlockingErrorCount =>
+      _issues.where((issue) => issue.blocks(AuthoringOperation.save)).length;
+
   /// Number of validation issues at warning severity in [issues].
   int get warningCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.warning)
@@ -128,6 +174,12 @@ class EditorSessionController extends ChangeNotifier {
   /// The workspace path is preserved, but the current document/scene/history are
   /// dropped because they are only valid for the previously selected plugin.
   void setSelectedPluginId(String pluginId) {
+    if (_isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
+      return;
+    }
     if (_selectedPluginId == pluginId) {
       return;
     }
@@ -142,7 +194,10 @@ class EditorSessionController extends ChangeNotifier {
   /// editable. A successful load replaces the entire derived session snapshot
   /// and clears undo/redo history because the repository baseline has changed.
   Future<void> loadWorkspace() async {
-    if (_isLoading) {
+    if (_isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
       return;
     }
     _isLoading = true;
@@ -160,6 +215,12 @@ class EditorSessionController extends ChangeNotifier {
         workspace: workspace,
         clearHistory: true,
       );
+      _sourceGeneration++;
+      _requiresSavedRefresh = false;
+      _refreshError = null;
+      _requiresSourceReconciliation = false;
+      _recoveryCopy = null;
+      _recoveryError = null;
     } catch (error, stackTrace) {
       // A failed reload must not leave the last successful document editable.
       _clearLoadedSessionState(clearWorkspace: true);
@@ -192,7 +253,10 @@ class EditorSessionController extends ChangeNotifier {
     )
     loadDocument,
   }) async {
-    if (_isLoading || _isExporting) {
+    if (_isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
       return false;
     }
     _isLoading = true;
@@ -211,6 +275,10 @@ class EditorSessionController extends ChangeNotifier {
         clearHistory: true,
       );
       _selectedPluginId = pluginId;
+      _requiresSourceReconciliation = false;
+      _recoveryCopy = null;
+      _recoveryError = null;
+      _sourceGeneration++;
       return true;
     } catch (error, stackTrace) {
       _loadError = '$error';
@@ -239,6 +307,35 @@ class EditorSessionController extends ChangeNotifier {
     _applyCommand(command, coalesceUndo: false);
   }
 
+  /// Applies a domain-declared selection/view command without a content undo step.
+  /// Misclassified source commands are rejected instead of silently hiding edits.
+  void applyPresentationCommand(AuthoringCommand command) {
+    final document = _document;
+    if (document == null ||
+        _isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
+      return;
+    }
+    final plugin = _pluginRegistry.requireById(_selectedPluginId);
+    final semantics = plugin is AuthoringSessionSemantics
+        ? plugin as AuthoringSessionSemantics
+        : null;
+    if (semantics == null || !semantics.isPresentationCommand(command)) {
+      throw ArgumentError.value(
+        command.kind,
+        'command',
+        'Not a presentation command.',
+      );
+    }
+    final next = plugin.applyEdit(document, command);
+    if (identical(next, document)) return;
+    _commitCoalescedUndoStep();
+    _applyDocumentState(plugin: plugin, document: next);
+    notifyListeners();
+  }
+
   /// Applies a command that should be merged into one pending undo step.
   ///
   /// Intended for high-frequency interactions (for example pointer drags)
@@ -249,6 +346,12 @@ class EditorSessionController extends ChangeNotifier {
   }
 
   void _applyCommand(AuthoringCommand command, {required bool coalesceUndo}) {
+    if (_isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
+      return;
+    }
     final document = _document;
     if (document == null) {
       return;
@@ -258,6 +361,7 @@ class EditorSessionController extends ChangeNotifier {
     if (identical(nextDocument, document)) {
       return;
     }
+    if (_recoveryCopy != null) _recoveryCopy = nextDocument;
     if (coalesceUndo) {
       _coalescedUndoBaseDocument ??= document;
       _redoStack.clear();
@@ -285,29 +389,67 @@ class EditorSessionController extends ChangeNotifier {
 
   /// Restores the previous committed document snapshot, if available.
   void undo() {
+    if (_isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
+      return;
+    }
     _commitCoalescedUndoStep();
     final document = _document;
     if (document == null || _undoStack.isEmpty) {
       return;
     }
     final plugin = _pluginRegistry.requireById(_selectedPluginId);
-    final previous = _undoStack.removeLast();
+    final previous = _restoreHistoryTarget(plugin, document, _undoStack);
+    if (previous == null) {
+      notifyListeners();
+      return;
+    }
     _redoStack.add(document);
-    _applyDocumentState(plugin: plugin, document: previous);
+    _applyDocumentState(
+      plugin: plugin,
+      document: plugin is AuthoringSessionSemantics
+          ? (plugin as AuthoringSessionSemantics).retainPresentation(
+              current: document,
+              restored: previous,
+            )
+          : previous,
+    );
+    if (_recoveryCopy != null) _recoveryCopy = _document;
     notifyListeners();
   }
 
   /// Reapplies the next committed document snapshot after an [undo], if any.
   void redo() {
+    if (_isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
+      return;
+    }
     _commitCoalescedUndoStep();
     final document = _document;
     if (document == null || _redoStack.isEmpty) {
       return;
     }
     final plugin = _pluginRegistry.requireById(_selectedPluginId);
-    final next = _redoStack.removeLast();
+    final next = _restoreHistoryTarget(plugin, document, _redoStack);
+    if (next == null) {
+      notifyListeners();
+      return;
+    }
     _undoStack.add(document);
-    _applyDocumentState(plugin: plugin, document: next);
+    _applyDocumentState(
+      plugin: plugin,
+      document: plugin is AuthoringSessionSemantics
+          ? (plugin as AuthoringSessionSemantics).retainPresentation(
+              current: document,
+              restored: next,
+            )
+          : next,
+    );
+    if (_recoveryCopy != null) _recoveryCopy = _document;
     notifyListeners();
   }
 
@@ -316,12 +458,18 @@ class EditorSessionController extends ChangeNotifier {
   /// When the plugin reports that files were written, the controller reloads
   /// from disk so the session reflects canonical persisted output rather than
   /// assuming the in-memory document matches post-export repository state.
-  Future<void> exportDirectWrite() async {
+  Future<ExportResult?> exportDirectWrite() async {
     _commitCoalescedUndoStep();
     final document = _document;
     final workspace = _workspace;
-    if (document == null || workspace == null || _isExporting) {
-      return;
+    if (document == null ||
+        workspace == null ||
+        _isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery ||
+        _requiresSourceReconciliation) {
+      return null;
     }
     _isExporting = true;
     _exportError = null;
@@ -330,15 +478,30 @@ class EditorSessionController extends ChangeNotifier {
     try {
       final result = await plugin.exportToRepo(workspace, document: document);
       _lastExportResult = result;
+      _requiresSourceReconciliation =
+          result.outcome == ExportOutcome.sourceDrift;
+      _requiresTransactionRecovery =
+          result.outcome == ExportOutcome.rollbackIncomplete ||
+          result.outcome == ExportOutcome.appliedWithCleanupRequired;
       if (result.outcome.isFailure) {
         _exportError = result.message ?? 'The export was rejected.';
       }
       if (result.applied) {
-        // Reload from disk so the session reflects the plugin's persisted
-        // output instead of assuming the in-memory document is authoritative.
-        await loadWorkspace();
+        _sourceWriteCount += 1;
+        _requiresSavedRefresh = true;
+        await _refreshSavedDocument(plugin, workspace);
         _lastExportResult = result;
       }
+      return result;
+    } on AuthoringExportFailure catch (failure) {
+      final result = failure.exportResult;
+      _lastExportResult = result;
+      _exportError = result.message;
+      _requiresSourceReconciliation =
+          result.outcome == ExportOutcome.sourceDrift;
+      _requiresTransactionRecovery =
+          result.outcome == ExportOutcome.rollbackIncomplete;
+      return result;
     } catch (error, stackTrace) {
       _exportError = '$error';
       FlutterError.reportError(
@@ -348,10 +511,220 @@ class EditorSessionController extends ChangeNotifier {
           context: ErrorDescription('while exporting editor changes'),
         ),
       );
+      return null;
     } finally {
       _isExporting = false;
       notifyListeners();
     }
+  }
+
+  /// Retries only canonical loading after committed writes; never exports again.
+  Future<bool> retrySavedRefresh() async {
+    final workspace = _workspace;
+    if (!_requiresSavedRefresh ||
+        workspace == null ||
+        _isLoading ||
+        _isExporting) {
+      return false;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      return await _refreshSavedDocument(
+        _pluginRegistry.requireById(_selectedPluginId),
+        workspace,
+      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Retries only the transaction's captured cleanup/rollback work. A failure
+  /// keeps its original outcome and evidence; it never invokes plugin export.
+  Future<bool> retryTransactionRecovery() async {
+    final recovery = _lastExportResult?.recovery;
+    if (!_requiresTransactionRecovery ||
+        recovery == null ||
+        _isLoading ||
+        _isExporting) {
+      return false;
+    }
+    _isExporting = true;
+    notifyListeners();
+    try {
+      final result = await recovery.retry();
+      _lastExportResult = result;
+      _requiresTransactionRecovery = false;
+      _exportError = result.outcome.isFailure ? result.message : null;
+      if (result.applied && _workspace != null) {
+        await _refreshSavedDocument(
+          _pluginRegistry.requireById(_selectedPluginId),
+          _workspace!,
+        );
+      }
+      return true;
+    } catch (error) {
+      _recoveryError = '$error';
+      return false;
+    } finally {
+      _isExporting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Reviews or reapplies semantic intent against a fresh canonical document.
+  /// Every attempt reloads current sources, including after a conflict dialog,
+  /// so a second external edit cannot be overwritten with an old review result.
+  /// Unresolved conflicts and rejected commands leave the live origin untouched.
+  Future<AuthoringReapplyPlan?> reapplyIntent({
+    Map<String, AuthoringConflictChoice> resolutions = const {},
+    bool reviewOnly = false,
+  }) async {
+    final original = _recoveryCopy ?? _document;
+    final plugin = _pluginRegistry.requireById(_selectedPluginId);
+    if (original == null ||
+        plugin is! AuthoringIntentReconciliation ||
+        _isLoading ||
+        _isExporting ||
+        _requiresSavedRefresh ||
+        _requiresTransactionRecovery) {
+      return null;
+    }
+    _recoveryCopy = original;
+    _recoveryError = null;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final workspace = EditorWorkspace(rootPath: _workspacePath);
+      final current = await plugin.loadFromRepo(workspace);
+      final plan = (plugin as AuthoringIntentReconciliation).planReapply(
+        current: current,
+        original: original,
+        resolutions: resolutions,
+      );
+      if (reviewOnly || plan.unresolvedPaths.isNotEmpty) return plan;
+      var candidate = current;
+      for (final command in plan.commands) {
+        candidate = plugin.applyEdit(candidate, command);
+        final rejected = plugin
+            .validate(candidate)
+            .where((issue) => issue.blocks(AuthoringOperation.save));
+        if (rejected.isNotEmpty) {
+          throw StateError(rejected.map((issue) => issue.message).join(' '));
+        }
+      }
+      final blocking = plugin
+          .validate(candidate)
+          .where((issue) => issue.blocks(AuthoringOperation.save))
+          .toList();
+      if (blocking.isNotEmpty) {
+        _recoveryError =
+            'Retained edits still need correction: '
+            '${blocking.map((issue) => issue.message).join(' ')}';
+        return plan;
+      }
+      if (plugin is AuthoringSessionSemantics) {
+        candidate = (plugin as AuthoringSessionSemantics).retainPresentation(
+          current: _document ?? original,
+          restored: candidate,
+        );
+      }
+      _applyDocumentState(
+        plugin: plugin,
+        document: candidate,
+        workspace: workspace,
+        clearHistory: true,
+      );
+      if (_pendingChanges.hasChanges) _undoStack.add(current);
+      _sourceGeneration++;
+      _recoveryCopy = null;
+      _requiresSourceReconciliation = false;
+      return plan;
+    } catch (error) {
+      _recoveryError = 'Could not reconcile the retained edits: $error';
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> _refreshSavedDocument(
+    AuthoringDomainPlugin plugin,
+    EditorWorkspace workspace,
+  ) async {
+    final savedResult = _lastExportResult;
+    try {
+      final canonical = await plugin.loadFromRepo(workspace);
+      final previous = _document;
+      final presented = previous != null && plugin is AuthoringSessionSemantics
+          ? (plugin as AuthoringSessionSemantics).retainPresentation(
+              current: previous,
+              restored: canonical,
+            )
+          : canonical;
+      _applyDocumentState(
+        plugin: plugin,
+        document: presented,
+        workspace: workspace,
+        clearHistory: plugin is! AuthoringHistoryReconciliation,
+      );
+      if (plugin is AuthoringHistoryReconciliation) {
+        final history = plugin as AuthoringHistoryReconciliation;
+        for (final stack in [_undoStack, _redoStack]) {
+          var cursor = presented;
+          final retained = <AuthoringDocument>[];
+          for (final historical in stack.reversed) {
+            final reconciled = history.restoreContent(
+              current: cursor,
+              historical: historical,
+            );
+            if (reconciled == null) break;
+            if (identical(reconciled, cursor)) continue;
+            retained.add(historical);
+            cursor = reconciled;
+          }
+          stack
+            ..clear()
+            ..addAll(retained.reversed);
+        }
+      }
+      _sourceGeneration++;
+      _requiresSourceReconciliation = false;
+      _recoveryCopy = null;
+      _recoveryError = null;
+      _lastExportResult = savedResult;
+      _requiresSavedRefresh = false;
+      _refreshError = null;
+      return true;
+    } catch (error) {
+      // The write already committed. Keep the originating document and exact
+      // outcome; a normal failed-reload path would destroy the recovery context.
+      _lastExportResult = savedResult;
+      _refreshError = '$error';
+      _requiresSavedRefresh = true;
+      return false;
+    }
+  }
+
+  AuthoringDocument? _restoreHistoryTarget(
+    AuthoringDomainPlugin plugin,
+    AuthoringDocument current,
+    List<AuthoringDocument> stack,
+  ) {
+    while (stack.isNotEmpty) {
+      final historical = stack.removeLast();
+      if (plugin is! AuthoringHistoryReconciliation) return historical;
+      final restored = (plugin as AuthoringHistoryReconciliation)
+          .restoreContent(current: current, historical: historical);
+      if (restored == null) {
+        stack.clear();
+        return null;
+      }
+      if (!identical(restored, current)) return restored;
+    }
+    return null;
   }
 
   void _clearHistory() {
@@ -418,6 +791,12 @@ class EditorSessionController extends ChangeNotifier {
     _clearLoadedSessionState(clearWorkspace: clearWorkspace);
     _loadError = null;
     _exportError = null;
+    _refreshError = null;
+    _requiresSavedRefresh = false;
+    _requiresTransactionRecovery = false;
+    _requiresSourceReconciliation = false;
+    _recoveryCopy = null;
+    _recoveryError = null;
   }
 
   /// Drops the currently loaded document-derived snapshot.

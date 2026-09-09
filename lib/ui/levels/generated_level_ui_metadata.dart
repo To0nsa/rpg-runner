@@ -13,12 +13,16 @@ class GeneratedLevelUiMetadata {
   const GeneratedLevelUiMetadata({
     required this.displayName,
     required this.status,
+    required this.visualThemeId,
+    required this.includeInBuild,
   });
 
   final String displayName;
   final LevelUiStatus status;
+  final String visualThemeId;
+  final bool includeInBuild;
 
-  bool get isSelectableInStandardUi => status == LevelUiStatus.active;
+  bool get isSelectableInStandardUi => includeInBuild && status == LevelUiStatus.active;
 }
 
 const Map<LevelId, GeneratedLevelUiMetadata> generatedLevelUiMetadataById =
@@ -26,14 +30,20 @@ const Map<LevelId, GeneratedLevelUiMetadata> generatedLevelUiMetadataById =
   LevelId.forest: GeneratedLevelUiMetadata(
     displayName: 'Forest',
     status: LevelUiStatus.active,
+    visualThemeId: 'forest',
+    includeInBuild: true,
   ),
   LevelId.field: GeneratedLevelUiMetadata(
     displayName: 'Field',
     status: LevelUiStatus.active,
+    visualThemeId: 'field',
+    includeInBuild: true,
   ),
   LevelId.new_level: GeneratedLevelUiMetadata(
     displayName: 'New Level',
     status: LevelUiStatus.active,
+    visualThemeId: 'new_level',
+    includeInBuild: true,
   ),
 };
 

@@ -36,7 +36,7 @@ typedef ChunkV2OwnerFormSubmit = FutureOr<bool> Function(
 /// Route-local Chunk-v2 metadata form used below the selected owner row.
 ///
 /// It captures the displayed fields until [onSubmit] accepts them and reports
-/// dirty state so navigation and Apply-to-files cannot discard the draft.
+/// dirty state so navigation and Save resolve the draft before proceeding.
 class ChunkV2OwnerForm extends StatefulWidget {
   const ChunkV2OwnerForm({
     super.key,

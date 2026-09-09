@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_assembly.dart';
+
 import '../support/test_level.dart';
+
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
@@ -16,7 +18,7 @@ String _snapshotSignature(GameCore core) {
   final s = core.buildSnapshot();
   return <String>[
     '${s.tick}',
-    s.levelId.name,
+    s.levelIdentity.value,
     '${s.visualThemeId}',
     s.distance.toStringAsFixed(6),
     s.camera.centerX.toStringAsFixed(6),
@@ -78,7 +80,7 @@ void main() {
       levelDefinition: forestLevel,
       playerCharacter: testPlayerCharacter,
     ).buildSnapshot();
-    expect(forest.levelId, LevelId.forest);
+    expect(forest.levelIdentity.requireRegisteredId(), LevelId.forest);
     expect(forest.visualThemeId, 'forest');
     expect(forest.camera.centerY, forestLevel.cameraCenterY);
     expect(forest.stagedTerrainRenderSnapshot, isNotNull);
@@ -89,7 +91,7 @@ void main() {
       levelDefinition: fieldLevel,
       playerCharacter: testPlayerCharacter,
     ).buildSnapshot();
-    expect(field.levelId, LevelId.field);
+    expect(field.levelIdentity.requireRegisteredId(), LevelId.field);
     expect(field.visualThemeId, 'field');
     expect(field.camera.centerY, fieldLevel.cameraCenterY);
     expect(field.stagedTerrainRenderSnapshot, isNotNull);

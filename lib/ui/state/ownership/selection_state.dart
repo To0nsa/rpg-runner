@@ -1,5 +1,6 @@
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -7,6 +8,8 @@ import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/run_mode.dart';
+
+import '../../levels/level_id_ui.dart';
 
 export 'package:run_protocol/run_mode.dart';
 
@@ -27,7 +30,7 @@ class SelectionState {
   static const int schemaVersion = 1;
 
   static final SelectionState defaults = SelectionState(
-    selectedLevelId: LevelId.field,
+    selectedLevelId: LevelRegistry.defaultLevelId,
     selectedRunMode: RunMode.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
     loadoutsByCharacter: _seedLoadoutsWithDefaults(),
@@ -105,7 +108,7 @@ class SelectionState {
     final levelId = _enumFromName(
       LevelId.values,
       json['levelId'] as String?,
-      LevelId.field,
+      LevelRegistry.defaultLevelId,
     );
     final runMode = _enumFromName(
       RunMode.values,
@@ -134,7 +137,9 @@ class SelectionState {
     );
 
     return SelectionState(
-      selectedLevelId: levelId,
+      selectedLevelId: levelId.isSelectableInStandardUi
+          ? levelId
+          : LevelRegistry.defaultLevelId,
       selectedRunMode: runMode,
       selectedCharacterId: characterId,
       loadoutsByCharacter: loadouts,

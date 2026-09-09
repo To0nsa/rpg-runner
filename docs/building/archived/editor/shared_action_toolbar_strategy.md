@@ -2,8 +2,13 @@
 
 ## Status
 
-Implementation complete. Focused test migration and validation are deferred at
-the user's request; see the checklist.
+Superseded on September 9, 2026 by the delivered shared Save and Build workflow.
+The design below preserves the original Apply-to-files proposal and is historical;
+the original checklist records its status at supersession. Current toolbar
+ownership is documented in the
+[Editor UI System](../../../tdd/editor_ui_system.md#shared-action-toolbar), with
+[Save and recovery contracts](../../../tdd/editor_level_workspace.md#save-admission-and-history)
+and [verification evidence](../../editor/levelCreator/implementation-verification.md).
 
 ## Goal
 

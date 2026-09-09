@@ -29,6 +29,7 @@ void main() {
     );
     expect(issues.map((issue) => issue.code).toSet(), <String>{
       'prefab_collision_shape_missing',
+      'polygon_vertex_soft_target_exceeded',
     });
   });
 

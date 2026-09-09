@@ -17,10 +17,19 @@ class ParallaxPreviewView extends StatefulWidget {
     required this.workspaceRootPath,
     required this.theme,
     this.onSetAllLayerYOffsets,
-  });
+  }) : _thumbnail = false;
+
+  /// Read-only background composition independent of authored Chunk content.
+  const ParallaxPreviewView.thumbnail({
+    super.key,
+    required this.workspaceRootPath,
+    required this.theme,
+  }) : _thumbnail = true,
+       onSetAllLayerYOffsets = null;
 
   final String workspaceRootPath;
   final ParallaxThemeDef? theme;
+  final bool _thumbnail;
 
   /// Sets every authored layer to the shared preview Y offset.
   ///
@@ -79,6 +88,25 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
     final theme = widget.theme;
     if (theme == null) {
       return _buildEmptyState('No parallax theme is authored for this level.');
+    }
+    if (widget._thumbnail) {
+      return LayoutBuilder(
+        builder: (context, constraints) => CustomPaint(
+          painter: _ParallaxPreviewPainter(
+            workspaceRootPath: widget.workspaceRootPath,
+            imageCache: _imageCache,
+            loadedImageCount: _imageCache.loadedImageCount,
+            theme: theme,
+            zoom: math.min(
+              constraints.maxWidth / 480,
+              constraints.maxHeight / 270,
+            ),
+            cameraX: 0,
+            sharedYOffset: null,
+            includeForeground: false,
+          ),
+        ),
+      );
     }
 
     return LayoutBuilder(
@@ -385,6 +413,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
     required this.zoom,
     required this.cameraX,
     required this.sharedYOffset,
+    this.includeForeground = true,
   });
 
   final String workspaceRootPath;
@@ -394,6 +423,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
   final double zoom;
   final double cameraX;
   final double? sharedYOffset;
+  final bool includeForeground;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -414,15 +444,17 @@ class _ParallaxPreviewPainter extends CustomPainter {
       clipRect: Offset.zero & size,
     );
 
-    _paintLayers(
-      canvas,
-      size: size,
-      layers: theme.layers
-          .where((layer) => layer.group == parallaxGroupForeground)
-          .toList(growable: false),
-      bottomAnchorY: size.height,
-      clipRect: Offset.zero & size,
-    );
+    if (includeForeground) {
+      _paintLayers(
+        canvas,
+        size: size,
+        layers: theme.layers
+            .where((layer) => layer.group == parallaxGroupForeground)
+            .toList(growable: false),
+        bottomAnchorY: size.height,
+        clipRect: Offset.zero & size,
+      );
+    }
 
     final borderPaint = Paint()
       ..color = const Color(0xFF7CB7E0)
@@ -496,6 +528,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ParallaxPreviewPainter oldDelegate) {
     return oldDelegate.theme != theme ||
+        oldDelegate.includeForeground != includeForeground ||
         oldDelegate.zoom != zoom ||
         oldDelegate.cameraX != cameraX ||
         oldDelegate.sharedYOffset != sharedYOffset ||

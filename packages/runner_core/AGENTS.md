@@ -50,7 +50,11 @@ seam validation, and typed chunk materialization to
 The generator also owns `lib/track/staged_authored_terrain.dart`. Despite its
 historical filename, this is the production polygon artifact admitted by
 normal Core and replay-validation construction and projected to Flutter through
-Core snapshots. Do not hand-edit it or introduce another terrain source.
+Core snapshots. Do not hand-edit it or introduce another production terrain source.
+The explicit Chunk/Level playtest factories admit captured compiled records
+through `StagedTerrainChunkCatalog` and scenario validation. They retain authored
+identity separately from registered `LevelId` and must never become a run-ticket,
+replay, backend, or normal-constructor option.
 
 ## Validation
 

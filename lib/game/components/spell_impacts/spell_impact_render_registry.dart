@@ -8,15 +8,15 @@ import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/spell_impacts/spell_impact_id.dart';
 import 'package:runner_core/spell_impacts/spell_impact_render_catalog.dart';
+
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 
-typedef SpellImpactAnimLoader =
-    Future<SpriteAnimSet> Function(
-      Images images, {
-      required RenderAnimSetDefinition renderAnim,
-      required Set<AnimKey> oneShotKeys,
-    });
+typedef SpellImpactAnimLoader = Future<SpriteAnimSet> Function(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+  required Set<AnimKey> oneShotKeys,
+});
 
 const Set<AnimKey> _defaultSpellImpactOneShotKeys = <AnimKey>{AnimKey.hit};
 
@@ -87,6 +87,11 @@ class SpellImpactRenderRegistry {
     if (entry == null || !entry.isRenderable) return null;
     return entry;
   }
+
+  /// Exact image sources preloaded by this registry.
+  Iterable<String> get assetPaths => _entries.values.expand(
+    (entry) => _impactCatalog.get(entry.id).sourcesByKey.values,
+  );
 
   Future<void> load(Images images) async {
     for (final entry in _entries.values) {

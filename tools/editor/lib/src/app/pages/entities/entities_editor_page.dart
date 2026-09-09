@@ -39,16 +39,21 @@ part 'state/entities_editor_apply.dart';
 part 'panels/entities_editor_status_panels.dart';
 
 class EntitiesEditorPage extends StatefulWidget {
-  const EntitiesEditorPage({super.key, required this.controller});
+  const EntitiesEditorPage({
+    super.key,
+    required this.controller,
+    this.onShellStateChanged,
+  });
 
   final EditorSessionController controller;
+  final VoidCallback? onShellStateChanged;
 
   @override
   State<EntitiesEditorPage> createState() => _EntitiesEditorPageState();
 }
 
 class _EntitiesEditorPageState extends State<EntitiesEditorPage>
-    implements EditorPageLocalDraftState, EditorPageApplyHandler {
+    implements EditorPageLocalDraftState, EditorPageSaveHandler {
   // Controllers are page-owned draft state. We only persist through
   // plugin/controller command paths, never directly from widget fields.
   late final TextEditingController _halfXController;
@@ -118,17 +123,33 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
   }
 
   @override
-  bool get canApplyEditorPage =>
+  bool get canSaveEditorPage =>
       widget.controller.scene != null &&
       !widget.controller.isLoading &&
       !widget.controller.isExporting &&
-      widget.controller.errorCount == 0 &&
-      widget.controller.pendingChanges.hasChanges;
+      !widget.controller.requiresSavedRefresh &&
+      !widget.controller.requiresTransactionRecovery &&
+      (widget.controller.pendingChanges.hasChanges || hasLocalDraftChanges);
 
   @override
-  Future<void> applyEditorPage() async {
-    if (!canApplyEditorPage) return;
-    await _confirmAndApplyToFiles();
+  Future<EditorPageSaveResult> saveEditorPage() async {
+    if (!canSaveEditorPage) return EditorPageSaveResult.blocked;
+    if (hasLocalDraftChanges) {
+      final scene = widget.controller.scene;
+      if (scene is! EntityScene) return EditorPageSaveResult.blocked;
+      final entry = scene.entries
+          .where((entry) => entry.id == _selectedEntryId)
+          .firstOrNull;
+      if (entry == null) return EditorPageSaveResult.blocked;
+      if (!_applyInspectorEdits(entry) || hasLocalDraftChanges) {
+        return EditorPageSaveResult.blocked;
+      }
+    }
+    if (!widget.controller.pendingChanges.hasChanges) {
+      return EditorPageSaveResult.noChanges;
+    }
+    await _saveToFiles();
+    return EditorPageSaveResult.fromSession(widget.controller);
   }
 
   @override
@@ -144,6 +165,20 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     _frameHeightController = TextEditingController();
     _renderScaleController = TextEditingController();
     _castOriginOffsetController = TextEditingController();
+    for (final field in [
+      _halfXController,
+      _halfYController,
+      _offsetXController,
+      _offsetYController,
+      _anchorXPxController,
+      _anchorYPxController,
+      _frameWidthController,
+      _frameHeightController,
+      _renderScaleController,
+      _castOriginOffsetController,
+    ]) {
+      field.addListener(_notifyDraftChanged);
+    }
     _searchController = TextEditingController();
     _sceneHorizontalScrollController = ScrollController();
     _sceneVerticalScrollController = ScrollController();
@@ -154,6 +189,17 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       } else if (_reconcileSelectionsFromCurrentState()) {
         _updateState(() {});
       }
+    });
+  }
+
+  bool _draftNotificationQueued = false;
+
+  void _notifyDraftChanged() {
+    if (_draftNotificationQueued) return;
+    _draftNotificationQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _draftNotificationQueued = false;
+      if (mounted) widget.onShellStateChanged?.call();
     });
   }
 
@@ -210,13 +256,12 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     );
   }
 
-  Future<void> _confirmAndApplyToFiles() async {
-    // Export remains plugin/controller-authoritative. The page only confirms
-    // intent, blocks obvious invalid states, and reports user-facing outcome.
-    if (widget.controller.errorCount > 0) {
+  Future<void> _saveToFiles() async {
+    // The plugin owns source validation and writes; the page finalizes input.
+    if (widget.controller.saveBlockingErrorCount > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Resolve validation errors before applying changes.'),
+          content: Text('Resolve validation errors before saving.'),
         ),
       );
       return;
@@ -225,42 +270,8 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     final pendingChanges = widget.controller.pendingChanges;
     if (!pendingChanges.hasChanges) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No pending changes to apply.')),
+        const SnackBar(content: Text('No pending changes to save.')),
       );
-      return;
-    }
-
-    final changedEntries = pendingChanges.changedItemIds.length;
-    final changedFiles = pendingChanges.fileDiffs.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Apply Changes To Files'),
-          content: Text(
-            'This will write $changedEntries edited entity entries across '
-            '$changedFiles file(s).\n\n'
-            'A .bak backup file will be written for each modified source file '
-            'before applying changes.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: const Text('Apply'),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || !mounted) {
       return;
     }
 
@@ -269,11 +280,18 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       return;
     }
 
-    final exportError = widget.controller.exportError;
+    final exportError =
+        widget.controller.refreshError ?? widget.controller.exportError;
     if (exportError != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Apply failed: $exportError')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.controller.requiresSavedRefresh
+                ? 'Saved; refresh failed: $exportError'
+                : 'Save failed: $exportError',
+          ),
+        ),
+      );
       return;
     }
 
@@ -286,7 +304,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         SnackBar(
           content: Text(
             exportResult.message ??
-                'Applied changes, but transaction cleanup requires review.',
+                'Saved changes; transaction cleanup requires review.',
           ),
         ),
       );
@@ -297,8 +315,8 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       SnackBar(
         content: Text(
           backupCount > 0
-              ? 'Applied changes. Wrote $backupCount backup file(s).'
-              : 'Applied changes.',
+              ? 'Saved changes. Wrote $backupCount backup file(s).'
+              : 'Saved changes.',
         ),
       ),
     );
@@ -432,7 +450,12 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
           _castOriginPreviewAngleDegrees = angleDegrees;
         });
       },
-      onApply: selectedEntry == null
+      onApply:
+          selectedEntry == null ||
+              widget.controller.isLoading ||
+              widget.controller.isExporting ||
+              widget.controller.requiresSavedRefresh ||
+              widget.controller.requiresTransactionRecovery
           ? null
           : () => _applyInspectorEdits(selectedEntry),
     );

@@ -1,5 +1,13 @@
 # Shared Editor Action Toolbar Checklist
 
+Status: Superseded on September 9, 2026 by the shared Save and Build workflow.
+The original boxes below are retained as historical progress at supersession;
+unchecked verification boxes do not describe the current implementation.
+Current behavior is documented in the
+[Editor UI System](../../../tdd/editor_ui_system.md#shared-action-toolbar), and
+delivered checks are recorded in the
+[Level Creator implementation evidence](../../editor/levelCreator/implementation-verification.md).
+
 ## Implementation
 
 - [x] Add the page-level apply action contract beside the existing shell action

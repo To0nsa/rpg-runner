@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
-import 'package:runner_editor/src/playtest/chunk_playtest_preparation.dart';
+import 'package:runner_editor/src/playtest/authored_playtest_preparation.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 const int _warmupCount = 2;
@@ -25,27 +25,29 @@ void main() {
         .chunkKey;
 
     for (var index = 0; index < _warmupCount; index += 1) {
-      final input = captureChunkPlaytestPreparationInput(
+      final input = await captureChunkPlaytestPreparationInput(
         document: document,
+        workspaceRoot: workspaceRoot,
         selectedChunkKey: selectedChunkKey,
       );
-      expect(prepareChunkPlaytest(input).scenario, isNotNull);
+      expect(preparePlaytest(input).scenario, isNotNull);
     }
 
     final captureMicros = <int>[];
     final synchronousPreparationMicros = <int>[];
-    late ChunkPlaytestPreparationInput input;
+    late PlaytestPreparationInput input;
     for (var index = 0; index < _sampleCount; index += 1) {
       final captureWatch = Stopwatch()..start();
-      input = captureChunkPlaytestPreparationInput(
+      input = await captureChunkPlaytestPreparationInput(
         document: document,
+        workspaceRoot: workspaceRoot,
         selectedChunkKey: selectedChunkKey,
       );
       captureWatch.stop();
       captureMicros.add(captureWatch.elapsedMicroseconds);
 
       final preparationWatch = Stopwatch()..start();
-      final result = prepareChunkPlaytest(input);
+      final result = preparePlaytest(input);
       preparationWatch.stop();
       expect(result.scenario, isNotNull);
       synchronousPreparationMicros.add(preparationWatch.elapsedMicroseconds);
@@ -54,7 +56,7 @@ void main() {
     final backgroundPreparationMicros = <int>[];
     for (var index = 0; index < _backgroundSampleCount; index += 1) {
       final watch = Stopwatch()..start();
-      final result = await prepareChunkPlaytestInBackground(input);
+      final result = await preparePlaytestInBackground(input);
       watch.stop();
       expect(result.scenario, isNotNull);
       backgroundPreparationMicros.add(watch.elapsedMicroseconds);

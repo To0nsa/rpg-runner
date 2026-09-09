@@ -2,32 +2,18 @@
 library;
 
 import '../collision/terrain/terrain_authoring_scheduler.dart';
-import '../collision/terrain/terrain_boundary_signature.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
-import '../levels/level_assembly.dart';
 import '../levels/level_definition.dart';
 import '../players/player_character_definition.dart';
 import '../players/player_tuning.dart' show defaultTickHz;
 import '../track/chunk_pattern.dart';
 import '../track/chunk_pattern_source.dart';
-import '../track/staged_authored_terrain.dart';
 import '../track/staged_terrain_catalog.dart';
 import '../track/staged_terrain_data.dart';
-import '../track/staged_terrain_world_geometry.dart';
+import 'playtest_scenario_validation.dart';
+import 'playtest_scenario.dart';
 
-/// Stable preparation failure surfaced to an authoring host.
-final class ChunkPlaytestScenarioException implements Exception {
-  const ChunkPlaytestScenarioException({
-    required this.code,
-    required this.message,
-  });
-
-  final String code;
-  final String message;
-
-  @override
-  String toString() => '$code: $message';
-}
+export 'playtest_scenario_validation.dart' show PlaytestScenarioException;
 
 /// Canonical scheduler-reachable chunk sequence with a deterministic loop.
 ///
@@ -89,7 +75,7 @@ final class ChunkPlaytestScenarioPath {
 /// Construction validates scheduler reachability and exact Core boundaries
 /// before a [GameCore] can consume this scenario. It owns no editor, Flutter,
 /// Flame, replay, run-ticket, or backend state.
-final class ChunkPlaytestScenario {
+final class ChunkPlaytestScenario implements PlaytestScenario {
   factory ChunkPlaytestScenario({
     required LevelDefinition levelDefinition,
     required String visualThemeId,
@@ -97,9 +83,11 @@ final class ChunkPlaytestScenario {
     int tickHz = defaultTickHz,
     required ChunkPattern draftPattern,
     required StagedTerrainChunkData draftTerrain,
+    required Iterable<StagedTerrainChunkData> terrainChunks,
     required PlayerCharacterDefinition playerCharacter,
     required EquippedLoadoutDef equippedLoadout,
   }) {
+    levelDefinition = immutablePlaytestLevelDefinition(levelDefinition);
     if (seed <= 0) {
       throw ArgumentError.value(seed, 'seed', 'Must be positive.');
     }
@@ -114,43 +102,44 @@ final class ChunkPlaytestScenario {
       );
     }
     if (!levelDefinition.tuning.track.enabled) {
-      throw const ChunkPlaytestScenarioException(
+      throw const PlaytestScenarioException(
         code: 'chunk_playtest_track_disabled',
         message: 'Chunk playtest requires an enabled streamed level.',
       );
     }
 
+    validatePlaytestLevelSettings(levelDefinition);
     final selectedKey = draftPattern.chunkKey;
     if (selectedKey == null || selectedKey.isEmpty) {
-      throw const ChunkPlaytestScenarioException(
+      throw const PlaytestScenarioException(
         code: 'chunk_playtest_selected_key_missing',
         message: 'The selected draft pattern requires a stable chunk key.',
       );
     }
     if (draftTerrain.chunkKey != selectedKey) {
-      throw ChunkPlaytestScenarioException(
+      throw PlaytestScenarioException(
         code: 'chunk_playtest_selected_key_mismatch',
         message:
             'Draft pattern $selectedKey does not match staged terrain '
             '${draftTerrain.chunkKey}.',
       );
     }
-    if (draftTerrain.levelId != levelDefinition.id.name) {
-      throw ChunkPlaytestScenarioException(
+    if (draftTerrain.levelId != levelDefinition.identity.value) {
+      throw PlaytestScenarioException(
         code: 'chunk_playtest_selected_level_mismatch',
         message:
             'Selected chunk $selectedKey belongs to level '
-            '${draftTerrain.levelId}, not ${levelDefinition.id.name}.',
+            '${draftTerrain.levelId}, not ${levelDefinition.identity.value}.',
       );
     }
     if (draftTerrain.status != 'active') {
-      throw ChunkPlaytestScenarioException(
+      throw PlaytestScenarioException(
         code: 'chunk_playtest_selected_chunk_inactive',
         message: 'Selected chunk $selectedKey must be active to playtest.',
       );
     }
     if (draftPattern.assemblyGroupId != draftTerrain.assemblyGroupId) {
-      throw ChunkPlaytestScenarioException(
+      throw PlaytestScenarioException(
         code: 'chunk_playtest_selected_group_mismatch',
         message:
             'Draft pattern group ${draftPattern.assemblyGroupId} does not '
@@ -159,48 +148,45 @@ final class ChunkPlaytestScenario {
     }
     if (levelDefinition.tuning.track.chunkWidth !=
         draftTerrain.width.toDouble()) {
-      throw ChunkPlaytestScenarioException(
+      throw PlaytestScenarioException(
         code: 'chunk_playtest_selected_width_mismatch',
         message:
             'Selected chunk $selectedKey has width ${draftTerrain.width}, '
-            'but level ${levelDefinition.id.name} streams width '
+            'but level ${levelDefinition.identity.value} streams width '
             '${levelDefinition.tuning.track.chunkWidth}.',
       );
     }
-    _tierForDifficulty(draftTerrain.difficulty);
+    playtestTierForDifficulty(draftTerrain.difficulty);
 
-    final baseCatalog = StagedTerrainArtifactCatalog(
-      artifact: stagedAuthoredTerrain,
-    );
-    final overlayCatalog = StagedTerrainOverlayCatalog(
-      base: baseCatalog,
-      replacement: draftTerrain,
+    final captured = StagedTerrainChunkCatalog(chunks: terrainChunks);
+    final overlayCatalog = StagedTerrainChunkCatalog(
+      chunks: <StagedTerrainChunkData>[
+        for (final chunk in captured.chunksByKey.values)
+          if (chunk.chunkKey != selectedKey) chunk,
+        draftTerrain,
+      ],
     );
     final scheduler = _buildSchedulerResult(
       levelDefinition: levelDefinition,
-      draftTerrain: draftTerrain,
-      baseCatalog: baseCatalog,
+      catalog: overlayCatalog,
     );
     if (scheduler.issues.isNotEmpty) {
       final issue = scheduler.issues.first;
-      throw ChunkPlaytestScenarioException(
-        code: issue.code,
-        message: issue.message,
-      );
+      throw PlaytestScenarioException(code: issue.code, message: issue.message);
     }
 
     final path = _selectScenarioPath(
-      levelId: levelDefinition.id.name,
+      levelId: levelDefinition.identity.value,
       selectedChunkKey: selectedKey,
       transitions: scheduler.transitions,
     );
     final patternsByKey = _collectPatternsByKey(
       levelDefinition: levelDefinition,
-      draftPattern: _immutablePattern(draftPattern),
+      draftPattern: immutablePlaytestPattern(draftPattern),
     );
     for (final chunkKey in path.chunkKeys) {
       if (!patternsByKey.containsKey(chunkKey)) {
-        throw ChunkPlaytestScenarioException(
+        throw PlaytestScenarioException(
           code: 'chunk_playtest_pattern_missing',
           message:
               'Scheduler path references chunk $chunkKey, but the selected '
@@ -253,12 +239,11 @@ final class ChunkPlaytestScenario {
   final PlayerCharacterDefinition playerCharacter;
   final EquippedLoadoutDef equippedLoadout;
   final ChunkPlaytestScenarioPath path;
-  final StagedTerrainOverlayCatalog terrainCatalog;
+  final StagedTerrainChunkCatalog terrainCatalog;
   final Map<String, ChunkPattern> _patternsByKey;
 
   /// Builds a fresh level/source pair for one Core construction or restart.
-  LevelDefinition buildRuntimeLevelDefinition() => LevelDefinition(
-    id: levelDefinition.id,
+  LevelDefinition buildRuntimeLevelDefinition() => levelDefinition.copyWith(
     chunkPatternSource: _ChunkPlaytestPatternSource(
       seed: seed,
       path: path,
@@ -273,26 +258,35 @@ final class ChunkPlaytestScenario {
     normalPatternChunks: levelDefinition.normalPatternChunks,
     noEnemyChunks: 0,
     visualThemeId: visualThemeId,
+    clearAssembly: true,
   );
 }
 
 TerrainAuthoringSchedulerResult _buildSchedulerResult({
   required LevelDefinition levelDefinition,
-  required StagedTerrainChunkData draftTerrain,
-  required StagedTerrainArtifactCatalog baseCatalog,
+  required StagedTerrainChunkCatalog catalog,
 }) {
-  final levelId = levelDefinition.id.name;
+  final levelId = levelDefinition.identity.value;
   final chunks = <TerrainAuthoringSchedulerChunk>[];
-  for (final admitted in baseCatalog.artifact.chunks) {
-    final chunk = admitted.chunkKey == draftTerrain.chunkKey
-        ? draftTerrain
-        : admitted;
-    if (chunk.levelId != levelId) continue;
+  for (final chunk in catalog.chunksByKey.values) {
+    if (chunk.levelId != levelId) {
+      throw PlaytestScenarioException(
+        code: 'chunk_playtest_level_mismatch',
+        message:
+            'Chunk ${chunk.chunkKey} belongs to ${chunk.levelId}, not $levelId.',
+      );
+    }
+    if (chunk.width.toDouble() != levelDefinition.tuning.track.chunkWidth) {
+      throw PlaytestScenarioException(
+        code: 'chunk_playtest_width_mismatch',
+        message: 'Chunk ${chunk.chunkKey} has an incompatible stream width.',
+      );
+    }
     chunks.add(
       TerrainAuthoringSchedulerChunk(
         chunkKey: chunk.chunkKey,
         levelId: chunk.levelId,
-        tier: _tierForDifficulty(chunk.difficulty),
+        tier: playtestTierForDifficulty(chunk.difficulty),
         assemblyGroupId: chunk.assemblyGroupId,
         isActive: chunk.status == 'active',
       ),
@@ -306,40 +300,11 @@ TerrainAuthoringSchedulerResult _buildSchedulerResult({
         earlyPatternChunks: levelDefinition.earlyPatternChunks,
         easyPatternChunks: levelDefinition.easyPatternChunks,
         normalPatternChunks: levelDefinition.normalPatternChunks,
-        assembly: _schedulerAssembly(levelDefinition.assembly),
+        assembly: playtestSchedulerAssembly(levelDefinition.assembly),
       ),
     ],
   );
 }
-
-TerrainAuthoringSchedulerAssembly? _schedulerAssembly(
-  LevelAssemblyDefinition? assembly,
-) {
-  if (assembly == null || assembly.segments.isEmpty) return null;
-  return TerrainAuthoringSchedulerAssembly(
-    loopSegments: assembly.loopSegments,
-    segments: assembly.segments.map(
-      (segment) => TerrainAuthoringSchedulerSegment(
-        segmentId: segment.segmentId,
-        groupId: segment.groupId,
-        minChunkCount: segment.minChunkCount,
-        maxChunkCount: segment.maxChunkCount,
-        requireDistinctChunks: segment.requireDistinctChunks,
-      ),
-    ),
-  );
-}
-
-ChunkPatternTier _tierForDifficulty(String difficulty) => switch (difficulty) {
-  'early' => ChunkPatternTier.early,
-  'easy' => ChunkPatternTier.easy,
-  'normal' => ChunkPatternTier.normal,
-  'hard' => ChunkPatternTier.hard,
-  _ => throw ChunkPlaytestScenarioException(
-    code: 'chunk_playtest_difficulty_invalid',
-    message: 'Unsupported chunk difficulty "$difficulty".',
-  ),
-};
 
 ChunkPlaytestScenarioPath _selectScenarioPath({
   required String levelId,
@@ -358,7 +323,7 @@ ChunkPlaytestScenarioPath _selectScenarioPath({
         transition.rightChunkKey == selectedChunkKey,
   );
   if (touchingSelected.isEmpty) {
-    throw ChunkPlaytestScenarioException(
+    throw PlaytestScenarioException(
       code: 'chunk_playtest_selected_chunk_unreachable',
       message:
           'Active chunk $selectedChunkKey is not reachable in level $levelId.',
@@ -394,7 +359,7 @@ ChunkPlaytestScenarioPath _selectScenarioPath({
         .where((transition) => transition.leftChunkKey == current)
         .toList(growable: false);
     if (outgoing.isEmpty) {
-      throw ChunkPlaytestScenarioException(
+      throw PlaytestScenarioException(
         code: 'chunk_playtest_scenario_path_dead_end',
         message:
             'Scheduler-reachable path for $selectedChunkKey stops at '
@@ -426,7 +391,7 @@ Map<String, ChunkPattern> _collectPatternsByKey({
   final listSource = switch (source) {
     ChunkPatternListSource value => value,
     AssembledChunkPatternSource value => value.baseSource,
-    _ => throw ChunkPlaytestScenarioException(
+    _ => throw PlaytestScenarioException(
       code: 'chunk_playtest_pattern_source_unsupported',
       message: 'Chunk playtest requires a list-backed authored pattern source.',
     ),
@@ -439,19 +404,17 @@ Map<String, ChunkPattern> _collectPatternsByKey({
     ...listSource.hardPatterns,
   ]) {
     final key = pattern.chunkKey;
-    if (key != null) patterns[key] = _immutablePattern(pattern);
+    if (key == null || key.isEmpty || patterns.containsKey(key)) {
+      throw const PlaytestScenarioException(
+        code: 'chunk_playtest_pattern_key_invalid',
+        message: 'Captured patterns require unique stable chunk keys.',
+      );
+    }
+    patterns[key] = pattern;
   }
   patterns[draftPattern.chunkKey!] = draftPattern;
   return Map<String, ChunkPattern>.unmodifiable(patterns);
 }
-
-ChunkPattern _immutablePattern(ChunkPattern source) => ChunkPattern(
-  name: source.name,
-  chunkKey: source.chunkKey,
-  assemblyGroupId: source.assemblyGroupId,
-  spawnMarkers: List<SpawnMarker>.unmodifiable(source.spawnMarkers),
-  visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(source.visualSprites),
-);
 
 void _validateDraftReachableSeams({
   required String selectedChunkKey,
@@ -463,7 +426,7 @@ void _validateDraftReachableSeams({
         transition.rightChunkKey != selectedChunkKey) {
       continue;
     }
-    _validateSeam(
+    validatePlaytestSeam(
       transitionRecord: transition.canonicalRecord,
       leftChunkKey: transition.leftChunkKey,
       rightChunkKey: transition.rightChunkKey,
@@ -480,65 +443,13 @@ void _validatePathSeams({
     final nextIndex = index + 1 < path.chunkKeys.length
         ? index + 1
         : path.loopStartIndex;
-    _validateSeam(
+    validatePlaytestSeam(
       transitionRecord: path.transitionRecords[index],
       leftChunkKey: path.chunkKeys[index],
       rightChunkKey: path.chunkKeys[nextIndex],
       catalog: catalog,
     );
   }
-}
-
-void _validateSeam({
-  required String transitionRecord,
-  required String leftChunkKey,
-  required String rightChunkKey,
-  required StagedTerrainCatalog catalog,
-}) {
-  const geometryBuilder = StagedTerrainWorldGeometryBuilder();
-  final leftChunk = catalog.requireChunk(leftChunkKey);
-  final rightChunk = catalog.requireChunk(rightChunkKey);
-  final leftGeometry = geometryBuilder.build(
-    bindings: <StagedTerrainChunkBinding>[
-      catalog.bind(chunkKey: leftChunkKey, chunkIndex: 0, worldOriginXTicks: 0),
-    ],
-    geometryVersion: 0,
-  );
-  final rightGeometry = geometryBuilder.build(
-    bindings: <StagedTerrainChunkBinding>[
-      catalog.bind(
-        chunkKey: rightChunkKey,
-        chunkIndex: 0,
-        worldOriginXTicks: 0,
-      ),
-    ],
-    geometryVersion: 0,
-  );
-  final leftBoundary = buildTerrainBoundarySignature(
-    chunkKey: leftChunkKey,
-    chunkWidth: leftChunk.width,
-    geometry: leftGeometry,
-    side: TerrainBoundarySide.right,
-  );
-  final rightBoundary = buildTerrainBoundarySignature(
-    chunkKey: rightChunkKey,
-    chunkWidth: rightChunk.width,
-    geometry: rightGeometry,
-    side: TerrainBoundarySide.left,
-  );
-  final comparison = compareTerrainBoundaries(
-    left: leftBoundary,
-    right: rightBoundary,
-  );
-  if (comparison.isCompatible) return;
-  throw ChunkPlaytestScenarioException(
-    code: 'staged_reachable_seam_mismatch',
-    message:
-        '$transitionRecord has incompatible compiled boundaries at physics '
-        'ticks [${comparison.mismatchYTicks.join(', ')}]; right '
-        '${leftBoundary.digest} ${leftBoundary.physicalRecord}; left '
-        '${rightBoundary.digest} ${rightBoundary.physicalRecord}.',
-  );
 }
 
 final class _ChunkPlaytestPatternSource extends ChunkPatternSource {

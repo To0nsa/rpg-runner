@@ -11,12 +11,11 @@ import 'level_domain_models.dart';
 import 'level_store.dart';
 import 'level_validation.dart';
 
-typedef LevelThemeTransactionRunner =
-    void Function(
-      Iterable<WorkspaceWriteArtifact> artifacts, {
-      required void Function() beforeReplace,
-      required void Function() verifyReplacements,
-    });
+typedef LevelThemeTransactionRunner = void Function(
+  Iterable<WorkspaceWriteArtifact> artifacts, {
+  required void Function() beforeReplace,
+  required void Function() verifyReplacements,
+});
 
 /// Deterministic Level/Parallax source plan presented and applied as one unit.
 final class LevelThemeSavePlan {
@@ -46,26 +45,54 @@ final class LevelThemeFileWrite {
 
 /// Successful compound apply, optionally requiring transaction-file cleanup.
 final class LevelThemeApplyResult {
-  const LevelThemeApplyResult({this.cleanupRequiredPaths = const <String>[]});
+  const LevelThemeApplyResult({
+    this.cleanupRequiredPaths = const <String>[],
+    this.recovery,
+  });
 
   final List<String> cleanupRequiredPaths;
+  final AuthoringExportRecovery? recovery;
 
   bool get cleanupRequired => cleanupRequiredPaths.isNotEmpty;
 }
 
 /// Failure from a Level/theme source transaction before a complete commit.
-final class LevelThemeSaveException implements Exception {
+final class LevelThemeSaveException implements AuthoringExportFailure {
   const LevelThemeSaveException({
     required this.message,
     required this.cause,
     required this.rollbackComplete,
     required this.recoveryPaths,
+    this.recovery,
   });
 
   final String message;
   final Object cause;
   final bool rollbackComplete;
   final List<String> recoveryPaths;
+  final AuthoringExportRecovery? recovery;
+
+  @override
+  ExportResult get exportResult {
+    final failure = cause;
+    if (rollbackComplete && failure is AuthoringExportFailure) {
+      return failure.exportResult;
+    }
+    return ExportResult(
+      applied: false,
+      outcome: rollbackComplete
+          ? ExportOutcome.failed
+          : ExportOutcome.rollbackIncomplete,
+      message: toString(),
+      recovery: recovery,
+      artifacts: [
+        ExportArtifact(
+          title: 'Transaction recovery paths',
+          content: recoveryPaths.join('\n'),
+        ),
+      ],
+    );
+  }
 
   @override
   String toString() => '$message Cause: $cause';
@@ -131,9 +158,9 @@ final class LevelThemeSaveCoordinator {
     required LevelDefsDocument document,
     required LevelThemeSavePlan savePlan,
   }) {
-    final blockingIssues = validateLevelDocument(
-      document,
-    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    final blockingIssues = validateLevelDocument(document)
+        .where((issue) => issue.blocks(AuthoringOperation.save))
+        .toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
         'Cannot apply an invalid Level/theme candidate: '
@@ -185,6 +212,9 @@ final class LevelThemeSaveCoordinator {
           parallaxStore: _parallaxStore,
         );
         return LevelThemeApplyResult(
+          recovery: error.recovery == null
+              ? null
+              : _LevelThemeRecovery(error.recovery!),
           cleanupRequiredPaths: _validateRecoveryPaths(
             workspace,
             savePlan: savePlan,
@@ -200,10 +230,32 @@ final class LevelThemeSaveCoordinator {
           cause: error.cause,
           rollbackComplete: error.rollbackComplete,
           recoveryPaths: error.recoveryPaths,
+          recovery: error.recovery == null
+              ? null
+              : _LevelThemeRecovery(error.recovery!),
         ),
         stackTrace,
       );
     }
+  }
+}
+
+final class _LevelThemeRecovery implements AuthoringExportRecovery {
+  const _LevelThemeRecovery(this.transaction);
+  final WorkspaceWriteRecovery transaction;
+
+  @override
+  Future<ExportResult> retry() async {
+    transaction.retry();
+    return ExportResult(
+      applied: transaction.outputsCommitted,
+      outcome: transaction.outputsCommitted
+          ? ExportOutcome.applied
+          : ExportOutcome.failed,
+      message: transaction.outputsCommitted
+          ? 'Saved outputs verified; transaction cleanup completed.'
+          : 'Rollback completed. Original sources restored and your edits retained.',
+    );
   }
 }
 
@@ -234,12 +286,10 @@ void _requireInstalledCandidate(
     }
   }
 
-  final levelRaw = File(
-    workspace.resolve(LevelStore.defsPath),
-  ).readAsStringSync();
-  final parallaxRaw = File(
-    workspace.resolve(ParallaxStore.defsPath),
-  ).readAsStringSync();
+  final levelRaw = File(workspace.resolve(LevelStore.defsPath))
+      .readAsStringSync();
+  final parallaxRaw = File(workspace.resolve(ParallaxStore.defsPath))
+      .readAsStringSync();
   final installedLevels = levelStore.parseCanonicalSource(levelRaw);
   final installedThemes = parallaxStore.parseCanonicalSource(parallaxRaw);
   if (!_levelListsEqual(installedLevels, document.levels) ||
@@ -278,9 +328,9 @@ void _requireInstalledCandidate(
       },
     ),
   );
-  final installedIssues = validateLevelDocument(
-    installedDocument,
-  ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+  final installedIssues = validateLevelDocument(installedDocument)
+      .where((issue) => issue.blocks(AuthoringOperation.save))
+      .toList();
   if (installedIssues.isNotEmpty) {
     throw StateError(
       'Installed Level/theme source failed validation: '

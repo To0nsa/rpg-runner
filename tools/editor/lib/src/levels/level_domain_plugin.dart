@@ -1,29 +1,47 @@
 import '../domain/authoring_identifiers.dart';
+import '../domain/authoring_intent_reconciliation.dart';
+import '../domain/authoring_session_semantics.dart';
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_domain_models.dart';
 import '../workspace/editor_workspace.dart';
 import 'level_domain_models.dart';
+import 'level_history_reconciliation.dart';
+import 'level_intent_reconciliation.dart';
 import 'level_store.dart';
 import 'level_theme_save_coordinator.dart';
 import 'level_validation.dart';
 
 const String levelThemeModeCreate = 'create';
 const String levelThemeModeExisting = 'existing';
+const String levelThemeModeCopy = 'copy';
 
 /// Level export result with structured post-commit cleanup state.
 final class LevelThemeExportResult extends ExportResult {
   LevelThemeExportResult({
     required super.applied,
     super.artifacts,
+    super.recovery,
     this.cleanupRequiredPaths = const <String>[],
-  });
+  }) : super(
+         outcome: cleanupRequiredPaths.isNotEmpty
+             ? ExportOutcome.appliedWithCleanupRequired
+             : null,
+         message: cleanupRequiredPaths.isEmpty
+             ? null
+             : 'Sources were saved; transaction cleanup is still required.',
+       );
 
   final List<String> cleanupRequiredPaths;
 
   bool get cleanupRequired => cleanupRequiredPaths.isNotEmpty;
 }
 
-class LevelDomainPlugin implements AuthoringDomainPlugin {
+class LevelDomainPlugin
+    implements
+        AuthoringDomainPlugin,
+        AuthoringSessionSemantics,
+        AuthoringHistoryReconciliation,
+        AuthoringIntentReconciliation {
   LevelDomainPlugin({
     LevelStore store = const LevelStore(),
     LevelThemeSaveCoordinator? saveCoordinator,
@@ -39,6 +57,79 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   String get id => pluginId;
+
+  @override
+  AuthoringReapplyPlan planReapply({
+    required AuthoringDocument current,
+    required AuthoringDocument original,
+    required Map<String, AuthoringConflictChoice> resolutions,
+  }) => planLevelIntentReapply(
+    current: _asLevelDocument(current),
+    original: _asLevelDocument(original),
+    resolutions: resolutions,
+  );
+
+  @override
+  AuthoringDocument? restoreContent({
+    required AuthoringDocument current,
+    required AuthoringDocument historical,
+  }) {
+    final currentLevels = _asLevelDocument(current);
+    final historicalLevels = _asLevelDocument(historical);
+    final content = reconcileLevelHistoryContent(
+      current: currentLevels,
+      historical: historicalLevels,
+    );
+    if (content == null) return null;
+    if (!content.hasChanges) return current;
+    final sceneLevels = List<LevelDef>.from(content.levels)
+      ..sort(compareLevelDefsForScene);
+    final selectedId =
+        findLevelDefById(content.levels, currentLevels.activeLevelId) != null
+        ? currentLevels.activeLevelId
+        : findLevelDefById(content.levels, historicalLevels.activeLevelId) !=
+              null
+        ? historicalLevels.activeLevelId
+        : sceneLevels.firstOrNull?.levelId;
+    return _withCandidateState(
+      currentLevels.copyWith(
+        clearActiveLevelId: selectedId == null,
+        parallaxDocument: currentLevels.parallaxDocument?.copyWith(
+          clearActiveLevelId: selectedId == null,
+        ),
+        clearOperationIssues: true,
+      ),
+      levels: content.levels,
+      activeLevelId: selectedId,
+      themes: content.themes,
+      sessionCreatedThemeIds: content.createdThemeIds,
+    );
+  }
+
+  @override
+  bool isPresentationCommand(AuthoringCommand command) =>
+      command.kind == 'set_active_level';
+
+  @override
+  AuthoringDocument retainPresentation({
+    required AuthoringDocument current,
+    required AuthoringDocument restored,
+  }) {
+    final restoredLevels = _asLevelDocument(restored);
+    final currentLevelId = _asLevelDocument(current).activeLevelId;
+    final selectedId =
+        findLevelDefById(restoredLevels.levels, currentLevelId) != null
+        ? currentLevelId
+        : restoredLevels.activeLevelId;
+    _preferredActiveLevelId = selectedId;
+    if (selectedId == restoredLevels.activeLevelId) return restoredLevels;
+    return restoredLevels.copyWith(
+      activeLevelId: selectedId,
+      parallaxDocument: restoredLevels.parallaxDocument?.copyWith(
+        activeLevelId: selectedId,
+      ),
+    );
+  }
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
@@ -95,6 +186,12 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         return _updateLevel(levelDocument, command.payload);
       case 'create_and_assign_theme':
         return _createAndAssignTheme(levelDocument, command.payload);
+      case 'copy_assign_theme':
+        return _createAndAssignTheme(
+          levelDocument,
+          command.payload,
+          copyLayers: true,
+        );
       case 'deprecate_level':
         return _setLevelStatus(
           levelDocument,
@@ -118,9 +215,9 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) async {
     final levelDocument = _asLevelDocument(document);
-    final blockingIssues = validateLevelDocument(
-      levelDocument,
-    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    final blockingIssues = validateLevelDocument(levelDocument)
+        .where((issue) => issue.blocks(AuthoringOperation.save))
+        .toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
         'Cannot export levels while validation has '
@@ -138,8 +235,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         artifacts: const <ExportArtifact>[
           ExportArtifact(
             title: 'level_summary.md',
-            content:
-                '# Level Export\n\nchangedLevels: 0\n\nNo level edits detected.',
+            content: '# Level Export\n\nchangedLevels: 0\n\nNo level edits detected.',
           ),
         ],
       );
@@ -153,6 +249,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     return LevelThemeExportResult(
       applied: true,
       cleanupRequiredPaths: applyResult.cleanupRequiredPaths,
+      recovery: applyResult.recovery,
       artifacts: <ExportArtifact>[
         ExportArtifact(
           title: 'level_summary.md',
@@ -212,15 +309,22 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
 
   LevelDefsDocument _createLevel(
     LevelDefsDocument document,
-    Map<String, Object?> payload,
-  ) {
+    Map<String, Object?> payload, {
+    LevelDef? copySource,
+  }) {
     document = _clearOperationIssuesIfNeeded(document);
-    final levelId = _normalizedString(payload['levelId']);
+    final name = _normalizedString(payload['displayName']);
+    final levelId = _normalizedString(
+      payload['levelId'],
+      fallback: name.isEmpty
+          ? ''
+          : _allocateUniqueLevelId(document.levels, name),
+    );
     if (levelId.isEmpty) {
       return _withOperationIssue(
         document,
         code: 'create_level_missing_level_id',
-        message: 'Create level requires a non-empty levelId.',
+        message: 'Enter a name for the new Level.',
       );
     }
     if (!stableLevelIdentifierPattern.hasMatch(levelId)) {
@@ -240,7 +344,8 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     }
     final themeMode = _normalizedString(payload['themeMode']);
     if (themeMode != levelThemeModeCreate &&
-        themeMode != levelThemeModeExisting) {
+        themeMode != levelThemeModeExisting &&
+        themeMode != levelThemeModeCopy) {
       return _withOperationIssue(
         document,
         code: 'create_level_missing_theme_mode',
@@ -249,12 +354,28 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             'existing theme.',
       );
     }
-    final visualThemeId = _normalizedString(payload['visualThemeId']);
+    final createsTheme = themeMode != levelThemeModeExisting;
+    final visualThemeId = _normalizedString(
+      payload['visualThemeId'],
+      fallback: createsTheme ? _allocateUniqueThemeId(document, levelId) : '',
+    );
     if (visualThemeId.isEmpty) {
       return _withOperationIssue(
         document,
         code: 'create_level_missing_theme_id',
         message: 'Create level requires a non-empty visual theme ID.',
+      );
+    }
+    final initialTheme = payload['createdThemeSnapshot'];
+    if (initialTheme != null &&
+        (themeMode != levelThemeModeCreate ||
+            initialTheme is! ParallaxThemeDef ||
+            initialTheme.parallaxThemeId != visualThemeId)) {
+      return _withOperationIssue(
+        document,
+        code: 'create_theme_snapshot_invalid',
+        message:
+            'A retained background snapshot must name its new theme identity.',
       );
     }
     if (!stableLevelIdentifierPattern.hasMatch(visualThemeId)) {
@@ -276,7 +397,21 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             'authored theme or create a new one.',
       );
     }
-    if (themeMode == levelThemeModeCreate) {
+    ParallaxThemeDef? copiedTheme;
+    if (themeMode == levelThemeModeCopy) {
+      copiedTheme = findParallaxThemeById(
+        document.parallaxDocument?.themes ?? [],
+        _normalizedString(payload['sourceVisualThemeId']),
+      );
+      if (copiedTheme == null) {
+        return _withOperationIssue(
+          document,
+          code: 'copy_theme_source_missing',
+          message: 'Choose an existing background to copy.',
+        );
+      }
+    }
+    if (createsTheme) {
       final issue = _newThemeIssue(document, visualThemeId);
       if (issue != null) return issue;
     }
@@ -289,46 +424,43 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         fallback: titleCaseLevelId(levelId),
       ),
       visualThemeId: visualThemeId,
-      chunkThemeGroups: const <String>[defaultLevelChunkThemeGroupId],
+      chunkThemeGroups:
+          copySource != null && payload['copySectionDesign'] == true
+          ? copySource.chunkThemeGroups
+          : const <String>[defaultLevelChunkThemeGroupId],
+      assembly: copySource != null && payload['copySectionDesign'] == true
+          ? copySource.assembly
+          : null,
       cameraCenterY: _doubleOrDefault(
         payload['cameraCenterY'],
-        fallback:
-            _referenceLevel(document)?.cameraCenterY ??
-            defaultLevelCameraCenterY,
+        fallback: copySource?.cameraCenterY ?? defaultLevelCameraCenterY,
       ),
       groundTopY: _doubleOrDefault(
         payload['groundTopY'],
-        fallback:
-            _referenceLevel(document)?.groundTopY ?? defaultLevelGroundTopY,
+        fallback: copySource?.groundTopY ?? defaultLevelGroundTopY,
       ),
       earlyPatternChunks: _intOrDefault(
         payload['earlyPatternChunks'],
-        fallback:
-            _referenceLevel(document)?.earlyPatternChunks ??
-            defaultEarlyPatternChunks,
+        fallback: copySource?.earlyPatternChunks ?? defaultEarlyPatternChunks,
       ),
       easyPatternChunks: _intOrDefault(
         payload['easyPatternChunks'],
-        fallback:
-            _referenceLevel(document)?.easyPatternChunks ??
-            defaultEasyPatternChunks,
+        fallback: copySource?.easyPatternChunks ?? defaultEasyPatternChunks,
       ),
       normalPatternChunks: _intOrDefault(
         payload['normalPatternChunks'],
-        fallback:
-            _referenceLevel(document)?.normalPatternChunks ??
-            defaultNormalPatternChunks,
+        fallback: copySource?.normalPatternChunks ?? defaultNormalPatternChunks,
       ),
       noEnemyChunks: _intOrDefault(
         payload['noEnemyChunks'],
-        fallback:
-            _referenceLevel(document)?.noEnemyChunks ?? defaultNoEnemyChunks,
+        fallback: copySource?.noEnemyChunks ?? defaultNoEnemyChunks,
       ),
       enumOrdinal: _intOrDefault(
         payload['enumOrdinal'],
         fallback: _nextEnumOrdinal(document.levels),
       ),
       status: levelStatusActive,
+      includeInBuild: false,
     ).normalized();
 
     final nextLevels = List<LevelDef>.from(document.levels)
@@ -336,13 +468,16 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       ..sort(compareLevelDefsCanonical);
     var nextThemes = document.parallaxDocument?.themes;
     var nextCreatedThemeIds = document.sessionCreatedParallaxThemeIds;
-    if (themeMode == levelThemeModeCreate) {
+    if (createsTheme) {
       nextThemes = <ParallaxThemeDef>[
         ...document.parallaxDocument!.themes,
         ParallaxThemeDef(
           parallaxThemeId: visualThemeId,
           revision: 1,
-          layers: const <ParallaxLayerDef>[],
+          layers:
+              (initialTheme as ParallaxThemeDef?)?.layers ??
+              copiedTheme?.layers ??
+              const <ParallaxLayerDef>[],
         ),
       ]..sort(compareParallaxThemesDeterministic);
       nextCreatedThemeIds = <String>{
@@ -386,7 +521,10 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       payload['nextLevelId'],
       fallback: _allocateUniqueLevelId(
         document.levels,
-        '${source.levelId}_copy',
+        _normalizedString(
+          payload['displayName'],
+          fallback: '${source.levelId}_copy',
+        ),
       ),
     );
     if (!stableLevelIdentifierPattern.hasMatch(requestedLevelId)) {
@@ -405,30 +543,36 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             'Cannot duplicate level "${source.levelId}". levelId "$requestedLevelId" already exists.',
       );
     }
-    final duplicate = source
-        .copyWith(
-          levelId: requestedLevelId,
-          revision: 1,
-          displayName: _normalizedString(
-            payload['displayName'],
-            fallback: '${source.displayName} Copy',
-          ),
-          enumOrdinal: _intOrDefault(
-            payload['enumOrdinal'],
-            fallback: _nextEnumOrdinal(document.levels),
-          ),
-          status: levelStatusActive,
-        )
-        .normalized();
-    final nextLevels = List<LevelDef>.from(document.levels)
-      ..add(duplicate)
-      ..sort(compareLevelDefsCanonical);
-    _preferredActiveLevelId = requestedLevelId;
-    return _withCandidateState(
-      document,
-      levels: List<LevelDef>.unmodifiable(nextLevels),
-      activeLevelId: requestedLevelId,
+    if (payload.containsKey('copySectionDesign') &&
+        payload['copySectionDesign'] is! bool) {
+      return _withOperationIssue(
+        document,
+        code: 'duplicate_level_invalid_design_mode',
+        message: 'Copy section design must be an explicit boolean.',
+      );
+    }
+    final themeMode = _normalizedString(
+      payload['themeMode'],
+      fallback: levelThemeModeExisting,
     );
+    return _createLevel(document, <String, Object?>{
+      ...payload,
+      'levelId': requestedLevelId,
+      'displayName': _normalizedString(
+        payload['displayName'],
+        fallback: '${source.displayName} Copy',
+      ),
+      'themeMode': themeMode,
+      'sourceVisualThemeId': _normalizedString(
+        payload['sourceVisualThemeId'],
+        fallback: source.visualThemeId,
+      ),
+      if (themeMode == levelThemeModeExisting)
+        'visualThemeId': _normalizedString(
+          payload['visualThemeId'],
+          fallback: source.visualThemeId,
+        ),
+    }, copySource: source);
   }
 
   LevelDefsDocument _updateLevel(
@@ -446,6 +590,25 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
+    final persisted = findLevelDefById(document.baselineLevels, levelId);
+    if (persisted != null &&
+        _intOrDefault(payload['enumOrdinal'], fallback: source.enumOrdinal) !=
+            persisted.enumOrdinal) {
+      return _withOperationIssue(
+        document,
+        code: 'update_level_persisted_ordinal',
+        message:
+            'Persisted Level "$levelId" must retain ordinal ${persisted.enumOrdinal}.',
+      );
+    }
+    if (payload.containsKey('includeInBuild') &&
+        payload['includeInBuild'] is! bool) {
+      return _withOperationIssue(
+        document,
+        code: 'update_level_invalid_build_inclusion',
+        message: 'Build inclusion must be an explicit boolean.',
+      );
+    }
     final requestedVisualThemeId = _normalizedString(
       payload['visualThemeId'],
       fallback: source.visualThemeId,
@@ -502,6 +665,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             fallback: source.enumOrdinal,
           ),
           status: _normalizedString(payload['status'], fallback: source.status),
+          includeInBuild: payload['includeInBuild'] as bool?,
           assembly: payload.containsKey('assembly') ? null : source.assembly,
           clearAssembly: payload.containsKey('assembly'),
         )
@@ -534,8 +698,9 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
 
   LevelDefsDocument _createAndAssignTheme(
     LevelDefsDocument document,
-    Map<String, Object?> payload,
-  ) {
+    Map<String, Object?> payload, {
+    bool copyLayers = false,
+  }) {
     document = _clearOperationIssuesIfNeeded(document);
     final levelId = _normalizedString(payload['levelId']);
     final source = findLevelDefById(document.levels, levelId);
@@ -546,7 +711,10 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         message: 'Cannot assign a theme to unknown levelId "$levelId".',
       );
     }
-    final visualThemeId = _normalizedString(payload['visualThemeId']);
+    final visualThemeId = _normalizedString(
+      payload['visualThemeId'],
+      fallback: _allocateUniqueThemeId(document, levelId),
+    );
     if (visualThemeId.isEmpty ||
         !stableLevelIdentifierPattern.hasMatch(visualThemeId)) {
       return _withOperationIssue(
@@ -559,6 +727,31 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     }
     final issue = _newThemeIssue(document, visualThemeId);
     if (issue != null) return issue;
+    final initialTheme = payload['createdThemeSnapshot'];
+    if (initialTheme != null &&
+        (copyLayers ||
+            initialTheme is! ParallaxThemeDef ||
+            initialTheme.parallaxThemeId != visualThemeId)) {
+      return _withOperationIssue(
+        document,
+        code: 'create_theme_snapshot_invalid',
+        message:
+            'A retained background snapshot must name its new theme identity.',
+      );
+    }
+    final copiedTheme = copyLayers
+        ? findParallaxThemeById(
+            document.parallaxDocument!.themes,
+            _normalizedString(payload['sourceVisualThemeId']),
+          )
+        : null;
+    if (copyLayers && copiedTheme == null) {
+      return _withOperationIssue(
+        document,
+        code: 'copy_theme_source_missing',
+        message: 'Choose an existing background to copy.',
+      );
+    }
 
     final nextLevel = _bumpRevision(
       source.copyWith(visualThemeId: visualThemeId),
@@ -572,7 +765,10 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       ParallaxThemeDef(
         parallaxThemeId: visualThemeId,
         revision: 1,
-        layers: const <ParallaxLayerDef>[],
+        layers:
+            (initialTheme as ParallaxThemeDef?)?.layers ??
+            copiedTheme?.layers ??
+            const <ParallaxLayerDef>[],
       ),
     ]..sort(compareParallaxThemesDeterministic);
     final candidate = _withCandidateState(
@@ -649,7 +845,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       );
     }
     if (parallaxDocument.loadIssues.any(
-      (issue) => issue.severity == ValidationSeverity.error,
+      (issue) => issue.blocks(AuthoringOperation.save),
     )) {
       return _withOperationIssue(
         document,
@@ -659,7 +855,9 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             'before creating a visual theme.',
       );
     }
-    if (findParallaxThemeById(parallaxDocument.themes, visualThemeId) != null) {
+    if (findParallaxThemeById(parallaxDocument.themes, visualThemeId) != null ||
+        findParallaxThemeById(parallaxDocument.baselineThemes, visualThemeId) !=
+            null) {
       return _withOperationIssue(
         document,
         code: 'create_theme_id_collision',
@@ -700,7 +898,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
   }) {
     final blockingCodes =
         validateLevelDocument(candidate)
-            .where((issue) => issue.severity == ValidationSeverity.error)
+            .where((issue) => issue.blocks(AuthoringOperation.save))
             .map((issue) => issue.code)
             .toSet()
             .toList()
@@ -776,19 +974,6 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         retainedCreatedIds,
       ),
     );
-  }
-
-  LevelDef? _referenceLevel(LevelDefsDocument document) {
-    final active = findLevelDefById(document.levels, document.activeLevelId);
-    if (active != null) {
-      return active;
-    }
-    if (document.levels.isEmpty) {
-      return null;
-    }
-    final ordered = List<LevelDef>.from(document.levels)
-      ..sort(compareLevelDefsForScene);
-    return ordered.first;
   }
 
   String _buildSummary(LevelThemeSavePlan savePlan) {
@@ -893,6 +1078,22 @@ String _allocateUniqueLevelId(Iterable<LevelDef> levels, String preferredSeed) {
     }
     counter += 1;
   }
+}
+
+String _allocateUniqueThemeId(LevelDefsDocument document, String seed) {
+  final claimed = <String>{
+    ...document.availableParallaxVisualThemeIds,
+    ...?document.parallaxDocument?.themes.map((theme) => theme.parallaxThemeId),
+  };
+  final symbols = claimed.map(generatedParallaxThemeSymbolSuffix).toSet();
+  final base = _slugifyLevelId(seed, fallback: 'background');
+  var candidate = base;
+  var suffix = 2;
+  while (claimed.contains(candidate) ||
+      symbols.contains(generatedParallaxThemeSymbolSuffix(candidate))) {
+    candidate = '${base}_${suffix++}';
+  }
+  return candidate;
 }
 
 String _slugifyLevelId(String raw, {required String fallback}) {

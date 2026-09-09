@@ -55,19 +55,17 @@ void main() {
         chunkCountSourceAvailable: true,
       );
 
-      final created =
-          plugin.applyEdit(
-                document,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: const <String, Object?>{
-                    'levelId': 'cave',
-                    'themeMode': levelThemeModeExisting,
-                    'visualThemeId': 'forest',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final created = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: const <String, Object?>{
+            'levelId': 'cave',
+            'themeMode': levelThemeModeExisting,
+            'visualThemeId': 'forest',
+          },
+        ),
+      ) as LevelDefsDocument;
       final createdLevel = created.levels.firstWhere(
         (level) => level.levelId == 'cave',
       );
@@ -76,15 +74,13 @@ void main() {
       expect(createdLevel.enumOrdinal, 30);
       expect(createdLevel.displayName, 'Cave');
 
-      final duplicated =
-          plugin.applyEdit(
-                created,
-                AuthoringCommand(
-                  kind: 'duplicate_level',
-                  payload: const <String, Object?>{'levelId': 'field'},
-                ),
-              )
-              as LevelDefsDocument;
+      final duplicated = plugin.applyEdit(
+        created,
+        AuthoringCommand(
+          kind: 'duplicate_level',
+          payload: const <String, Object?>{'levelId': 'field'},
+        ),
+      ) as LevelDefsDocument;
       final duplicate = duplicated.levels.firstWhere(
         (level) => level.levelId != 'field' && level.levelId != 'cave',
       );
@@ -92,33 +88,30 @@ void main() {
       expect(duplicate.levelId, 'field_copy');
       expect(duplicate.enumOrdinal, 40);
 
-      final updated =
-          plugin.applyEdit(
-                duplicated,
-                AuthoringCommand(
-                  kind: 'update_level',
-                  payload: const <String, Object?>{
-                    'levelId': 'field',
-                    'displayName': 'Field Updated',
-                    'visualThemeId': 'forest',
-                    'cameraCenterY': '140',
-                    'enumOrdinal': 50,
-                    'assembly': <String, Object?>{
-                      'loopSegments': true,
-                      'segments': <Map<String, Object?>>[
-                        <String, Object?>{
-                          'segmentId': 'forest_run',
-                          'groupId': 'forest',
-                          'minChunkCount': 2,
-                          'maxChunkCount': 5,
-                          'requireDistinctChunks': true,
-                        },
-                      ],
-                    },
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final updated = plugin.applyEdit(
+        duplicated,
+        AuthoringCommand(
+          kind: 'update_level',
+          payload: const <String, Object?>{
+            'levelId': 'field',
+            'displayName': 'Field Updated',
+            'visualThemeId': 'forest',
+            'cameraCenterY': '140',
+            'assembly': <String, Object?>{
+              'loopSegments': true,
+              'segments': <Map<String, Object?>>[
+                <String, Object?>{
+                  'segmentId': 'forest_run',
+                  'groupId': 'forest',
+                  'minChunkCount': 2,
+                  'maxChunkCount': 5,
+                  'requireDistinctChunks': true,
+                },
+              ],
+            },
+          },
+        ),
+      ) as LevelDefsDocument;
       final updatedField = updated.levels.firstWhere(
         (level) => level.levelId == 'field',
       );
@@ -126,18 +119,16 @@ void main() {
       expect(updatedField.displayName, 'Field Updated');
       expect(updatedField.visualThemeId, 'forest');
       expect(updatedField.cameraCenterY, 140);
-      expect(updatedField.enumOrdinal, 50);
+      expect(updatedField.enumOrdinal, 20);
       expect(updatedField.assembly?.segments.single.segmentId, 'forest_run');
 
-      final deprecated =
-          plugin.applyEdit(
-                updated,
-                AuthoringCommand(
-                  kind: 'deprecate_level',
-                  payload: const <String, Object?>{'levelId': 'field'},
-                ),
-              )
-              as LevelDefsDocument;
+      final deprecated = plugin.applyEdit(
+        updated,
+        AuthoringCommand(
+          kind: 'deprecate_level',
+          payload: const <String, Object?>{'levelId': 'field'},
+        ),
+      ) as LevelDefsDocument;
       expect(
         deprecated.levels
             .firstWhere((level) => level.levelId == 'field')
@@ -151,15 +142,13 @@ void main() {
         3,
       );
 
-      final reactivated =
-          plugin.applyEdit(
-                deprecated,
-                AuthoringCommand(
-                  kind: 'reactivate_level',
-                  payload: const <String, Object?>{'levelId': 'field'},
-                ),
-              )
-              as LevelDefsDocument;
+      final reactivated = plugin.applyEdit(
+        deprecated,
+        AuthoringCommand(
+          kind: 'reactivate_level',
+          payload: const <String, Object?>{'levelId': 'field'},
+        ),
+      ) as LevelDefsDocument;
       expect(
         reactivated.levels
             .firstWhere((level) => level.levelId == 'field')
@@ -297,9 +286,9 @@ void main() {
       chunkCountSourceAvailable: true,
     );
 
-    final codes = validateLevelDocument(
-      document,
-    ).map((issue) => issue.code).toSet();
+    final codes = validateLevelDocument(document)
+        .map((issue) => issue.code)
+        .toSet();
 
     expect(codes, contains('invalid_revision'));
     expect(codes, contains('missing_display_name'));

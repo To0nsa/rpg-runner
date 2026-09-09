@@ -5,6 +5,44 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/workspace/workspace_write_transaction.dart';
 
 void main() {
+  for (final externallyChangedBackup in [false, true]) {
+    test('retry rollback verifies retained original bytes ($externallyChangedBackup)', () {
+      final root = Directory.systemTemp.createTempSync('workspace_recovery_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final target = File(p.join(root.path, 'source.txt'))..writeAsStringSync('original');
+      WorkspaceWriteTransactionException? failure;
+      try {
+        WorkspaceWriteTransaction([
+          WorkspaceWriteArtifact(path: target.path, contents: 'replacement'),
+        ]).apply(verifyReplacements: () {
+          target.deleteSync();
+          Directory(target.path).createSync();
+          throw StateError('Simulated occupied output during verification');
+        });
+      } on WorkspaceWriteTransactionException catch (error) {
+        failure = error;
+      }
+      expect(failure, isNotNull);
+      expect(failure!.rollbackComplete, isFalse);
+      final recovery = failure.recovery!;
+      expect(recovery.retry, throwsA(isA<FileSystemException>()));
+      Directory(target.path).deleteSync();
+      final backup = File(failure.recoveryPaths.singleWhere((path) => path.endsWith('.bak')));
+      if (externallyChangedBackup) {
+        backup.writeAsStringSync('external backup edit');
+        expect(recovery.retry, throwsStateError);
+        expect(backup.readAsStringSync(), 'external backup edit');
+        expect(target.existsSync(), isFalse);
+      } else {
+        recovery.retry();
+        expect(target.readAsStringSync(), 'original');
+        expect(recovery.remainingPaths, isEmpty);
+        recovery.retry();
+        expect(target.readAsStringSync(), 'original');
+      }
+    });
+  }
+
   test(
     'transaction installs and verifies a complete deterministic file set',
     () {

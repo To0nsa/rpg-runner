@@ -2,17 +2,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
+import 'package:rpg_runner/ui/levels/level_id_ui.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  test(
+    'persisted unavailable choices restore the generated selectable default',
+    () {
+      expect(
+        SelectionState.defaults.selectedLevelId,
+        LevelRegistry.defaultLevelId,
+      );
+      expect(LevelRegistry.defaultLevelId.isSelectableInStandardUi, isTrue);
+      for (final name in [
+        'removed_level',
+        ...LevelId.values.map((id) => id.name),
+      ]) {
+        final stored = Map<String, dynamic>.from(
+          SelectionState.defaults.toJson(),
+        )..['levelId'] = name;
+        final restored = SelectionState.fromJson(stored);
+        final selectable = selectableLevelIdsForUi()
+            .where((id) => id.name == name)
+            .firstOrNull;
+        expect(
+          restored.selectedLevelId,
+          selectable ?? LevelRegistry.defaultLevelId,
+        );
+      }
+    },
+  );
   group('SelectionState per-character loadouts', () {
     test('defaults seed character-authored loadout masks', () {
       for (final id in PlayerCharacterId.values) {
-        final expectedMask = PlayerCharacterRegistry.resolve(
-          id,
-        ).catalog.loadoutSlotMask;
+        final expectedMask = PlayerCharacterRegistry.resolve(id)
+            .catalog
+            .loadoutSlotMask;
         expect(SelectionState.defaults.loadoutFor(id).mask, expectedMask);
       }
     });
@@ -90,9 +118,9 @@ void main() {
 
       expect(
         state.loadoutFor(PlayerCharacterId.eloise).mask,
-        PlayerCharacterRegistry.resolve(
-          PlayerCharacterId.eloise,
-        ).catalog.loadoutSlotMask,
+        PlayerCharacterRegistry.resolve(PlayerCharacterId.eloise)
+            .catalog
+            .loadoutSlotMask,
       );
     });
 

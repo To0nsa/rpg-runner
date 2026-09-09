@@ -31,6 +31,7 @@ class GhostPlaybackRunner {
       replayBlob.levelId,
       fieldName: 'replayBlob.levelId',
     );
+    LevelRegistry.requireAvailable(levelId);
     final characterId = _enumByName(
       PlayerCharacterId.values,
       replayBlob.playerCharacterId,

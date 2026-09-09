@@ -303,21 +303,13 @@ class TrackStreamer {
     );
   }
 
-  ChunkPatternTier _tierForChunkIndex(int chunkIndex) {
-    if (chunkIndex < earlyPatternChunks) {
-      return ChunkPatternTier.early;
-    }
-    final easyStart = earlyPatternChunks;
-    final normalStart = easyStart + easyPatternChunks;
-    final hardStart = normalStart + normalPatternChunks;
-    if (chunkIndex < normalStart) {
-      return ChunkPatternTier.easy;
-    }
-    if (chunkIndex < hardStart) {
-      return ChunkPatternTier.normal;
-    }
-    return ChunkPatternTier.hard;
-  }
+  ChunkPatternTier _tierForChunkIndex(int chunkIndex) =>
+      chunkPatternTierForIndex(
+        chunkIndex: chunkIndex,
+        earlyPatternChunks: earlyPatternChunks,
+        easyPatternChunks: easyPatternChunks,
+        normalPatternChunks: normalPatternChunks,
+      );
 
   /// Rolls for enemy spawns defined in [pattern].
   ///

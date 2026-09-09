@@ -40,11 +40,13 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
   const PrefabV3AtlasCatalogWorkspace({
     super.key,
     required this.controller,
+    this.onDraftStateChanged,
     required this.document,
     required this.atlasImageFilePicker,
   });
 
   final EditorSessionController controller;
+  final VoidCallback? onDraftStateChanged;
   final PrefabV3Document document;
   final AtlasImageFilePicker atlasImageFilePicker;
 
@@ -83,6 +85,13 @@ class PrefabV3AtlasCatalogWorkspaceState
   bool _hasDraftChanges = false;
 
   bool get hasLocalDraftChanges => _hasDraftChanges;
+
+  /// Accepts the visible form through its normal typed catalog command.
+  bool finalizeLocalDraft() {
+    if (!_hasDraftChanges) return true;
+    _saveSlice(widget.document);
+    return !_hasDraftChanges;
+  }
 
   @override
   void initState() {
@@ -761,6 +770,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     if (_draftSyncDepth > 0) return;
     _synchronizeTileSizeSuffix();
     _refreshDraftChanged();
+    widget.onDraftStateChanged?.call();
   }
 
   void _synchronizeTileSizeSuffix() {

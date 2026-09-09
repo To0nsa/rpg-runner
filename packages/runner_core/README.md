@@ -26,6 +26,12 @@ The main Core entry point is `lib/game_core.dart`. Commands enter through
 `lib/commands/`, transient feedback leaves through `lib/events/`, and immutable
 renderer/UI data leaves through `lib/snapshots/`.
 
+Level definitions and snapshots carry typed registered/authored identity.
+Normal `GameCore(...)` requires a registered `LevelId`; explicit
+`GameCore.chunkPlaytest` and `GameCore.levelPlaytest` factories accept validated
+captured content for tooling, including never-generated authored identities.
+They preserve the normal simulation and do not add replay/backend options.
+
 ## Content and generated runtime data
 
 Playable-level source data is repository-owned:

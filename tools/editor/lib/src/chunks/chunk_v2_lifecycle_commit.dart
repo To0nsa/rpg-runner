@@ -186,7 +186,7 @@ final class ChunkV2LifecycleCommitPolicy {
 
     final next = candidate as ChunkV2Document;
     final issues = validateChunkV2Document(next);
-    if (issues.any((issue) => issue.severity == ValidationSeverity.error)) {
+    if (issues.any((issue) => issue.blocks(AuthoringOperation.save))) {
       return ChunkV2LifecycleCommitResult(
         document: document,
         accepted: false,
@@ -226,37 +226,47 @@ final class ChunkV2LifecycleCommitPolicy {
             .where((chunk) => chunk.levelId == activeLevelId)
             .toList(growable: false)
           ..sort(_compareChunks);
-    if (templates.isEmpty) {
+    final level = document.levels
+        .where((entry) => entry.levelId == activeLevelId)
+        .firstOrNull;
+    if (templates.isEmpty && level == null) {
       return _LifecycleRejection(
         code: 'chunk_v2_create_authority_missing',
         message:
-            'Create chunk requires an existing $activeLevelId owner to '
-            'provide locked tile size and dimensions.',
+            'Create chunk requires an authored $activeLevelId Level or an '
+            'existing owner to provide locked dimensions.',
       );
     }
-    final template = templates.first;
+    final template = templates.firstOrNull;
     final chunkKey = _allocateChunkKey(
       document.sourcePathByChunkKey.keys.toSet(),
       operation.id,
     );
-    final level = document.levels
-        .where((entry) => entry.levelId == activeLevelId)
-        .firstOrNull;
     final groups = level?.chunkThemeGroups.toList(growable: false)?..sort();
-    final assemblyGroupId = groups == null || groups.isEmpty
-        ? defaultChunkAssemblyGroupId
-        : (groups.contains(defaultChunkAssemblyGroupId)
-              ? defaultChunkAssemblyGroupId
-              : groups.first);
+    final requestedGroup = document.targetGroupId;
+    if (requestedGroup != null &&
+        !(groups?.contains(requestedGroup) ?? false)) {
+      return const _LifecycleRejection(
+        code: 'chunk_v2_create_target_group_missing',
+        message: 'The requested group changed. Refresh the Level contents.',
+      );
+    }
+    final assemblyGroupId =
+        requestedGroup ??
+        (groups == null || groups.isEmpty
+            ? defaultChunkAssemblyGroupId
+            : (groups.contains(defaultChunkAssemblyGroupId)
+                  ? defaultChunkAssemblyGroupId
+                  : groups.first));
     final chunk = ChunkV2FileData(
       chunkKey: chunkKey,
       id: operation.id,
       revision: 1,
       status: chunkStatusDeprecated,
       levelId: activeLevelId,
-      tileSize: template.tileSize,
-      width: template.width,
-      height: template.height,
+      tileSize: template?.tileSize ?? defaultChunkTileSize,
+      width: template?.width ?? defaultChunkWidth,
+      height: template?.height ?? defaultChunkHeight,
       difficulty: chunkDifficultyNormal,
       assemblyGroupId: assemblyGroupId,
       tags: const <String>[],

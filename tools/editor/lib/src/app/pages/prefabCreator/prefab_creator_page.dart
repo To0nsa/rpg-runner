@@ -18,10 +18,12 @@ class PrefabCreatorPage extends StatefulWidget {
     super.key,
     required this.controller,
     this.initialPrefabKey,
+    this.onShellStateChanged,
     this.atlasImageFilePicker = pickAtlasImageFilePath,
   });
 
   final EditorSessionController controller;
+  final VoidCallback? onShellStateChanged;
 
   /// Stable owner requested by guarded chunk-v2 collision navigation.
   final String? initialPrefabKey;
@@ -38,7 +40,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
         EditorPageLocalDraftState,
         EditorPageSessionShortcutHandler,
         EditorPageReloadHandler,
-        EditorPageApplyHandler {
+        EditorPageSaveHandler {
   final GlobalKey<PrefabPolygonWorkspaceState> _workspaceKey =
       GlobalKey<PrefabPolygonWorkspaceState>();
 
@@ -87,14 +89,16 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   }
 
   @override
-  bool get canApplyEditorPage =>
+  bool get canSaveEditorPage =>
       !_migrationRequired &&
       (_workspaceKey.currentState?.canApplyToFiles ?? false);
 
   @override
-  Future<void> applyEditorPage() async {
-    if (_migrationRequired) return;
+  Future<EditorPageSaveResult> saveEditorPage() async {
+    if (_migrationRequired) return EditorPageSaveResult.blocked;
     await _workspaceKey.currentState?.applyToFiles();
+    if (hasLocalDraftChanges) return EditorPageSaveResult.blocked;
+    return EditorPageSaveResult.fromSession(widget.controller);
   }
 
   @override
@@ -137,6 +141,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     if (scene is PrefabV3Scene) {
       return PrefabPolygonWorkspace(
         key: _workspaceKey,
+        onDraftStateChanged: widget.onShellStateChanged,
         controller: widget.controller,
         initialPrefabKey: widget.initialPrefabKey,
         atlasImageFilePicker: widget.atlasImageFilePicker,

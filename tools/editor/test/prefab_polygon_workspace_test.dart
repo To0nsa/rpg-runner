@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -1049,7 +1048,7 @@ void main() {
       );
       await tester.ensureVisible(nameField);
       await tester.enterText(nameField, 'collision_pending');
-      expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
+      expect(_prefabApplyHandler(tester).canSaveEditorPage, isTrue);
       tester.widget<EditorListCard>(shapeRow).onTap!();
       await tester.pumpAndSettle();
       expect(
@@ -1170,7 +1169,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Save Definitions'), findsNothing);
-    expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
+    expect(_prefabApplyHandler(tester).canSaveEditorPage, isFalse);
 
     await _openPrefabSection(
       tester,
@@ -1564,12 +1563,7 @@ void main() {
       expect(flower.tags, <String>['art', 'flora']);
       expect(flower.collisionShapes, isEmpty);
       expect(find.text('Save Definitions'), findsNothing);
-      expect(_prefabApplyHandler(tester).canApplyEditorPage, isTrue);
-      unawaited(_prefabApplyHandler(tester).applyEditorPage());
-      await tester.pumpAndSettle();
-      expect(find.text('Apply Prefab-v3 Changes'), findsOneWidget);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
-      await tester.pumpAndSettle();
+      expect(_prefabApplyHandler(tester).canSaveEditorPage, isTrue);
     },
   );
 
@@ -3003,7 +2997,7 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
         findsOneWidget,
       );
-      expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
+      expect(_prefabApplyHandler(tester).canSaveEditorPage, isFalse);
     },
   );
 
@@ -3608,7 +3602,7 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
         findsOneWidget,
       );
-      expect(_prefabApplyHandler(tester).canApplyEditorPage, isTrue);
+      expect(_prefabApplyHandler(tester).canSaveEditorPage, isTrue);
     },
   );
 
@@ -3806,8 +3800,8 @@ EditorPageSessionShortcutHandler _prefabShortcutHandler(WidgetTester tester) =>
     tester.state(find.byType(PrefabCreatorPage))
         as EditorPageSessionShortcutHandler;
 
-EditorPageApplyHandler _prefabApplyHandler(WidgetTester tester) =>
-    tester.state(find.byType(PrefabCreatorPage)) as EditorPageApplyHandler;
+EditorPageSaveHandler _prefabApplyHandler(WidgetTester tester) =>
+    tester.state(find.byType(PrefabCreatorPage)) as EditorPageSaveHandler;
 
 Future<_Harness> _buildHarness({PrefabV3Document? document}) async {
   final root = Directory.systemTemp.createTempSync('prefab_stage_page_');

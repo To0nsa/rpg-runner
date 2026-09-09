@@ -213,62 +213,38 @@ void main() {
     );
   });
 
-  test(
-    'overlay replaces exactly one admitted key and preserves base lookup',
-    () {
-      final alpha = _chunk('alpha');
-      final beta = _chunk('beta');
-      final base = StagedTerrainArtifactCatalog(
-        artifact: _artifact(chunks: <StagedTerrainChunkData>[alpha, beta]),
-      );
-      final draft = _chunk('alpha', revision: 2);
-      final overlay = StagedTerrainOverlayCatalog(
-        base: base,
-        replacement: draft,
-      );
-
-      expect(overlay.requireChunk('alpha'), same(draft));
-      expect(overlay.requireChunk('beta'), same(beta));
-      expect(base.requireChunk('alpha'), same(alpha));
-      expect(
-        overlay
-            .bind(chunkKey: 'alpha', chunkIndex: 3, worldOriginXTicks: 1843200)
-            .chunk,
-        same(draft),
-      );
-      expect(
-        overlay
-            .bind(chunkKey: 'alpha', chunkIndex: 8, worldOriginXTicks: 4915200)
-            .chunk,
-        same(draft),
-      );
-    },
-  );
-
-  test('overlay rejects missing, malformed, or dimension-changing drafts', () {
-    final base = StagedTerrainArtifactCatalog(
-      artifact: _artifact(chunks: <StagedTerrainChunkData>[_chunk('alpha')]),
-    );
-
+  test('captured catalog admits new keys and freezes canonical lookup', () {
+    final alpha = _chunk('alpha');
+    final beta = _chunk('beta');
+    final input = <StagedTerrainChunkData>[beta, alpha];
+    final catalog = StagedTerrainChunkCatalog(chunks: input);
+    input.clear();
+    expect(catalog.chunksByKey.keys, ['alpha', 'beta']);
+    expect(catalog.requireChunk('alpha'), same(alpha));
     expect(
-      () => StagedTerrainOverlayCatalog(
-        base: base,
-        replacement: _chunk('missing'),
-      ),
-      throwsStateError,
+      catalog
+          .bind(chunkKey: 'beta', chunkIndex: 3, worldOriginXTicks: 1843200)
+          .chunk,
+      same(beta),
     );
+    expect(() => catalog.requireChunk('missing'), throwsStateError);
+    expect(() => catalog.chunksByKey.clear(), throwsUnsupportedError);
     expect(
-      () => StagedTerrainOverlayCatalog(
-        base: base,
-        replacement: _chunk('alpha', revision: 0),
+      () =>
+          catalog.bind(chunkKey: 'alpha', chunkIndex: -1, worldOriginXTicks: 0),
+      throwsArgumentError,
+    );
+  });
+
+  test('captured catalog rejects duplicate and malformed records', () {
+    expect(
+      () => StagedTerrainChunkCatalog(
+        chunks: [_chunk('alpha'), _chunk('alpha', revision: 2)],
       ),
       throwsArgumentError,
     );
     expect(
-      () => StagedTerrainOverlayCatalog(
-        base: base,
-        replacement: _chunk('alpha', width: 601),
-      ),
+      () => StagedTerrainChunkCatalog(chunks: [_chunk('alpha', revision: 0)]),
       throwsArgumentError,
     );
   });

@@ -19,11 +19,13 @@ class PrefabV3ModuleCatalogWorkspace extends StatefulWidget {
   const PrefabV3ModuleCatalogWorkspace({
     super.key,
     required this.controller,
+    this.onDraftStateChanged,
     required this.document,
     required this.onEditCollision,
   });
 
   final EditorSessionController controller;
+  final VoidCallback? onDraftStateChanged;
   final PrefabV3Document document;
   final ValueChanged<String> onEditCollision;
 
@@ -47,6 +49,13 @@ class PrefabV3ModuleCatalogWorkspaceState
   bool _hasDraftChanges = false;
 
   bool get hasLocalDraftChanges => _hasDraftChanges;
+
+  /// Accepts the visible form through its normal typed catalog command.
+  bool finalizeLocalDraft() {
+    if (!_hasDraftChanges) return true;
+    _upsert(widget.document);
+    return !_hasDraftChanges;
+  }
 
   @override
   void initState() {
@@ -591,6 +600,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   void _markDraftChanged() {
     if (_syncingDraft || _hasDraftChanges) return;
     setState(() => _hasDraftChanges = true);
+    widget.onDraftStateChanged?.call();
   }
 
   void _showMessage(String message) {

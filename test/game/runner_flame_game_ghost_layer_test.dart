@@ -236,7 +236,7 @@ GameStateSnapshot _copySnapshot(
     tick: tick,
     runId: base.runId,
     seed: base.seed,
-    levelId: base.levelId,
+    levelIdentity: base.levelIdentity,
     visualThemeId: base.visualThemeId,
     distance: base.distance,
     paused: base.paused,

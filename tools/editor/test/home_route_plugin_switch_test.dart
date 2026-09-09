@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
@@ -7,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
+import 'package:runner_editor/src/build/content_build_service.dart';
+import 'package:runner_editor/src/build/content_build_process.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
@@ -19,6 +23,142 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets(
+    'committed Save with failed refresh can close without writing twice',
+    (tester) async {
+      final plugin = _FakeDirtyEntitiesPlugin(
+        exportOutcome: ExportOutcome.applied,
+        failSavedRefresh: true,
+      );
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: '.',
+      );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(home: EditorHomePage(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('apply_editor_page_button')));
+      await tester.pumpAndSettle();
+      expect(controller.requiresSavedRefresh, isTrue);
+      final exit = tester.binding.handleRequestAppExit();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close with saved files'));
+      await tester.pumpAndSettle();
+      expect(await exit, AppExitResponse.exit);
+      expect(plugin.exportCallCount, 1);
+    },
+  );
+
+  for (final saveWorks in [true, false]) {
+    testWidgets(
+      'Build resolves Save then locks source actions: save=$saveWorks',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1440, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final root = Directory.systemTemp.createTempSync('editor_shell_build_');
+        final generator = File(
+          '${root.path}/tool/generate_chunk_runtime_data.dart',
+        );
+        generator.parent.createSync(recursive: true);
+        generator.writeAsStringSync('// generator fixture');
+        addTearDown(() => root.delete(recursive: true));
+        final plugin = _FakeDirtyEntitiesPlugin(
+          exportOutcome: saveWorks
+              ? ExportOutcome.applied
+              : ExportOutcome.validationFailed,
+        );
+        final controller = EditorSessionController(
+          pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+          initialPluginId: plugin.id,
+          initialWorkspacePath: root.path,
+        );
+        addTearDown(controller.dispose);
+        final process = _ShellBuildProcess();
+        var launches = 0;
+        final service = ContentBuildService(
+          executableResolver: () async => 'dart',
+          launcher:
+              ({
+                required executable,
+                required arguments,
+                required workingDirectory,
+              }) async {
+                launches++;
+                expect(plugin.exportCallCount, 1);
+                expect(controller.pendingChanges.hasChanges, isFalse);
+                return process;
+              },
+        );
+        addTearDown(service.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: EditorHomePage(controller: controller, buildService: service),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('build_game_content_button')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('content_build_start')));
+        await tester.pumpAndSettle();
+        expect(find.text('Unsaved changes'), findsOneWidget);
+        await tester.tap(find.text('Save all changes'));
+        await tester.pump();
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+          );
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+        expect(plugin.exportCallCount, 1);
+        expect(launches, saveWorks ? 1 : 0);
+        expect(service.isRunning, saveWorks);
+        if (saveWorks) {
+          expect(
+            tester
+                .widget<DropdownButton<String>>(
+                  find.byType(DropdownButton<String>).first,
+                )
+                .onChanged,
+            isNull,
+          );
+          expect(
+            tester
+                .widget<FilledButton>(
+                  find.byKey(const ValueKey('apply_editor_page_button')),
+                )
+                .onPressed,
+            isNull,
+          );
+          expect(
+            tester
+                .widget<OutlinedButton>(
+                  find.byKey(const ValueKey('undo_editor_page_button')),
+                )
+                .onPressed,
+            isNull,
+          );
+          expect(
+            find.byKey(const ValueKey('content_build_dialog')),
+            findsOneWidget,
+          );
+          await tester.runAsync(process.finish);
+          await tester.pumpAndSettle();
+          expect(service.status, GeneratedContentStatus.builtAndVerified);
+        } else {
+          expect(controller.pendingChanges.hasChanges, isTrue);
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      },
+    );
+  }
+
   testWidgets('route switching keeps plugin/session selection coherent', (
     tester,
   ) async {
@@ -63,6 +203,21 @@ void main() {
     await tester.tap(find.byType(DropdownButton<String>).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('LEVEL CREATOR').last);
+    // This route restores local view preferences and projects repository
+    // dependencies; allow real file events to complete outside fake frame time.
+    for (var attempt = 0; attempt < 100; attempt++) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      if (find
+              .byKey(const ValueKey('level_workspace_layout'))
+              .evaluate()
+              .isNotEmpty &&
+          find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+        break;
+      }
+    }
     await tester.pumpAndSettle();
     expect(controller.selectedPluginId, LevelDomainPlugin.pluginId);
 
@@ -141,13 +296,13 @@ void main() {
     await tester.tap(find.text('PREFAB CREATOR').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsOneWidget);
 
-    await tester.tap(find.text('Stay'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
-    expect(find.text('Discard unsaved changes?'), findsNothing);
+    expect(find.text('Unsaved changes'), findsNothing);
   });
 
   testWidgets('route switching with pending changes can be confirmed', (
@@ -181,14 +336,58 @@ void main() {
     await tester.tap(find.text('PREFAB CREATOR').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsOneWidget);
 
-    await tester.tap(find.text('Discard and leave'));
+    await tester.tap(find.text('Discard all changes'));
     await tester.pumpAndSettle();
 
     expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
-    expect(find.text('Discard unsaved changes?'), findsNothing);
+    expect(find.text('Unsaved changes'), findsNothing);
   });
+
+  for (final behavior in ['saved', 'failed', 'refresh_failed']) {
+    testWidgets('Save all departure respects $behavior outcome', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final plugin = _FakeDirtyEntitiesPlugin(
+        exportOutcome: behavior == 'failed'
+            ? ExportOutcome.validationFailed
+            : ExportOutcome.applied,
+        failSavedRefresh: behavior == 'refresh_failed',
+      );
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(
+          plugins: [plugin, _FakePrefabPlugin()],
+        ),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: '.',
+      );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(home: EditorHomePage(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('PREFAB CREATOR').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save all changes'));
+      await tester.pumpAndSettle();
+      expect(plugin.exportCallCount, 1);
+      expect(
+        controller.selectedPluginId,
+        behavior == 'saved' ? PrefabDomainPlugin.pluginId : plugin.id,
+      );
+      if (behavior == 'refresh_failed') {
+        expect(find.textContaining('Saved; refresh failed'), findsWidgets);
+        await tester.tap(find.text('Retry refresh'));
+        await tester.pumpAndSettle();
+        expect(plugin.exportCallCount, 1);
+      }
+    });
+  }
 
   testWidgets('shell reload uses discard guard and reloads current route', (
     tester,
@@ -222,13 +421,13 @@ void main() {
     await tester.tap(_workspaceReloadButton());
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsOneWidget);
 
-    await tester.tap(find.text('Discard and reload'));
+    await tester.tap(find.text('Discard all changes'));
     await tester.pumpAndSettle();
 
     expect(entitiesPlugin.loadCallCount, 2);
-    expect(find.text('Discard unsaved changes?'), findsNothing);
+    expect(find.text('Unsaved changes'), findsNothing);
   });
 
   testWidgets('route selection fails fast when required plugin is missing', (
@@ -304,13 +503,10 @@ void main() {
     final exitRequest = tester.binding.handleRequestAppExit();
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
-    expect(
-      find.textContaining('Close the editor without saving?'),
-      findsOneWidget,
-    );
+    expect(find.text('Unsaved changes'), findsOneWidget);
+    expect(find.textContaining('Close the editor?'), findsOneWidget);
 
-    await tester.tap(find.text('Stay'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(await exitRequest, AppExitResponse.cancel);
@@ -343,9 +539,9 @@ void main() {
     final exitRequest = tester.binding.handleRequestAppExit();
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsOneWidget);
 
-    await tester.tap(find.text('Discard and exit'));
+    await tester.tap(find.text('Discard all changes'));
     await tester.pumpAndSettle();
 
     expect(await exitRequest, AppExitResponse.exit);
@@ -385,11 +581,11 @@ void main() {
     await _selectRoute(tester, 'PREFAB CREATOR');
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsOneWidget);
 
     await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
 
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsOneWidget);
     expect(controller.pendingChanges.hasChanges, isTrue);
     expect(controller.canUndo, isTrue);
     expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
@@ -496,7 +692,15 @@ class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
 }
 
 class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
-  _FakeDirtyEntitiesPlugin({this.initialDirty = true});
+  _FakeDirtyEntitiesPlugin({
+    this.initialDirty = true,
+    this.exportOutcome = ExportOutcome.noChanges,
+    this.failSavedRefresh = false,
+  });
+  final ExportOutcome exportOutcome;
+  final bool failSavedRefresh;
+  int exportCallCount = 0;
+  bool saved = false;
 
   final bool initialDirty;
   int loadCallCount = 0;
@@ -550,13 +754,20 @@ class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
-    return ExportResult(applied: false);
+    exportCallCount += 1;
+    saved = exportOutcome == ExportOutcome.applied;
+    return ExportResult(
+      applied: saved,
+      outcome: exportOutcome,
+      message: exportOutcome.isFailure ? 'The source edit is invalid.' : null,
+    );
   }
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     loadCallCount += 1;
-    return _FakeDirtyDocument(isDirty: initialDirty);
+    if (saved && failSavedRefresh) throw StateError('Refresh is unavailable.');
+    return _FakeDirtyDocument(isDirty: saved ? false : initialDirty);
   }
 
   @override
@@ -849,4 +1060,39 @@ Future<void> _pressCtrlShiftShortcut(
 
 Finder _workspaceReloadButton() {
   return find.byKey(const ValueKey<String>('reload_editor_page_button'));
+}
+
+final class _ShellBuildProcess implements ContentBuildProcess {
+  final output = StreamController<String>();
+  final errors = StreamController<String>();
+  final exited = Completer<int>();
+  @override
+  Stream<String> get stdoutLines => output.stream;
+  @override
+  Stream<String> get stderrLines => errors.stream;
+  @override
+  Future<int> get exitCode => exited.future;
+  @override
+  void requestCancellation() {}
+  Future<void> finish() async {
+    output.add(
+      jsonEncode({
+        'protocolVersion': 1,
+        'type': 'result',
+        'outcome': 'built',
+        'dryRun': false,
+        'inputFingerprint': List.filled(64, 'a').join(),
+        'levels': [],
+        'issues': [],
+        'changes': [],
+        'outputs': [],
+        'outputsCommitted': true,
+        'rollbackComplete': false,
+        'transactionFailures': [],
+      }),
+    );
+    await output.close();
+    await errors.close();
+    exited.complete(0);
+  }
 }

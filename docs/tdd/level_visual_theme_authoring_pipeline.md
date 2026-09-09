@@ -14,7 +14,7 @@ Two authored files participate in the workflow:
 
 | Source | Owner | Data |
 | --- | --- | --- |
-| `assets/authoring/level/level_defs.json` | `LevelStore` | Level identity, display/runtime metadata, `visualThemeId`, assembly, revision, and status |
+| `assets/authoring/level/level_defs.json` | `LevelStore` | Level identity, display/runtime metadata, `visualThemeId`, assembly, revision, build inclusion, and status |
 | `assets/authoring/level/parallax_defs.json` | `ParallaxStore` | Reusable visual-theme identities, ordered background/foreground layers, and theme revisions |
 
 `LevelDef.visualThemeId` is a reference to
@@ -39,13 +39,16 @@ Level IDs and visual-theme IDs use the shared editor grammar:
 ^[a-z][a-z0-9_]*$
 ```
 
-Form input may be trimmed, but identities are not lowercased or separator-
-rewritten. Theme validation also computes the Dart declaration suffix used by
+Explicit identity input may be trimmed, but persisted identities are not lowercased
+or separator-rewritten. New Level and Copy forms can supply only a friendly name:
+the domain allocates a unique lowercase snake_case identity with numeric collision
+suffixes. New theme identities derive from the target Level identity and avoid
+both authored-ID and generated-symbol collisions. Theme validation computes the Dart declaration suffix used by
 the root generator and rejects distinct IDs that would emit the same symbol.
 The root generator enforces the same grammar and symbol-uniqueness rules before
 writing generated output.
 
-An empty theme is valid and is the canonical result of Level-side creation:
+An empty theme is valid and is the result of the explicit empty-background mode:
 
 ```json
 {
@@ -55,7 +58,37 @@ An empty theme is valid and is the canonical result of Level-side creation:
 }
 ```
 
-Layer authoring remains in the Parallax route.
+Independent background-copy mode creates a new revision-1 theme with the selected
+source theme's layers, sharing referenced PNG assets without changing the source
+theme. Subsequent layer authoring remains in the Parallax route.
+
+### Level Schema And Build Inclusion
+
+Level source uses strict schema v2 with a required boolean `includeInBuild` on
+each record. Normal editor and generator parsers reject v1 and missing or
+coerced inclusion values. The explicit migration commands are:
+
+```bash
+dart run tool/migrate_level_build_inclusion.dart --check
+dart run tool/migrate_level_build_inclusion.dart --apply
+```
+
+Migration validates canonical v1 input, sets every existing record to included,
+and preserves identities, ordinals, revisions, status and design values. Valid
+v2 input is a no-op. New and copied levels start excluded. Updating inclusion
+uses the normal revisioned `update_level` command and Save path; it never clears
+groups, assembly, chunk identities or theme references. Inclusion can be saved
+before whole-level readiness succeeds.
+
+Persisted Level identities cannot be deleted or have their enum ordinals changed;
+new identities append above the highest persisted ordinal. Domain commands and
+compound Save validation enforce this baseline contract, including direct
+candidate and installed-source verification, so exclusion cannot recycle a slot.
+
+Build inclusion and deprecation are independent. Included deprecated levels
+remain available to exact registered lookup, while only included active levels
+appear in standard selection. Excluded source remains editable and is eligible
+for authored Play when ready.
 
 ## Compound Session Document
 
@@ -65,28 +98,72 @@ The active Level plugin document contains:
 - a typed Parallax candidate and its exact loaded source baseline;
 - candidate-derived available theme IDs;
 - a candidate-derived level-to-theme map;
-- session-only provenance for empty themes created by Level commands;
+- session-only provenance for empty or copied themes created by Level commands;
 - load and operation findings.
 
 This remains one `AuthoringDocument` to the session controller. A compound
-command therefore produces one undo entry, and undo/redo restores both the
-Level reference and staged theme together.
+content command therefore produces one undo entry, and undo/redo restores both
+the Level reference and staged theme together. `set_active_level` is declared
+as presentation through `AuthoringSessionSemantics`: selection changes do not
+require a content undo entry. Content restoration retains the selected level
+when it still exists, keeping the compound Parallax selection coherent.
 
-The workflow supports four semantic cases:
+The workflow supports these semantic cases:
 
 - create a level and a new empty theme;
 - create a level that reuses an existing theme;
+- create or copy a level with an independent copy of an existing background;
 - assign an existing theme to an existing level through the normal inspector;
 - create and assign a new empty theme to an existing level.
+- copy and assign an existing background under a new identity to an existing level.
 
 Creation mode is explicit. A collision in create-new mode is an error and never
 silently changes into reuse. New Level/theme records begin at revision 1.
 Changing an existing Level's reference increments only that Level once. Reuse
 does not alter a theme revision.
 
+`create_level` accepts `displayName`, optional advanced `levelId`, and explicit
+`themeMode` (`create`, `existing`, or `copy`). Independent creation/copy may omit
+`visualThemeId`; copy uses `sourceVisualThemeId`. `copy_assign_theme` uses the same
+copy fields plus the existing `levelId`. `duplicate_level` retains source
+`levelId` and optional target `nextLevelId`; `copySectionDesign` is an explicit
+boolean, defaulting false. Normal Copy settings keeps numeric settings and the
+chosen background but resets assembly to Automatic and groups to `default`.
+Explicit section-design copy retains groups, section IDs/order and rules. Neither
+mode copies chunk sources. New uses camera 135, ground 224, Early 3, Easy 0,
+Normal 0 and enemy-free opening 3, independent of the currently selected Level.
+
 Session-created themes are pruned when their final candidate Level reference is
 removed. Themes loaded from source are never implicitly pruned, even when they
 are currently unused.
+
+## History Across Save
+
+Level and Parallax implement `AuthoringHistoryReconciliation`. Canonical Save
+reloads retain their value-edit history. Each undo/redo target supplies desired
+content only; the plugin reconciles it over the current document's loaded source
+fingerprints, persisted baselines, dependency snapshots, and valid selection.
+An explicit reload or ordinary route handoff establishes a fresh history.
+
+Restoring the current persisted content also restores its baseline revision, so
+undoing unsaved work can become clean. Restoring different content advances from
+the current revision and baseline; historical revision numbers are never
+reinstated. A Save, Undo, Save sequence therefore writes increasing revisions
+without reusing an old fingerprint.
+
+Creation can be undone before its first Save, including its Level-owned staged
+theme. The first successful Save seals each persisted identity and Level enum
+ordinal: an older history target cannot delete it or recycle its ordinal. Value
+edits before and after that creation remain undoable. History pruning walks
+each stack in order against its preceding reconciled target, preserving repeated
+values such as A, B, A across Save.
+
+Level history restores Level settings and assembly, plus its own pending theme
+creation. It retains the current layers of already-loaded themes; layer history
+belongs to Parallax. Parallax history retains the current Level catalog and
+level-to-theme mapping while restoring theme layers. Both reject history from a
+different workspace. These projections pass through the normal validation and
+Save paths; restoring content never grants permission to write stale sources.
 
 ## Validation
 
@@ -98,6 +175,40 @@ Export is blocked when either source has a load/schema/canonical error, either
 domain has a structural error, the cross-file reference is unresolved, or an
 operation finding is blocking. Empty layer lists and unreferenced loaded themes
 remain valid.
+
+`ValidationIssue.blocks(AuthoringOperation.save)` determines Save admission;
+error severity alone does not. Existing errors block Save, Play, and Build by
+default, while warnings and information are nonblocking. The
+`insufficient_distinct_group_chunks` error blocks Play and, for included levels,
+Build. It retains its level owner and visible diagnostic. An author can save an
+incomplete ordered design and populate its groups without removing its rules.
+The existing no-authored-chunks warning also remains saveable.
+
+Compound theme commands, plugin export, coordinator preflight, and installed
+candidate verification use the same Save predicate. Structural/schema/canonical
+errors, missing references, invalid source assets, and source-drift guards remain
+strict across those gates. Installed candidates are still reparsed and compared
+before transaction commit. Aggregate group counts are advisory authoring input;
+runtime generation/preparation retains its canonical compiler and scheduler
+validation rather than treating successful Save as proof of runtime readiness.
+Level-scoped validation findings expose the exact Level ID in `ownerKey` for
+diagnostic navigation; source-wide findings retain their source path. Section
+findings include stable `elementId` and authored `fieldKey`, so navigation survives
+section reordering without parsing a diagnostic message.
+
+Dependency-repair preflight requires a complete editable current source document.
+Strict Chunk/Prefab documents qualify after decoding; Parallax/material documents
+must have their source baseline and no blocking load findings. Migration-only,
+missing and partially decoded sources leave the origin intact. Computed value,
+image and runtime findings remain repairable and do not prevent opening a readable
+dependency for correction.
+
+Semantic recovery recreates a never-persisted Level-owned theme with its retained
+immutable layer snapshot. It does not recopy a shared theme's newly changed layers
+or replace a current saved theme. If another writer allocated that pending theme
+identity, recovery requires an explicit saved-version choice and cannot overwrite
+it. The normal compound creation command validates the retained snapshot against
+the new identity and all current source/asset gates.
 
 The Parallax handoff loader reloads authored sources and verifies all of the
 following before changing the active plugin session:
@@ -198,6 +309,28 @@ dart run tool/generate_chunk_runtime_data.dart
 dart run tool/generate_chunk_runtime_data.dart --dry-run
 ```
 
+Build parses every Level, theme, Prefab, tile and chunk source and validates
+references, identities, assets and individual geometry, including excluded
+content. Exclusion never hides corruption. The shared pipeline then proves
+scheduler reachability and seams for included levels, using only active chunks.
+`isRuntimeEligibleChunkStatus` is the common active-chunk admission predicate for
+generation, authored Play and editor section-capacity counts. Deprecated chunks
+remain structurally checked and do not satisfy runtime capacity.
+
+The pipeline returns all structurally compiled chunks for complete reference and
+asset validation, and a separate validated batch containing only runtime-eligible
+chunks. Only that batch becomes generated terrain; generated pattern pools use
+the same eligibility. Included levels must have active playable content, and at
+least one included active level must pass admission before the artifact
+transaction can replace any generated output.
+
+The generated enum and display/theme metadata retain every authored identity in
+stable ordinal order. `LevelRegistry.compiledLevelIds` records availability;
+`defaultLevelId` selects an included active record. Lookup of an excluded ID
+throws `LevelUnavailableException` before constructing a definition or accessing
+absent pools. UI selection output contains only included active identities;
+deprecation and exclusion never rewrite ticket, replay or ghost identities.
+
 Level Creator distinguishes **authoring sources saved** from runtime
 generation and shows both commands after apply. A dry-run before publication is
 expected to report generated drift; the post-generation dry-run must be clean.
@@ -207,14 +340,31 @@ expected to report generated drift; the post-generation dry-run must be clean.
 Focused coverage lives in:
 
 - `tools/editor/test/level_visual_theme_workflow_test.dart`;
+- `tools/editor/test/level_save_admission_test.dart`;
+- `tools/editor/test/level_parallax_history_test.dart`;
 - `tools/editor/test/level_creator_page_test.dart`;
 - `tools/editor/test/level_domain_plugin_test.dart`;
 - `tools/editor/test/level_domain_plugin_integration_test.dart`;
 - `tools/editor/test/parallax_domain_plugin_test.dart`;
 - `tools/editor/test/workspace_write_transaction_test.dart`;
-- `test/tool/generate_chunk_runtime_data_test.dart`.
+- `test/tool/generate_chunk_runtime_data_test.dart`;
+- `tools/editor/test/level_creation_workflow_test.dart`;
+- `tools/editor/test/authoring_intent_reconciliation_test.dart`;
+- `tools/editor/test/dependency_repair_admission_test.dart`;
+- `test/tool/level_build_inclusion_migration_test.dart`;
+- `packages/runner_content_pipeline/test/polygon_terrain_repository_generation_test.dart`.
 
 These tests cover explicit creation/reuse, candidate mapping, revision and
 pruning behavior, namespaced plans, one- and two-file applies, baseline drift,
 rollback, committed cleanup state, target loading, first-layer creation,
 widget repair/undo/narrow layout, and generator identity authority.
+Save-admission regressions also cover incomplete copied sequences, compound
+theme creation on an incomplete design, direct coordinator admission and installed
+verification, strict structural rejection, and unchanged source-drift protection.
+History regressions cover Save/Undo/Save revisions, clean unsaved Undo, first-save
+identity fences, compound creation redo, repeated-value stacks, preserved current
+dependency snapshots and theme layers, selection, and workspace boundaries.
+Inclusion regressions cover strict migration, excluded Field/default selection,
+stable enum slots, runnable generated lookup failures, included deprecated
+lookup, set-aside/resume with unchanged rules, no-playable-level publication
+rejection, and excluded-source/deprecated-chunk validation.

@@ -1,4 +1,11 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/contracts/spatial_contract.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
+
+/// Domain-owned defaults for an authored Level's first chunk.
+const int defaultChunkTileSize = 16;
+int get defaultChunkWidth => const TrackTuning().chunkWidth.toInt();
+int get defaultChunkHeight => virtualViewportHeight.toInt();
 
 const String chunkStatusActive = 'active';
 const String chunkStatusDeprecated = 'deprecated';

@@ -1,9 +1,9 @@
 # Gameplay Input Architecture
 
-Status: Implemented shared input boundary; the Windows Chunk Creator mounts
-the tooling-only desktop host, while the product game does not yet mount it.
+Status: Implemented shared input boundary; the Windows Chunk and Level Creators
+mount the tooling-only desktop host, while the product game does not yet mount it.
 
-Last updated: August 19, 2026
+Last updated: September 9, 2026
 
 ## Purpose
 
@@ -39,9 +39,11 @@ Windows keyboard/mouse adapter -----------------+--> semantic dispatcher
 
 `RunnerGameWidget` routes its existing touch controls through the semantic
 dispatcher, but it deliberately does not mount `RunnerDesktopInputAdapter`.
-`RunnerChunkPlaytestHost` is the first desktop consumer, mounted by the
-standalone editor's Windows Chunk Creator through the narrow
-`package:rpg_runner/playtest.dart` tooling entrypoint.
+`RunnerPlaytestHost` is the desktop consumer, mounted by the standalone editor's
+Windows Chunk and Level Creators through the narrow
+`package:rpg_runner/playtest.dart` tooling entrypoint. Both entry points share
+the host lifecycle and input handling; their focused Chunk and seeded Level
+scenarios follow the [authored Play contracts](editor_chunk_playtest_host.md).
 
 ## Semantic action contract
 
@@ -208,6 +210,8 @@ The executable contract is covered by:
 - `test/ui/input/desktop/runner_desktop_input_adapter_test.dart`
 - `test/playtest/runner_chunk_playtest_host_test.dart`
 - `tools/editor/test/chunk_playtest_editor_integration_test.dart`
+- `tools/editor/test/level_playtest_editor_integration_test.dart`
+- `tools/editor/test/authored_playtest_session_test.dart`
 - `tools/editor/integration_test/chunk_playtest_windows_acceptance_test.dart`
 - existing touch control tests under `test/ui/controls/**`
 

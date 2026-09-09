@@ -121,6 +121,11 @@ class EnemyRenderRegistry {
     return entry;
   }
 
+  /// Exact image sources preloaded by this registry.
+  Iterable<String> get assetPaths => _entries.values.expand(
+    (entry) => _enemyCatalog.get(entry.id).renderAnim.sourcesByKey.values,
+  );
+
   Future<void> load(Images images) async {
     for (final entry in _entries.values) {
       final renderAnim = _enemyCatalog.get(entry.id).renderAnim;

@@ -1,9 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 
+import 'content_build_report.dart';
 import 'generated_artifact_plan.dart';
 import 'level_definition_generation.dart';
 import 'parallax_theme_generation.dart';
@@ -39,7 +42,9 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final unknownArgs = args.where((arg) => arg != '--dry-run').toList();
+  final unknownArgs = args
+      .where((arg) => arg != '--dry-run' && arg != '--machine-readable')
+      .toList();
   if (unknownArgs.isNotEmpty) {
     stderr.writeln('Unknown argument(s): ${unknownArgs.join(', ')}');
     _printUsage();
@@ -48,19 +53,86 @@ Future<void> main(List<String> args) async {
   }
 
   final dryRun = args.contains('--dry-run');
+  final reporter = ContentBuildReporter(
+    machineReadable: args.contains('--machine-readable'),
+    dryRun: dryRun,
+  );
+  var cancelled = false;
+  var replacementStarted = false;
+  var outputsCommitted = false;
+  StreamSubscription<String>? commands;
+  if (reporter.machineReadable) {
+    commands = stdin
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+          if (line == 'cancel' && !replacementStarted) cancelled = true;
+        });
+  }
+  ContentBuildSnapshot? captured;
+  Future<void> verifyBeforeReplacement() async {
+    await Future<void>.delayed(Duration.zero);
+    if (cancelled) {
+      throw const ContentBuildInterruption(
+        'build_cancelled',
+        'Build cancelled before output replacement.',
+      );
+    }
+    await captured!.verifyCurrent();
+    if (cancelled) {
+      throw const ContentBuildInterruption(
+        'build_cancelled',
+        'Build cancelled before output replacement.',
+      );
+    }
+  }
 
   try {
+    reporter.phase('capturing');
+    captured = await ContentBuildSnapshot.capture();
+    reporter.inputFingerprint = captured.fingerprint;
+    reporter.phase('validating');
     final issues = <_ValidationIssue>[];
     final identities = <_ChunkIdentity>[];
     final authoredChunks = <_ChunkExportData>[];
-    final files = await _listChunkJsonFiles();
-    final levelResult = await loadLevelDefinitions(defsPath: _levelDefsPath);
+    final files = captured.files.keys
+        .where(
+          (path) =>
+              path.startsWith('$_chunksDirectoryPath/') &&
+              path.endsWith('.json'),
+        )
+        .map(File.new)
+        .toList();
+    final levelResult = await loadLevelDefinitions(
+      defsPath: _levelDefsPath,
+      capturedInput: captured,
+    );
+    reporter.levels = [
+      for (final level in levelResult.levels)
+        {
+          'levelId': level.levelId,
+          'displayName': level.displayName,
+          'includeInBuild': level.includeInBuild,
+          'status': level.status,
+        },
+    ];
     final parallaxResult = await loadParallaxThemes(
       defsPath: _parallaxDefsPath,
+      capturedInput: captured,
     );
-    final terrainMaterialResult = await buildTerrainMaterialRegistry();
-    final prefabContents = await _readRequiredText(_prefabDefsPath, issues);
-    final tileContents = await _readRequiredText(_tileDefsPath, issues);
+    final terrainMaterialResult = await buildTerrainMaterialRegistry(
+      capturedInput: captured,
+    );
+    final prefabContents = await _readRequiredText(
+      _prefabDefsPath,
+      issues,
+      captured,
+    );
+    final tileContents = await _readRequiredText(
+      _tileDefsPath,
+      issues,
+      captured,
+    );
     PolygonTerrainPrefabSourceSet? runtimePrefabs;
     PolygonTileSourceSet? runtimeTiles;
     if (prefabContents != null) {
@@ -92,7 +164,7 @@ Future<void> main(List<String> args) async {
     final chunkContentsByPath = <String, String>{};
     for (final file in files) {
       final path = _toRepoRelativePath(file.path);
-      final contents = await _readRequiredText(path, issues);
+      final contents = await _readRequiredText(path, issues, captured);
       if (contents != null) chunkContentsByPath[path] = contents;
     }
 
@@ -125,7 +197,7 @@ Future<void> main(List<String> args) async {
     );
 
     if (files.isEmpty) {
-      stdout.writeln('No chunk json files found under $_chunksDirectoryPath.');
+      reporter.log('No chunk json files found under $_chunksDirectoryPath.');
     }
 
     PolygonTerrainRepositoryGenerationResult? terrainResult;
@@ -187,6 +259,9 @@ Future<void> main(List<String> args) async {
               path: chunk.sourcePath,
               levelId: chunk.source.levelId,
               difficulty: chunk.source.difficulty,
+              isRuntimeEligible: isRuntimeEligibleChunkStatus(
+                chunk.source.status,
+              ),
               pattern: runtimeChunk.pattern,
             ),
           );
@@ -233,6 +308,19 @@ Future<void> main(List<String> args) async {
       issues: issues,
     );
 
+    if (!levelResult.levels.any(
+      (level) => level.includeInBuild && level.status == activeLevelStatus,
+    )) {
+      issues.add(
+        const _ValidationIssue(
+          path: _levelDefsPath,
+          code: 'no_included_active_level',
+          message:
+              'Build requires at least one included active playable Level.',
+        ),
+      );
+    }
+
     issues.sort();
 
     if (issues.isNotEmpty) {
@@ -242,18 +330,28 @@ Future<void> main(List<String> args) async {
       stderr.writeln(
         'Validation failed with ${issues.length} blocking issue(s).',
       );
+      reporter.finish(
+        'invalid',
+        issues: [
+          for (final issue in issues)
+            {
+              'code': issue.code,
+              'path': issue.path,
+              'message': issue.message,
+              'levelId': ?(issue.levelId ?? _levelIdFromChunkPath(issue.path)),
+            },
+        ],
+      );
       exitCode = 1;
       return;
     }
 
-    stdout.writeln('Validated ${files.length} chunk json file(s).');
-    stdout.writeln(
-      'Validated ${levelResult.levels.length} level definition(s).',
-    );
-    stdout.writeln(
+    reporter.log('Validated ${files.length} chunk json file(s).');
+    reporter.log('Validated ${levelResult.levels.length} level definition(s).');
+    reporter.log(
       'Validated ${parallaxResult.themes.length} parallax theme definition(s).',
     );
-    stdout.writeln(
+    reporter.log(
       'Validated ${terrainMaterialResult.catalog!.materials.length} terrain '
       'material definition(s).',
     );
@@ -264,8 +362,20 @@ Future<void> main(List<String> args) async {
     final levelUiMetadataOutput = renderLevelUiMetadataDartOutput(
       levelResult.levels,
     );
-    authoredChunks.sort(_compareChunkExportData);
-    final output = _renderDartOutput(authoredChunks);
+    final includedLevelIds = levelResult.levels
+        .where((level) => level.includeInBuild)
+        .map((level) => level.levelId)
+        .toSet();
+    final runtimeChunks =
+        authoredChunks
+            .where(
+              (chunk) =>
+                  chunk.isRuntimeEligible &&
+                  includedLevelIds.contains(chunk.levelId),
+            )
+            .toList()
+          ..sort(_compareChunkExportData);
+    final output = _renderDartOutput(runtimeChunks);
     final parallaxOutput = renderParallaxThemeDartOutput(parallaxResult.themes);
     final stagedTerrainOutput = buildStagedPolygonTerrainArtifact(
       batch: terrainResult!.validatedBatch!,
@@ -289,51 +399,126 @@ Future<void> main(List<String> args) async {
       ownershipMarker: 'Generated by tool/generate_chunk_runtime_data.dart',
       ownershipSearchRoots: const <String>['packages/runner_core/lib', 'lib'],
     );
+    reporter.outputs = artifactPlan.artifacts.map((a) => a.path).toList();
+    reporter.phase('checking_outputs');
+    final drift = await artifactPlan.inspectDrift();
+    reporter.changes = [
+      for (final item in drift)
+        {
+          'path': item.path,
+          'kind': item.kind.name,
+          'code': item.code,
+          'message': item.message,
+        },
+    ];
+    await verifyBeforeReplacement();
     if (dryRun) {
-      final drift = await artifactPlan.inspectDrift();
+      for (final item in drift) {
+        stderr.writeln('[ERROR] ${item.code} ${item.path}: ${item.message}');
+      }
+      reporter.finish(drift.isEmpty ? 'current' : 'drift');
       if (drift.isNotEmpty) {
-        for (final item in drift) {
-          stderr.writeln('[ERROR] ${item.code} ${item.path}: ${item.message}');
-        }
         stderr.writeln(
           'Generated output drift found in ${drift.length} file(s).',
         );
         exitCode = 1;
-        return;
+      } else {
+        reporter.log('Dry-run completed with no blocking issues.');
       }
-      stdout.writeln('Dry-run completed with no blocking issues.');
       return;
     }
-    await artifactPlan.writeAll();
-    stdout.writeln(
-      'Generated $_outputPath (${authoredChunks.length} chunk(s)).',
+    final blocked = drift
+        .where(
+          (d) =>
+              d.kind == GeneratedArtifactDriftKind.unexpected ||
+              d.kind == GeneratedArtifactDriftKind.unreadable,
+        )
+        .toList();
+    if (blocked.isNotEmpty) {
+      reporter.finish(
+        'failed',
+        issues: [
+          for (final item in blocked)
+            {'code': item.code, 'path': item.path, 'message': item.message},
+        ],
+      );
+      exitCode = 1;
+      return;
+    }
+    reporter.phase('staging');
+    await artifactPlan.writeAll(
+      beforeReplacement: verifyBeforeReplacement,
+      onReplacementStarted: () {
+        replacementStarted = true;
+        reporter.phase('committing');
+      },
     );
-    stdout.writeln(
+    outputsCommitted = true;
+    reporter.phase('verifying');
+    await captured.verifyCurrent();
+    final remainingDrift = await artifactPlan.inspectDrift();
+    if (remainingDrift.isNotEmpty) {
+      reporter.finish(
+        'failed',
+        outputsCommitted: true,
+        issues: [
+          for (final item in remainingDrift)
+            {'code': item.code, 'path': item.path, 'message': item.message},
+        ],
+      );
+      exitCode = 1;
+      return;
+    }
+    reporter.finish('built', outputsCommitted: true);
+    reporter.log('Generated $_outputPath (${authoredChunks.length} chunk(s)).');
+    reporter.log(
       'Generated $_levelIdOutputPath (${levelResult.levels.length} level(s)).',
     );
-    stdout.writeln(
+    reporter.log(
       'Generated $_levelRegistryOutputPath '
       '(${levelResult.levels.length} level(s)).',
     );
-    stdout.writeln(
+    reporter.log(
       'Generated $_levelUiMetadataOutputPath '
       '(${levelResult.levels.length} level(s)).',
     );
-    stdout.writeln(
+    reporter.log(
       'Generated $_parallaxOutputPath '
       '(${parallaxResult.themes.length} theme(s)).',
     );
-    stdout.writeln(
+    reporter.log(
       'Generated ${terrainMaterialResult.output!.path} '
       '(${terrainMaterialResult.catalog!.materials.length} material(s)).',
     );
-    stdout.writeln(
+    reporter.log(
       'Generated ${stagedTerrainOutput.path} '
       '(${terrainResult.chunks.length} chunk(s), staged only).',
     );
   } on Object catch (error) {
+    final transaction = error is GeneratedArtifactWriteException ? error : null;
+    final cause = transaction?.cause ?? error;
+    final interruption = cause is ContentBuildInterruption ? cause : null;
+    reporter.finish(
+      interruption?.code == 'build_cancelled'
+          ? 'cancelled'
+          : interruption?.code == 'build_source_drift'
+          ? 'stale'
+          : 'failed',
+      issues: [
+        {
+          'code': interruption?.code ?? 'build_failed',
+          'message': interruption?.message ?? error.toString(),
+        },
+      ],
+      outputsCommitted:
+          outputsCommitted || (transaction?.outputsCommitted ?? false),
+      rollbackComplete: transaction?.rollbackComplete ?? false,
+      transactionFailures: transaction?.rollbackFailures ?? const [],
+    );
     stderr.writeln('Chunk generation failed: $error');
     exitCode = 1;
+  } finally {
+    await commands?.cancel();
   }
 }
 
@@ -344,6 +529,7 @@ PolygonTerrainSchedulerLevelSource _terrainSchedulerLevel(
   earlyPatternChunks: level.earlyPatternChunks,
   easyPatternChunks: level.easyPatternChunks,
   normalPatternChunks: level.normalPatternChunks,
+  includeInBuild: level.includeInBuild,
   assembly: level.assembly == null
       ? null
       : PolygonTerrainSchedulerAssemblySource(
@@ -360,30 +546,6 @@ PolygonTerrainSchedulerLevelSource _terrainSchedulerLevel(
           ],
         ),
 );
-
-Future<List<File>> _listChunkJsonFiles() async {
-  final directory = Directory(_chunksDirectoryPath);
-  if (!await directory.exists()) {
-    return const <File>[];
-  }
-
-  final files = <File>[];
-  await for (final entity in directory.list(
-    recursive: true,
-    followLinks: false,
-  )) {
-    if (entity is! File) continue;
-    final path = _toRepoRelativePath(entity.path).toLowerCase();
-    if (!path.endsWith('.json')) continue;
-    files.add(entity);
-  }
-
-  files.sort(
-    (a, b) =>
-        _toRepoRelativePath(a.path).compareTo(_toRepoRelativePath(b.path)),
-  );
-  return files;
-}
 
 void _validateLevelOwnershipPath({
   required String path,
@@ -434,9 +596,9 @@ String? _levelIdFromChunkPath(String path) {
 Future<String?> _readRequiredText(
   String relativePath,
   List<_ValidationIssue> issues,
+  ContentBuildSnapshot captured,
 ) async {
-  final file = File(relativePath);
-  if (!await file.exists()) {
+  if (!captured.contains(relativePath)) {
     issues.add(
       _ValidationIssue(
         path: relativePath,
@@ -447,7 +609,7 @@ Future<String?> _readRequiredText(
     return null;
   }
   try {
-    return await file.readAsString();
+    return captured.readString(relativePath);
   } on Object catch (error) {
     issues.add(
       _ValidationIssue(
@@ -463,9 +625,8 @@ Future<String?> _readRequiredText(
 int _compareChunkExportData(_ChunkExportData a, _ChunkExportData b) {
   final levelCompare = a.levelId.compareTo(b.levelId);
   if (levelCompare != 0) return levelCompare;
-  final difficultyCompare = _difficultyIndex(
-    a.difficulty,
-  ).compareTo(_difficultyIndex(b.difficulty));
+  final difficultyCompare = _difficultyIndex(a.difficulty)
+      .compareTo(_difficultyIndex(b.difficulty));
   if (difficultyCompare != 0) return difficultyCompare;
   final chunkKeyCompare = a.chunkKey.compareTo(b.chunkKey);
   if (chunkKeyCompare != 0) return chunkKeyCompare;
@@ -698,6 +859,7 @@ void _validateLevelAssemblyAgainstChunks({
 }) {
   final groupCountsByLevel = <String, Map<String, int>>{};
   for (final chunk in authoredChunks) {
+    if (!chunk.isRuntimeEligible) continue;
     final groupCounts = groupCountsByLevel.putIfAbsent(
       chunk.levelId,
       () => <String, int>{},
@@ -707,6 +869,18 @@ void _validateLevelAssemblyAgainstChunks({
   }
 
   for (final level in levels) {
+    if (level.includeInBuild &&
+        !groupCountsByLevel.containsKey(level.levelId)) {
+      issues.add(
+        _ValidationIssue(
+          path: _levelDefsPath,
+          code: 'included_level_has_no_active_chunks',
+          levelId: level.levelId,
+          message:
+              'Included Level ${level.levelId} requires at least one active chunk.',
+        ),
+      );
+    }
     final assembly = level.assembly;
     if (assembly == null) {
       continue;
@@ -721,6 +895,7 @@ void _validateLevelAssemblyAgainstChunks({
           _ValidationIssue(
             path: _levelDefsPath,
             code: 'unknown_assembly_group_id',
+            levelId: level.levelId,
             message:
                 'levels[${_levelIndexFor(levels, level.levelId)}].assembly.segments[$i] '
                 'references groupId "${segment.groupId}" that is not declared '
@@ -729,12 +904,14 @@ void _validateLevelAssemblyAgainstChunks({
         );
         continue;
       }
-      if (segment.requireDistinctChunks &&
+      if (level.includeInBuild &&
+          segment.requireDistinctChunks &&
           (availableGroups[segment.groupId] ?? 0) < segment.maxChunkCount) {
         issues.add(
           _ValidationIssue(
             path: _levelDefsPath,
             code: 'insufficient_distinct_group_chunks',
+            levelId: level.levelId,
             message:
                 'levels[${_levelIndexFor(levels, level.levelId)}].assembly.segments[$i] '
                 'requires ${segment.maxChunkCount} distinct chunks, but '
@@ -861,6 +1038,12 @@ void _printUsage() {
   stdout.writeln('Usage:');
   stdout.writeln('  dart run tool/generate_chunk_runtime_data.dart');
   stdout.writeln('  dart run tool/generate_chunk_runtime_data.dart --dry-run');
+  stdout.writeln(
+    '  Add --machine-readable for versioned JSON-line progress/results.',
+  );
+  stdout.writeln(
+    '  In machine mode, send "cancel" on stdin before output replacement.',
+  );
 }
 
 class _ChunkIdentity {
@@ -882,12 +1065,14 @@ class _ChunkExportData {
     required this.path,
     required this.levelId,
     required this.difficulty,
+    required this.isRuntimeEligible,
     required this.pattern,
   });
 
   final String path;
   final String levelId;
   final String difficulty;
+  final bool isRuntimeEligible;
   final ChunkPattern pattern;
 
   String get chunkKey => pattern.chunkKey!;
@@ -902,11 +1087,13 @@ class _ValidationIssue implements Comparable<_ValidationIssue> {
     required this.path,
     required this.code,
     required this.message,
+    this.levelId,
   });
 
   final String path;
   final String code;
   final String message;
+  final String? levelId;
 
   @override
   int compareTo(_ValidationIssue other) {

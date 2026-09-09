@@ -26,9 +26,19 @@ class ChunkV2Document extends AuthoringDocument {
     Iterable<ParallaxThemeDef> parallaxThemes = const <ParallaxThemeDef>[],
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
+    this.selectedChunkKey,
+    this.targetGroupId,
+    Iterable<String> availableTerrainMaterialKeys = const <String>[],
+    Iterable<ValidationIssue> starterMaterialIssues = const <ValidationIssue>[],
     Iterable<String> changedChunkKeys = const <String>[],
     Iterable<String> createdChunkKeys = const <String>[],
-  }) : chunks = List<ChunkV2FileData>.unmodifiable(chunks),
+  }) : availableTerrainMaterialKeys = Set<String>.unmodifiable(
+         availableTerrainMaterialKeys,
+       ),
+       starterMaterialIssues = List<ValidationIssue>.unmodifiable(
+         starterMaterialIssues,
+       ),
+       chunks = List<ChunkV2FileData>.unmodifiable(chunks),
        sourcePathByChunkKey = Map<String, String>.unmodifiable(
          sourcePathByChunkKey,
        ),
@@ -62,6 +72,12 @@ class ChunkV2Document extends AuthoringDocument {
   final List<ParallaxThemeDef> parallaxThemes;
   final List<String> availableLevelIds;
   final String? activeLevelId;
+  final String? selectedChunkKey;
+  final String? targetGroupId;
+
+  /// Read-only creation prerequisites captured with this source load.
+  final Set<String> availableTerrainMaterialKeys;
+  final List<ValidationIssue> starterMaterialIssues;
   final List<String> changedChunkKeys;
 
   /// Owners created in memory and therefore intentionally lacking baselines.
@@ -80,6 +96,12 @@ class ChunkV2Document extends AuthoringDocument {
     Iterable<String>? availableLevelIds,
     String? activeLevelId,
     bool clearActiveLevelId = false,
+    String? selectedChunkKey,
+    bool clearSelectedChunkKey = false,
+    String? targetGroupId,
+    bool clearTargetGroupId = false,
+    Iterable<String>? availableTerrainMaterialKeys,
+    Iterable<ValidationIssue>? starterMaterialIssues,
     Iterable<String>? changedChunkKeys,
     Iterable<String>? createdChunkKeys,
   }) => ChunkV2Document(
@@ -98,6 +120,15 @@ class ChunkV2Document extends AuthoringDocument {
     activeLevelId: clearActiveLevelId
         ? null
         : (activeLevelId ?? this.activeLevelId),
+    selectedChunkKey: clearSelectedChunkKey
+        ? null
+        : selectedChunkKey ?? this.selectedChunkKey,
+    targetGroupId: clearTargetGroupId
+        ? null
+        : targetGroupId ?? this.targetGroupId,
+    availableTerrainMaterialKeys:
+        availableTerrainMaterialKeys ?? this.availableTerrainMaterialKeys,
+    starterMaterialIssues: starterMaterialIssues ?? this.starterMaterialIssues,
     changedChunkKeys: changedChunkKeys ?? this.changedChunkKeys,
     createdChunkKeys: createdChunkKeys ?? this.createdChunkKeys,
   );
@@ -119,6 +150,8 @@ class ChunkV2Scene extends EditableScene {
     this.activeParallaxTheme,
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
+    this.selectedChunkKey,
+    this.targetGroupId,
   }) : chunks = List<ChunkV2FileData>.unmodifiable(chunks),
        sourcePathByChunkKey = Map<String, String>.unmodifiable(
          sourcePathByChunkKey,
@@ -152,4 +185,6 @@ class ChunkV2Scene extends EditableScene {
   final ParallaxThemeDef? activeParallaxTheme;
   final List<String> availableLevelIds;
   final String? activeLevelId;
+  final String? selectedChunkKey;
+  final String? targetGroupId;
 }

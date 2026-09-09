@@ -17,6 +17,7 @@ import 'package:runner_core/spell_impacts/spell_impact_id.dart';
 import 'package:runner_core/spell_impacts/spell_impact_render_catalog.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
+
 import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
 import '../../game/themes/terrain_material_registry.dart';
@@ -243,16 +244,18 @@ class UiAssetLifecycle {
     required PlayerCharacterId characterId,
     required BuildContext context,
   }) async {
+    if (!LevelRegistry.isAvailable(levelId)) return;
     try {
       final level = LevelRegistry.byId(levelId);
       final runVisualThemeIds = reachableRunVisualThemeIdsForLevelDefinition(
         level,
       );
-      final resolvedParallaxLayers =
-          await Future.wait(<Future<List<AssetImage>>>[
-            for (final visualThemeId in runVisualThemeIds)
-              getParallaxLayers(visualThemeId, scope: AssetScope.run),
-          ]);
+      final resolvedParallaxLayers = await Future.wait(
+        <Future<List<AssetImage>>>[
+          for (final visualThemeId in runVisualThemeIds)
+            getParallaxLayers(visualThemeId, scope: AssetScope.run),
+        ],
+      );
       if (!context.mounted) return;
 
       final relPaths = collectRunStartImagePathsForCharacter(characterId);

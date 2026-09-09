@@ -5,6 +5,7 @@ import '../track/chunk_pattern_defaults.dart';
 import '../track/chunk_pattern_source.dart';
 import '../tuning/core_tuning.dart';
 import 'level_id.dart';
+import 'level_identity.dart';
 import 'level_assembly.dart';
 import 'level_world_constants.dart';
 
@@ -13,7 +14,64 @@ import 'level_world_constants.dart';
 /// This is pure data: no Flutter/Flame imports and no runtime side effects.
 class LevelDefinition {
   LevelDefinition({
-    required this.id,
+    required LevelId id,
+    required ChunkPatternSource chunkPatternSource,
+    required double groundTopY,
+    CoreTuning tuning = const CoreTuning(),
+    double cameraCenterY = defaultLevelCameraCenterY,
+    double? killPlaneY,
+    int earlyPatternChunks = defaultEarlyPatternChunks,
+    int easyPatternChunks = defaultEasyPatternChunks,
+    int normalPatternChunks = defaultNormalPatternChunks,
+    int noEnemyChunks = defaultNoEnemyChunks,
+    String? visualThemeId,
+    LevelAssemblyDefinition? assembly,
+  }) : this._(
+         identity: RegisteredLevelIdentity(id),
+         chunkPatternSource: chunkPatternSource,
+         groundTopY: groundTopY,
+         tuning: tuning,
+         cameraCenterY: cameraCenterY,
+         killPlaneY: killPlaneY,
+         earlyPatternChunks: earlyPatternChunks,
+         easyPatternChunks: easyPatternChunks,
+         normalPatternChunks: normalPatternChunks,
+         noEnemyChunks: noEnemyChunks,
+         visualThemeId: visualThemeId,
+         assembly: assembly,
+       );
+
+  /// Tooling-only configuration; normal GameCore construction rejects it.
+  LevelDefinition.authored({
+    required AuthoredLevelIdentity identity,
+    required ChunkPatternSource chunkPatternSource,
+    required double groundTopY,
+    CoreTuning tuning = const CoreTuning(),
+    double cameraCenterY = defaultLevelCameraCenterY,
+    double? killPlaneY,
+    int earlyPatternChunks = defaultEarlyPatternChunks,
+    int easyPatternChunks = defaultEasyPatternChunks,
+    int normalPatternChunks = defaultNormalPatternChunks,
+    int noEnemyChunks = defaultNoEnemyChunks,
+    String? visualThemeId,
+    LevelAssemblyDefinition? assembly,
+  }) : this._(
+         identity: identity,
+         chunkPatternSource: chunkPatternSource,
+         groundTopY: groundTopY,
+         tuning: tuning,
+         cameraCenterY: cameraCenterY,
+         killPlaneY: killPlaneY,
+         earlyPatternChunks: earlyPatternChunks,
+         easyPatternChunks: easyPatternChunks,
+         normalPatternChunks: normalPatternChunks,
+         noEnemyChunks: noEnemyChunks,
+         visualThemeId: visualThemeId,
+         assembly: assembly,
+       );
+
+  LevelDefinition._({
+    required this.identity,
     required ChunkPatternSource chunkPatternSource,
     required this.groundTopY,
     this.tuning = const CoreTuning(),
@@ -47,8 +105,8 @@ class LevelDefinition {
     }
   }
 
-  /// Stable identifier for this level.
-  final LevelId id;
+  /// Stable identity and provenance for this configuration.
+  final LevelIdentity identity;
 
   /// Core tuning overrides for this level.
   final CoreTuning tuning;
@@ -106,7 +164,6 @@ class LevelDefinition {
 
   /// Returns a copy with selected fields overridden.
   LevelDefinition copyWith({
-    LevelId? id,
     CoreTuning? tuning,
     double? cameraCenterY,
     double? killPlaneY,
@@ -118,9 +175,10 @@ class LevelDefinition {
     int? noEnemyChunks,
     String? visualThemeId,
     LevelAssemblyDefinition? assembly,
+    bool clearAssembly = false,
   }) {
-    return LevelDefinition(
-      id: id ?? this.id,
+    return LevelDefinition._(
+      identity: identity,
       chunkPatternSource: chunkPatternSource ?? _baseChunkPatternSource,
       tuning: tuning ?? this.tuning,
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
@@ -131,7 +189,7 @@ class LevelDefinition {
       normalPatternChunks: normalPatternChunks ?? this.normalPatternChunks,
       noEnemyChunks: noEnemyChunks ?? this.noEnemyChunks,
       visualThemeId: visualThemeId ?? this.visualThemeId,
-      assembly: assembly ?? this.assembly,
+      assembly: clearAssembly ? null : (assembly ?? this.assembly),
     );
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -698,8 +697,8 @@ void main() {
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       final routeState = tester.state(find.byType(ChunkCreatorPage));
-      final applyHandler = routeState as EditorPageApplyHandler;
-      expect(applyHandler.canApplyEditorPage, isFalse);
+      final applyHandler = routeState as EditorPageSaveHandler;
+      expect(applyHandler.canSaveEditorPage, isFalse);
 
       final groundShape = find.byKey(
         const ValueKey<String>('chunk_polygon_shape_ground_001'),
@@ -728,14 +727,7 @@ void main() {
       expect(harness.session.pendingChanges.changedItemIds, <String>[
         'forest_chunk',
       ]);
-      expect(applyHandler.canApplyEditorPage, isTrue);
-      unawaited(applyHandler.applyEditorPage());
-      await tester.pumpAndSettle();
-      await tester.pumpAndSettle();
-      expect(find.text('Apply Chunk-v2 Changes'), findsOneWidget);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
-      await tester.pumpAndSettle();
-
+      expect(applyHandler.canSaveEditorPage, isTrue);
       final localDraftState = routeState as EditorPageLocalDraftState;
       final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
       final reloadHandler = routeState as EditorPageReloadHandler;
@@ -3669,8 +3661,8 @@ void main() {
       expect(localDraftState.hasLocalDraftChanges, isTrue);
       expect(reloadHandler.canReloadEditorPage, isFalse);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
-      final applyHandler = routeState as EditorPageApplyHandler;
-      expect(applyHandler.canApplyEditorPage, isFalse);
+      final applyHandler = routeState as EditorPageSaveHandler;
+      expect(applyHandler.canSaveEditorPage, isFalse);
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_layer_id_field')),
         'background',

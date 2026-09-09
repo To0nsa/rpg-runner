@@ -68,18 +68,18 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_playtest_button')),
     );
     await tester.pump();
-    await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
     readyWatch.stop();
-    final host = tester.widget<RunnerChunkPlaytestHost>(
-      find.byType(RunnerChunkPlaytestHost),
+    final host = tester.widget<RunnerPlaytestHost>(
+      find.byType(RunnerPlaytestHost),
     );
     final controller = host.controller;
-    final handler =
-        tester.state(find.byType(ChunkCreatorPage))
-            as EditorPagePlaytestHandler;
+    final handler = tester.state(
+      find.byType(ChunkCreatorPage),
+    ) as EditorPagePlaytestHandler;
     expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.enter), isTrue);
     await tester.pump(const Duration(milliseconds: 150));
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+    expect(controller.status.phase, RunnerPlaytestPhase.running);
 
     final initialX = controller.snapshot!.playerEntity!.pos.x;
     await tester.sendKeyDownEvent(
@@ -103,7 +103,7 @@ void main() {
       physicalKey: PhysicalKeyboardKey.arrowRight,
     );
 
-    final hostCenter = tester.getCenter(find.byType(RunnerChunkPlaytestHost));
+    final hostCenter = tester.getCenter(find.byType(RunnerPlaytestHost));
     await _clickMouse(
       tester,
       position: hostCenter + const Offset(120, -20),
@@ -120,8 +120,8 @@ void main() {
     tester.view.physicalSize = const Size(1920, 1200);
     tester.view.devicePixelRatio = 1.5;
     await tester.pump(const Duration(milliseconds: 150));
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
-    final resizedHost = find.byType(RunnerChunkPlaytestHost);
+    expect(controller.status.phase, RunnerPlaytestPhase.running);
+    final resizedHost = find.byType(RunnerPlaytestHost);
     final resizedCenter = tester.getCenter(resizedHost);
     final resizedTopLeft = tester.getTopLeft(resizedHost);
     final mouse = await tester.createGesture(
@@ -138,17 +138,17 @@ void main() {
 
     handler.handlePlaytestAppLifecycleState(AppLifecycleState.inactive);
     await tester.pump();
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.paused);
+    expect(controller.status.phase, RunnerPlaytestPhase.paused);
     expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.keyP), isTrue);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+    expect(controller.status.phase, RunnerPlaytestPhase.running);
 
     expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.f6), isTrue);
-    await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
+    await _pumpUntilHostPhase(tester, RunnerPlaytestPhase.ready);
     expect(controller.snapshot!.tick, 0);
     expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.enter), isTrue);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+    expect(controller.status.phase, RunnerPlaytestPhase.running);
     expect(handler.handlePlaytestShortcut(LogicalKeyboardKey.escape), isTrue);
     await _pumpUntilHostRemoved(tester);
 
@@ -203,16 +203,14 @@ Future<void> _clickMouse(
 
 Future<void> _pumpUntilHostPhase(
   WidgetTester tester,
-  RunnerChunkPlaytestPhase phase,
+  RunnerPlaytestPhase phase,
 ) async {
   for (var attempt = 0; attempt < 600; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 25));
-    final hostFinder = find.byType(RunnerChunkPlaytestHost);
+    final hostFinder = find.byType(RunnerPlaytestHost);
     if (hostFinder.evaluate().isEmpty) continue;
-    final controller = tester
-        .widget<RunnerChunkPlaytestHost>(hostFinder)
-        .controller;
-    if (controller.status.phase == RunnerChunkPlaytestPhase.failed) {
+    final controller = tester.widget<RunnerPlaytestHost>(hostFinder).controller;
+    if (controller.status.phase == RunnerPlaytestPhase.failed) {
       fail(
         'Native host failed: ${controller.status.failureCode}: '
         '${controller.status.failureMessage}',
@@ -226,7 +224,7 @@ Future<void> _pumpUntilHostPhase(
 Future<void> _pumpUntilHostRemoved(WidgetTester tester) async {
   for (var attempt = 0; attempt < 240; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 25));
-    if (find.byType(RunnerChunkPlaytestHost).evaluate().isEmpty) {
+    if (find.byType(RunnerPlaytestHost).evaluate().isEmpty) {
       await tester.pump();
       await tester.pump();
       return;

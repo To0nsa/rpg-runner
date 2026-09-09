@@ -4,7 +4,7 @@ import '../domain/authoring_identifiers.dart';
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_domain_models.dart';
 
-const int levelDefsSchemaVersion = 1;
+const int levelDefsSchemaVersion = 2;
 const String levelDefsSourcePath = 'assets/authoring/level/level_defs.json';
 const String levelStatusActive = 'active';
 const String levelStatusDeprecated = 'deprecated';
@@ -132,6 +132,7 @@ class LevelDef {
     required this.normalPatternChunks,
     required this.noEnemyChunks,
     required this.enumOrdinal,
+    this.includeInBuild = false,
     required this.status,
     this.assembly,
   });
@@ -148,6 +149,9 @@ class LevelDef {
   final int normalPatternChunks;
   final int noEnemyChunks;
   final int enumOrdinal;
+
+  /// Explicit release inclusion; independent of authoring or deprecated status.
+  final bool includeInBuild;
   final String status;
   final LevelAssemblyDef? assembly;
 
@@ -164,6 +168,7 @@ class LevelDef {
     int? normalPatternChunks,
     int? noEnemyChunks,
     int? enumOrdinal,
+    bool? includeInBuild,
     String? status,
     LevelAssemblyDef? assembly,
     bool clearAssembly = false,
@@ -181,6 +186,7 @@ class LevelDef {
       normalPatternChunks: normalPatternChunks ?? this.normalPatternChunks,
       noEnemyChunks: noEnemyChunks ?? this.noEnemyChunks,
       enumOrdinal: enumOrdinal ?? this.enumOrdinal,
+      includeInBuild: includeInBuild ?? this.includeInBuild,
       status: status ?? this.status,
       assembly: clearAssembly ? null : (assembly ?? this.assembly),
     );
@@ -201,6 +207,7 @@ class LevelDef {
       normalPatternChunks: normalPatternChunks,
       noEnemyChunks: noEnemyChunks,
       enumOrdinal: enumOrdinal,
+      includeInBuild: includeInBuild,
       status: status.trim(),
       assembly:
           normalizedAssembly == null || normalizedAssembly.segments.isEmpty
@@ -403,6 +410,7 @@ String renderCanonicalLevelDefsJson(Iterable<LevelDef> levels) {
     );
     buffer.writeln('      "noEnemyChunks": ${level.noEnemyChunks},');
     buffer.writeln('      "enumOrdinal": ${level.enumOrdinal},');
+    buffer.writeln('      "includeInBuild": ${level.includeInBuild},');
     if (level.assembly == null) {
       buffer.writeln('      "status": ${_quoted(level.status)}');
     } else {
@@ -435,6 +443,7 @@ bool levelDefEquals(LevelDef a, LevelDef b, {bool ignoreRevision = false}) {
       left.normalPatternChunks == right.normalPatternChunks &&
       left.noEnemyChunks == right.noEnemyChunks &&
       left.enumOrdinal == right.enumOrdinal &&
+      left.includeInBuild == right.includeInBuild &&
       left.status == right.status &&
       levelAssemblyEquals(left.assembly, right.assembly);
 }
