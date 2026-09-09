@@ -1257,12 +1257,6 @@ void main() {
       ChunkSceneDomain.prefabs,
     });
     await tester.pump();
-    final placeTool = find.byKey(
-      const ValueKey<String>('chunk_prefab_tool_place'),
-    );
-    tester.widget<ChoiceChip>(placeTool).onSelected!(true);
-    await tester.pump();
-
     final surfaceFinder = find.byKey(
       const ValueKey<String>('chunk_scene_surface'),
     );
@@ -1279,6 +1273,81 @@ void main() {
           x * sceneSurface.transform.zoom,
           y * sceneSurface.transform.zoom,
         );
+
+    await tester.tapAt(scenePoint(95, 10));
+    await tester.pump();
+    expect(find.text('Selected placement: rock'), findsOneWidget);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_selected_transform_flip_x_field'),
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_gesture_preview')),
+      findsOneWidget,
+    );
+    expect(
+      _chunk(harness.session, 'forest_chunk').prefabs.single.flipX,
+      isTrue,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_selected_transform_apply'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_selected_transform_cancel'),
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_gesture_preview')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_selected_transform_flip_x_field'),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_selected_transform_apply'),
+      ),
+    );
+    await tester.pump();
+    expect(
+      _chunk(harness.session, 'forest_chunk').prefabs.single.flipX,
+      isFalse,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+    harness.session.undo();
+    await tester.pump();
+    expect(
+      _chunk(harness.session, 'forest_chunk').prefabs.single.flipX,
+      isTrue,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+
+    await tester.tapAt(scenePoint(200, 100));
+    await tester.pump();
+    expect(find.text('Selected: rock'), findsOneWidget);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_selected_transform_flip_x_field'),
+      ),
+    );
+    await tester.pump();
+    final placeTool = find.byKey(
+      const ValueKey<String>('chunk_prefab_tool_place'),
+    );
+    tester.widget<ChoiceChip>(placeTool).onSelected!(true);
+    await tester.pump();
+
     final gesture = await tester.startGesture(scenePoint(64, 32));
     await tester.pump();
     expect(
@@ -1305,6 +1374,10 @@ void main() {
     expect(
       accepted.prefabs.where((placement) => placement.x == 80).single.y,
       32,
+    );
+    expect(
+      accepted.prefabs.where((placement) => placement.x == 80).single.flipX,
+      isTrue,
     );
     expect(harness.session.pendingChanges.hasChanges, isTrue);
     expect(

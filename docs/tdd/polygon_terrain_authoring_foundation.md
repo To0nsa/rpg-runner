@@ -807,6 +807,18 @@ with direct terrain or another placement. The moved source placement is omitted
 from that gesture snapshot by its captured placement key. Rejection restores
 the accepted projection without revision, history, or pending-diff changes.
 
+The Prefabs tool strip also owns a shared scale/reflection control immediately
+below its selected-owner chip. Without a placed selection it updates only the
+route-local Place transform, which `ChunkPrefabSceneGesture.beginPlace` copies
+into the local ghost. With a placed selection it creates a route-local replace
+draft from the same captured composition-operation boundary, suppresses the
+accepted source visual, and projects the transformed candidate through the
+normal scene visual source. Apply emits one replace commit; Cancel or Escape
+drops the draft. The draft participates in workspace navigation/save guards
+but does not create a revision, history entry, or pending source diff before
+Apply. Both this strip and the sidebar forms use the same exact-contact scale
+options and Flip Y scale reconciliation.
+
 Marker Select, Place, and Move tools follow the same operation-token and
 exactly-once command boundary through `ChunkMarkerSceneGesture`, but quantize
 only to integer source pixels. A marker preview is always the authored query

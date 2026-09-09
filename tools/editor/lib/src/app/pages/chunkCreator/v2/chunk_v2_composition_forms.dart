@@ -7,6 +7,137 @@ import '../../../../chunks/chunk_scene_coordinate_policy.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../prefabs/models/models.dart';
 
+/// Scale and reflection values shared by placement forms and scene tools.
+@immutable
+final class ChunkPrefabTransformValue {
+  const ChunkPrefabTransformValue({
+    this.scale = defaultPrefabPlacementScale,
+    this.flipX = false,
+    this.flipY = false,
+  });
+
+  final double scale;
+  final bool flipX;
+  final bool flipY;
+
+  ChunkPrefabTransformValue copyWith({
+    double? scale,
+    bool? flipX,
+    bool? flipY,
+  }) => ChunkPrefabTransformValue(
+    scale: scale ?? this.scale,
+    flipX: flipX ?? this.flipX,
+    flipY: flipY ?? this.flipY,
+  );
+}
+
+/// Shared exact-contact scale and reflection controls for one Prefab.
+class ChunkPrefabTransformControls extends StatelessWidget {
+  const ChunkPrefabTransformControls({
+    super.key,
+    required this.prefab,
+    required this.value,
+    required this.onChanged,
+    required this.fieldKeyPrefix,
+    this.enabled = true,
+    this.compact = false,
+  });
+
+  final PrefabV3Def prefab;
+  final ChunkPrefabTransformValue value;
+  final ValueChanged<ChunkPrefabTransformValue> onChanged;
+  final String fieldKeyPrefix;
+  final bool enabled;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final compatibleScales = ChunkPrefabSurfaceSnap.compatibleScales(
+      prefab,
+      flipY: value.flipY,
+    );
+    final options = compatibleScales.isEmpty
+        ? List<double>.of(_placementScales)
+        : List<double>.of(compatibleScales);
+    if (!options.contains(value.scale)) options.add(value.scale);
+    options.sort();
+    final scale = _PlacementScaleControl(
+      fieldKey: '${fieldKeyPrefix}_scale_field',
+      sliderKey: '${fieldKeyPrefix}_scale_slider',
+      value: value.scale,
+      options: options,
+      enabled: enabled,
+      onChanged: (scale) => onChanged(value.copyWith(scale: scale)),
+    );
+    if (compact) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          SizedBox(width: 290, child: scale),
+          FilterChip(
+            key: ValueKey<String>('${fieldKeyPrefix}_flip_x_field'),
+            avatar: const Icon(Icons.flip, size: 18),
+            label: const Text('Flip X'),
+            selected: value.flipX,
+            onSelected: enabled
+                ? (flipX) => onChanged(value.copyWith(flipX: flipX))
+                : null,
+          ),
+          FilterChip(
+            key: ValueKey<String>('${fieldKeyPrefix}_flip_y_field'),
+            avatar: const RotatedBox(
+              quarterTurns: 1,
+              child: Icon(Icons.flip, size: 18),
+            ),
+            label: const Text('Flip Y'),
+            selected: value.flipY,
+            onSelected: enabled ? (flipY) => _setFlipY(flipY) : null,
+          ),
+        ],
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        scale,
+        const SizedBox(height: 4),
+        CheckboxListTile(
+          key: ValueKey<String>('${fieldKeyPrefix}_flip_x_field'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Flip X'),
+          value: value.flipX,
+          onChanged: enabled
+              ? (flipX) => onChanged(value.copyWith(flipX: flipX ?? false))
+              : null,
+        ),
+        CheckboxListTile(
+          key: ValueKey<String>('${fieldKeyPrefix}_flip_y_field'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Flip Y'),
+          value: value.flipY,
+          onChanged: enabled ? (flipY) => _setFlipY(flipY ?? false) : null,
+        ),
+      ],
+    );
+  }
+
+  void _setFlipY(bool flipY) {
+    onChanged(
+      value.copyWith(
+        flipY: flipY,
+        scale: ChunkPrefabSurfaceSnap.preferredCompatibleScale(
+          prefab,
+          flipY: flipY,
+          preferred: value.scale,
+        ),
+      ),
+    );
+  }
+}
+
 /// Edits one prefab placement without owning persistence or modal navigation.
 ///
 /// The surrounding catalog owns Prefab selection; changing that selection does
@@ -98,11 +229,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
 
   @override
   Widget build(BuildContext context) {
-    final compatibleScales = ChunkPrefabSurfaceSnap.compatibleScales(
-      widget.prefab,
-      flipY: _flipY,
-    );
-    final scaleOptions = _scaleOptions(compatibleScales);
     return Form(
       key: _formKey,
       child: Column(
@@ -154,14 +280,21 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
             enabled: widget.enabled,
           ),
           const SizedBox(height: 10),
-          _PlacementScaleControl(
+          ChunkPrefabTransformControls(
             key: ValueKey<String>('${widget.fieldKeyPrefix}_scale_control'),
-            fieldKey: '${widget.fieldKeyPrefix}_scale_field',
-            sliderKey: '${widget.fieldKeyPrefix}_scale_slider',
-            value: _scale,
-            options: scaleOptions,
+            prefab: widget.prefab,
+            value: ChunkPrefabTransformValue(
+              scale: _scale,
+              flipX: _flipX,
+              flipY: _flipY,
+            ),
+            fieldKeyPrefix: widget.fieldKeyPrefix,
             enabled: widget.enabled,
-            onChanged: (value) => setState(() => _scale = value),
+            onChanged: (value) => setState(() {
+              _scale = value.scale;
+              _flipX = value.flipX;
+              _flipY = value.flipY;
+            }),
           ),
           const SizedBox(height: 4),
           SwitchListTile(
@@ -171,31 +304,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
             value: _snapToGrid,
             onChanged: widget.enabled
                 ? (value) => setState(() => _snapToGrid = value)
-                : null,
-          ),
-          CheckboxListTile(
-            key: ValueKey<String>('${widget.fieldKeyPrefix}_flip_x_field'),
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Flip X'),
-            value: _flipX,
-            onChanged: widget.enabled
-                ? (value) => setState(() => _flipX = value ?? false)
-                : null,
-          ),
-          CheckboxListTile(
-            key: ValueKey<String>('${widget.fieldKeyPrefix}_flip_y_field'),
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Flip Y'),
-            value: _flipY,
-            onChanged: widget.enabled
-                ? (value) => setState(() {
-                    _flipY = value ?? false;
-                    _scale = ChunkPrefabSurfaceSnap.preferredCompatibleScale(
-                      widget.prefab,
-                      flipY: _flipY,
-                      preferred: _scale,
-                    );
-                  })
                 : null,
           ),
           const SizedBox(height: 8),
@@ -209,15 +317,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
         ],
       ),
     );
-  }
-
-  List<double> _scaleOptions(List<double> compatibleScales) {
-    final options = compatibleScales.isEmpty
-        ? List<double>.of(_placementScales)
-        : List<double>.of(compatibleScales);
-    if (!options.contains(_scale)) options.add(_scale);
-    options.sort();
-    return options;
   }
 
   void _submit() {
@@ -249,7 +348,6 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
 /// exact-contact scales cannot be crossed accidentally while dragging.
 class _PlacementScaleControl extends StatefulWidget {
   const _PlacementScaleControl({
-    super.key,
     required this.fieldKey,
     required this.sliderKey,
     required this.value,

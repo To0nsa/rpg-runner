@@ -64,6 +64,9 @@ final class ChunkPrefabSceneGesture {
     ChunkPrefabSurfaceSnapContext? surfaceSnapContext,
     double surfaceSnapRadiusWorld = 0,
     bool surfaceSnapEnabled = false,
+    double? scale,
+    bool flipX = false,
+    bool flipY = false,
   }) {
     if (hasActiveOperation) return false;
     _pointer = pointer;
@@ -87,9 +90,16 @@ final class ChunkPrefabSceneGesture {
         prefabKey: prefab.prefabKey,
         x: 0,
         y: 0,
-        scale: surfaceSnapEnabled
-            ? ChunkPrefabSurfaceSnap.preferredCompatibleScale(prefab)
-            : defaultPrefabPlacementScale,
+        scale:
+            scale ??
+            (surfaceSnapEnabled
+                ? ChunkPrefabSurfaceSnap.preferredCompatibleScale(
+                    prefab,
+                    flipY: flipY,
+                  )
+                : defaultPrefabPlacementScale),
+        flipX: flipX,
+        flipY: flipY,
       ),
       worldPoint,
     );

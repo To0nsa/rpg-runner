@@ -36,6 +36,24 @@ void main() {
     expect(gesture.hasActiveOperation, isFalse);
   });
 
+  test('place preview uses the selected scale and reflections', () {
+    final gesture = ChunkPrefabSceneGesture();
+
+    gesture.beginPlace(
+      pointer: 2,
+      worldPoint: const Offset(32, 48),
+      chunk: _chunk(),
+      prefab: _prefab(),
+      scale: 1.7,
+      flipX: true,
+      flipY: true,
+    );
+
+    expect(gesture.candidate?.scale, 1.7);
+    expect(gesture.candidate?.flipX, isTrue);
+    expect(gesture.candidate?.flipY, isTrue);
+  });
+
   test('move preserves grab offset and zero-distance finish is a no-op', () {
     final gesture = ChunkPrefabSceneGesture();
     final chunk = _chunk(

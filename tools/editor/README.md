@@ -579,6 +579,12 @@ and renders atlas-slice or platform-module thumbnails through one browser-owned
 decoded-image cache. Pressing Enter selects the first filtered result. Its
 stable-key selection is route-local and shared by both the canvas Place tool
 and inline creation form; it never creates a pending source change by itself.
+The selected-prefab strip directly below the Prefabs tools exposes Scale,
+Flip X, and Flip Y. With no placed instance selected, those route-local values
+configure the next Place ghost. With an existing placement selected, changes
+hide the accepted visual and render a synchronized scene replacement until
+**Apply transform** submits one validated composition command or **Cancel**
+restores the accepted placement.
 Selecting an existing placement in the list or scene reveals its editor directly
 below the row, matching existing-terrain-shape editing. Unselected rows have no
 Edit/Delete icon cluster. The selected editor contains labeled **Open prefab**
@@ -602,8 +608,9 @@ same Core geometry and occupied-area predicate accept exact contact; point-only
 contact, positive-area penetration, another placement, and out-of-bounds
 geometry do not snap.
 
-The placement Scale control pairs a compact numeric field with a discrete
-slider. When the Prefab has a usable support edge, each slider stop is an exact-
+The shared placement Scale control pairs a compact numeric field with a discrete
+slider in both the selected-prefab strip and placement forms. When the Prefab
+has a usable support edge, each slider stop is an exact-
 contact scale: Core's reflected, exact-tenth transform leaves that support
 height on a whole pixel after the one `1/1024 px` quantization. A saved
 incompatible scale remains selected when its placement opens so an old value is
