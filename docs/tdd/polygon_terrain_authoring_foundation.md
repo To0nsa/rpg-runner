@@ -775,7 +775,9 @@ starts collapsed. On narrow layouts, the same
 scene and sidebar subtrees are repositioned; tab changes replace only the
 sidebar section group. Existing owner-row input only binds the shared selected
 chunk and scene; its dedicated Edit action opens the route-local inline owner
-form, so selection never implicitly expands or closes metadata editing. The
+form, so selection never implicitly expands or closes metadata editing. Owner
+cards render name/Edit on the first row and metadata/preview on the second,
+with the preview to the metadata's right. The
 tabs and section rows share typed per-domain prefab
 and marker selection. The Prefab and Marker groups each begin with a searchable
 visual library whose route-local selection feeds the matching scene Place tool

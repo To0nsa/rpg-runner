@@ -5,6 +5,7 @@ import '../../../../chunks/chunk_v2_models.dart';
 import '../../shared/editor_inline_id_form.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_section_card.dart';
+import '../../shared/editor_ui_tokens.dart';
 import 'chunk_owner_preview.dart';
 import 'chunk_owner_order.dart';
 import 'chunk_v2_owner_form.dart';
@@ -58,15 +59,16 @@ class ChunkOwnerListSection extends StatelessWidget {
               key: ValueKey<String>('chunk_polygon_owner_${chunk.chunkKey}'),
               isSelected: chunk.chunkKey == selectedChunk?.chunkKey,
               onTap: () => onSelected(chunk),
-              preview: ChunkOwnerPreview(
-                key: ValueKey<String>('chunk_owner_preview_${chunk.chunkKey}'),
-                workspaceRootPath: workspaceRootPath,
-                chunk: chunk,
-                scene: scene,
-              ),
-              trailing: Column(
+              trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  if (document.changedChunkKeys.contains(chunk.chunkKey)) ...[
+                    const Tooltip(
+                      message: 'Pending geometry changed',
+                      child: Icon(Icons.circle, size: 12),
+                    ),
+                    const SizedBox(width: EditorUiTokens.rowMetadataGap),
+                  ],
                   IconButton(
                     key: ValueKey<String>(
                       'chunk_v2_owner_edit_${chunk.chunkKey}',
@@ -75,24 +77,40 @@ class ChunkOwnerListSection extends StatelessWidget {
                     onPressed: () => onEdit(chunk),
                     icon: const Icon(Icons.edit_outlined),
                   ),
-                  if (document.changedChunkKeys.contains(chunk.chunkKey))
-                    const Tooltip(
-                      message: 'Pending geometry changed',
-                      child: Icon(Icons.circle, size: 12),
-                    ),
                 ],
               ),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                selected: chunk.chunkKey == selectedChunk?.chunkKey,
-                title: Text(chunk.id),
-                subtitle: Text(
-                  '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
-                  'rev ${chunk.revision}\n${chunk.status} · '
-                  '${chunk.collisionShapes.length} direct · '
-                  '${expandedPrefabShapeCount(chunk.chunkKey)} expanded',
+              details: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      key: ValueKey<String>(
+                        'chunk_owner_metadata_${chunk.chunkKey}',
+                      ),
+                      '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
+                      'rev ${chunk.revision}\n${chunk.status} · '
+                      '${chunk.collisionShapes.length} direct · '
+                      '${expandedPrefabShapeCount(chunk.chunkKey)} expanded',
+                    ),
+                  ),
+                  const SizedBox(width: EditorUiTokens.rowPreviewGap),
+                  ChunkOwnerPreview(
+                    key: ValueKey<String>(
+                      'chunk_owner_preview_${chunk.chunkKey}',
+                    ),
+                    workspaceRootPath: workspaceRootPath,
+                    chunk: chunk,
+                    scene: scene,
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  chunk.id,
+                  key: ValueKey<String>('chunk_owner_name_${chunk.chunkKey}'),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                isThreeLine: true,
               ),
             ),
             if (expandedChunk?.chunkKey == chunk.chunkKey)

@@ -423,6 +423,23 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_owner_preview_forest_chunk')),
         findsOneWidget,
       );
+      final ownerName = find.byKey(
+        const ValueKey<String>('chunk_owner_name_forest_chunk'),
+      );
+      final ownerMetadata = find.byKey(
+        const ValueKey<String>('chunk_owner_metadata_forest_chunk'),
+      );
+      final ownerPreview = find.byKey(
+        const ValueKey<String>('chunk_owner_preview_forest_chunk'),
+      );
+      expect(
+        tester.getTopLeft(ownerPreview).dy,
+        greaterThan(tester.getBottomLeft(ownerName).dy),
+      );
+      expect(
+        tester.getTopLeft(ownerPreview).dx,
+        greaterThan(tester.getTopLeft(ownerMetadata).dx),
+      );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_owner_meadow_chunk')),
         findsNothing,
