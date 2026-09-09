@@ -557,9 +557,13 @@ and foreground projections as the scene. Selecting an owner card only binds it
 to the scene; the row's pencil **Edit** button explicitly opens the inline
 owner form. Each card keeps the chunk name and Edit action on its first row,
 then places metadata on the lower left and the visual preview on the lower
-right. The form exposes editable **Chunk key** and **Human ID** fields. Apply commits
-identity and metadata together in one revision. An explicit key change rekeys
-the owner, source/baseline bindings, pending state, and selection atomically,
+right. Above the cards, case-insensitive partial name search combines with
+current-level Difficulty and Group filters; all active criteria intersect, and
+**Clear filters** restores the complete owner list without changing the scene's
+selected owner. The form exposes editable **Chunk key** and **Human ID** fields.
+Apply commits identity and metadata together in one revision. An explicit key
+change rekeys the owner, source/baseline bindings, pending state, and selection
+atomically,
 while the human ID continues to determine the managed filename. Duplicate and
 Delete remain contextual actions; Chunk has no separate Rename action. On
 narrow windows, both scroll areas

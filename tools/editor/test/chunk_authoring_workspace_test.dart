@@ -955,6 +955,115 @@ void main() {
     },
   );
 
+  testWidgets('owner search combines name difficulty and group filters', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness(
+      additionalChunks: <ChunkV2FileData>[
+        _chunkData(
+          chunkKey: 'forest_easy_a',
+          id: 'forest_ruin_easy',
+          levelId: 'forest',
+          shapeId: 'ruin_easy_ground',
+          difficulty: chunkDifficultyEasy,
+          assemblyGroupId: 'ruins',
+        ),
+        _chunkData(
+          chunkKey: 'forest_hard_b',
+          id: 'forest_ruin_hard',
+          levelId: 'forest',
+          shapeId: 'ruin_hard_ground',
+          difficulty: chunkDifficultyHard,
+          assemblyGroupId: 'ruins',
+        ),
+        _chunkData(
+          chunkKey: 'forest_easy_c',
+          id: 'forest_bridge_easy',
+          levelId: 'forest',
+          shapeId: 'bridge_easy_ground',
+          difficulty: chunkDifficultyEasy,
+          assemblyGroupId: 'bridges',
+        ),
+      ],
+    );
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_polygon_owner_forest_chunk',
+    );
+
+    expect(find.text('4 of 4 owners'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('chunk_owner_search')),
+      'ruin',
+    );
+    await tester.pump();
+    expect(find.text('2 of 4 owners'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_a')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_c')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_owner_difficulty_filter_')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(chunkDifficultyEasy).last);
+    await tester.pump();
+    expect(find.text('1 of 4 owners'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_hard_b')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_owner_group_filter_')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ruins').last);
+    await tester.pump();
+    expect(find.text('1 of 4 owners'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_owner_group_filter_ruins')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('bridges').last);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_owner_filter_empty')),
+      findsOneWidget,
+    );
+    expect(find.text('0 of 4 owners'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_owner_clear_filters')),
+    );
+    await tester.pump();
+    expect(find.text('4 of 4 owners'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('scene and sidebar share prefab and marker selection', (
     tester,
   ) async {
@@ -4193,9 +4302,12 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_v2_owner_edit_forest_chunk')),
     );
     await tester.pump();
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_v2_owner_delete')),
+    final deleteButton = find.byKey(
+      const ValueKey<String>('chunk_v2_owner_delete'),
     );
+    await tester.ensureVisible(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(deleteButton);
     await tester.pumpAndSettle();
     expect(find.textContaining('final owner in the active level'), findsOne);
     await tester.tap(
@@ -4245,6 +4357,7 @@ Future<void> _openSection(
 Future<_Harness> _buildHarness({
   List<ValidationIssue> additionalIssues = const <ValidationIssue>[],
   List<PrefabV3Def> additionalPrefabs = const <PrefabV3Def>[],
+  List<ChunkV2FileData> additionalChunks = const <ChunkV2FileData>[],
 }) async {
   final root = Directory.systemTemp.createTempSync('chunk_stage_page_');
   final manifest = File(
@@ -4297,15 +4410,20 @@ Future<_Harness> _buildHarness({
     levelId: 'meadow',
     shapeId: 'ground_002',
   );
+  final chunks = <ChunkV2FileData>[
+    forestChunk,
+    meadowChunk,
+    ...additionalChunks,
+  ];
   final document = ChunkV2Document(
-    chunks: <ChunkV2FileData>[forestChunk, meadowChunk],
-    sourcePathByChunkKey: const <String, String>{
-      'forest_chunk': 'chunks/forest_chunk.json',
-      'meadow_chunk': 'chunks/meadow_chunk.json',
+    chunks: chunks,
+    sourcePathByChunkKey: <String, String>{
+      for (final chunk in chunks)
+        chunk.chunkKey: 'chunks/${chunk.chunkKey}.json',
     },
     baselineContentsByChunkKey: <String, String>{
-      'forest_chunk': ChunkV2FileCodec.encode(forestChunk),
-      'meadow_chunk': ChunkV2FileCodec.encode(meadowChunk),
+      for (final chunk in chunks)
+        chunk.chunkKey: ChunkV2FileCodec.encode(chunk),
     },
     prefabData: PrefabV3FileData(
       slices: const <AtlasSliceDef>[],
@@ -4417,19 +4535,22 @@ ChunkV2FileData _chunkData({
   required String chunkKey,
   required String levelId,
   required String shapeId,
+  String? id,
+  String difficulty = chunkDifficultyNormal,
+  String assemblyGroupId = defaultChunkAssemblyGroupId,
   Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
   Iterable<PlacedMarkerDef> markers = const <PlacedMarkerDef>[],
 }) => ChunkV2FileData(
   chunkKey: chunkKey,
-  id: chunkKey,
+  id: id ?? chunkKey,
   revision: 4,
   status: chunkStatusActive,
   levelId: levelId,
   tileSize: 16,
   width: 100,
   height: 50,
-  difficulty: chunkDifficultyNormal,
-  assemblyGroupId: defaultChunkAssemblyGroupId,
+  difficulty: difficulty,
+  assemblyGroupId: assemblyGroupId,
   tags: <String>[levelId],
   tileLayers: const <TileLayerDef>[],
   prefabs: placements,

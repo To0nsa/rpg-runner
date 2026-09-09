@@ -292,6 +292,8 @@ adding direct non-terrain manipulation.
       route-local selected chunk key.
 - [x] Keep owner-row selection separate from inline editing; expose a dedicated
       Edit button on each existing owner row.
+- [x] Add combinable partial-name, difficulty, and assembly-group owner filters
+      with result count, empty state, and one clear action.
 - [x] Add a fit-to-chunk visual preview to every owner row using the scene's
       normal visual projections, below the name and to the right of metadata.
 - [x] Keep terrain creation and existing shapes as compact sections, while

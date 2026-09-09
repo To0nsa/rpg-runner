@@ -6,12 +6,13 @@ import '../../shared/editor_inline_id_form.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_section_card.dart';
 import '../../shared/editor_ui_tokens.dart';
+import '../../shared/editor_visual_catalog.dart';
 import 'chunk_owner_preview.dart';
 import 'chunk_owner_order.dart';
 import 'chunk_v2_owner_form.dart';
 
 /// Existing-owner list with previews and a row-local editor slot.
-class ChunkOwnerListSection extends StatelessWidget {
+class ChunkOwnerListSection extends StatefulWidget {
   const ChunkOwnerListSection({
     super.key,
     required this.document,
@@ -37,9 +38,71 @@ class ChunkOwnerListSection extends StatelessWidget {
   selectedDetailsBuilder;
 
   @override
+  State<ChunkOwnerListSection> createState() => _ChunkOwnerListSectionState();
+}
+
+class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
+  late final TextEditingController _searchController;
+  String _difficultyFilter = '';
+  String _groupFilter = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController()
+      ..addListener(_handleSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChunkOwnerListSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_difficultyFilter.isNotEmpty &&
+        !widget.scene.chunks.any(
+          (chunk) => chunk.difficulty == _difficultyFilter,
+        )) {
+      _difficultyFilter = '';
+    }
+    if (_groupFilter.isNotEmpty &&
+        !widget.scene.chunks.any(
+          (chunk) => chunk.assemblyGroupId == _groupFilter,
+        )) {
+      _groupFilter = '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_handleSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final chunks = List<ChunkV2FileData>.of(scene.chunks)
+    final document = widget.document;
+    final scene = widget.scene;
+    final selectedChunk = widget.selectedChunk;
+    final expandedChunk = widget.expandedChunk;
+    final workspaceRootPath = widget.workspaceRootPath;
+    final expandedPrefabShapeCount = widget.expandedPrefabShapeCount;
+    final onSelected = widget.onSelected;
+    final onEdit = widget.onEdit;
+    final selectedDetailsBuilder = widget.selectedDetailsBuilder;
+    final allChunks = List<ChunkV2FileData>.of(scene.chunks)
       ..sort(compareChunkOwners);
+    final chunks = _filteredChunks(allChunks);
+    final difficulties =
+        allChunks
+            .map((chunk) => chunk.difficulty)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
+    final groups =
+        allChunks
+            .map((chunk) => chunk.assemblyGroupId)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
     return EditorSectionCard(
       key: const ValueKey<String>('chunk_owner_section'),
       title: 'Existing chunk owners',
@@ -49,10 +112,95 @@ class ChunkOwnerListSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (chunks.isEmpty)
+          EditorVisualCatalogControls(
+            searchController: _searchController,
+            searchKey: const ValueKey<String>('chunk_owner_search'),
+            searchLabel: 'Search chunk owners',
+            searchHint: 'Name contains…',
+            clearSearchKey: const ValueKey<String>('chunk_owner_clear_search'),
+            clearSearchTooltip: 'Clear owner search',
+            filters: <Widget>[
+              SizedBox(
+                width: 164,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>(
+                    'chunk_owner_difficulty_filter_$_difficultyFilter',
+                  ),
+                  initialValue: _difficultyFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Difficulty',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: <DropdownMenuItem<String>>[
+                    const DropdownMenuItem<String>(
+                      value: '',
+                      child: Text('All difficulties'),
+                    ),
+                    for (final difficulty in difficulties)
+                      DropdownMenuItem<String>(
+                        value: difficulty,
+                        child: Text(difficulty),
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _difficultyFilter = value ?? ''),
+                ),
+              ),
+              SizedBox(
+                width: 164,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>(
+                    'chunk_owner_group_filter_$_groupFilter',
+                  ),
+                  initialValue: _groupFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Group',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: <DropdownMenuItem<String>>[
+                    const DropdownMenuItem<String>(
+                      value: '',
+                      child: Text('All groups'),
+                    ),
+                    for (final group in groups)
+                      DropdownMenuItem<String>(
+                        value: group,
+                        child: Text(group),
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _groupFilter = value ?? ''),
+                ),
+              ),
+              TextButton.icon(
+                key: const ValueKey<String>('chunk_owner_clear_filters'),
+                onPressed: _hasFilters ? _clearFilters : null,
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text('Clear filters'),
+              ),
+            ],
+            countKey: const ValueKey<String>('chunk_owner_filter_count'),
+            countLabel: '${chunks.length} of ${allChunks.length} owners',
+            onSearchSubmitted: () {
+              if (chunks.isNotEmpty) onSelected(chunks.first);
+            },
+          ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          if (allChunks.isEmpty)
             const Text(
               'No chunk owners remain in this level. Creation requires one '
               'existing owner to provide locked tile size and dimensions.',
+            ),
+          if (allChunks.isNotEmpty && chunks.isEmpty)
+            const Padding(
+              key: ValueKey<String>('chunk_owner_filter_empty'),
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'No chunk owners match the current search and filters.',
+                textAlign: TextAlign.center,
+              ),
             ),
           for (final chunk in chunks) ...<Widget>[
             EditorListCard(
@@ -126,6 +274,36 @@ class ChunkOwnerListSection extends StatelessWidget {
       ),
     );
   }
+
+  bool get _hasFilters =>
+      _searchController.text.isNotEmpty ||
+      _difficultyFilter.isNotEmpty ||
+      _groupFilter.isNotEmpty;
+
+  List<ChunkV2FileData> _filteredChunks(List<ChunkV2FileData> chunks) {
+    final query = _searchController.text.trim().toLowerCase();
+    return chunks
+        .where(
+          (chunk) =>
+              (query.isEmpty ||
+                  chunk.id.toLowerCase().contains(query) ||
+                  chunk.chunkKey.toLowerCase().contains(query)) &&
+              (_difficultyFilter.isEmpty ||
+                  chunk.difficulty == _difficultyFilter) &&
+              (_groupFilter.isEmpty || chunk.assemblyGroupId == _groupFilter),
+        )
+        .toList(growable: false);
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _difficultyFilter = '';
+      _groupFilter = '';
+    });
+  }
+
+  void _handleSearchChanged() => setState(() {});
 }
 
 /// Inline creation section using an existing owner as dimension template.

@@ -289,6 +289,8 @@ edits, and delete. Selecting an owner row only changes `_selectedChunkKey`; a
 dedicated row Edit button opens its inline owner form. The header and list keep
 no independent owner selection. Each owner card reserves its first row for the
 name and Edit action, then aligns its preview to the right of metadata below.
+The owner rail filters that current-level list by case-insensitive partial name,
+difficulty, and assembly group; criteria intersect without changing selection.
 
 Deleting the selected owner preserves the current lifecycle behavior: bind the
 first remaining owner in canonical order and reset owner-scoped scene state. If
