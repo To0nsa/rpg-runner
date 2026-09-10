@@ -5,6 +5,7 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:run_protocol/board_key.dart';
+
 import 'runner_game_widget.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
@@ -18,6 +19,8 @@ import 'state/ownership/selection_state.dart';
 ///
 /// [runSessionId], [runId], and [seed] must come from a server-issued run
 /// session ticket. [tickHz] must use that ticket's fixed simulation rate.
+/// The hosted widget prepares upcoming live/ghost terrain during run loading
+/// and releases that preparation when the route closes.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,

@@ -125,6 +125,31 @@ final class TerrainRuntimeBundle {
   TerrainSurfaceGraph get hashashGraph =>
       graphPublication[EnemyId.hashash.name];
 
+  /// Reuses immutable geometry and graph records at a new publication version.
+  ///
+  /// Only versioned wrappers and the inexpensive surface index are rebuilt;
+  /// no placement or trajectory queries run. All consumers share the new
+  /// geometry/surface-set version and the same canonical node/edge ordering.
+  TerrainRuntimeBundle withGeometryVersion(int geometryVersion) {
+    if (geometryVersion == version) return this;
+    final nextGeometry = geometry.withVersion(geometryVersion);
+    final nextSurfaces = surfaceSet.withGeometryVersion(geometryVersion);
+    return TerrainRuntimeBundle._(
+      geometry: nextGeometry,
+      edgeIndex: edgeIndex,
+      surfaceSet: nextSurfaces,
+      surfaceIndex: TerrainSurfaceSpatialIndex(
+        surfaceSet: nextSurfaces,
+        cellSizeWorld: surfaceIndex.cellSizeWorld,
+      ),
+      graphPublication: TerrainSurfaceGraphPublication(<TerrainSurfaceGraph>[
+        for (final graph in graphPublication.graphs)
+          graph.withSurfaceSetVersion(nextSurfaces),
+      ]),
+      graphProfiles: graphProfiles,
+    );
+  }
+
   /// Version-independent signature of the shared navigation node set.
   String surfaceSignature() => surfaceSet.signature();
 

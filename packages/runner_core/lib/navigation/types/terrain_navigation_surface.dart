@@ -245,6 +245,26 @@ class TerrainSurfaceSet {
   final Map<TerrainEdgeId, TerrainNavigationSurface> _byId;
   final Map<TerrainEdgeId, int> _indexById;
 
+  /// Shares this validated immutable node order and lookups under a new version.
+  /// The shared list identity proves that version rebinding cannot change nodes.
+  TerrainSurfaceSet withGeometryVersion(int geometryVersion) {
+    if (geometryVersion < 0) {
+      throw ArgumentError.value(
+        geometryVersion,
+        'geometryVersion',
+        'Must be non-negative.',
+      );
+    }
+    return geometryVersion == this.geometryVersion
+        ? this
+        : TerrainSurfaceSet._(
+            geometryVersion: geometryVersion,
+            surfaces: surfaces,
+            byId: _byId,
+            indexById: _indexById,
+          );
+  }
+
   /// Finds an exact persistent surface identity, or returns `null`.
   TerrainNavigationSurface? surfaceById(TerrainEdgeId id) => _byId[id];
 

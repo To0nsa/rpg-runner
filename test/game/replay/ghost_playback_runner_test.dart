@@ -8,10 +8,12 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/game/replay/ghost_playback_runner.dart';
 
 void main() {
-  test('ghost playback is deterministic for the same promoted replay blob', () {
+  test('prepared ghost playback matches synchronous replay results', () async {
     final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_1');
     final runnerA = GhostPlaybackRunner.fromReplayBlob(replayBlob);
     final runnerB = GhostPlaybackRunner.fromReplayBlob(replayBlob);
+    addTearDown(runnerB.dispose);
+    await runnerB.prepareTerrainAhead();
 
     for (var tick = 1; tick <= replayBlob.totalTicks; tick += 1) {
       runnerA.advanceToTick(tick);
@@ -35,15 +37,18 @@ void main() {
     expect(endedA.stats.enemyKillCounts, endedB.stats.enemyKillCounts);
   });
 
-  test('ghost playback exposes current snapshot for render-only consumption', () {
-    final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_snapshot');
-    final runner = GhostPlaybackRunner.fromReplayBlob(replayBlob);
+  test(
+    'ghost playback exposes current snapshot for render-only consumption',
+    () {
+      final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_snapshot');
+      final runner = GhostPlaybackRunner.fromReplayBlob(replayBlob);
 
-    expect(runner.snapshot.tick, runner.tick);
-    runner.advanceToTick(20);
-    expect(runner.snapshot.tick, runner.tick);
-    expect(runner.snapshot.distance, closeTo(runner.distance, 0.000001));
-  });
+      expect(runner.snapshot.tick, runner.tick);
+      runner.advanceToTick(20);
+      expect(runner.snapshot.tick, runner.tick);
+      expect(runner.snapshot.distance, closeTo(runner.distance, 0.000001));
+    },
+  );
 
   test('ghost playback exposes drained events read-only and clearable', () {
     final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_events');
@@ -53,10 +58,7 @@ void main() {
     final events = runner.drainedEvents;
     expect(events.whereType<RunEndedEvent>(), isNotEmpty);
     final firstEvent = events.first;
-    expect(
-      () => events.add(firstEvent),
-      throwsUnsupportedError,
-    );
+    expect(() => events.add(firstEvent), throwsUnsupportedError);
 
     runner.clearDrainedEvents();
     expect(runner.drainedEvents, isEmpty);

@@ -4,12 +4,36 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:run_protocol/replay_blob.dart';
+
 import 'support/test_level.dart';
+
 import 'package:rpg_runner/game/game_controller.dart';
 
 import 'test_tunings.dart';
 
 void main() {
+  for (final shutdownFirst in [false, true]) {
+    test('closed controller cannot restart terrain preparation '
+        '(shutdown first: $shutdownFirst)', () async {
+      final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+        playerCharacter: testPlayerCharacter,
+        seed: 1,
+      );
+      final controller = GameController(core: core);
+      final pending = controller.prepareTerrainAhead();
+      expect(core.terrainPreparationStats, isNotNull);
+      if (shutdownFirst) {
+        controller.shutdown();
+        expect(core.paused, isTrue);
+      }
+      controller.dispose();
+      await pending;
+      await controller.prepareTerrainAhead();
+      expect(core.terrainPreparationStats, isNull);
+    });
+  }
+
   test('GameController dedupes MoveAxis per tick (last wins)', () {
     final core = GameCore(
       levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
@@ -119,11 +143,13 @@ void main() {
     controller.enqueue(const MoveAxisCommand(tick: 1, axis: -1));
     controller.enqueue(const JumpPressedCommand(tick: 1));
     controller.enqueue(const DashPressedCommand(tick: 1));
-    controller.enqueue(const AbilitySlotHeldCommand(
-      tick: 1,
-      slot: AbilitySlot.secondary,
-      held: true,
-    ));
+    controller.enqueue(
+      const AbilitySlotHeldCommand(
+        tick: 1,
+        slot: AbilitySlot.secondary,
+        held: true,
+      ),
+    );
 
     controller.advanceFrame(1 / controller.tickHz);
 

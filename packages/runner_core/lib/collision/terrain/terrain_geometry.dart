@@ -73,6 +73,23 @@ class TerrainGeometry {
   /// Diagnostic lookup kept outside hot candidate iteration.
   final Map<TerrainEdgeId, TerrainEdge> edgeById;
 
+  /// Assigns a publication version while sharing already validated immutable
+  /// records and lookups. This cannot alter geometry or its canonical ordering.
+  TerrainGeometry withVersion(int version) {
+    if (version < 0) {
+      throw ArgumentError.value(version, 'version', 'Must be non-negative.');
+    }
+    return version == this.version
+        ? this
+        : TerrainGeometry._(
+            version: version,
+            polygons: polygons,
+            edges: edges,
+            diagnostics: diagnostics,
+            edgeById: edgeById,
+          );
+  }
+
   /// SHA-256 digest of canonical `source-v1` UTF-8 records.
   String sourceSignature() => sha256
       .convert(utf8.encode(canonicalSourceRecords().join('\n')))

@@ -501,8 +501,63 @@ than reaching a controller from another version.
 `nav-surfaces-v1` and `nav-graphs-v1` are content signatures, not runtime cache
 keys. They deliberately ignore bundle version, so a no-op rebuild at a higher
 version has identical signatures while still invalidating version-local state.
-Adding or culling a surface rebuilds both graph views from the new shared set,
-so removed nodes and adjacency cannot survive publication.
+Adding or culling a surface requires both graph views from the new shared set,
+so removed nodes and adjacency cannot survive publication. Interactive runs may
+prepare that exact complete publication before the selection becomes active.
+
+### Background terrain preparation
+
+`GameCore.prepareTerrainAhead()` enables a run-owned `StagedTerrainPreparer`.
+`TrackStreamer.upcomingSelections` projects the next eight selection states
+using the live spawn/cull cursors, fixed viewport width, deterministic pattern
+source, and tuning. It does not move those cursors or emit entity/item spawns.
+At a shared boundary it includes inclusive spawning followed by strict culling;
+an actual tick can skip intermediate selections.
+
+The preparer binds those selections through normal catalog admission and sends
+only the immutable bindings and the run's exact graph profiles to `Isolate.run`.
+The worker uses the same geometry, graph, and render builders as synchronous
+construction. It returns complete candidates without running future gameplay.
+No topology approximation, reduced graph coverage, or serialized replay option
+is introduced.
+
+On a live selection change, every chunk's index, key, start, and end must match
+before a candidate can be consumed. `withGeometryVersion` gives it the actual
+monotonic publication version, reusing immutable geometry/navigation records
+while rebuilding cheap versioned wrappers and the surface index. All consumers
+share the new geometry/surface-set identity. The existing tick publication,
+support invalidation, AI, spawn placement, and snapshot order remain unchanged.
+Geometry records/lookups and graph CSR arrays retain their immutable list/map
+identities; publication does not sort or revalidate every unchanged edge.
+Graph rebinding rejects a different node-list identity. New geometry and new
+graphs still pass the full normal constructor validation in the worker.
+
+The ready cache retains at most eight selections per simulation. Only one
+bounded worker batch is in flight; concurrent requests replace its target
+window and obsolete results are discarded. Changed selections trigger refills.
+Binding and isolate handoff are queued after the current frame/simulation stack;
+the tick only updates the desired window and consumes already prepared data.
+`RunnerFlameGame` awaits the live run's first window during loading. The run
+widget starts the ghost's preparation at initialization and awaits it before
+Start. Each simulation owns its cache; controller shutdown, ghost completion,
+replacement, and widget disposal release it. A worker already in progress can
+finish but cannot retain results or schedule another batch after disposal.
+
+A cold cache, a jump beyond the window, or unsupported/failed isolate work uses
+the original synchronous build. Speculative failures are diagnostic only and
+cannot make a future invalid selection fail an earlier simulation tick; actual
+selection admission still fails normally. Ready/hit/miss/error statistics are
+profiling evidence, never snapshot or replay state. This removes navigation
+construction from prepared transitions; it does not guarantee a frame deadline
+after an arbitrary camera jump or eliminate unrelated rendering/OS stalls.
+
+`tool/benchmark_terrain_preparation.dart` reproduces seed-42 compiled selections
+for 60 simulated seconds per level. `--realtime` gives workers only their actual
+lead time; `--forest` narrows the run to Forest. Its transition timings cover
+stream selection, prepared publication, and queuing a refill. Deferred handoff,
+background CPU, actors, and rendering require separate gameplay frame profiling.
+Observed phone timings and validation are recorded in
+[terrain streaming performance](terrain_streaming_performance.md).
 
 Normal streamed `GameCore(...)` and replay validation use the runtime bundle's
 polygon geometry and graph views. Only `GameCore.terrainMotionHarness` exposes

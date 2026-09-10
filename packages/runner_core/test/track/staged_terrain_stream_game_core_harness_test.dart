@@ -16,42 +16,62 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('normal stream republishes one deterministic terrain world', () {
-    GameCore build() => GameCore(
-      seed: 9127,
-      levelDefinition: LevelRegistry.byId(LevelId.field)
-          .copyWith(noEnemyChunks: 9999),
-      playerCharacter: PlayerCharacterRegistry.eloise,
-    );
+  test(
+    'prepared and cold stream publications preserve the same world',
+    () async {
+      GameCore build() => GameCore(
+        seed: 9127,
+        levelDefinition: LevelRegistry.byId(LevelId.field)
+            .copyWith(noEnemyChunks: 9999),
+        playerCharacter: PlayerCharacterRegistry.eloise,
+      );
 
-    final first = build();
-    final second = build();
-    final initialVersion = _expectSameTerrainWorld(first, second);
-    expect(initialVersion, 1);
-    expect(first.playerGrounded, isTrue);
-    expect(
-      () => first.queueTerrainHarnessGeometryReplacement(
-        TerrainGeometry(version: 2, polygons: const [], edges: const []),
-      ),
-      throwsStateError,
-    );
+      final first = build();
+      final second = build();
+      addTearDown(second.stopTerrainPreparation);
+      await second.prepareTerrainAhead();
+      var preparedHits = 0;
+      final initialVersion = _expectSameTerrainWorld(first, second);
+      expect(initialVersion, 1);
+      expect(first.playerGrounded, isTrue);
+      expect(
+        () => first.queueTerrainHarnessGeometryReplacement(
+          TerrainGeometry(version: 2, polygons: const [], edges: const []),
+        ),
+        throwsStateError,
+      );
 
-    for (var nextTick = 1; nextTick <= 900; nextTick++) {
-      final commands = <Command>[MoveAxisCommand(tick: nextTick, axis: 1)];
-      first.applyCommands(commands);
-      second.applyCommands(commands);
-      first.stepOneTick();
-      second.stepOneTick();
-      expect(first.gameOver, isFalse, reason: 'first tick $nextTick');
-      expect(second.gameOver, isFalse, reason: 'second tick $nextTick');
-      if (nextTick % 30 == 0) {
-        _expectSameTerrainWorld(first, second);
-        expect(first.playerGrounded, isTrue, reason: 'tick $nextTick');
+      for (var nextTick = 1; nextTick <= 900; nextTick++) {
+        final commands = <Command>[MoveAxisCommand(tick: nextTick, axis: 1)];
+        first.applyCommands(commands);
+        second.applyCommands(commands);
+        first.stepOneTick();
+        second.stepOneTick();
+        expect(first.gameOver, isFalse, reason: 'first tick $nextTick');
+        expect(second.gameOver, isFalse, reason: 'second tick $nextTick');
+        if (nextTick % 30 == 0) {
+          _expectSameTerrainWorld(first, second);
+          expect(first.playerGrounded, isTrue, reason: 'tick $nextTick');
+          if (nextTick == 450) {
+            preparedHits += second.terrainPreparationStats!.hits;
+            second.stopTerrainPreparation();
+          } else if (nextTick < 450 || nextTick >= 600) {
+            await second.prepareTerrainAhead();
+            expect(second.terrainPreparationStats!.lastError, isNull);
+          }
+        }
       }
-    }
 
-    expect(_expectSameTerrainWorld(first, second), greaterThan(initialVersion));
-  });
+      expect(
+        _expectSameTerrainWorld(first, second),
+        greaterThan(initialVersion),
+      );
+      expect(
+        preparedHits + second.terrainPreparationStats!.hits,
+        greaterThan(2),
+      );
+    },
+  );
 
   test('terrain publication precedes markers and both pickup policies', () {
     var enemyCount = 0;

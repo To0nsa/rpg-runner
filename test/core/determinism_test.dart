@@ -50,10 +50,10 @@ String _digest(GameCore core) {
 }
 
 void main() {
-  void runDeterminismScenario({
+  Future<void> runDeterminismScenario({
     required int seed,
     required LevelDefinition level,
-  }) {
+  }) async {
     final a = GameCore(
       seed: seed,
       levelDefinition: level,
@@ -64,6 +64,8 @@ void main() {
       levelDefinition: level,
       playerCharacter: testPlayerCharacter,
     );
+    addTearDown(b.stopTerrainPreparation);
+    await b.prepareTerrainAhead();
     // Deterministic command schedule. Note that MoveAxis must be sent each tick
     // while held because Core resets tick inputs before applying commands.
     const ticks = 240;
@@ -88,11 +90,23 @@ void main() {
     }
   }
 
-  test('same seed + same commands => identical snapshots (field)', () {
-    runDeterminismScenario(seed: 42, level: LevelRegistry.byId(LevelId.field));
-  });
+  test(
+    'terrain preparation preserves snapshots with enemies (field)',
+    () async {
+      await runDeterminismScenario(
+        seed: 42,
+        level: LevelRegistry.byId(LevelId.field),
+      );
+    },
+  );
 
-  test('same seed + same commands => identical snapshots (forest)', () {
-    runDeterminismScenario(seed: 42, level: LevelRegistry.byId(LevelId.forest));
-  });
+  test(
+    'terrain preparation preserves snapshots with enemies (forest)',
+    () async {
+      await runDeterminismScenario(
+        seed: 42,
+        level: LevelRegistry.byId(LevelId.forest),
+      );
+    },
+  );
 }

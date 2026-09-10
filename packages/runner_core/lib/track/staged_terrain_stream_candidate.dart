@@ -41,6 +41,26 @@ final class StagedTerrainStreamCandidate {
 
   /// Direct Chunk terrain fills and boundaries paired with [geometry].
   final StagedTerrainRenderSnapshot renderSnapshot;
+
+  /// Publishes a prepared selection under its actual monotonic Core version.
+  ///
+  /// Preparation never predicts how many intermediate selections a tick will
+  /// skip. Rebinding changes only the version; geometry, navigation decisions,
+  /// and generated render records retain their exact values.
+  StagedTerrainStreamCandidate withGeometryVersion(int geometryVersion) {
+    if (geometryVersion == geometry.version) return this;
+    final bundle = runtimeBundle.withGeometryVersion(geometryVersion);
+    return StagedTerrainStreamCandidate._(
+      bindings: bindings,
+      geometry: bundle.geometry,
+      runtimeBundle: bundle,
+      renderSnapshot: StagedTerrainRenderSnapshot(
+        geometryVersion: geometryVersion,
+        polygons: renderSnapshot.polygons,
+        edges: renderSnapshot.edges,
+      ),
+    );
+  }
 }
 
 /// Builds a complete terrain candidate from a selected runtime stream.
@@ -79,6 +99,23 @@ final class StagedTerrainStreamCandidateBuilder {
       catalog: catalog,
       activeChunks: activeChunks,
     );
+    return buildFromBindings(
+      bindings: bindings,
+      geometryVersion: geometryVersion,
+      groundEnemyProfiles: groundEnemyProfiles,
+    );
+  }
+
+  /// Builds from admitted bindings captured before background preparation.
+  ///
+  /// This shares the synchronous construction path, so prewarming cannot
+  /// introduce different collision, navigation, or rendering rules.
+  StagedTerrainStreamCandidate buildFromBindings({
+    required List<StagedTerrainChunkBinding> bindings,
+    required int geometryVersion,
+    required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+  }) {
+    bindings = List<StagedTerrainChunkBinding>.unmodifiable(bindings);
     final geometry = _worldGeometryBuilder.build(
       bindings: bindings,
       geometryVersion: geometryVersion,

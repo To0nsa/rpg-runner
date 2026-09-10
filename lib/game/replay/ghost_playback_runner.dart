@@ -58,6 +58,19 @@ class GhostPlaybackRunner {
 
   final ReplayBlobV1 replayBlob;
   final GameCore _core;
+  bool _disposed = false;
+
+  /// Prepares upcoming terrain before real-time playback; offline replay may
+  /// omit this without changing any commands, snapshots, or run results.
+  Future<void> prepareTerrainAhead() =>
+      _disposed ? Future<void>.value() : _core.prepareTerrainAhead();
+
+  /// Releases background terrain work when the owning run or ghost closes.
+  void dispose() {
+    _disposed = true;
+    _core.stopTerrainPreparation();
+  }
+
   final Map<int, ReplayCommandFrameV1> _frameByTick;
   late GameStateSnapshot _snapshot = _core.buildSnapshot();
   final List<GameEvent> _drainedEvents = <GameEvent>[];
@@ -113,6 +126,7 @@ class GhostPlaybackRunner {
       _drainCoreEvents();
       if (_runEndedEvent != null || _core.gameOver) {
         _completed = true;
+        dispose();
         return;
       }
     }
@@ -133,6 +147,7 @@ class GhostPlaybackRunner {
     }
     _drainCoreEvents();
     _completed = true;
+    dispose();
   }
 
   void _drainCoreEvents() {

@@ -6,6 +6,7 @@
 /// contract lives in `docs/tdd/runner_core_simulation_contract.md`.
 library;
 
+import 'dart:async';
 import 'dart:math';
 
 import 'camera/autoscroll_camera.dart';
@@ -110,6 +111,7 @@ import 'track_manager.dart';
 import 'track/chunk_pattern.dart' show SpawnPlacementMode;
 import 'track/staged_authored_terrain.dart';
 import 'track/staged_terrain_catalog.dart';
+import 'track/staged_terrain_preparer.dart';
 import 'track/staged_terrain_stream_candidate.dart';
 import 'track/track_streamer.dart';
 import 'weapons/weapon_catalog.dart';
@@ -958,6 +960,45 @@ class GameCore {
   final StagedTerrainCatalog? _stagedTerrainCatalogOverride;
   late final StagedTerrainCatalog? _stagedTerrainCatalog;
   StagedTerrainStreamCandidate? _stagedTerrainCandidate;
+  StagedTerrainPreparer? _terrainPreparer;
+
+  /// Opts this run into bounded background preparation and awaits its window.
+  ///
+  /// Interactive hosts await this during loading. Headless replay can keep the
+  /// synchronous path. Readiness never changes selected chunks, publication
+  /// ticks, navigation decisions, or errors from the actual terrain build.
+  Future<void> prepareTerrainAhead() {
+    final catalog = _stagedTerrainCatalog;
+    if (catalog == null) return Future<void>.value();
+    final preparer = _terrainPreparer ??= StagedTerrainPreparer(
+      catalog: catalog,
+      groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+    );
+    if (preparer.stats.lastError != null) return Future<void>.value();
+    try {
+      return preparer.prepare(
+        _trackManager.upcomingSelections(
+          viewWidth: virtualWidth.toDouble(),
+          count: StagedTerrainPreparer.selectionCapacity,
+        ),
+      );
+    } catch (error) {
+      preparer.disable(error);
+      return Future<void>.value();
+    }
+  }
+
+  /// Cache evidence for profiling only, absent until preparation is enabled.
+  ({int hits, int misses, int ready, String? lastError})?
+  get terrainPreparationStats => _terrainPreparer?.stats;
+
+  /// Releases prepared terrain when the interactive owner closes this run.
+  /// Core remains usable through the exact synchronous construction path.
+  void stopTerrainPreparation() {
+    _terrainPreparer?.dispose();
+    _terrainPreparer = null;
+  }
+
   int _nextStagedTerrainGeometryVersion = 1;
 
   /// ECS → render snapshot conversion.
@@ -1752,6 +1793,7 @@ class GameCore {
           candidate != null) {
         authority.queueStagedTerrainCandidate(candidate);
       }
+      if (_terrainPreparer != null) unawaited(prepareTerrainAhead());
     }
     return (
       enemyRequests: List<SpawnEnemyRequest>.unmodifiable(enemyRequests),
@@ -1770,12 +1812,17 @@ class GameCore {
         'polygon-terrain key.',
       );
     }
-    _stagedTerrainCandidate = const StagedTerrainStreamCandidateBuilder().build(
-      catalog: catalog,
-      activeChunks: activeChunks,
-      geometryVersion: _nextStagedTerrainGeometryVersion,
-      groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
-    );
+    _stagedTerrainCandidate =
+        _terrainPreparer?.take(
+          activeChunks,
+          geometryVersion: _nextStagedTerrainGeometryVersion,
+        ) ??
+        const StagedTerrainStreamCandidateBuilder().build(
+          catalog: catalog,
+          activeChunks: activeChunks,
+          geometryVersion: _nextStagedTerrainGeometryVersion,
+          groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+        );
     _nextStagedTerrainGeometryVersion += 1;
   }
 

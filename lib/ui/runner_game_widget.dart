@@ -44,6 +44,8 @@ import 'viewport/viewport_metrics.dart';
 ///
 /// Intended to be mounted by a host app. It owns its [GameController] and
 /// cleans it up on dispose.
+/// Run loading prepares upcoming terrain in the background; Start also awaits
+/// the selected ghost's first window before either simulation advances.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.
@@ -147,6 +149,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late BoardKey? _boardKey;
   GhostReplayBootstrap? _ghostReplayBootstrap;
   GhostPlaybackRunner? _ghostPlaybackRunner;
+  Future<void>? _ghostTerrainPreparation;
 
   late int _runId;
   int? _provisionalGoldEarned;
@@ -257,6 +260,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _publishGhostRenderFeed();
     } catch (error) {
       debugPrint('Ghost playback failed: $error');
+      runner.dispose();
       _ghostPlaybackRunner = null;
       _clearGhostRenderFeed();
     }
@@ -680,6 +684,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initializeGhostPlaybackRunner() {
+    _ghostPlaybackRunner?.dispose();
+    _ghostTerrainPreparation = null;
     final bootstrap = _ghostReplayBootstrap;
     if (bootstrap == null) {
       _ghostPlaybackRunner = null;
@@ -689,8 +695,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     try {
       final runner = GhostPlaybackRunner.fromReplayBlob(bootstrap.replayBlob);
       _ghostPlaybackRunner = runner;
+      _ghostTerrainPreparation = runner.prepareTerrainAhead();
       _publishGhostRenderFeed();
     } catch (error) {
+      _ghostPlaybackRunner?.dispose();
       _ghostPlaybackRunner = null;
       _clearGhostRenderFeed();
       debugPrint(
@@ -727,7 +735,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     );
   }
 
-  void _startGame() {
+  Future<void> _startGame() async {
+    if (_started) return;
     if (_runRecorder == null) {
       if (!_runRecorderInitializing) {
         unawaited(_initializeRunRecorder());
@@ -741,9 +750,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       }
       return;
     }
+    final controller = _controller;
+    await _ghostTerrainPreparation;
+    if (!mounted || !identical(controller, _controller) || _started) return;
     setState(() => _started = true);
     _clearInputs();
-    _controller.setPaused(false);
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _pausedByLifecycle =
+        lifecycle != null && lifecycle != AppLifecycleState.resumed;
+    _controller.setPaused(_pausedByLifecycle);
   }
 
   void _onRestartPressed() {
@@ -830,6 +845,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _runRecorder = null;
       _runRecorderInitError = null;
       _runRecorderInitializing = false;
+      _ghostPlaybackRunner?.dispose();
       _ghostPlaybackRunner = null;
       _initGame();
     });
@@ -946,7 +962,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.dispose();
     unawaited(_runRecorder?.close() ?? Future<void>.value());
     _runRecorder = null;
+    _ghostPlaybackRunner?.dispose();
     _ghostPlaybackRunner = null;
+    _ghostTerrainPreparation = null;
     _clearGhostRenderFeed();
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();

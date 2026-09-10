@@ -329,6 +329,24 @@ class TerrainSurfaceGraph {
   final List<int> edgeOffsets;
   final List<TerrainSurfaceGraphEdge> edges;
 
+  /// Rebinds only the versioned node-set wrapper, sharing validated CSR data.
+  /// Rejects any different node-list identity, including equal-looking copies;
+  /// use [TerrainSurfaceSet.withGeometryVersion] to retain the admitted nodes.
+  TerrainSurfaceGraph withSurfaceSetVersion(TerrainSurfaceSet nextSet) {
+    if (!identical(nextSet.surfaces, surfaceSet.surfaces)) {
+      throw ArgumentError('Version rebinding must retain the exact node list.');
+    }
+    return identical(nextSet, surfaceSet)
+        ? this
+        : TerrainSurfaceGraph._(
+            surfaceSet: nextSet,
+            buildProfile: buildProfile,
+            eligibility: eligibility,
+            edgeOffsets: edgeOffsets,
+            edges: edges,
+          );
+  }
+
   String get profileKey => buildProfile.profileKey;
   int get geometryVersion => surfaceSet.geometryVersion;
   List<TerrainNavigationSurface> get surfaces => surfaceSet.surfaces;
@@ -364,15 +382,12 @@ class TerrainSurfaceGraph {
         buildProfile.supportRequirement.denominator.toString(),
         buildProfile.locomotionSpeedTicksPerSecond.toString(),
         buildProfile.simulationTicksPerSecond.toString(),
-        physicsCoordinateToTicks(
-          buildProfile.jumpTemplate.profile.jumpSpeed,
-        ).toString(),
-        physicsCoordinateToTicks(
-          buildProfile.jumpTemplate.profile.gravityY,
-        ).toString(),
-        physicsCoordinateToTicks(
-          buildProfile.jumpTemplate.profile.airSpeedX,
-        ).toString(),
+        physicsCoordinateToTicks(buildProfile.jumpTemplate.profile.jumpSpeed)
+            .toString(),
+        physicsCoordinateToTicks(buildProfile.jumpTemplate.profile.gravityY)
+            .toString(),
+        physicsCoordinateToTicks(buildProfile.jumpTemplate.profile.airSpeedX)
+            .toString(),
         buildProfile.jumpTemplate.profile.maxAirTicks.toString(),
         buildProfile.jumpTemplate.profile.collideCeilings ? '1' : '0',
         buildProfile.jumpTemplate.profile.collideLeftWalls ? '1' : '0',

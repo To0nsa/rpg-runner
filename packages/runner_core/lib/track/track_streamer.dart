@@ -174,6 +174,58 @@ class TrackStreamer {
   /// polygon-terrain binding rather than selecting a fallback record.
   List<ActiveTrackChunkSnapshot> get activeChunks => _activeChunksSnapshot;
 
+  /// Projects the next [count] selection states for a forward-moving camera.
+  ///
+  /// Uses world-unit [viewWidth] and the live scheduler cursors without moving
+  /// them or emitting spawns. Inclusive spawning precedes strict culling at a
+  /// shared boundary; a real tick may skip either intermediate state. Callers
+  /// must match the entire actual selection before using prepared data.
+  List<List<ActiveTrackChunkSnapshot>> upcomingSelections({
+    required double viewWidth,
+    required int count,
+  }) {
+    if (!viewWidth.isFinite || viewWidth <= 0 || count < 0) {
+      throw ArgumentError(
+        'Projection requires a positive width and count >= 0.',
+      );
+    }
+    if (!tuning.enabled) return const [];
+    final active = List<ActiveTrackChunkSnapshot>.of(_activeChunksSnapshot);
+    var nextIndex = _nextChunkIndex;
+    var nextStart = _nextChunkStartX;
+    final selections = <List<ActiveTrackChunkSnapshot>>[];
+    while (selections.length < count) {
+      final spawnAt = nextStart - viewWidth - tuning.spawnAheadMargin;
+      final cullAfter = active.isEmpty
+          ? double.infinity
+          : active.first.endX + tuning.cullBehindMargin;
+      if (spawnAt <= cullAfter) {
+        final pattern = patternSource
+            .selectionFor(
+              seed: seed,
+              chunkIndex: nextIndex,
+              tier: _tierForChunkIndex(nextIndex),
+            )
+            .pattern;
+        active.add(
+          ActiveTrackChunkSnapshot(
+            index: nextIndex,
+            startX: nextStart,
+            endX: nextStart + tuning.chunkWidth,
+            patternName: pattern.name,
+            chunkKey: pattern.chunkKey,
+          ),
+        );
+        nextIndex += 1;
+        nextStart += tuning.chunkWidth;
+      } else {
+        active.removeAt(0);
+      }
+      selections.add(List<ActiveTrackChunkSnapshot>.unmodifiable(active));
+    }
+    return List<List<ActiveTrackChunkSnapshot>>.unmodifiable(selections);
+  }
+
   /// Advances chunk streaming based on the current camera bounds.
   ///
   /// Returns a step result (spawned chunks + whether geometry changed).

@@ -58,7 +58,7 @@ order; the contract below records the dependencies that must survive changes.
 
 | Order | Contractual phase | Dependency |
 | --- | --- | --- |
-| 1 | Stream/cull track, build the complete staged candidate, publish any queued terrain bundle, place the captured enemy/item batch, and prepare motion | No placement or motion consumer may observe a partial candidate or mixed terrain/index/surface/graph versions; AI receives validated prior support. |
+| 1 | Stream/cull track, obtain the complete staged candidate, publish any queued terrain bundle, place the captured enemy/item batch, and prepare motion | An exact prepared selection may replace synchronous construction; no consumer may observe a partial candidate or mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
 | 3 | Resolve AI, ability activation, jump, movement, mobility, gravity, and collision | Intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
@@ -89,6 +89,15 @@ same path without a serialized authority option. Track-disabled synthetic
 fixtures compile one deterministic flat polygon at the level's authored ground
 reference. The test/tool-only `GameCore.terrainMotionHarness` factory remains
 available only to inject focused polygon geometry.
+
+Interactive hosts opt into `GameCore.prepareTerrainAhead()` during loading.
+Core projects eight upcoming spawn/cull selection states and builds complete
+candidates from admitted bindings in a background Dart isolate. Publication
+still uses the actual scheduler selection and live monotonic geometry version;
+cache readiness cannot change the publication tick, RNG, commands, or results.
+A miss uses the original synchronous builder. Headless validation does not need
+to enable preparation. See [terrain preparation](sloped_navigation_and_enemy_terrain.md#background-terrain-preparation)
+for matching, capacity, failure, and lifetime rules.
 
 `LevelDefinition.identity`, `GameCore.levelIdentity`, and
 `GameStateSnapshot.levelIdentity` carry one typed provenance value.

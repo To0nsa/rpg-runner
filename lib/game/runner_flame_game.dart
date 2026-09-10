@@ -181,6 +181,7 @@ class RunnerFlameGame extends FlameGame {
     _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
 
     await Future.wait<void>(<Future<void>>[
+      controller.prepareTerrainAhead(),
       _enemyRenderRegistry.load(images),
       _projectileRenderRegistry.load(images),
       _spellImpactRenderRegistry.load(images),

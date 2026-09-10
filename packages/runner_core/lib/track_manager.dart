@@ -110,6 +110,15 @@ class TrackManager {
   List<ActiveTrackChunkSnapshot> get activeChunks =>
       _trackStreamer?.activeChunks ?? const <ActiveTrackChunkSnapshot>[];
 
+  /// Projects future selections without applying scheduler or ECS mutations.
+  /// See [TrackStreamer.upcomingSelections] for boundary and matching rules.
+  List<List<ActiveTrackChunkSnapshot>> upcomingSelections({
+    required double viewWidth,
+    required int count,
+  }) =>
+      _trackStreamer?.upcomingSelections(viewWidth: viewWidth, count: count) ??
+      const [];
+
   /// Resolves the level-scoped render theme.
   String? resolveRenderVisualThemeId({
     required double cameraCenterX,

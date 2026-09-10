@@ -3,10 +3,68 @@ import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
+import 'package:runner_core/navigation/types/terrain_navigation_surface.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('TerrainRuntimeBundle', () {
+    test(
+      'version rebinding shares admitted records and rejects substituted nodes',
+      () {
+        final original = _bundle(_geometry(version: 7, includeIsland: true));
+        final rebound = original.withGeometryVersion(8);
+        expect(rebound.version, 8);
+        expect(original.version, 7);
+        expect(
+          identical(rebound.geometry.edges, original.geometry.edges),
+          isTrue,
+        );
+        expect(
+          identical(rebound.geometry.edgeById, original.geometry.edgeById),
+          isTrue,
+        );
+        expect(
+          identical(rebound.surfaceSet.surfaces, original.surfaceSet.surfaces),
+          isTrue,
+        );
+        expect(
+          identical(rebound.grojibGraph.edges, original.grojibGraph.edges),
+          isTrue,
+        );
+        expect(
+          identical(
+            rebound.hashashGraph.edgeOffsets,
+            original.hashashGraph.edgeOffsets,
+          ),
+          isTrue,
+        );
+        expect(rebound.graphSignature(), original.graphSignature());
+        expect(
+          identical(rebound.surfaceIndex.surfaceSet, rebound.surfaceSet),
+          isTrue,
+        );
+        expect(
+          identical(rebound.graphPublication.surfaceSet, rebound.surfaceSet),
+          isTrue,
+        );
+        expect(
+          rebound.surfaceIndex.insertedReferences,
+          original.surfaceIndex.insertedReferences,
+        );
+        expect(() => rebound.grojibGraph.edges.clear(), throwsUnsupportedError);
+        expect(
+          () => original.grojibGraph.withSurfaceSetVersion(
+            TerrainSurfaceSet(
+              geometryVersion: 8,
+              surfaces: original.surfaceSet.surfaces,
+            ),
+          ),
+          throwsArgumentError,
+        );
+        expect(() => original.withGeometryVersion(-1), throwsArgumentError);
+      },
+    );
+
     test('publishes one version and one shared surface identity', () {
       final bundle = _bundle(_geometry(version: 7, includeIsland: true));
 

@@ -18,6 +18,7 @@ import 'package:runner_core/game_core.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:run_protocol/replay_blob.dart';
+
 import 'replay/replay_quantization.dart';
 import 'tick_input_frame.dart';
 
@@ -44,6 +45,12 @@ class GameController extends ChangeNotifier {
   }
 
   final GameCore _core;
+  bool _isShutdown = false;
+
+  /// Awaits Core's first terrain preparation window before interactive play.
+  /// Subsequent windows refill without changing fixed-tick simulation results.
+  Future<void> prepareTerrainAhead() =>
+      _isShutdown ? Future<void>.value() : _core.prepareTerrainAhead();
 
   /// Fixed simulation tick frequency.
   final int tickHz;
@@ -173,6 +180,8 @@ class GameController extends ChangeNotifier {
   /// - clears buffered transient events
   /// - resets interpolation state (accumulator + snapshots)
   void shutdown() {
+    _isShutdown = true;
+    _core.stopTerrainPreparation();
     // Pause regardless of current state (do NOT early-return like setPaused()).
     _core.paused = true;
 
@@ -188,6 +197,13 @@ class GameController extends ChangeNotifier {
     _prev = _curr;
     lastRunEndedEvent = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isShutdown = true;
+    _core.stopTerrainPreparation();
+    super.dispose();
   }
 
   /// Ends the current run early (player quit).
