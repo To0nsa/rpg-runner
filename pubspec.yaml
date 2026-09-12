@@ -97,11 +97,24 @@ flutter:
   assets:
     # BEGIN AUTO-ASSETS
     - assets/images/backgrounds/
+    - assets/images/backgrounds/medieval_town/
     - assets/images/entities/collectibles/
+    - assets/images/entities/effects/battle_animations/
+    - assets/images/entities/effects/battle_animations/nod_good_enough/
+    - assets/images/entities/effects/elemental_portals/
     - assets/images/entities/enemies/
+    - assets/images/entities/enemies/arcane_archer/
+    - assets/images/entities/enemies/brain_mole_monarch/
+    - assets/images/entities/enemies/cacodaemon/
     - assets/images/entities/enemies/derf/
+    - assets/images/entities/enemies/ferret/
     - assets/images/entities/enemies/grojib/
     - assets/images/entities/enemies/hashash/
+    - assets/images/entities/enemies/run_like_hell/gholum/
+    - assets/images/entities/enemies/run_like_hell/gruby/
+    - assets/images/entities/enemies/run_like_hell/harpy/
+    - assets/images/entities/enemies/run_like_hell/voldo/
+    - assets/images/entities/enemies/skeleton_seeker/
     - assets/images/entities/enemies/unoco/
     - assets/images/entities/player/
     - assets/images/entities/regenerationItems/
@@ -140,25 +153,44 @@ flutter:
     - assets/images/icons/gear-icons/sword/
     - assets/images/icons/skills-icons/
     - assets/images/level/atlases/ancient_forest/
+    - assets/images/level/atlases/autumn_trees/
     - assets/images/level/atlases/castle/
     - assets/images/level/atlases/cimetery/
+    - assets/images/level/atlases/crystal_world/
     - assets/images/level/atlases/dark_forest/
     - assets/images/level/atlases/fantasy_environment/
     - assets/images/level/atlases/gandalf_hardcore/
+    - assets/images/level/atlases/graveyard_environment_pack/
+    - assets/images/level/atlases/green_woods/
+    - assets/images/level/atlases/grimstone_platformer_32x32/
     - assets/images/level/atlases/high_forest/
+    - assets/images/level/atlases/kauzz_forest/
     - assets/images/level/atlases/mondstadt/
     - assets/images/level/atlases/mossy_cavern/
+    - assets/images/level/atlases/pixel_fantasy_caves/
+    - assets/images/level/atlases/run_like_hell/
     - assets/images/level/atlases/rune_rocks/
+    - assets/images/level/atlases/summer_scroller_tileset/
     - assets/images/level/atlases/swamp_forest/
     - assets/images/level/atlases/tiny_swords/
+    - assets/images/level/atlases/top_down_cave_objects/
+    - assets/images/level/atlases/top_down_seabed_objects/
     - assets/images/level/atlases/undead/
     - assets/images/level/atlases/village/
     - assets/images/level/atlases/weird_nature/
     - assets/images/level/atlases/woods/
     - assets/images/parallax/ancient_forest/
+    - assets/images/parallax/cave/
     - assets/images/parallax/dark_forest/
+    - assets/images/parallax/dead_forest/
     - assets/images/parallax/field/
     - assets/images/parallax/forest/
+    - assets/images/parallax/gardens_forest/
+    - assets/images/parallax/pixel_fantasy_caves/
+    - assets/images/ui/crystal_world/
+    - assets/images/ui/run_like_hell/gravity_gun/
+    - assets/images/ui/run_like_hell/gravity_gun/icons/
+    - assets/images/ui/run_like_hell/hud/
     - assets/images/ui/weaponsIcon/
     - assets/images/weapons/oneHandedSwords/
     - assets/images/weapons/throwingWeapons/
