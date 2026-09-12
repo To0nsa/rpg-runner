@@ -140,10 +140,19 @@ flutter:
     - assets/images/icons/gear-icons/sword/
     - assets/images/icons/skills-icons/
     - assets/images/level/atlases/ancient_forest/
+    - assets/images/level/atlases/castle/
+    - assets/images/level/atlases/cimetery/
     - assets/images/level/atlases/dark_forest/
     - assets/images/level/atlases/fantasy_environment/
+    - assets/images/level/atlases/gandalf_hardcore/
+    - assets/images/level/atlases/high_forest/
+    - assets/images/level/atlases/mondstadt/
+    - assets/images/level/atlases/mossy_cavern/
     - assets/images/level/atlases/rune_rocks/
+    - assets/images/level/atlases/swamp_forest/
     - assets/images/level/atlases/tiny_swords/
+    - assets/images/level/atlases/undead/
+    - assets/images/level/atlases/village/
     - assets/images/level/atlases/weird_nature/
     - assets/images/level/atlases/woods/
     - assets/images/parallax/ancient_forest/
