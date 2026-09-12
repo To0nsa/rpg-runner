@@ -144,12 +144,22 @@ as the current selection so merely opening and applying the dialog is
 non-destructive; missing preview files display a broken-image placeholder and
 do not change validation or commit policy.
 
-Chunk-local pointer and typed-vertex input clamp to the closed source bounds
-`0..width × 0..height` before it reaches shared polygon interaction. During a
+Chunk-local pointer and typed-vertex input for both creation drafts and saved
+shapes clamp to the closed source bounds `0..width × 0..height` before they
+reach shared polygon interaction. Exact creation-draft edits use the captured
+creation snap policy, reject occupied overlap, and enter only the draft's local
+undo history until **Save shape** commits the complete polygon. During a
 whole-shape drag, the route constrains the translation delta against every
 vertex of the original shape, so the pointer cannot shift any part of the
 shape beyond the owning Chunk. Prefab authoring intentionally keeps its own
 owner-specific bounds policy.
+
+Chunk creation pointer input also has default-on neighbor-vertex magnetism.
+Within the zoom-normalized scene snap radius, the closest committed direct
+terrain vertex wins before optional tile-grid snapping; equal distances retain
+canonical shape order and authored vertex order. The captured choice cannot
+change during a draft, applies to polygon placement, rectangle corners, and
+draft vertex movement/insertion, and does not alter exact numeric entry.
 
 ## Chunk V2 Existing-Owner Metadata Contract
 
@@ -232,6 +242,13 @@ four corners and the shape ID in one reducer result while arbitrary polygons
 retain exact vertex editing. Pending identity/coordinate text is guarded across
 row, owner, and workspace-view navigation. The former Prefab metadata dialog
 has no production entry point.
+
+Deleting a retained vertex is an explicit topology operation. Its validated
+replacement atomically removes any adjacent vertices made collinear by the
+deletion, so a safe simplification cannot be blocked by an impossible
+intermediate loop. The resulting canonical shape and normalization diagnostics
+share one source-history entry; pointer and numeric vertex movement retain
+strict validation and never normalize implicitly.
 
 The same section owns pixel-derived creation and retained-shape refit. Atlas
 slices and platform modules resolve into one immutable, anchor-relative alpha
@@ -815,12 +832,13 @@ preserve entered integer pixels. Both policies use deterministic half ties away
 from zero. A default-on route-local surface-contact pass may then refine only Y
 to another whole-pixel origin. It derives the Prefab's post-reflection/scale
 lowest horizontal collision edge, requires a positive-length horizontal
-interval against a Core-exposed upward-facing direct-terrain edge within eight
-screen pixels, and accepts the candidate only when every transformed loop stays
-inside Chunk bounds and Core's exact predicate finds no occupied-area overlap
-with direct terrain or another placement. The moved source placement is omitted
-from that gesture snapshot by its captured placement key. Rejection restores
-the accepted projection without revision, history, or pending-diff changes.
+interval against a Core-exposed upward-facing edge from direct terrain or an
+accepted Prefab placement within eight screen pixels, and accepts the candidate
+only when every transformed loop stays inside Chunk bounds and Core's exact
+predicate finds no occupied-area overlap with direct terrain or another
+placement. The moved source placement is omitted from that gesture snapshot by
+its captured placement key. Rejection restores the accepted projection without
+revision, history, or pending-diff changes.
 
 The Prefabs tool strip also owns a shared scale/reflection control immediately
 below its selected-owner chip. Without a placed selection it updates only the
@@ -1039,18 +1057,21 @@ or another placement unnoticed.
 
 `ChunkPrefabSurfaceSnap` is an editor-only projection over accepted Core
 geometry; it does not alter `PlacedPrefabDef`, Prefab-v3, Chunk-v2, or runtime
-generation. Its terrain targets are compiled edges with no placement lineage,
-zero vertical delta, non-zero length, and an upward Y-down outward normal. Its
-moving support is derived after Core's exact reflection and tenth-scale
-transform at zero translation: all non-render-only Prefab collision vertices
-must lie on or above the global support Y, and at least one non-zero horizontal
-edge must lie on that Y.
+generation. Its targets are compiled edges with zero vertical delta, non-zero
+length, and an upward Y-down outward normal; lineage may identify either direct
+Chunk terrain or an accepted Prefab placement. Its moving support is derived
+after Core's exact reflection and tenth-scale transform at zero translation:
+all non-render-only Prefab collision vertices must lie on or above the global
+support Y, and at least one non-zero horizontal edge must lie on that Y.
 
-The gesture context recompiles only the already-accepted direct collision
-polygons once at pointer-down. This preserves a terrain interval that the
-combined compiler correctly canceled as an internal edge beneath the currently
-accepted placement. Occupied-area obstacles still come from the complete
-accepted geometry; only the captured moved placement is removed from them.
+`ChunkV2CollisionExpansion` retains the immutable `TerrainPolygonInput` set
+used for its accepted geometry, including exact placement transforms. At
+pointer-down, the gesture context recompiles that set once with the captured
+moved placement omitted. This both removes the moving loops from occupied-area
+checks and exposes a direct or placed supporting interval that the complete
+compiler correctly canceled as an internal edge beneath the accepted
+placement. New placement uses the complete accepted geometry directly, so an
+already-occupied internal joint never becomes a snap target.
 
 All authored placement origins remain integer pixels. A scale is contact-
 compatible only when the derived support Y is divisible by
@@ -1063,7 +1084,7 @@ value as an explicitly explained current option, while Prefabs without
 collision or without a derived support keep unrestricted visual scales.
 
 Gesture resolution first applies the existing tile/integer quantizer. It keeps
-X unchanged, searches terrain surfaces within `8 / zoom` world units, derives
+X unchanged, searches exposed surfaces within `8 / zoom` world units, derives
 the only whole-pixel Y that makes the support lines equal, and requires strict
 horizontal interval overlap so a corner touch cannot masquerade as supported
 edge contact. Candidate loops are translated from the same Core-quantized

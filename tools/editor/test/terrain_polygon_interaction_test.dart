@@ -333,6 +333,45 @@ void main() {
       expect(saved.commit!.afterShapes, hasLength(1));
     });
 
+    test('exact draft vertex replacement records one local snapshot', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreatePolygon(state);
+      for (final vertex in const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+      ]) {
+        state = reducer.addDraftVertex(
+          state,
+          rawVertex: vertex,
+          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        );
+      }
+
+      final edited = reducer.editDraftVertex(
+        state,
+        vertexIndex: 1,
+        rawVertex: const TerrainSourceVertexDef(
+          xHalfPixels: 24,
+          yHalfPixels: 4,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+
+      expect(
+        edited.draft!.vertices[1],
+        const TerrainSourceVertexDef(xHalfPixels: 24, yHalfPixels: 4),
+      );
+      expect(
+        reducer.undoDraftVertexEdit(edited).draft!.vertices,
+        state.draft!.vertices,
+      );
+      expect(edited.draft!.undoVertexSnapshots, hasLength(4));
+    });
+
     test('draft vertices support local move and open-edge insertion', () {
       final reducer = _reducer();
       var state = TerrainPolygonInteractionState(
@@ -609,6 +648,50 @@ void main() {
       expect(accepted.accepted, isTrue);
       expect(accepted.commit, isNotNull);
       expect(accepted.state.shapes.single.vertices, hasLength(3));
+    });
+
+    test('vertex deletion normalizes neighbors made collinear', () {
+      final reducer = _reducer();
+      const removedVertex = TerrainSourceVertexDef(
+        xHalfPixels: -6,
+        yHalfPixels: 4,
+      );
+      const newlyCollinearNeighbor = TerrainSourceVertexDef(
+        xHalfPixels: -4,
+        yHalfPixels: 8,
+      );
+      final roof = _shape('collision_001', const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: -10, yHalfPixels: 8),
+        TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 4),
+        TerrainSourceVertexDef(xHalfPixels: -4, yHalfPixels: -8),
+        TerrainSourceVertexDef(xHalfPixels: 4, yHalfPixels: -8),
+        TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 4),
+        TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 8),
+        newlyCollinearNeighbor,
+        removedVertex,
+      ]);
+      final initial = TerrainPolygonInteractionState(
+        shapes: <TerrainSourceShapeDef>[roof],
+        selection: TerrainPolygonSelection.vertex('collision_001', 7),
+      );
+
+      final result = reducer.deleteSelectedVertex(initial);
+
+      expect(result.accepted, isTrue);
+      expect(result.commit, isNotNull);
+      expect(result.state.shapes.single.vertices, hasLength(6));
+      expect(
+        result.state.shapes.single.vertices,
+        isNot(contains(removedVertex)),
+      );
+      expect(
+        result.state.shapes.single.vertices,
+        isNot(contains(newlyCollinearNeighbor)),
+      );
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('normalized_collinear_vertex'),
+      );
     });
 
     test(

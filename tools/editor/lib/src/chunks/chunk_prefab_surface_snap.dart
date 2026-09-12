@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:meta/meta.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
-import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon_overlap.dart';
@@ -12,68 +11,52 @@ import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import 'chunk_domain_models.dart';
+import 'chunk_v2_collision_expansion.dart';
 
-/// Screen-space reach used by direct prefab-to-terrain contact snapping.
+/// Screen-space reach used by prefab-to-surface contact snapping.
 const double chunkPrefabSurfaceSnapRadiusPx = 8;
 
-/// Why one prefab gesture did or did not reach exact terrain contact.
+/// Why one prefab gesture did or did not reach exact collision contact.
 enum ChunkPrefabSurfaceSnapStatus {
   snapped,
   noCollision,
   noHorizontalSupport,
   incompatibleScale,
-  noTerrainSurface,
+  noCollisionSurface,
   noNearbyValidContact,
 }
 
 /// Immutable collision snapshot used during one prefab gesture.
 ///
-/// Occupied polygons come from the accepted Core compilation used by
-/// validation. Its direct polygons are compiled alone once so a terrain
-/// interval hidden by the accepted placement remains available while moving
-/// that placement. A moved placement can then be omitted from [obstacles]
-/// without recompiling source during every pointer update.
+/// The accepted source inputs are compiled once with the moved placement
+/// omitted. This exposes a supporting direct-terrain or placed-prefab edge
+/// that the complete accepted geometry correctly canceled as internal contact,
+/// while also removing the moved source from [obstacles].
 @immutable
 final class ChunkPrefabSurfaceSnapContext {
-  factory ChunkPrefabSurfaceSnapContext.fromGeometry({
-    required TerrainGeometry geometry,
+  factory ChunkPrefabSurfaceSnapContext.fromExpansion({
+    required ChunkV2CollisionExpansion expansion,
     String? excludedPlacementKey,
   }) {
-    final directInputs = geometry.polygons
-        .where((polygon) => polygon.identity.placementKey == null)
-        .map(
-          (polygon) => TerrainPolygonInput(
-            sourcePath: polygon.sourcePath,
-            identity: polygon.identity,
-            vertices: polygon.sourceVertices,
-            collisionMode: polygon.collisionMode,
-            surfaceKind: polygon.surfaceKind,
-            materialKey: polygon.materialKey,
-          ),
-        );
-    final directGeometry = const TerrainCompiler().compile(
-      directInputs,
-      geometryVersion: geometry.version,
-    );
-    final surfaces = directGeometry.edges
+    final contextGeometry = excludedPlacementKey == null
+        ? expansion.geometry
+        : const TerrainCompiler().compile(
+            expansion.collisionInputs.where(
+              (input) => input.identity.placementKey != excludedPlacementKey,
+            ),
+            geometryVersion: expansion.geometry.version,
+          );
+    final surfaces = contextGeometry.edges
         .where(
           (edge) =>
-              edge.id.placementKey == null &&
               edge.start.yTicks == edge.end.yTicks &&
               edge.start.xTicks != edge.end.xTicks &&
               edge.outwardNormal.yTicks < 0,
         )
         .toList(growable: false);
-    final obstacles = geometry.polygons
-        .where(
-          (polygon) =>
-              excludedPlacementKey == null ||
-              polygon.identity.placementKey != excludedPlacementKey,
-        )
-        .toList(growable: false);
     return ChunkPrefabSurfaceSnapContext._(
       surfaces: surfaces,
-      obstacles: obstacles,
+      obstacles: contextGeometry.polygons,
     );
   }
 
@@ -83,7 +66,7 @@ final class ChunkPrefabSurfaceSnapContext {
   }) : surfaces = List<TerrainEdge>.unmodifiable(surfaces),
        obstacles = List<TerrainPolygon>.unmodifiable(obstacles);
 
-  /// Exposed, horizontal, upward-facing edges owned directly by the chunk.
+  /// Exposed horizontal upward faces from direct or placed collision.
   final List<TerrainEdge> surfaces;
 
   /// Accepted collision loops that a proposed placement may only touch.
@@ -110,17 +93,17 @@ final class ChunkPrefabSurfaceSnapResult {
   bool get snapped => status == ChunkPrefabSurfaceSnapStatus.snapped;
 
   String get message => switch (status) {
-    ChunkPrefabSurfaceSnapStatus.snapped => 'Collider edge touching terrain',
+    ChunkPrefabSurfaceSnapStatus.snapped => 'Collider edge touching surface',
     ChunkPrefabSurfaceSnapStatus.noCollision =>
       'This prefab has no collision edge to snap.',
     ChunkPrefabSurfaceSnapStatus.noHorizontalSupport =>
       'Collider needs a horizontal lowest edge for surface snap.',
     ChunkPrefabSurfaceSnapStatus.incompatibleScale =>
       'This scale puts the collider support between whole pixels.',
-    ChunkPrefabSurfaceSnapStatus.noTerrainSurface =>
-      'No exposed horizontal terrain surface is available.',
+    ChunkPrefabSurfaceSnapStatus.noCollisionSurface =>
+      'No exposed horizontal collision surface is available.',
     ChunkPrefabSurfaceSnapStatus.noNearbyValidContact =>
-      'Move within 8 screen px of a free terrain surface.',
+      'Move within 8 screen px of a free collision surface.',
   };
 }
 
@@ -196,7 +179,7 @@ abstract final class ChunkPrefabSurfaceSnap {
         profile.supportYTicks % terrainPhysicsTicksPerWorldUnit == 0;
   }
 
-  /// Resolves [placement] to the nearest legal horizontal terrain contact.
+  /// Resolves [placement] to the nearest legal horizontal collision contact.
   ///
   /// X remains on the caller's pixel or tile grid. Surface contact may refine
   /// Y away from the tile grid, but never away from a whole-pixel origin.
@@ -249,7 +232,7 @@ abstract final class ChunkPrefabSurfaceSnap {
     if (context == null || context.surfaces.isEmpty) {
       return ChunkPrefabSurfaceSnapResult(
         placement: placement,
-        status: ChunkPrefabSurfaceSnapStatus.noTerrainSurface,
+        status: ChunkPrefabSurfaceSnapStatus.noCollisionSurface,
         collisionLoops: baseLoops,
       );
     }

@@ -32,6 +32,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     TerrainSourceCollisionMode newShapeCollisionMode =
         TerrainSourceCollisionMode.solid,
     bool creationSnapToGrid = false,
+    bool creationSnapToNeighborVertices = true,
     bool editSnapToGrid = false,
     ChunkV2CollisionCommitPolicy commitPolicy =
         const ChunkV2CollisionCommitPolicy(),
@@ -40,6 +41,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
        _newShapeMaterialKey = _normalizeOptionalKey(newShapeMaterialKey),
        _newShapeCollisionMode = newShapeCollisionMode,
        _creationSnapToGrid = creationSnapToGrid,
+       _creationSnapToNeighborVertices = creationSnapToNeighborVertices,
        _editSnapToGrid = editSnapToGrid,
        _creationSnapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
          creationSnapToGrid ? _requireChunk(session, chunkKey).tileSize : 1,
@@ -68,6 +70,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   String? _newShapeMaterialKey;
   TerrainSourceCollisionMode _newShapeCollisionMode;
   bool _creationSnapToGrid;
+  bool _creationSnapToNeighborVertices;
   bool _editSnapToGrid;
   String _newShapeNameInput = '';
   int _newShapeNameGeneration = 0;
@@ -121,6 +124,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       : validateShapeName(_newShapeNameInput);
   bool get canBeginNewShape => newShapeNameError == null;
   bool get creationSnapToGrid => _creationSnapToGrid;
+  bool get creationSnapToNeighborVertices => _creationSnapToNeighborVertices;
   bool get editSnapToGrid => _editSnapToGrid;
   TerrainPolygonSnapPolicy get creationSnapPolicy => _creationSnapPolicy;
   TerrainPolygonSnapPolicy get editSnapPolicy => _editSnapPolicy;
@@ -153,6 +157,18 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     _creationSnapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
       value ? chunk.tileSize : 1,
     );
+    notifyListeners();
+  }
+
+  /// Controls pointer magnetism to saved direct-terrain vertices during creation.
+  ///
+  /// The choice is locked for an active draft so one operation cannot change
+  /// snapping semantics midway through authoring.
+  void setCreationSnapToNeighborVertices(bool value) {
+    if (_state.hasActiveOperation || value == _creationSnapToNeighborVertices) {
+      return;
+    }
+    _creationSnapToNeighborVertices = value;
     notifyListeners();
   }
 
@@ -264,7 +280,10 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       return false;
     }
     final startPointer = TerrainPolygonContactConstraint.resolvePoint(
-      desired: _snapPoint(point, _creationSnapPolicy),
+      desired: _snapCreationPointer(
+        point,
+        snapRadiusHalfPixels: snapRadiusHalfPixels,
+      ),
       targets: _collisionTargets(),
       snapStepHalfPixels: _creationSnapPolicy.stepHalfPixels,
       snapRadiusHalfPixels: snapRadiusHalfPixels,
@@ -304,7 +323,10 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     if (draft == null || _state.gesture != null) return false;
     final targets = _collisionTargets();
     final vertex = TerrainPolygonContactConstraint.resolvePoint(
-      desired: _snapPoint(point, _creationSnapPolicy),
+      desired: _snapCreationPointer(
+        point,
+        snapRadiusHalfPixels: snapRadiusHalfPixels,
+      ),
       targets: targets,
       snapStepHalfPixels: _creationSnapPolicy.stepHalfPixels,
       snapRadiusHalfPixels: snapRadiusHalfPixels,
@@ -341,6 +363,65 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return !identical(_state, before);
   }
 
+  /// Applies exact numeric coordinates to one local creation-draft vertex.
+  ///
+  /// Values follow the creation snap policy and Chunk bounds. A replacement
+  /// that would enter existing direct or expanded Prefab collision is rejected
+  /// without changing the draft.
+  bool editDraftVertex({
+    required int vertexIndex,
+    required TerrainSourceVertexDef vertex,
+  }) {
+    final draft = _state.draft;
+    if (draft == null ||
+        _state.gesture != null ||
+        vertexIndex < 0 ||
+        vertexIndex >= draft.vertices.length) {
+      return false;
+    }
+    final targets = _collisionTargets();
+    final desired = _boundVertex(
+      _creationSnapPolicy.snapVertex(vertex),
+      _creationSnapPolicy,
+    );
+    final resolved = TerrainPolygonContactConstraint.resolvePoint(
+      desired: desired,
+      targets: targets,
+      snapStepHalfPixels: _creationSnapPolicy.stepHalfPixels,
+      snapRadiusHalfPixels: 0,
+      isCandidateAllowed: (candidate) {
+        final vertices = draft.vertices.toList(growable: false);
+        vertices[vertexIndex] = candidate;
+        return !TerrainPolygonContactConstraint.hasOccupiedAreaOverlap(
+          shape: TerrainSourceShapeDef(
+            shapeId: draft.shapeId,
+            vertices: vertices,
+            collisionMode: draft.collisionMode,
+            surfaceKind: draft.surfaceKind,
+            materialKey: draft.materialKey,
+          ),
+          targets: targets,
+        );
+      },
+    );
+    if (resolved == null) {
+      _reportBlockedPoint(
+        'Enter a vertex outside existing collision or exactly on its edge.',
+      );
+      return false;
+    }
+    final before = _state;
+    _replaceLocalState(
+      _reducer.editDraftVertex(
+        _state,
+        vertexIndex: vertexIndex,
+        rawVertex: resolved,
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      ),
+    );
+    return !identical(_state, before);
+  }
+
   bool saveDraft() {
     final attemptedState = _state;
     final saved = _applyInteractionResult(
@@ -360,9 +441,13 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     required TerrainPolygonScenePoint point,
     required double vertexRadiusHalfPixels,
     required double edgeRadiusHalfPixels,
+    double snapRadiusHalfPixels = 0,
   }) {
     if (_state.draft == null || _state.gesture != null) return false;
-    final sourcePoint = _snapPoint(point, _creationSnapPolicy);
+    final sourcePoint = _snapCreationPointer(
+      point,
+      snapRadiusHalfPixels: snapRadiusHalfPixels,
+    );
     var next = _state;
     switch (_state.tool) {
       case TerrainPolygonTool.moveVertex:
@@ -459,7 +544,12 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     final gesture = _state.gesture;
     if (gesture == null || gesture.pointer != pointer) return;
     final snapPolicy = _gestureSnapPolicy;
-    final desired = _boundedGesturePoint(point, snapPolicy);
+    final desired = _state.draft == null
+        ? _boundedGesturePoint(point, snapPolicy)
+        : _snapCreationPointer(
+            point,
+            snapRadiusHalfPixels: snapRadiusHalfPixels,
+          );
     TerrainSourceShapeDef previewFor(TerrainSourceVertexDef candidatePointer) =>
         _reducer
             .updateGesture(
@@ -663,6 +753,44 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     ),
     snapPolicy,
   );
+
+  TerrainSourceVertexDef _snapCreationPointer(
+    TerrainPolygonScenePoint point, {
+    required double snapRadiusHalfPixels,
+  }) {
+    if (_creationSnapToNeighborVertices) {
+      final neighbor = _nearestDirectTerrainVertex(
+        point,
+        snapRadiusHalfPixels: snapRadiusHalfPixels,
+      );
+      if (neighbor != null) return neighbor;
+    }
+    return _snapPoint(point, _creationSnapPolicy);
+  }
+
+  /// Equal-distance candidates keep canonical shape and vertex order.
+  TerrainSourceVertexDef? _nearestDirectTerrainVertex(
+    TerrainPolygonScenePoint point, {
+    required double snapRadiusHalfPixels,
+  }) {
+    final maximumDistanceSquared = snapRadiusHalfPixels * snapRadiusHalfPixels;
+    TerrainSourceVertexDef? closest;
+    var closestDistanceSquared = double.infinity;
+    for (final shape in _state.shapes) {
+      for (final vertex in shape.vertices) {
+        final dx = vertex.xHalfPixels - point.xHalfPixels;
+        final dy = vertex.yHalfPixels - point.yHalfPixels;
+        final distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared > maximumDistanceSquared ||
+            distanceSquared >= closestDistanceSquared) {
+          continue;
+        }
+        closest = vertex;
+        closestDistanceSquared = distanceSquared;
+      }
+    }
+    return closest;
+  }
 
   /// Keeps all chunk-local authoring input within the closed owner rectangle.
   ///

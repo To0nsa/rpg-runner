@@ -1011,6 +1011,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 groups: _chunkThemeGroupsDraft,
                 groupFilter: _groupFilter,
                 selectedChunkKey: _selectedChunkKey,
+                firstChunkKey: level.firstChunkKey,
                 searchController: _chunkSearch,
                 onFilter: (group) {
                   setState(() => _groupFilter = group);
@@ -1149,6 +1150,10 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           ),
         );
       },
+      onSetFirstChunk: () {
+        if (chunk != null) _setFirstChunk(chunk);
+      },
+      onClearFirstChunk: _clearFirstChunk,
       onGroupChanged: (group) {
         _segmentGroupIdController.text = group;
         _flushInspectorEdits();
@@ -1311,6 +1316,35 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       _showLevelSettings = false;
     });
     _panelController.revealPanel(2);
+  }
+
+  void _setFirstChunk(ChunkV2FileData chunk) {
+    if (!_flushInspectorEdits()) return;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'update_level',
+        payload: <String, Object?>{
+          'levelId': chunk.levelId,
+          'firstChunkKey': chunk.chunkKey,
+        },
+      ),
+    );
+    _invalidateHandoff();
+  }
+
+  void _clearFirstChunk() {
+    final level = _inspectorBaseline;
+    if (level == null || !_flushInspectorEdits()) return;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'update_level',
+        payload: <String, Object?>{
+          'levelId': level.levelId,
+          'firstChunkKey': null,
+        },
+      ),
+    );
+    _invalidateHandoff();
   }
 
   Future<void> _showLevelInspector() async {

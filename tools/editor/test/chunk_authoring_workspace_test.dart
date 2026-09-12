@@ -66,6 +66,15 @@ void main() {
           const ValueKey<String>('chunk_polygon_terrain_material_preview'),
         ),
       );
+      final selectedCreationMaterial = tester
+          .widget<DropdownButton<String>>(
+            find.byKey(
+              const ValueKey<String>(
+                'chunk_polygon_creation_material_selector',
+              ),
+            ),
+          )
+          .value;
 
       expect(materialPreview().terrainShapes, hasLength(1));
       await tester.tap(
@@ -97,16 +106,27 @@ void main() {
       var draft = materialPreview().terrainShapes!.last;
       expect(materialPreview().terrainShapes, hasLength(2));
       expect(draft.surfaceKind, 'ground');
-      expect(draft.materialKey, 'grass_dirt');
+      expect(draft.materialKey, selectedCreationMaterial);
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_tool_moveVertex')),
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_draft_vertex_editor')),
+        findsOneWidget,
       );
-      await tester.pump();
-      final gesture = await tester.startGesture(scenePoint(60, 15));
-      await gesture.moveTo(scenePoint(64, 18));
+      final xField = find.byKey(
+        const ValueKey<String>('chunk_polygon_draft_vertex_x_field'),
+      );
+      final yField = find.byKey(
+        const ValueKey<String>('chunk_polygon_draft_vertex_y_field'),
+      );
+      final applyVertex = find.byKey(
+        const ValueKey<String>('chunk_polygon_apply_draft_vertex'),
+      );
+      await tester.enterText(xField, '64');
+      await tester.enterText(yField, '18');
+      await tester.ensureVisible(applyVertex);
+      await tester.tap(applyVertex);
       await tester.pump();
       draft = materialPreview().terrainShapes!.last;
       expect(
@@ -115,7 +135,6 @@ void main() {
       );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
-      await gesture.up();
     },
   );
 
@@ -203,10 +222,14 @@ void main() {
             .map((item) => item.value),
         contains(TerrainSourceCollisionMode.none),
       );
-      expect(
-        tester.widget<DropdownButton<String>>(materialSelector).value,
-        'grass_dirt',
+      final materialDropdown = tester.widget<DropdownButton<String>>(
+        materialSelector,
       );
+      final firstNamedMaterial = materialDropdown.items!
+          .map((item) => item.value)
+          .whereType<String>()
+          .firstWhere((value) => value.isNotEmpty);
+      expect(materialDropdown.value, firstNamedMaterial);
       expect(legacyCreationPreviewButton, findsNothing);
       expect(grassDirtPreviewButton, findsNothing);
 
@@ -277,6 +300,10 @@ void main() {
       await gesture.up();
       await tester.pump();
       expect(find.text('Rectangle draft ready'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_draft_vertex_editor')),
+        findsOneWidget,
+      );
       expect(
         tester
             .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
@@ -2702,6 +2729,10 @@ void main() {
       );
       expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
       expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_draft_vertex_editor')),
+        findsNothing,
+      );
+      expect(
         find.byKey(
           const ValueKey<String>('chunk_polygon_tool_createRectangle'),
         ),
@@ -2717,6 +2748,10 @@ void main() {
       await tester.pump();
       expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
       expect(tester.widget<FilledButton>(newRectangle).onPressed, isNull);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_draft_vertex_editor')),
+        findsNothing,
+      );
       expect(find.textContaining('Add at least 3 vertices.'), findsOneWidget);
       expect(
         tester
@@ -2937,6 +2972,11 @@ void main() {
     final creationSnapToGrid = find.byKey(
       const ValueKey<String>('chunk_polygon_creation_snap_to_grid'),
     );
+    final creationSnapToNeighborVertices = find.byKey(
+      const ValueKey<String>(
+        'chunk_polygon_creation_snap_to_neighbor_vertices',
+      ),
+    );
     final editSnapToGrid = find.byKey(
       const ValueKey<String>('chunk_polygon_edit_snap_to_grid'),
     );
@@ -2945,6 +2985,7 @@ void main() {
     );
     expect(showGrid, findsOneWidget);
     expect(creationSnapToGrid, findsOneWidget);
+    expect(creationSnapToNeighborVertices, findsOneWidget);
     expect(editSnapToGrid, findsNothing);
     expect(
       find.descendant(
@@ -2966,6 +3007,10 @@ void main() {
     );
     expect(tester.widget<FilterChip>(showGrid).selected, isFalse);
     expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isFalse);
+    expect(
+      tester.widget<SwitchListTile>(creationSnapToNeighborVertices).value,
+      isTrue,
+    );
     expect(gridOverlay, findsNothing);
 
     await tester.tap(showGrid);
@@ -2978,13 +3023,24 @@ void main() {
     expect(gridOverlay, findsNothing);
     expect(tester.widget<FilterChip>(showGrid).onSelected, isNull);
     expect(tester.widget<SwitchListTile>(creationSnapToGrid).onChanged, isNull);
+    expect(
+      tester.widget<SwitchListTile>(creationSnapToNeighborVertices).onChanged,
+      isNull,
+    );
     await tester.tap(visualPreview);
     await tester.pump();
     expect(gridOverlay, findsOneWidget);
 
     tester.widget<SwitchListTile>(creationSnapToGrid).onChanged!(true);
+    tester.widget<SwitchListTile>(creationSnapToNeighborVertices).onChanged!(
+      false,
+    );
     await tester.pump();
     expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isTrue);
+    expect(
+      tester.widget<SwitchListTile>(creationSnapToNeighborVertices).value,
+      isFalse,
+    );
 
     final authoringSidebar = find.byKey(
       const ValueKey<String>('chunk_authoring_sidebar'),
@@ -3034,6 +3090,7 @@ void main() {
         .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
     await tester.pump();
     expect(creationSnapToGrid, findsNothing);
+    expect(creationSnapToNeighborVertices, findsNothing);
     expect(editSnapToGrid, findsNothing);
     expect(showGrid, findsOneWidget);
     expect(gridOverlay, findsOneWidget);
@@ -3048,6 +3105,10 @@ void main() {
       tester,
       toggleKey: 'chunk_polygon_creation_panel_toggle',
       bodyKey: 'chunk_polygon_creation_section',
+    );
+    expect(
+      tester.widget<SwitchListTile>(creationSnapToNeighborVertices).value,
+      isFalse,
     );
     await _openSection(
       tester,

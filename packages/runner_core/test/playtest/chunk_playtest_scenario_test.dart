@@ -83,9 +83,9 @@ void main() {
         isNotEmpty,
       );
       expect(
-        snapshot.stagedTerrainRenderSnapshot!.polygons.map(
-          (polygon) => polygon.materialKey,
-        ),
+        snapshot.stagedTerrainRenderSnapshot!.polygons
+            .where((polygon) => polygon.sourceId.chunkKey == _selectedKey)
+            .map((polygon) => polygon.materialKey),
         everyElement(_draftMaterial),
       );
       expect(

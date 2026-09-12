@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:runner_core/track/chunk_pattern_tier.dart';
 
+import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../levels/level_domain_models.dart';
 import '../shared/editor_panel_card.dart';
@@ -23,6 +24,8 @@ class LevelInspector extends StatelessWidget {
     required this.onRemoveSection,
     required this.onDuplicateSection,
     required this.onIncludeInBuildChanged,
+    required this.onSetFirstChunk,
+    required this.onClearFirstChunk,
     this.chunk,
     this.segment,
     this.onEarlier,
@@ -47,6 +50,8 @@ class LevelInspector extends StatelessWidget {
   final VoidCallback onRemoveSection;
   final VoidCallback onDuplicateSection;
   final ValueChanged<bool> onIncludeInBuildChanged;
+  final VoidCallback onSetFirstChunk;
+  final VoidCallback onClearFirstChunk;
   final VoidCallback? onEarlier;
   final VoidCallback? onLater;
   final VoidCallback? onEditChunk;
@@ -80,6 +85,18 @@ class LevelInspector extends StatelessWidget {
 
   List<Widget> _levelFields(BuildContext context) => [
     _field('displayName', 'Display name'),
+    ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('First chunk'),
+      subtitle: Text(level.firstChunkKey ?? 'Automatic selection'),
+      trailing: level.firstChunkKey == null
+          ? null
+          : IconButton(
+              tooltip: 'Clear first chunk',
+              onPressed: onClearFirstChunk,
+              icon: const Icon(Icons.close),
+            ),
+    ),
     SwitchListTile(
       key: const ValueKey<String>('level_include_in_build'),
       contentPadding: EdgeInsets.zero,
@@ -266,6 +283,20 @@ class LevelInspector extends StatelessWidget {
       'This is a reusable chunk source. Editing it changes every occurrence selected from it.',
     ),
     const SizedBox(height: 12),
+    if (chunk!.chunkKey == level.firstChunkKey)
+      const ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(Icons.flag_outlined),
+        title: Text('First chunk'),
+        subtitle: Text('Always selected at the start of this level.'),
+      )
+    else
+      FilledButton.tonalIcon(
+        onPressed: chunk!.status == chunkStatusActive ? onSetFirstChunk : null,
+        icon: const Icon(Icons.flag_outlined),
+        label: const Text('Make first chunk'),
+      ),
+    const SizedBox(height: 8),
     FilledButton.tonalIcon(
       onPressed: onEditChunk,
       icon: const Icon(Icons.edit_outlined),

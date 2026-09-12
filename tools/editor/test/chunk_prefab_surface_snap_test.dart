@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon_overlap.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_prefab_surface_snap.dart';
@@ -118,8 +119,8 @@ void main() {
       prefabs: <PrefabV3Def>[prefab],
       sourcePath: 'chunk.json',
     ).expansion!;
-    final context = ChunkPrefabSurfaceSnapContext.fromGeometry(
-      geometry: expansion.geometry,
+    final context = ChunkPrefabSurfaceSnapContext.fromExpansion(
+      expansion: expansion,
       excludedPlacementKey: selection.selectionKey,
     );
 
@@ -145,6 +146,144 @@ void main() {
       context.obstacles.any((polygon) => polygon.identity.placementKey == null),
       isTrue,
     );
+  });
+
+  test('snaps a new obstacle onto an exposed placed-obstacle top', () {
+    final basePrefab = _prefab();
+    final roofPrefab = _prefab(
+      prefabKey: 'roof',
+      collisionShapes: <TerrainSourceShapeDef>[
+        _rectangle('body', -15, -20, 15, 0),
+      ],
+    );
+    final base = const PlacedPrefabDef(
+      prefabId: 'crate',
+      prefabKey: 'crate',
+      x: 50,
+      y: 100,
+      snapToGrid: false,
+    );
+    final chunk = _chunk().copyWith(prefabs: <PlacedPrefabDef>[base]);
+    final baseKey = buildChunkPlacedPrefabSelections(chunk.prefabs)
+        .single
+        .selectionKey;
+    final expansion = expandChunkV2Collision(
+      chunk: chunk,
+      prefabs: <PrefabV3Def>[basePrefab, roofPrefab],
+      sourcePath: 'chunk.json',
+    ).expansion!;
+    final context = ChunkPrefabSurfaceSnapContext.fromExpansion(
+      expansion: expansion,
+    );
+
+    final result = ChunkPrefabSurfaceSnap.resolve(
+      placement: const PlacedPrefabDef(
+        prefabId: 'roof',
+        prefabKey: 'roof',
+        x: 50,
+        y: 84,
+        snapToGrid: false,
+      ),
+      prefab: roofPrefab,
+      context: context,
+      snapRadiusWorld: 8,
+      chunkWidth: chunk.width,
+      chunkHeight: chunk.height,
+    );
+
+    expect(result.snapped, isTrue);
+    expect(result.placement.y, 80);
+    expect(result.targetEdge?.id.placementKey, baseKey);
+
+    final accepted = expandChunkV2Collision(
+      chunk: chunk.copyWith(prefabs: <PlacedPrefabDef>[base, result.placement]),
+      prefabs: <PrefabV3Def>[basePrefab, roofPrefab],
+      sourcePath: 'chunk.json',
+    );
+    expect(accepted.expansion, isNotNull);
+    final jointMinX = 40 * terrainPhysicsTicksPerWorldUnit;
+    final jointMaxX = 60 * terrainPhysicsTicksPerWorldUnit;
+    expect(
+      accepted.expansion!.geometry.edges.where(
+        (edge) =>
+            edge.start.yTicks == 80 * terrainPhysicsTicksPerWorldUnit &&
+            edge.end.yTicks == 80 * terrainPhysicsTicksPerWorldUnit &&
+            edge.bounds.maxX > jointMinX &&
+            edge.bounds.minX < jointMaxX,
+      ),
+      isEmpty,
+      reason: 'The shared solid interval must not remain an exposed collision edge.',
+    );
+  });
+
+  test('moving the upper obstacle reveals and reuses its supporting top', () {
+    final basePrefab = _prefab();
+    final roofPrefab = _prefab(
+      prefabKey: 'roof',
+      collisionShapes: <TerrainSourceShapeDef>[
+        _rectangle('body', -15, -20, 15, 0),
+      ],
+    );
+    final base = const PlacedPrefabDef(
+      prefabId: 'crate',
+      prefabKey: 'crate',
+      x: 50,
+      y: 100,
+      snapToGrid: false,
+    );
+    final upper = const PlacedPrefabDef(
+      prefabId: 'roof',
+      prefabKey: 'roof',
+      x: 50,
+      y: 80,
+      snapToGrid: false,
+    );
+    final chunk = _chunk().copyWith(prefabs: <PlacedPrefabDef>[base, upper]);
+    final selections = buildChunkPlacedPrefabSelections(chunk.prefabs);
+    final baseSelection = selections.singleWhere(
+      (selection) => selection.prefab.y == 100,
+    );
+    final upperSelection = selections.singleWhere(
+      (selection) => selection.prefab.y == 80,
+    );
+    final expansion = expandChunkV2Collision(
+      chunk: chunk,
+      prefabs: <PrefabV3Def>[basePrefab, roofPrefab],
+      sourcePath: 'chunk.json',
+    ).expansion!;
+    final context = ChunkPrefabSurfaceSnapContext.fromExpansion(
+      expansion: expansion,
+      excludedPlacementKey: upperSelection.selectionKey,
+    );
+
+    expect(
+      context.obstacles.any(
+        (polygon) =>
+            polygon.identity.placementKey == upperSelection.selectionKey,
+      ),
+      isFalse,
+    );
+    expect(
+      context.surfaces.any(
+        (edge) =>
+            edge.id.placementKey == baseSelection.selectionKey &&
+            edge.start.yTicks == 80 * terrainPhysicsTicksPerWorldUnit,
+      ),
+      isTrue,
+    );
+
+    final result = ChunkPrefabSurfaceSnap.resolve(
+      placement: upper.copyWith(y: 84),
+      prefab: roofPrefab,
+      context: context,
+      snapRadiusWorld: 8,
+      chunkWidth: chunk.width,
+      chunkHeight: chunk.height,
+    );
+
+    expect(result.snapped, isTrue);
+    expect(result.placement.y, upper.y);
+    expect(result.targetEdge?.id.placementKey, baseSelection.selectionKey);
   });
 
   test('offers only scales with a whole-pixel transformed support height', () {
@@ -221,26 +360,26 @@ ChunkPrefabSurfaceSnapContext _context(
     sourcePath: 'chunk.json',
   ).expansion;
   expect(expansion, isNotNull);
-  return ChunkPrefabSurfaceSnapContext.fromGeometry(
-    geometry: expansion!.geometry,
-  );
+  return ChunkPrefabSurfaceSnapContext.fromExpansion(expansion: expansion!);
 }
 
-PrefabV3Def _prefab({List<TerrainSourceShapeDef>? collisionShapes}) =>
-    PrefabV3Def(
-      prefabKey: 'crate',
-      id: 'crate',
-      revision: 1,
-      status: PrefabStatus.active,
-      kind: PrefabKind.obstacle,
-      visualSource: const PrefabVisualSource.atlasSlice('crate'),
-      anchorXPx: 10,
-      anchorYPx: 20,
-      collisionShapes:
-          collisionShapes ??
-          <TerrainSourceShapeDef>[_rectangle('body', -10, -20, 10, 0)],
-      tags: const <String>[],
-    );
+PrefabV3Def _prefab({
+  String prefabKey = 'crate',
+  List<TerrainSourceShapeDef>? collisionShapes,
+}) => PrefabV3Def(
+  prefabKey: prefabKey,
+  id: prefabKey,
+  revision: 1,
+  status: PrefabStatus.active,
+  kind: PrefabKind.obstacle,
+  visualSource: PrefabVisualSource.atlasSlice(prefabKey),
+  anchorXPx: 10,
+  anchorYPx: 20,
+  collisionShapes:
+      collisionShapes ??
+      <TerrainSourceShapeDef>[_rectangle('body', -10, -20, 10, 0)],
+  tags: const <String>[],
+);
 
 ChunkV2FileData _chunk({List<TerrainSourceShapeDef>? collisionShapes}) =>
     ChunkV2FileData(

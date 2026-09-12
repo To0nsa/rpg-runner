@@ -68,6 +68,10 @@ Level source uses strict schema v2 with a required boolean `includeInBuild` on
 each record. Normal editor and generator parsers reject v1 and missing or
 coerced inclusion values. The explicit migration commands are:
 
+Schema v2 also permits an optional non-empty `firstChunkKey`. The identity is
+Level-scoped and must resolve to an active Chunk in the scheduler pool for
+index zero. It is omitted for automatic opening selection.
+
 ```bash
 dart run tool/migrate_level_build_inclusion.dart --check
 dart run tool/migrate_level_build_inclusion.dart --apply

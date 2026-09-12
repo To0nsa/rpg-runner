@@ -5,6 +5,30 @@ part of 'terrain_material_registry.dart';
 
 const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
     <String, TerrainMaterialSpec>{
+      'dirt_hole': TerrainMaterialSpec(
+        key: 'dirt_hole',
+        displayName: 'Dirt hole',
+        revision: 4,
+        fill: TerrainMaterialImageRegionSpec(
+          assetPath: 'level/atlases/woods/terrain.png',
+          x: 32,
+          y: 32,
+          width: 32,
+          height: 32,
+        ),
+        top: TerrainMaterialEdgeProfileSpec(
+          base: TerrainMaterialEdgeLayerSpec(
+            region: TerrainMaterialImageRegionSpec(
+              assetPath: 'level/atlases/woods/terrain.png',
+              x: 32,
+              y: 32,
+              width: 32,
+              height: 32,
+            ),
+            anchorY: 0.0,
+          ),
+        ),
+      ),
       'grass_dirt': TerrainMaterialSpec(
         key: 'grass_dirt',
         displayName: 'Grass / Dirt',

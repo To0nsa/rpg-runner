@@ -47,6 +47,16 @@ Captured input or seed changes hide stale results behind Update sample. Camera a
 remain read-only. Diagnostics use stable element and field metadata to reveal
 the section/settings destination, including the responsive Settings panel.
 
+Each Level may optionally author `firstChunkKey`. Contents exposes the action on
+active Chunk cards, marks the current choice, and permits clearing it from Level
+settings. The selected identity must belong to the Level and to the exact pool
+resolved for schedule index zero, including the first ordered section's group,
+explicit difficulty, and fallback rules. Invalid, missing, cross-Level, or
+deprecated identities block Save/Play/Build rather than silently falling back.
+Core pins the accepted Chunk only at index zero; subsequent selection retains
+the normal deterministic schedule. A distinct first section excludes the
+pinned identity from its remaining positions.
+
 New and Copy collect a display name and allocate stable IDs in the domain;
 Advanced permits explicit overrides. The default background choice makes an
 independent layer copy, with sharing and empty-background choices explicit.

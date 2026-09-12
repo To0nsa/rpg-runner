@@ -13,6 +13,7 @@ class LevelContents extends StatelessWidget {
     required this.groups,
     required this.groupFilter,
     required this.selectedChunkKey,
+    required this.firstChunkKey,
     required this.searchController,
     required this.onFilter,
     required this.onSelected,
@@ -28,6 +29,7 @@ class LevelContents extends StatelessWidget {
   final List<String> groups;
   final String? groupFilter;
   final String? selectedChunkKey;
+  final String? firstChunkKey;
   final TextEditingController searchController;
   final ValueChanged<String?> onFilter;
   final ValueChanged<String> onSelected;
@@ -133,9 +135,21 @@ class LevelContents extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      chunk.chunkKey,
-                      style: Theme.of(context).textTheme.titleSmall,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            chunk.chunkKey,
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        if (chunk.chunkKey == firstChunkKey)
+                          const Chip(
+                            avatar: Icon(Icons.flag_outlined, size: 16),
+                            label: Text('First'),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                      ],
                     ),
                     Text(
                       '${chunk.difficulty} · ${chunk.assemblyGroupId} · ${chunk.status == chunkStatusActive ? 'Active' : 'Deprecated — excluded from runs'}',

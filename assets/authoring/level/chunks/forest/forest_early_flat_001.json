@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_early_flat",
-  "id": "forest_early_flat",
-  "revision": 7,
+  "chunkKey": "forest_early_flat_001",
+  "id": "forest_early_flat_001",
+  "revision": 8,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,

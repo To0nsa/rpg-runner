@@ -65,16 +65,27 @@ final class ChunkV2CollisionExpansion {
   ChunkV2CollisionExpansion({
     required this.chunkKey,
     required this.geometry,
+    required Iterable<TerrainPolygonInput> collisionInputs,
     required this.directShapeCount,
     this.renderOnlyDirectShapeCount = 0,
     required Iterable<ChunkV2ExpandedPrefabShape> expandedPrefabShapes,
-  }) : expandedPrefabShapes = List<ChunkV2ExpandedPrefabShape>.unmodifiable(
+  }) : collisionInputs = List<TerrainPolygonInput>.unmodifiable(
+         collisionInputs,
+       ),
+       expandedPrefabShapes = List<ChunkV2ExpandedPrefabShape>.unmodifiable(
          expandedPrefabShapes,
        ),
        traversalCache = TerrainTraversalCache.fromGeometry(geometry);
 
   final String chunkKey;
   final TerrainGeometry geometry;
+
+  /// Exact accepted source inputs from which [geometry] was compiled.
+  ///
+  /// Retaining placement transforms lets editor projections rebuild the same
+  /// scene with one placement omitted without reverse-engineering transformed
+  /// polygon vertices.
+  final List<TerrainPolygonInput> collisionInputs;
 
   /// Direct shapes that enter [geometry].
   final int directShapeCount;
@@ -445,6 +456,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
         : ChunkV2CollisionExpansion(
             chunkKey: chunk.chunkKey,
             geometry: geometry,
+            collisionInputs: collisionInputs,
             directShapeCount: chunk.collisionShapes
                 .where(
                   (shape) =>

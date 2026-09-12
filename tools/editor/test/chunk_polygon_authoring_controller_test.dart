@@ -63,6 +63,83 @@ void main() {
   });
 
   test(
+    'creation pointer snap prefers the nearest terrain vertex by default',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+
+      expect(controller.creationSnapToNeighborVertices, isTrue);
+      controller.setCreationSnapToGrid(true);
+      expect(controller.beginCreatePolygon(), isTrue);
+      expect(
+        controller.addDraftVertex(
+          const TerrainPolygonScenePoint(112, 20),
+          snapRadiusHalfPixels: 16,
+        ),
+        isTrue,
+      );
+      expect(
+        controller.state.draft!.vertices.single,
+        const TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
+      );
+
+      controller.setCreationSnapToNeighborVertices(false);
+      expect(controller.creationSnapToNeighborVertices, isTrue);
+      controller.cancelActiveOperation();
+      controller.setCreationSnapToNeighborVertices(false);
+      expect(controller.creationSnapToNeighborVertices, isFalse);
+
+      expect(controller.beginCreatePolygon(), isTrue);
+      expect(
+        controller.addDraftVertex(
+          const TerrainPolygonScenePoint(112, 20),
+          snapRadiusHalfPixels: 16,
+        ),
+        isTrue,
+      );
+      expect(
+        controller.state.draft!.vertices.single,
+        const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 32),
+      );
+    },
+  );
+
+  test('exact draft vertex edits stay local and participate in undo', () async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+    final sourceDocument = harness.session.document;
+
+    expect(controller.beginCreatePolygon(), isTrue);
+    for (final point in const <TerrainPolygonScenePoint>[
+      TerrainPolygonScenePoint(120, 20),
+      TerrainPolygonScenePoint(140, 20),
+      TerrainPolygonScenePoint(140, 40),
+    ]) {
+      expect(controller.addDraftVertex(point), isTrue);
+    }
+
+    expect(
+      controller.editDraftVertex(
+        vertexIndex: 0,
+        vertex: const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 36),
+      ),
+      isTrue,
+    );
+    expect(
+      controller.state.draft!.vertices.first,
+      const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 36),
+    );
+    expect(harness.session.document, same(sourceDocument));
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+    expect(controller.undo(), isTrue);
+    expect(
+      controller.state.draft!.vertices.first,
+      const TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 20),
+    );
+  });
+
+  test(
     'terrain tile grid keeps creation and edit snapping independent',
     () async {
       final harness = await _buildHarness();
@@ -713,6 +790,20 @@ void main() {
           snapRadiusHalfPixels: 10,
         ),
         isTrue,
+      );
+      expect(
+        controller.state.draft!.vertices.single,
+        const TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 30),
+      );
+      expect(
+        controller.editDraftVertex(
+          vertexIndex: 0,
+          vertex: const TerrainSourceVertexDef(
+            xHalfPixels: 150,
+            yHalfPixels: 30,
+          ),
+        ),
+        isFalse,
       );
       expect(
         controller.state.draft!.vertices.single,

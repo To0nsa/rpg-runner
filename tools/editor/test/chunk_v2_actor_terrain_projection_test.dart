@@ -100,6 +100,7 @@ ChunkV2CollisionExpansion _expansion(Iterable<TerrainPolygonInput> inputs) {
   return ChunkV2CollisionExpansion(
     chunkKey: 'test',
     geometry: geometry,
+    collisionInputs: inputList,
     directShapeCount: inputList.length,
     expandedPrefabShapes: const <ChunkV2ExpandedPrefabShape>[],
   );

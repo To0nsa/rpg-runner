@@ -127,6 +127,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
   bool _showMarkerPlacements = false;
   bool _terrainCreationSnapToGrid = false;
+  bool _terrainCreationSnapToNeighborVertices = true;
   bool _terrainEditSnapToGrid = false;
   bool _prefabSurfaceSnapEnabled = true;
   ChunkV2CollisionExpansion? _actorTerrainExpansion;
@@ -149,6 +150,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final Map<String, String> _shapeNameDrafts = <String, String>{};
   final TerrainPolygonExactEditController _exactEditController =
       TerrainPolygonExactEditController();
+  int _draftVertexEditorIndex = 0;
 
   ChunkV2FileData? get _ownerEditSource => _ownerDraft.editSource;
   bool get _ownerEditDirty => _ownerDraft.editDirty;
@@ -1486,6 +1488,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             keyName: 'chunk_polygon_creation_snap_to_grid',
             forCreation: true,
           ),
+          _buildTerrainNeighborVertexSnapSwitch(authoring),
           if (draft != null || rectangleGesture || rectangleReady) ...<Widget>[
             const SizedBox(height: 10),
             _buildCreationStatus(
@@ -1494,6 +1497,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               rectangleGesture: rectangleGesture,
               rectangleReady: rectangleReady,
             ),
+          ],
+          if (draft != null && draft.vertices.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            _buildDraftVertexEditor(authoring, draft),
           ],
           const SizedBox(height: 10),
           Wrap(
@@ -1581,6 +1588,29 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 _terrainEditSnapToGrid = selected;
                 authoring.setEditSnapToGrid(selected);
               }
+            }
+          : null,
+    );
+  }
+
+  Widget _buildTerrainNeighborVertexSnapSwitch(
+    ChunkPolygonAuthoringController authoring,
+  ) {
+    final enabled = !authoring.hasActiveOperation && !_visualPreview;
+    return SwitchListTile(
+      key: const ValueKey<String>(
+        'chunk_polygon_creation_snap_to_neighbor_vertices',
+      ),
+      contentPadding: EdgeInsets.zero,
+      title: const Text('Snap to neighbor vertices'),
+      subtitle: const Text(
+        'Snap new points to the closest saved terrain vertex nearby.',
+      ),
+      value: authoring.creationSnapToNeighborVertices,
+      onChanged: enabled
+          ? (selected) {
+              _terrainCreationSnapToNeighborVertices = selected;
+              authoring.setCreationSnapToNeighborVertices(selected);
             }
           : null,
     );
@@ -1683,7 +1713,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         '${_collisionModeLabel(draft.collisionMode)} · '
             '${_creationMaterialLabel(draft.materialKey)} · '
             '${draft.vertices.length} vertices. '
-            '${draft.vertices.length < 3 ? 'Add at least 3 vertices.' : 'Ready to save or keep editing.'}',
+            '${draft.vertices.length < 3 ? 'Add at least 3 vertices.' : 'Ready to save, edit vertex values, or keep drawing.'}',
       ),
       _ => (
         'Rectangle tool ready',
@@ -1714,6 +1744,69 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDraftVertexEditor(
+    ChunkPolygonAuthoringController authoring,
+    TerrainPolygonDraft draft,
+  ) {
+    final vertexIndex = math.min(
+      _draftVertexEditorIndex,
+      draft.vertices.length - 1,
+    );
+    final vertex = draft.vertices[vertexIndex];
+    return Column(
+      key: const ValueKey<String>('chunk_polygon_draft_vertex_editor'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildMetadataDropdown<int>(
+          keyName: 'chunk_polygon_draft_vertex_selector',
+          label: 'Vertex',
+          value: vertexIndex,
+          items: <DropdownMenuItem<int>>[
+            for (final entry in draft.vertices.asMap().entries)
+              DropdownMenuItem<int>(
+                value: entry.key,
+                child: Text(
+                  'v${entry.key} · '
+                  '(${TerrainHalfPixelText.formatTicks(entry.value.xHalfPixels)}, '
+                  '${TerrainHalfPixelText.formatTicks(entry.value.yHalfPixels)})',
+                ),
+              ),
+          ],
+          onChanged: authoring.state.gesture == null
+              ? (index) {
+                  if (index == null) return;
+                  setState(() => _draftVertexEditorIndex = index);
+                }
+              : null,
+        ),
+        const SizedBox(height: 8),
+        TerrainPolygonVertexEditor(
+          key: ValueKey<String>(
+            'chunk_polygon_draft_vertex_editor_${draft.shapeId}_'
+            '${vertexIndex}_${vertex.xHalfPixels}_${vertex.yHalfPixels}',
+          ),
+          keyPrefix: 'chunk_polygon_draft',
+          shapeId: draft.shapeId,
+          vertexIndex: vertexIndex,
+          vertex: vertex,
+          applyButtonKey: const ValueKey<String>(
+            'chunk_polygon_apply_draft_vertex',
+          ),
+          applyLabel: 'Apply vertex',
+          applyEnabled: authoring.state.gesture == null,
+          coordinateStepHalfPixels: 2,
+          onApply: (xHalfPixels, yHalfPixels) => authoring.editDraftVertex(
+            vertexIndex: vertexIndex,
+            vertex: TerrainSourceVertexDef(
+              xHalfPixels: xHalfPixels,
+              yHalfPixels: yHalfPixels,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2638,6 +2731,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           ? null
           : materials.first.key,
       creationSnapToGrid: _terrainCreationSnapToGrid,
+      creationSnapToNeighborVertices: _terrainCreationSnapToNeighborVertices,
       editSnapToGrid: _terrainEditSnapToGrid,
     )..addListener(_handleAuthoringChanged);
     _authoringUiFingerprint = _buildAuthoringUiFingerprint(_authoring!);
@@ -2675,6 +2769,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (fingerprint == _authoringUiFingerprint) return;
     _authoringUiFingerprint = fingerprint;
     setState(() {
+      final draftVertexCount = authoring.state.draft?.vertices.length ?? 0;
+      if (draftVertexCount == 0) {
+        _draftVertexEditorIndex = 0;
+      } else if (_draftVertexEditorIndex >= draftVertexCount) {
+        _draftVertexEditorIndex = draftVertexCount - 1;
+      }
       _sceneCoordinator.reconcileComposition(authoring.chunk);
       _sceneCoordinator.selectTerrain(authoring.state.selection);
       if (_showActorTerrain || _showMarkerPlacements) {
@@ -2702,6 +2802,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     newShapeNameGeneration: authoring.newShapeNameGeneration,
     creationSnapToGrid: authoring.creationSnapToGrid,
     creationSnapStep: authoring.creationSnapPolicy.stepHalfPixels,
+    creationSnapToNeighborVertices: authoring.creationSnapToNeighborVertices,
     editSnapToGrid: authoring.editSnapToGrid,
     editSnapStep: authoring.editSnapPolicy.stepHalfPixels,
     canUndo: authoring.canUndo,
@@ -3357,8 +3458,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }) {
     final expansion = _expansionFor(chunk.chunkKey)?.expansion;
     if (expansion == null) return null;
-    return ChunkPrefabSurfaceSnapContext.fromGeometry(
-      geometry: expansion.geometry,
+    return ChunkPrefabSurfaceSnapContext.fromExpansion(
+      expansion: expansion,
       excludedPlacementKey: excludedPlacementKey,
     );
   }

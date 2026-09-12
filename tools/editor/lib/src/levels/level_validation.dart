@@ -1,3 +1,5 @@
+import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
+
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_validation.dart';
 import 'level_domain_models.dart';
@@ -407,11 +409,53 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
       sourcePath: sourcePath,
       level: level,
     );
+    if (level.firstChunkKey != null && document.chunkCountSourceAvailable) {
+      final firstChunkIssue = validateTerrainAuthoringFirstChunk(
+        level: _schedulerLevel(level),
+        chunks: document.authoredSchedulerChunks,
+      );
+      if (firstChunkIssue != null) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: firstChunkIssue.code,
+            fieldKey: 'firstChunkKey',
+            message: firstChunkIssue.message,
+            sourcePath: sourcePath,
+            ownerKey: level.levelId,
+          ),
+        );
+      }
+    }
   }
 
   issues.sort(_compareIssues);
   return issues;
 }
+
+TerrainAuthoringSchedulerLevel _schedulerLevel(LevelDef level) =>
+    TerrainAuthoringSchedulerLevel(
+      levelId: level.levelId,
+      earlyPatternChunks: level.earlyPatternChunks,
+      easyPatternChunks: level.easyPatternChunks,
+      normalPatternChunks: level.normalPatternChunks,
+      firstChunkKey: level.firstChunkKey,
+      assembly: level.assembly == null
+          ? null
+          : TerrainAuthoringSchedulerAssembly(
+              loopSegments: level.assembly!.loopSegments,
+              segments: level.assembly!.segments.map(
+                (segment) => TerrainAuthoringSchedulerSegment(
+                  segmentId: segment.segmentId,
+                  groupId: segment.groupId,
+                  difficulty: segment.difficulty,
+                  minChunkCount: segment.minChunkCount,
+                  maxChunkCount: segment.maxChunkCount,
+                  requireDistinctChunks: segment.requireDistinctChunks,
+                ),
+              ),
+            ),
+    );
 
 void _validateAssembly(
   List<ValidationIssue> issues, {

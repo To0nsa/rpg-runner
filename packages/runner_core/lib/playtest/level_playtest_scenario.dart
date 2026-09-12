@@ -35,9 +35,15 @@ final class LevelPlaytestScenario implements PlaytestScenario {
     validatePlaytestLevelSettings(level);
     final catalog = StagedTerrainChunkCatalog(chunks: terrainChunks);
     final source = level.chunkPatternSource;
-    final base = source is AssembledChunkPatternSource
-        ? source.baseSource
-        : source as ChunkPatternListSource;
+    final base = switch (source) {
+      ChunkPatternListSource value => value,
+      FirstChunkPatternSource value => value.baseSource,
+      AssembledChunkPatternSource value => value.baseSource,
+      _ => throw const PlaytestScenarioException(
+        code: 'level_playtest_pattern_source_unsupported',
+        message: 'Level playtest requires a list-backed pattern source.',
+      ),
+    };
     final seen = <String>{};
     final schedulerChunks = <TerrainAuthoringSchedulerChunk>[];
     final pools = [
@@ -110,6 +116,7 @@ final class LevelPlaytestScenario implements PlaytestScenario {
           earlyPatternChunks: level.earlyPatternChunks,
           easyPatternChunks: level.easyPatternChunks,
           normalPatternChunks: level.normalPatternChunks,
+          firstChunkKey: level.firstChunkKey,
           assembly: playtestSchedulerAssembly(level.assembly),
         ),
       ],

@@ -37,6 +37,7 @@ void main() {
         expect(authored.easyPatternChunks, runtime.easyPatternChunks);
         expect(authored.normalPatternChunks, runtime.normalPatternChunks);
         expect(authored.noEnemyChunks, runtime.noEnemyChunks);
+        expect(authored.firstChunkKey, runtime.firstChunkKey);
       }
 
       final authoredEnumOrder = result.levels.toList(growable: false)

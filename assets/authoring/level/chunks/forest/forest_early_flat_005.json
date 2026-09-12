@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_early_flat_005",
+  "id": "forest_early_flat_005",
+  "revision": 23,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "fantasy_environment_cabin_roof_01",
+      "prefabKey": "fantasy_environment_cabin_roof_01",
+      "x": 156,
+      "y": 137,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_cabin_01",
+      "prefabKey": "fantasy_environment_cabin_01",
+      "x": 160,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_01",
+      "prefabKey": "tiny_swords_bush_01",
+      "x": 160,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_firecamp_01",
+      "prefabKey": "tiny_swords_firecamp_01",
+      "x": 288,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "fantasy_environment_bench_01",
+      "prefabKey": "fantasy_environment_bench_01",
+      "x": 400,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

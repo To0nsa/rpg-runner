@@ -260,6 +260,7 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
     normalPatternChunks: levelDefinition.normalPatternChunks,
     noEnemyChunks: 0,
     visualThemeId: visualThemeId,
+    clearFirstChunkKey: true,
     clearAssembly: true,
   );
 }
@@ -392,6 +393,7 @@ Map<String, ChunkPattern> _collectPatternsByKey({
   final source = levelDefinition.chunkPatternSource;
   final listSource = switch (source) {
     ChunkPatternListSource value => value,
+    FirstChunkPatternSource value => value.baseSource,
     AssembledChunkPatternSource value => value.baseSource,
     _ => throw PlaytestScenarioException(
       code: 'chunk_playtest_pattern_source_unsupported',

@@ -38,6 +38,7 @@ void main() {
                       displayName: 'Sunny Field',
                       visualThemeId: 'forest',
                       chunkThemeGroups: const <String>['default', 'forest'],
+                      firstChunkKey: 'chunk_field_001',
                       assembly: const LevelAssemblyDef(
                         loopSegments: true,
                         segments: <LevelAssemblySegmentDef>[
@@ -62,12 +63,12 @@ void main() {
       expect(savePlan.changedLevelIds, contains('field'));
       await store.save(workspace, document: edited, savePlan: savePlan);
 
-      final savedRaw = File(
-        p.join(fixtureRoot.path, LevelStore.defsPath),
-      ).readAsStringSync();
+      final savedRaw = File(p.join(fixtureRoot.path, LevelStore.defsPath))
+          .readAsStringSync();
       expect(savedRaw.endsWith('\n'), isTrue);
       expect(savedRaw, contains('"displayName": "Sunny Field"'));
       expect(savedRaw, contains('"visualThemeId": "forest"'));
+      expect(savedRaw, contains('"firstChunkKey": "chunk_field_001"'));
       expect(savedRaw, contains('"assembly": {'));
       expect(savedRaw, contains('"segmentId": "forest_run"'));
 
@@ -80,6 +81,7 @@ void main() {
       );
       expect(field.displayName, 'Sunny Field');
       expect(field.visualThemeId, 'forest');
+      expect(field.firstChunkKey, 'chunk_field_001');
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -105,9 +107,8 @@ void main() {
       );
       final savePlan = store.buildSavePlan(workspace, document: edited);
 
-      File(
-        p.join(fixtureRoot.path, LevelStore.defsPath),
-      ).writeAsStringSync('{}\n');
+      File(p.join(fixtureRoot.path, LevelStore.defsPath))
+          .writeAsStringSync('{}\n');
 
       await expectLater(
         store.save(workspace, document: edited, savePlan: savePlan),

@@ -211,7 +211,7 @@ ChunkV2FileData _chunk(Iterable<PlacedMarkerDef> markers) => ChunkV2FileData(
 );
 
 ChunkV2CollisionExpansion _expansion() {
-  final geometry = const TerrainCompiler().compile(<TerrainPolygonInput>[
+  final inputs = <TerrainPolygonInput>[
     _rectangle('ground', left: 0, top: 200, right: 400, bottom: 260),
     _rectangle(
       'obstacle',
@@ -229,10 +229,12 @@ ChunkV2CollisionExpansion _expansion() {
       bottom: 160,
       placementKey: 'prefab_narrow',
     ),
-  ], geometryVersion: 11);
+  ];
+  final geometry = const TerrainCompiler().compile(inputs, geometryVersion: 11);
   return ChunkV2CollisionExpansion(
     chunkKey: 'test_chunk',
     geometry: geometry,
+    collisionInputs: inputs,
     directShapeCount: 1,
     expandedPrefabShapes: const <ChunkV2ExpandedPrefabShape>[],
   );

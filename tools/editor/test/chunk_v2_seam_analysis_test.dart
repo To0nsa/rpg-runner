@@ -589,8 +589,29 @@ TerrainGeometry _flatGeometry({
   String? surfaceKind,
   String? materialKey,
   TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
-}) => _geometry(
-  chunkKey: chunkKey,
+}) => const TerrainCompiler().compile(<TerrainPolygonInput>[
+  _flatInput(
+    chunkKey: chunkKey,
+    topY: topY,
+    surfaceKind: surfaceKind,
+    materialKey: materialKey,
+    collisionMode: collisionMode,
+  ),
+], geometryVersion: 1);
+
+TerrainPolygonInput _flatInput({
+  required String chunkKey,
+  required double topY,
+  String? surfaceKind,
+  String? materialKey,
+  TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
+}) => TerrainPolygonInput.fromWorld(
+  sourcePath: 'chunks/$chunkKey.json',
+  identity: TerrainSourceIdentity(
+    chunkIndex: 0,
+    chunkKey: chunkKey,
+    shapeId: 'ground',
+  ),
   vertices: <(double, double)>[(0, topY), (100, topY), (100, 100), (0, 100)],
   surfaceKind: surfaceKind,
   materialKey: materialKey,
@@ -702,6 +723,9 @@ ChunkV2CollisionExpansionResult _expansionResult(
   expansion: ChunkV2CollisionExpansion(
     chunkKey: chunkKey,
     geometry: _flatGeometry(chunkKey: chunkKey, topY: topY),
+    collisionInputs: <TerrainPolygonInput>[
+      _flatInput(chunkKey: chunkKey, topY: topY),
+    ],
     directShapeCount: 1,
     expandedPrefabShapes: const [],
   ),

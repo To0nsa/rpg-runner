@@ -122,8 +122,8 @@ void main() {
       worldPoint: const Offset(64, 96),
       chunk: chunk,
       prefab: prefab,
-      surfaceSnapContext: ChunkPrefabSurfaceSnapContext.fromGeometry(
-        geometry: expansion.geometry,
+      surfaceSnapContext: ChunkPrefabSurfaceSnapContext.fromExpansion(
+        expansion: expansion,
       ),
       surfaceSnapRadiusWorld: 8,
       surfaceSnapEnabled: true,

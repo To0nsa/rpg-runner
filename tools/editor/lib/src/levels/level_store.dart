@@ -335,6 +335,13 @@ class LevelStore {
       issues: issues,
       fallback: const <String>[defaultLevelChunkThemeGroupId],
     );
+    final firstChunkKey = _readOptionalString(
+      raw,
+      field: 'firstChunkKey',
+      sourcePath: sourcePath,
+      prefix: prefix,
+      issues: issues,
+    );
     final cameraCenterY = _readRequiredDouble(
       raw,
       field: 'cameraCenterY',
@@ -432,6 +439,7 @@ class LevelStore {
       displayName: displayName,
       visualThemeId: visualThemeId,
       chunkThemeGroups: chunkThemeGroups,
+      firstChunkKey: firstChunkKey,
       cameraCenterY: cameraCenterY,
       groundTopY: groundTopY,
       earlyPatternChunks: earlyPatternChunks,
@@ -656,6 +664,27 @@ String _readRequiredString(
     ),
   );
   return '';
+}
+
+String? _readOptionalString(
+  Map<String, Object?> raw, {
+  required String field,
+  required String sourcePath,
+  required String prefix,
+  required List<ValidationIssue> issues,
+}) {
+  final value = raw[field];
+  if (value == null) return null;
+  if (value is String && value.trim().isNotEmpty) return value.trim();
+  issues.add(
+    ValidationIssue(
+      severity: ValidationSeverity.error,
+      code: 'invalid_$field',
+      message: '$prefix.$field must be a non-empty string when present.',
+      sourcePath: sourcePath,
+    ),
+  );
+  return null;
 }
 
 int? _readRequiredInt(

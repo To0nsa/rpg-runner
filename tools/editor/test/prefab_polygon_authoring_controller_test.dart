@@ -186,6 +186,31 @@ void main() {
   });
 
   test(
+    'deleting a roof vertex normalizes its redundant neighbor in one edit',
+    () async {
+      final roof = _roofDeletionShape();
+      final harness = await _buildHarness(shape: roof);
+      final controller = harness.authoring;
+      final session = harness.session;
+
+      controller.select(TerrainPolygonSelection.vertex('collision_001', 7));
+      expect(controller.deleteSelection(), isTrue);
+
+      expect(controller.prefab.revision, 5);
+      expect(controller.prefab.collisionShapes.single.vertices, hasLength(6));
+      expect(session.canUndo, isTrue);
+      expect(
+        controller.issues.map((issue) => issue.code),
+        contains('normalized_collinear_vertex'),
+      );
+
+      expect(controller.undo(), isTrue);
+      expect(controller.prefab.revision, 4);
+      expect(controller.prefab.collisionShapes.single.vertices, roof.vertices);
+    },
+  );
+
+  test(
     'creation derives collision semantics without terrain metadata',
     () async {
       final harness = await _buildHarness();
@@ -1352,6 +1377,20 @@ TerrainSourceShapeDef _pentagon() => TerrainSourceShapeDef(
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),
+  ],
+);
+
+TerrainSourceShapeDef _roofDeletionShape() => TerrainSourceShapeDef(
+  shapeId: 'collision_001',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: -10, yHalfPixels: 8),
+    TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 4),
+    TerrainSourceVertexDef(xHalfPixels: -4, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: 4, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 4),
+    TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 8),
+    TerrainSourceVertexDef(xHalfPixels: -4, yHalfPixels: 8),
+    TerrainSourceVertexDef(xHalfPixels: -6, yHalfPixels: 4),
   ],
 );
 

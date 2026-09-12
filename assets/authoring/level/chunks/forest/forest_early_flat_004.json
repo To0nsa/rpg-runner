@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_early_flat_004",
+  "id": "forest_early_flat_004",
+  "revision": 14,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_wood_logs_01",
+      "prefabKey": "tiny_swords_wood_logs_01",
+      "x": 192,
+      "y": 188,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.5
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 270,
+          "y": 224
+        },
+        {
+          "x": 270,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 270,
+          "y": 224
+        },
+        {
+          "x": 365,
+          "y": 224
+        },
+        {
+          "x": 365,
+          "y": 270
+        },
+        {
+          "x": 270,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 365,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 365,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

@@ -473,6 +473,31 @@ final class TerrainPolygonInteractionReducer {
     );
   }
 
+  /// Replaces one creation-draft vertex and records the change in local undo.
+  ///
+  /// Owner bounds and collision constraints must be applied by the route
+  /// controller before calling this shared geometry reducer.
+  TerrainPolygonInteractionState editDraftVertex(
+    TerrainPolygonInteractionState state, {
+    required int vertexIndex,
+    required TerrainSourceVertexDef rawVertex,
+    required TerrainPolygonSnapPolicy snap,
+  }) {
+    final draft = state.draft;
+    if (draft == null || state.gesture != null) return state;
+    final shape = _draftAsShape(draft);
+    _requireVertexIndex(shape, vertexIndex);
+    final vertex = snap.snapVertex(rawVertex);
+    if (draft.vertices[vertexIndex] == vertex) return state;
+    final vertices = draft.vertices.toList(growable: false);
+    vertices[vertexIndex] = vertex;
+    return _state(
+      state,
+      draft: _recordDraftVertices(draft, vertices),
+      replaceDraft: true,
+    );
+  }
+
   /// Restores the draft snapshot before its last vertex-level edit.
   TerrainPolygonInteractionState undoDraftVertexEdit(
     TerrainPolygonInteractionState state,
@@ -999,6 +1024,11 @@ final class TerrainPolygonInteractionReducer {
   }
 
   /// Deletes the selected vertex when the result can still be a polygon.
+  ///
+  /// Neighboring vertices made collinear by the removal are normalized in the
+  /// same commit. Deletion is already an explicit topology change, so rejecting
+  /// that safe result would force authors through otherwise impossible
+  /// intermediate geometry.
   TerrainPolygonInteractionResult deleteSelectedVertex(
     TerrainPolygonInteractionState state,
   ) {
@@ -1025,6 +1055,7 @@ final class TerrainPolygonInteractionReducer {
     return _commitValidatedReplacement(
       state,
       _shapeWithVertices(shape, vertices),
+      normalizeCollinear: true,
     );
   }
 
@@ -1212,6 +1243,7 @@ final class TerrainPolygonInteractionReducer {
     TerrainPolygonInteractionState state,
     TerrainSourceShapeDef candidate, {
     String? replacedShapeId,
+    bool normalizeCollinear = false,
   }) {
     final sourceShapeId = replacedShapeId ?? candidate.shapeId;
     final validation = _validateAndCanonicalize(
@@ -1219,6 +1251,7 @@ final class TerrainPolygonInteractionReducer {
       otherShapes: state.shapes.where(
         (shape) => shape.shapeId != sourceShapeId,
       ),
+      normalizeCollinear: normalizeCollinear,
     );
     if (validation.shape == null) {
       return _rejected(state, validation.diagnostics);
@@ -1264,12 +1297,14 @@ final class TerrainPolygonInteractionReducer {
   _validateAndCanonicalize(
     TerrainSourceShapeDef shape, {
     required Iterable<TerrainSourceShapeDef> otherShapes,
+    bool normalizeCollinear = false,
   }) {
     final review = TerrainSourceCoreAdapter.review(
       shape: shape,
       sourcePath: _shapeSourcePath(shape.shapeId),
       chunkIndex: -1,
       chunkKey: ownerKey,
+      normalizeCollinear: normalizeCollinear,
     );
     if (review.hasBlockingDiagnostics || review.canonicalVertices == null) {
       return (shape: null, diagnostics: review.diagnostics);

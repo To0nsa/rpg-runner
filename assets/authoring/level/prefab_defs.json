@@ -590,6 +590,18 @@
       ]
     },
     {
+      "id": "rune_rocks_rock_01",
+      "sourceImagePath": "assets/images/level/atlases/rune_rocks/props.png",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 80,
+      "tags": [
+        "props",
+        "rune_rocks"
+      ]
+    },
+    {
       "id": "tiny_swords_anvil_01",
       "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
       "x": 848,
@@ -1668,7 +1680,7 @@
     {
       "prefabKey": "ancient_forest_rock_01",
       "id": "ancient_forest_rock_01",
-      "revision": 2,
+      "revision": 7,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1683,8 +1695,8 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -82,
-              "y": 46
+              "x": -77,
+              "y": 41
             },
             {
               "x": -66,
@@ -1747,20 +1759,8 @@
               "y": -3
             },
             {
-              "x": 88,
-              "y": 2
-            },
-            {
               "x": 92,
               "y": 1
-            },
-            {
-              "x": 90,
-              "y": 10
-            },
-            {
-              "x": 90,
-              "y": 6
             },
             {
               "x": 86,
@@ -1775,8 +1775,8 @@
               "y": 33
             },
             {
-              "x": 104,
-              "y": 46
+              "x": 100,
+              "y": 41
             }
           ]
         }
@@ -2461,7 +2461,7 @@
     {
       "prefabKey": "ancient_forest_statue_01",
       "id": "ancient_forest_statue_01",
-      "revision": 2,
+      "revision": 10,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -2508,18 +2508,6 @@
               "y": -15
             },
             {
-              "x": -14,
-              "y": -35
-            },
-            {
-              "x": -9,
-              "y": -36
-            },
-            {
-              "x": -6,
-              "y": -41
-            },
-            {
               "x": -9,
               "y": -55
             },
@@ -2530,10 +2518,6 @@
             {
               "x": 8,
               "y": -54
-            },
-            {
-              "x": 11,
-              "y": -43
             },
             {
               "x": 20,
@@ -3513,7 +3497,7 @@
     {
       "prefabKey": "fantasy_environment_bench_01",
       "id": "fantasy_environment_bench_01",
-      "revision": 2,
+      "revision": 5,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -3537,91 +3521,11 @@
             },
             {
               "x": 31,
-              "y": 0
-            },
-            {
-              "x": 26,
-              "y": 0
-            },
-            {
-              "x": 30,
-              "y": 7
-            },
-            {
-              "x": 30,
               "y": 16
-            },
-            {
-              "x": 18,
-              "y": 16
-            },
-            {
-              "x": 18,
-              "y": 8
-            },
-            {
-              "x": 19,
-              "y": 8
-            },
-            {
-              "x": 19,
-              "y": 5
-            },
-            {
-              "x": 20,
-              "y": 5
-            },
-            {
-              "x": 20,
-              "y": 0
-            },
-            {
-              "x": -18,
-              "y": 0
-            },
-            {
-              "x": -17,
-              "y": 2
-            },
-            {
-              "x": -18,
-              "y": 2
-            },
-            {
-              "x": -18,
-              "y": 5
-            },
-            {
-              "x": -17,
-              "y": 5
-            },
-            {
-              "x": -17,
-              "y": 8
-            },
-            {
-              "x": -16,
-              "y": 8
-            },
-            {
-              "x": -16,
-              "y": 16
-            },
-            {
-              "x": -28,
-              "y": 16
-            },
-            {
-              "x": -28,
-              "y": 7
-            },
-            {
-              "x": -24,
-              "y": 0
             },
             {
               "x": -29,
-              "y": 0
+              "y": 16
             }
           ]
         }
@@ -3729,7 +3633,7 @@
     {
       "prefabKey": "fantasy_environment_cabin_roof_01",
       "id": "fantasy_environment_cabin_roof_01",
-      "revision": 2,
+      "revision": 32,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -3744,76 +3648,16 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -55,
-              "y": 24
-            },
-            {
-              "x": -54,
-              "y": 23
-            },
-            {
               "x": -54,
               "y": 20
             },
             {
-              "x": -40,
-              "y": 7
-            },
-            {
-              "x": -27,
-              "y": -7
-            },
-            {
               "x": -22,
-              "y": -11
-            },
-            {
-              "x": -22,
-              "y": -13
-            },
-            {
-              "x": -20,
-              "y": -13
-            },
-            {
-              "x": -20,
               "y": -12
             },
             {
-              "x": 26,
+              "x": 28,
               "y": -12
-            },
-            {
-              "x": 26,
-              "y": -13
-            },
-            {
-              "x": 28,
-              "y": -13
-            },
-            {
-              "x": 28,
-              "y": -11
-            },
-            {
-              "x": 37,
-              "y": -2
-            },
-            {
-              "x": 42,
-              "y": 2
-            },
-            {
-              "x": 46,
-              "y": 7
-            },
-            {
-              "x": 51,
-              "y": 11
-            },
-            {
-              "x": 55,
-              "y": 16
             },
             {
               "x": 60,
@@ -3824,20 +3668,8 @@
               "y": 23
             },
             {
-              "x": 61,
-              "y": 24
-            },
-            {
-              "x": -50,
-              "y": 24
-            },
-            {
-              "x": -51,
+              "x": -54,
               "y": 23
-            },
-            {
-              "x": -51,
-              "y": 24
             }
           ]
         }
@@ -3989,6 +3821,24 @@
       "tags": [
         "fantasy_environment",
         "mixed_biomes"
+      ]
+    },
+    {
+      "prefabKey": "rune_rocks_rock_01",
+      "id": "rune_rocks_rock_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "rune_rocks_rock_01"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 40,
+      "collisionShapes": [],
+      "tags": [
+        "props",
+        "rune_rocks"
       ]
     },
     {
@@ -5718,7 +5568,7 @@
     {
       "prefabKey": "tiny_swords_firecamp_01",
       "id": "tiny_swords_firecamp_01",
-      "revision": 3,
+      "revision": 6,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -5737,20 +5587,12 @@
               "y": 10
             },
             {
-              "x": -22,
-              "y": 8
+              "x": -20,
+              "y": 6
             },
             {
               "x": -12,
               "y": -2
-            },
-            {
-              "x": -6,
-              "y": -4
-            },
-            {
-              "x": 1,
-              "y": -1
             },
             {
               "x": 8,

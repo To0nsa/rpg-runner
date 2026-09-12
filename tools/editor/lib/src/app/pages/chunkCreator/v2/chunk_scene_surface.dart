@@ -183,6 +183,7 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
         edgeRadiusHalfPixels: widget.transform.canvasRadiusToSourceHalfPixels(
           widget.edgeHitRadiusCanvasPx,
         ),
+        snapRadiusHalfPixels: _collisionSnapRadiusHalfPixels,
       )) {
         _gesturePointer = event.pointer;
       }

@@ -28,6 +28,7 @@ final class TerrainAuthoringSchedulerLevel {
     required this.earlyPatternChunks,
     required this.easyPatternChunks,
     required this.normalPatternChunks,
+    this.firstChunkKey,
     this.assembly,
   });
 
@@ -35,6 +36,7 @@ final class TerrainAuthoringSchedulerLevel {
   final int earlyPatternChunks;
   final int easyPatternChunks;
   final int normalPatternChunks;
+  final String? firstChunkKey;
   final TerrainAuthoringSchedulerAssembly? assembly;
 }
 
@@ -160,8 +162,10 @@ TerrainAuthoringSchedulerResult enumerateTerrainAuthoringReachability({
   required Iterable<TerrainAuthoringSchedulerChunk> chunks,
   required Iterable<TerrainAuthoringSchedulerLevel> levels,
 }) {
-  final orderedChunks = chunks.where((chunk) => chunk.isActive).toList()
-    ..sort(_compareChunks);
+  final allOrderedChunks = chunks.toList()..sort(_compareChunks);
+  final orderedChunks = allOrderedChunks
+      .where((chunk) => chunk.isActive)
+      .toList(growable: false);
   final orderedLevels = levels.toList()
     ..sort((left, right) => left.levelId.compareTo(right.levelId));
   final issues = <TerrainAuthoringSchedulerIssue>[];
@@ -187,6 +191,14 @@ TerrainAuthoringSchedulerResult enumerateTerrainAuthoringReachability({
     final levelChunks = orderedChunks
         .where((chunk) => chunk.levelId == level.levelId)
         .toList(growable: false);
+    final firstChunkIssue = validateTerrainAuthoringFirstChunk(
+      level: level,
+      chunks: allOrderedChunks,
+    );
+    if (firstChunkIssue != null) {
+      issues.add(firstChunkIssue);
+      continue;
+    }
     if (levelChunks.isEmpty) continue;
     transitions.addAll(
       _SchedulerEnumerator(
@@ -201,6 +213,78 @@ TerrainAuthoringSchedulerResult enumerateTerrainAuthoringReachability({
     transitions: transitions,
     issues: issues,
   );
+}
+
+/// Validates that a configured first chunk belongs to the first runtime pool.
+///
+/// The eligible pool applies the same first-segment group, exact difficulty,
+/// and tier-fallback rules as runtime selection.
+TerrainAuthoringSchedulerIssue? validateTerrainAuthoringFirstChunk({
+  required TerrainAuthoringSchedulerLevel level,
+  required Iterable<TerrainAuthoringSchedulerChunk> chunks,
+}) {
+  final firstChunkKey = level.firstChunkKey;
+  if (firstChunkKey == null) return null;
+  final allMatches = chunks
+      .where((chunk) => chunk.chunkKey == firstChunkKey)
+      .toList(growable: false);
+  final levelMatches = allMatches
+      .where((chunk) => chunk.levelId == level.levelId)
+      .toList(growable: false);
+  if (levelMatches.isEmpty) {
+    return TerrainAuthoringSchedulerIssue(
+      code: allMatches.isEmpty
+          ? 'terrain_authoring_first_chunk_missing'
+          : 'terrain_authoring_first_chunk_wrong_level',
+      message: allMatches.isEmpty
+          ? 'Level ${level.levelId} firstChunkKey "$firstChunkKey" does not '
+                'identify an authored chunk.'
+          : 'Level ${level.levelId} firstChunkKey "$firstChunkKey" belongs '
+                'to another level.',
+      levelId: level.levelId,
+    );
+  }
+  final candidate = levelMatches.first;
+  if (!candidate.isActive) {
+    return TerrainAuthoringSchedulerIssue(
+      code: 'terrain_authoring_first_chunk_inactive',
+      message:
+          'Level ${level.levelId} firstChunkKey "$firstChunkKey" must identify an active chunk.',
+      levelId: level.levelId,
+    );
+  }
+
+  final firstTier = _tierForIndex(level, 0);
+  final firstSegment = level.assembly?.segments.firstOrNull;
+  final requestedTier = firstSegment?.difficulty ?? firstTier;
+  final groupId = firstSegment?.groupId;
+  final allowFallback = firstSegment?.difficulty == null;
+  List<TerrainAuthoringSchedulerChunk> eligible = const [];
+  for (final tier
+      in allowFallback
+          ? fallbackOrderForTier(requestedTier)
+          : <ChunkPatternTier>[requestedTier]) {
+    eligible = chunks
+        .where(
+          (chunk) =>
+              chunk.isActive &&
+              chunk.levelId == level.levelId &&
+              chunk.tier == tier &&
+              (groupId == null || chunk.assemblyGroupId == groupId),
+        )
+        .toList(growable: false);
+    if (eligible.isNotEmpty) break;
+  }
+  if (!eligible.any((chunk) => chunk.chunkKey == firstChunkKey)) {
+    return TerrainAuthoringSchedulerIssue(
+      code: 'terrain_authoring_first_chunk_ineligible',
+      message:
+          'Level ${level.levelId} firstChunkKey "$firstChunkKey" is not eligible '
+          'for the first scheduled slot${groupId == null ? '' : ' in group $groupId'}.',
+      levelId: level.levelId,
+    );
+  }
+  return null;
 }
 
 final class _SchedulerEnumerator {

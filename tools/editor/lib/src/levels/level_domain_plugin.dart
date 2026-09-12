@@ -624,6 +624,17 @@ class LevelDomainPlugin
             'Choose an authored theme or create and assign a new one.',
       );
     }
+    final updatesFirstChunk = payload.containsKey('firstChunkKey');
+    final rawFirstChunkKey = payload['firstChunkKey'];
+    if (updatesFirstChunk &&
+        rawFirstChunkKey != null &&
+        (rawFirstChunkKey is! String || rawFirstChunkKey.trim().isEmpty)) {
+      return _withOperationIssue(
+        document,
+        code: 'update_level_invalid_first_chunk',
+        message: 'firstChunkKey must be a non-empty string or null.',
+      );
+    }
 
     final nextLevel = source
         .copyWith(
@@ -668,6 +679,10 @@ class LevelDomainPlugin
           ),
           status: _normalizedString(payload['status'], fallback: source.status),
           includeInBuild: payload['includeInBuild'] as bool?,
+          firstChunkKey: updatesFirstChunk && rawFirstChunkKey is String
+              ? rawFirstChunkKey.trim()
+              : source.firstChunkKey,
+          clearFirstChunkKey: updatesFirstChunk && rawFirstChunkKey == null,
           assembly: payload.containsKey('assembly') ? null : source.assembly,
           clearAssembly: payload.containsKey('assembly'),
         )

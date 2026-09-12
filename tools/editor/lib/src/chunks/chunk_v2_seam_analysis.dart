@@ -219,6 +219,7 @@ TerrainAuthoringSchedulerLevel _schedulerLevel(LevelDef level) =>
       earlyPatternChunks: level.earlyPatternChunks,
       easyPatternChunks: level.easyPatternChunks,
       normalPatternChunks: level.normalPatternChunks,
+      firstChunkKey: level.firstChunkKey,
       assembly: level.assembly == null
           ? null
           : TerrainAuthoringSchedulerAssembly(

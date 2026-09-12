@@ -137,6 +137,7 @@ class LevelDef {
     required this.displayName,
     required this.visualThemeId,
     this.chunkThemeGroups = const <String>[defaultLevelChunkThemeGroupId],
+    this.firstChunkKey,
     required this.cameraCenterY,
     required this.groundTopY,
     required this.earlyPatternChunks,
@@ -154,6 +155,7 @@ class LevelDef {
   final String displayName;
   final String visualThemeId;
   final List<String> chunkThemeGroups;
+  final String? firstChunkKey;
   final double cameraCenterY;
   final double groundTopY;
   final int earlyPatternChunks;
@@ -173,6 +175,8 @@ class LevelDef {
     String? displayName,
     String? visualThemeId,
     List<String>? chunkThemeGroups,
+    String? firstChunkKey,
+    bool clearFirstChunkKey = false,
     double? cameraCenterY,
     double? groundTopY,
     int? earlyPatternChunks,
@@ -191,6 +195,9 @@ class LevelDef {
       displayName: displayName ?? this.displayName,
       visualThemeId: visualThemeId ?? this.visualThemeId,
       chunkThemeGroups: chunkThemeGroups ?? this.chunkThemeGroups,
+      firstChunkKey: clearFirstChunkKey
+          ? null
+          : (firstChunkKey ?? this.firstChunkKey),
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
       groundTopY: groundTopY ?? this.groundTopY,
       earlyPatternChunks: earlyPatternChunks ?? this.earlyPatternChunks,
@@ -212,6 +219,7 @@ class LevelDef {
       displayName: displayName.trim(),
       visualThemeId: visualThemeId.trim(),
       chunkThemeGroups: normalizeLevelChunkThemeGroups(chunkThemeGroups),
+      firstChunkKey: firstChunkKey?.trim(),
       cameraCenterY: normalizeLevelNumber(cameraCenterY),
       groundTopY: normalizeLevelNumber(groundTopY),
       earlyPatternChunks: earlyPatternChunks,
@@ -416,6 +424,11 @@ String renderCanonicalLevelDefsJson(Iterable<LevelDef> levels) {
     buffer.writeln(
       '      "chunkThemeGroups": ${_renderStringList(level.chunkThemeGroups)},',
     );
+    if (level.firstChunkKey != null) {
+      buffer.writeln(
+        '      "firstChunkKey": ${_quoted(level.firstChunkKey!)},',
+      );
+    }
     buffer.writeln(
       '      "cameraCenterY": ${formatCanonicalLevelNumber(level.cameraCenterY)},',
     );
@@ -455,6 +468,7 @@ bool levelDefEquals(LevelDef a, LevelDef b, {bool ignoreRevision = false}) {
       left.displayName == right.displayName &&
       left.visualThemeId == right.visualThemeId &&
       _stringListsEqual(left.chunkThemeGroups, right.chunkThemeGroups) &&
+      left.firstChunkKey == right.firstChunkKey &&
       left.cameraCenterY == right.cameraCenterY &&
       left.groundTopY == right.groundTopY &&
       left.earlyPatternChunks == right.earlyPatternChunks &&

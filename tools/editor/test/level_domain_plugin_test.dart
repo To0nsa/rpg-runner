@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
@@ -213,6 +215,92 @@ void main() {
 
     expect(identical(cleared, document), isFalse);
     expect((cleared as LevelDefsDocument).operationIssues, isEmpty);
+  });
+
+  test('first chunk edits persist and validate against the opening pool', () {
+    final plugin = LevelDomainPlugin();
+    const document = LevelDefsDocument(
+      workspaceRootPath: '.',
+      levels: <LevelDef>[
+        LevelDef(
+          levelId: 'forest',
+          revision: 1,
+          displayName: 'Forest',
+          visualThemeId: 'forest',
+          cameraCenterY: 135,
+          groundTopY: 224,
+          earlyPatternChunks: 1,
+          easyPatternChunks: 1,
+          normalPatternChunks: 0,
+          noEnemyChunks: 1,
+          enumOrdinal: 10,
+          status: levelStatusActive,
+        ),
+      ],
+      baseline: null,
+      baselineLevels: <LevelDef>[],
+      activeLevelId: 'forest',
+      availableParallaxVisualThemeIds: <String>['forest'],
+      parallaxThemeSourceAvailable: true,
+      authoredChunkCountsByLevelId: <String, int>{'forest': 2},
+      authoredChunkAssemblyGroupCountsByLevelId: <String, Map<String, int>>{
+        'forest': <String, int>{'default': 2},
+      },
+      chunkCountSourceAvailable: true,
+      authoredSchedulerChunks: <TerrainAuthoringSchedulerChunk>[
+        TerrainAuthoringSchedulerChunk(
+          chunkKey: 'forest_opening',
+          levelId: 'forest',
+          tier: ChunkPatternTier.early,
+          assemblyGroupId: 'default',
+          isActive: true,
+        ),
+        TerrainAuthoringSchedulerChunk(
+          chunkKey: 'forest_later',
+          levelId: 'forest',
+          tier: ChunkPatternTier.easy,
+          assemblyGroupId: 'default',
+          isActive: true,
+        ),
+      ],
+    );
+
+    final pinned = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: 'update_level',
+        payload: <String, Object?>{
+          'levelId': 'forest',
+          'firstChunkKey': 'forest_opening',
+        },
+      ),
+    ) as LevelDefsDocument;
+    expect(pinned.levels.single.firstChunkKey, 'forest_opening');
+    expect(validateLevelDocument(pinned), isEmpty);
+
+    final invalid = plugin.applyEdit(
+      pinned,
+      AuthoringCommand(
+        kind: 'update_level',
+        payload: <String, Object?>{
+          'levelId': 'forest',
+          'firstChunkKey': 'forest_later',
+        },
+      ),
+    ) as LevelDefsDocument;
+    expect(
+      validateLevelDocument(invalid).map((issue) => issue.code),
+      contains('terrain_authoring_first_chunk_ineligible'),
+    );
+
+    final cleared = plugin.applyEdit(
+      invalid,
+      AuthoringCommand(
+        kind: 'update_level',
+        payload: <String, Object?>{'levelId': 'forest', 'firstChunkKey': null},
+      ),
+    ) as LevelDefsDocument;
+    expect(cleared.levels.single.firstChunkKey, isNull);
   });
 
   test('validation reports structural errors and warnings', () {

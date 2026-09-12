@@ -3,6 +3,10 @@
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.
+An optional first-chunk choice fixes the opening Chunk for every seed. It must
+be valid for the first automatic pool or first authored section; the rest of
+the run continues with seeded selection. When the opening section requires
+unique Chunks, the fixed opener cannot repeat within that section occurrence.
 
 For a gradual tour through several environments, compose:
 

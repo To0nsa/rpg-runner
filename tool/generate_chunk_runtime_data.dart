@@ -529,6 +529,7 @@ PolygonTerrainSchedulerLevelSource _terrainSchedulerLevel(
   earlyPatternChunks: level.earlyPatternChunks,
   easyPatternChunks: level.easyPatternChunks,
   normalPatternChunks: level.normalPatternChunks,
+  firstChunkKey: level.firstChunkKey,
   includeInBuild: level.includeInBuild,
   assembly: level.assembly == null
       ? null

@@ -395,9 +395,12 @@ Future<PlaytestPreparationResult> preparePlaytestInBackground(
       _ => throw StateError('Unsupported playtest scope.'),
     };
     final source = level.chunkPatternSource;
-    final base = source is AssembledChunkPatternSource
-        ? source.baseSource
-        : source as ChunkPatternListSource;
+    final base = switch (source) {
+      ChunkPatternListSource value => value,
+      FirstChunkPatternSource value => value.baseSource,
+      AssembledChunkPatternSource value => value.baseSource,
+      _ => throw StateError('Playtest requires a list-backed pattern source.'),
+    };
     final assets =
         await RunnerWorkspaceAssetBundle(workspaceRoot: input.workspaceRoot)
             .capture(
@@ -524,6 +527,7 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
       normalPatternChunks: sourceLevel.normalPatternChunks,
       noEnemyChunks: sourceLevel.noEnemyChunks,
       visualThemeId: sourceLevel.visualThemeId,
+      firstChunkKey: sourceLevel.firstChunkKey,
       assembly: assembly == null
           ? null
           : LevelAssemblyDefinition(

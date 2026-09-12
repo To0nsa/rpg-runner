@@ -516,7 +516,8 @@ Prefab and Chunk polygon scenes share the same geometry controls:
   expose exact X, bottom, width, and height fields; height keeps the bottom
   edge fixed and moves both top corners in one source-history edit
 - while a draft is open, **Move vertex** and **Insert vertex** edit that draft;
-  in Chunk authoring, **Continue drawing** returns to vertex placement, while
+  in Chunk authoring, the creation card also exposes a vertex selector and
+  exact X/Y fields, and **Continue drawing** returns to vertex placement, while
   **Select shape** and **Move shape** remain disabled
 - with no saved collision shape and no open draft, **Move vertex**, **Move
   shape**, and **Insert vertex** are disabled
@@ -529,7 +530,9 @@ Prefab and Chunk polygon scenes share the same geometry controls:
   **Move shape** before primary-clicking or dragging the corresponding element
 - the chosen edit tool remains active after a completed gesture, so consecutive
   vertices, edges, or shapes can be edited without selecting the tool again
-- press Delete/Backspace to delete the current selection
+- press Delete/Backspace to delete the current selection; deleting a saved
+  vertex also removes any neighboring points made collinear by that deletion in
+  the same undoable edit
 - use Ctrl+Z to undo and Ctrl+Y or Ctrl+Shift+Z to redo
 - use Ctrl+drag to pan and Ctrl+wheel to zoom
 - use **Normalize** explicitly to apply canonical winding/start and remove
@@ -548,6 +551,9 @@ terrain and the first canonical material in the authored terrain-material
 catalog. Polygon and rectangle drafts capture the current name and choices when
 creation begins; the settings lock for that active operation and the collision
 and material choices remain selected for the next shape after Save or Cancel.
+Once the draft has a point, its vertex selector and exact X/Y fields can replace
+that point numerically without committing the shape; whole-pixel input, active
+grid snapping, Chunk bounds, and collision constraints continue to apply.
 Contextual status explains when the rectangle tool is ready, a rectangle is
 being dragged, or a draft is ready. **Save shape** stays disabled until the
 draft has at least three vertices.
@@ -641,12 +647,17 @@ exact placement fields remain integer-pixel overrides in the sidebar creation
 form and expanded existing-placement row. The Prefabs toolbar also has a
 default-on **Surface snap** chip. Within eight canvas pixels, Place and Move
 may refine only the candidate Y so the transformed lowest horizontal collider
-edge shares a positive-length interval with an exposed upward-facing direct
-terrain edge. X stays on its normal tile/pixel grid and the final X/Y origin
-remains whole-pixel. The orange collision preview becomes green only after the
-same Core geometry and occupied-area predicate accept exact contact; point-only
-contact, positive-area penetration, another placement, and out-of-bounds
-geometry do not snap.
+edge shares a positive-length interval with an exposed upward-facing collision
+edge from direct terrain or another accepted Prefab placement. Moving an
+existing placement temporarily removes its prior collision before finding
+targets, which reveals the supporting edge hidden by its old exact joint. X
+stays on its normal tile/pixel grid and the final X/Y origin remains
+whole-pixel. The orange collision preview becomes green only after the same Core
+geometry and occupied-area predicate accept exact contact; point-only contact,
+positive-area penetration, blocked placement geometry, and out-of-bounds
+geometry do not snap. The normal combined Core compile removes matching
+opposed solid edges at an exact stacked joint, so that internal seam is not a
+runtime collision or navigation surface.
 
 The shared placement Scale control pairs a compact numeric field with a discrete
 slider in both the selected-prefab strip and placement forms. When the Prefab
@@ -706,15 +717,17 @@ transformed prefab boundary falls between whole-pixel direct-terrain
 coordinates, snapping chooses the nearest authorable whole-pixel point that
 stays outside it. Direct Chunk terrain always keeps the mandatory whole-pixel
 source rule. Its two default-off **Snap to grid** switches raise their affected
-creation or editing operations to the selected Chunk's tile-size grid. The
-independent switches live inside **Create terrain shape**
-and the expanded editor for the selected existing terrain shape: the first
-affects only new drafts, while the second affects only saved-shape edits. Each
-route-local choice is locked during an active operation. Moving or inserting a
-vertex may refine exact collision contact to the mandatory whole-pixel terrain
-lattice when a neighboring boundary falls between tile intersections; free
-movement remains tile-snapped. Prefab-local collision authoring also uses one
-mandatory whole-pixel grid for pointer and exact-field edits.
+creation or editing operations to the selected Chunk's tile-size grid.
+**Create terrain shape** also has a default-on **Snap to neighbor vertices**
+switch: pointer placement within the stable screen-space snap radius prefers
+the closest saved direct-terrain vertex, even when that exact vertex is not on
+the optional tile grid. Numeric X/Y entry remains exact and does not use pointer
+magnetism. The creation switches and the existing-shape grid switch are
+route-local and locked during an active operation. Moving or inserting a vertex
+may refine exact collision contact to the mandatory whole-pixel terrain lattice
+when a neighboring boundary falls between tile intersections; free movement
+remains tile-snapped. Prefab-local collision authoring also uses one mandatory
+whole-pixel grid for pointer and exact-field edits.
 
 Core-compiled collision edges are hidden by default. The **Shape edges** chip
 shows their read-only overlay, with solid edges in pink and one-way edges in

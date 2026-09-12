@@ -211,6 +211,41 @@ forest|tier=easy>hard:boundary|easy>normal''');
     );
     expect(result.transitions, isEmpty);
   });
+
+  test('first chunk must belong to the first resolved scheduler pool', () {
+    final chunks = <TerrainAuthoringSchedulerChunk>[
+      _chunk('opening', ChunkPatternTier.early),
+      _chunk('later', ChunkPatternTier.easy, groupId: 'ruins'),
+      _chunk('retired', ChunkPatternTier.early, isActive: false),
+    ];
+    TerrainAuthoringSchedulerResult enumerate(String firstChunkKey) =>
+        enumerateTerrainAuthoringReachability(
+          chunks: chunks,
+          levels: <TerrainAuthoringSchedulerLevel>[
+            TerrainAuthoringSchedulerLevel(
+              levelId: 'forest',
+              earlyPatternChunks: 1,
+              easyPatternChunks: 1,
+              normalPatternChunks: 0,
+              firstChunkKey: firstChunkKey,
+            ),
+          ],
+        );
+
+    expect(enumerate('opening').issues, isEmpty);
+    expect(
+      enumerate('later').issues.single.code,
+      'terrain_authoring_first_chunk_ineligible',
+    );
+    expect(
+      enumerate('retired').issues.single.code,
+      'terrain_authoring_first_chunk_inactive',
+    );
+    expect(
+      enumerate('missing').issues.single.code,
+      'terrain_authoring_first_chunk_missing',
+    );
+  });
 }
 
 TerrainAuthoringSchedulerChunk _chunk(

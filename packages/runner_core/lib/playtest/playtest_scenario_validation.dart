@@ -117,6 +117,7 @@ LevelDefinition immutablePlaytestLevelDefinition(LevelDefinition level) {
   final source = level.chunkPatternSource;
   final base = switch (source) {
     ChunkPatternListSource value => value,
+    FirstChunkPatternSource value => value.baseSource,
     AssembledChunkPatternSource value => value.baseSource,
     _ => throw const PlaytestScenarioException(
       code: 'playtest_pattern_source_unsupported',

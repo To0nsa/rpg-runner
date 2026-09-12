@@ -41,6 +41,15 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     spawnMarkers: <SpawnMarker>[
     ],
   ),
+  ChunkPattern(
+    name: 'forest_early_flat_copy',
+    chunkKey: 'forest_early_flat_copy',
+    assemblyGroupId: 'default',
+    visualSprites: <ChunkVisualSpriteRel>[
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
 ];
 
 const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[

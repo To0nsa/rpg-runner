@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 
 import 'package:runner_editor/src/app/pages/levelCreator/level_creator_page.dart';
 import 'package:runner_editor/src/app/pages/levelCreator/level_creator_navigation.dart';
@@ -538,6 +540,25 @@ void main() {
     expect(target?.intent, LevelCreatorChunkIntent.edit);
     expect(target?.returnContext.tab, LevelCreatorTab.contents);
     expect(target?.returnContext.selectedChunkKey, 'forest-flat-key');
+  });
+
+  testWidgets('content card can choose and mark the level first chunk', (
+    tester,
+  ) async {
+    final controller = await _mountLevelPage(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('level_chunk_forest-flat-key')),
+    );
+    await _flush(tester);
+    await tester.tap(find.text('Make first chunk'));
+    await _flush(tester);
+
+    expect(
+      (controller.scene as LevelScene).activeLevel!.firstChunkKey,
+      'forest-flat-key',
+    );
+    expect(find.text('First'), findsOneWidget);
   });
 
   testWidgets(
@@ -1173,6 +1194,22 @@ const LevelDefsDocument _initialDocument = LevelDefsDocument(
     'forest': <String, int>{'forest': 1, 'default': 1, 'none': 1},
   },
   chunkCountSourceAvailable: true,
+  authoredSchedulerChunks: <TerrainAuthoringSchedulerChunk>[
+    TerrainAuthoringSchedulerChunk(
+      chunkKey: 'field-flat-key',
+      levelId: 'field',
+      tier: ChunkPatternTier.early,
+      assemblyGroupId: 'default',
+      isActive: true,
+    ),
+    TerrainAuthoringSchedulerChunk(
+      chunkKey: 'forest-flat-key',
+      levelId: 'forest',
+      tier: ChunkPatternTier.early,
+      assemblyGroupId: 'default',
+      isActive: true,
+    ),
+  ],
   parallaxDocument: ParallaxDefsDocument(
     workspaceRootPath: '.',
     themes: _initialThemes,

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/levels/level_assembly.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/util/deterministic_rng.dart' show mix32;
@@ -111,6 +113,47 @@ void main() {
     );
   });
 
+  test('FirstChunkPatternSource pins only chunk index zero', () {
+    final source = FirstChunkPatternSource(
+      baseSource: const ChunkPatternListSource(
+        earlyPatterns: <ChunkPattern>[
+          ChunkPattern(name: 'opening_a', chunkKey: 'opening_a'),
+          ChunkPattern(name: 'opening_b', chunkKey: 'opening_b'),
+        ],
+        easyPatterns: <ChunkPattern>[],
+      ),
+      firstChunkKey: 'opening_a',
+    );
+
+    for (final seed in <int>[1, 7, 99]) {
+      expect(
+        source
+            .patternFor(seed: seed, chunkIndex: 0, tier: ChunkPatternTier.early)
+            .chunkKey,
+        'opening_a',
+      );
+      expect(
+        source
+            .patternFor(seed: seed, chunkIndex: 1, tier: ChunkPatternTier.early)
+            .chunkKey,
+        isNotNull,
+      );
+    }
+  });
+
+  test('Forest always starts with its authored opening chunk', () {
+    final level = LevelRegistry.byId(LevelId.forest);
+
+    for (final seed in <int>[1, 7, 4401, 99999]) {
+      expect(
+        level.chunkPatternSource
+            .patternFor(seed: seed, chunkIndex: 0, tier: ChunkPatternTier.early)
+            .chunkKey,
+        'forest_early_flat',
+      );
+    }
+  });
+
   test('AssembledChunkPatternSource follows authored segment order', () {
     final source = AssembledChunkPatternSource(
       baseSource: const ChunkPatternListSource(
@@ -173,6 +216,57 @@ void main() {
       <String>{'village_a', 'village_b'},
     );
     expect(selections[5].pattern.assemblyGroupId, 'cemetery');
+  });
+
+  test('assembled first chunk preserves distinct first run', () {
+    final source = AssembledChunkPatternSource(
+      baseSource: const ChunkPatternListSource(
+        earlyPatterns: <ChunkPattern>[
+          ChunkPattern(
+            name: 'opening_a',
+            chunkKey: 'opening_a',
+            assemblyGroupId: 'opening',
+          ),
+          ChunkPattern(
+            name: 'opening_b',
+            chunkKey: 'opening_b',
+            assemblyGroupId: 'opening',
+          ),
+          ChunkPattern(
+            name: 'opening_c',
+            chunkKey: 'opening_c',
+            assemblyGroupId: 'opening',
+          ),
+        ],
+        easyPatterns: <ChunkPattern>[],
+      ),
+      assembly: const LevelAssemblyDefinition(
+        segments: <LevelAssemblySegment>[
+          LevelAssemblySegment(
+            segmentId: 'opening',
+            groupId: 'opening',
+            difficulty: ChunkPatternTier.early,
+            minChunkCount: 3,
+            maxChunkCount: 3,
+            requireDistinctChunks: true,
+          ),
+        ],
+      ),
+      firstChunkKey: 'opening_b',
+    );
+
+    final keys = <String>[
+      for (var index = 0; index < 3; index += 1)
+        source
+            .patternFor(
+              seed: 7,
+              chunkIndex: index,
+              tier: ChunkPatternTier.early,
+            )
+            .chunkKey!,
+    ];
+    expect(keys.first, 'opening_b');
+    expect(keys.toSet(), hasLength(3));
   });
 
   test(

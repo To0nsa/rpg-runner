@@ -234,6 +234,13 @@ LevelDefinitionSource? _parseLevelEntry(
     fieldPrefix: fieldPrefix,
     issues: issues,
   );
+  final firstChunkKey = _readOptionalString(
+    entry,
+    field: 'firstChunkKey',
+    issues: issues,
+    path: defsPath,
+    fieldPrefix: fieldPrefix,
+  );
   final cameraCenterY = _readRequiredFiniteDouble(
     entry,
     field: 'cameraCenterY',
@@ -369,6 +376,7 @@ LevelDefinitionSource? _parseLevelEntry(
     displayName: displayName,
     visualThemeId: visualThemeId,
     chunkThemeGroups: chunkThemeGroups,
+    firstChunkKey: firstChunkKey,
     cameraCenterY: _normalizeZero(cameraCenterY),
     groundTopY: _normalizeZero(groundTopY),
     earlyPatternChunks: earlyPatternChunks,
@@ -690,6 +698,11 @@ String renderCanonicalLevelDefsJson(List<LevelDefinitionSource> levels) {
     buffer.writeln(
       '      "chunkThemeGroups": ${_renderCanonicalStringList(level.chunkThemeGroups)},',
     );
+    if (level.firstChunkKey != null) {
+      buffer.writeln(
+        '      "firstChunkKey": ${jsonEncode(level.firstChunkKey)},',
+      );
+    }
     buffer.writeln(
       '      "cameraCenterY": ${_formatCanonicalNumber(level.cameraCenterY)},',
     );
@@ -874,6 +887,11 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
       ..writeln('          normalPatternChunks: ${level.normalPatternChunks},')
       ..writeln('          noEnemyChunks: ${level.noEnemyChunks},')
       ..writeln("          visualThemeId: '${_escape(level.visualThemeId)}',");
+    if (level.firstChunkKey != null) {
+      buffer.writeln(
+        "          firstChunkKey: '${_escape(level.firstChunkKey!)}',",
+      );
+    }
     if (level.assembly != null) {
       buffer.writeln(
         '          assembly: ${_renderLevelAssemblyDart(level.assembly!)},',
@@ -1043,6 +1061,26 @@ String _readRequiredString(
     ),
   );
   return '';
+}
+
+String? _readOptionalString(
+  Map<String, Object?> map, {
+  required String field,
+  required List<LevelDefinitionValidationIssue> issues,
+  required String path,
+  required String fieldPrefix,
+}) {
+  final raw = map[field];
+  if (raw == null) return null;
+  if (raw is String && raw.trim().isNotEmpty) return raw.trim();
+  issues.add(
+    LevelDefinitionValidationIssue(
+      path: path,
+      code: 'invalid_$field',
+      message: '$fieldPrefix.$field must be a non-empty string when present.',
+    ),
+  );
+  return null;
 }
 
 int? _readRequiredPositiveInt(
@@ -1228,6 +1266,7 @@ class LevelDefinitionSource {
     required this.displayName,
     required this.visualThemeId,
     required this.chunkThemeGroups,
+    this.firstChunkKey,
     required this.cameraCenterY,
     required this.groundTopY,
     required this.earlyPatternChunks,
@@ -1245,6 +1284,7 @@ class LevelDefinitionSource {
   final String displayName;
   final String visualThemeId;
   final List<String> chunkThemeGroups;
+  final String? firstChunkKey;
   final double cameraCenterY;
   final double groundTopY;
   final int earlyPatternChunks;

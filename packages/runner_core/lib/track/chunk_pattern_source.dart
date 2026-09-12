@@ -95,6 +95,21 @@ class ChunkPatternListSource extends ChunkPatternSource {
   final List<ChunkPattern> normalPatterns;
   final List<ChunkPattern> hardPatterns;
 
+  /// Returns the authored pattern with [chunkKey], or null when absent.
+  ChunkPattern? patternByChunkKey(String chunkKey) {
+    for (final patterns in <List<ChunkPattern>>[
+      earlyPatterns,
+      easyPatterns,
+      normalPatterns,
+      hardPatterns,
+    ]) {
+      for (final pattern in patterns) {
+        if (pattern.chunkKey == chunkKey) return pattern;
+      }
+    }
+    return null;
+  }
+
   @override
   ChunkPatternSelection selectionFor({
     required int seed,
@@ -121,16 +136,56 @@ class ChunkPatternListSource extends ChunkPatternSource {
   }
 }
 
+/// Pins one authored pattern to chunk index zero and delegates later choices.
+///
+/// The pinned pattern must exist in [baseSource]. Tier and assembly eligibility
+/// are authoring-time constraints; this wrapper is used only without assembly.
+class FirstChunkPatternSource extends ChunkPatternSource {
+  FirstChunkPatternSource({
+    required this.baseSource,
+    required String firstChunkKey,
+  }) : firstPattern =
+           baseSource.patternByChunkKey(firstChunkKey) ??
+           (throw ArgumentError.value(
+             firstChunkKey,
+             'firstChunkKey',
+             'Must identify a pattern in the level source.',
+           ));
+
+  final ChunkPatternListSource baseSource;
+  final ChunkPattern firstPattern;
+
+  @override
+  ChunkPatternSelection selectionFor({
+    required int seed,
+    required int chunkIndex,
+    required ChunkPatternTier tier,
+  }) {
+    if (chunkIndex == 0) {
+      return ChunkPatternSelection(pattern: firstPattern);
+    }
+    return baseSource.selectionFor(
+      seed: seed,
+      chunkIndex: chunkIndex,
+      tier: tier,
+    );
+  }
+}
+
 /// Deterministic [ChunkPatternSource] that applies authored level assembly
 /// sequencing on top of explicit authored chunk lists.
 class AssembledChunkPatternSource extends ChunkPatternSource {
   AssembledChunkPatternSource({
     required this.baseSource,
     required this.assembly,
+    this.firstChunkKey,
   }) : assert(assembly.segments.isNotEmpty);
 
   final ChunkPatternListSource baseSource;
   final LevelAssemblyDefinition assembly;
+
+  /// Optional authored pattern forced into the first assembly slot.
+  final String? firstChunkKey;
 
   final List<_ResolvedAssemblyRun> _resolvedRuns = <_ResolvedAssemblyRun>[];
   int _nextRunStartChunkIndex = 0;
@@ -159,7 +214,30 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
     }
 
     final offsetInRun = chunkIndex - run.startChunkIndex;
-    final selectedPattern = run.segment.requireDistinctChunks
+    final firstPattern = firstChunkKey == null || run.startChunkIndex != 0
+        ? null
+        : eligiblePatterns
+              .where((pattern) => pattern.chunkKey == firstChunkKey)
+              .firstOrNull;
+    if (chunkIndex == 0 && firstChunkKey != null && firstPattern == null) {
+      throw StateError(
+        'First chunk "$firstChunkKey" is not eligible for the first assembly '
+        'slot.',
+      );
+    }
+    final selectedPattern = firstPattern != null && offsetInRun == 0
+        ? firstPattern
+        : run.segment.requireDistinctChunks && firstPattern != null
+        ? _distinctPatternForRun(
+            seed: seed,
+            run: run,
+            eligiblePatterns: eligiblePatterns
+                .where((pattern) => pattern != firstPattern)
+                .toList(growable: false),
+            offsetInRun: offsetInRun - 1,
+            requiredLength: run.length - 1,
+          )
+        : run.segment.requireDistinctChunks
         ? _distinctPatternForRun(
             seed: seed,
             run: run,
@@ -303,10 +381,12 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
     required _ResolvedAssemblyRun run,
     required List<ChunkPattern> eligiblePatterns,
     required int offsetInRun,
+    int? requiredLength,
   }) {
-    if (eligiblePatterns.length < run.length) {
+    final minimumLength = requiredLength ?? run.length;
+    if (eligiblePatterns.length < minimumLength) {
       throw StateError(
-        'AssembledChunkPatternSource requires ${run.length} distinct chunks for '
+        'AssembledChunkPatternSource requires $minimumLength distinct chunks for '
         'segment "${run.segment.segmentId}" but only found '
         '${eligiblePatterns.length} eligible chunk(s).',
       );

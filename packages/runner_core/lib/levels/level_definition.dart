@@ -25,6 +25,7 @@ class LevelDefinition {
     int normalPatternChunks = defaultNormalPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
     String? visualThemeId,
+    String? firstChunkKey,
     LevelAssemblyDefinition? assembly,
   }) : this._(
          identity: RegisteredLevelIdentity(id),
@@ -38,6 +39,7 @@ class LevelDefinition {
          normalPatternChunks: normalPatternChunks,
          noEnemyChunks: noEnemyChunks,
          visualThemeId: visualThemeId,
+         firstChunkKey: firstChunkKey,
          assembly: assembly,
        );
 
@@ -54,6 +56,7 @@ class LevelDefinition {
     int normalPatternChunks = defaultNormalPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
     String? visualThemeId,
+    String? firstChunkKey,
     LevelAssemblyDefinition? assembly,
   }) : this._(
          identity: identity,
@@ -67,6 +70,7 @@ class LevelDefinition {
          normalPatternChunks: normalPatternChunks,
          noEnemyChunks: noEnemyChunks,
          visualThemeId: visualThemeId,
+         firstChunkKey: firstChunkKey,
          assembly: assembly,
        );
 
@@ -82,6 +86,7 @@ class LevelDefinition {
     this.normalPatternChunks = defaultNormalPatternChunks,
     this.noEnemyChunks = defaultNoEnemyChunks,
     this.visualThemeId,
+    this.firstChunkKey,
     LevelAssemblyDefinition? assembly,
   }) : assert(earlyPatternChunks >= 0),
        assert(easyPatternChunks >= 0),
@@ -95,6 +100,7 @@ class LevelDefinition {
          chunkPatternSource: chunkPatternSource,
          assembly: assembly,
        ),
+       assert(firstChunkKey == null || firstChunkKey.isNotEmpty),
        assert(killPlaneY == null || killPlaneY.isFinite),
        assert(groundTopY.isFinite) {
     if (!groundTopY.isFinite) {
@@ -138,8 +144,11 @@ class LevelDefinition {
   /// When [assembly] is authored, this derives the effective assembled source
   /// from the base authored chunk list instead of storing a second independent
   /// assembly copy on the source itself.
-  ChunkPatternSource get chunkPatternSource =>
-      _resolveChunkPatternSource(_baseChunkPatternSource, _assembly);
+  ChunkPatternSource get chunkPatternSource => _resolveChunkPatternSource(
+    _baseChunkPatternSource,
+    _assembly,
+    firstChunkKey,
+  );
 
   /// Number of early chunks that use "early" chunk patterns.
   final int earlyPatternChunks;
@@ -155,6 +164,9 @@ class LevelDefinition {
 
   /// Optional render theme identifier (e.g., lookup key for assets).
   final String? visualThemeId;
+
+  /// Optional authored chunk identity selected for chunk index zero.
+  final String? firstChunkKey;
 
   /// Optional authored chunk assembly scheduler for this level.
   final LevelAssemblyDefinition? _assembly;
@@ -174,6 +186,8 @@ class LevelDefinition {
     int? normalPatternChunks,
     int? noEnemyChunks,
     String? visualThemeId,
+    String? firstChunkKey,
+    bool clearFirstChunkKey = false,
     LevelAssemblyDefinition? assembly,
     bool clearAssembly = false,
   }) {
@@ -189,6 +203,9 @@ class LevelDefinition {
       normalPatternChunks: normalPatternChunks ?? this.normalPatternChunks,
       noEnemyChunks: noEnemyChunks ?? this.noEnemyChunks,
       visualThemeId: visualThemeId ?? this.visualThemeId,
+      firstChunkKey: clearFirstChunkKey
+          ? null
+          : (firstChunkKey ?? this.firstChunkKey),
       assembly: clearAssembly ? null : (assembly ?? this.assembly),
     );
   }
@@ -233,18 +250,29 @@ LevelAssemblyDefinition? _normalizeAssembly({
 ChunkPatternSource _resolveChunkPatternSource(
   ChunkPatternSource baseSource,
   LevelAssemblyDefinition? assembly,
+  String? firstChunkKey,
 ) {
-  if (assembly == null || assembly.segments.isEmpty) {
+  if (baseSource is! ChunkPatternListSource) {
+    if (assembly != null || firstChunkKey != null) {
+      throw StateError(
+        'LevelDefinition assembly and firstChunkKey require a '
+        'ChunkPatternListSource base source.',
+      );
+    }
     return baseSource;
   }
-  if (baseSource is! ChunkPatternListSource) {
-    throw StateError(
-      'LevelDefinition assembly requires a ChunkPatternListSource base source.',
-    );
+  if (assembly == null || assembly.segments.isEmpty) {
+    return firstChunkKey == null
+        ? baseSource
+        : FirstChunkPatternSource(
+            baseSource: baseSource,
+            firstChunkKey: firstChunkKey,
+          );
   }
   return AssembledChunkPatternSource(
     baseSource: baseSource,
     assembly: assembly,
+    firstChunkKey: firstChunkKey,
   );
 }
 

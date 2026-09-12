@@ -26,6 +26,7 @@ final class PolygonTerrainSchedulerLevelSource {
     required this.earlyPatternChunks,
     required this.easyPatternChunks,
     required this.normalPatternChunks,
+    this.firstChunkKey,
     this.includeInBuild = true,
     this.assembly,
   });
@@ -34,6 +35,7 @@ final class PolygonTerrainSchedulerLevelSource {
   final int earlyPatternChunks;
   final int easyPatternChunks;
   final int normalPatternChunks;
+  final String? firstChunkKey;
 
   /// Exclusion skips whole-level readiness, never source or geometry validation.
   final bool includeInBuild;
@@ -282,6 +284,7 @@ TerrainAuthoringSchedulerLevel _schedulerLevel(
   earlyPatternChunks: level.earlyPatternChunks,
   easyPatternChunks: level.easyPatternChunks,
   normalPatternChunks: level.normalPatternChunks,
+  firstChunkKey: level.firstChunkKey,
   assembly: level.assembly == null
       ? null
       : TerrainAuthoringSchedulerAssembly(
