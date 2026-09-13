@@ -95,6 +95,9 @@ starter intent reserves its stable target across failed attempts; reopening an
 already-saved target does not recreate or overwrite it. Starter creation is an
 accepted command with an Undo step before first Save. Save and return reloads
 the originating Level and restores its typed view context.
+These handoffs, the route selector, and Back/Forward share the shell's
+[navigation transaction](editor_navigation.md). The return banner uses the
+earlier matching Level visit when available, preserving Forward navigation.
 
 An unsaveable Level/Parallax origin can retain one mounted document and raw
 buffers while a separate session repairs a dependency. Nested suspension is

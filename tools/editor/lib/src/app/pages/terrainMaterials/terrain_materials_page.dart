@@ -8,6 +8,7 @@ import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_materials/terrain_material_domain_models.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_page_navigation_state.dart';
 import '../shared/editor_list_card.dart';
 import '../shared/editor_panel_card.dart';
 import '../shared/editor_three_panel_layout.dart';
@@ -15,20 +16,35 @@ import '../shared/editor_workspace_card.dart';
 import 'terrain_material_dialog.dart';
 import '../shared/terrain_material_preview.dart';
 
+/// Stable catalog selection, resolved against the current material manifest.
+class TerrainMaterialsLocation extends EditorPageLocation {
+  const TerrainMaterialsLocation(this.materialKey);
+  final String? materialKey;
+}
+
 /// Repository-backed catalog for terrain fill, edge, and cliff-cap visuals.
 class TerrainMaterialsPage extends StatefulWidget {
-  const TerrainMaterialsPage({super.key, required this.controller});
+  const TerrainMaterialsPage({
+    super.key,
+    required this.controller,
+    this.initialLocation,
+  });
 
   final EditorSessionController controller;
+  final TerrainMaterialsLocation? initialLocation;
 
   @override
   State<TerrainMaterialsPage> createState() => _TerrainMaterialsPageState();
 }
 
 class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
-    implements EditorPageSaveHandler {
+    implements EditorPageSaveHandler, EditorPageNavigationState {
   final AtlasGridSettingsCache _gridSettingsCache = AtlasGridSettingsCache();
   String? _selectedKey;
+
+  @override
+  TerrainMaterialsLocation get navigationLocation =>
+      TerrainMaterialsLocation(_selectedKey);
 
   @override
   bool get canSaveEditorPage =>
@@ -47,6 +63,7 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
   @override
   void initState() {
     super.initState();
+    _selectedKey = widget.initialLocation?.materialKey;
     _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
     widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {

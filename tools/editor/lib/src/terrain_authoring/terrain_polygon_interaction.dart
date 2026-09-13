@@ -69,6 +69,13 @@ final class TerrainPolygonSelection {
   final TerrainPolygonSelectionKind kind;
   final int? elementIndex;
 
+  /// Retains this view selection only when its shape and element still exist.
+  /// Navigation may reload changed geometry, so stale indices must be cleared
+  /// before passing a remembered selection to the strict interaction reducer.
+  TerrainPolygonSelection? resolveAgainst(
+    Iterable<TerrainSourceShapeDef> shapes,
+  ) => _selectionExists(shapes, this) ? this : null;
+
   @override
   bool operator ==(Object other) =>
       other is TerrainPolygonSelection &&

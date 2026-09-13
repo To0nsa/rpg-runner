@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../prefab_creator_navigation.dart';
+
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
@@ -19,12 +21,14 @@ class PrefabV3ModuleCatalogWorkspace extends StatefulWidget {
   const PrefabV3ModuleCatalogWorkspace({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.onDraftStateChanged,
     required this.document,
     required this.onEditCollision,
   });
 
   final EditorSessionController controller;
+  final PrefabModuleLocation? initialLocation;
   final VoidCallback? onDraftStateChanged;
   final PrefabV3Document document;
   final ValueChanged<String> onEditCollision;
@@ -49,6 +53,11 @@ class PrefabV3ModuleCatalogWorkspaceState
   bool _hasDraftChanges = false;
 
   bool get hasLocalDraftChanges => _hasDraftChanges;
+
+  PrefabModuleLocation get navigationLocation => PrefabModuleLocation(
+    moduleId: _selectedModuleId,
+    tileSliceId: _selectedTileSliceId,
+  );
 
   /// Accepts the visible form through its normal typed catalog command.
   bool finalizeLocalDraft() {
@@ -139,9 +148,9 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 
   void _initialize(PrefabV3Document document) {
-    _selectedModuleId = document.tileData.platformModules.firstOrNull?.id;
-    _selectedTileSliceId = document.tileData.tileSlices.firstOrNull?.id;
-    _syncForm(_selectedModule(document));
+    _selectedModuleId = widget.initialLocation?.moduleId;
+    _selectedTileSliceId = widget.initialLocation?.tileSliceId;
+    _reconcile(document);
   }
 
   void _reconcile(PrefabV3Document document) {

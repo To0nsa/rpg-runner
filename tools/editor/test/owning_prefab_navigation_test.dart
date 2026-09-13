@@ -1,9 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_location.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_navigation.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
@@ -23,6 +29,152 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  for (final destination in PrefabCreatorDestination.values) {
+    testWidgets('history restores the Chunk after opening $destination', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final root = Directory.systemTemp.createTempSync('editor_history_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final fixture = _navigationFixture();
+      final chunkPlugin = _NavigationChunkPlugin(fixture.chunkDocument);
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(
+          plugins: [
+            _NavigationEntitiesPlugin(),
+            _NavigationPrefabPlugin(fixture.prefabDocument),
+            chunkPlugin,
+          ],
+        ),
+        initialPluginId: ChunkDomainPlugin.pluginId,
+        initialWorkspacePath: root.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(home: EditorHomePage(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('editor_navigation_back')),
+            )
+            .onPressed,
+        isNull,
+      );
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey('chunk_polygon_owner_selector')),
+          )
+          .onChanged!('forest_chunk');
+      await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!({ChunkSceneDomain.prefabs});
+      await tester.pumpAndSettle();
+      final origin =
+          (tester.state(
+                find.byType(ChunkCreatorPage),
+              ) as EditorPageNavigationState).navigationLocation!
+              as ChunkCreatorLocation;
+      tester
+          .widget<ChunkCreatorPage>(find.byType(ChunkCreatorPage))
+          .onOpenPrefabTarget!(
+        PrefabCreatorTarget(
+          prefabKey: 'prefab_target',
+          destination: destination,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final prefabLocation =
+          (tester.state(
+                find.byType(PrefabCreatorPage),
+              ) as EditorPageNavigationState).navigationLocation!
+              as PrefabCreatorLocation;
+      expect(prefabLocation.prefabKey, 'prefab_target');
+      expect(
+        prefabLocation.view,
+        PrefabCreatorLocation.forTarget(
+          PrefabCreatorTarget(
+            prefabKey: 'prefab_target',
+            destination: destination,
+          ),
+        ).view,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('editor_navigation_back')));
+      await tester.pumpAndSettle();
+      final restored =
+          (tester.state(
+                find.byType(ChunkCreatorPage),
+              ) as EditorPageNavigationState).navigationLocation!
+              as ChunkCreatorLocation;
+      expect(restored.chunkKey, origin.chunkKey);
+      expect(restored.domain, origin.domain);
+      expect(restored.zoom, origin.zoom);
+      expect(restored.pan, origin.pan);
+      expect(controller.pendingChanges.hasChanges, isFalse);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      final forward =
+          (tester.state(
+                find.byType(PrefabCreatorPage),
+              ) as EditorPageNavigationState).navigationLocation!
+              as PrefabCreatorLocation;
+      expect(forward.prefabKey, prefabLocation.prefabKey);
+      expect(forward.view, prefabLocation.view);
+
+      await _selectRoute(tester, 'CHUNK CREATOR');
+      expect(
+        tester
+            .widget<DropdownButton<String>>(
+              find.byKey(const ValueKey('chunk_polygon_owner_selector')),
+            )
+            .value,
+        'forest_chunk',
+      );
+      await _selectRoute(tester, 'PREFAB CREATOR');
+      final normal =
+          (tester.state(
+                find.byType(PrefabCreatorPage),
+              ) as EditorPageNavigationState).navigationLocation!
+              as PrefabCreatorLocation;
+      expect(normal.prefabKey, prefabLocation.prefabKey);
+      expect(normal.view, prefabLocation.view);
+      if (destination == PrefabCreatorDestination.collision) {
+        // A dependency journey can outlive a source owner. Re-entry must
+        // reconcile the remembered key with fresh sources, without drafts.
+        chunkPlugin.document = fixture.chunkDocument.copyWith(
+          chunks: [fixture.chunkDocument.chunks.first],
+          sourcePathByChunkKey: {
+            'aaa_chunk':
+                fixture.chunkDocument.sourcePathByChunkKey['aaa_chunk']!,
+          },
+          baselineContentsByChunkKey: {
+            'aaa_chunk':
+                fixture.chunkDocument.baselineContentsByChunkKey['aaa_chunk']!,
+          },
+        );
+        await _selectRoute(tester, 'CHUNK CREATOR');
+        expect(
+          tester
+              .widget<DropdownButton<String>>(
+                find.byKey(const ValueKey('chunk_polygon_owner_selector')),
+              )
+              .value,
+          'aaa_chunk',
+        );
+        expect(controller.pendingChanges.hasChanges, isFalse);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets(
     'placed prefab opens its exact atlas slice without using the legacy loader',
     (tester) async {
@@ -228,12 +380,19 @@ _NavigationFixture _navigationFixture() {
     collisionShapes: const <TerrainSourceShapeDef>[],
   );
   final chunkDocument = ChunkV2Document(
-    chunks: <ChunkV2FileData>[chunk],
+    chunks: <ChunkV2FileData>[
+      chunk.copyWith(chunkKey: 'aaa_chunk', id: 'aaa_chunk'),
+      chunk,
+    ],
     sourcePathByChunkKey: const <String, String>{
       'forest_chunk': 'chunks/forest_chunk.json',
+      'aaa_chunk': 'chunks/aaa_chunk.json',
     },
     baselineContentsByChunkKey: <String, String>{
       'forest_chunk': ChunkV2FileCodec.encode(chunk),
+      'aaa_chunk': ChunkV2FileCodec.encode(
+        chunk.copyWith(chunkKey: 'aaa_chunk', id: 'aaa_chunk'),
+      ),
     },
     prefabData: prefabData,
     tileData: tileData,
@@ -308,9 +467,9 @@ final class _NavigationPrefabPlugin extends PrefabDomainPlugin {
 }
 
 final class _NavigationChunkPlugin implements AuthoringDomainPlugin {
-  const _NavigationChunkPlugin(this.document);
+  _NavigationChunkPlugin(this.document);
 
-  final ChunkV2Document document;
+  ChunkV2Document document;
   static final ChunkDomainPlugin _delegate = ChunkDomainPlugin();
 
   @override

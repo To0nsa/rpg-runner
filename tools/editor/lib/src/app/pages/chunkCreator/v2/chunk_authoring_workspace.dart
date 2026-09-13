@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import '../chunk_creator_location.dart';
+
 import 'package:flutter/material.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
@@ -78,6 +80,7 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
   const ChunkAuthoringWorkspace({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.onDraftStateChanged,
     this.onOpenPrefabTarget,
     this.onPlayRequested,
@@ -85,6 +88,7 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
   });
 
   final EditorSessionController controller;
+  final ChunkCreatorLocation? initialLocation;
   final VoidCallback? onDraftStateChanged;
 
   /// Opens a placed prefab in a specific Prefab Creator workflow.
@@ -184,6 +188,23 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   /// Stable selected owner used when the route captures a playtest snapshot.
   String? get selectedChunkKey => _selectedChunkKey;
+
+  /// Captures view identity only; restoration resolves placement keys anew.
+  ChunkCreatorLocation get navigationLocation => ChunkCreatorLocation(
+    levelId: _sceneOrNull?.activeLevelId,
+    chunkKey: _selectedChunkKey,
+    zoom: _zoom,
+    pan: _pan,
+    domain: _sceneCoordinator.sourceDomain,
+    prefabSelectionKey: _sceneCoordinator.selectedPrefabKey,
+    markerSelectionKey: _sceneCoordinator.selectedMarkerKey,
+    waterId: _sceneCoordinator.selectedWaterId,
+    showGrid: _showGrid,
+    showShapeEdges: _showShapeEdges,
+    visualPreview: _visualPreview,
+    terrainSelection: _authoring?.state.selection,
+    terrainTool: _authoring?.state.tool ?? TerrainPolygonTool.select,
+  );
 
   /// Current fail-closed capture readiness; inspector text can be finalized by
   /// the Play request before the route checks this snapshot again.
@@ -367,6 +388,46 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _exactEditController.addListener(_handleExactEditChanged);
     _reloadMaterialCatalog();
     _selectInitialOwner();
+    _restoreLocation();
+  }
+
+  void _restoreLocation() {
+    final location = widget.initialLocation;
+    final chunk = _authoring?.chunk;
+    if (location == null ||
+        chunk == null ||
+        chunk.chunkKey != location.chunkKey) {
+      return;
+    }
+    _zoom = location.zoom;
+    _pan = location.pan;
+    _showGrid = location.showGrid;
+    _showShapeEdges = location.showShapeEdges;
+    _visualPreview = location.visualPreview;
+    final prefabKey = location.prefabSelectionKey;
+    final markerKey = location.markerSelectionKey;
+    _sceneCoordinator.selectPrefab(
+      prefabKey == null
+          ? null
+          : resolveChunkPrefabSelection(chunk.prefabs, prefabKey),
+    );
+    _sceneCoordinator.selectMarker(
+      markerKey == null
+          ? null
+          : resolveChunkMarkerSelection(chunk.markers, markerKey),
+    );
+    _bindWaterSelection(location.waterId);
+    _sceneCoordinator.reconcileComposition(chunk);
+    _sceneCoordinator.setSourceDomain(location.domain);
+    final authoring = _authoring!;
+    authoring.removeListener(_handleAuthoringChanged);
+    authoring.setTool(location.terrainTool);
+    authoring.select(
+      location.terrainSelection?.resolveAgainst(authoring.state.shapes),
+    );
+    authoring.addListener(_handleAuthoringChanged);
+    _sceneCoordinator.selectTerrain(authoring.state.selection);
+    _authoringUiFingerprint = _buildAuthoringUiFingerprint(authoring);
   }
 
   @override
@@ -2932,7 +2993,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final chunks = List<ChunkV2FileData>.of(scene.chunks)
       ..sort(compareChunkOwners);
     final requested = chunks
-        .where((chunk) => chunk.chunkKey == scene.selectedChunkKey)
+        .where(
+          (chunk) =>
+              chunk.chunkKey ==
+              (widget.initialLocation?.chunkKey ?? scene.selectedChunkKey),
+        )
         .firstOrNull;
     final owner = requested ?? chunks.firstOrNull;
     if (owner != null) {

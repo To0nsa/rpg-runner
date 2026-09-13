@@ -16,6 +16,7 @@ import '../../../parallax/parallax_domain_models.dart';
 import '../../../playtest/authored_playtest_preparation.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_page_navigation_state.dart';
 import '../shared/authored_playtest_session.dart';
 import '../parallaxEditor/widgets/parallax_preview_view.dart';
 import '../shared/editor_workspace_card.dart';
@@ -74,7 +75,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         EditorPageReloadHandler,
         EditorPagePendingChangesSummary,
         EditorPagePlaytestHandler,
-        LevelCreatorNavigationState {
+        EditorPageNavigationState {
   final TextEditingController _newLevelNameController = TextEditingController();
   final TextEditingController _newLevelIdController = TextEditingController();
   final TextEditingController _newVisualThemeIdController =
@@ -585,6 +586,9 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       _selectedChunkKey = initial.selectedChunkKey;
       _groupFilter = initial.groupFilter;
       _previewSeed = initial.previewSeed;
+      _librarySearch.text = initial.librarySearch;
+      _chunkSearch.text = initial.chunkSearch;
+      _showLevelSettings = initial.showLevelSettings;
     }
     _previewSeedController.text = '$_previewSeed';
     _playtest.addListener(_handlePlaytestChanged);
@@ -626,7 +630,11 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         _previewSeedController.text = '$_previewSeed';
       }
       _restoringView = false;
-      await widget.controller.loadWorkspace();
+      if (widget.controller.document is LevelDefsDocument) {
+        _handleControllerChanged();
+      } else {
+        await widget.controller.loadWorkspace();
+      }
     });
   }
 
@@ -1360,10 +1368,14 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     selectedSegmentId: _selectedAssemblySegment?.segmentId,
     groupFilter: _groupFilter,
     previewSeed: _previewSeed,
+    librarySearch: _librarySearch.text,
+    chunkSearch: _chunkSearch.text,
+    showLevelSettings: _showLevelSettings,
   );
 
   @override
-  LevelCreatorReturnContext get returnContext => _returnContext;
+  LevelCreatorReturnContext? get navigationLocation =>
+      _selectedLevelId == null ? null : _returnContext;
 
   Future<void> _openChunk(
     LevelCreatorChunkIntent intent, {

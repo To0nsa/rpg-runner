@@ -9,6 +9,7 @@ import '../../../parallax/parallax_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../workspace/editor_workspace.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_page_navigation_state.dart';
 import '../shared/editor_scene_view_utils.dart';
 import '../shared/editor_panel_card.dart';
 import '../shared/editor_list_card.dart';
@@ -16,16 +17,41 @@ import '../shared/editor_workspace_card.dart';
 import 'parallax_asset_file_picker.dart';
 import 'widgets/parallax_preview_view.dart';
 
+/// Level/theme/layer selection without retaining editable layer values.
+class ParallaxEditorLocation extends EditorPageLocation {
+  const ParallaxEditorLocation({this.levelId, this.themeId, this.layerKey});
+  final String? levelId;
+  final String? themeId;
+  final String? layerKey;
+
+  @override
+  AuthoringDocument restoreDocumentSelection(
+    AuthoringDomainPlugin plugin,
+    AuthoringDocument document,
+  ) {
+    if (document is! ParallaxDefsDocument ||
+        !document.availableLevelIds.contains(levelId)) {
+      return document;
+    }
+    return plugin.applyEdit(
+      document,
+      AuthoringCommand(kind: 'set_active_level', payload: {'levelId': levelId}),
+    );
+  }
+}
+
 class ParallaxEditorPage extends StatefulWidget {
   const ParallaxEditorPage({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.previewBuilder,
     this.assetFilePicker = pickParallaxAssetFilePath,
     this.onShellStateChanged,
   });
 
   final EditorSessionController controller;
+  final ParallaxEditorLocation? initialLocation;
   final Widget Function({
     required String workspaceRootPath,
     required ParallaxThemeDef? theme,
@@ -41,6 +67,7 @@ class ParallaxEditorPage extends StatefulWidget {
 class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     implements
         EditorPageLocalDraftState,
+        EditorPageNavigationState,
         EditorPageSaveHandler,
         EditorPageSessionShortcutHandler,
         EditorPageReloadHandler {
@@ -60,6 +87,16 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   bool _syncingInspector = false;
   bool _shellNotificationPending = false;
   String? _inputError;
+
+  @override
+  ParallaxEditorLocation get navigationLocation => ParallaxEditorLocation(
+    levelId: switch (widget.controller.document) {
+      ParallaxDefsDocument(:final activeLevelId) => activeLevelId,
+      _ => null,
+    },
+    themeId: _selectedParallaxThemeId,
+    layerKey: _selectedLayerKey,
+  );
 
   List<TextEditingController> get _draftControllers => [
     _layerKeyController,
@@ -133,6 +170,8 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   @override
   void initState() {
     super.initState();
+    _selectedParallaxThemeId = widget.initialLocation?.themeId;
+    _selectedLayerKey = widget.initialLocation?.layerKey;
     for (final controller in _draftControllers) {
       controller.addListener(_handleDraftChanged);
     }

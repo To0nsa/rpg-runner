@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
@@ -166,9 +167,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Section settings'), findsOneWidget);
       expect(
-        (tester.state(
-          find.byType(LevelCreatorPage),
-        ) as LevelCreatorNavigationState).returnContext.selectedSegmentId,
+        ((tester.state(
+                  find.byType(LevelCreatorPage),
+                ) as EditorPageNavigationState).navigationLocation!
+                as LevelCreatorReturnContext)
+            .selectedSegmentId,
         'second',
       );
       expect(

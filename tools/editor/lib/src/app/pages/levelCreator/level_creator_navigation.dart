@@ -1,18 +1,17 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../domain/authoring_types.dart';
+import '../../../levels/level_domain_models.dart';
+import '../shared/editor_page_navigation_state.dart';
+
 /// Workspace views remain transient and never enter authored Level data.
 enum LevelCreatorTab { contents, flow, appearance }
-
-/// The shell reads transient navigation state before a guarded domain handoff.
-abstract interface class LevelCreatorNavigationState {
-  LevelCreatorReturnContext get returnContext;
-}
 
 /// The editor restores this context after a domain-owned content save.
 /// Stable source IDs are revalidated by the destination; missing items may be
 /// cleared without changing the selected Level's authored content.
 @immutable
-class LevelCreatorReturnContext {
+class LevelCreatorReturnContext extends EditorPageLocation {
   const LevelCreatorReturnContext({
     required this.levelId,
     this.tab = LevelCreatorTab.contents,
@@ -20,6 +19,9 @@ class LevelCreatorReturnContext {
     this.selectedSegmentId,
     this.groupFilter,
     this.previewSeed = 4401,
+    this.librarySearch = '',
+    this.chunkSearch = '',
+    this.showLevelSettings = true,
   });
 
   final String levelId;
@@ -28,6 +30,24 @@ class LevelCreatorReturnContext {
   final String? selectedSegmentId;
   final String? groupFilter;
   final int previewSeed;
+  final String librarySearch;
+  final String chunkSearch;
+  final bool showLevelSettings;
+
+  @override
+  AuthoringDocument restoreDocumentSelection(
+    AuthoringDomainPlugin plugin,
+    AuthoringDocument document,
+  ) {
+    if (document is! LevelDefsDocument ||
+        findLevelDefById(document.levels, levelId) == null) {
+      return document;
+    }
+    return plugin.applyEdit(
+      document,
+      AuthoringCommand(kind: 'set_active_level', payload: {'levelId': levelId}),
+    );
+  }
 }
 
 /// A flat starter is distinct from normal empty/deprecated Chunk creation.

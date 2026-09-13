@@ -13,6 +13,7 @@ import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_page_navigation_state.dart';
 import '../shared/editor_panel_card.dart';
 import '../shared/editor_scene_viewport_frame.dart';
 import '../shared/editor_scene_view_utils.dart';
@@ -38,14 +39,36 @@ part 'state/entities_editor_selection.dart';
 part 'state/entities_editor_apply.dart';
 part 'panels/entities_editor_status_panels.dart';
 
+/// Entity identity, library filters, and preview state for shell navigation.
+class EntitiesEditorLocation extends EditorPageLocation {
+  const EntitiesEditorLocation({
+    this.entryId,
+    this.search = '',
+    this.typeFilter,
+    this.dirtyOnly = false,
+    this.zoom = 1,
+    this.animationKey,
+    this.animationFrame = 0,
+  });
+  final String? entryId;
+  final String search;
+  final EntityType? typeFilter;
+  final bool dirtyOnly;
+  final double zoom;
+  final String? animationKey;
+  final int animationFrame;
+}
+
 class EntitiesEditorPage extends StatefulWidget {
   const EntitiesEditorPage({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.onShellStateChanged,
   });
 
   final EditorSessionController controller;
+  final EntitiesEditorLocation? initialLocation;
   final VoidCallback? onShellStateChanged;
 
   @override
@@ -53,7 +76,10 @@ class EntitiesEditorPage extends StatefulWidget {
 }
 
 class _EntitiesEditorPageState extends State<EntitiesEditorPage>
-    implements EditorPageLocalDraftState, EditorPageSaveHandler {
+    implements
+        EditorPageLocalDraftState,
+        EditorPageSaveHandler,
+        EditorPageNavigationState {
   // Controllers are page-owned draft state. We only persist through
   // plugin/controller command paths, never directly from widget fields.
   late final TextEditingController _halfXController;
@@ -86,6 +112,17 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
   _SceneHandleDrag? _sceneHandleDrag;
   EntityEntry? _inspectorDraftBaseline;
   final EditorUiImageCache _referenceImageCache = EditorUiImageCache();
+
+  @override
+  EntitiesEditorLocation get navigationLocation => EntitiesEditorLocation(
+    entryId: _selectedEntryId,
+    search: _searchQuery,
+    typeFilter: _entityTypeFilter,
+    dirtyOnly: _showDirtyOnly,
+    zoom: _sceneZoom,
+    animationKey: _sceneAnimKey,
+    animationFrame: _sceneAnimFrameIndex,
+  );
 
   @override
   // Used by route/session orchestration to guard unsaved draft prompts.
@@ -179,11 +216,20 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     ]) {
       field.addListener(_notifyDraftChanged);
     }
-    _searchController = TextEditingController();
+    final location = widget.initialLocation;
+    _selectedEntryId = location?.entryId;
+    _searchQuery = location?.search ?? '';
+    _entityTypeFilter = location?.typeFilter;
+    _showDirtyOnly = location?.dirtyOnly ?? false;
+    _sceneZoom = location?.zoom ?? 1;
+    _sceneAnimKey = location?.animationKey;
+    _sceneAnimFrameIndex = location?.animationFrame ?? 0;
+    _searchController = TextEditingController(text: _searchQuery);
     _sceneHorizontalScrollController = ScrollController();
     _sceneVerticalScrollController = ScrollController();
     widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       if (widget.controller.document == null) {
         widget.controller.loadWorkspace();
       } else if (_reconcileSelectionsFromCurrentState()) {

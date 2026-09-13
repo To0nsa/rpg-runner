@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../prefab_creator_navigation.dart';
+
 import 'package:path/path.dart' as p;
 
 import '../../../../atlas/atlas_grid.dart';
@@ -40,6 +43,7 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
   const PrefabV3AtlasCatalogWorkspace({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.onDraftStateChanged,
     required this.document,
     required this.atlasImageFilePicker,
@@ -47,6 +51,7 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
   });
 
   final EditorSessionController controller;
+  final PrefabAtlasLocation? initialLocation;
   final VoidCallback? onDraftStateChanged;
   final PrefabV3Document document;
   final AtlasImageFilePicker atlasImageFilePicker;
@@ -89,6 +94,13 @@ class PrefabV3AtlasCatalogWorkspaceState
   bool _hasDraftChanges = false;
 
   bool get hasLocalDraftChanges => _hasDraftChanges;
+
+  PrefabAtlasLocation get navigationLocation => PrefabAtlasLocation(
+    kind: _selectedSliceKind,
+    sourcePath: _atlasState.selectedSourcePath,
+    prefabSliceId: _selectedPrefabSliceId,
+    tileSliceId: _selectedTileSliceId,
+  );
 
   /// Accepts the visible form through its normal typed catalog command.
   bool finalizeLocalDraft() {
@@ -245,8 +257,14 @@ class PrefabV3AtlasCatalogWorkspaceState
   void _initialize(PrefabV3Document document) {
     _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
     _atlasState = AtlasSelectionState(
-      selectedSourcePath: document.atlasImagePaths.firstOrNull,
+      selectedSourcePath:
+          widget.initialLocation?.sourcePath ??
+          document.atlasImagePaths.firstOrNull,
     );
+    _selectedSliceKind = widget.initialLocation?.kind ?? AtlasSliceKind.prefab;
+    _selectedPrefabSliceId = widget.initialLocation?.prefabSliceId;
+    _selectedTileSliceId = widget.initialLocation?.tileSliceId;
+    _reconcile(document);
     _selectRequestedPrefabSlice(document, notify: false);
     _syncSelectedDraft(document);
   }

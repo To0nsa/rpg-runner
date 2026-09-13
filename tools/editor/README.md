@@ -2,6 +2,15 @@
 
 Standalone authoring tool for `rpg_runner` content workflows.
 
+Use **Back / Forward** in the shared toolbar, or **Alt+Left / Alt+Right**, to
+return through your editing journey. Opening a prefab, collision, or atlas from
+a Chunk lets you return to the same Chunk and scene view. Choosing a tool from
+the page selector also resumes its last open item. This works across all six
+tools; navigation locations are remembered for the current editor session.
+Save/Discard/Cancel still protects edits, and returning reads current saved
+sources so dependency changes appear immediately. Navigation is separate from
+Undo/Redo. See the [navigation contract](../../docs/tdd/editor_navigation.md).
+
 This app is intentionally separate from gameplay runtime authority. Core gameplay
 truth remains in `packages/runner_core/lib/**`.
 

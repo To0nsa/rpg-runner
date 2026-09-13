@@ -33,7 +33,7 @@ store owners.
 ## Shared action toolbar
 
 `EditorHomePage` owns the single toolbar rendered above every top-level route:
-page selector, Reload, Save, Undo, Redo, and repository Build. Route pages do not
+Back/Forward, page selector, Reload, Save, Undo, Redo, and repository Build. Route pages do not
 render duplicate copies of those actions. A trailing status area projects the
 session's loading/exporting state, pending item/file counts, pending-summary
 failure, and validation counts without introducing route-specific meaning.
@@ -53,6 +53,11 @@ The shell owns one `ContentBuildService` for generated outputs, using the root
 generator's captured-input and atomic writer contracts. Build resolves Save or
 Discard first, locks source actions, and reports independent generated freshness.
 See [Build contracts](editor_content_build.md).
+
+The shell also owns one guarded navigation history and the last location per
+tool. Pages provide typed view snapshots through `EditorPageNavigationState`;
+returning reloads current sources and restores stable selections without
+retaining draft documents. See [navigation contracts](editor_navigation.md).
 
 `EditorThreePanelLayout` keeps all three subtrees mounted at wide and narrow
 widths. Narrow tab visibility uses Offstage/TickerMode/ExcludeFocus; it does not

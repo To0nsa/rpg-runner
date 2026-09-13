@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
 import 'package:runner_editor/src/app/pages/levelCreator/level_creator_navigation.dart';
@@ -136,12 +137,13 @@ void main() {
       );
       final navigation = tester.state(
         find.byType(LevelCreatorPage),
-      ) as LevelCreatorNavigationState;
+      ) as EditorPageNavigationState;
       final request = page.onOpenChunk!(
         LevelCreatorChunkTarget(
           levelId: created.levelId,
           intent: LevelCreatorChunkIntent.flatStarter,
-          returnContext: navigation.returnContext,
+          returnContext:
+              navigation.navigationLocation! as LevelCreatorReturnContext,
         ),
       );
       await _drain(

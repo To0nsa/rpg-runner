@@ -9,6 +9,8 @@ import '../../../playtest/authored_playtest_preparation.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_page_navigation_state.dart';
+import 'chunk_creator_location.dart';
 import '../shared/authored_playtest_session.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
 import '../prefabCreator/prefab_creator_navigation.dart';
@@ -23,6 +25,7 @@ class ChunkCreatorPage extends StatefulWidget {
   const ChunkCreatorPage({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.onOpenPrefabTarget,
     this.onShellStateChanged,
     this.playtestPlatformSupported,
@@ -31,6 +34,7 @@ class ChunkCreatorPage extends StatefulWidget {
   });
 
   final EditorSessionController controller;
+  final ChunkCreatorLocation? initialLocation;
 
   /// Delegates exact Prefab Creator navigation to the owning app shell.
   final ValueChanged<PrefabCreatorTarget>? onOpenPrefabTarget;
@@ -54,6 +58,7 @@ class ChunkCreatorPage extends StatefulWidget {
 class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     implements
         EditorPageLocalDraftState,
+        EditorPageNavigationState,
         EditorPageSessionShortcutHandler,
         EditorPageReloadHandler,
         EditorPageSaveHandler,
@@ -63,6 +68,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   final AuthoredPlaytestSession _playtest = AuthoredPlaytestSession();
   bool _finalizingForPlay = false;
+
+  @override
+  ChunkCreatorLocation? get navigationLocation =>
+      _workspaceKey.currentState?.navigationLocation;
 
   bool get _migrationRequired =>
       widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
@@ -198,6 +207,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             child: IgnorePointer(
               ignoring: !isEditing,
               child: ChunkAuthoringWorkspace(
+                initialLocation: widget.initialLocation,
                 key: _workspaceKey,
                 onDraftStateChanged: widget.onShellStateChanged,
                 controller: widget.controller,

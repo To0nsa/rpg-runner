@@ -23,6 +23,154 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('history Cancel and failed Save preserve Forward and drafts', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final entities = _FakeDirtyEntitiesPlugin(
+      initialDirty: false,
+      exportOutcome: ExportOutcome.validationFailed,
+    );
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: [entities, _FakePrefabPlugin()],
+      ),
+      initialPluginId: entities.id,
+      initialWorkspacePath: '.',
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    await _historySelectRoute(tester, 'PREFAB CREATOR');
+    await tester.tap(find.byKey(const ValueKey('editor_navigation_back')));
+    await tester.pumpAndSettle();
+    controller.applyCommand(AuthoringCommand(kind: 'mark_dirty'));
+    await tester.pumpAndSettle();
+    final dirtyDocument = controller.document;
+    for (final choice in ['Cancel', 'Save all changes']) {
+      await tester.tap(find.byKey(const ValueKey('editor_navigation_forward')));
+      await tester.pumpAndSettle();
+      expect(find.text('Unsaved changes'), findsOneWidget);
+      await tester.tap(find.text(choice));
+      await tester.pumpAndSettle();
+      expect(controller.document, same(dirtyDocument));
+      expect(controller.pendingChanges.hasChanges, isTrue);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('editor_navigation_back')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('editor_navigation_forward')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    }
+    await tester.tap(find.byKey(const ValueKey('editor_navigation_forward')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard all changes'));
+    await tester.pumpAndSettle();
+    expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
+    expect(controller.pendingChanges.hasChanges, isFalse);
+  });
+
+  testWidgets('failed destination load leaves active page and history intact', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final prefab = _HistoryPrefabPlugin();
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: [_FakeEntitiesPlugin(), prefab],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    await _historySelectRoute(tester, 'PREFAB CREATOR');
+    await tester.tap(find.byKey(const ValueKey('editor_navigation_back')));
+    await tester.pumpAndSettle();
+    final origin = controller.document;
+    prefab.fail = true;
+    await tester.tap(find.byKey(const ValueKey('editor_navigation_forward')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isA<StateError>());
+    expect(controller.document, same(origin));
+    expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('editor_navigation_forward')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    prefab.fail = false;
+    await tester.tap(find.byKey(const ValueKey('editor_navigation_forward')));
+    await tester.pumpAndSettle();
+    expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
+  });
+
+  testWidgets('workspace replacement clears history and remounts the route', (
+    tester,
+  ) async {
+    final controllers = [
+      for (final path in ['workspace_one', 'workspace_two'])
+        EditorSessionController(
+          pluginRegistry: AuthoringPluginRegistry(
+            plugins: [_FakeEntitiesPlugin(), _FakePrefabPlugin()],
+          ),
+          initialPluginId: EntityDomainPlugin.pluginId,
+          initialWorkspacePath: path,
+        ),
+    ];
+    addTearDown(() {
+      for (final controller in controllers) {
+        controller.dispose();
+      }
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controllers.first)),
+    );
+    await tester.pumpAndSettle();
+    await _historySelectRoute(tester, 'PREFAB CREATOR');
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controllers.last)),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('editor_navigation_back')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('editor_navigation_forward')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(controllers.last.selectedPluginId, EntityDomainPlugin.pluginId);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'committed Save with failed refresh can close without writing twice',
     (tester) async {
@@ -642,6 +790,23 @@ void main() {
     expect(controller.pendingChanges.hasChanges, isTrue);
     expect(controller.canUndo, isTrue);
   });
+}
+
+Future<void> _historySelectRoute(WidgetTester tester, String label) async {
+  await tester.tap(find.byType(DropdownButton<String>).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
+class _HistoryPrefabPlugin extends _FakePrefabPlugin {
+  bool fail = false;
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    if (fail) throw StateError('Destination is unavailable');
+    return super.loadFromRepo(workspace);
+  }
 }
 
 class _FakeEntitiesPlugin implements AuthoringDomainPlugin {

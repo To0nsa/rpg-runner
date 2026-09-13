@@ -101,6 +101,10 @@ reading five other files first.
 - route/plugin mapping and session-coherent route switching:
   - `tools/editor/lib/src/app/pages/home/home_routes.dart`
   - `tools/editor/lib/src/app/pages/home/editor_home_page.dart`
+- shell navigation history and page-owned view snapshots:
+  - `tools/editor/lib/src/app/pages/home/editor_navigation_history.dart`
+  - `tools/editor/lib/src/app/pages/shared/editor_page_navigation_state.dart`
+  - `docs/tdd/editor_navigation.md`
 - shared scene/view primitives:
   - `tools/editor/lib/src/app/pages/shared/**`
 - shared Save, local-buffer, and pending-resolution contracts:
@@ -364,6 +368,10 @@ When adding a new plugin-backed authoring domain:
 2. Register the plugin in `runner_editor_app.dart`.
 3. Wire route/plugin mapping in `home_routes.dart`.
 4. Ensure route switching remains session-coherent in `editor_home_page.dart`.
+   Use its shared navigation transaction for new source links and implement
+   `EditorPageNavigationState` for every route. Locations retain stable IDs and
+   view values, never draft documents; reconcile them against freshly loaded
+   sources. Keep Back/Forward separate from content Undo/Redo.
 5. Keep page-local UI state as a projection over plugin-owned document state,
    not as a second persistence authority.
 6. Add or adjust focused tests for load/edit/export and route/workspace

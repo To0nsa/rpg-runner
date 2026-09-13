@@ -9,6 +9,7 @@ import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_materials/terrain_material_domain_plugin.dart';
 import '../chunkCreator/chunk_creator_page.dart';
+import '../chunkCreator/chunk_creator_location.dart';
 import '../entities/entities_editor_page.dart';
 import '../levelCreator/level_creator_page.dart';
 import '../levelCreator/level_creator_navigation.dart';
@@ -16,6 +17,7 @@ import '../parallaxEditor/parallax_editor_page.dart';
 import '../prefabCreator/prefab_creator_page.dart';
 import '../prefabCreator/prefab_creator_navigation.dart';
 import '../terrainMaterials/terrain_materials_page.dart';
+import '../shared/editor_page_navigation_state.dart';
 
 /// Defines one top-level page shown in the editor home shell.
 ///
@@ -53,13 +55,12 @@ class EditorHomeRoute {
 /// Shell-owned navigation capabilities exposed to domain route pages.
 ///
 /// Domain pages can request a guarded transition without owning route or
-/// plugin-session state. The optional prefab target is consumed only by the
-/// Prefab-v3 surface as its initial owner and workflow selection.
+/// plugin-session state. The initial location is consumed by the matching route
+/// only after its document has been loaded and its session selection restored.
 @immutable
 class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({
-    this.initialPrefabTarget,
-    this.initialLevelReturnContext,
+    this.initialLocation,
     this.onOpenChunkForLevel,
     this.onShellStateChanged,
     this.onRepairDependency,
@@ -67,9 +68,7 @@ class EditorHomeRouteNavigation {
     this.onOpenParallaxForLevel,
   });
 
-  /// Stable Prefab-v3 owner and workflow to select after guarded navigation.
-  final PrefabCreatorTarget? initialPrefabTarget;
-  final LevelCreatorReturnContext? initialLevelReturnContext;
+  final EditorPageLocation? initialLocation;
   final Future<bool> Function(LevelCreatorChunkTarget)? onOpenChunkForLevel;
 
   /// Requests a shell-control rebuild after page-owned lock state changes.
@@ -139,6 +138,7 @@ Widget _buildEntitiesPage({
   required EditorHomeRouteNavigation navigation,
 }) {
   return EntitiesEditorPage(
+    initialLocation: navigation.initialLocation as EntitiesEditorLocation?,
     key: key,
     controller: controller,
     onShellStateChanged: navigation.onShellStateChanged,
@@ -153,7 +153,7 @@ Widget _buildPrefabCreatorPage({
   return PrefabCreatorPage(
     key: key,
     controller: controller,
-    initialTarget: navigation.initialPrefabTarget,
+    initialLocation: navigation.initialLocation as PrefabCreatorLocation?,
     onShellStateChanged: navigation.onShellStateChanged,
   );
 }
@@ -164,6 +164,7 @@ Widget _buildChunkCreatorPage({
   required EditorHomeRouteNavigation navigation,
 }) {
   return ChunkCreatorPage(
+    initialLocation: navigation.initialLocation as ChunkCreatorLocation?,
     key: key,
     controller: controller,
     onShellStateChanged: navigation.onShellStateChanged,
@@ -182,7 +183,8 @@ Widget _buildLevelCreatorPage({
     onShellStateChanged: navigation.onShellStateChanged,
     onOpenInParallax: navigation.onOpenParallaxForLevel,
     onOpenChunk: navigation.onOpenChunkForLevel,
-    initialReturnContext: navigation.initialLevelReturnContext,
+    initialReturnContext:
+        navigation.initialLocation as LevelCreatorReturnContext?,
     onRepairDependency: navigation.onRepairDependency,
   );
 }
@@ -193,6 +195,7 @@ Widget _buildParallaxEditorPage({
   required EditorHomeRouteNavigation navigation,
 }) {
   return ParallaxEditorPage(
+    initialLocation: navigation.initialLocation as ParallaxEditorLocation?,
     key: key,
     controller: controller,
     onShellStateChanged: navigation.onShellStateChanged,
@@ -204,5 +207,9 @@ Widget _buildTerrainMaterialsPage({
   required EditorSessionController controller,
   required EditorHomeRouteNavigation navigation,
 }) {
-  return TerrainMaterialsPage(key: key, controller: controller);
+  return TerrainMaterialsPage(
+    key: key,
+    controller: controller,
+    initialLocation: navigation.initialLocation as TerrainMaterialsLocation?,
+  );
 }

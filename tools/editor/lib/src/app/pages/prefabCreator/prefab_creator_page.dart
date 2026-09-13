@@ -4,6 +4,7 @@ import '../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_page_navigation_state.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
 import 'atlas_slicer/atlas_image_file_picker.dart';
 import 'prefab_creator_navigation.dart';
@@ -18,6 +19,7 @@ class PrefabCreatorPage extends StatefulWidget {
   const PrefabCreatorPage({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.initialTarget,
     this.initialPrefabKey,
     this.onShellStateChanged,
@@ -25,6 +27,7 @@ class PrefabCreatorPage extends StatefulWidget {
   }) : assert(initialTarget == null || initialPrefabKey == null);
 
   final EditorSessionController controller;
+  final PrefabCreatorLocation? initialLocation;
   final VoidCallback? onShellStateChanged;
 
   /// Stable owner and workflow requested by guarded cross-route navigation.
@@ -43,11 +46,16 @@ class PrefabCreatorPage extends StatefulWidget {
 class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     implements
         EditorPageLocalDraftState,
+        EditorPageNavigationState,
         EditorPageSessionShortcutHandler,
         EditorPageReloadHandler,
         EditorPageSaveHandler {
   final GlobalKey<PrefabPolygonWorkspaceState> _workspaceKey =
       GlobalKey<PrefabPolygonWorkspaceState>();
+
+  @override
+  PrefabCreatorLocation? get navigationLocation =>
+      _workspaceKey.currentState?.navigationLocation;
 
   bool get _migrationRequired =>
       widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
@@ -145,6 +153,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     }
     if (scene is PrefabV3Scene) {
       return PrefabPolygonWorkspace(
+        initialLocation: widget.initialLocation,
         key: _workspaceKey,
         onDraftStateChanged: widget.onShellStateChanged,
         controller: widget.controller,

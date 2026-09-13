@@ -12,7 +12,6 @@ import '../../../chunks/chunk_level_target.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../domain/authoring_dependency_repair.dart';
 import '../../../levels/level_domain_models.dart';
-import '../../../levels/level_domain_plugin.dart';
 import '../levelCreator/level_creator_navigation.dart';
 import '../prefabCreator/prefab_creator_navigation.dart';
 import '../shared/authoring_conflict_dialog.dart';
@@ -22,6 +21,9 @@ import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_pending_changes_dialog.dart';
 import 'home_routes.dart';
+import 'editor_navigation_history.dart';
+import '../shared/editor_page_navigation_state.dart';
+import '../../../workspace/editor_workspace.dart';
 
 /// Top-level editor shell that coordinates route selection around one shared
 /// [EditorSessionController].
@@ -62,12 +64,14 @@ class _EditorHomePageState extends State<EditorHomePage> {
   bool _isShowingDiscardDialog = false;
   bool _isSavingCurrentPage = false;
   String _selectedRouteId = entitiesRouteId;
-  PrefabCreatorTarget? _initialPrefabTarget;
+  EditorPageLocation? _initialLocation;
+  late final EditorNavigationHistory _navigationHistory;
+  bool _isNavigating = false;
   LevelCreatorReturnContext? _levelReturnContext;
-  LevelCreatorReturnContext? _restoreLevelContext;
   ChunkFlatStarterIntent? _pendingStarterIntent;
   EditorSessionController? _repairController;
   String? _repairOriginRouteId;
+  EditorPageLocation? _repairOriginLocation;
   bool _repairTransition = false;
 
   EditorSessionController get _controller =>
@@ -88,6 +92,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
             .firstOrNull
             ?.id ??
         entitiesRouteId;
+    _navigationHistory = EditorNavigationHistory(
+      EditorNavigationLocation(routeId: _selectedRouteId),
+    );
     _routeBindings = <String, _EditorHomeRouteBinding>{
       for (final route in homeRoutes)
         route.id: _EditorHomeRouteBinding(route: route, pageKey: GlobalKey()),
@@ -106,6 +113,36 @@ class _EditorHomePageState extends State<EditorHomePage> {
       _syncPluginForRoute(_selectedRouteId);
       _updateBuildDirty();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant EditorHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.controller, widget.controller)) return;
+    oldWidget.controller.removeListener(_updateBuildDirty);
+    widget.controller.addListener(_updateBuildDirty);
+    _repairController?.dispose();
+    _repairController = null;
+    _repairOriginRouteId = null;
+    _repairOriginLocation = null;
+    _initialLocation = null;
+    _levelReturnContext = null;
+    _pendingStarterIntent = null;
+    _selectedRouteId = homeRoutes
+        .firstWhere(
+          (route) => route.pluginId == widget.controller.selectedPluginId,
+        )
+        .id;
+    _navigationHistory.reset(
+      EditorNavigationLocation(routeId: _selectedRouteId),
+    );
+    for (final route in homeRoutes) {
+      _routeBindings[route.id] = _EditorHomeRouteBinding(
+        route: route,
+        pageKey: GlobalKey(),
+      );
+    }
+    _updateBuildDirty();
   }
 
   @override
@@ -134,8 +171,23 @@ class _EditorHomePageState extends State<EditorHomePage> {
                 children: [
                   _EditorHomeShellControls(
                     selectedRouteId: _selectedRouteId,
-                    shellLocked:
-                        _isCurrentPageShellLocked || _repairController != null,
+                    shellLocked: !_canNavigate,
+                    onBack: _canNavigate && _navigationHistory.canGoBack
+                        ? () => _handleHistoryNavigation(forward: false)
+                        : null,
+                    onForward: _canNavigate && _navigationHistory.canGoForward
+                        ? () => _handleHistoryNavigation(forward: true)
+                        : null,
+                    backLabel: _navigationHistory.back == null
+                        ? null
+                        : _requireRouteBinding(_navigationHistory.back!.routeId)
+                              .route
+                              .label,
+                    forwardLabel: _navigationHistory.forward == null
+                        ? null
+                        : _requireRouteBinding(
+                            _navigationHistory.forward!.routeId,
+                          ).route.label,
                     canReloadCurrentPage: _canReloadCurrentPage,
                     canSaveCurrentPage: _canSaveCurrentPage,
                     canUndoCurrentPage: _canUndoCurrentPage,
@@ -170,13 +222,13 @@ class _EditorHomePageState extends State<EditorHomePage> {
                       ),
                       actions: [
                         TextButton(
-                          onPressed: _isCurrentPageShellLocked
+                          onPressed: !_canNavigate
                               ? null
                               : () => _returnToLevel(save: false),
                           child: const Text('Return to level'),
                         ),
                         FilledButton(
-                          onPressed: _isCurrentPageShellLocked
+                          onPressed: !_canNavigate
                               ? null
                               : () => _returnToLevel(save: true),
                           child: const Text('Save and return to level'),
@@ -307,8 +359,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return routeBinding.buildPage(
       controller,
       navigation: EditorHomeRouteNavigation(
-        initialPrefabTarget: _initialPrefabTarget,
-        initialLevelReturnContext: _restoreLevelContext,
+        initialLocation: routeId == _selectedRouteId
+            ? _initialLocation
+            : _repairOriginLocation,
         onOpenChunkForLevel: _handleOpenChunkForLevel,
         onRepairDependency: _beginDependencyRepair,
         onShellStateChanged: () {
@@ -331,11 +384,15 @@ class _EditorHomePageState extends State<EditorHomePage> {
   // bug. Fail fast instead of leaving the shell on one page and the session on
   // another plugin contract.
   void _syncPluginForRoute(String routeId) {
-    final routeBinding = _requireRouteBinding(routeId);
-    final requiredPluginId = routeBinding.route.pluginId;
+    final requiredPluginId = _requireRoutePlugin(routeId);
     if (requiredPluginId == _controller.selectedPluginId) {
       return;
     }
+    _controller.setSelectedPluginId(requiredPluginId);
+  }
+
+  String _requireRoutePlugin(String routeId) {
+    final requiredPluginId = _requireRouteBinding(routeId).route.pluginId;
     final hasPlugin = _controller.availablePlugins.any(
       (plugin) => plugin.id == requiredPluginId,
     );
@@ -345,7 +402,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
         '"$requiredPluginId", but it is not registered.',
       );
     }
-    _controller.setSelectedPluginId(requiredPluginId);
+    return requiredPluginId;
   }
 
   void _handleBuildChanged() {
@@ -471,47 +528,29 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
   }
 
-  Future<bool> _openBuildLevel(String levelId) async {
-    if (!await _resolvePendingDeparture(
-          promptLine: 'Open the Level from this Build report?',
-        ) ||
-        !mounted) {
-      return false;
-    }
-    final loaded = await _controller.loadWorkspaceForPlugin(
-      pluginId: LevelDomainPlugin.pluginId,
-      loadDocument: (plugin, workspace) async {
-        final document = await plugin.loadFromRepo(workspace);
-        if (document is! LevelDefsDocument ||
-            findLevelDefById(document.levels, levelId) == null) {
-          throw StateError(
-            'The Level "$levelId" no longer exists in saved sources.',
-          );
-        }
-        return plugin.applyEdit(
-          document,
-          AuthoringCommand(
-            kind: 'set_active_level',
-            payload: {'levelId': levelId},
-          ),
-        );
-      },
-    );
-    if (!mounted) return false;
-    if (!loaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not open Level: ${_controller.loadError}'),
-        ),
+  Future<bool> _openBuildLevel(String levelId) => _navigate(
+    EditorNavigationLocation(
+      routeId: levelCreatorRouteId,
+      page: LevelCreatorReturnContext(levelId: levelId),
+    ),
+    prompt: 'Open the Level from this Build report?',
+    loadDocument: (plugin, workspace) =>
+        _loadExistingLevel(plugin, workspace, levelId),
+  );
+
+  Future<AuthoringDocument> _loadExistingLevel(
+    AuthoringDomainPlugin plugin,
+    EditorWorkspace workspace,
+    String levelId,
+  ) async {
+    final document = await plugin.loadFromRepo(workspace);
+    if (document is! LevelDefsDocument ||
+        findLevelDefById(document.levels, levelId) == null) {
+      throw StateError(
+        'The Level "$levelId" no longer exists in saved sources.',
       );
-      return false;
     }
-    setState(() {
-      _selectedRouteId = levelCreatorRouteId;
-      _restoreLevelContext = LevelCreatorReturnContext(levelId: levelId);
-      _levelReturnContext = null;
-    });
-    return true;
+    return document;
   }
 
   Future<void> _setBuildLevelIncluded(
@@ -549,305 +588,274 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
   }
 
+  bool get _canNavigate =>
+      !_isNavigating &&
+      !_isShowingDiscardDialog &&
+      !_repairTransition &&
+      _repairController == null &&
+      !_isCurrentPageShellLocked;
+
+  EditorNavigationLocation _captureLocation() {
+    final page = _currentPageState;
+    return EditorNavigationLocation(
+      routeId: _selectedRouteId,
+      page: page is EditorPageNavigationState
+          ? page.navigationLocation
+          : _initialLocation,
+      levelReturnContext: _levelReturnContext,
+    );
+  }
+
+  /// One transaction for selector, history, source links, and Level returns.
+  /// The old page and history survive cancellation or a failed destination load.
+  Future<bool> _navigate(
+    EditorNavigationLocation destination, {
+    String prompt = 'Leave this editor?',
+    bool save = false,
+    int? historyIndex,
+    Future<AuthoringDocument> Function(
+      AuthoringDomainPlugin plugin,
+      EditorWorkspace workspace,
+    )?
+    loadDocument,
+    VoidCallback? onLoaded,
+    SnackBarAction? Function(Object? error)? actionForLoadFailure,
+  }) async {
+    if (!_canNavigate) return false;
+    final pluginId = _requireRoutePlugin(destination.routeId);
+    setState(() => _isNavigating = true);
+    final controller = _controller;
+    try {
+      if (save &&
+          (controller.pendingChanges.hasChanges ||
+              _currentPageHasLocalDraftChanges())) {
+        final outcome = await _handleSaveRequested();
+        if (!mounted ||
+            !outcome.permitsDeparture ||
+            _currentPageHasLocalDraftChanges()) {
+          return false;
+        }
+      } else if (!await _resolvePendingDeparture(promptLine: prompt)) {
+        return false;
+      }
+      if (!mounted || !identical(controller, _controller)) return false;
+      // Capture after Save can rename an owner, but before loading another
+      // plugin notifies the departing page with a different scene type.
+      final origin = _captureLocation();
+      final route = _requireRouteBinding(destination.routeId).route;
+      Object? targetError;
+      final loaded = await controller.loadWorkspaceForPlugin(
+        pluginId: pluginId,
+        loadDocument: (plugin, workspace) async {
+          try {
+            final document = await (loadDocument == null
+                ? plugin.loadFromRepo(workspace)
+                : loadDocument(plugin, workspace));
+            return destination.page?.restoreDocumentSelection(
+                  plugin,
+                  document,
+                ) ??
+                document;
+          } catch (error) {
+            targetError = error;
+            rethrow;
+          }
+        },
+      );
+      if (!mounted || !identical(controller, _controller)) return false;
+      if (!loaded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not open ${route.label}: ${controller.loadError}',
+            ),
+            action: actionForLoadFailure?.call(targetError),
+          ),
+        );
+        return false;
+      }
+      onLoaded?.call();
+      FocusManager.instance.primaryFocus?.unfocus();
+      setState(() {
+        _navigationHistory.commit(
+          origin: origin,
+          destination: destination,
+          historyIndex: historyIndex,
+        );
+        _selectedRouteId = destination.routeId;
+        _initialLocation = destination.page;
+        _levelReturnContext = destination.levelReturnContext;
+        // A same-tool targeted visit also needs a new view, while repair keeps
+        // its originating key mounted until the dependency flow finishes.
+        _routeBindings[destination.routeId] = _EditorHomeRouteBinding(
+          route: route,
+          pageKey: GlobalKey(),
+        );
+        if (_levelReturnContext == null) _pendingStarterIntent = null;
+      });
+      // Keep rapid requests serialized until the destination owns its page key.
+      await WidgetsBinding.instance.endOfFrame;
+      return true;
+    } finally {
+      if (mounted) setState(() => _isNavigating = false);
+    }
+  }
+
+  Future<void> _handleHistoryNavigation({required bool forward}) async {
+    final target = forward
+        ? _navigationHistory.forward
+        : _navigationHistory.back;
+    if (target == null) return;
+    await _navigate(
+      target,
+      historyIndex: _navigationHistory.index + (forward ? 1 : -1),
+    );
+  }
+
   Future<void> _handleRouteSelectionRequested(String routeId) async {
-    if (_isCurrentPageShellLocked || _repairController != null) return;
+    if (routeId == _selectedRouteId) return;
     if (routeId == levelCreatorRouteId && _levelReturnContext != null) {
       await _returnToLevel(save: false);
-      return;
+    } else {
+      await _navigate(_navigationHistory.forRoute(routeId));
     }
-    final canLeave = await _resolvePendingDeparture(
-      promptLine: 'Leave this editor?',
-    );
-    if (!mounted || !canLeave) {
-      return;
-    }
-    setState(() {
-      _selectedRouteId = routeId;
-      _initialPrefabTarget = null;
-      _levelReturnContext = null;
-      _restoreLevelContext = null;
-      _pendingStarterIntent = null;
-    });
-    _syncPluginForRoute(routeId);
   }
 
   Future<void> _handleOpenPrefabTargetRequested(
     PrefabCreatorTarget target,
   ) async {
-    final targetPrefabKey = target.prefabKey.trim();
-    if (targetPrefabKey.isEmpty ||
-        _controller.isLoading ||
-        _repairController != null) {
-      return;
-    }
-    final canLeave = await _resolvePendingDeparture(
-      promptLine: 'Open Prefab Creator?',
+    final key = target.prefabKey.trim();
+    if (key.isEmpty) return;
+    final normalized = PrefabCreatorTarget(
+      prefabKey: key,
+      destination: target.destination,
     );
-    if (!mounted || !canLeave) {
-      return;
-    }
-
-    final loaded = await _controller.loadWorkspaceForPlugin(
-      pluginId: PrefabDomainPlugin.pluginId,
+    await _navigate(
+      EditorNavigationLocation(
+        routeId: prefabCreatorRouteId,
+        page: PrefabCreatorLocation.forTarget(normalized),
+        levelReturnContext: _levelReturnContext,
+      ),
+      prompt: 'Open Prefab Creator?',
       loadDocument: (plugin, workspace) async {
         if (plugin is! PrefabDomainPlugin) {
           throw StateError(
-            'Owning-prefab navigation requires PrefabDomainPlugin, but '
-            '${plugin.runtimeType} is registered.',
+            'Owning-prefab navigation requires PrefabDomainPlugin.',
           );
         }
         final document = await plugin.loadV3FromRepo(workspace);
-        final containsOwner = document.data.prefabs.any(
-          (prefab) => prefab.prefabKey == targetPrefabKey,
-        );
-        if (!containsOwner) {
-          throw StateError(
-            'Prefab-v3 owner "$targetPrefabKey" no longer exists on disk.',
-          );
+        if (!document.data.prefabs.any((prefab) => prefab.prefabKey == key)) {
+          throw StateError('Prefab-v3 owner "$key" no longer exists on disk.');
         }
         return document;
       },
     );
-    if (!mounted) {
-      return;
-    }
-    if (!loaded) {
-      final detail = _controller.loadError;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            detail == null
-                ? 'Prefab-v3 owner could not be opened.'
-                : 'Prefab-v3 owner could not be opened: $detail',
-          ),
-        ),
-      );
-      return;
-    }
-    setState(() {
-      _initialPrefabTarget = PrefabCreatorTarget(
-        prefabKey: targetPrefabKey,
-        destination: target.destination,
-      );
-      _selectedRouteId = prefabCreatorRouteId;
-    });
   }
 
   Future<void> _handleOpenParallaxForLevelRequested(
     ParallaxLevelTarget target,
   ) async {
-    if (_repairController != null ||
-        target.levelId.trim().isEmpty ||
-        target.parallaxThemeId.trim().isEmpty ||
-        _controller.isLoading ||
-        _controller.isExporting) {
+    if (target.levelId.trim().isEmpty ||
+        target.parallaxThemeId.trim().isEmpty) {
       return;
     }
-    final originDocument = _controller.document;
-    final page = _currentPageState;
-    final returnContext = page is LevelCreatorNavigationState
-        ? page.returnContext
-        : originDocument is LevelDefsDocument
-        ? LevelCreatorReturnContext(
-            levelId: target.levelId,
-            tab: LevelCreatorTab.appearance,
-          )
-        : null;
-    final canLeave = await _resolvePendingDeparture(
-      promptLine: 'Open this saved level in Parallax?',
-    );
-    if (!mounted || !canLeave) return;
-
-    final loaded = await _controller.loadWorkspaceForPlugin(
-      pluginId: ParallaxDomainPlugin.pluginId,
+    final page = _captureLocation().page;
+    await _navigate(
+      EditorNavigationLocation(
+        routeId: parallaxEditorRouteId,
+        levelReturnContext: page is LevelCreatorReturnContext ? page : null,
+      ),
+      prompt: 'Open this saved level in Parallax?',
       loadDocument: (plugin, workspace) {
         if (plugin is! ParallaxDomainPlugin) {
-          throw StateError(
-            'Level handoff requires ParallaxDomainPlugin, but '
-            '${plugin.runtimeType} is registered.',
-          );
+          throw StateError('Level handoff requires ParallaxDomainPlugin.');
         }
         return plugin.loadForLevel(workspace, target: target);
       },
     );
-    if (!mounted) return;
-    if (!loaded) {
-      final detail = _controller.loadError;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            detail == null
-                ? 'The Level/theme target could not be opened in Parallax.'
-                : 'The Level/theme target could not be opened: $detail',
-          ),
-        ),
-      );
-      return;
-    }
-    setState(() {
-      _selectedRouteId = parallaxEditorRouteId;
-      _initialPrefabTarget = null;
-      _levelReturnContext = returnContext;
-    });
   }
 
   Future<bool> _handleOpenChunkForLevel(LevelCreatorChunkTarget target) async {
-    if (_repairController != null ||
-        _isCurrentPageShellLocked ||
-        _controller.isLoading ||
-        _controller.isExporting) {
-      return false;
-    }
-    final canLeave = await _resolvePendingDeparture(
-      promptLine: target.intent == LevelCreatorChunkIntent.flatStarter
+    AuthoringCommand? starterCommand;
+    return _navigate(
+      EditorNavigationLocation(
+        routeId: chunkCreatorRouteId,
+        levelReturnContext: target.returnContext,
+      ),
+      actionForLoadFailure: (error) =>
+          error is ChunkTargetException &&
+              error.code == 'flat_starter_material_unavailable'
+          ? SnackBarAction(
+              label: 'Repair material',
+              onPressed: () => _beginDependencyRepair('terrain_materials'),
+            )
+          : null,
+      prompt: target.intent == LevelCreatorChunkIntent.flatStarter
           ? 'Save the Level and background before adding its starter chunk?'
           : 'Open this content in Chunk Creator?',
-    );
-    if (!mounted || !canLeave) return false;
-    Object? targetError;
-    AuthoringCommand? starterCommand;
-    final loaded = await _controller.loadWorkspaceForPlugin(
-      pluginId: ChunkDomainPlugin.pluginId,
       loadDocument: (plugin, workspace) async {
         if (plugin is! ChunkDomainPlugin) {
           throw StateError('Chunk target requires the Chunk plugin.');
         }
-        try {
-          final document = await plugin.loadForLevel(
-            workspace,
-            target: ChunkLevelTarget(
-              target.levelId,
-              chunkKey: target.intent == LevelCreatorChunkIntent.flatStarter
-                  ? null
-                  : target.chunkKey,
-              groupId: target.groupId,
-            ),
-          );
-          if (target.intent != LevelCreatorChunkIntent.flatStarter) {
-            return document;
-          }
-          final prior = _pendingStarterIntent;
-          final intent =
-              prior != null &&
-                  prior.levelId == target.levelId &&
-                  (target.groupId == null || prior.groupId == target.groupId)
-              ? prior
-              : plugin.flatStarterIntentForLevel(
-                  document,
-                  levelId: target.levelId,
-                  groupId: target.groupId,
-                );
-          _pendingStarterIntent = intent;
-          starterCommand = AuthoringCommand(
-            kind: 'create_flat_starter',
-            payload: {'intent': intent},
-          );
-          // Validate the full candidate before replacing the originating session.
-          // Apply through session history only after this atomic load succeeds.
-          plugin.applyEdit(document, starterCommand!);
+        final document = await plugin.loadForLevel(
+          workspace,
+          target: ChunkLevelTarget(
+            target.levelId,
+            chunkKey: target.intent == LevelCreatorChunkIntent.flatStarter
+                ? null
+                : target.chunkKey,
+            groupId: target.groupId,
+          ),
+        );
+        if (target.intent != LevelCreatorChunkIntent.flatStarter) {
           return document;
-        } catch (error) {
-          targetError = error;
-          rethrow;
         }
+        final prior = _pendingStarterIntent;
+        final intent =
+            prior != null &&
+                prior.levelId == target.levelId &&
+                (target.groupId == null || prior.groupId == target.groupId)
+            ? prior
+            : plugin.flatStarterIntentForLevel(
+                document,
+                levelId: target.levelId,
+                groupId: target.groupId,
+              );
+        _pendingStarterIntent = intent;
+        starterCommand = AuthoringCommand(
+          kind: 'create_flat_starter',
+          payload: {'intent': intent},
+        );
+        plugin.applyEdit(document, starterCommand!);
+        return document;
+      },
+      onLoaded: () {
+        if (starterCommand != null) _controller.applyCommand(starterCommand!);
       },
     );
-    if (!mounted) return false;
-    if (!loaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Content could not be opened: ${targetError ?? _controller.loadError}',
-          ),
-          action:
-              targetError is ChunkTargetException &&
-                  (targetError as ChunkTargetException).code ==
-                      'flat_starter_material_unavailable'
-              ? SnackBarAction(
-                  label: 'Repair material',
-                  onPressed: () => _beginDependencyRepair('terrain_materials'),
-                )
-              : null,
-        ),
-      );
-      return false;
-    }
-    if (starterCommand != null) _controller.applyCommand(starterCommand!);
-    setState(() {
-      _selectedRouteId = chunkCreatorRouteId;
-      _initialPrefabTarget = null;
-      _levelReturnContext = target.returnContext;
-      _restoreLevelContext = null;
-    });
-    return true;
   }
 
   Future<void> _returnToLevel({required bool save}) async {
     final target = _levelReturnContext;
-    if (target == null ||
-        _repairController != null ||
-        _isCurrentPageShellLocked) {
-      return;
-    }
-    if (save &&
-        (_controller.pendingChanges.hasChanges ||
-            _currentPageHasLocalDraftChanges())) {
-      final outcome = await _handleSaveRequested();
-      if (!mounted ||
-          !outcome.permitsDeparture ||
-          _currentPageHasLocalDraftChanges()) {
-        return;
-      }
-    } else if (!await _resolvePendingDeparture(
-      promptLine: 'Return to the Level workspace?',
-    )) {
-      return;
-    }
-    if (!mounted) return;
-    final loaded = await _controller.loadWorkspaceForPlugin(
-      pluginId: LevelDomainPlugin.pluginId,
-      loadDocument: (plugin, workspace) async {
-        final document = await plugin.loadFromRepo(workspace);
-        if (document is! LevelDefsDocument ||
-            findLevelDefById(document.levels, target.levelId) == null) {
-          throw StateError(
-            'The originating Level no longer exists. Choose a current level after reloading.',
-          );
-        }
-        return plugin.applyEdit(
-          document,
-          AuthoringCommand(
-            kind: 'set_active_level',
-            payload: {'levelId': target.levelId},
-          ),
-        );
-      },
+    if (target == null) return;
+    await _navigate(
+      EditorNavigationLocation(routeId: levelCreatorRouteId, page: target),
+      save: save,
+      historyIndex: _navigationHistory.previousIndexWhere(
+        (location) =>
+            location.routeId == levelCreatorRouteId &&
+            location.page is LevelCreatorReturnContext &&
+            (location.page! as LevelCreatorReturnContext).levelId ==
+                target.levelId,
+      ),
+      prompt: 'Return to the Level workspace?',
+      loadDocument: (plugin, workspace) =>
+          _loadExistingLevel(plugin, workspace, target.levelId),
     );
-    if (!mounted) return;
-    if (!loaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not return to the Level: ${_controller.loadError}',
-          ),
-        ),
-      );
-      return;
-    }
-    setState(() {
-      _restoreLevelContext = target;
-      _selectedRouteId = levelCreatorRouteId;
-      _levelReturnContext = null;
-      _pendingStarterIntent = null;
-    });
   }
 
   Future<bool> _beginDependencyRepair(String pluginId) async {
-    if (_repairController != null ||
-        _repairTransition ||
-        _isCurrentPageShellLocked ||
-        _controller.isLoading ||
-        _controller.isExporting) {
+    if (!_canNavigate || _controller.isLoading || _controller.isExporting) {
       return false;
     }
     final target = homeRoutes
@@ -858,7 +866,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
         !_controller.canReapplyIntent) {
       return false;
     }
-    _repairTransition = true;
+    setState(() => _repairTransition = true);
+    final originController = _controller;
+    final originLocation = _captureLocation().page;
     final dependency = _controller.createDependencySession(pluginId);
     // Preflight without touching the originating controller or widget subtree.
     final loaded = await dependency.loadWorkspaceForPlugin(
@@ -866,6 +876,11 @@ class _EditorHomePageState extends State<EditorHomePage> {
       loadDocument: (plugin, workspace) => plugin.loadFromRepo(workspace),
     );
     _repairTransition = false;
+    if (!mounted || !identical(originController, _controller)) {
+      dependency.dispose();
+      return false;
+    }
+    setState(() {});
     if (!mounted ||
         !loaded ||
         !isDependencyRepairSourceReadable(dependency.document)) {
@@ -884,6 +899,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _repairOriginRouteId = _selectedRouteId;
+      _repairOriginLocation = originLocation;
+      _initialLocation = null;
       _repairController = dependency;
       _selectedRouteId = target.id;
     });
@@ -918,6 +935,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     setState(() {
       _selectedRouteId = originRouteId;
+      _initialLocation = _repairOriginLocation;
+      _repairOriginLocation = null;
       _repairOriginRouteId = null;
       _repairController = null;
     });
@@ -1253,6 +1272,24 @@ class _EditorHomePageState extends State<EditorHomePage> {
     if (!_shellRouteCanHandleGlobalShortcuts() || event is! KeyDownEvent) {
       return false;
     }
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed &&
+        !keyboard.isShiftPressed &&
+        !_focusedEditableTextOwnsInput() &&
+        (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+            event.logicalKey == LogicalKeyboardKey.arrowRight)) {
+      if (!_canNavigate) return false;
+      final forward = event.logicalKey == LogicalKeyboardKey.arrowRight;
+      if (forward
+          ? !_navigationHistory.canGoForward
+          : !_navigationHistory.canGoBack) {
+        return false;
+      }
+      unawaited(_handleHistoryNavigation(forward: forward));
+      return true;
+    }
     final playtestHandler = _currentPagePlaytestHandler();
     if (playtestHandler != null &&
         !_isModifiedShortcut() &&
@@ -1464,6 +1501,10 @@ class _EditorHomeShellControls extends StatelessWidget {
   const _EditorHomeShellControls({
     required this.selectedRouteId,
     required this.shellLocked,
+    required this.onBack,
+    required this.onForward,
+    required this.backLabel,
+    required this.forwardLabel,
     required this.canReloadCurrentPage,
     required this.canSaveCurrentPage,
     required this.canUndoCurrentPage,
@@ -1488,6 +1529,10 @@ class _EditorHomeShellControls extends StatelessWidget {
 
   final String selectedRouteId;
   final bool shellLocked;
+  final VoidCallback? onBack;
+  final VoidCallback? onForward;
+  final String? backLabel;
+  final String? forwardLabel;
   final bool canReloadCurrentPage;
   final bool canSaveCurrentPage;
   final bool canUndoCurrentPage;
@@ -1576,6 +1621,28 @@ class _EditorHomeShellControls extends StatelessWidget {
     );
 
     final routeAndActions = <Widget>[
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton.outlined(
+            key: const ValueKey('editor_navigation_back'),
+            tooltip: backLabel == null
+                ? 'Back (Alt+Left)'
+                : 'Back to $backLabel (Alt+Left)',
+            onPressed: onBack,
+            icon: const Icon(Icons.arrow_back),
+          ),
+          const SizedBox(width: 4),
+          IconButton.outlined(
+            key: const ValueKey('editor_navigation_forward'),
+            tooltip: forwardLabel == null
+                ? 'Forward (Alt+Right)'
+                : 'Forward to $forwardLabel (Alt+Right)',
+            onPressed: onForward,
+            icon: const Icon(Icons.arrow_forward),
+          ),
+        ],
+      ),
       SizedBox(
         width: 200 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.2),
         child: routeSelector,
@@ -1608,7 +1675,7 @@ class _EditorHomeShellControls extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 1240 ||
+        if (constraints.maxWidth < 1360 ||
             MediaQuery.textScalerOf(context).scale(1) > 1.2) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

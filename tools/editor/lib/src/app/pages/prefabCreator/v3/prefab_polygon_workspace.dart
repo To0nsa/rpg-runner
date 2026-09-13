@@ -61,12 +61,14 @@ class PrefabPolygonWorkspace extends StatefulWidget {
   const PrefabPolygonWorkspace({
     super.key,
     required this.controller,
+    this.initialLocation,
     this.onDraftStateChanged,
     required this.atlasImageFilePicker,
     this.initialTarget,
   });
 
   final EditorSessionController controller;
+  final PrefabCreatorLocation? initialLocation;
   final VoidCallback? onDraftStateChanged;
   final AtlasImageFilePicker atlasImageFilePicker;
 
@@ -115,6 +117,18 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   String? _pendingRefitShapeId;
   bool _fitAdvancedExpanded = false;
   bool _observedFitDraft = false;
+
+  /// Includes the inactive atlas/module views, whose widgets stay mounted.
+  PrefabCreatorLocation get navigationLocation => PrefabCreatorLocation(
+    prefabKey: _selectedPrefabKey,
+    view: _workspaceView,
+    zoom: _zoom,
+    pan: _pan,
+    atlas: _atlasWorkspaceKey.currentState?.navigationLocation,
+    module: _moduleWorkspaceKey.currentState?.navigationLocation,
+    collisionSelection: _authoring?.state.selection,
+    collisionTool: _authoring?.state.tool ?? TerrainPolygonTool.select,
+  );
 
   PrefabV3Def? get _ownerEditSource => _ownerDraft.editSource;
   bool get _ownerEditDirty => _ownerDraft.editDirty;
@@ -204,11 +218,28 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   @override
   void initState() {
     super.initState();
-    _workspaceView = _initialWorkspaceView();
+    _workspaceView = widget.initialLocation?.view ?? _initialWorkspaceView();
     _prefabImageCache = EditorUiImageCache();
     _prefabMaskCache = PrefabVisualAlphaMaskCache();
     _exactEditController.addListener(_handleExactEditChanged);
     _selectInitialOwner();
+    if (_selectedPrefabKey == widget.initialLocation?.prefabKey) {
+      _zoom = widget.initialLocation?.zoom ?? _zoom;
+      _pan = widget.initialLocation?.pan ?? _pan;
+      final authoring = _authoring;
+      authoring?.removeListener(_handleAuthoringChanged);
+      authoring?.setTool(
+        widget.initialLocation?.collisionTool ?? TerrainPolygonTool.select,
+      );
+      if (authoring != null) {
+        authoring.select(
+          widget.initialLocation?.collisionSelection?.resolveAgainst(
+            authoring.state.shapes,
+          ),
+        );
+      }
+      authoring?.addListener(_handleAuthoringChanged);
+    }
   }
 
   @override
@@ -309,6 +340,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 prefabWorkspace,
                 collisionWorkspace,
                 PrefabV3AtlasCatalogWorkspace(
+                  initialLocation: widget.initialLocation?.atlas,
                   key: _atlasWorkspaceKey,
                   onDraftStateChanged: widget.onDraftStateChanged,
                   controller: widget.controller,
@@ -317,6 +349,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   initialPrefabSliceId: _requestedAtlasSliceId(document),
                 ),
                 PrefabV3ModuleCatalogWorkspace(
+                  initialLocation: widget.initialLocation?.module,
                   key: _moduleWorkspaceKey,
                   onDraftStateChanged: widget.onDraftStateChanged,
                   controller: widget.controller,
@@ -2082,7 +2115,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
 
   String? _requestedOwnerKey(PrefabV3Document? document) {
     if (document == null) return null;
-    final requestedKey = widget.initialTarget?.prefabKey.trim();
+    final requestedKey =
+        (widget.initialTarget?.prefabKey ?? widget.initialLocation?.prefabKey)
+            ?.trim();
     if (requestedKey == null || requestedKey.isEmpty) return null;
     return document.data.prefabs.any(
           (prefab) => prefab.prefabKey == requestedKey,
@@ -2104,7 +2139,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       };
 
   String? _requestedAtlasSliceId(PrefabV3Document document) {
-    if (widget.initialTarget?.destination != PrefabCreatorDestination.atlas) {
+    if (widget.initialTarget?.destination != PrefabCreatorDestination.atlas &&
+        !(widget.initialLocation?.view == PrefabWorkspaceView.atlasSlices &&
+            widget.initialLocation?.atlas == null)) {
       return null;
     }
     final prefabKey = _requestedOwnerKey(document);
