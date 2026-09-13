@@ -140,6 +140,7 @@ PolygonTerrainRuntimeChunkResult materializePolygonTerrainRuntimeChunk({
         prefab: prefab,
         visual: visual,
         placement: placement,
+        groundBandZIndex: compiled.chunk.groundBandZIndex,
         slicesById: slicesById,
         modulesById: modulesById,
         sourcePath: sourcePath,
@@ -198,6 +199,7 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
   required PolygonTerrainPrefabSource prefab,
   required PolygonTerrainPrefabVisualSource visual,
   required PolygonTerrainPlacementSource placement,
+  required int groundBandZIndex,
   required Map<String, PolygonTerrainSliceSource> slicesById,
   required Map<String, PolygonTileModuleSource> modulesById,
   required String sourcePath,
@@ -226,6 +228,7 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
         scale: scale,
         localX: 0,
         localY: 0,
+        groundBandZIndex: groundBandZIndex,
       ),
     ];
   }
@@ -265,6 +268,7 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
         scale: scale,
         localX: cell.gridX * _gridSnap,
         localY: cell.gridY * _gridSnap,
+        groundBandZIndex: groundBandZIndex,
       ),
     );
   }
@@ -278,6 +282,7 @@ ChunkVisualSpriteRel _sprite({
   required double scale,
   required int localX,
   required int localY,
+  required int groundBandZIndex,
 }) {
   final width = slice.width * scale;
   final height = slice.height * scale;
@@ -303,7 +308,7 @@ ChunkVisualSpriteRel _sprite({
         ),
     width: width,
     height: height,
-    zIndex: placement.zIndex,
+    zIndex: placement.zIndex - groundBandZIndex,
     flipX: placement.flipX,
     flipY: placement.flipY,
   );

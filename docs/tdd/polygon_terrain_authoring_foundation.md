@@ -1468,6 +1468,25 @@ third, or physically incompatible coincident edges fail the whole candidate.
 Flame's `StagedTerrain` component converts physics ticks to world units once
 per geometry version and creates `ui.Vertices` with the supplied Core triangle
 indices. It never triangulates, normalizes, stitches, or infers polygon edges.
+
+Terrain and static Prefab sprites are siblings in the Flame world in both the
+normal game and editor Play. Background parallax alone stays in the camera
+backdrop. Terrain receives the world's camera transform once and uses
+`camera.visibleWorldRect` for culling; it does not apply a second viewport
+translation. Terrain mounts before sprites at their shared zero-layer priority
+(`-5`), so equal-layer sprites cover terrain even after streaming adds them.
+
+The shared content pipeline retains Chunk `groundBandZIndex` (default `0`) and
+materializes each sprite's runtime `zIndex` as authored Prefab z minus that
+terrain z. This normalizes chunks with different authored terrain planes into
+one streamed terrain plane. Negative values paint behind terrain; zero and
+positive values paint over it, matching the Chunk scene preview. Flame adds
+the existing static-Prefab priority offset to this relative value. The offset
+is not an authoring z-index. Actors, effects, and water foreground keep their
+existing world priorities; water foreground remains a separate pass. This
+render metadata does not change placement identities, collision geometry,
+simulation ordering, or replay outcomes.
+
 `StagedTerrainRenderSnapshotBuilder` requires every solid/one-way staged loop
 to match the published collision polygon exactly. A staged `none` loop must be
 absent from collision geometry. Direct Chunk loops become terrain fills;

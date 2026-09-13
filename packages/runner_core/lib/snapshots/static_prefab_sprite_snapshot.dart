@@ -31,7 +31,8 @@ class StaticPrefabSpriteSnapshot {
   final double width;
   final double height;
 
-  /// Authoring layer index for ordering.
+  /// Layer relative to the owning chunk's terrain: negative renders behind it;
+  /// zero and positive render in front. This is not a Flame component priority.
   final int zIndex;
   final bool flipX;
   final bool flipY;

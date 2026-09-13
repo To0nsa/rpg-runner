@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
@@ -38,6 +40,7 @@ void main() {
     expect(sprite.y, 185);
     expect(sprite.width, 16);
     expect(sprite.height, 20);
+    expect(sprite.zIndex, 4);
     expect(runtime.pattern.spawnMarkers, hasLength(1));
     final marker = runtime.pattern.spawnMarkers.single;
     expect(marker.enemyId, EnemyId.derf);
@@ -79,6 +82,33 @@ void main() {
     );
   });
 
+  for (final terrainZ in [-8, 0, 9]) {
+    test('sprite layers are relative to terrain z=$terrainZ', () {
+      final source = jsonDecode(_chunk) as Map<String, dynamic>;
+      final placement = (source['prefabs'] as List).single as Map;
+      source['groundBandZIndex'] = terrainZ;
+      source['prefabs'] = [
+        for (final offset in [-1, 0, 1])
+          {...placement, 'zIndex': terrainZ + offset},
+      ];
+      final result = compilePolygonTerrainRuntimeChunkSource(
+        prefabSourcePath: 'prefab_defs.json',
+        prefabContents: _prefabs,
+        tileSourcePath: 'tile_defs.json',
+        tileContents: _tiles,
+        chunkSourcePath: 'chunk.json',
+        chunkContents: jsonEncode(source),
+      );
+
+      expect(result.issues, isEmpty);
+      expect(result.chunk!.compiled.chunk.groundBandZIndex, terrainZ);
+      expect(
+        result.chunk!.pattern.visualSprites.map((sprite) => sprite.zIndex),
+        [-1, 0, 1],
+      );
+    });
+  }
+
   test('platform module transforms use the generator flip and scale rules', () {
     final result = compilePolygonTerrainRuntimeChunkSource(
       prefabSourcePath: 'prefab_defs.json',
@@ -86,7 +116,10 @@ void main() {
       tileSourcePath: 'tile_defs.json',
       tileContents: _moduleTiles,
       chunkSourcePath: 'chunk.json',
-      chunkContents: _moduleChunk,
+      chunkContents: jsonEncode({
+        ...jsonDecode(_moduleChunk) as Map<String, dynamic>,
+        'groundBandZIndex': 9,
+      }),
     );
 
     expect(result.issues, isEmpty);
@@ -98,6 +131,7 @@ void main() {
     expect(sprite.height, 24);
     expect(sprite.flipX, isTrue);
     expect(sprite.flipY, isTrue);
+    expect(sprite.zIndex, -9);
   });
 
   test('missing visual references fail closed with canonical ownership', () {

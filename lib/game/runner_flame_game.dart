@@ -166,11 +166,9 @@ class RunnerFlameGame extends FlameGame {
 
     _stagedTerrain = StagedTerrain(
       controller: controller,
-      virtualWidth: virtualWidth,
-      virtualHeight: virtualHeight,
       materials: terrainMaterials,
     )..priority = priorityStagedTerrain;
-    camera.backdrop.add(_stagedTerrain!);
+    world.add(_stagedTerrain!);
     world.add(
       WaterTerrainForeground(_stagedTerrain!)
         ..priority = priorityWaterForeground,

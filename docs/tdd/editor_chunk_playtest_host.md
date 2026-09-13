@@ -18,6 +18,13 @@ route layers own those responsibilities. The host also imports no product app
 state, Provider, Firebase, ticket, replay, ghost, reward, board, leaderboard,
 or submission workflow.
 
+Normal gameplay and the editor host share `RunnerFlameGame`, including its
+world-space terrain/Prefab ordering. The shared compiler normalizes Prefab z
+against the owning Chunk's `groundBandZIndex`: lower values paint behind
+terrain and equal/higher values paint over it, matching the authoring scene.
+See [terrain rendering](polygon_terrain_authoring_foundation.md) for the
+runtime priority and camera-transform contract.
+
 ## Editor snapshot preparation
 
 `tools/editor/lib/src/playtest/authored_playtest_preparation.dart` captures

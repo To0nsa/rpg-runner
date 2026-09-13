@@ -273,6 +273,13 @@ snapshot paired with its runtime bundle. The former `staticSolids` and
 sprites, and deferred item batches. It has no collision geometry, spatial
 index, horizontal surface graph, or legacy terrain snapshots.
 
+`ChunkVisualSpriteRel.zIndex` and `StaticPrefabSpriteSnapshot.zIndex` carry
+render-only layers relative to the owning Chunk's terrain plane. The shared
+content pipeline subtracts authored `groundBandZIndex` from each Prefab z;
+Core streams the result unchanged. Negative layers render behind terrain,
+while zero and positive layers render over it. This normalization affects
+neither collision nor command/replay/settlement contracts.
+
 The former `LegacyWorldMotionAuthority`, rectangle `CollisionSystem`,
 `StaticWorldGeometry`/index, and horizontal navigation stack are deleted.
 Actor systems that need placement or clearance receive the terrain authority

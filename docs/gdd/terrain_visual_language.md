@@ -15,8 +15,12 @@ The material has three visible roles:
   corners, with material-fill joins at other convex turns
 
 The terrain art stays aligned with collision-source geometry and scrolls in
-world space, so seams do not appear to swim under the player. Actors and props
-remain upright and retain their existing visual priority over the ground.
+world space, so seams do not appear to swim under the player. Actors remain
+upright and render over the ground. Props follow the Chunk's authored layer
+order in scene preview, editor Play, and normal gameplay: a Prefab below the
+terrain z is covered by ground where they overlap; equal or higher z paints
+over it. Terrain z defaults to `0`. For example, a tree at z `-21` behind
+terrain at z `0` has its roots hidden by the grass and soil.
 
 ## Readability Rules
 

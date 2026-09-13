@@ -202,6 +202,7 @@ final class PolygonTerrainChunkSource {
     required this.height,
     required this.difficulty,
     required this.assemblyGroupId,
+    this.groundBandZIndex = 0,
     required Iterable<PolygonTerrainPlacementSource> placements,
     Iterable<PolygonTerrainMarkerSource> markers =
         const <PolygonTerrainMarkerSource>[],
@@ -226,6 +227,9 @@ final class PolygonTerrainChunkSource {
   final int height;
   final String difficulty;
   final String assemblyGroupId;
+
+  /// Authored terrain plane; runtime sprites are normalized relative to it.
+  final int groundBandZIndex;
   final List<PolygonTerrainPlacementSource> placements;
   final List<PolygonTerrainMarkerSource> markers;
   final List<PolygonTerrainShapeSource> collisionShapes;
@@ -503,9 +507,9 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
     '$sourcePath.schemaVersion',
   );
   _tags(root['tags'], '$sourcePath.tags');
-  if (root.containsKey('groundBandZIndex')) {
-    _integer(root['groundBandZIndex'], '$sourcePath.groundBandZIndex');
-  }
+  final groundBandZIndex = root.containsKey('groundBandZIndex')
+      ? _integer(root['groundBandZIndex'], '$sourcePath.groundBandZIndex')
+      : 0;
 
   final layers = _objectList(root['tileLayers'], '$sourcePath.tileLayers');
   final layerIds = <String>[];
@@ -672,6 +676,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       '$sourcePath.assemblyGroupId',
     ),
     placements: placements,
+    groundBandZIndex: groundBandZIndex,
     markers: markerSources,
     collisionShapes: _shapes(
       root['collisionShapes'],

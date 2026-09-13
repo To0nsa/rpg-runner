@@ -23,11 +23,7 @@ void main() {
         playerCharacter: PlayerCharacterRegistry.eloise,
       ),
     );
-    final component = StagedTerrain(
-      controller: controller,
-      virtualWidth: 480,
-      virtualHeight: 270,
-    );
+    final component = StagedTerrain(controller: controller);
     final game = FlameGame(
       camera: CameraComponent.withFixedResolution(width: 480, height: 270),
     );
@@ -45,7 +41,7 @@ void main() {
     );
     await tester.pump();
     await tester.runAsync(() async {
-      await game.camera.backdrop.add(component);
+      await game.world.add(component);
       await component.loaded;
     });
     await tester.pump();

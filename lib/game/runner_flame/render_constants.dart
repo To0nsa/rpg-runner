@@ -1,8 +1,10 @@
 import '../tuning/player_render_tuning.dart';
 
 const int priorityBackgroundParallax = -30;
-const int priorityStagedTerrain = -20;
 const int priorityStaticPrefabs = -5;
+
+/// Runtime sprite z=0 is the terrain plane. Mount terrain first so ties cover it.
+const int priorityStagedTerrain = priorityStaticPrefabs;
 const int priorityGhostEntities = -4;
 const int priorityPlayer = -3;
 const int priorityEnemies = -2;

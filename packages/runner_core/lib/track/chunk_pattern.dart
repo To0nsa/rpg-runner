@@ -68,6 +68,8 @@ class ChunkVisualSpriteRel {
   final double y;
   final double width;
   final double height;
+
+  /// Authored prefab z minus the chunk's terrain z; ties paint over terrain.
   final int zIndex;
   final bool flipX;
   final bool flipY;

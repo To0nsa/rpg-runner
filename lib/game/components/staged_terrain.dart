@@ -11,26 +11,22 @@ import 'package:runner_core/snapshots/staged_terrain_render_snapshot.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../game_controller.dart';
-import '../spatial/world_view_transform.dart';
 import '../themes/terrain_material_registry.dart';
 import 'staged_terrain_edge_layout.dart';
 import 'staged_terrain_mesh_layout.dart';
 import 'water_material_painter.dart';
 
 /// Draws Core-owned terrain meshes, exposed edges and water-region snapshots.
+/// Mount in the world alongside prefab sprites so their priorities can interleave.
 class StagedTerrain extends Component with HasGameReference<FlameGame> {
   StagedTerrain({
     required this.controller,
-    required this.virtualWidth,
-    required this.virtualHeight,
     Map<String, TerrainMaterialSpec>? materials,
   }) : materialCatalog = Map<String, TerrainMaterialSpec>.unmodifiable(
          materials ?? TerrainMaterialRegistry.byKey,
        );
 
   final GameController controller;
-  final int virtualWidth;
-  final int virtualHeight;
   final Map<String, TerrainMaterialSpec> materialCatalog;
 
   TerrainMaterialSpec _requireMaterial(String key) =>
@@ -117,26 +113,10 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     super.render(canvas);
     if (!_assetsReady) return;
 
-    final cameraX = -game.camera.viewfinder.transform.offset.x;
-    final cameraY = -game.camera.viewfinder.transform.offset.y;
-    final transform = WorldViewTransform(
-      cameraCenterX: cameraX,
-      cameraCenterY: cameraY,
-      viewWidth: virtualWidth.toDouble(),
-      viewHeight: virtualHeight.toDouble(),
-    );
-    final visibleWorldRect = ui.Rect.fromLTRB(
-      transform.viewLeftX,
-      transform.viewTopY,
-      transform.viewRightX,
-      transform.viewBottomY,
-    );
+    final visibleWorldRect = game.camera.visibleWorldRect;
 
     canvas.save();
-    canvas.clipRect(
-      ui.Rect.fromLTWH(0, 0, virtualWidth.toDouble(), virtualHeight.toDouble()),
-    );
-    canvas.translate(-transform.viewLeftX, -transform.viewTopY);
+    canvas.clipRect(visibleWorldRect);
     paintWater(canvas, foreground: false, visibleBounds: visibleWorldRect);
     // Source-replacement establishes semantic ownership between fill, edge,
     // and cap art. Isolating terrain keeps transparent authored pixels from
@@ -249,7 +229,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   }
 
   /// Draws immutable water volumes using the terrain-owned image cache.
-  /// Foreground callers already receive the world's camera transform.
+  /// Both passes receive the world's camera transform.
   void paintWater(
     ui.Canvas canvas, {
     required bool foreground,
