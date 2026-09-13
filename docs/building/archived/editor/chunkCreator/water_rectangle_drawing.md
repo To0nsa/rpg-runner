@@ -2,6 +2,10 @@
 
 Status: implemented and closed. September 13, 2026.
 
+The [Terrain/Water UX alignment](water_terrain_ux_alignment.md) follow-up replaces
+this initial control layout and numeric modal with shared creation controls,
+explicit drawing and inline editing. Validation below records the initial delivery.
+
 ## Strategy
 
 Use a Water domain in the existing shared Chunk scene. A dedicated local water

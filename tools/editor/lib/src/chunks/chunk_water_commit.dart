@@ -13,6 +13,31 @@ String nextChunkWaterId(Iterable<WaterRegionData> regions) {
   return 'water_$ordinal';
 }
 
+/// Validates the shared optional creation name / saved water identity field.
+String? chunkWaterNameError(
+  String name,
+  Iterable<WaterRegionData> regions, {
+  String? excludingId,
+}) {
+  try {
+    WaterRegionData(
+      id: name.trim(),
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+      materialKey: 'water',
+    );
+  } on ArgumentError {
+    return 'Use lowercase letters, numbers, and underscores.';
+  }
+  return regions.any(
+        (region) => region.id != excludingId && region.id == name.trim(),
+      )
+      ? 'This water name is already used in the chunk.'
+      : null;
+}
+
 /// Uses the runtime source codec for both draft feedback and commit admission.
 String? chunkWaterValidationMessage(
   ChunkV2FileData chunk,

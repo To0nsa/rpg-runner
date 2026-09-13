@@ -57,15 +57,21 @@ Editor foundations shared across those domains:
 
 ## Windows Level And Chunk Play
 
-Chunk Creator's **Water** tab draws swimmable rectangles directly in the scene.
-Choose a material, optionally enable **Snap to grid** and **Snap to neighbor
-vertices**, then drag opposite corners. **Enter / Save water** accepts the
-preview; **Escape / Cancel drawing** discards it. Neighbor vertices take priority
-when both snap options are enabled. Existing rectangles and **Enter water
-coordinates** retain exact numeric editing. Select `biome_water` for the animated
-mixed-biomes atlas surface, and provide solid banks and a floor separately. Terrain Materials edits
-additional surface frames and timing. Save, Undo/Redo, duplication, Build and
-captured Play preserve these records. See the
+Chunk Creator's **Water** tab uses Terrain's creation and inline-edit workflow.
+Expand **Create water region**, choose a name/material, set **Snap to grid** and
+**Snap to neighbor vertices**, and press **Draw rectangle**. Drag opposite
+corners, refine the shared rectangle fields if needed, then use **Enter / Save
+water** or **Escape / Cancel**. Both domains share the material picker with an
+art preview, creation snap preferences, status panel and button layout. Neighbor
+vertices take priority when both snap switches are enabled.
+
+Select a saved region in the scene or **Existing water regions** to edit its
+name, material and X/Bottom/Width/Height inline with **Save edit**. Changing Height
+preserves Bottom, as in Terrain. Pending input uses Save/Discard/Cancel guards.
+Each accepted creation or edit is one undo step. Select `biome_water` for the
+animated mixed-biomes surface; provide solid banks and a floor separately.
+Terrain Materials edits the animation frames/timing. Save, chunk duplication, Build
+and captured Play preserve water. See the
 [pool authoring guide](../../docs/gdd/swimming.md) and
 [example source](../../docs/examples/water_pool_chunk.json).
 

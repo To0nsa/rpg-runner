@@ -1,16 +1,14 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/terrain/water_region.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_water_panel.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_water_edit_draft.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/chunks/chunk_water_commit.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
-import 'package:terrain_materials/terrain_materials.dart';
 
 import 'test_support/chunk_level_fixture.dart';
 
@@ -71,49 +69,50 @@ void main() {
     },
   );
 
-  testWidgets(
-    'water form validates bounds and returns a typed rectangle edit',
-    (tester) async {
-      ChunkWaterCommit? commit;
-      final material = _materials().byKey['biome_water']!;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ChunkWaterPanel(
-                chunk: _example().copyWith(waterRegions: []),
-                materials: TerrainMaterialCatalog(materials: [material]),
-                enabled: true,
-                onCommit: (value) => commit = value,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.byKey(const ValueKey('chunk_add_water')));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const ValueKey('water_x')), '128');
-      await tester.enterText(find.byKey(const ValueKey('water_y')), '224');
-      await tester.enterText(find.byKey(const ValueKey('water_width')), '900');
-      await tester.enterText(find.byKey(const ValueKey('water_height')), '64');
-      await tester.ensureVisible(find.byKey(const ValueKey('water_apply')));
-      await tester.tap(find.byKey(const ValueKey('water_apply')));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('must fit inside'), findsOneWidget);
-      expect(commit, isNull);
-      await tester.enterText(find.byKey(const ValueKey('water_width')), '320');
-      await tester.tap(find.byKey(const ValueKey('water_apply')));
-      await tester.pumpAndSettle();
-      expect(commit!.regions.single.materialKey, 'biome_water');
-      expect(commit!.regions.single.width, 320);
-    },
-  );
+  test('inline water metadata and dimensions validate and commit together', () {
+    final chunk = _example();
+    final draft = ChunkWaterEditDraft(chunk, chunk.waterRegions.single);
+    draft.nameInput = 'new_pool';
+    draft.materialKey = 'grass_dirt';
+    expect(draft.hasMetadataChanges, isTrue);
+    expect(
+      draft.buildCommit(
+        xHalfPixels: 256,
+        bottomYHalfPixels: 576,
+        widthHalfPixels: 1800,
+        heightHalfPixels: 128,
+      ),
+      isNull,
+    );
+    expect(draft.error, contains('must fit inside'));
+    final commit = draft.buildCommit(
+      xHalfPixels: 256,
+      bottomYHalfPixels: 576,
+      widthHalfPixels: 640,
+      heightHalfPixels: 128,
+    )!;
+    final next = commit.apply(chunk);
+    expect(next.revision, chunk.revision + 1);
+    expect(next.waterRegions.single.id, 'new_pool');
+    expect(next.waterRegions.single.materialKey, 'grass_dirt');
+    expect(commit.apply(next), same(next));
+    draft.nameInput = 'INVALID';
+    expect(draft.nameError, isNotNull);
+    draft.discard();
+    expect(draft.hasMetadataChanges, isFalse);
+    expect(draft.nameError, isNull);
+    expect(
+      draft.buildCommit(
+        xHalfPixels: 257,
+        bottomYHalfPixels: 576,
+        widthHalfPixels: 640,
+        heightHalfPixels: 128,
+      ),
+      isNull,
+    );
+  });
 }
 
 ChunkV2FileData _example() => ChunkV2FileCodec.decode(
   File('../../docs/examples/water_pool_chunk.json').readAsStringSync(),
 );
-TerrainMaterialCatalog _materials() => decodeTerrainMaterialCatalog(
-  File('../../assets/authoring/level/terrain_material_defs.json')
-      .readAsStringSync(),
-).catalog!;

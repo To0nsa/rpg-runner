@@ -1,262 +1,187 @@
 import 'package:flutter/material.dart';
 import 'package:runner_core/terrain/water_region.dart';
-import 'package:terrain_materials/terrain_materials.dart';
 
-import '../../../../chunks/chunk_v2_file_data.dart';
-import '../../../../chunks/chunk_water_commit.dart';
+import '../../shared/editor_list_card.dart';
 import '../../shared/editor_section_card.dart';
+import '../../shared/terrain_polygon_exact_edit_controller.dart';
+import '../../shared/terrain_polygon_rectangle_editor.dart';
+import 'chunk_water_edit_draft.dart';
 
-/// Water drawing controls and exact edits share the chunk transaction path.
+/// Matches Terrain's separate creation and saved-shape sections. The workspace
+/// owns selection, pending-edit resolution and publication of inline edits.
 class ChunkWaterPanel extends StatelessWidget {
   const ChunkWaterPanel({
     super.key,
-    required this.chunk,
-    required this.materials,
+    required this.creationCard,
+    required this.regions,
+    required this.selectedId,
     required this.enabled,
-    required this.onCommit,
-    this.drawingControls,
+    required this.onSelect,
+    required this.selectedEditor,
+    required this.expanded,
+    required this.onExpansionChanged,
   });
 
-  final Widget? drawingControls;
-  final ChunkV2FileData chunk;
-  final TerrainMaterialCatalog? materials;
+  final Widget creationCard;
+  final List<WaterRegionData> regions;
+  final String? selectedId;
   final bool enabled;
-  final ValueChanged<ChunkWaterCommit> onCommit;
+  final ValueChanged<WaterRegionData> onSelect;
+  final Widget? selectedEditor;
+  final bool expanded;
+  final ValueChanged<bool> onExpansionChanged;
 
   @override
-  Widget build(BuildContext context) => EditorSectionCard(
-    title: 'Water regions',
-    collapsible: true,
-    initiallyExpanded: true,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ?drawingControls,
-        const Text(
-          'Pools have a horizontal surface. Use solid terrain for banks '
-          'and a floor, and place the level kill plane below the pool.',
-        ),
-        for (final region in chunk.waterRegions)
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text(region.id),
-            subtitle: Text(
-              '${region.x}, ${region.y} · ${region.width} × ${region.height} px',
-            ),
-            onTap:
-                enabled && materials != null && materials!.materials.isNotEmpty
-                ? () => _edit(context, region)
-                : null,
-            trailing: IconButton(
-              tooltip: 'Delete water ${region.id}',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: !enabled
-                  ? null
-                  : () => onCommit(
-                      ChunkWaterCommit(
-                        expectedRevision: chunk.revision,
-                        regions: chunk.waterRegions.where(
-                          (water) => water.id != region.id,
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-        OutlinedButton.icon(
-          key: const ValueKey('chunk_add_water'),
-          onPressed:
-              enabled && materials != null && materials!.materials.isNotEmpty
-              ? () => _edit(context, null)
-              : null,
-          icon: const Icon(Icons.water),
-          label: const Text('Enter water coordinates'),
-        ),
-      ],
-    ),
-  );
-
-  Future<void> _edit(BuildContext context, WaterRegionData? existing) async {
-    final result = await showDialog<WaterRegionData>(
-      context: context,
-      builder: (_) =>
-          _WaterDialog(chunk: chunk, materials: materials!, existing: existing),
-    );
-    if (result == null || !context.mounted) return;
-    onCommit(
-      ChunkWaterCommit(
-        expectedRevision: chunk.revision,
-        regions: [
-          ...chunk.waterRegions.where((water) => water.id != existing?.id),
-          result,
-        ],
-      ),
-    );
-  }
-}
-
-class _WaterDialog extends StatefulWidget {
-  const _WaterDialog({
-    required this.chunk,
-    required this.materials,
-    this.existing,
-  });
-  final ChunkV2FileData chunk;
-  final TerrainMaterialCatalog materials;
-  final WaterRegionData? existing;
-  @override
-  State<_WaterDialog> createState() => _WaterDialogState();
-}
-
-class _WaterDialogState extends State<_WaterDialog> {
-  final _form = GlobalKey<FormState>();
-  late final Map<String, TextEditingController> _fields;
-  late String _material;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final existing = widget.existing;
-    final id = nextChunkWaterId(widget.chunk.waterRegions);
-    final height = widget.chunk.height < 64 ? widget.chunk.height : 64;
-    _fields = {
-      'id': TextEditingController(text: existing?.id ?? id),
-      'x': TextEditingController(text: '${existing?.x ?? 0}'),
-      'y': TextEditingController(
-        text: '${existing?.y ?? widget.chunk.height - height}',
-      ),
-      'width': TextEditingController(
-        text: '${existing?.width ?? widget.chunk.width.clamp(1, 160)}',
-      ),
-      'height': TextEditingController(text: '${existing?.height ?? height}'),
-    };
-    _material =
-        existing?.materialKey ??
-        (widget.materials.byKey.containsKey('biome_water')
-            ? 'biome_water'
-            : widget.materials.materials.first.key);
-  }
-
-  @override
-  void dispose() {
-    for (final field in _fields.values) {
-      field.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(
-      widget.existing == null ? 'Add water rectangle' : 'Edit water rectangle',
-    ),
-    content: SizedBox(
-      width: 380,
-      child: SingleChildScrollView(
-        child: Form(
-          key: _form,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final entry in _fields.entries)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: TextFormField(
-                    key: ValueKey('water_${entry.key}'),
-                    controller: entry.value,
-                    decoration: InputDecoration(
-                      labelText: switch (entry.key) {
-                        'id' => 'Water ID',
-                        'x' => 'Left (px)',
-                        'y' => 'Surface (px)',
-                        'width' => 'Width (px)',
-                        _ => 'Depth (px)',
-                      },
-                    ),
-                    validator: (value) => entry.key == 'id'
-                        ? (RegExp(r'^[a-z][a-z0-9_]*$').hasMatch(value ?? '')
-                              ? null
-                              : 'Use a lowercase ID.')
-                        : (int.tryParse(value ?? '') == null
-                              ? 'Enter whole pixels.'
-                              : null),
-                  ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      creationCard,
+      const SizedBox(height: 12),
+      EditorSectionCard(
+        key: const ValueKey('chunk_water_regions_panel'),
+        expansionKey: const ValueKey('chunk_water_regions_panel_toggle'),
+        title: 'Existing water regions',
+        description: regions.isEmpty
+            ? 'Saved water rectangles will appear here.'
+            : 'Select a region to edit its metadata, geometry, or lifecycle.',
+        trailing: Text('${regions.length} total'),
+        collapsible: true,
+        expanded: expanded,
+        onExpansionChanged: onExpansionChanged,
+        child: Column(
+          key: const ValueKey('chunk_water_region_list'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (regions.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No existing water regions. Use the creation card above to draw the first one.',
                 ),
-              DropdownButtonFormField<String>(
-                key: const ValueKey('water_material'),
-                initialValue: _material,
-                decoration: const InputDecoration(labelText: 'Water material'),
-                items: [
-                  for (final key in {...widget.materials.byKey.keys, _material})
-                    DropdownMenuItem(
-                      value: key,
-                      child: Text(
-                        widget.materials.byKey[key]?.displayName ?? key,
-                      ),
-                    ),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _material = value);
-                },
               ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+            for (final region in regions) ...[
+              EditorListCard(
+                key: ValueKey('chunk_water_region_${region.id}'),
+                isSelected: region.id == selectedId,
+                onTap: enabled ? () => onSelect(region) : null,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  selected: region.id == selectedId,
+                  leading: const Icon(Icons.water_outlined),
+                  title: Text(region.id),
+                  subtitle: Text(
+                    'Water · Rectangle · ${region.materialKey}',
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  trailing: Text('${region.width} × ${region.height} px'),
+                ),
+              ),
+              if (region.id == selectedId && selectedEditor != null)
+                Padding(
+                  key: const ValueKey('chunk_water_selected_region_editor'),
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                  child: selectedEditor,
                 ),
             ],
-          ),
+          ],
         ),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
-      ),
-      FilledButton(
-        key: const ValueKey('water_apply'),
-        onPressed: _apply,
-        child: const Text('Apply'),
       ),
     ],
   );
+}
 
-  void _apply() {
-    if (!_form.currentState!.validate()) return;
-    try {
-      final region = WaterRegionData(
-        id: _fields['id']!.text,
-        x: int.parse(_fields['x']!.text),
-        y: int.parse(_fields['y']!.text),
-        width: int.parse(_fields['width']!.text),
-        height: int.parse(_fields['height']!.text),
-        materialKey: _material,
-      );
-      final all = [
-        ...widget.chunk.waterRegions.where(
-          (water) => water.id != widget.existing?.id,
+/// Water uses Terrain's exact rectangle fields and Save edit action in-place.
+/// The parent supplies mutations so this presentation owns no document writes.
+class ChunkWaterInlineInspector extends StatelessWidget {
+  const ChunkWaterInlineInspector({
+    super.key,
+    required this.draft,
+    required this.editController,
+    required this.materialSelector,
+    required this.hasPendingInput,
+    required this.onNameChanged,
+    required this.onDelete,
+    required this.onCancel,
+    required this.onApply,
+  });
+
+  final ChunkWaterEditDraft draft;
+  final TerrainPolygonExactEditController editController;
+  final Widget materialSelector;
+  final bool hasPendingInput;
+  final ValueChanged<String> onNameChanged;
+  final VoidCallback? onDelete;
+  final VoidCallback onCancel;
+  final bool Function({
+    required int xHalfPixels,
+    required int bottomYHalfPixels,
+    required int widthHalfPixels,
+    required int heightHalfPixels,
+  })
+  onApply;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        'Edit ${draft.source.id}',
+        style: Theme.of(context).textTheme.titleSmall,
+      ),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            key: const ValueKey('chunk_water_delete_region'),
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Text('Metadata', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 8),
+      TextFormField(
+        key: ValueKey(
+          'chunk_water_region_name_${draft.source.id}_${draft.chunk.revision}',
         ),
-        region,
-      ];
-      final error = chunkWaterValidationMessage(widget.chunk, all);
-      if (error != null) throw FormatException(error);
-      if (!widget.materials.byKey.containsKey(_material)) {
-        throw const FormatException('Choose an available material.');
-      }
-      Navigator.pop(context, region);
-    } on Object catch (error) {
-      setState(
-        () => _error = error is FormatException
-            ? error.message.toString()
-            : error.toString(),
-      );
-    }
-  }
+        initialValue: draft.nameInput,
+        decoration: InputDecoration(
+          labelText: 'Region name',
+          helperText: 'Lowercase letters, numbers, and underscores; unique in this chunk.',
+          errorText: draft.nameError,
+          border: const OutlineInputBorder(),
+        ),
+        onChanged: onNameChanged,
+      ),
+      const SizedBox(height: 8),
+      materialSelector,
+      const SizedBox(height: 8),
+      TerrainPolygonRectangleEditor(
+        key: ValueKey(
+          'chunk_water_rectangle_editor_${draft.source.id}_${draft.chunk.revision}',
+        ),
+        keyPrefix: 'chunk_water',
+        rectangle: waterAuthoringRectangle(draft.source),
+        coordinateStepHalfPixels: 2,
+        editController: editController,
+        applyButtonKey: const ValueKey('chunk_water_save_edit'),
+        applyLabel: 'Save edit',
+        applyEnabled: draft.nameError == null,
+        onApply: onApply,
+      ),
+      if (draft.error != null) ...[
+        const SizedBox(height: 8),
+        Text(
+          draft.error!,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ],
+      if (hasPendingInput)
+        TextButton(onPressed: onCancel, child: const Text('Cancel edit')),
+    ],
+  );
 }

@@ -82,14 +82,30 @@ are visual tickers, independent of gameplay authority.
 ## Authoring and validation
 
 Chunk Creator's **Water** scene domain draws rectangles with a material picker,
-independent tile-grid and neighbor-vertex snap switches, and a retained preview.
+tile-grid and neighbor-vertex switches, and a retained preview. Terrain and
+Water compose the same `ChunkShapeCreationCard`, material selector/preview,
+SwitchListTile controls, creation status and action row. Creation snap
+preferences are shared. Water starts in Select; Draw rectangle explicitly arms
+the tool, and Save/Cancel returns to Select.
 The shared scene surface owns pointer routing, pan/zoom and keyboard handling.
-`ChunkWaterDrawing` freezes the source revision, material, snap policy and targets
-at pointer down; pointer release retains a candidate without writing the session.
+`ChunkWaterDrawing` freezes the source revision, name, material, snap policy and
+targets at pointer down; pointer release retains a candidate without writing the session.
 Enter/Save water publishes one `ChunkWaterCommit`; Escape/Cancel discards it.
 Active water drafts block Save, Play and owner/domain switching. Undo cancels the
-local draft before consuming committed history. Exact-coordinate creation and
-editing remain in the sidebar modal and use the same commit path.
+local draft before consuming committed history.
+
+Existing water regions use the shared outlined list-card presentation and typed
+`ChunkWaterSceneSelection`. Scene hits and sidebar rows open an inline inspector;
+the former water modal and standalone drawing-controls widget are removed.
+`ChunkWaterEditDraft` captures source identity/revision and buffers name/material;
+`TerrainPolygonRectangleEditor` owns X/Bottom/Width/Height text through the shared
+exact-edit controller. Its bottom anchor is identical to Terrain. Save edit
+validates and publishes metadata plus geometry in one stale-checked transaction.
+Source checks are shared with drawn water. Invalid or stale edits remain visible.
+Selection, tab, owner and level changes resolve pending input through the existing
+Save/Discard/Cancel dialog; global Save and Play validate the same mounted editor.
+Clean selections reconcile with Undo/Redo, and discarding input remounts the
+inspector from current source. Water outline/draft colors reuse Terrain's style.
 
 Neighbor snapping shares the terrain nearest-vertex routine and uses an eight
 canvas-pixel radius divided by the current zoom. Targets are direct terrain

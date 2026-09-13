@@ -19,6 +19,7 @@ final class ChunkWaterDrawing {
   Offset? _start;
   Offset? _end;
   String? _materialKey;
+  String? _regionId;
   List<TerrainSourceVertexDef> _neighbors = const [];
   TerrainPolygonSnapPolicy _snapPolicy =
       TerrainPolygonSnapPolicy.ownerGridPixels(1);
@@ -45,11 +46,13 @@ final class ChunkWaterDrawing {
     required bool snapToNeighbors,
     required double zoom,
     ChunkV2CollisionExpansion? expansion,
+    String? regionId,
   }) {
     if (hasActiveOperation) return false;
     _source = chunk;
     _pointer = pointer;
     _materialKey = materialKey;
+    _regionId = regionId ?? nextChunkWaterId(chunk.waterRegions);
     _snapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
       snapToGrid ? chunk.tileSize : 1,
     );
@@ -113,6 +116,37 @@ final class ChunkWaterDrawing {
     _pointer = null;
   }
 
+  /// Applies the shared exact rectangle inspector to the local draft only.
+  bool editDimensions({
+    required int xHalfPixels,
+    required int bottomYHalfPixels,
+    required int widthHalfPixels,
+    required int heightHalfPixels,
+  }) {
+    if (_source == null || isDragging) return false;
+    final yHalfPixels = bottomYHalfPixels - heightHalfPixels;
+    if ([
+          xHalfPixels,
+          yHalfPixels,
+          widthHalfPixels,
+          heightHalfPixels,
+        ].any((value) => value.isOdd) ||
+        xHalfPixels < 0 ||
+        yHalfPixels < 0 ||
+        widthHalfPixels <= 0 ||
+        heightHalfPixels <= 0 ||
+        xHalfPixels + widthHalfPixels > _source!.width * 2 ||
+        bottomYHalfPixels > _source!.height * 2) {
+      _error = 'Keep a positive whole-pixel rectangle inside the chunk.';
+      return false;
+    }
+    _start = Offset(xHalfPixels * .5, yHalfPixels * .5);
+    _end = _start! + Offset(widthHalfPixels * .5, heightHalfPixels * .5);
+    _snappedNeighbor = null;
+    _refreshCandidate();
+    return _error == null;
+  }
+
   /// Returns a commit only after pointer release and successful source checks.
   /// The captured revision lets the plugin reject intervening document edits.
   ChunkWaterCommit? buildCommit() {
@@ -168,7 +202,7 @@ final class ChunkWaterDrawing {
       return;
     }
     _candidate = WaterRegionData(
-      id: nextChunkWaterId(_source!.waterRegions),
+      id: _regionId!,
       x: rect.left.toInt(),
       y: rect.top.toInt(),
       width: rect.width.toInt(),

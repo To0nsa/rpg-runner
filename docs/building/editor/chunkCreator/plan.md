@@ -193,11 +193,15 @@ the preview turns green, while final compilation remains authoritative. This
 adds no source field, runtime transform, or weakened collision rule.
 
 The Water scene tab adds a rectangle drawer with material selection, optional
-chunk-grid snapping and exact neighbor-vertex snapping. Water drafts share the
-scene's pan/zoom/input routing and retain a preview until Enter/Save water.
+chunk-grid snapping and exact neighbor-vertex snapping. Water and Terrain share
+creation controls, material previews, snap preferences and exact rectangle fields.
+Select is the default water tool; Draw rectangle explicitly starts creation.
+Existing regions edit inline with guarded Save edit. Drafts share the scene's
+pan/zoom/input routing and retain a preview until Enter/Save water.
 Publication uses the existing non-solid water contract and chunk transaction;
 no runtime schema change is introduced. See the
-[water drawing checklist](../../archived/editor/chunkCreator/water_rectangle_drawing.md).
+[water drawing checklist](../../archived/editor/chunkCreator/water_rectangle_drawing.md)
+and [UX alignment checklist](../../archived/editor/chunkCreator/water_terrain_ux_alignment.md).
 
 - [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
 - [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)

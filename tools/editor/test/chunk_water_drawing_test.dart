@@ -60,6 +60,59 @@ void main() {
   });
 
   test(
+    'exact draft dimensions retain the chosen name without writing source',
+    () {
+      final drawing = ChunkWaterDrawing()
+        ..begin(
+          chunk: chunk,
+          pointer: 1,
+          worldPoint: const Offset(10, 10),
+          materialKey: 'biome_water',
+          regionId: 'named_pool',
+          snapToGrid: false,
+          snapToNeighbors: false,
+          zoom: 1,
+        );
+      drawing.finish(pointer: 1, worldPoint: const Offset(30, 30), zoom: 1);
+      expect(
+        drawing.editDimensions(
+          xHalfPixels: 24,
+          bottomYHalfPixels: 80,
+          widthHalfPixels: 48,
+          heightHalfPixels: 32,
+        ),
+        isTrue,
+      );
+      expect(drawing.bounds, const Rect.fromLTRB(12, 24, 36, 40));
+      expect(drawing.candidate!.id, 'named_pool');
+      expect(chunk.waterRegions, isEmpty);
+      expect(
+        drawing.editDimensions(
+          xHalfPixels: -2,
+          bottomYHalfPixels: 80,
+          widthHalfPixels: 48,
+          heightHalfPixels: 32,
+        ),
+        isFalse,
+      );
+      expect(drawing.buildCommit(), isNull);
+      expect(
+        drawing.editDimensions(
+          xHalfPixels: 24,
+          bottomYHalfPixels: 80,
+          widthHalfPixels: 48,
+          heightHalfPixels: 32,
+        ),
+        isTrue,
+      );
+      expect(
+        drawing.buildCommit()!.apply(chunk).waterRegions.single.id,
+        'named_pool',
+      );
+    },
+  );
+
+  test(
     'grid snaps both corners and clamps to the last in-bounds grid line',
     () {
       chunk = chunk.copyWith(width: 99, height: 55, tileSize: 16);

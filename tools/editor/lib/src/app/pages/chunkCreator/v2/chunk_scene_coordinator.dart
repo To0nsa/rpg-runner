@@ -33,6 +33,12 @@ final class ChunkTerrainSceneSelection extends ChunkSceneSelection {
 }
 
 @immutable
+final class ChunkWaterSceneSelection extends ChunkSceneSelection {
+  const ChunkWaterSceneSelection(this.regionId);
+  final String regionId;
+}
+
+@immutable
 final class ChunkPrefabSceneSelection extends ChunkSceneSelection {
   const ChunkPrefabSceneSelection(this.selection);
 
@@ -68,6 +74,20 @@ final class ChunkSceneCoordinator {
       ? _sourceDomainBeforeInspection
       : _domain;
   ChunkSceneSelection? get selection => _selections[_domain];
+
+  String? get selectedWaterId => switch (_selections[ChunkSceneDomain.water]) {
+    ChunkWaterSceneSelection(:final regionId) => regionId,
+    _ => null,
+  };
+
+  void selectWater(String? regionId) {
+    _domain = ChunkSceneDomain.water;
+    _sourceDomainBeforeInspection = _domain;
+    _setSelection(
+      _domain,
+      regionId == null ? null : ChunkWaterSceneSelection(regionId),
+    );
+  }
 
   String? get selectedPrefabKey =>
       switch (sourceDomain == ChunkSceneDomain.prefabs
@@ -152,6 +172,11 @@ final class ChunkSceneCoordinator {
   void clearSelection() => _selections.remove(_domain);
 
   void reconcileComposition(ChunkV2FileData chunk) {
+    final waterId = selectedWaterId;
+    if (waterId != null &&
+        !chunk.waterRegions.any((region) => region.id == waterId)) {
+      _selections.remove(ChunkSceneDomain.water);
+    }
     switch (_selections[ChunkSceneDomain.prefabs]) {
       case ChunkPrefabSceneSelection(:final selection):
         final resolved = resolveChunkPrefabSelection(
@@ -162,7 +187,8 @@ final class ChunkSceneCoordinator {
           ChunkSceneDomain.prefabs,
           resolved == null ? null : ChunkPrefabSceneSelection(resolved),
         );
-      case ChunkTerrainSceneSelection() ||
+      case ChunkWaterSceneSelection() ||
+          ChunkTerrainSceneSelection() ||
           ChunkMarkerSceneSelection() ||
           ChunkCompiledEdgeSceneSelection() ||
           null:
@@ -178,7 +204,8 @@ final class ChunkSceneCoordinator {
           ChunkSceneDomain.markers,
           resolved == null ? null : ChunkMarkerSceneSelection(resolved),
         );
-      case ChunkTerrainSceneSelection() ||
+      case ChunkWaterSceneSelection() ||
+          ChunkTerrainSceneSelection() ||
           ChunkPrefabSceneSelection() ||
           ChunkCompiledEdgeSceneSelection() ||
           null:

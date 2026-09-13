@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-/// Coordinates save/discard requests with the currently mounted exact terrain
-/// geometry editor.
+/// Coordinates save/discard requests with the currently mounted exact scene
+/// geometry editor, including Terrain and Water rectangle inspectors.
 ///
 /// Chunk authoring renders at most one exact editor at a time. Keeping the
 /// pending field state in that editor avoids leaking text parsing into the

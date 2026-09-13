@@ -4,6 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/terrain/water_region.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_shape_creation_card.dart';
+import 'package:runner_editor/src/app/pages/shared/terrain_polygon_rectangle_editor.dart';
 import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
@@ -66,18 +69,69 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.byType(ChunkShapeCreationCard), findsOneWidget);
     await tester.tap(find.text('Water'));
     await tester.pump();
+    expect(find.byType(ChunkShapeCreationCard), findsOneWidget);
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_water_creation_panel_toggle',
+      bodyKey: 'chunk_water_creation_section',
+    );
     expect(find.text('Snap to neighbor vertices'), findsOneWidget);
-    expect(find.text('Snap to grid (16 px)'), findsOneWidget);
+    expect(find.text('Snap to grid'), findsOneWidget);
     await tester.tap(
-      find.byKey(const ValueKey('chunk_water_draw_material_biome_water')),
+      find.byKey(const ValueKey('chunk_water_creation_material_selector')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Grass / Dirt').last);
+    await tester.tap(
+      find.byKey(
+        const ValueKey('chunk_water_creation_material_preview_grass_dirt'),
+      ),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('chunk_water_snap_grid')));
+    expect(
+      find.byKey(const ValueKey('chunk_polygon_read_only_material_dialog')),
+      findsOneWidget,
+    );
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+    await tester.tap(
+      find.byKey(const ValueKey('chunk_polygon_material_preview_close')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('chunk_water_creation_material_selector')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Grass / Dirt · grass_dirt').last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('chunk_water_creation_snap_to_grid')),
+    );
     await tester.pump();
+
+    await tester.tap(find.text('Terrain'));
+    await tester.pump();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_polygon_creation_panel_toggle',
+      bodyKey: 'chunk_polygon_creation_section',
+    );
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(const ValueKey('chunk_polygon_creation_snap_to_grid')),
+          )
+          .value,
+      isTrue,
+    );
+    await tester.tap(find.text('Water'));
+    await tester.pump();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_water_creation_panel_toggle',
+      bodyKey: 'chunk_water_creation_section',
+    );
 
     final surfaceFinder = find.byKey(const ValueKey('chunk_scene_surface'));
     ChunkSceneSurface surface() => tester.widget(
@@ -91,12 +145,28 @@ void main() {
         surface().transform.origin +
         Offset(x, y) * surface().transform.zoom;
     Future<void> draw() async {
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('chunk_water_new_rectangle')),
+      );
+      await tester.tap(find.byKey(const ValueKey('chunk_water_new_rectangle')));
+      await tester.pump();
       final gesture = await tester.startGesture(point(11, 11));
       await gesture.moveTo(point(81, 33));
       await tester.pump();
       await gesture.up();
       await tester.pump();
     }
+
+    final passiveDrag = await tester.startGesture(point(11, 11));
+    await passiveDrag.moveTo(point(81, 33));
+    await passiveDrag.up();
+    await tester.pump();
+    expect(
+      key.currentState!.hasActiveOperation,
+      isFalse,
+      reason: 'Select is the default tool.',
+    );
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, isEmpty);
 
     await draw();
     final preview = tester.widget<ChunkPolygonLevelVisualSource>(
@@ -125,7 +195,7 @@ void main() {
     );
     expect(
       tester
-          .widget<FilledButton>(
+          .widget<OutlinedButton>(
             find.byKey(const ValueKey('chunk_water_save_draft')),
           )
           .onPressed,
@@ -159,7 +229,7 @@ void main() {
     expect(overlay.invalid, isTrue);
     expect(
       tester
-          .widget<FilledButton>(
+          .widget<OutlinedButton>(
             find.byKey(const ValueKey('chunk_water_save_draft')),
           )
           .onPressed,
@@ -179,6 +249,186 @@ void main() {
     expect(_chunk(harness.session, 'forest_chunk').waterRegions, [water]);
     expect(draftNotifications, greaterThan(0));
   });
+
+  testWidgets(
+    'water inline editing shares Terrain fields and protects pending changes',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final harness = await _buildHarness(
+        waterRegions: [
+          WaterRegionData(
+            id: 'pool_a',
+            x: 60,
+            y: 10,
+            width: 16,
+            height: 22,
+            materialKey: 'grass_dirt',
+          ),
+          WaterRegionData(
+            id: 'pool_b',
+            x: 80,
+            y: 10,
+            width: 16,
+            height: 22,
+            materialKey: 'grass_dirt',
+          ),
+        ],
+      );
+      addTearDown(harness.dispose);
+      final key = GlobalKey<ChunkAuthoringWorkspaceState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: ChunkAuthoringWorkspace(
+              key: key,
+              controller: harness.session,
+              playtestPlatformSupported: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Water'));
+      await tester.pump();
+      final surfaceFinder = find.byKey(const ValueKey('chunk_scene_surface'));
+      final surface = tester.widget<ChunkSceneSurface>(
+        find.ancestor(
+          of: surfaceFinder,
+          matching: find.byType(ChunkSceneSurface),
+        ),
+      );
+      await tester.tapAt(
+        tester.getTopLeft(surfaceFinder) +
+            surface.transform.origin +
+            Offset(65, 20) * surface.transform.zoom,
+      );
+      await tester.pump();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(TerrainPolygonRectangleEditor), findsOneWidget);
+      expect(find.text('Edit pool_a'), findsOneWidget);
+      final width = find.byKey(
+        const ValueKey('chunk_water_rectangle_width_field'),
+      );
+      final save = find.byKey(const ValueKey('chunk_water_save_edit'));
+      await tester.enterText(width, '24');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pump();
+      expect(find.textContaining('overlap'), findsOneWidget);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      await tester.enterText(width, '20');
+      await tester.enterText(
+        find.byKey(const ValueKey('chunk_water_region_name_pool_a_4')),
+        'renamed_pool',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('chunk_water_metadata_material_selector')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_metadata_material_selector')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dirt hole · dirt_hole').last);
+      await tester.pumpAndSettle();
+      expect(key.currentState!.playtestReadiness.code, 'pendingInspectorInput');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pump();
+      final region = _chunk(harness.session, 'forest_chunk').waterRegions.last;
+      expect(
+        [region.id, region.width, region.y, region.materialKey],
+        ['renamed_pool', 20, 10, 'dirt_hole'],
+      );
+      expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+      expect(
+        _chunk(harness.session, 'forest_chunk').collisionShapes,
+        hasLength(1),
+      );
+
+      await tester.enterText(width, '18');
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('chunk_water_region_pool_b')),
+      );
+      await tester.tap(find.byKey(const ValueKey('chunk_water_region_pool_b')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_cancel')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Edit renamed_pool'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('chunk_water_region_pool_b')),
+      );
+      await tester.tap(find.byKey(const ValueKey('chunk_water_region_pool_b')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_discard')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Edit pool_b'), findsOneWidget);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('chunk_water_rectangle_height_field')),
+        '24',
+      );
+      expect(await key.currentState!.finalizeLocalEdits(), isTrue);
+      await tester.pump();
+      expect(
+        _chunk(harness.session, 'forest_chunk').waterRegions.first.height,
+        24,
+      );
+      expect(_chunk(harness.session, 'forest_chunk').revision, 6);
+      await tester.enterText(
+        find.byKey(const ValueKey('chunk_water_rectangle_width_field')),
+        'invalid',
+      );
+      await tester.tap(find.text('Terrain'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_save')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Edit pool_b'), findsOneWidget);
+      expect(find.text('Use a whole-pixel value.'), findsOneWidget);
+      await tester.ensureVisible(find.text('Cancel edit'));
+      await tester.tap(find.text('Cancel edit'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('chunk_water_rectangle_width_field')),
+            )
+            .controller!
+            .text,
+        '16',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('chunk_water_delete_region')),
+      );
+      await tester.tap(find.byKey(const ValueKey('chunk_water_delete_region')));
+      await tester.pump();
+      expect(
+        _chunk(harness.session, 'forest_chunk').waterRegions,
+        hasLength(1),
+      );
+      expect(key.currentState!.handleUndoShortcut(), isTrue);
+      await tester.pump();
+      expect(
+        _chunk(harness.session, 'forest_chunk').waterRegions,
+        hasLength(2),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'new terrain drafts use the authored material and preview every gesture',
@@ -4536,6 +4786,7 @@ Future<void> _openSection(
 }
 
 Future<_Harness> _buildHarness({
+  List<WaterRegionData> waterRegions = const [],
   List<ValidationIssue> additionalIssues = const <ValidationIssue>[],
   List<PrefabV3Def> additionalPrefabs = const <PrefabV3Def>[],
   List<ChunkV2FileData> additionalChunks = const <ChunkV2FileData>[],
@@ -4585,7 +4836,7 @@ Future<_Harness> _buildHarness({
       PlacedMarkerDef(markerId: 'grojib', x: 30, y: 5, salt: 2),
       PlacedMarkerDef(markerId: 'hashash', x: 40, y: 5, salt: 3),
     ],
-  );
+  ).copyWith(waterRegions: waterRegions);
   final meadowChunk = _chunkData(
     chunkKey: 'meadow_chunk',
     levelId: 'meadow',

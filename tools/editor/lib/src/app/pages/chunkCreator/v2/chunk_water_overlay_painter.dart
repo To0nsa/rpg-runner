@@ -7,6 +7,7 @@ import '../../shared/terrain_polygon_scene_painter.dart';
 class ChunkWaterOverlayPainter extends CustomPainter {
   const ChunkWaterOverlayPainter({
     required this.regions,
+    this.selectedId,
     required this.transform,
     required this.draft,
     required this.invalid,
@@ -14,6 +15,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
   });
 
   final List<WaterRegionData> regions;
+  final String? selectedId;
   final TerrainPolygonViewportTransform transform;
   final Rect? draft;
   final bool invalid;
@@ -21,6 +23,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    const style = TerrainPolygonSceneStyle();
     Offset toCanvas(Offset point) => transform.origin + point * transform.zoom;
     void rectangle(Rect rect, Color color, {bool fill = false}) {
       final bounds = Rect.fromPoints(
@@ -55,13 +58,14 @@ class ChunkWaterOverlayPainter extends CustomPainter {
           region.width.toDouble(),
           region.height.toDouble(),
         ),
-        Colors.cyan,
+        region.id == selectedId ? style.selectedStroke : style.solidStroke,
+        fill: region.id == selectedId,
       );
     }
     if (draft != null) {
       rectangle(
         draft!,
-        invalid ? Colors.redAccent : Colors.cyanAccent,
+        invalid ? Colors.redAccent : style.draftStroke,
         fill: true,
       );
     }
@@ -80,6 +84,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ChunkWaterOverlayPainter oldDelegate) =>
       oldDelegate.regions != regions ||
+      oldDelegate.selectedId != selectedId ||
       oldDelegate.transform != transform ||
       oldDelegate.draft != draft ||
       oldDelegate.invalid != invalid ||

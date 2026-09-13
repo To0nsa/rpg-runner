@@ -19,27 +19,38 @@ death rules still apply; water never makes falling below the kill plane safe.
 1. In Chunk Creator, form an open basin with solid terrain: a floor and banks.
    Water does not carve out or replace solid polygons. A solid flat rectangle
    under the entire surface prevents the player from entering.
-2. Select the **Water** tab and choose **Biome water** (`biome_water`) in the
-   material picker. Drag opposite corners in the scene to draw the pool.
+2. Select the **Water** tab and expand **Create water region**, like Terrain's
+   creation card. Optionally name the region and choose **Biome water**
+   (`biome_water`) in the shared material picker; its eye button previews the art.
+   Press **Draw rectangle**, then drag opposite corners in the scene.
    **Snap to grid** uses the chunk's tile size. **Snap to neighbor vertices**
    captures nearby terrain, placed-prefab and water corners; an amber ring marks
    the captured corner. Both switches are independent of the visible grid.
    When both are enabled, an exact neighbor takes priority over the grid.
+   Terrain and Water share these creation snap preferences.
 3. Keep the pool inside the chunk, with a floor at its bottom. Bank tops at the
    surface height are an appropriate starting point. Touching pools may share a
    boundary; overlapping water rectangles are rejected.
 4. Press **Enter** or **Save water** to accept the draft; **Escape** or
-   **Cancel drawing** discards it. The preview turns red for invalid rectangles.
+   **Cancel** discards it. The preview turns red for invalid rectangles.
    Finish or cancel the drawing before Save, Play, or switching tabs/owners.
    Then use **Play/F5**. Move with A/D or arrows and stroke with Space,
    W or Up. Check both bank exits and forward progress against the camera.
 5. Save the chunk, then Build when ready to include it in generated runs.
 
-For exact dimensions, use **Enter water coordinates**, or click an existing
-water region in the sidebar to edit its coordinates and material. Each accepted
-rectangle is one undoable edit. Undo first cancels any unfinished drawing.
-Water uses whole pixels; fractional collision vertices are skipped as exact
-snap targets. The neighbor capture radius stays eight screen pixels when zoomed.
+Water starts in **Select** mode and returns to it after saving or cancelling a
+drawing. Select a region in the scene or **Existing water regions** to open its
+inline metadata and rectangle inspector. Name, material and dimensions are
+accepted together with **Save edit**. The same dimension controls as Terrain
+edit X, Bottom, Width and Height; changing Height keeps Bottom fixed. They also
+let you refine a drawn draft before saving it. Water does not support arbitrary
+polygon shapes or solid-collision modes.
+
+Switching away from unfinished inline input offers Save, Discard or Cancel.
+Save and Play first validate that input, and Undo first discards local edits.
+Each accepted creation or edit is one undoable transaction. Water uses whole
+pixels; fractional collision vertices are skipped as exact snap targets. The
+neighbor capture radius stays eight screen pixels when zoomed.
 
 The [example chunk](../examples/water_pool_chunk.json) is 600×320, with a pool
 at X 128, surface Y 224, width 320 and depth 64. Its banks are at Y 222 and floor
