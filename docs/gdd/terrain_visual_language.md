@@ -57,6 +57,23 @@ remain upright and retain their existing visual priority over the ground.
   overlaps above underside art. Content thickness or material regions must
   still provide the desired interior clearance.
 
+## Resize terrain in Chunk Creator
+
+In **Terrain → Select**, select a rectangular terrain shape and drag any square
+corner handle to make it larger or smaller. Its opposite corner stays fixed,
+its material previews continuously, and release accepts one undoable edit.
+**Escape** cancels the drag. The selected inspector provides **Snap to grid**
+and **Snap to neighbor vertices**; nearby exact corners take priority over the
+grid. Terrain stops at occupied terrain/prefab collision and stays inside the
+chunk. Invalid releases preserve the original and show validation diagnostics.
+
+Pending name or dimension fields must be saved or discarded before dragging;
+Cancel keeps them. The exact rectangle fields refresh after a resize. This
+interaction applies to axis-aligned rectangles; other polygon shapes retain
+their vertex tools. **Move shape** still translates an entire terrain shape.
+The [Water workflow](swimming.md) provides matching resize handles and its own
+**Move shape** tool for whole water regions.
+
 ## Runtime Boundary
 
 Normal Field and Forest gameplay now uses one authored terrain set and one

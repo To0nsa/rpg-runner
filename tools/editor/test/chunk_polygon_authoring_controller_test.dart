@@ -24,6 +24,131 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  test(
+    'Select resize preserves grab offset and off-grid anchor through history',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+      final original = controller.chunk;
+      controller.select(TerrainPolygonSelection.shape('ground_001'));
+      controller.setEditSnapToGrid(true);
+      const grab = TerrainPolygonScenePoint(104.6, 82.4);
+      expect(
+        controller.selectedRectangleCornerAt(point: grab, radiusHalfPixels: 20),
+        2,
+      );
+      expect(
+        controller.beginResizeRectangle(
+          pointer: 1,
+          point: grab,
+          vertexIndex: 2,
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 1,
+        point: grab,
+        snapRadiusHalfPixels: 16,
+      );
+      controller.commitGesture(1);
+      expect(controller.chunk, original);
+      expect(harness.session.canUndo, isFalse);
+      controller.beginResizeRectangle(pointer: 1, point: grab, vertexIndex: 2);
+      controller.updateGesture(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(131.6, 98.4),
+      );
+      expect(controller.state.gesture!.previewShape.vertices, const [
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 96),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 96),
+      ]);
+      expect(controller.chunk, original);
+      expect(controller.commitGesture(1), isTrue);
+      expect(controller.chunk.revision, original.revision + 1);
+      expect(controller.undo(), isTrue);
+      expect(controller.chunk, original);
+      expect(controller.redo(), isTrue);
+      expect(controller.chunk.revision, original.revision + 1);
+      controller.setEditSnapToGrid(false);
+      controller.beginResizeRectangle(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(128, 96),
+        vertexIndex: 2,
+      );
+      controller.updateGesture(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(20, 80),
+      );
+      expect(controller.commitGesture(1), isFalse);
+      expect(controller.hasActiveOperation, isFalse);
+      expect(controller.issues, isNotEmpty);
+      expect(controller.chunk.revision, original.revision + 1);
+    },
+  );
+
+  test('rectangle resizing stops at occupied terrain and reaches exact neighbor corners', () async {
+    final neighbor = TerrainSourceShapeDef(
+      shapeId: 'neighbor',
+      vertices: const [
+        TerrainSourceVertexDef(xHalfPixels: 142, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 180, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 180, yHalfPixels: 90),
+        TerrainSourceVertexDef(xHalfPixels: 142, yHalfPixels: 90),
+      ],
+    );
+    final harness = await _buildHarness(
+      collisionShapes: [_chunkGround(), neighbor],
+    );
+    final controller = harness.authoring;
+    controller.select(TerrainPolygonSelection.shape('ground_001'));
+    controller.setEditSnapToGrid(true);
+    controller.beginResizeRectangle(
+      pointer: 1,
+      point: const TerrainPolygonScenePoint(100, 80),
+      vertexIndex: 2,
+    );
+    controller.updateGesture(
+      pointer: 1,
+      point: const TerrainPolygonScenePoint(140, 88),
+      snapRadiusHalfPixels: 16,
+    );
+    expect(
+      controller.state.gesture!.previewShape.vertices[2],
+      const TerrainSourceVertexDef(xHalfPixels: 142, yHalfPixels: 90),
+    );
+    controller.updateGesture(
+      pointer: 1,
+      point: const TerrainPolygonScenePoint(178, 92),
+      snapRadiusHalfPixels: 16,
+    );
+    expect(controller.state.gesture!.previewShape.vertices[2].xHalfPixels, 142);
+    expect(controller.commitGesture(1), isTrue);
+    expect(controller.chunk.revision, 5);
+  });
+
+  test('Select corner resizing leaves nonrectangular polygons to their vertex tools', () async {
+    final harness = await _buildHarness(shape: _pentagon());
+    final controller = harness.authoring;
+    controller.select(TerrainPolygonSelection.shape('ground_001'));
+    expect(
+      controller.selectedRectangleCornerAt(
+        point: const TerrainPolygonScenePoint(20, 20),
+        radiusHalfPixels: 20,
+      ),
+      isNull,
+    );
+    expect(
+      controller.beginResizeRectangle(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(20, 20),
+        vertexIndex: 0,
+      ),
+      isFalse,
+    );
+  });
+
   test('new direct chunk shapes use the solid ID family', () async {
     final harness = await _buildHarness();
     final controller = harness.authoring;

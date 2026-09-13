@@ -149,6 +149,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final ChunkWaterDrawing _waterDrawing = ChunkWaterDrawing();
   String? _waterMaterialKey;
   bool _waterDrawArmed = false;
+  bool _waterMoveArmed = false;
   bool _waterExistingExpanded = false;
   String _waterNewNameInput = '';
   int _waterNameGeneration = 0;
@@ -674,7 +675,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   Widget _buildWaterPanel(ChunkV2FileData chunk) {
     final authoring = _authoring!;
-    final candidate = _waterDrawing.isResizing ? null : _waterDrawing.candidate;
+    final candidate = _waterDrawing.isEditing ? null : _waterDrawing.candidate;
     final draft = _waterEditDraft;
     final nameError = chunkWaterNameError(
       _resolvedWaterName(chunk),
@@ -737,7 +738,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           keyName: 'chunk_water_creation_snap_to_neighbor_vertices',
         ),
         status:
-            _waterDrawing.isResizing ||
+            _waterDrawing.isEditing ||
                 (!_waterDrawArmed && !_waterDrawing.hasActiveOperation)
             ? null
             : ChunkShapeCreationStatus(
@@ -795,7 +796,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         onSave: _waterDrawing.buildCommit() == null ? null : _saveWaterDrawing,
         saveLabel: 'Save water',
         onCancel:
-            !_waterDrawing.isResizing &&
+            !_waterDrawing.isEditing &&
                 (_waterDrawing.hasActiveOperation || _waterDrawArmed)
             ? _cancelWaterDrawing
             : null,
@@ -807,7 +808,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       const Text(
-        'Drag a selected corner to resize. Release to apply; Escape cancels.',
+        'Drag a selected corner to resize, or use Move shape to drag the region. Release to apply; Escape cancels.',
       ),
       _buildTerrainSnapSwitch(
         _authoring!,
@@ -818,10 +819,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         _authoring!,
         keyName: 'chunk_water_edit_snap_to_neighbor_vertices',
       ),
-      if (_waterDrawing.isResizing) ...[
+      if (_waterDrawing.isEditing) ...[
         ChunkShapeCreationStatus(
           key: const ValueKey('chunk_water_resize_status'),
-          title: 'Resizing water region',
+          title: _waterDrawing.isMoving
+              ? 'Moving water region'
+              : 'Resizing water region',
           message:
               _waterDrawing.error ??
               '${_waterDrawing.bounds!.width.toInt()} × ${_waterDrawing.bounds!.height.toInt()} px. Release to apply.',
@@ -829,7 +832,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         ),
         TextButton(
           onPressed: _cancelWaterDrawing,
-          child: const Text('Cancel resize'),
+          child: Text(_waterDrawing.isMoving ? 'Cancel move' : 'Cancel resize'),
         ),
       ],
       ExcludeFocus(
@@ -909,6 +912,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (!mounted) return;
     setState(() {
       _bindWaterSelection(null);
+      _waterMoveArmed = false;
       _waterDrawArmed = true;
     });
   }
@@ -1003,7 +1007,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _saveWaterDrawing() {
-    if (_waterDrawing.isResizing) return;
+    if (_waterDrawing.isEditing) return;
     if (_exactEditController.hasChanges && !_exactEditController.save()) return;
     final id = _waterDrawing.candidate?.id;
     final commit = _waterDrawing.buildCommit();
@@ -1018,16 +1022,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     }
   }
 
-  void _completeWaterResize() {
-    final id = _waterDrawing.resizingRegionId;
+  void _completeWaterEdit() {
+    final id = _waterDrawing.editingRegionId;
     final error = _waterDrawing.error;
     final commit = _waterDrawing.buildCommit();
     if (commit != null && _selectedChunkKey != null) {
       _dispatchWaterCommit(_selectedChunkKey!, commit);
     } else if (error != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Water resize cancelled: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Water ${_waterDrawing.isMoving ? 'move' : 'resize'} cancelled: $error',
+          ),
+        ),
+      );
     }
     _cancelWaterDrawing();
     setState(() => _bindWaterSelection(id));
@@ -1324,16 +1332,30 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                               : (_) => authoring.setTool(tool),
                         )
                     else if (_sceneCoordinator.sourceDomain ==
-                        ChunkSceneDomain.water)
+                        ChunkSceneDomain.water) ...[
                       ChoiceChip(
                         key: const ValueKey('chunk_water_tool_select'),
                         label: const Text('Select'),
-                        selected: !_waterDrawArmed,
+                        selected: !_waterDrawArmed && !_waterMoveArmed,
                         onSelected: _hasActiveOperation
                             ? null
-                            : (_) => setState(() => _waterDrawArmed = false),
-                      )
-                    else if (_sceneCoordinator.sourceDomain ==
+                            : (_) => setState(() {
+                                _waterDrawArmed = false;
+                                _waterMoveArmed = false;
+                              }),
+                      ),
+                      ChoiceChip(
+                        key: const ValueKey('chunk_water_tool_move_shape'),
+                        label: const Text('Move shape'),
+                        selected: _waterMoveArmed && !_waterDrawArmed,
+                        onSelected: _hasActiveOperation
+                            ? null
+                            : (_) => setState(() {
+                                _waterDrawArmed = false;
+                                _waterMoveArmed = true;
+                              }),
+                      ),
+                    ] else if (_sceneCoordinator.sourceDomain ==
                         ChunkSceneDomain.prefabs) ...<Widget>[
                       for (final tool in ChunkPrefabSceneTool.values)
                         ChoiceChip(
@@ -1425,9 +1447,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.water
               ? (_waterDrawArmed ||
                         (_waterDrawing.hasActiveOperation &&
-                            !_waterDrawing.isResizing)
+                            !_waterDrawing.isEditing)
                     ? 'Drag across opposite corners to draw a rectangle draft. Enter saves it and Escape cancels.'
-                    : 'Select a water region, then drag a corner to resize. Release to apply; Escape cancels. Use Draw rectangle to create one. Ctrl+drag pans and Ctrl+scroll zooms.')
+                    : (_waterMoveArmed
+                          ? 'Drag a water region to move it. Release to apply; Escape cancels. Ctrl+drag pans and Ctrl+scroll zooms.'
+                          : 'Select a water region, then drag a corner to resize. Release to apply; Escape cancels. Use Draw rectangle to create one. Ctrl+drag pans and Ctrl+scroll zooms.'))
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
               ? 'Place and Move keep whole-pixel origins. Surface snap can '
                     'refine Y to exact non-overlapping terrain-edge contact. '
@@ -1442,6 +1466,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               : authoring.state.tool == TerrainPolygonTool.createRectangle
               ? 'Drag across opposite corners to draw a rectangle draft. '
                     'Enter saves it and Escape cancels.'
+              : authoring.state.tool == TerrainPolygonTool.select
+              ? 'Select a terrain rectangle, then drag a corner to resize. Release to apply; Escape cancels. Ctrl+drag pans and Ctrl+scroll zooms.'
               : 'Primary input follows the selected tool. Ctrl+drag pans, '
                     'Ctrl+scroll zooms, Enter saves a draft, and Escape '
                     'cancels.',
@@ -1623,7 +1649,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           key: const ValueKey('chunk_water_overlay'),
                           painter: ChunkWaterOverlayPainter(
                             regions: chunk.waterRegions,
-                            resizingId: _waterDrawing.resizingRegionId,
+                            editingId: _waterDrawing.editingRegionId,
+                            showResizeHandles: !_waterMoveArmed,
                             selectedId: _sceneCoordinator.selectedWaterId,
                             transform: transform,
                             draft: _waterDrawing.bounds,
@@ -1727,6 +1754,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     ],
                   ),
                   onInspectWorldPoint: null,
+                  onBeforeTerrainResize: () {
+                    if (!_hasPendingSelectedSceneEdit) return true;
+                    _resolvePendingSceneEdit(authoring);
+                    return false;
+                  },
                   onBeginDomainGesture: (pointer, point) => _beginDomainGesture(
                     scene: scene,
                     visualProjection: visualProjection,
@@ -1829,10 +1861,27 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             keyName: 'chunk_polygon_edit_snap_to_grid',
                             forCreation: false,
                           ),
+                          if (TerrainAxisAlignedRectangle.tryFromShape(shape) !=
+                              null)
+                            _buildTerrainNeighborVertexSnapSwitch(
+                              authoring,
+                              keyName: 'chunk_polygon_edit_snap_to_neighbor_vertices',
+                            ),
                           const SizedBox(height: 8),
-                          _buildSelectedShapeHeader(authoring, shape),
-                          const SizedBox(height: 8),
-                          _buildVertexInspector(authoring, shape),
+                          ExcludeFocus(
+                            excluding: _hasActiveOperation,
+                            child: AbsorbPointer(
+                              absorbing: _hasActiveOperation,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildSelectedShapeHeader(authoring, shape),
+                                  const SizedBox(height: 8),
+                                  _buildVertexInspector(authoring, shape),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -2651,8 +2700,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       dialogKey: const ValueKey<String>('chunk_polygon_unsaved_edit_dialog'),
       title: 'Save terrain shape changes?',
       content: Text(
-        'Save the pending changes to ${shape.shapeId} before closing its '
-        'editor?',
+        'Save the pending changes to ${shape.shapeId} before continuing?',
       ),
       cancelKey: const ValueKey<String>('chunk_polygon_unsaved_edit_cancel'),
       discardKey: const ValueKey<String>('chunk_polygon_unsaved_edit_discard'),
@@ -3451,6 +3499,32 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         }
       case ChunkSceneDomain.water:
         if (!_waterDrawArmed) {
+          if (_waterMoveArmed) {
+            final hit = hitTestChunkWaterRegion(chunk.waterRegions, worldPoint);
+            if (hit == null) {
+              _selectWaterRegion(null);
+              return false;
+            }
+            if (_hasPendingWaterEdit) {
+              _resolveWaterEdit();
+              return false;
+            }
+            var began = false;
+            setState(() {
+              _bindWaterSelection(hit.id);
+              began = _waterDrawing.beginMove(
+                chunk: chunk,
+                region: hit,
+                pointer: pointer,
+                worldPoint: worldPoint,
+                snapToGrid: _terrainEditSnapToGrid,
+                snapToNeighbors: _terrainCreationSnapToNeighborVertices,
+                expansion: _expansionFor(chunk.chunkKey)?.expansion,
+              );
+            });
+            widget.onDraftStateChanged?.call();
+            return began;
+          }
           final selected = chunk.waterRegions
               .where((region) => region.id == _sceneCoordinator.selectedWaterId)
               .firstOrNull;
@@ -3483,15 +3557,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             widget.onDraftStateChanged?.call();
             return began;
           }
-          final hit = chunk.waterRegions.reversed
-              .where(
-                (region) =>
-                    worldPoint.dx >= region.x &&
-                    worldPoint.dx <= region.x + region.width &&
-                    worldPoint.dy >= region.y &&
-                    worldPoint.dy <= region.y + region.height,
-              )
-              .firstOrNull;
+          final hit = hitTestChunkWaterRegion(chunk.waterRegions, worldPoint);
           _selectWaterRegion(hit?.id);
           return false;
         }
@@ -3556,8 +3622,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           zoom: _zoom,
         ),
       );
-      if (_waterDrawing.isResizing && !_waterDrawing.isDragging) {
-        _completeWaterResize();
+      if (_waterDrawing.isEditing && !_waterDrawing.isDragging) {
+        _completeWaterEdit();
       }
       widget.onDraftStateChanged?.call();
     } else if (_prefabGesture.hasActiveOperation) {

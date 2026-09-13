@@ -35,6 +35,114 @@ void main() {
       zoom: zoom,
     );
 
+  group('water Move shape', () {
+    late WaterRegionData region;
+    setUp(() {
+      region = WaterRegionData(
+        id: 'pool',
+        x: 21,
+        y: 31,
+        width: 40,
+        height: 20,
+        materialKey: 'biome_water',
+      );
+      chunk = chunk.copyWith(width: 150, height: 100, waterRegions: [region]);
+    });
+    ChunkWaterDrawing move({bool grid = false, bool neighbors = false}) =>
+        ChunkWaterDrawing()..beginMove(
+          chunk: chunk,
+          region: region,
+          pointer: 1,
+          worldPoint: const Offset(40.3, 41.7),
+          snapToGrid: grid,
+          snapToNeighbors: neighbors,
+        );
+    test(
+      'whole-pixel displacement preserves size, grab offset and metadata',
+      () {
+        final drawing = move();
+        drawing.update(
+          pointer: 1,
+          worldPoint: const Offset(55.7, 32.9),
+          zoom: 1,
+        );
+        expect(drawing.bounds, const Rect.fromLTWH(36, 22, 40, 20));
+        expect(drawing.buildCommit(), isNull);
+        expect(chunk.waterRegions.single, region);
+        drawing.finish(
+          pointer: 1,
+          worldPoint: const Offset(55.7, 32.9),
+          zoom: 1,
+        );
+        final saved = drawing.buildCommit()!.apply(chunk);
+        expect(saved.waterRegions.single.id, region.id);
+        expect(saved.waterRegions.single.materialKey, region.materialKey);
+        expect(saved.revision, chunk.revision + 1);
+        expect(drawing.previewRegions, hasLength(1));
+      },
+    );
+    test(
+      'grid displacement, whole-region bounds, return drag and cancel are safe',
+      () {
+        final drawing = move(grid: true);
+        drawing.update(
+          pointer: 1,
+          worldPoint: const Offset(60.3, 61.7),
+          zoom: 1,
+        );
+        expect(drawing.bounds, const Rect.fromLTWH(37, 47, 40, 20));
+        drawing.update(
+          pointer: 1,
+          worldPoint: const Offset(1000, -1000),
+          zoom: 1,
+        );
+        expect(drawing.bounds, const Rect.fromLTWH(110, 0, 40, 20));
+        drawing.finish(
+          pointer: 1,
+          worldPoint: const Offset(40.3, 41.7),
+          zoom: 1,
+        );
+        expect(drawing.bounds, waterRegionBounds(region));
+        expect(drawing.buildCommit(), isNull);
+        expect(drawing.cancel(), isTrue);
+        expect(drawing.isEditing, isFalse);
+      },
+    );
+    test(
+      'any corner can snap to a neighbor; invalid overlaps cannot commit',
+      () {
+        final other = WaterRegionData(
+          id: 'other',
+          x: 93,
+          y: 31,
+          width: 20,
+          height: 20,
+          materialKey: 'biome_water',
+        );
+        chunk = chunk.copyWith(waterRegions: [other, region]);
+        for (final zoom in [.5, 1.0, 4.0]) {
+          final drawing = move(grid: true, neighbors: true);
+          drawing.finish(
+            pointer: 1,
+            worldPoint: Offset(40.3 + 32 - 7 / zoom, 41.7),
+            zoom: zoom,
+          );
+          expect(drawing.bounds, const Rect.fromLTWH(53, 31, 40, 20));
+          expect(drawing.snappedNeighbor, isNotNull);
+          expect(drawing.buildCommit(), isNotNull);
+        }
+        final invalid = move();
+        invalid.finish(
+          pointer: 1,
+          worldPoint: const Offset(90.3, 41.7),
+          zoom: 1,
+        );
+        expect(invalid.error, contains('overlap'));
+        expect(invalid.buildCommit(), isNull);
+      },
+    );
+  });
+
   group('selected water corner resizing', () {
     late WaterRegionData region;
     setUp(() {

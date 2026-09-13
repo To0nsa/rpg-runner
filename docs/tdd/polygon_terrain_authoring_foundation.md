@@ -1741,13 +1741,41 @@ Selection and tool changes produce no semantic commit. A no-op gesture never
 canonicalizes loaded geometry implicitly.
 
 The shared reducer provides shape/edge/vertex selection, ordered polygon
-creation, vertex and whole-shape movement, provisional edge insertion,
+creation, saved rectangle resizing, vertex and whole-shape movement, provisional edge insertion,
 vertex/shape deletion, deterministic lowest-free-ID duplication, explicit
 mode/metadata editing, and explicit Core normalization. Semantic geometry
 commits use the Core canonicalizer and exact positive-area overlap predicate.
 Owner-specific bounds, visual intersection, capacity, transformed placement,
 and seam validation stay in the prefab/chunk plugins rather than this shared
 state machine.
+
+Chunk **Select** exposes square corner handles only on a selected saved
+axis-aligned rectangle. `ChunkSceneSurface` hit-tests with the normal ten-canvas-
+pixel vertex radius before ordinary selection and asks the workspace to resolve
+pending name/dimension input. `ChunkPolygonAuthoringController` captures the raw
+pointer-to-corner offset and routes updates through the reducer's
+`resizeRectangle` gesture. The two adjacent vertices follow the moving corner's
+X/Y coordinates, preserving the opposite corner, identity, material and collision
+mode. Crossing the anchor remains a rectangle and canonicalizes on commit.
+Clicks and return drags retain the original off-grid bounds without a revision.
+
+Rectangle resizing uses the existing edit-grid preference and the neighbor
+switch shared with Terrain/Water creation. `chunkWholePixelSnapVertices` captures
+direct terrain, expanded prefab and water corners inside the owner, excluding
+the edited shape and fractional targets. Exact neighbor capture takes priority
+over the grid. The normal collision contact constraint still prevents occupied
+overlap, using whole-pixel contact refinement. Water targets supply alignment
+only and never become solid blockers. The shared rectangle-handle painter keeps
+Terrain and Water handles the same size and style; Prefab vertex tools retain
+their existing presentation.
+
+A valid resize release publishes one owner-reviewed polygon commit. The inline
+rectangle fields then bind to accepted source. Escape, pointer cancellation and
+Undo drop the local gesture. An invalid resize release also drops its preview
+while retaining validation diagnostics, so Select remains immediately usable.
+Session source changes cancel the captured local gesture; stale previews cannot
+overwrite new source. Other polygon tools retain their existing rejection and
+normalization workflow.
 
 The duplicate UI does not use a fixed nudge: that would positively overlap most
 source loops and make the action reject immediately. It derives X/Y candidate
@@ -1794,7 +1822,7 @@ an allowed axis along that boundary.
 Only solid target boundaries participate in contact attraction. One-way and
 render-only loops still reject occupied-area overlap, but are not weld targets
 because they do not form removable solid seams. Direct boundaries that are representable on
-the active source grid snap exactly. Move/insert vertex contact may refine an
+the active source grid snap exactly. Rectangle resize and move/insert vertex contact may refine an
 optional tile-grid gesture to the mandatory whole-pixel direct-terrain lattice,
 so a legal neighboring boundary between tile intersections remains reachable;
 unconstrained movement continues to use the selected tile grid. A transformed

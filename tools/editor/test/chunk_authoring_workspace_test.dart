@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_shape_creation_card.dart';
 import 'package:runner_editor/src/app/pages/shared/terrain_polygon_rectangle_editor.dart';
+import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter.dart';
 import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
@@ -513,7 +514,7 @@ void main() {
         const Offset(60, 30),
         const Offset(75, 40),
       );
-      expect(overlay().resizingId, 'pool_a');
+      expect(overlay().editingId, 'pool_a');
       expect(
         tester
             .widget<ChoiceChip>(
@@ -670,6 +671,198 @@ void main() {
       expect(source().waterRegions.first.width, 60);
       expect(overlay().draft, isNull);
       expect(find.textContaining('Chunk change was rejected.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Terrain Select resizes rectangles and Water Move shape preserves size',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final water = WaterRegionData(
+        id: 'pool',
+        x: 60,
+        y: 10,
+        width: 20,
+        height: 20,
+        materialKey: 'grass_dirt',
+      );
+      final harness = await _buildHarness(waterRegions: [water]);
+      addTearDown(harness.dispose);
+      final key = GlobalKey<ChunkAuthoringWorkspaceState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: ChunkAuthoringWorkspace(
+              key: key,
+              controller: harness.session,
+              playtestPlatformSupported: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final surfaceFinder = find.byKey(const ValueKey('chunk_scene_surface'));
+      Offset scenePoint(Offset world) {
+        final surface = tester.widget<ChunkSceneSurface>(
+          find.ancestor(
+            of: surfaceFinder,
+            matching: find.byType(ChunkSceneSurface),
+          ),
+        );
+        return tester.getTopLeft(surfaceFinder) +
+            surface.transform.origin +
+            world * surface.transform.zoom;
+      }
+
+      ChunkV2FileData source() => _chunk(harness.session, 'forest_chunk');
+      Future<TestGesture> drag(Offset from, Offset to) async {
+        final gesture = await tester.startGesture(scenePoint(from));
+        await tester.pump();
+        await gesture.moveTo(scenePoint(to));
+        await tester.pump();
+        return gesture;
+      }
+
+      TerrainPolygonScenePainter terrainOverlay() =>
+          tester
+                  .widget<CustomPaint>(
+                    find.byKey(const ValueKey('chunk_authoring_overlay')),
+                  )
+                  .painter!
+              as TerrainPolygonScenePainter;
+      ChunkWaterOverlayPainter waterOverlay() =>
+          tester
+                  .widget<CustomPaint>(
+                    find.byKey(const ValueKey('chunk_water_overlay')),
+                  )
+                  .painter!
+              as ChunkWaterOverlayPainter;
+
+      await tester.tapAt(scenePoint(const Offset(30, 25)));
+      await tester.pump();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_polygon_shapes_panel_toggle',
+        bodyKey: 'chunk_shape_list',
+      );
+      expect(terrainOverlay().showRectangleResizeHandles, isTrue);
+      final terrain = source().collisionShapes.single;
+      var gesture = await drag(const Offset(50, 40), const Offset(65, 45));
+      final preview = terrainOverlay().projection.shapes.single;
+      expect(preview.isGesturePreview, isTrue);
+      expect(preview.shape.vertices, const [
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 130, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 130, yHalfPixels: 90),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 90),
+      ]);
+      expect(source().collisionShapes.single, terrain);
+      expect(key.currentState!.hasActiveOperation, isTrue);
+      expect(await key.currentState!.finalizeLocalEdits(), isFalse);
+      await gesture.up();
+      await tester.pump();
+      expect(source().revision, 5);
+      expect(source().collisionShapes.single.vertices, preview.shape.vertices);
+      final width = find.byKey(
+        const ValueKey('chunk_polygon_rectangle_width_field'),
+      );
+      expect(tester.widget<TextField>(width).controller!.text, '55');
+      expect(key.currentState!.handleUndoShortcut(), isTrue);
+      await tester.pump();
+      expect(source().collisionShapes.single, terrain);
+      expect(key.currentState!.handleRedoShortcut(), isTrue);
+      await tester.pump();
+      gesture = await drag(const Offset(10, 10), const Offset(5, 5));
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await gesture.up();
+      await tester.pump();
+      expect(source().revision, 5);
+      gesture = await drag(const Offset(10, 10), const Offset(5, 5));
+      await gesture.cancel();
+      await tester.pump();
+      expect(source().revision, 5);
+      expect(key.currentState!.hasActiveOperation, isFalse);
+
+      await tester.ensureVisible(width);
+      await tester.enterText(width, '54');
+      gesture = await drag(const Offset(65, 45), const Offset(68, 46));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('chunk_polygon_unsaved_edit_dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_polygon_unsaved_edit_cancel')),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(width).controller!.text, '54');
+      gesture = await drag(const Offset(65, 45), const Offset(68, 46));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_polygon_unsaved_edit_discard')),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(width).controller!.text, '55');
+
+      await tester.tap(find.text('Water'));
+      await tester.pump();
+      await tester.tapAt(scenePoint(const Offset(70, 20)));
+      await tester.pump();
+      final neighbor = find.byKey(
+        const ValueKey('chunk_water_edit_snap_to_neighbor_vertices'),
+      );
+      await tester.ensureVisible(neighbor);
+      await tester.tap(neighbor);
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_tool_move_shape')),
+      );
+      await tester.pump();
+      gesture = await drag(const Offset(70, 20), const Offset(50, 30));
+      expect(waterOverlay().draft, const Rect.fromLTWH(40, 20, 20, 20));
+      expect(waterOverlay().showResizeHandles, isFalse);
+      expect(source().waterRegions.single, water);
+      await gesture.up();
+      await tester.pump();
+      expect(source().revision, 6);
+      final moved = source().waterRegions.single;
+      expect([moved.x, moved.y, moved.width, moved.height], [40, 20, 20, 20]);
+      expect(moved.materialKey, water.materialKey);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('chunk_water_tool_move_shape')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(key.currentState!.handleUndoShortcut(), isTrue);
+      await tester.pump();
+      expect(source().waterRegions.single, water);
+      expect(key.currentState!.handleRedoShortcut(), isTrue);
+      await tester.pump();
+      expect(source().waterRegions.single, moved);
+      gesture = await drag(const Offset(50, 30), const Offset(70, 35));
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await gesture.up();
+      await tester.pump();
+      expect(source().waterRegions.single, moved);
+      expect(waterOverlay().draft, isNull);
+      await tester.tap(find.byKey(const ValueKey('chunk_water_tool_select')));
+      await tester.pump();
+      gesture = await drag(const Offset(60, 40), const Offset(70, 45));
+      expect(waterOverlay().showResizeHandles, isTrue);
+      await gesture.up();
+      await tester.pump();
+      expect(source().revision, 7);
+      expect(source().waterRegions.single.width, 30);
       expect(tester.takeException(), isNull);
     },
   );

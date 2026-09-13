@@ -74,7 +74,10 @@ or **Cancel resize** restores the original. Invalid resizes show a red outline
 and are discarded on release. Grid and neighbor switches are available in the
 selected inspector; grid uses Terrain's edit preference, while neighbor snapping
 shares the creation preference and excludes the current region's corners.
-Resolve pending inline input before starting the drag.
+Choose **Move shape** to drag a water region while preserving its size. Movement
+snaps its displacement to the grid or aligns any corner to a neighbor. Release
+accepts one edit; **Escape / Cancel move** restores the source. Return to **Select**
+for corner resizing. Resolve pending inline input before starting the drag.
 Each accepted creation or edit is one undo step. Select `biome_water` for the
 animated mixed-biomes surface; provide solid banks and a floor separately.
 Terrain Materials edits the animation frames/timing. Save, chunk duplication, Build
@@ -583,6 +586,15 @@ Contextual status explains when the rectangle tool is ready, a rectangle is
 being dragged, or a draft is ready. **Save shape** stays disabled until the
 draft has at least three vertices.
 
+In **Terrain → Select**, select an axis-aligned rectangle and drag a square
+corner handle to resize it while keeping the opposite corner fixed. Use the
+selected shape's grid and neighbor switches for alignment. Collision constraints
+stop the preview at occupied terrain/prefab boundaries. Release accepts one
+undoable edit and refreshes its rectangle fields; **Escape** cancels. Pending
+inspector input is resolved before resizing. An invalid resize release restores
+the source and retains validation diagnostics. General polygons retain their
+vertex tools, and **Move shape** continues to translate the whole shape.
+
 **Existing terrain shapes** shows the saved-shape count and separates each
 shape's collision mode, geometry type, material key, and vertex count. Selecting
 a row expands its metadata, lifecycle actions, and geometry editor directly
@@ -598,10 +610,11 @@ a clean editor. If the name or exact geometry fields have changed, the editor
 instead offers **Save**, **Discard**, and **Cancel** before closing. A freeform
 draft begins rendering its material after its third vertex; rectangle, vertex,
 and whole-shape gestures update the material preview continuously. This
-projection is visual only and does not enter source history until **Save
-shape**.
+projection is visual only. Creation enters source history through **Save shape**;
+saved-shape gestures enter history on release.
 
-Rejected edits retain their draft/gesture and do not enter source history.
+Rejected edits do not enter source history. Rectangle resize releases discard
+the rejected preview; other edits retain their draft/gesture for correction.
 Draft **Save** removes redundant aligned middle vertices
 before the single commit. For a rejected committed-shape gesture, **Normalize**
 applies the visible preview or selecting another tool discards that preview.

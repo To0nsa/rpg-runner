@@ -13,6 +13,8 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../../../terrain_authoring/terrain_vertex_snap.dart';
+import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
+import 'chunk_scene_snap_vertices.dart';
 
 // Direct Chunk terrain must remain on whole pixels even when collision contact
 // refines an optional tile-grid gesture. Two half-pixel ticks equal one pixel.
@@ -84,6 +86,9 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   List<ValidationIssue> _issues = const <ValidationIssue>[];
   AuthoringDocument? _observedDocument;
   bool _isDispatching = false;
+  TerrainPolygonScenePoint? _rectangleGrabPoint;
+  TerrainPolygonScenePoint? _rectangleGrabOffset;
+  List<TerrainSourceVertexDef> _rectangleSnapVertices = const [];
 
   String get chunkKey => _chunkKey;
   TerrainPolygonInteractionState get state => _state;
@@ -533,6 +538,66 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return started;
   }
 
+  /// Finds a handle only on the selected saved rectangle in Select mode. The
+  /// surface supplies its canvas hit radius converted to half-pixel ticks.
+  int? selectedRectangleCornerAt({
+    required TerrainPolygonScenePoint point,
+    required double radiusHalfPixels,
+  }) {
+    if (_state.tool != TerrainPolygonTool.select || _state.hasActiveOperation) {
+      return null;
+    }
+    final shape = _state.shapes
+        .where((shape) => shape.shapeId == _state.selection?.shapeId)
+        .firstOrNull;
+    if (shape == null ||
+        TerrainAxisAlignedRectangle.tryFromShape(shape) == null) {
+      return null;
+    }
+    final corner = nearestTerrainVertex(
+      shape.vertices,
+      point,
+      radiusHalfPixels: radiusHalfPixels,
+    );
+    return corner == null ? null : shape.vertices.indexOf(corner);
+  }
+
+  /// Captures raw pointer offset while the reducer owns the rectangular preview
+  /// and normal polygon commit. Callers resolve pending inspector input first.
+  bool beginResizeRectangle({
+    required int pointer,
+    required TerrainPolygonScenePoint point,
+    required int vertexIndex,
+  }) {
+    final selection = _state.selection;
+    if (selection == null || _state.tool != TerrainPolygonTool.select) {
+      return false;
+    }
+    final next = _reducer.beginResizeRectangle(
+      _state,
+      pointer: pointer,
+      shapeId: selection.shapeId,
+      vertexIndex: vertexIndex,
+    );
+    if (identical(next, _state)) return false;
+    final corner = next.gesture!.startPointer;
+    _rectangleGrabPoint = point;
+    _rectangleGrabOffset = TerrainPolygonScenePoint(
+      point.xHalfPixels - corner.xHalfPixels,
+      point.yHalfPixels - corner.yHalfPixels,
+    );
+    final scene = _session.scene;
+    _rectangleSnapVertices = chunkWholePixelSnapVertices(
+      chunk: chunk,
+      expansion: scene is ChunkV2Scene
+          ? scene.collisionExpansionByChunkKey[_chunkKey]?.expansion
+          : null,
+      excludingTerrainId: selection.shapeId,
+    );
+    _replaceLocalState(next);
+    return true;
+  }
+
   /// Updates the active preview without allowing occupied-area overlap.
   ///
   /// When the requested pointer is invalid, the preview stops at the last
@@ -544,13 +609,42 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   }) {
     final gesture = _state.gesture;
     if (gesture == null || gesture.pointer != pointer) return;
+    final resizing = gesture.kind == TerrainPolygonGestureKind.resizeRectangle;
+    if (resizing &&
+        (point.xHalfPixels - _rectangleGrabPoint!.xHalfPixels).abs() < 1e-8 &&
+        (point.yHalfPixels - _rectangleGrabPoint!.yHalfPixels).abs() < 1e-8) {
+      _replaceLocalState(
+        _reducer.updateGesture(
+          _state,
+          pointer: pointer,
+          currentPointer: gesture.startPointer,
+          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        ),
+      );
+      return;
+    }
+    if (resizing) {
+      point = TerrainPolygonScenePoint(
+        point.xHalfPixels - _rectangleGrabOffset!.xHalfPixels,
+        point.yHalfPixels - _rectangleGrabOffset!.yHalfPixels,
+      );
+    }
     final snapPolicy = _gestureSnapPolicy;
-    final desired = _state.draft == null
-        ? _boundedGesturePoint(point, snapPolicy)
-        : _snapCreationPointer(
+    final neighbor = resizing && _creationSnapToNeighborVertices
+        ? nearestTerrainVertex(
+            _rectangleSnapVertices,
             point,
-            snapRadiusHalfPixels: snapRadiusHalfPixels,
-          );
+            radiusHalfPixels: snapRadiusHalfPixels,
+          )
+        : null;
+    final desired =
+        neighbor ??
+        (_state.draft == null
+            ? _boundedGesturePoint(point, snapPolicy)
+            : _snapCreationPointer(
+                point,
+                snapRadiusHalfPixels: snapRadiusHalfPixels,
+              ));
     TerrainSourceShapeDef previewFor(TerrainSourceVertexDef candidatePointer) =>
         _reducer
             .updateGesture(
@@ -571,7 +665,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       ),
       snapStepHalfPixels: snapPolicy.stepHalfPixels,
       pointContactStepHalfPixels: _chunkTerrainContactStepHalfPixels,
-      snapRadiusHalfPixels: snapRadiusHalfPixels,
+      snapRadiusHalfPixels: neighbor == null ? snapRadiusHalfPixels : 0,
       buildPreview: previewFor,
       isCandidateInBounds: _shapeIsInBounds,
     );
@@ -587,10 +681,17 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
 
   bool commitGesture(int pointer) {
     final attemptedState = _state;
-    return _applyInteractionResult(
+    final applied = _applyInteractionResult(
       _reducer.commitGesture(attemptedState, pointer: pointer),
       attemptedState: attemptedState,
     );
+    if (_state.gesture?.kind == TerrainPolygonGestureKind.resizeRectangle &&
+        _state.gesture?.pointer == pointer) {
+      // Invalid resize releases restore source while retaining its diagnostics.
+      _state = _reducer.cancelActiveOperation(_state);
+      notifyListeners();
+    }
+    return applied;
   }
 
   void cancelActiveOperation() {

@@ -174,6 +174,7 @@ final class TerrainPolygonDraft {
 /// Active pointer gesture whose preview has not entered undo history yet.
 enum TerrainPolygonGestureKind {
   createRectangle,
+  resizeRectangle,
   moveVertex,
   translateShape,
   insertVertex,
@@ -654,6 +655,35 @@ final class TerrainPolygonInteractionReducer {
     );
   }
 
+  /// Starts a saved rectangle resize in Select. Pointer updates supply the
+  /// moving corner in half-pixel ticks; its opposite source corner stays fixed.
+  TerrainPolygonInteractionState beginResizeRectangle(
+    TerrainPolygonInteractionState state, {
+    required int pointer,
+    required String shapeId,
+    required int vertexIndex,
+  }) {
+    if (state.hasActiveOperation) return state;
+    final shape = _requireShape(state.shapes, shapeId);
+    if (TerrainAxisAlignedRectangle.tryFromShape(shape) == null) return state;
+    _requireVertexIndex(shape, vertexIndex);
+    return _state(
+      state,
+      tool: TerrainPolygonTool.select,
+      selection: TerrainPolygonSelection.shape(shapeId),
+      replaceSelection: true,
+      gesture: TerrainPolygonGesture(
+        pointer: pointer,
+        kind: TerrainPolygonGestureKind.resizeRectangle,
+        originalShape: shape,
+        previewShape: shape,
+        startPointer: shape.vertices[vertexIndex],
+        activeVertexIndex: vertexIndex,
+      ),
+      replaceGesture: true,
+    );
+  }
+
   /// Starts a whole-shape translation preview.
   TerrainPolygonInteractionState beginTranslateShape(
     TerrainPolygonInteractionState state, {
@@ -740,6 +770,23 @@ final class TerrainPolygonInteractionReducer {
         final vertices = gesture.previewShape.vertices.toList(growable: false);
         vertices[vertexIndex] = snap.snapVertex(currentPointer);
         preview = _shapeWithVertices(gesture.previewShape, vertices);
+      case TerrainPolygonGestureKind.resizeRectangle:
+        final moving =
+            gesture.originalShape.vertices[gesture.activeVertexIndex!];
+        final corner = snap.snapVertex(currentPointer);
+        preview = _shapeWithVertices(
+          gesture.originalShape,
+          gesture.originalShape.vertices.map(
+            (vertex) => TerrainSourceVertexDef(
+              xHalfPixels: vertex.xHalfPixels == moving.xHalfPixels
+                  ? corner.xHalfPixels
+                  : vertex.xHalfPixels,
+              yHalfPixels: vertex.yHalfPixels == moving.yHalfPixels
+                  ? corner.yHalfPixels
+                  : vertex.yHalfPixels,
+            ),
+          ),
+        );
       case TerrainPolygonGestureKind.translateShape:
         final rawDeltaX =
             currentPointer.xHalfPixels - gesture.startPointer.xHalfPixels;
@@ -843,7 +890,9 @@ final class TerrainPolygonInteractionReducer {
     }
     final canonical = validation.shape!;
     final afterShapes = _replaceShape(state.shapes, canonical);
-    final selection = gesture.activeVertexIndex == null
+    final selection =
+        gesture.activeVertexIndex == null ||
+            gesture.kind == TerrainPolygonGestureKind.resizeRectangle
         ? TerrainPolygonSelection.shape(canonical.shapeId)
         : _selectionForCanonicalVertex(
             canonical,

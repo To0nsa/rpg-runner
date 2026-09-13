@@ -64,8 +64,9 @@ final class TerrainAuthoringCollisionLoop {
   final TerrainCollisionMode collisionMode;
 }
 
-typedef TerrainGesturePreviewBuilder =
-    TerrainSourceShapeDef Function(TerrainSourceVertexDef pointer);
+typedef TerrainGesturePreviewBuilder = TerrainSourceShapeDef Function(
+  TerrainSourceVertexDef pointer,
+);
 
 /// Resolves Chunk/Prefab polygon input against immutable collision loops.
 ///
@@ -154,6 +155,7 @@ abstract final class TerrainPolygonContactConstraint {
     }
     final gestureStep = switch (gesture.kind) {
       TerrainPolygonGestureKind.moveVertex ||
+      TerrainPolygonGestureKind.resizeRectangle ||
       TerrainPolygonGestureKind.insertVertex => pointContactStep,
       TerrainPolygonGestureKind.createRectangle ||
       TerrainPolygonGestureKind.translateShape => snapStepHalfPixels,
@@ -453,6 +455,7 @@ TerrainSourceVertexDef _gesturePreviewPointer(TerrainPolygonGesture gesture) {
           ? gesture.previewShape.vertices[2]
           : gesture.startPointer;
     case TerrainPolygonGestureKind.moveVertex:
+    case TerrainPolygonGestureKind.resizeRectangle:
     case TerrainPolygonGestureKind.insertVertex:
       return gesture.previewShape.vertices[gesture.activeVertexIndex!];
     case TerrainPolygonGestureKind.translateShape:

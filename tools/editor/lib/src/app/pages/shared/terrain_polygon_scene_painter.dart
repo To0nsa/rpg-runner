@@ -3,6 +3,25 @@ import 'package:flutter/material.dart';
 import '../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../terrain_authoring/terrain_source_models.dart';
+import '../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
+
+/// Shared ten-canvas-pixel rectangle handle, independent of viewport zoom.
+void paintTerrainRectangleHandle(
+  Canvas canvas,
+  Offset center, {
+  required Color fill,
+  required Color stroke,
+}) {
+  final handle = Rect.fromCenter(center: center, width: 10, height: 10);
+  canvas.drawRect(handle, Paint()..color = fill);
+  canvas.drawRect(
+    handle,
+    Paint()
+      ..color = stroke
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2,
+  );
+}
 
 /// Mirrors Core's one-way edge exposure rule for clockwise Y-down source
 /// loops: only edges travelling toward positive X have an upward normal.
@@ -180,12 +199,14 @@ final class TerrainPolygonScenePainter extends CustomPainter {
     required this.transform,
     this.style = const TerrainPolygonSceneStyle(),
     this.showActiveOneWayEdges = false,
+    this.showRectangleResizeHandles = false,
   });
 
   final TerrainPolygonSceneProjection projection;
   final TerrainPolygonViewportTransform transform;
   final TerrainPolygonSceneStyle style;
   final bool showActiveOneWayEdges;
+  final bool showRectangleResizeHandles;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -272,8 +293,21 @@ final class TerrainPolygonScenePainter extends CustomPainter {
       );
     }
 
+    final resizeHandles =
+        showRectangleResizeHandles &&
+        sceneShape.isSelected &&
+        TerrainAxisAlignedRectangle.tryFromShape(sceneShape.shape) != null;
     for (var index = 0; index < points.length; index++) {
       final selected = sceneShape.selectedVertexIndex == index;
+      if (resizeHandles) {
+        paintTerrainRectangleHandle(
+          canvas,
+          points[index],
+          fill: style.vertexFill,
+          stroke: strokeColor,
+        );
+        continue;
+      }
       canvas.drawCircle(
         points[index],
         selected ? style.selectedVertexRadius : style.vertexRadius,
@@ -315,7 +349,8 @@ final class TerrainPolygonScenePainter extends CustomPainter {
       oldDelegate.projection != projection ||
       oldDelegate.transform != transform ||
       oldDelegate.style != style ||
-      oldDelegate.showActiveOneWayEdges != showActiveOneWayEdges;
+      oldDelegate.showActiveOneWayEdges != showActiveOneWayEdges ||
+      oldDelegate.showRectangleResizeHandles != showRectangleResizeHandles;
 }
 
 Path _path(List<Offset> points, {required bool close}) {

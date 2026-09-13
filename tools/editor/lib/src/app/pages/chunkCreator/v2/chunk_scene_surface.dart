@@ -31,6 +31,7 @@ class ChunkSceneSurface extends StatefulWidget {
     this.onClearSelection,
     this.onDeleteSelection,
     this.onCompleteOperation,
+    this.onBeforeTerrainResize,
     this.vertexHitRadiusCanvasPx = 10,
     this.edgeHitRadiusCanvasPx = 7,
     this.collisionSnapRadiusCanvasPx = 8,
@@ -55,6 +56,9 @@ class ChunkSceneSurface extends StatefulWidget {
   final VoidCallback? onClearSelection;
   final VoidCallback? onDeleteSelection;
   final VoidCallback? onCompleteOperation;
+
+  /// The workspace resolves pending inspector input before admitting a resize.
+  final bool Function()? onBeforeTerrainResize;
   final double vertexHitRadiusCanvasPx;
   final double edgeHitRadiusCanvasPx;
 
@@ -115,6 +119,10 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
                       painter: TerrainPolygonScenePainter(
                         projection: widget.controller.sceneProjection,
                         transform: widget.transform,
+                        showRectangleResizeHandles:
+                            widget.controller.state.tool ==
+                                TerrainPolygonTool.select &&
+                            widget.controller.state.draft == null,
                       ),
                     ),
                   ),
@@ -199,6 +207,23 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       );
       return;
     }
+    final resizeCorner = controller.selectedRectangleCornerAt(
+      point: point,
+      radiusHalfPixels: widget.transform.canvasRadiusToSourceHalfPixels(
+        widget.vertexHitRadiusCanvasPx,
+      ),
+    );
+    if (resizeCorner != null) {
+      if (widget.onBeforeTerrainResize?.call() == false) return;
+      if (controller.beginResizeRectangle(
+        pointer: event.pointer,
+        point: point,
+        vertexIndex: resizeCorner,
+      )) {
+        _gesturePointer = event.pointer;
+      }
+      return;
+    }
     controller.selectAt(
       point: point,
       vertexRadiusHalfPixels: widget.transform.canvasRadiusToSourceHalfPixels(
@@ -253,6 +278,14 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     }
     if (_gesturePointer != event.pointer) return;
     _gesturePointer = null;
+    if (widget.controller.state.gesture?.kind ==
+        TerrainPolygonGestureKind.resizeRectangle) {
+      widget.controller.updateGesture(
+        pointer: event.pointer,
+        point: widget.transform.canvasToSource(event.localPosition),
+        snapRadiusHalfPixels: _collisionSnapRadiusHalfPixels,
+      );
+    }
     widget.controller.commitGesture(event.pointer);
   }
 

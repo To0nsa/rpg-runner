@@ -206,6 +206,11 @@ no runtime schema change is introduced. See the
 [UX alignment checklist](../../archived/editor/chunkCreator/water_terrain_ux_alignment.md),
 and [corner resize checklist](../../archived/editor/chunkCreator/water_corner_resize.md).
 
+Terrain Select now resizes saved axis-aligned rectangles through the existing
+polygon gesture and occupied-area constraints. Water adds Move shape, preserving
+its region dimensions. Both workflows share snap-target capture and rectangle
+handle presentation; see the [implementation checklist](../../archived/editor/chunkCreator/terrain_resize_water_move.md).
+
 - [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
 - [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)
 

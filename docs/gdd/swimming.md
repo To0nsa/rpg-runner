@@ -54,11 +54,19 @@ fields refresh after release. A red preview indicates a zero-area or overlapping
 rectangle; releasing it cancels the resize and shows the validation message.
 A corner click without dragging leaves the size unchanged.
 
+Choose **Move shape** to drag the whole water region from anywhere inside it.
+Width and height stay fixed, and the whole region stays inside the chunk.
+Release accepts one undo step; **Escape** or **Cancel move** restores the original.
+Move shape remains selected for further moves. Return to **Select** to resize
+corners. Grid snapping rounds the movement distance, preserving an initially
+off-grid origin; neighbor snapping can align any of its four corners exactly.
+Overlapping water is rejected on release, as with resizing.
+
 The selected region's **Snap to grid** control shares Terrain's editing grid
 preference, separate from creation. **Snap to neighbor vertices** shares the
 creation preference and ignores this region's own corners. Only the dragged
 corner snaps; the fixed corner keeps its original position. If there is pending
-inline input, resolve Save/Discard/Cancel first, then start the resize drag again.
+inline input, resolve Save/Discard/Cancel first, then start the drag again.
 
 Switching away from unfinished inline input offers Save, Discard or Cancel.
 Save and Play first validate that input, and Undo first discards local edits.

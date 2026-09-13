@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/terrain/water_region.dart';
 
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
@@ -10,6 +9,7 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../../../terrain_authoring/terrain_vertex_snap.dart';
+import 'chunk_scene_snap_vertices.dart';
 
 /// Clockwise handle order gives deterministic nearest-corner selection.
 enum ChunkWaterCorner {
@@ -36,6 +36,20 @@ Rect waterRegionBounds(WaterRegionData region) => Rect.fromLTWH(
   region.height.toDouble(),
 );
 
+/// Inclusive bounds preserve edge selection; authored order breaks shared-edge ties.
+WaterRegionData? hitTestChunkWaterRegion(
+  List<WaterRegionData> regions,
+  Offset point,
+) => regions.reversed
+    .where(
+      (region) =>
+          point.dx >= region.x &&
+          point.dx <= region.x + region.width &&
+          point.dy >= region.y &&
+          point.dy <= region.y + region.height,
+    )
+    .firstOrNull;
+
 /// Uses Terrain's ten-canvas-pixel vertex hit radius, independent of zoom.
 ChunkWaterCorner? hitTestChunkWaterCorner({
   required WaterRegionData region,
@@ -56,8 +70,8 @@ ChunkWaterCorner? hitTestChunkWaterCorner({
   return nearest;
 }
 
-/// Route-local creation/resize preview over a captured source revision. The
-/// workspace retains new drafts and publishes completed resizes through the
+/// Route-local creation/resize/move preview over a captured source revision. The
+/// workspace retains new drafts and publishes completed edits through the
 /// same plugin commit; pointer motion never changes the session document.
 final class ChunkWaterDrawing {
   ChunkV2FileData? _source;
@@ -66,7 +80,8 @@ final class ChunkWaterDrawing {
   Offset? _end;
   String? _materialKey;
   String? _regionId;
-  WaterRegionData? _resizedRegion;
+  WaterRegionData? _editedRegion;
+  bool _moving = false;
   Offset? _pointerStart;
   Offset? _originalCorner;
   Offset _grabOffset = Offset.zero;
@@ -80,21 +95,23 @@ final class ChunkWaterDrawing {
 
   bool get hasActiveOperation => _source != null;
   bool get isDragging => _pointer != null;
-  bool get isResizing => _resizedRegion != null;
-  String? get resizingRegionId => _resizedRegion?.id;
+  bool get isEditing => _editedRegion != null;
+  bool get isResizing => isEditing && !_moving;
+  bool get isMoving => isEditing && _moving;
+  String? get editingRegionId => _editedRegion?.id;
   Rect? get bounds => _start == null ? null : Rect.fromPoints(_start!, _end!);
   WaterRegionData? get candidate => _candidate;
   String? get error => _error;
   Offset? get snappedNeighbor => _snappedNeighbor;
 
-  /// Valid material projection replaces a resized region rather than duplicating it.
+  /// Material projection replaces an edited region without duplicating it.
   List<WaterRegionData>? get previewRegions =>
       _candidate != null && _error == null ? _regionsWithCandidate : null;
 
   List<WaterRegionData> get _regionsWithCandidate => [
     for (final region in _source!.waterRegions)
-      region.id == resizingRegionId ? _candidate! : region,
-    if (!isResizing) _candidate!,
+      region.id == editingRegionId ? _candidate! : region,
+    if (!isEditing) _candidate!,
   ];
 
   /// Captures one owner-local draft in world pixels. [zoom] is canvas pixels
@@ -141,7 +158,7 @@ final class ChunkWaterDrawing {
     if (hasActiveOperation || !chunk.waterRegions.contains(region)) {
       return false;
     }
-    _resizedRegion = region;
+    _editedRegion = region;
     _capture(
       chunk: chunk,
       pointer: pointer,
@@ -157,6 +174,38 @@ final class ChunkWaterDrawing {
     _end = _originalCorner;
     _pointerStart = worldPoint;
     _grabOffset = worldPoint - _originalCorner!;
+    _refreshCandidate();
+    return true;
+  }
+
+  /// Captures a translation without changing the region's dimensions. The grid
+  /// snaps displacement, preserving an off-grid origin until owner bounds clamp it.
+  bool beginMove({
+    required ChunkV2FileData chunk,
+    required WaterRegionData region,
+    required int pointer,
+    required Offset worldPoint,
+    required bool snapToGrid,
+    required bool snapToNeighbors,
+    ChunkV2CollisionExpansion? expansion,
+  }) {
+    if (hasActiveOperation || !chunk.waterRegions.contains(region)) {
+      return false;
+    }
+    _editedRegion = region;
+    _moving = true;
+    _pointerStart = worldPoint;
+    _capture(
+      chunk: chunk,
+      pointer: pointer,
+      materialKey: region.materialKey,
+      regionId: region.id,
+      snapToGrid: snapToGrid,
+      snapToNeighbors: snapToNeighbors,
+      expansion: expansion,
+    );
+    _start = waterRegionBounds(region).topLeft;
+    _end = waterRegionBounds(region).bottomRight;
     _refreshCandidate();
     return true;
   }
@@ -178,41 +227,11 @@ final class ChunkWaterDrawing {
       snapToGrid ? chunk.tileSize : 1,
     );
     _snapToNeighbors = snapToNeighbors;
-    // Water's source contract is whole pixels. Fractional collision vertices
-    // must not silently move when used as exact snap targets.
-    _neighbors =
-        [
-              ...chunk.collisionShapes.expand((shape) => shape.vertices),
-              for (final shape in expansion?.expandedPrefabShapes ?? [])
-                for (final vertex in shape.vertices)
-                  if (vertex.xTicks % terrainPhysicsTicksPerWorldUnit == 0 &&
-                      vertex.yTicks % terrainPhysicsTicksPerWorldUnit == 0)
-                    TerrainSourceVertexDef(
-                      xHalfPixels:
-                          vertex.xTicks ~/ terrainPhysicsTicksPerWorldUnit * 2,
-                      yHalfPixels:
-                          vertex.yTicks ~/ terrainPhysicsTicksPerWorldUnit * 2,
-                    ),
-              for (final region in chunk.waterRegions.where(
-                (region) => region.id != resizingRegionId,
-              ))
-                for (final x in [region.x, region.x + region.width])
-                  for (final y in [region.y, region.y + region.height])
-                    TerrainSourceVertexDef(
-                      xHalfPixels: x * 2,
-                      yHalfPixels: y * 2,
-                    ),
-            ]
-            .where(
-              (vertex) =>
-                  vertex.xHalfPixels.isEven &&
-                  vertex.yHalfPixels.isEven &&
-                  vertex.xHalfPixels >= 0 &&
-                  vertex.xHalfPixels <= chunk.width * 2 &&
-                  vertex.yHalfPixels >= 0 &&
-                  vertex.yHalfPixels <= chunk.height * 2,
-            )
-            .toList(growable: false);
+    _neighbors = chunkWholePixelSnapVertices(
+      chunk: chunk,
+      expansion: expansion,
+      excludingWaterId: editingRegionId,
+    );
   }
 
   void update({
@@ -221,7 +240,10 @@ final class ChunkWaterDrawing {
     required double zoom,
   }) {
     if (_pointer != pointer) return;
-    if (isResizing && (worldPoint - _pointerStart!).distanceSquared < 1e-8) {
+    if (isMoving) {
+      _updateMove(worldPoint, zoom);
+    } else if (isResizing &&
+        (worldPoint - _pointerStart!).distanceSquared < 1e-8) {
       // A click or a return to the grab position must not quantize saved bounds.
       _end = _originalCorner;
       _snappedNeighbor = null;
@@ -248,7 +270,7 @@ final class ChunkWaterDrawing {
     required int widthHalfPixels,
     required int heightHalfPixels,
   }) {
-    if (_source == null || isDragging || isResizing) return false;
+    if (_source == null || isDragging || isEditing) return false;
     final yHalfPixels = bottomYHalfPixels - heightHalfPixels;
     if ([
           xHalfPixels,
@@ -277,7 +299,7 @@ final class ChunkWaterDrawing {
   ChunkWaterCommit? buildCommit() {
     if (isDragging ||
         _candidate == null ||
-        _candidate == _resizedRegion ||
+        _candidate == _editedRegion ||
         _error != null) {
       return null;
     }
@@ -293,7 +315,8 @@ final class ChunkWaterDrawing {
     _pointer = null;
     _start = null;
     _end = null;
-    _resizedRegion = null;
+    _editedRegion = null;
+    _moving = false;
     _pointerStart = null;
     _originalCorner = null;
     _grabOffset = Offset.zero;
@@ -302,6 +325,58 @@ final class ChunkWaterDrawing {
     _snappedNeighbor = null;
     _neighbors = const [];
     return true;
+  }
+
+  void _updateMove(Offset point, double zoom) {
+    final original = waterRegionBounds(_editedRegion!);
+    final delta = point - _pointerStart!;
+    _snappedNeighbor = null;
+    if (delta.distanceSquared < 1e-8) {
+      _start = original.topLeft;
+      _end = original.bottomRight;
+      return;
+    }
+    final maximumX = _source!.width - original.width;
+    final maximumY = _source!.height - original.height;
+    Offset? snappedOrigin;
+    var nearestDistanceSquared = (8 / zoom) * (8 / zoom);
+    if (_snapToNeighbors) {
+      for (final corner in ChunkWaterCorner.values) {
+        final movingCorner = corner.position(original) + delta;
+        for (final target in _neighbors) {
+          final neighbor = Offset(
+            target.xHalfPixels * .5,
+            target.yHalfPixels * .5,
+          );
+          final distance = (neighbor - movingCorner).distanceSquared;
+          final origin =
+              neighbor - (corner.position(original) - original.topLeft);
+          if (origin.dx < 0 ||
+              origin.dx > maximumX ||
+              origin.dy < 0 ||
+              origin.dy > maximumY) {
+            continue;
+          }
+          if (distance <= nearestDistanceSquared &&
+              (snappedOrigin == null || distance < nearestDistanceSquared)) {
+            nearestDistanceSquared = distance;
+            snappedOrigin = origin;
+            _snappedNeighbor = neighbor;
+          }
+        }
+      }
+    }
+    _start =
+        snappedOrigin ??
+        Offset(
+          (original.left +
+                  _snapPolicy.snapFractionalCoordinate(delta.dx * 2) * .5)
+              .clamp(0, maximumX),
+          (original.top +
+                  _snapPolicy.snapFractionalCoordinate(delta.dy * 2) * .5)
+              .clamp(0, maximumY),
+        );
+    _end = _start! + Offset(original.width, original.height);
   }
 
   Offset _snap(Offset point, double zoom) {

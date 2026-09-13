@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_editor/src/terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_scene_projection.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -12,6 +13,97 @@ void main() {
       TerrainPolygonTool.moveVertex,
       TerrainPolygonTool.insertVertex,
     ]);
+  });
+
+  group('selected rectangle resize', () {
+    for (var index = 0; index < 4; index++) {
+      test(
+        'corner $index preserves its anchor, metadata and rectangle geometry',
+        () {
+          final reducer = _reducer();
+          final original = TerrainSourceShapeDef(
+            shapeId: 'pool_bank',
+            vertices: _rectangle('bank').vertices,
+            collisionMode: TerrainSourceCollisionMode.oneWay,
+            surfaceKind: 'stone',
+            materialKey: 'grass_dirt',
+          );
+          final initial = TerrainPolygonInteractionState(
+            shapes: [original],
+            selection: TerrainPolygonSelection.shape(original.shapeId),
+          );
+          final corner = original.vertices[index];
+          final anchor = original.vertices[(index + 2) % 4];
+          for (final delta in [8, -8, -30]) {
+            var state = reducer.beginResizeRectangle(
+              initial,
+              pointer: 1,
+              shapeId: original.shapeId,
+              vertexIndex: index,
+            );
+            final target = TerrainSourceVertexDef(
+              xHalfPixels:
+                  corner.xHalfPixels +
+                  (corner.xHalfPixels - anchor.xHalfPixels).sign * delta,
+              yHalfPixels:
+                  corner.yHalfPixels +
+                  (corner.yHalfPixels - anchor.yHalfPixels).sign * delta,
+            );
+            state = reducer.updateGesture(
+              state,
+              pointer: 1,
+              currentPointer: target,
+              snap: const TerrainPolygonSnapPolicy.halfPixel(),
+            );
+            final preview = state.gesture!.previewShape;
+            expect(preview.vertices[index], target);
+            expect(preview.vertices[(index + 2) % 4], anchor);
+            expect(
+              TerrainAxisAlignedRectangle.tryFromShape(preview),
+              isNotNull,
+            );
+            expect(state.shapes.single, original);
+            final result = reducer.commitGesture(state, pointer: 1);
+            expect(result.accepted, isTrue);
+            expect(result.commit, isNotNull);
+            expect(result.state.tool, TerrainPolygonTool.select);
+            expect(
+              result.state.selection!.kind,
+              TerrainPolygonSelectionKind.shape,
+            );
+            final saved = result.state.shapes.single;
+            expect(saved.shapeId, original.shapeId);
+            expect(saved.materialKey, original.materialKey);
+            expect(saved.surfaceKind, original.surfaceKind);
+            expect(saved.collisionMode, original.collisionMode);
+          }
+        },
+      );
+    }
+    test('zero area, cancelled resize and untouched handle do not commit', () {
+      final reducer = _reducer();
+      final initial = TerrainPolygonInteractionState(
+        shapes: [_rectangle('bank')],
+      );
+      final active = reducer.beginResizeRectangle(
+        initial,
+        pointer: 1,
+        shapeId: 'bank',
+        vertexIndex: 2,
+      );
+      expect(reducer.commitGesture(active, pointer: 1).commit, isNull);
+      final zero = reducer.updateGesture(
+        active,
+        pointer: 1,
+        currentPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 0,
+          yHalfPixels: 30,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+      expect(reducer.commitGesture(zero, pointer: 1).accepted, isFalse);
+      expect(reducer.cancelActiveOperation(zero).shapes, initial.shapes);
+    });
   });
 
   group('snap and selection', () {

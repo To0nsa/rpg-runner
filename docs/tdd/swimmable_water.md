@@ -125,6 +125,21 @@ Pending inline input is resolved before a new resize gesture can begin. The
 existing stale-revision gate rejects intervening session edits, and source
 rebinding cancels route-local gestures when their owner is replaced.
 
+Water **Move shape** routes through `ChunkWaterDrawing.beginMove`, capturing the
+same source and typed commit boundary. It translates the original bounds by the
+pointer displacement without changing width/height. Grid snapping rounds the
+displacement, then clamps the complete region inside the chunk. Neighbor capture
+considers all four moving corners and keeps the nearest legal alignment, with
+clockwise corner order and source target order breaking ties. Snap arithmetic
+uses the exact target minus the integer corner offset, avoiding cancellation
+rounding at fractional pointer coordinates. The current region is excluded from
+snap targets. Unchanged or cancelled movement emits no commit; invalid overlap
+restores the source on release. Pending sidebar input is resolved before capture.
+
+Terrain resizing and water gestures use `chunkWholePixelSnapVertices` for their
+shared target set. Both overlays use `paintTerrainRectangleHandle`; Move shape
+shows a translation outline while Select exposes the resize handles.
+
 Resize uses the existing Terrain edit-grid preference and shared neighbor switch;
 creation retains its separate grid preference. Snapping affects only the moving
 corner and excludes every corner of the region being resized. Both operations
@@ -138,7 +153,7 @@ Neighbors take priority over grid snapping. Otherwise the shared grid policy
 rounds to the tile size (or one pixel when disabled), clamping to the last
 in-bounds grid intersection. Drag direction does not affect the result.
 
-Creation shares local ID allocation, while creation, resize and inline edits
+Creation shares local ID allocation, while creation, resize, movement and inline edits
 share Core codec validation with the commit adapter. Zero-area and overlapping
 drafts remain uncommitted; material art previews valid candidates, with an outline
 and snap-target overlay.
