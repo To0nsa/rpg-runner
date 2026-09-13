@@ -59,15 +59,15 @@ version; enemies, pickups and projectiles retain their current motion rules.
 
 ## Presentation
 
-Terrain-material-v3 edge layers optionally supply 1â€“63 `additionalFrames` and
-`frameDurationMs` (1â€“60000, default 160). `region` is frame zero. All frames
+Terrain-material-v3 edge layers optionally supply 1–63 `additionalFrames` and
+`frameDurationMs` (1–60000, initially 160 in the editor). `region` is frame zero. All frames
 must have identical source dimensions; PNG bounds validation and traversal cover
 every frame. Fill and cap roles remain static. Shared integer frame selection
 rounds milliseconds to the nearest tick, with a one-tick minimum.
 
 The `biome_water` material uses the canonical atlas
-`assets/images/level/atlases/fantasy_environment/mixed_biomes.png`: three 32Ã—32
-surface frames at (784,432), (832,432), (880,432), with anchor Y 6 and a 1Ã—1
+`assets/images/level/atlases/fantasy_environment/mixed_biomes.png`: three 32×32
+surface frames at (784,432), (832,432), (880,432), with anchor Y 6 and a 1×1
 fill at (784,450). At 60 Hz it advances every 10 ticks. Animation follows the
 snapshot tick, so pausing the run freezes it. Animated pixels do not move the
 gameplay surface.

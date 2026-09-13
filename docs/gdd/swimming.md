@@ -19,7 +19,7 @@ death rules still apply; water never makes falling below the kill plane safe.
 1. In Chunk Creator, form an open basin with solid terrain: a floor and banks.
    Water does not carve out or replace solid polygons. A solid flat rectangle
    under the entire surface prevents the player from entering.
-2. Open **Water regions â†’ Add water rectangle**. Enter left X, surface Y,
+2. Open **Water regions → Add water rectangle**. Enter left X, surface Y,
    width and depth in world pixels, and select **Biome water** (`biome_water`).
 3. Keep the pool inside the chunk, with a floor at its bottom. Bank tops at the
    surface height are an appropriate starting point. Touching pools may share a
@@ -28,7 +28,7 @@ death rules still apply; water never makes falling below the kill plane safe.
    W or Up. Check both bank exits and forward progress against the camera.
 5. Save the chunk, then Build when ready to include it in generated runs.
 
-The [example chunk](../examples/water_pool_chunk.json) is 600Ã—320, with a pool
+The [example chunk](../examples/water_pool_chunk.json) is 600×320, with a pool
 at X 128, surface Y 224, width 320 and depth 64. Its banks are at Y 222 and floor
 at Y 288. The outer sides match Field's Y 222–270 terrain seam; the centre
 extends down to Y 320 beneath the basin. To load it, copy it to
