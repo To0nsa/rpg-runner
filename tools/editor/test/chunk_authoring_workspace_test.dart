@@ -431,6 +431,250 @@ void main() {
   );
 
   testWidgets(
+    'water Select resizes corners with preview, undo and edit guards',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final original = WaterRegionData(
+        id: 'pool_a',
+        x: 20,
+        y: 10,
+        width: 40,
+        height: 20,
+        materialKey: 'grass_dirt',
+      );
+      final other = WaterRegionData(
+        id: 'pool_b',
+        x: 85,
+        y: 35,
+        width: 10,
+        height: 10,
+        materialKey: 'grass_dirt',
+      );
+      final harness = await _buildHarness(waterRegions: [original, other]);
+      addTearDown(harness.dispose);
+      final key = GlobalKey<ChunkAuthoringWorkspaceState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: ChunkAuthoringWorkspace(
+              key: key,
+              controller: harness.session,
+              playtestPlatformSupported: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Water'));
+      await tester.pump();
+      final surfaceFinder = find.byKey(const ValueKey('chunk_scene_surface'));
+      Offset scenePoint(Offset world) {
+        final surface = tester.widget<ChunkSceneSurface>(
+          find.ancestor(
+            of: surfaceFinder,
+            matching: find.byType(ChunkSceneSurface),
+          ),
+        );
+        return tester.getTopLeft(surfaceFinder) +
+            surface.transform.origin +
+            world * surface.transform.zoom;
+      }
+
+      ChunkWaterOverlayPainter overlay() =>
+          tester
+                  .widget<CustomPaint>(
+                    find.byKey(const ValueKey('chunk_water_overlay')),
+                  )
+                  .painter!
+              as ChunkWaterOverlayPainter;
+      ChunkV2FileData source() => _chunk(harness.session, 'forest_chunk');
+      Future<TestGesture> dragCorner(Offset from, Offset to) async {
+        final gesture = await tester.startGesture(scenePoint(from));
+        await tester.pump();
+        await gesture.moveTo(scenePoint(to));
+        await tester.pump();
+        return gesture;
+      }
+
+      await tester.tapAt(scenePoint(const Offset(40, 20)));
+      await tester.pump();
+      expect(overlay().selectedId, 'pool_a');
+      final neighbors = find.byKey(
+        const ValueKey('chunk_water_edit_snap_to_neighbor_vertices'),
+      );
+      await tester.ensureVisible(neighbors);
+      await tester.tap(neighbors);
+      await tester.pump();
+      final gesture = await dragCorner(
+        const Offset(60, 30),
+        const Offset(75, 40),
+      );
+      expect(overlay().resizingId, 'pool_a');
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('chunk_water_tool_select')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(overlay().draft, const Rect.fromLTRB(20, 10, 75, 40));
+      expect(source().waterRegions, [original, other]);
+      expect(source().revision, 4);
+      expect(key.currentState!.hasActiveOperation, isTrue);
+      expect(await key.currentState!.finalizeLocalEdits(), isFalse);
+      final preview = tester.widget<ChunkPolygonLevelVisualSource>(
+        find.byKey(const ValueKey('chunk_polygon_terrain_material_preview')),
+      );
+      expect(preview.chunk.waterRegions, hasLength(2));
+      expect(
+        preview.chunk.waterRegions.where((r) => r.id == 'pool_a').single.width,
+        55,
+      );
+      await gesture.up();
+      await tester.pump();
+      expect(source().revision, 5);
+      final resized = source().waterRegions.first;
+      expect(
+        [resized.x, resized.y, resized.width, resized.height],
+        [20, 10, 55, 30],
+      );
+      expect(resized.id, original.id);
+      expect(resized.materialKey, original.materialKey);
+      expect(overlay().draft, isNull);
+      expect(overlay().selectedId, 'pool_a');
+      final width = find.byKey(
+        const ValueKey('chunk_water_rectangle_width_field'),
+      );
+      expect(tester.widget<TextField>(width).controller!.text, '55');
+      expect(key.currentState!.handleUndoShortcut(), isTrue);
+      await tester.pump();
+      expect(source().waterRegions, [original, other]);
+      expect(key.currentState!.handleRedoShortcut(), isTrue);
+      await tester.pump();
+      expect(source().waterRegions, [resized, other]);
+
+      // Clicking near a handle and cancelling drags never consume committed history.
+      await tester.tapAt(scenePoint(const Offset(78, 42)));
+      await tester.pump();
+      expect(source().revision, 5);
+      var cancelled = await dragCorner(
+        const Offset(75, 40),
+        const Offset(80, 45),
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await cancelled.up();
+      await tester.pump();
+      expect(source().waterRegions, [resized, other]);
+      expect(overlay().draft, isNull);
+      cancelled = await dragCorner(const Offset(75, 40), const Offset(80, 45));
+      await cancelled.cancel();
+      await tester.pump();
+      expect(overlay().draft, isNull);
+      cancelled = await dragCorner(const Offset(75, 40), const Offset(80, 45));
+      expect(key.currentState!.handleUndoShortcut(), isTrue);
+      await cancelled.up();
+      await tester.pump();
+      expect(source().revision, 5);
+      expect(source().waterRegions, [resized, other]);
+
+      final invalid = await dragCorner(
+        const Offset(75, 40),
+        const Offset(92, 44),
+      );
+      expect(overlay().invalid, isTrue);
+      await invalid.up();
+      await tester.pump();
+      expect(source().revision, 5);
+      expect(overlay().draft, isNull);
+      expect(find.textContaining('Water resize cancelled:'), findsOneWidget);
+
+      await tester.ensureVisible(width);
+      await tester.enterText(width, '59');
+      var pending = await dragCorner(
+        const Offset(75, 40),
+        const Offset(80, 45),
+      );
+      await pending.up();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_dialog')),
+        findsOneWidget,
+      );
+      expect(overlay().draft, isNull);
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_cancel')),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(width).controller!.text, '59');
+      pending = await dragCorner(const Offset(75, 40), const Offset(80, 45));
+      await pending.up();
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_water_unsaved_edit_discard')),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(width).controller!.text, '55');
+      expect(source().revision, 5);
+
+      final grid = find.byKey(const ValueKey('chunk_water_edit_snap_to_grid'));
+      await tester.ensureVisible(grid);
+      await tester.tap(grid);
+      await tester.pump();
+      final snapped = await dragCorner(
+        const Offset(75, 40),
+        const Offset(78, 45),
+      );
+      expect(overlay().draft, const Rect.fromLTRB(20, 10, 80, 48));
+      await snapped.up();
+      await tester.pump();
+      expect(source().revision, 6);
+      expect(source().waterRegions.first.width, 60);
+
+      // A concurrent session edit makes the captured resize stale.
+      ScaffoldMessenger.of(tester.element(surfaceFinder)).clearSnackBars();
+      await tester.pumpAndSettle();
+      final stale = await dragCorner(
+        const Offset(80, 48),
+        const Offset(64, 32),
+      );
+      expect(overlay().draft, const Rect.fromLTRB(20, 10, 64, 32));
+      final metadata = ChunkV2MetadataSnapshot.fromChunk(source());
+      harness.session.applyCommand(
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+          payload: {
+            'chunkKey': source().chunkKey,
+            'commit': ChunkV2MetadataCommit(
+              before: metadata,
+              after: ChunkV2MetadataSnapshot(
+                status: metadata.status,
+                levelId: metadata.levelId,
+                difficulty: metadata.difficulty,
+                assemblyGroupId: metadata.assemblyGroupId,
+                tags: metadata.tags,
+                groundBandZIndex: metadata.groundBandZIndex + 1,
+              ),
+            ),
+          },
+        ),
+      );
+      await tester.pump();
+      await stale.up();
+      await tester.pump();
+      expect(source().revision, 7);
+      expect(source().waterRegions.first.width, 60);
+      expect(overlay().draft, isNull);
+      expect(find.textContaining('Chunk change was rejected.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'new terrain drafts use the authored material and preview every gesture',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);

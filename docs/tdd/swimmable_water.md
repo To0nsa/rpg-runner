@@ -89,7 +89,8 @@ preferences are shared. Water starts in Select; Draw rectangle explicitly arms
 the tool, and Save/Cancel returns to Select.
 The shared scene surface owns pointer routing, pan/zoom and keyboard handling.
 `ChunkWaterDrawing` freezes the source revision, name, material, snap policy and
-targets at pointer down; pointer release retains a candidate without writing the session.
+targets at pointer down; creation pointer release retains a candidate without
+writing the session.
 Enter/Save water publishes one `ChunkWaterCommit`; Escape/Cancel discards it.
 Active water drafts block Save, Play and owner/domain switching. Undo cancels the
 local draft before consuming committed history.
@@ -107,6 +108,28 @@ Save/Discard/Cancel dialog; global Save and Play validate the same mounted edito
 Clean selections reconcile with Undo/Redo, and discarding input remounts the
 inspector from current source. Water outline/draft colors reuse Terrain's style.
 
+Select also resizes saved water through `ChunkWaterDrawing.beginResize`.
+Selected square handles use a ten-canvas-pixel nearest-corner hit radius, with
+clockwise corner order breaking ties. The opposite source corner stays fixed;
+the pointer-to-handle offset prevents an initial jump. Moving across the anchor
+normalizes the rectangle. Returning to the grab position or clicking without
+movement preserves off-grid source bounds without creating an undo entry.
+The source collection replaces the selected record in place in material previews
+and commits; its old outline is suppressed while the candidate is drawn.
+
+A valid resize release publishes one typed commit and rebinds the inline
+inspector to accepted source. Invalid release shows validation feedback and
+restores the original. Escape, Cancel resize, pointer cancellation and Undo
+cancel the local preview; active drags block Save, Play and owner/domain changes.
+Pending inline input is resolved before a new resize gesture can begin. The
+existing stale-revision gate rejects intervening session edits, and source
+rebinding cancels route-local gestures when their owner is replaced.
+
+Resize uses the existing Terrain edit-grid preference and shared neighbor switch;
+creation retains its separate grid preference. Snapping affects only the moving
+corner and excludes every corner of the region being resized. Both operations
+otherwise use the same captured targets and snapping routine.
+
 Neighbor snapping shares the terrain nearest-vertex routine and uses an eight
 canvas-pixel radius divided by the current zoom. Targets are direct terrain
 vertices, expanded prefab vertices and existing water corners inside the chunk.
@@ -115,9 +138,10 @@ Neighbors take priority over grid snapping. Otherwise the shared grid policy
 rounds to the tile size (or one pixel when disabled), clamping to the last
 in-bounds grid intersection. Drag direction does not affect the result.
 
-Both authoring workflows share local ID allocation and Core codec validation
-with the commit adapter. Zero-area and overlapping drafts remain uncommitted;
-material art previews valid candidates, with an outline and snap-target overlay.
+Creation shares local ID allocation, while creation, resize and inline edits
+share Core codec validation with the commit adapter. Zero-area and overlapping
+drafts remain uncommitted; material art previews valid candidates, with an outline
+and snap-target overlay.
 Typed edits carry the expected chunk revision and use the existing plugin,
 Undo/Redo, Save and Build transaction path. No-op edits preserve revision.
 Chunk copying preserves water.

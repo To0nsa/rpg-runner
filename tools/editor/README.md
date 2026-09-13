@@ -68,6 +68,13 @@ vertices take priority when both snap switches are enabled.
 Select a saved region in the scene or **Existing water regions** to edit its
 name, material and X/Bottom/Width/Height inline with **Save edit**. Changing Height
 preserves Bottom, as in Terrain. Pending input uses Save/Discard/Cancel guards.
+In **Select**, drag a selected region's square corner handles to resize it.
+The opposite corner stays fixed; release applies one undoable edit. **Escape**
+or **Cancel resize** restores the original. Invalid resizes show a red outline
+and are discarded on release. Grid and neighbor switches are available in the
+selected inspector; grid uses Terrain's edit preference, while neighbor snapping
+shares the creation preference and excludes the current region's corners.
+Resolve pending inline input before starting the drag.
 Each accepted creation or edit is one undo step. Select `biome_water` for the
 animated mixed-biomes surface; provide solid banks and a floor separately.
 Terrain Materials edits the animation frames/timing. Save, chunk duplication, Build

@@ -35,6 +35,162 @@ void main() {
       zoom: zoom,
     );
 
+  group('selected water corner resizing', () {
+    late WaterRegionData region;
+    setUp(() {
+      region = WaterRegionData(
+        id: 'pool',
+        x: 21,
+        y: 31,
+        width: 40,
+        height: 50,
+        materialKey: 'biome_water',
+      );
+      chunk = chunk.copyWith(waterRegions: [region]);
+    });
+
+    ChunkWaterDrawing resize({
+      ChunkWaterCorner corner = ChunkWaterCorner.bottomRight,
+      Offset? pointerStart,
+      bool grid = false,
+      bool neighbors = false,
+    }) => ChunkWaterDrawing()
+      ..beginResize(
+        chunk: chunk,
+        region: region,
+        corner: corner,
+        pointer: 1,
+        worldPoint: pointerStart ?? corner.position(waterRegionBounds(region)),
+        snapToGrid: grid,
+        snapToNeighbors: neighbors,
+      );
+
+    test('hit radius stays in canvas pixels and picks the nearest corner', () {
+      for (final zoom in [.5, 1.0, 4.0]) {
+        for (final corner in ChunkWaterCorner.values) {
+          final point = corner.position(waterRegionBounds(region));
+          expect(
+            hitTestChunkWaterCorner(
+              region: region,
+              worldPoint: point + Offset(9 / zoom, 0),
+              zoom: zoom,
+            ),
+            corner,
+          );
+        }
+        expect(
+          hitTestChunkWaterCorner(
+            region: region,
+            worldPoint: Offset(61 + 11 / zoom, 81),
+            zoom: zoom,
+          ),
+          isNull,
+        );
+      }
+      expect(
+        hitTestChunkWaterCorner(
+          region: region,
+          worldPoint: const Offset(57, 79),
+          zoom: 1,
+        ),
+        ChunkWaterCorner.bottomRight,
+      );
+    });
+
+    for (final corner in ChunkWaterCorner.values) {
+      test('$corner expands and shrinks with the opposite corner fixed', () {
+        final rect = waterRegionBounds(region);
+        final anchor = corner.opposite.position(rect);
+        final start = corner.position(rect);
+        final direction = Offset(
+          (start.dx - anchor.dx).sign,
+          (start.dy - anchor.dy).sign,
+        );
+        for (final delta in [10.0, -10.0]) {
+          final drawing = resize(corner: corner);
+          final target = start + direction * delta;
+          drawing.update(pointer: 2, worldPoint: Offset.zero, zoom: 1);
+          expect(drawing.bounds, rect);
+          drawing.update(pointer: 1, worldPoint: target, zoom: 1);
+          expect(drawing.bounds, Rect.fromPoints(anchor, target));
+          expect(drawing.buildCommit(), isNull);
+          expect(chunk.waterRegions.single, region);
+          expect(drawing.previewRegions, hasLength(1));
+          drawing.finish(pointer: 1, worldPoint: target, zoom: 1);
+          final commit = drawing.buildCommit()!;
+          final result = commit.apply(chunk);
+          expect(result.revision, chunk.revision + 1);
+          expect(result.waterRegions, [drawing.candidate]);
+          expect(result.waterRegions.single.id, region.id);
+          expect(result.waterRegions.single.materialKey, region.materialKey);
+          expect(commit.apply(result), same(result), reason: 'Stale revision.');
+        }
+      });
+    }
+
+    test(
+      'a grab offset, click and return drag do not snap the original bounds',
+      () {
+        final drawing = resize(pointerStart: const Offset(65, 83), grid: true);
+        expect(drawing.bounds, waterRegionBounds(region));
+        drawing.update(pointer: 1, worldPoint: const Offset(82, 96), zoom: 1);
+        expect(drawing.bounds, const Rect.fromLTRB(21, 31, 80, 96));
+        drawing.finish(pointer: 1, worldPoint: const Offset(65, 83), zoom: 1);
+        expect(drawing.bounds, waterRegionBounds(region));
+        expect(drawing.buildCommit(), isNull);
+        final click = resize(pointerStart: const Offset(65, 83), grid: true);
+        click.finish(pointer: 1, worldPoint: const Offset(65, 83), zoom: 1);
+        expect(click.buildCommit(), isNull);
+      },
+    );
+
+    test('snapping ignores its own corners and keeps an off-grid anchor', () {
+      final free = resize(neighbors: true);
+      free.finish(pointer: 1, worldPoint: const Offset(63, 82), zoom: 1);
+      expect(free.snappedNeighbor, isNull);
+      expect(free.bounds, const Rect.fromLTRB(21, 31, 63, 82));
+      final grid = resize(grid: true);
+      grid.finish(pointer: 1, worldPoint: const Offset(92, 108), zoom: 1);
+      expect(grid.bounds, const Rect.fromLTRB(21, 31, 96, 112));
+      final crossed = resize();
+      crossed.finish(pointer: 1, worldPoint: const Offset(11, 21), zoom: 1);
+      expect(crossed.bounds, const Rect.fromLTRB(11, 21, 21, 31));
+      expect(crossed.buildCommit(), isNotNull);
+    });
+
+    test(
+      'neighbor snapping beats grid; overlap and zero area cannot commit',
+      () {
+        final other = WaterRegionData(
+          id: 'other',
+          x: 93,
+          y: 81,
+          width: 20,
+          height: 20,
+          materialKey: 'biome_water',
+        );
+        chunk = chunk.copyWith(waterRegions: [other, region]);
+        final drawing = resize(grid: true, neighbors: true);
+        drawing.finish(pointer: 1, worldPoint: const Offset(91, 83), zoom: 1);
+        expect(drawing.snappedNeighbor, const Offset(93, 81));
+        expect(drawing.bounds, const Rect.fromLTRB(21, 31, 93, 81));
+        expect(drawing.buildCommit()!.apply(chunk).waterRegions, hasLength(2));
+        final invalid = resize();
+        invalid.finish(pointer: 1, worldPoint: const Offset(100, 90), zoom: 1);
+        expect(invalid.error, contains('overlap'));
+        expect(invalid.previewRegions, isNull);
+        expect(invalid.buildCommit(), isNull);
+        expect(invalid.cancel(), isTrue);
+        expect(invalid.isResizing, isFalse);
+        expect(invalid.bounds, isNull);
+        final zero = resize();
+        zero.finish(pointer: 1, worldPoint: const Offset(21, 90), zoom: 1);
+        expect(zero.candidate, isNull);
+        expect(zero.buildCommit(), isNull);
+      },
+    );
+  });
+
   test('reverse drag uses whole pixels and one revision-checked commit', () {
     final drawing = begin(start: const Offset(90.6, 70.4));
     drawing.update(pointer: 2, worldPoint: Offset.zero, zoom: 1);

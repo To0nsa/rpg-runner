@@ -11,8 +11,54 @@ import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../../../terrain_authoring/terrain_vertex_snap.dart';
 
-/// Route-local rectangle draft. Pointer release keeps a reviewable candidate;
-/// only the workspace may publish its stale-checked commit through the plugin.
+/// Clockwise handle order gives deterministic nearest-corner selection.
+enum ChunkWaterCorner {
+  topLeft,
+  topRight,
+  bottomRight,
+  bottomLeft;
+
+  Offset position(Rect bounds) => switch (this) {
+    topLeft => bounds.topLeft,
+    topRight => bounds.topRight,
+    bottomRight => bounds.bottomRight,
+    bottomLeft => bounds.bottomLeft,
+  };
+
+  ChunkWaterCorner get opposite => values[(index + 2) % values.length];
+}
+
+/// Source bounds in world pixels for scene hit-testing and painting.
+Rect waterRegionBounds(WaterRegionData region) => Rect.fromLTWH(
+  region.x.toDouble(),
+  region.y.toDouble(),
+  region.width.toDouble(),
+  region.height.toDouble(),
+);
+
+/// Uses Terrain's ten-canvas-pixel vertex hit radius, independent of zoom.
+ChunkWaterCorner? hitTestChunkWaterCorner({
+  required WaterRegionData region,
+  required Offset worldPoint,
+  required double zoom,
+}) {
+  final bounds = waterRegionBounds(region);
+  var distanceSquared = (10 / zoom) * (10 / zoom);
+  ChunkWaterCorner? nearest;
+  for (final corner in ChunkWaterCorner.values) {
+    final distance = (corner.position(bounds) - worldPoint).distanceSquared;
+    if (distance <= distanceSquared &&
+        (nearest == null || distance < distanceSquared)) {
+      nearest = corner;
+      distanceSquared = distance;
+    }
+  }
+  return nearest;
+}
+
+/// Route-local creation/resize preview over a captured source revision. The
+/// workspace retains new drafts and publishes completed resizes through the
+/// same plugin commit; pointer motion never changes the session document.
 final class ChunkWaterDrawing {
   ChunkV2FileData? _source;
   int? _pointer;
@@ -20,6 +66,10 @@ final class ChunkWaterDrawing {
   Offset? _end;
   String? _materialKey;
   String? _regionId;
+  WaterRegionData? _resizedRegion;
+  Offset? _pointerStart;
+  Offset? _originalCorner;
+  Offset _grabOffset = Offset.zero;
   List<TerrainSourceVertexDef> _neighbors = const [];
   TerrainPolygonSnapPolicy _snapPolicy =
       TerrainPolygonSnapPolicy.ownerGridPixels(1);
@@ -30,10 +80,22 @@ final class ChunkWaterDrawing {
 
   bool get hasActiveOperation => _source != null;
   bool get isDragging => _pointer != null;
+  bool get isResizing => _resizedRegion != null;
+  String? get resizingRegionId => _resizedRegion?.id;
   Rect? get bounds => _start == null ? null : Rect.fromPoints(_start!, _end!);
   WaterRegionData? get candidate => _candidate;
   String? get error => _error;
   Offset? get snappedNeighbor => _snappedNeighbor;
+
+  /// Valid material projection replaces a resized region rather than duplicating it.
+  List<WaterRegionData>? get previewRegions =>
+      _candidate != null && _error == null ? _regionsWithCandidate : null;
+
+  List<WaterRegionData> get _regionsWithCandidate => [
+    for (final region in _source!.waterRegions)
+      region.id == resizingRegionId ? _candidate! : region,
+    if (!isResizing) _candidate!,
+  ];
 
   /// Captures one owner-local draft in world pixels. [zoom] is canvas pixels
   /// per world pixel; the workspace supplies its current value on every update.
@@ -49,10 +111,69 @@ final class ChunkWaterDrawing {
     String? regionId,
   }) {
     if (hasActiveOperation) return false;
+    _capture(
+      chunk: chunk,
+      pointer: pointer,
+      materialKey: materialKey,
+      regionId: regionId ?? nextChunkWaterId(chunk.waterRegions),
+      snapToGrid: snapToGrid,
+      snapToNeighbors: snapToNeighbors,
+      expansion: expansion,
+    );
+    _start = _snap(worldPoint, zoom);
+    _end = _start;
+    _refreshCandidate();
+    return true;
+  }
+
+  /// Anchors the opposite corner without snapping it. Capturing the grab offset
+  /// avoids a jump when the pointer lands near, rather than exactly on, a handle.
+  bool beginResize({
+    required ChunkV2FileData chunk,
+    required WaterRegionData region,
+    required ChunkWaterCorner corner,
+    required int pointer,
+    required Offset worldPoint,
+    required bool snapToGrid,
+    required bool snapToNeighbors,
+    ChunkV2CollisionExpansion? expansion,
+  }) {
+    if (hasActiveOperation || !chunk.waterRegions.contains(region)) {
+      return false;
+    }
+    _resizedRegion = region;
+    _capture(
+      chunk: chunk,
+      pointer: pointer,
+      materialKey: region.materialKey,
+      regionId: region.id,
+      snapToGrid: snapToGrid,
+      snapToNeighbors: snapToNeighbors,
+      expansion: expansion,
+    );
+    final rect = waterRegionBounds(region);
+    _start = corner.opposite.position(rect);
+    _originalCorner = corner.position(rect);
+    _end = _originalCorner;
+    _pointerStart = worldPoint;
+    _grabOffset = worldPoint - _originalCorner!;
+    _refreshCandidate();
+    return true;
+  }
+
+  void _capture({
+    required ChunkV2FileData chunk,
+    required int pointer,
+    required String materialKey,
+    required String regionId,
+    required bool snapToGrid,
+    required bool snapToNeighbors,
+    required ChunkV2CollisionExpansion? expansion,
+  }) {
     _source = chunk;
     _pointer = pointer;
     _materialKey = materialKey;
-    _regionId = regionId ?? nextChunkWaterId(chunk.waterRegions);
+    _regionId = regionId;
     _snapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
       snapToGrid ? chunk.tileSize : 1,
     );
@@ -72,7 +193,9 @@ final class ChunkWaterDrawing {
                       yHalfPixels:
                           vertex.yTicks ~/ terrainPhysicsTicksPerWorldUnit * 2,
                     ),
-              for (final region in chunk.waterRegions)
+              for (final region in chunk.waterRegions.where(
+                (region) => region.id != resizingRegionId,
+              ))
                 for (final x in [region.x, region.x + region.width])
                   for (final y in [region.y, region.y + region.height])
                     TerrainSourceVertexDef(
@@ -90,10 +213,6 @@ final class ChunkWaterDrawing {
                   vertex.yHalfPixels <= chunk.height * 2,
             )
             .toList(growable: false);
-    _start = _snap(worldPoint, zoom);
-    _end = _start;
-    _refreshCandidate();
-    return true;
   }
 
   void update({
@@ -102,7 +221,13 @@ final class ChunkWaterDrawing {
     required double zoom,
   }) {
     if (_pointer != pointer) return;
-    _end = _snap(worldPoint, zoom);
+    if (isResizing && (worldPoint - _pointerStart!).distanceSquared < 1e-8) {
+      // A click or a return to the grab position must not quantize saved bounds.
+      _end = _originalCorner;
+      _snappedNeighbor = null;
+    } else {
+      _end = _snap(worldPoint - _grabOffset, zoom);
+    }
     _refreshCandidate();
   }
 
@@ -123,7 +248,7 @@ final class ChunkWaterDrawing {
     required int widthHalfPixels,
     required int heightHalfPixels,
   }) {
-    if (_source == null || isDragging) return false;
+    if (_source == null || isDragging || isResizing) return false;
     final yHalfPixels = bottomYHalfPixels - heightHalfPixels;
     if ([
           xHalfPixels,
@@ -150,10 +275,15 @@ final class ChunkWaterDrawing {
   /// Returns a commit only after pointer release and successful source checks.
   /// The captured revision lets the plugin reject intervening document edits.
   ChunkWaterCommit? buildCommit() {
-    if (isDragging || _candidate == null || _error != null) return null;
+    if (isDragging ||
+        _candidate == null ||
+        _candidate == _resizedRegion ||
+        _error != null) {
+      return null;
+    }
     return ChunkWaterCommit(
       expectedRevision: _source!.revision,
-      regions: [..._source!.waterRegions, _candidate!],
+      regions: _regionsWithCandidate,
     );
   }
 
@@ -163,6 +293,10 @@ final class ChunkWaterDrawing {
     _pointer = null;
     _start = null;
     _end = null;
+    _resizedRegion = null;
+    _pointerStart = null;
+    _originalCorner = null;
+    _grabOffset = Offset.zero;
     _candidate = null;
     _error = null;
     _snappedNeighbor = null;
@@ -209,9 +343,6 @@ final class ChunkWaterDrawing {
       height: rect.height.toInt(),
       materialKey: _materialKey!,
     );
-    _error = chunkWaterValidationMessage(_source!, [
-      ..._source!.waterRegions,
-      _candidate!,
-    ]);
+    _error = chunkWaterValidationMessage(_source!, _regionsWithCandidate);
   }
 }

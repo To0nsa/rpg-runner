@@ -674,7 +674,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   Widget _buildWaterPanel(ChunkV2FileData chunk) {
     final authoring = _authoring!;
-    final candidate = _waterDrawing.candidate;
+    final candidate = _waterDrawing.isResizing ? null : _waterDrawing.candidate;
     final draft = _waterEditDraft;
     final nameError = chunkWaterNameError(
       _resolvedWaterName(chunk),
@@ -736,7 +736,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           authoring,
           keyName: 'chunk_water_creation_snap_to_neighbor_vertices',
         ),
-        status: !_waterDrawArmed && !_waterDrawing.hasActiveOperation
+        status:
+            _waterDrawing.isResizing ||
+                (!_waterDrawArmed && !_waterDrawing.hasActiveOperation)
             ? null
             : ChunkShapeCreationStatus(
                 key: const ValueKey('chunk_water_creation_status'),
@@ -792,75 +794,114 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             : _armWaterRectangle,
         onSave: _waterDrawing.buildCommit() == null ? null : _saveWaterDrawing,
         saveLabel: 'Save water',
-        onCancel: _waterDrawing.hasActiveOperation || _waterDrawArmed
+        onCancel:
+            !_waterDrawing.isResizing &&
+                (_waterDrawing.hasActiveOperation || _waterDrawArmed)
             ? _cancelWaterDrawing
             : null,
       ),
     );
   }
 
-  Widget _buildWaterEditor(ChunkWaterEditDraft draft) =>
-      ChunkWaterInlineInspector(
-        key: ObjectKey(draft),
-        draft: draft,
-        editController: _exactEditController,
-        hasPendingInput: _hasPendingWaterEdit,
-        onDelete: _hasActiveOperation ? null : _deleteSelectedWater,
-        onNameChanged: (value) {
-          setState(() => draft.nameInput = value);
-          widget.onDraftStateChanged?.call();
-        },
-        onCancel: _discardWaterEdit,
-        materialSelector: _buildMaterialDropdown(
-          keyName: 'chunk_water_metadata_material_selector',
-          label: 'Material key',
-          previewKeyPrefix: 'chunk_water_metadata_material_preview',
-          value: draft.materialKey,
-          options: {
-            ...?_materialCatalog?.byKey.keys,
-            draft.materialKey,
-          }.toList(),
-          enabled: !_hasActiveOperation,
-          onChanged: (value) {
-            setState(() => draft.materialKey = value);
-            widget.onDraftStateChanged?.call();
-          },
+  Widget _buildWaterEditor(ChunkWaterEditDraft draft) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Text(
+        'Drag a selected corner to resize. Release to apply; Escape cancels.',
+      ),
+      _buildTerrainSnapSwitch(
+        _authoring!,
+        keyName: 'chunk_water_edit_snap_to_grid',
+        forCreation: false,
+      ),
+      _buildTerrainNeighborVertexSnapSwitch(
+        _authoring!,
+        keyName: 'chunk_water_edit_snap_to_neighbor_vertices',
+      ),
+      if (_waterDrawing.isResizing) ...[
+        ChunkShapeCreationStatus(
+          key: const ValueKey('chunk_water_resize_status'),
+          title: 'Resizing water region',
+          message:
+              _waterDrawing.error ??
+              '${_waterDrawing.bounds!.width.toInt()} × ${_waterDrawing.bounds!.height.toInt()} px. Release to apply.',
+          isError: _waterDrawing.error != null,
         ),
-        onApply:
-            ({
-              required xHalfPixels,
-              required bottomYHalfPixels,
-              required widthHalfPixels,
-              required heightHalfPixels,
-            }) {
-              final commit = draft.buildCommit(
-                xHalfPixels: xHalfPixels,
-                bottomYHalfPixels: bottomYHalfPixels,
-                widthHalfPixels: widthHalfPixels,
-                heightHalfPixels: heightHalfPixels,
-              );
-              if (commit == null) {
-                setState(() {});
-                return false;
-              }
-              final current = _authoring?.chunk;
-              if (current == null ||
-                  current.chunkKey != draft.chunk.chunkKey ||
-                  current.revision != draft.chunk.revision) {
-                setState(
-                  () => draft.error = 'This chunk changed. Cancel this edit and select the region again.',
-                );
-                return false;
-              }
-              if (!identical(commit.apply(current), current) &&
-                  !_dispatchWaterCommit(current.chunkKey, commit)) {
-                return false;
-              }
-              setState(() => _bindWaterSelection(draft.nameInput.trim()));
+        TextButton(
+          onPressed: _cancelWaterDrawing,
+          child: const Text('Cancel resize'),
+        ),
+      ],
+      ExcludeFocus(
+        excluding: _hasActiveOperation,
+        child: AbsorbPointer(
+          absorbing: _hasActiveOperation,
+          child: ChunkWaterInlineInspector(
+            key: ObjectKey(draft),
+            draft: draft,
+            editController: _exactEditController,
+            hasPendingInput: _hasPendingWaterEdit,
+            onDelete: _hasActiveOperation ? null : _deleteSelectedWater,
+            onNameChanged: (value) {
+              setState(() => draft.nameInput = value);
               widget.onDraftStateChanged?.call();
-              return true;
             },
-      );
+            onCancel: _discardWaterEdit,
+            materialSelector: _buildMaterialDropdown(
+              keyName: 'chunk_water_metadata_material_selector',
+              label: 'Material key',
+              previewKeyPrefix: 'chunk_water_metadata_material_preview',
+              value: draft.materialKey,
+              options: {
+                ...?_materialCatalog?.byKey.keys,
+                draft.materialKey,
+              }.toList(),
+              enabled: !_hasActiveOperation,
+              onChanged: (value) {
+                setState(() => draft.materialKey = value);
+                widget.onDraftStateChanged?.call();
+              },
+            ),
+            onApply:
+                ({
+                  required xHalfPixels,
+                  required bottomYHalfPixels,
+                  required widthHalfPixels,
+                  required heightHalfPixels,
+                }) {
+                  if (_hasActiveOperation) return false;
+                  final commit = draft.buildCommit(
+                    xHalfPixels: xHalfPixels,
+                    bottomYHalfPixels: bottomYHalfPixels,
+                    widthHalfPixels: widthHalfPixels,
+                    heightHalfPixels: heightHalfPixels,
+                  );
+                  if (commit == null) {
+                    setState(() {});
+                    return false;
+                  }
+                  final current = _authoring?.chunk;
+                  if (current == null ||
+                      current.chunkKey != draft.chunk.chunkKey ||
+                      current.revision != draft.chunk.revision) {
+                    setState(
+                      () => draft.error = 'This chunk changed. Cancel this edit and select the region again.',
+                    );
+                    return false;
+                  }
+                  if (!identical(commit.apply(current), current) &&
+                      !_dispatchWaterCommit(current.chunkKey, commit)) {
+                    return false;
+                  }
+                  setState(() => _bindWaterSelection(draft.nameInput.trim()));
+                  widget.onDraftStateChanged?.call();
+                  return true;
+                },
+          ),
+        ),
+      ),
+    ],
+  );
 
   Future<void> _armWaterRectangle() async {
     if (_hasActiveOperation) return;
@@ -902,7 +943,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       dialogKey: const ValueKey('chunk_water_unsaved_edit_dialog'),
       title: 'Save water region changes?',
       content: Text(
-        'Save the pending changes to ${draft.source.id} before closing its editor?',
+        'Save the pending changes to ${draft.source.id} before continuing?',
       ),
       cancelKey: const ValueKey('chunk_water_unsaved_edit_cancel'),
       discardKey: const ValueKey('chunk_water_unsaved_edit_discard'),
@@ -962,6 +1003,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _saveWaterDrawing() {
+    if (_waterDrawing.isResizing) return;
     if (_exactEditController.hasChanges && !_exactEditController.save()) return;
     final id = _waterDrawing.candidate?.id;
     final commit = _waterDrawing.buildCommit();
@@ -974,6 +1016,21 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         _bindWaterSelection(id);
       });
     }
+  }
+
+  void _completeWaterResize() {
+    final id = _waterDrawing.resizingRegionId;
+    final error = _waterDrawing.error;
+    final commit = _waterDrawing.buildCommit();
+    if (commit != null && _selectedChunkKey != null) {
+      _dispatchWaterCommit(_selectedChunkKey!, commit);
+    } else if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Water resize cancelled: $error')));
+    }
+    _cancelWaterDrawing();
+    setState(() => _bindWaterSelection(id));
   }
 
   void _cancelWaterDrawing() {
@@ -1271,9 +1328,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       ChoiceChip(
                         key: const ValueKey('chunk_water_tool_select'),
                         label: const Text('Select'),
-                        selected:
-                            !_waterDrawArmed &&
-                            !_waterDrawing.hasActiveOperation,
+                        selected: !_waterDrawArmed,
                         onSelected: _hasActiveOperation
                             ? null
                             : (_) => setState(() => _waterDrawArmed = false),
@@ -1368,9 +1423,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
                     'zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.water
-              ? (_waterDrawArmed || _waterDrawing.hasActiveOperation
+              ? (_waterDrawArmed ||
+                        (_waterDrawing.hasActiveOperation &&
+                            !_waterDrawing.isResizing)
                     ? 'Drag across opposite corners to draw a rectangle draft. Enter saves it and Escape cancels.'
-                    : 'Select a water region in the scene or sidebar to edit it. Use Draw rectangle to create one. Ctrl+drag pans and Ctrl+scroll zooms.')
+                    : 'Select a water region, then drag a corner to resize. Release to apply; Escape cancels. Use Draw rectangle to create one. Ctrl+drag pans and Ctrl+scroll zooms.')
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
               ? 'Place and Move keep whole-pixel origins. Surface snap can '
                     'refine Y to exact non-overlapping terrain-edge contact. '
@@ -1502,14 +1559,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             'chunk_polygon_terrain_material_preview',
                           ),
                           workspaceRootPath: widget.controller.workspacePath,
-                          chunk:
-                              _waterDrawing.candidate != null &&
-                                  _waterDrawing.error == null
+                          chunk: _waterDrawing.previewRegions != null
                               ? chunk.copyWith(
-                                  waterRegions: [
-                                    ...chunk.waterRegions,
-                                    _waterDrawing.candidate!,
-                                  ],
+                                  waterRegions: _waterDrawing.previewRegions!,
                                 )
                               : chunk,
                           parallaxTheme: scene.activeParallaxTheme,
@@ -1571,6 +1623,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           key: const ValueKey('chunk_water_overlay'),
                           painter: ChunkWaterOverlayPainter(
                             regions: chunk.waterRegions,
+                            resizingId: _waterDrawing.resizingRegionId,
                             selectedId: _sceneCoordinator.selectedWaterId,
                             transform: transform,
                             draft: _waterDrawing.bounds,
@@ -1980,9 +2033,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       key: ValueKey<String>(keyName),
       contentPadding: EdgeInsets.zero,
       title: const Text('Snap to neighbor vertices'),
-      subtitle: const Text(
-        'Snap new points to the closest saved vertex nearby.',
-      ),
+      subtitle: const Text('Snap points to the closest saved vertex nearby.'),
       value: authoring.creationSnapToNeighborVertices,
       onChanged: enabled
           ? (selected) {
@@ -3400,6 +3451,38 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         }
       case ChunkSceneDomain.water:
         if (!_waterDrawArmed) {
+          final selected = chunk.waterRegions
+              .where((region) => region.id == _sceneCoordinator.selectedWaterId)
+              .firstOrNull;
+          final corner = selected == null
+              ? null
+              : hitTestChunkWaterCorner(
+                  region: selected,
+                  worldPoint: worldPoint,
+                  zoom: _zoom,
+                );
+          if (corner != null) {
+            if (_hasPendingWaterEdit) {
+              // Resolve typed input first; a fresh drag uses the resulting bounds.
+              _resolveWaterEdit();
+              return false;
+            }
+            var began = false;
+            setState(() {
+              began = _waterDrawing.beginResize(
+                chunk: chunk,
+                region: selected!,
+                corner: corner,
+                pointer: pointer,
+                worldPoint: worldPoint,
+                snapToGrid: _terrainEditSnapToGrid,
+                snapToNeighbors: _terrainCreationSnapToNeighborVertices,
+                expansion: _expansionFor(chunk.chunkKey)?.expansion,
+              );
+            });
+            widget.onDraftStateChanged?.call();
+            return began;
+          }
           final hit = chunk.waterRegions.reversed
               .where(
                 (region) =>
@@ -3473,6 +3556,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           zoom: _zoom,
         ),
       );
+      if (_waterDrawing.isResizing && !_waterDrawing.isDragging) {
+        _completeWaterResize();
+      }
       widget.onDraftStateChanged?.call();
     } else if (_prefabGesture.hasActiveOperation) {
       late final ChunkPrefabGestureResult? result;

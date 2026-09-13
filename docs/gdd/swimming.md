@@ -46,6 +46,20 @@ edit X, Bottom, Width and Height; changing Height keeps Bottom fixed. They also
 let you refine a drawn draft before saving it. Water does not support arbitrary
 polygon shapes or solid-collision modes.
 
+To resize visually, select a saved region and drag any of its four square corner
+handles in **Select** mode. The opposite corner stays fixed. Release to accept
+one undoable edit; **Escape**, **Cancel resize**, or pointer cancellation restores
+the original. The water art and outline preview the new size, and the dimension
+fields refresh after release. A red preview indicates a zero-area or overlapping
+rectangle; releasing it cancels the resize and shows the validation message.
+A corner click without dragging leaves the size unchanged.
+
+The selected region's **Snap to grid** control shares Terrain's editing grid
+preference, separate from creation. **Snap to neighbor vertices** shares the
+creation preference and ignores this region's own corners. Only the dragged
+corner snaps; the fixed corner keeps its original position. If there is pending
+inline input, resolve Save/Discard/Cancel first, then start the resize drag again.
+
 Switching away from unfinished inline input offers Save, Discard or Cancel.
 Save and Play first validate that input, and Undo first discards local edits.
 Each accepted creation or edit is one undoable transaction. Water uses whole

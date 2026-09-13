@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:runner_core/terrain/water_region.dart';
 
 import '../../shared/terrain_polygon_scene_painter.dart';
+import 'chunk_water_drawing.dart';
 
 /// Whole-pixel water bounds and the current snap target above the material art.
 class ChunkWaterOverlayPainter extends CustomPainter {
   const ChunkWaterOverlayPainter({
     required this.regions,
     this.selectedId,
+    this.resizingId,
     required this.transform,
     required this.draft,
     required this.invalid,
@@ -16,6 +18,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
 
   final List<WaterRegionData> regions;
   final String? selectedId;
+  final String? resizingId;
   final TerrainPolygonViewportTransform transform;
   final Rect? draft;
   final bool invalid;
@@ -25,7 +28,12 @@ class ChunkWaterOverlayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const style = TerrainPolygonSceneStyle();
     Offset toCanvas(Offset point) => transform.origin + point * transform.zoom;
-    void rectangle(Rect rect, Color color, {bool fill = false}) {
+    void rectangle(
+      Rect rect,
+      Color color, {
+      bool fill = false,
+      bool handles = false,
+    }) {
       final bounds = Rect.fromPoints(
         toCanvas(rect.topLeft),
         toCanvas(rect.bottomRight),
@@ -40,26 +48,31 @@ class ChunkWaterOverlayPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
-      for (final corner in [
-        bounds.topLeft,
-        bounds.topRight,
-        bounds.bottomLeft,
-        bounds.bottomRight,
-      ]) {
-        canvas.drawCircle(corner, 3, Paint()..color = color);
+      for (final corner in ChunkWaterCorner.values) {
+        final point = corner.position(bounds);
+        if (handles) {
+          final handle = Rect.fromCenter(center: point, width: 10, height: 10);
+          canvas.drawRect(handle, Paint()..color = style.vertexFill);
+          canvas.drawRect(
+            handle,
+            Paint()
+              ..color = color
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2,
+          );
+        } else {
+          canvas.drawCircle(point, 3, Paint()..color = color);
+        }
       }
     }
 
     for (final region in regions) {
+      if (region.id == resizingId) continue;
       rectangle(
-        Rect.fromLTWH(
-          region.x.toDouble(),
-          region.y.toDouble(),
-          region.width.toDouble(),
-          region.height.toDouble(),
-        ),
+        waterRegionBounds(region),
         region.id == selectedId ? style.selectedStroke : style.solidStroke,
         fill: region.id == selectedId,
+        handles: region.id == selectedId,
       );
     }
     if (draft != null) {
@@ -67,6 +80,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
         draft!,
         invalid ? Colors.redAccent : style.draftStroke,
         fill: true,
+        handles: resizingId != null,
       );
     }
     if (snappedNeighbor != null) {
@@ -85,6 +99,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
   bool shouldRepaint(covariant ChunkWaterOverlayPainter oldDelegate) =>
       oldDelegate.regions != regions ||
       oldDelegate.selectedId != selectedId ||
+      oldDelegate.resizingId != resizingId ||
       oldDelegate.transform != transform ||
       oldDelegate.draft != draft ||
       oldDelegate.invalid != invalid ||
