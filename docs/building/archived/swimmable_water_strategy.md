@@ -1,6 +1,6 @@
 # Swimmable water strategy
 
-Status: in progress. Started September 13, 2026.
+Status: implemented. September 13, 2026. Feature commit: `c062ad40`.
 
 ## Outcome
 
@@ -56,5 +56,6 @@ See [implementation checklist](swimmable_water_implementation_checklist.md).
 Each coherent milestone is validated before commit. Tests cover source/runtime
 parity, fluid boundaries, banks, stroke/control rules, streamed publication,
 pause/frame timing, editor transactions, and deterministic replay. Implemented
-contracts will be recorded in TDD/GDD documents; these plans will be archived
-after delivery.
+contracts are recorded in the [TDD](../../tdd/swimmable_water.md) and
+[gameplay guide](../../gdd/swimming.md). See the
+[validation record](swimmable_water_validation.md) for checks and baseline issues.
