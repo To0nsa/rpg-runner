@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:terrain_materials/terrain_materials.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_water_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_enemy_catalog_browser.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
@@ -38,6 +41,145 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('water drawer previews, commits once, and guards local drafts', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    final key = GlobalKey<ChunkAuthoringWorkspaceState>();
+    var draftNotifications = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: ChunkAuthoringWorkspace(
+            key: key,
+            controller: harness.session,
+            playtestPlatformSupported: true,
+            onDraftStateChanged: () => draftNotifications++,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Water'));
+    await tester.pump();
+    expect(find.text('Snap to neighbor vertices'), findsOneWidget);
+    expect(find.text('Snap to grid (16 px)'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('chunk_water_draw_material_biome_water')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Grass / Dirt').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chunk_water_snap_grid')));
+    await tester.pump();
+
+    final surfaceFinder = find.byKey(const ValueKey('chunk_scene_surface'));
+    ChunkSceneSurface surface() => tester.widget(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    Offset point(double x, double y) =>
+        tester.getTopLeft(surfaceFinder) +
+        surface().transform.origin +
+        Offset(x, y) * surface().transform.zoom;
+    Future<void> draw() async {
+      final gesture = await tester.startGesture(point(11, 11));
+      await gesture.moveTo(point(81, 33));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+    }
+
+    await draw();
+    final preview = tester.widget<ChunkPolygonLevelVisualSource>(
+      find.byKey(const ValueKey('chunk_polygon_terrain_material_preview')),
+    );
+    final water = preview.chunk.waterRegions.single;
+    expect([water.x, water.y, water.width, water.height], [10, 10, 70, 22]);
+    expect(water.materialKey, 'grass_dirt');
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, isEmpty);
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(key.currentState!.hasActiveOperation, isTrue);
+    expect(key.currentState!.canApplyToFiles, isFalse);
+    expect(
+      key.currentState!.playtestReadiness.code,
+      'activeLocalOperationOrDraft',
+    );
+    expect(await key.currentState!.finalizeLocalEdits(), isFalse);
+    expect(key.currentState!.canRedo, isFalse);
+    expect(
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('chunk_water_save_draft')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(FocusManager.instance.primaryFocus?.debugLabel, 'ChunkSceneSurface');
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, [water]);
+    expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+    expect(
+      _chunk(harness.session, 'forest_chunk').collisionShapes,
+      hasLength(1),
+    );
+    expect(key.currentState!.hasActiveOperation, isFalse);
+    expect(key.currentState!.handleUndoShortcut(), isTrue);
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, isEmpty);
+    expect(key.currentState!.handleRedoShortcut(), isTrue);
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, [water]);
+
+    await draw();
+    final overlay =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(const ValueKey('chunk_water_overlay')),
+                )
+                .painter!
+            as ChunkWaterOverlayPainter;
+    expect(overlay.invalid, isTrue);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('chunk_water_save_draft')),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, [water]);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(key.currentState!.hasActiveOperation, isFalse);
+    expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+    await draw();
+    expect(key.currentState!.handleUndoShortcut(), isTrue);
+    await tester.pump();
+    expect(key.currentState!.hasActiveOperation, isFalse);
+    expect(_chunk(harness.session, 'forest_chunk').waterRegions, [water]);
+    expect(draftNotifications, greaterThan(0));
+  });
+
   testWidgets(
     'new terrain drafts use the authored material and preview every gesture',
     (tester) async {
@@ -400,6 +542,7 @@ void main() {
         domainSelector.segments.map((segment) => segment.value),
         <ChunkSceneDomain>[
           ChunkSceneDomain.terrain,
+          ChunkSceneDomain.water,
           ChunkSceneDomain.prefabs,
           ChunkSceneDomain.markers,
           ChunkSceneDomain.layers,
@@ -3859,7 +4002,8 @@ void main() {
               toggleKey: 'chunk_layer_metadata_section_toggle',
               bodyKey: key,
             );
-          case ChunkSceneDomain.terrain ||
+          case ChunkSceneDomain.water ||
+              ChunkSceneDomain.terrain ||
               ChunkSceneDomain.compiledEdgeInspection:
             break;
         }
@@ -4523,6 +4667,9 @@ Future<_Harness> _buildHarness({
         ],
       ),
     ],
+    availableTerrainMaterialKeys: decodeTerrainMaterialCatalog(
+      manifest.readAsStringSync(),
+    ).catalog!.byKey.keys,
     availableLevelIds: const <String>['forest', 'meadow'],
     activeLevelId: 'forest',
   );

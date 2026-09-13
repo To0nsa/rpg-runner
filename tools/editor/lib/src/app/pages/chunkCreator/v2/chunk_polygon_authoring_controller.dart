@@ -12,6 +12,7 @@ import '../../../../terrain_authoring/terrain_polygon_contact_constraint.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
+import '../../../../terrain_authoring/terrain_vertex_snap.dart';
 
 // Direct Chunk terrain must remain on whole pixels even when collision contact
 // refines an optional tile-grid gesture. Two half-pixel ticks equal one pixel.
@@ -768,29 +769,14 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return _snapPoint(point, _creationSnapPolicy);
   }
 
-  /// Equal-distance candidates keep canonical shape and vertex order.
   TerrainSourceVertexDef? _nearestDirectTerrainVertex(
     TerrainPolygonScenePoint point, {
     required double snapRadiusHalfPixels,
-  }) {
-    final maximumDistanceSquared = snapRadiusHalfPixels * snapRadiusHalfPixels;
-    TerrainSourceVertexDef? closest;
-    var closestDistanceSquared = double.infinity;
-    for (final shape in _state.shapes) {
-      for (final vertex in shape.vertices) {
-        final dx = vertex.xHalfPixels - point.xHalfPixels;
-        final dy = vertex.yHalfPixels - point.yHalfPixels;
-        final distanceSquared = dx * dx + dy * dy;
-        if (distanceSquared > maximumDistanceSquared ||
-            distanceSquared >= closestDistanceSquared) {
-          continue;
-        }
-        closest = vertex;
-        closestDistanceSquared = distanceSquared;
-      }
-    }
-    return closest;
-  }
+  }) => nearestTerrainVertex(
+    _state.shapes.expand((shape) => shape.vertices),
+    point,
+    radiusHalfPixels: snapRadiusHalfPixels,
+  );
 
   /// Keeps all chunk-local authoring input within the closed owner rectangle.
   ///

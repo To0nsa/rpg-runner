@@ -13,6 +13,7 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 /// rather than a user-facing workspace tab.
 enum ChunkSceneDomain {
   terrain,
+  water,
   prefabs,
   markers,
   layers,

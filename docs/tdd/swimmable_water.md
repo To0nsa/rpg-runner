@@ -81,10 +81,30 @@ are visual tickers, independent of gameplay authority.
 
 ## Authoring and validation
 
-Chunk Creator's **Water regions** panel creates, edits and deletes rectangles
-with material selection and a validated modal draft. Typed edits carry the
-expected chunk revision and use the existing plugin, Undo/Redo, Save and Build
-transaction path. No-op edits preserve revision. Chunk copying preserves water.
+Chunk Creator's **Water** scene domain draws rectangles with a material picker,
+independent tile-grid and neighbor-vertex snap switches, and a retained preview.
+The shared scene surface owns pointer routing, pan/zoom and keyboard handling.
+`ChunkWaterDrawing` freezes the source revision, material, snap policy and targets
+at pointer down; pointer release retains a candidate without writing the session.
+Enter/Save water publishes one `ChunkWaterCommit`; Escape/Cancel discards it.
+Active water drafts block Save, Play and owner/domain switching. Undo cancels the
+local draft before consuming committed history. Exact-coordinate creation and
+editing remain in the sidebar modal and use the same commit path.
+
+Neighbor snapping shares the terrain nearest-vertex routine and uses an eight
+canvas-pixel radius divided by the current zoom. Targets are direct terrain
+vertices, expanded prefab vertices and existing water corners inside the chunk.
+Only exact whole-pixel targets qualify; equal-distance ties retain source order.
+Neighbors take priority over grid snapping. Otherwise the shared grid policy
+rounds to the tile size (or one pixel when disabled), clamping to the last
+in-bounds grid intersection. Drag direction does not affect the result.
+
+Both authoring workflows share local ID allocation and Core codec validation
+with the commit adapter. Zero-area and overlapping drafts remain uncommitted;
+material art previews valid candidates, with an outline and snap-target overlay.
+Typed edits carry the expected chunk revision and use the existing plugin,
+Undo/Redo, Save and Build transaction path. No-op edits preserve revision.
+Chunk copying preserves water.
 Captured Play validates water material references and captures every animation
 asset; missing references prevent partial scenario publication.
 

@@ -57,9 +57,13 @@ Editor foundations shared across those domains:
 
 ## Windows Level And Chunk Play
 
-Chunk Creator also includes **Water regions** for adding, editing and deleting
-swimmable rectangles. Select `biome_water` for the animated mixed-biomes atlas
-surface, and provide solid banks and a floor separately. Terrain Materials edits
+Chunk Creator's **Water** tab draws swimmable rectangles directly in the scene.
+Choose a material, optionally enable **Snap to grid** and **Snap to neighbor
+vertices**, then drag opposite corners. **Enter / Save water** accepts the
+preview; **Escape / Cancel drawing** discards it. Neighbor vertices take priority
+when both snap options are enabled. Existing rectangles and **Enter water
+coordinates** retain exact numeric editing. Select `biome_water` for the animated
+mixed-biomes atlas surface, and provide solid banks and a floor separately. Terrain Materials edits
 additional surface frames and timing. Save, Undo/Redo, duplication, Build and
 captured Play preserve these records. See the
 [pool authoring guide](../../docs/gdd/swimming.md) and
@@ -597,7 +601,7 @@ The Chunk Creator keeps one **Chunk creation scene** between an owner rail and
 an authoring sidebar. On wide windows, **Chunk owners** sits to the scene's
 left, while one tab-specific group of sibling authoring sections occupies the
 right-side scroll area above shared, document-wide **Diagnostics**. There is no
-redundant Terrain, Prefabs, Markers, or Layers wrapper card. Owner rows include
+redundant Terrain, Water, Prefabs, Markers, or Layers wrapper card. Owner rows include
 a read-only thumbnail built from the same background, terrain-material, prefab,
 and foreground projections as the scene. Selecting an owner card only binds it
 to the scene; the row's pencil **Edit** button explicitly opens the inline
@@ -615,7 +619,7 @@ Duplicate and
 Delete remain contextual actions; Chunk has no separate Rename action. On
 narrow windows, both scroll areas
 sit below a bounded scene, with owners on the left. Persistent
-visual/viewport controls sit above the **Terrain / Prefabs / Markers / Layers**
+visual/viewport controls sit above the **Terrain / Water / Prefabs / Markers / Layers**
 selector, which swaps only the domain's sections; it never replaces or rebuilds
 the scene or filters Diagnostics. Owner, authoring, visual-stack, and
 Diagnostics sections start folded and retain presentation-only expansion state

@@ -12,6 +12,7 @@ import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_prefab_surface_snap.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
+import '../../../../chunks/chunk_water_commit.dart';
 import '../../../../chunks/chunk_v2_lifecycle_commit.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../../chunks/chunk_v2_metadata_commit.dart';
@@ -50,6 +51,9 @@ import 'chunk_marker_scene_gesture.dart';
 import 'chunk_owner_panels.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_water_panel.dart';
+import 'chunk_water_drawing.dart';
+import 'chunk_water_drawing_controls.dart';
+import 'chunk_water_overlay_painter.dart';
 import 'chunk_polygon_level_visual_source.dart';
 import 'chunk_prefab_scene_gesture.dart';
 import 'chunk_scene_coordinator.dart';
@@ -141,6 +145,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final ChunkSceneCoordinator _sceneCoordinator = ChunkSceneCoordinator();
   final ChunkPrefabSceneGesture _prefabGesture = ChunkPrefabSceneGesture();
   final ChunkMarkerSceneGesture _markerGesture = ChunkMarkerSceneGesture();
+  final ChunkWaterDrawing _waterDrawing = ChunkWaterDrawing();
+  String? _waterMaterialKey;
+  bool _waterSnapToGrid = false;
+  bool _waterSnapToNeighbors = true;
   String? _selectedPrefabCatalogKey;
   ChunkPrefabTransformValue _prefabPlaceTransform =
       const ChunkPrefabTransformValue();
@@ -164,7 +172,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _compositionOperationActive ||
       _prefabGesture.hasActiveOperation ||
       _prefabTransformDraft != null ||
-      _markerGesture.hasActiveOperation;
+      _markerGesture.hasActiveOperation ||
+      _waterDrawing.hasActiveOperation;
 
   bool get hasActiveOperation => _hasActiveOperation;
 
@@ -244,6 +253,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool get canUndo =>
       _ownerEditDirty ||
       _ownerCreateDirty ||
+      _waterDrawing.hasActiveOperation ||
       _prefabGesture.hasActiveOperation ||
       _prefabTransformDraft != null ||
       _markerGesture.hasActiveOperation ||
@@ -253,6 +263,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool get canRedo =>
       !_ownerEditDirty &&
       !_ownerCreateDirty &&
+      !_waterDrawing.hasActiveOperation &&
       !_prefabGesture.hasActiveOperation &&
       _prefabTransformDraft == null &&
       !_markerGesture.hasActiveOperation &&
@@ -287,6 +298,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return true;
     }
     if (_ownerEditSource != null) _closeOwnerEditor();
+    if (_waterDrawing.hasActiveOperation) {
+      _cancelWaterDrawing();
+      return true;
+    }
     if (_prefabGesture.hasActiveOperation) {
       setState(_prefabGesture.cancel);
       return true;
@@ -310,6 +325,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool handleRedoShortcut() {
     if (_ownerEditDirty ||
         _ownerCreateDirty ||
+        _waterDrawing.hasActiveOperation ||
         _prefabGesture.hasActiveOperation ||
         _prefabTransformDraft != null ||
         _markerGesture.hasActiveOperation) {
@@ -580,6 +596,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               )
             : _buildShapePanel(authoring),
       ),
+      ChunkSceneDomain.water =>
+        authoring == null
+            ? const Text('Select or create a chunk owner first.')
+            : _buildWaterPanel(authoring.chunk),
       ChunkSceneDomain.prefabs => _buildCompositionSidebarSections(
         document,
         authoring,
@@ -603,29 +623,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           activeSections,
-          if (authoring != null) ...[
-            const SizedBox(height: _gap),
-            ChunkWaterPanel(
-              chunk: authoring.chunk,
-              materials: _materialCatalog,
-              enabled: !_hasActiveOperation,
-              onCommit: (commit) {
-                final before = widget.controller.document;
-                widget.controller.applyCommand(
-                  AuthoringCommand(
-                    kind: ChunkDomainPlugin.commitChunkWaterCommandKind,
-                    payload: {
-                      'chunkKey': authoring.chunk.chunkKey,
-                      'commit': commit,
-                    },
-                  ),
-                );
-                if (identical(before, widget.controller.document)) {
-                  _showOwnerMutationRejected();
-                }
-              },
-            ),
-          ],
           const SizedBox(height: _gap),
           ChunkDiagnosticsCard(issues: _diagnosticIssues),
         ],
@@ -635,6 +632,64 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       ignoring: _visualPreview,
       child: Opacity(opacity: _visualPreview ? 0.45 : 1, child: sidebar),
     );
+  }
+
+  String? get _resolvedWaterMaterialKey {
+    final catalog = _materialCatalog;
+    if (catalog == null || catalog.materials.isEmpty) return null;
+    if (catalog.byKey.containsKey(_waterMaterialKey)) return _waterMaterialKey;
+    return catalog.byKey.containsKey('biome_water')
+        ? 'biome_water'
+        : catalog.materials.first.key;
+  }
+
+  Widget _buildWaterPanel(ChunkV2FileData chunk) => ChunkWaterPanel(
+    chunk: chunk,
+    materials: _materialCatalog,
+    enabled: !_hasActiveOperation,
+    onCommit: (commit) => _dispatchWaterCommit(chunk.chunkKey, commit),
+    drawingControls: ChunkWaterDrawingControls(
+      materials: _materialCatalog,
+      materialKey: _resolvedWaterMaterialKey,
+      snapToGrid: _waterSnapToGrid,
+      snapToNeighbors: _waterSnapToNeighbors,
+      gridSize: chunk.tileSize,
+      hasDraft: _waterDrawing.hasActiveOperation,
+      canSave: _waterDrawing.buildCommit() != null,
+      error: _waterDrawing.error,
+      onMaterialChanged: (value) => setState(() => _waterMaterialKey = value),
+      onGridChanged: (value) => setState(() => _waterSnapToGrid = value),
+      onNeighborsChanged: (value) =>
+          setState(() => _waterSnapToNeighbors = value),
+      onSave: _saveWaterDrawing,
+      onCancel: _cancelWaterDrawing,
+    ),
+  );
+
+  bool _dispatchWaterCommit(String chunkKey, ChunkWaterCommit commit) {
+    final before = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkWaterCommandKind,
+        payload: {'chunkKey': chunkKey, 'commit': commit},
+      ),
+    );
+    if (identical(before, widget.controller.document)) {
+      _showOwnerMutationRejected();
+      return false;
+    }
+    return true;
+  }
+
+  void _saveWaterDrawing() {
+    final commit = _waterDrawing.buildCommit();
+    if (commit == null || _selectedChunkKey == null) return;
+    if (_dispatchWaterCommit(_selectedChunkKey!, commit)) _cancelWaterDrawing();
+  }
+
+  void _cancelWaterDrawing() {
+    setState(_waterDrawing.cancel);
+    widget.onDraftStateChanged?.call();
   }
 
   List<ValidationIssue> get _diagnosticIssues {
@@ -862,6 +917,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 label: Text('Terrain'),
               ),
               ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.water,
+                label: Text('Water'),
+              ),
+              ButtonSegment<ChunkSceneDomain>(
                 value: ChunkSceneDomain.prefabs,
                 label: Text('Prefabs'),
               ),
@@ -1004,6 +1063,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               ? 'Visual preview shows runtime-facing chunk art only. Exit it '
                     'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
                     'zooms.'
+              : _sceneCoordinator.sourceDomain == ChunkSceneDomain.water
+              ? 'Drag opposite corners to draw water. Enter saves the draft; '
+                    'Escape cancels. Ctrl+drag pans and Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
               ? 'Place and Move keep whole-pixel origins. Surface snap can '
                     'refine Y to exact non-overlapping terrain-edge contact. '
@@ -1135,7 +1197,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             'chunk_polygon_terrain_material_preview',
                           ),
                           workspaceRootPath: widget.controller.workspacePath,
-                          chunk: chunk,
+                          chunk:
+                              _waterDrawing.candidate != null &&
+                                  _waterDrawing.error == null
+                              ? chunk.copyWith(
+                                  waterRegions: [
+                                    ...chunk.waterRegions,
+                                    _waterDrawing.candidate!,
+                                  ],
+                                )
+                              : chunk,
                           parallaxTheme: scene.activeParallaxTheme,
                           transform: transform,
                           layer: ChunkPolygonLevelVisualLayer.terrain,
@@ -1187,6 +1258,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           workspaceRootPath: widget.controller.workspacePath,
                           placements: atOrAboveTerrainVisuals,
                           transform: transform,
+                        ),
+                      if (!_visualPreview &&
+                          _sceneCoordinator.sourceDomain ==
+                              ChunkSceneDomain.water)
+                        CustomPaint(
+                          key: const ValueKey('chunk_water_overlay'),
+                          painter: ChunkWaterOverlayPainter(
+                            regions: chunk.waterRegions,
+                            transform: transform,
+                            draft: _waterDrawing.bounds,
+                            invalid: _waterDrawing.error != null,
+                            snappedNeighbor: _waterDrawing.snappedNeighbor,
+                          ),
                         ),
                       if (!_visualPreview && _showGrid)
                         IgnorePointer(
@@ -1297,6 +1381,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       _endDomainGesture(pointer, point),
                   onCancelDomainGesture: _cancelDomainGesture,
                   onClearSelection: _cancelGestureOrClearSelection,
+                  onCompleteOperation:
+                      _sceneCoordinator.domain == ChunkSceneDomain.water
+                      ? _saveWaterDrawing
+                      : null,
                   onDeleteSelection: _deleteSceneSelection,
                   onPanDelta: (delta) => setState(() => _pan += delta),
                   onZoomSteps: (steps) {
@@ -2768,6 +2856,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _disposeAuthoring() {
+    _waterDrawing.cancel();
     final authoring = _authoring;
     if (authoring == null) return;
     authoring.removeListener(_handleAuthoringChanged);
@@ -2928,7 +3017,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           radiusWorld: 8 / _zoom,
         );
         setState(() => _sceneCoordinator.selectMarker(hit));
-      case ChunkSceneDomain.terrain ||
+      case ChunkSceneDomain.water ||
+          ChunkSceneDomain.terrain ||
           ChunkSceneDomain.layers ||
           ChunkSceneDomain.compiledEdgeInspection:
         break;
@@ -3040,6 +3130,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             });
             return began;
         }
+      case ChunkSceneDomain.water:
+        final materialKey = _resolvedWaterMaterialKey;
+        if (materialKey == null) return false;
+        var began = false;
+        setState(() {
+          began = _waterDrawing.begin(
+            chunk: chunk,
+            pointer: pointer,
+            worldPoint: worldPoint,
+            materialKey: materialKey,
+            snapToGrid: _waterSnapToGrid,
+            snapToNeighbors: _waterSnapToNeighbors,
+            zoom: _zoom,
+            expansion: _expansionFor(chunk.chunkKey)?.expansion,
+          );
+        });
+        widget.onDraftStateChanged?.call();
+        return began;
       case ChunkSceneDomain.terrain ||
           ChunkSceneDomain.layers ||
           ChunkSceneDomain.compiledEdgeInspection:
@@ -3048,7 +3156,15 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _updateDomainGesture(int pointer, Offset worldPoint) {
-    if (_prefabGesture.hasActiveOperation) {
+    if (_waterDrawing.hasActiveOperation) {
+      setState(
+        () => _waterDrawing.update(
+          pointer: pointer,
+          worldPoint: worldPoint,
+          zoom: _zoom,
+        ),
+      );
+    } else if (_prefabGesture.hasActiveOperation) {
       setState(
         () => _prefabGesture.update(pointer: pointer, worldPoint: worldPoint),
       );
@@ -3060,7 +3176,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _endDomainGesture(int pointer, Offset worldPoint) {
-    if (_prefabGesture.hasActiveOperation) {
+    if (_waterDrawing.hasActiveOperation) {
+      setState(
+        () => _waterDrawing.finish(
+          pointer: pointer,
+          worldPoint: worldPoint,
+          zoom: _zoom,
+        ),
+      );
+      widget.onDraftStateChanged?.call();
+    } else if (_prefabGesture.hasActiveOperation) {
       late final ChunkPrefabGestureResult? result;
       setState(() {
         result = _prefabGesture.finish(
@@ -3082,6 +3207,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _cancelDomainGesture(int pointer) {
+    if (_waterDrawing.hasActiveOperation) {
+      _cancelWaterDrawing();
+      return;
+    }
     if (!_prefabGesture.hasActiveOperation &&
         !_markerGesture.hasActiveOperation) {
       return;
@@ -3093,6 +3222,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _cancelGestureOrClearSelection() {
+    if (_waterDrawing.hasActiveOperation) {
+      _cancelWaterDrawing();
+      return;
+    }
     setState(() {
       final cancelled = _prefabGesture.cancel() || _markerGesture.cancel();
       if (cancelled) return;
@@ -3149,7 +3282,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           ChunkMarkerGestureResult(candidate: selection.marker, commit: commit),
           deleted: true,
         );
-      case ChunkSceneDomain.terrain ||
+      case ChunkSceneDomain.water ||
+          ChunkSceneDomain.terrain ||
           ChunkSceneDomain.layers ||
           ChunkSceneDomain.compiledEdgeInspection:
         return;

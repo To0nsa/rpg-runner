@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
@@ -7,7 +6,7 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_water_commit.dart';
 import '../../shared/editor_section_card.dart';
 
-/// Pool authoring uses one modal draft and the existing chunk transaction path.
+/// Water drawing controls and exact edits share the chunk transaction path.
 class ChunkWaterPanel extends StatelessWidget {
   const ChunkWaterPanel({
     super.key,
@@ -15,8 +14,10 @@ class ChunkWaterPanel extends StatelessWidget {
     required this.materials,
     required this.enabled,
     required this.onCommit,
+    this.drawingControls,
   });
 
+  final Widget? drawingControls;
   final ChunkV2FileData chunk;
   final TerrainMaterialCatalog? materials;
   final bool enabled;
@@ -30,6 +31,7 @@ class ChunkWaterPanel extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        ?drawingControls,
         const Text(
           'Pools have a horizontal surface. Use solid terrain for banks '
           'and a floor, and place the level kill plane below the pool.',
@@ -68,7 +70,7 @@ class ChunkWaterPanel extends StatelessWidget {
               ? () => _edit(context, null)
               : null,
           icon: const Icon(Icons.water),
-          label: const Text('Add water rectangle'),
+          label: const Text('Enter water coordinates'),
         ),
       ],
     ),
@@ -116,11 +118,7 @@ class _WaterDialogState extends State<_WaterDialog> {
   void initState() {
     super.initState();
     final existing = widget.existing;
-    var id = 'water_1';
-    var ordinal = 1;
-    while (widget.chunk.waterRegions.any((water) => water.id == id)) {
-      id = 'water_${++ordinal}';
-    }
+    final id = nextChunkWaterId(widget.chunk.waterRegions);
     final height = widget.chunk.height < 64 ? widget.chunk.height : 64;
     _fields = {
       'id': TextEditingController(text: existing?.id ?? id),
@@ -246,13 +244,9 @@ class _WaterDialogState extends State<_WaterDialog> {
           (water) => water.id != widget.existing?.id,
         ),
         region,
-      ]..sort((a, b) => a.id.compareTo(b.id));
-      decodeWaterRegions(
-        all.map((water) => water.toJson()).toList(),
-        sourcePath: 'Water',
-        chunkWidth: widget.chunk.width,
-        chunkHeight: widget.chunk.height,
-      );
+      ];
+      final error = chunkWaterValidationMessage(widget.chunk, all);
+      if (error != null) throw FormatException(error);
       if (!widget.materials.byKey.containsKey(_material)) {
         throw const FormatException('Choose an available material.');
       }

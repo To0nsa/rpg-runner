@@ -3,6 +3,35 @@ import 'package:runner_core/terrain/water_region.dart';
 
 import 'chunk_v2_file_data.dart';
 
+/// Allocates the first unused local water identity for either creation workflow.
+String nextChunkWaterId(Iterable<WaterRegionData> regions) {
+  final ids = regions.map((region) => region.id).toSet();
+  var ordinal = 1;
+  while (ids.contains('water_$ordinal')) {
+    ordinal++;
+  }
+  return 'water_$ordinal';
+}
+
+/// Uses the runtime source codec for both draft feedback and commit admission.
+String? chunkWaterValidationMessage(
+  ChunkV2FileData chunk,
+  Iterable<WaterRegionData> regions,
+) {
+  final ordered = regions.toList()..sort((a, b) => a.id.compareTo(b.id));
+  try {
+    decodeWaterRegions(
+      ordered.map((region) => region.toJson()).toList(),
+      sourcePath: '${chunk.chunkKey}.waterRegions',
+      chunkWidth: chunk.width,
+      chunkHeight: chunk.height,
+    );
+    return null;
+  } on FormatException catch (error) {
+    return error.message.toString();
+  }
+}
+
 /// One stale-checked water edit; plugin validation owns publication and Save.
 final class ChunkWaterCommit {
   ChunkWaterCommit({
@@ -17,14 +46,7 @@ final class ChunkWaterCommit {
   ChunkV2FileData apply(ChunkV2FileData chunk) {
     if (chunk.revision != expectedRevision) return chunk;
     final ordered = regions.toList()..sort((a, b) => a.id.compareTo(b.id));
-    try {
-      decodeWaterRegions(
-        ordered.map((region) => region.toJson()).toList(),
-        sourcePath: '${chunk.chunkKey}.waterRegions',
-        chunkWidth: chunk.width,
-        chunkHeight: chunk.height,
-      );
-    } on FormatException {
+    if (chunkWaterValidationMessage(chunk, ordered) != null) {
       return chunk;
     }
     if (ordered.length == chunk.waterRegions.length &&
