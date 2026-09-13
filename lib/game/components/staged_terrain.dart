@@ -15,8 +15,9 @@ import '../spatial/world_view_transform.dart';
 import '../themes/terrain_material_registry.dart';
 import 'staged_terrain_edge_layout.dart';
 import 'staged_terrain_mesh_layout.dart';
+import 'water_material_painter.dart';
 
-/// Draws staged terrain using only Core-owned triangles and exposed edges.
+/// Draws Core-owned terrain meshes, exposed edges and water-region snapshots.
 class StagedTerrain extends Component with HasGameReference<FlameGame> {
   StagedTerrain({
     required this.controller,
@@ -114,7 +115,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   @override
   void render(ui.Canvas canvas) {
     super.render(canvas);
-    if (!_assetsReady || _meshes.isEmpty) return;
+    if (!_assetsReady) return;
 
     final cameraX = -game.camera.viewfinder.transform.offset.x;
     final cameraY = -game.camera.viewfinder.transform.offset.y;
@@ -136,6 +137,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       ui.Rect.fromLTWH(0, 0, virtualWidth.toDouble(), virtualHeight.toDouble()),
     );
     canvas.translate(-transform.viewLeftX, -transform.viewTopY);
+    paintWater(canvas, foreground: false, visibleBounds: visibleWorldRect);
     // Source-replacement establishes semantic ownership between fill, edge,
     // and cap art. Isolating terrain keeps transparent authored pixels from
     // clearing scene content that was painted before this component.
@@ -160,7 +162,12 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       _drawEdgeImage(
         canvas,
         edge: edge,
-        image: material.imageFor(profile.base.region),
+        image: material.imageFor(
+          profile.base.regionAtTick(
+            controller.snapshot.tick,
+            controller.tickHz,
+          ),
+        ),
         anchorY: profile.base.anchorY,
         orientation: edge.orientation,
         blendMode: ui.BlendMode.src,
@@ -174,7 +181,9 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         _drawEdgeImage(
           canvas,
           edge: edge,
-          image: material.imageFor(detail.region),
+          image: material.imageFor(
+            detail.regionAtTick(controller.snapshot.tick, controller.tickHz),
+          ),
           anchorY: detail.anchorY,
           orientation: edge.orientation,
           blendMode: ui.BlendMode.srcOver,
@@ -237,6 +246,52 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
 
     canvas.restore();
     canvas.restore();
+  }
+
+  /// Draws immutable water volumes using the terrain-owned image cache.
+  /// Foreground callers already receive the world's camera transform.
+  void paintWater(
+    ui.Canvas canvas, {
+    required bool foreground,
+    ui.Rect? visibleBounds,
+  }) {
+    if (!_assetsReady) return;
+    final snapshot = controller.snapshot.stagedTerrainRenderSnapshot;
+    if (snapshot == null) return;
+    for (final water in snapshot.waterRegions) {
+      final bounds = ui.Rect.fromLTRB(
+        water.leftTicks / terrainPhysicsTicksPerWorldUnit,
+        water.topTicks / terrainPhysicsTicksPerWorldUnit,
+        water.rightTicks / terrainPhysicsTicksPerWorldUnit,
+        water.bottomTicks / terrainPhysicsTicksPerWorldUnit,
+      );
+      if (visibleBounds != null && !bounds.overlaps(visibleBounds)) continue;
+      final material = _materials[water.materialKey];
+      if (material == null) {
+        throw StateError('Missing water material ${water.materialKey}.');
+      }
+      final base = material.spec.top.base;
+      final detail = material.spec.top.detail;
+      paintWaterMaterial(
+        canvas,
+        bounds: bounds,
+        fillPaint: material.fillPaint,
+        surfaceImage: material.imageFor(
+          base.regionAtTick(controller.snapshot.tick, controller.tickHz),
+        ),
+        anchorY: base.anchorY,
+        detailImage: detail == null
+            ? null
+            : material.imageFor(
+                detail.regionAtTick(
+                  controller.snapshot.tick,
+                  controller.tickHz,
+                ),
+              ),
+        detailAnchorY: detail?.anchorY ?? 0,
+        foreground: foreground,
+      );
+    }
   }
 
   void _syncSnapshot(StagedTerrainRenderSnapshot? snapshot) {
@@ -809,3 +864,15 @@ final Float64List _identityMatrix = Float64List.fromList(<double>[
   0,
   1,
 ]);
+
+/// Water foreground in world space; images remain owned by [StagedTerrain].
+class WaterTerrainForeground extends Component {
+  WaterTerrainForeground(this.terrain);
+  final StagedTerrain terrain;
+
+  @override
+  void render(ui.Canvas canvas) {
+    super.render(canvas);
+    terrain.paintWater(canvas, foreground: true);
+  }
+}

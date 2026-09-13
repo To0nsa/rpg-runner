@@ -10,6 +10,7 @@ import '../../../atlas/atlas_pixel_rect.dart';
 import 'atlas_region_preview_tile.dart';
 import 'editor_scene_view_utils.dart';
 import 'terrain_material_compositor.dart';
+import 'terrain_animation_preview.dart';
 
 /// Shared composed sample and explicit orientation coverage for one material.
 class TerrainMaterialPreview extends StatefulWidget {
@@ -76,11 +77,15 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _TerrainComposedSample(
-          material: material,
-          imagesByRegion: imagesByRegion,
-          height: widget.compact ? 160 : 220,
-          keyPrefix: widget.keyPrefix,
+        TerrainAnimationPreview(
+          enabled: material.isAnimated,
+          builder: (tick) => _TerrainComposedSample(
+            tick: tick,
+            material: material,
+            imagesByRegion: imagesByRegion,
+            height: widget.compact ? 160 : 220,
+            keyPrefix: widget.keyPrefix,
+          ),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -177,6 +182,7 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
 
 class _TerrainComposedSample extends StatelessWidget {
   const _TerrainComposedSample({
+    required this.tick,
     required this.material,
     required this.imagesByRegion,
     required this.height,
@@ -185,6 +191,7 @@ class _TerrainComposedSample extends StatelessWidget {
 
   final TerrainMaterialDefinition material;
   final Map<TerrainMaterialImageRegion, ui.Image> imagesByRegion;
+  final int tick;
   final double height;
   final String? keyPrefix;
 
@@ -248,6 +255,7 @@ class _TerrainComposedSample extends StatelessWidget {
               child: CustomPaint(
                 key: _previewKey('canvas'),
                 painter: _TerrainCompositionPainter(
+                  tick: tick,
                   ownerPath: ownerPath,
                   material: material,
                   imagesByRegion: imagesByRegion,
@@ -311,12 +319,14 @@ Iterable<String> _configuredRoles(TerrainMaterialDefinition material) sync* {
 
 final class _TerrainCompositionPainter extends CustomPainter {
   const _TerrainCompositionPainter({
+    required this.tick,
     required this.ownerPath,
     required this.material,
     required this.imagesByRegion,
     required this.edges,
   });
 
+  final int tick;
   final Path ownerPath;
   final TerrainMaterialDefinition material;
   final Map<TerrainMaterialImageRegion, ui.Image> imagesByRegion;
@@ -325,6 +335,7 @@ final class _TerrainCompositionPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) => paintTerrainMaterialComposition(
     canvas,
+    tick: tick,
     ownerPath: ownerPath,
     material: material,
     imagesByRegion: imagesByRegion,
@@ -333,6 +344,7 @@ final class _TerrainCompositionPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TerrainCompositionPainter oldDelegate) =>
+      oldDelegate.tick != tick ||
       oldDelegate.material != material ||
       oldDelegate.ownerPath != ownerPath ||
       oldDelegate.imagesByRegion.length != imagesByRegion.length;

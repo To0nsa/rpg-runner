@@ -6,6 +6,7 @@ import '../../combat/control_lock.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../util/fixed_math.dart';
 import '../../util/velocity_math.dart';
+import '../../terrain/swimming_tuning.dart';
 import '../queries.dart';
 import '../world.dart';
 
@@ -138,6 +139,7 @@ class PlayerMovementSystem {
           tuning,
           moveSpeedMul,
           slopeTargetMultiplier,
+          world.swimState.isSwimming(e),
         );
       }
 
@@ -175,6 +177,7 @@ class PlayerMovementSystem {
     MovementTuningDerived tuning,
     double moveSpeedMul,
     double slopeTargetMultiplier,
+    bool swimming,
   ) {
     final t = tuning.base;
     final desiredX = axis == 0.0
@@ -184,8 +187,14 @@ class PlayerMovementSystem {
       current: velocityX,
       desired: desiredX,
       dtSeconds: dt,
-      accelPerSecond: t.accelerationX * moveSpeedMul,
-      decelPerSecond: t.decelerationX * moveSpeedMul,
+      accelPerSecond:
+          t.accelerationX *
+          moveSpeedMul *
+          (swimming ? SwimmingTuning.accelerationMultiplier : 1),
+      decelPerSecond:
+          t.decelerationX *
+          moveSpeedMul *
+          (swimming ? SwimmingTuning.decelerationMultiplier : 1),
       minStopSpeed: t.minMoveSpeed,
     );
   }

@@ -16,6 +16,10 @@ package. Preserve deterministic ordering, exact signatures, strict Prefab-v3
 and Chunk-v2 validation, and generated-byte parity when changing the pipeline.
 Do not add legacy schema fallback paths.
 
+Optional Chunk-v2 water rectangles compile into separate Core volume records.
+Preserve water signatures and bindings without adding solid edges or navigation
+support. Missing water arrays mean dry chunks; explicit null is invalid.
+
 Repository generation validates all source schemas, identities and individual
 geometry even for excluded levels. The separate runtime batch contains only
 active chunks of included levels and must pass scheduler/seam readiness. Keep

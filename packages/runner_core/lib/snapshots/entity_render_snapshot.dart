@@ -30,6 +30,8 @@ class EntityRenderSnapshot {
     this.pickupVariant,
     this.z,
     this.rotationRad = 0.0,
+    this.isSwimming = false,
+    this.waterImmersion1000 = 0,
     this.animFrame,
     this.statusVisualMask = EntityStatusVisualMask.none,
     this.controlLockMask = EntityControlLockMask.none,
@@ -66,6 +68,12 @@ class EntityRenderSnapshot {
 
   /// Optional rotation (radians) for rendering orientation.
   final double rotationRad;
+
+  /// Authoritative hysteresis state at the end of this tick.
+  final bool isSwimming;
+
+  /// Capsule centre-column depth underwater, from 0 to 1000.
+  final int waterImmersion1000;
 
   /// Facing direction for choosing sprites/poses.
   final Facing facing;

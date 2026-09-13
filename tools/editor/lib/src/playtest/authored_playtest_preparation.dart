@@ -574,6 +574,8 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
           );
     final referencedMaterials = <String>{
       for (final chunk in active)
+        for (final water in chunk.stagedTerrain.waterRegions) water.materialKey,
+      for (final chunk in active)
         for (final polygon in chunk.stagedTerrain.polygons)
           if (polygon.materialKey != null) polygon.materialKey!,
     };

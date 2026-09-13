@@ -1,6 +1,7 @@
 /// Immutable render data paired with the published terrain geometry.
 library;
 
+import '../terrain/water_region.dart';
 import '../collision/terrain/terrain_edge.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../collision/terrain/terrain_polygon.dart';
@@ -65,7 +66,9 @@ final class StagedTerrainRenderSnapshot {
     required this.geometryVersion,
     required Iterable<StagedTerrainPolygonRenderSnapshot> polygons,
     required Iterable<TerrainEdge> edges,
-  }) : polygons = List<StagedTerrainPolygonRenderSnapshot>.unmodifiable(
+    Iterable<WaterRegion> waterRegions = const [],
+  }) : waterRegions = List<WaterRegion>.unmodifiable(waterRegions),
+       polygons = List<StagedTerrainPolygonRenderSnapshot>.unmodifiable(
          polygons,
        ),
        edges = List<TerrainEdge>.unmodifiable(edges);
@@ -83,4 +86,7 @@ final class StagedTerrainRenderSnapshot {
   /// matching geometry version and direct source identities; render consumers
   /// must not derive substitute boundaries from [polygons].
   final List<TerrainEdge> edges;
+
+  /// The same immutable fluid volumes used by Core in this publication.
+  final List<WaterRegion> waterRegions;
 }

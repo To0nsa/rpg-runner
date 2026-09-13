@@ -344,3 +344,24 @@ List<double> terrainMaterialEdgeRepeatSeamOffsets({
 /// First world-space tile origin at or before [coordinate].
 double terrainMaterialTileStart(double coordinate, double repeatSize) =>
     coordinate - terrainMaterialPositiveModulo(coordinate, repeatSize);
+
+/// Selects a globally phased looping surface frame from fixed simulation time.
+/// Milliseconds round to the nearest whole tick, with a one-tick minimum.
+/// Pausing the simulation therefore also pauses the material animation.
+int terrainMaterialAnimationFrame({
+  required int tick,
+  required int tickHz,
+  required int frameDurationMs,
+  required int frameCount,
+}) {
+  if (tick < 0 || tickHz <= 0 || frameDurationMs <= 0 || frameCount <= 0) {
+    throw ArgumentError(
+      'Animation requires nonnegative time and positive timing/counts.',
+    );
+  }
+  final durationTicks = ((frameDurationMs * tickHz + 500) ~/ 1000).clamp(
+    1,
+    1 << 30,
+  );
+  return (tick ~/ durationTicks) % frameCount;
+}

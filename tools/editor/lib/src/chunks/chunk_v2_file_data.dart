@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/terrain/water_region.dart';
 
 import '../terrain_authoring/terrain_source_models.dart';
 import 'chunk_domain_models.dart';
@@ -31,7 +32,9 @@ final class ChunkV2FileData {
     required Iterable<PlacedMarkerDef> markers,
     required this.groundBandZIndex,
     required Iterable<TerrainSourceShapeDef> collisionShapes,
-  }) : tags = List<String>.unmodifiable(tags),
+    Iterable<WaterRegionData> waterRegions = const [],
+  }) : waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
+       tags = List<String>.unmodifiable(tags),
        tileLayers = List<TileLayerDef>.unmodifiable(tileLayers),
        prefabs = List<PlacedPrefabDef>.unmodifiable(prefabs),
        markers = List<PlacedMarkerDef>.unmodifiable(markers),
@@ -63,6 +66,9 @@ final class ChunkV2FileData {
   /// Direct chunk-local loops in exact half-pixel source ticks.
   final List<TerrainSourceShapeDef> collisionShapes;
 
+  /// Explicit nonblocking pool rectangles; material keys never enable physics.
+  final List<WaterRegionData> waterRegions;
+
   ChunkV2FileData copyWith({
     String? chunkKey,
     String? id,
@@ -80,6 +86,7 @@ final class ChunkV2FileData {
     Iterable<PlacedMarkerDef>? markers,
     int? groundBandZIndex,
     Iterable<TerrainSourceShapeDef>? collisionShapes,
+    Iterable<WaterRegionData>? waterRegions,
   }) => ChunkV2FileData(
     chunkKey: chunkKey ?? this.chunkKey,
     id: id ?? this.id,
@@ -97,6 +104,7 @@ final class ChunkV2FileData {
     markers: markers ?? this.markers,
     groundBandZIndex: groundBandZIndex ?? this.groundBandZIndex,
     collisionShapes: collisionShapes ?? this.collisionShapes,
+    waterRegions: waterRegions ?? this.waterRegions,
   );
 
   Map<String, Object> toJson() => <String, Object>{
@@ -119,5 +127,7 @@ final class ChunkV2FileData {
     'markers': markers.map((marker) => marker.toJson()).toList(growable: false),
     if (groundBandZIndex != 0) 'groundBandZIndex': groundBandZIndex,
     'collisionShapes': terrainSourceShapesToJson(collisionShapes),
+    if (waterRegions.isNotEmpty)
+      'waterRegions': waterRegions.map((water) => water.toJson()).toList(),
   };
 }

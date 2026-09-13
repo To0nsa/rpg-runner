@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+import 'package:runner_core/terrain/water_region.dart';
+
+import 'water_region_source.dart';
+
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 
 const int polygonPrefabSchemaVersion = 3;
@@ -202,7 +206,9 @@ final class PolygonTerrainChunkSource {
     Iterable<PolygonTerrainMarkerSource> markers =
         const <PolygonTerrainMarkerSource>[],
     required Iterable<PolygonTerrainShapeSource> collisionShapes,
-  }) : placements = List<PolygonTerrainPlacementSource>.unmodifiable(
+    Iterable<WaterRegionData> waterRegions = const [],
+  }) : waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
+       placements = List<PolygonTerrainPlacementSource>.unmodifiable(
          placements,
        ),
        markers = List<PolygonTerrainMarkerSource>.unmodifiable(markers),
@@ -223,6 +229,7 @@ final class PolygonTerrainChunkSource {
   final List<PolygonTerrainPlacementSource> placements;
   final List<PolygonTerrainMarkerSource> markers;
   final List<PolygonTerrainShapeSource> collisionShapes;
+  final List<WaterRegionData> waterRegions;
 
   List<PolygonTerrainPlacementSelection> placementSelections() {
     final counts = <String, int>{};
@@ -469,6 +476,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       'markers',
       'groundBandZIndex',
       'collisionShapes',
+      'waterRegions',
     },
     required: const {
       'schemaVersion',
@@ -636,6 +644,12 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
   }
 
   return PolygonTerrainChunkSource(
+    waterRegions: decodeWaterRegions(
+      root.containsKey('waterRegions') ? root['waterRegions'] : const [],
+      sourcePath: '$sourcePath.waterRegions',
+      chunkWidth: _positiveInt(root['width'], '$sourcePath.width'),
+      chunkHeight: _positiveInt(root['height'], '$sourcePath.height'),
+    ),
     chunkKey: _string(root['chunkKey'], '$sourcePath.chunkKey'),
     id: _string(root['id'], '$sourcePath.id'),
     revision: _positiveInt(root['revision'], '$sourcePath.revision'),

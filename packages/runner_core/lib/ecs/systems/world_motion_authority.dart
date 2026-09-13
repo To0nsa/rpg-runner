@@ -25,6 +25,7 @@ import '../../navigation/types/terrain_surface_graph.dart';
 import '../../snapshots/enums.dart';
 import '../../snapshots/staged_terrain_render_snapshot.dart';
 import '../../track/staged_terrain_stream_candidate.dart';
+import '../../terrain/water_region.dart';
 import '../entity_id.dart';
 import '../stores/world_contact_capsule_store.dart';
 import '../world.dart';
@@ -40,6 +41,9 @@ abstract interface class WorldMotionAuthority {
   ///
   /// Direct synthetic terrain has no staged render artifact and returns null.
   StagedTerrainRenderSnapshot? get terrainRenderSnapshot;
+
+  /// Nonblocking fluids from the same atomic publication as collision.
+  List<WaterRegion> get waterRegions;
 
   bool get initialPlayerGrounded;
 
@@ -319,6 +323,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final publication = _TerrainAuthorityPublication.fromRuntimeBundle(
       runtimeBundle: candidate.runtimeBundle,
       terrainRenderSnapshot: candidate.renderSnapshot,
+      waterRegions: candidate.waterRegions,
       playerProfile: playerProfile,
       grojibProfile: grojib,
       hashashProfile: hashash,
@@ -395,6 +400,9 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   TerrainRuntimeBundle get terrainRuntimeBundle => _publication.bundle;
 
   @override
+  List<WaterRegion> get waterRegions => _publication.waterRegions;
+
+  @override
   StagedTerrainRenderSnapshot? get terrainRenderSnapshot =>
       _publication.terrainRenderSnapshot;
 
@@ -438,6 +446,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final replacement = _TerrainAuthorityPublication.fromRuntimeBundle(
       runtimeBundle: candidate.runtimeBundle,
       terrainRenderSnapshot: candidate.renderSnapshot,
+      waterRegions: candidate.waterRegions,
       playerProfile: _playerProfile,
       grojibProfile: _grojibProfile,
       hashashProfile: _hashashProfile,
@@ -1459,8 +1468,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         if (!complete) {
           throw TerrainBodyStoreError(
             entity: entity,
-            reason:
-                'ballistic projectile transform/collider/collision stores are missing',
+            reason: 'ballistic projectile transform/collider/collision stores are missing',
           );
         }
         continue;
@@ -1795,6 +1803,7 @@ final class _TerrainAuthorityPublication {
   factory _TerrainAuthorityPublication.fromRuntimeBundle({
     required TerrainRuntimeBundle runtimeBundle,
     StagedTerrainRenderSnapshot? terrainRenderSnapshot,
+    List<WaterRegion> waterRegions = const [],
     required TerrainTraversalProfile playerProfile,
     required EnemyTerrainContactProfile grojibProfile,
     required EnemyTerrainContactProfile hashashProfile,
@@ -1839,6 +1848,7 @@ final class _TerrainAuthorityPublication {
     return _TerrainAuthorityPublication._(
       bundle: bundle,
       terrainRenderSnapshot: terrainRenderSnapshot,
+      waterRegions: List<WaterRegion>.unmodifiable(waterRegions),
       minimumGeometryY: minimumGeometryY,
       maximumGeometryY: maximumGeometryY,
       placementQuery: placementQuery,
@@ -1868,6 +1878,7 @@ final class _TerrainAuthorityPublication {
   const _TerrainAuthorityPublication._({
     required this.bundle,
     required this.terrainRenderSnapshot,
+    required this.waterRegions,
     required this.minimumGeometryY,
     required this.maximumGeometryY,
     required this.placementQuery,
@@ -1882,6 +1893,7 @@ final class _TerrainAuthorityPublication {
 
   final TerrainRuntimeBundle bundle;
   final StagedTerrainRenderSnapshot? terrainRenderSnapshot;
+  final List<WaterRegion> waterRegions;
   final int minimumGeometryY;
   final int maximumGeometryY;
   final TerrainPlacementQuery placementQuery;

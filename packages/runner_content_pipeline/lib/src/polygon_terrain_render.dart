@@ -40,6 +40,7 @@ StagedTerrainChunkData materializeStagedTerrainChunk(
   final placementLineage = compiled.placementLineage.toList()..sort();
 
   return StagedTerrainChunkData(
+    waterRegions: chunk.waterRegions,
     chunkKey: chunk.chunkKey,
     id: chunk.id,
     revision: chunk.revision,
@@ -449,8 +450,21 @@ void _writeChunk(_DartWriter writer, StagedTerrainChunkData chunk, int indent) {
     ..line(
       '$prefix  triangleSignature: '
       '${_string(chunk.triangleSignature)},',
-    )
-    ..line('$prefix  polygons: <StagedTerrainPolygonData>[');
+    );
+  if (chunk.waterRegions.isNotEmpty) {
+    writer.line('$prefix  waterRegions: <WaterRegionData>[');
+    for (final water in chunk.waterRegions) {
+      writer
+        ..line('$prefix    WaterRegionData(')
+        ..line('$prefix      id: ${_string(water.id)},')
+        ..line('$prefix      x: ${water.x}, y: ${water.y},')
+        ..line('$prefix      width: ${water.width}, height: ${water.height},')
+        ..line('$prefix      materialKey: ${_string(water.materialKey)},')
+        ..line('$prefix    ),');
+    }
+    writer.line('$prefix  ],');
+  }
+  writer.line('$prefix  polygons: <StagedTerrainPolygonData>[');
   for (final polygon in chunk.polygons) {
     _writePolygon(writer, polygon, indent + 4);
   }

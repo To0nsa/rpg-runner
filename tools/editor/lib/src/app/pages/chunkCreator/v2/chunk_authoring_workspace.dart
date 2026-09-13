@@ -49,6 +49,7 @@ import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_marker_scene_gesture.dart';
 import 'chunk_owner_panels.dart';
 import 'chunk_polygon_authoring_controller.dart';
+import 'chunk_water_panel.dart';
 import 'chunk_polygon_level_visual_source.dart';
 import 'chunk_prefab_scene_gesture.dart';
 import 'chunk_scene_coordinator.dart';
@@ -602,6 +603,29 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           activeSections,
+          if (authoring != null) ...[
+            const SizedBox(height: _gap),
+            ChunkWaterPanel(
+              chunk: authoring.chunk,
+              materials: _materialCatalog,
+              enabled: !_hasActiveOperation,
+              onCommit: (commit) {
+                final before = widget.controller.document;
+                widget.controller.applyCommand(
+                  AuthoringCommand(
+                    kind: ChunkDomainPlugin.commitChunkWaterCommandKind,
+                    payload: {
+                      'chunkKey': authoring.chunk.chunkKey,
+                      'commit': commit,
+                    },
+                  ),
+                );
+                if (identical(before, widget.controller.document)) {
+                  _showOwnerMutationRejected();
+                }
+              },
+            ),
+          ],
           const SizedBox(height: _gap),
           ChunkDiagnosticsCard(issues: _diagnosticIssues),
         ],
@@ -2729,7 +2753,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       newShapeSurfaceKind: terrainSurfaceKindOptions.first,
       newShapeMaterialKey: materials == null || materials.isEmpty
           ? null
-          : materials.first.key,
+          : (_materialCatalog!.byKey.containsKey('grass_dirt')
+                ? 'grass_dirt'
+                : materials.first.key),
       creationSnapToGrid: _terrainCreationSnapToGrid,
       creationSnapToNeighborVertices: _terrainCreationSnapToNeighborVertices,
       editSnapToGrid: _terrainEditSnapToGrid,

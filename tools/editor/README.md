@@ -57,6 +57,14 @@ Editor foundations shared across those domains:
 
 ## Windows Level And Chunk Play
 
+Chunk Creator also includes **Water regions** for adding, editing and deleting
+swimmable rectangles. Select `biome_water` for the animated mixed-biomes atlas
+surface, and provide solid banks and a floor separately. Terrain Materials edits
+additional surface frames and timing. Save, Undo/Redo, duplication, Build and
+captured Play preserve these records. See the
+[pool authoring guide](../../docs/gdd/swimming.md) and
+[example source](../../docs/examples/water_pool_chunk.json).
+
 Level Creator runs the whole selected level through the real Core simulation
 and Flame renderer. Chunk Creator runs a focused loop of the selected chunk,
 including its enemy markers without the Level's enemy-free opening. Use

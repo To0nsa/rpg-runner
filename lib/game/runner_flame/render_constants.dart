@@ -8,6 +8,7 @@ const int priorityPlayer = -3;
 const int priorityEnemies = -2;
 const int priorityProjectiles = -1;
 const int priorityCollectibles = -1;
+const int priorityWaterForeground = 0;
 const int priorityHitboxes = 1;
 const int priorityActorHitboxes = 2;
 const int priorityProjectileAimRay = 5;

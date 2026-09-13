@@ -2,6 +2,7 @@ import '../../players/player_tuning.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../tuning/physics_tuning.dart';
 import '../../util/fixed_math.dart';
+import '../../terrain/swimming_tuning.dart';
 import '../world.dart';
 
 /// Applies gravity to all enabled, non-kinematic bodies that opt into gravity.
@@ -62,7 +63,11 @@ class GravitySystem {
 
       // -- Apply Gravity --
       final velocityBeforeGravity = world.transform.velY[ti];
-      final scaledGravityY = gravityY * bodies.gravityScale[bi];
+      final swimming = world.swimState.isSwimming(e);
+      final scaledGravityY =
+          gravityY *
+          bodies.gravityScale[bi] *
+          (swimming ? SwimmingTuning.gravityMultiplier : 1);
       if (fixedPointPilot.enabled) {
         final deltaVel = accelerationDeltaPerTickFixed(
           accelerationPerSecondSq: scaledGravityY,
@@ -81,7 +86,7 @@ class GravitySystem {
       final maxVelY = bodies.maxVelY[bi];
       world.transform.velY[ti] = world.transform.velY[ti].clamp(
         -maxVelY,
-        maxVelY,
+        swimming ? maxVelY.clamp(0, SwimmingTuning.maxSinkSpeed) : maxVelY,
       );
       if (fixedPointPilot.enabled) {
         world.transform.quantizeVelAtIndex(

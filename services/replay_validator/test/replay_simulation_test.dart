@@ -11,6 +11,16 @@ import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/levels/level_definition.dart';
+import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
+import 'package:runner_core/track/staged_terrain_catalog.dart';
+import 'package:runner_core/track/staged_terrain_data.dart';
+import 'package:runner_core/track/staged_authored_terrain.dart';
+import 'package:runner_core/track/staged_terrain_stream_candidate.dart';
+import 'package:runner_core/tuning/camera_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
@@ -18,6 +28,51 @@ import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('protocol jump frames replay swimming through the same Core rules', () {
+    final direct = _buildWaterCore();
+    final replayed = _buildWaterCore();
+    final result = runReplaySimulation(
+      core: replayed,
+      totalTicks: 120,
+      commandStream: [
+        for (var tick = 1; tick <= 120; tick++)
+          ReplayCommandFrameV1(
+            tick: tick,
+            moveAxis: 0,
+            pressedMask:
+                (tick == 30 ? ReplayCommandFrameV1.pressedJumpBit : 0) |
+                (tick == 30 || tick == 40 ? ReplayCommandFrameV1.pressedDashBit : 0),
+          ),
+      ],
+    );
+    var swimmingStroke = false;
+    for (var tick = 1; tick <= 120; tick++) {
+      direct.applyCommands([
+        MoveAxisCommand(tick: tick, axis: 0),
+        if (tick == 30) JumpPressedCommand(tick: tick),
+        if (tick == 30 || tick == 40) DashPressedCommand(tick: tick),
+      ]);
+      direct.stepOneTick();
+      if (tick == 30) {
+        swimmingStroke =
+            direct.playerVelY < 0 &&
+            direct.buildSnapshot().playerEntity!.isSwimming;
+      }
+      direct.drainEvents();
+    }
+    expect(swimmingStroke, isTrue);
+    expect(result.ticksExecuted, 120);
+    expect(result.runEnded, isNull);
+    expect(replayed.playerPosX, direct.playerPosX);
+    expect(replayed.playerPosY, direct.playerPosY);
+    expect(replayed.playerVelY, direct.playerVelY);
+    expect(replayed.playerVelX, 0, reason: 'Dash is blocked while swimming.');
+    expect(
+      replayed.buildSnapshot().playerEntity!.waterImmersion1000,
+      direct.buildSnapshot().playerEntity!.waterImmersion1000,
+    );
+  });
+
   test('shared replay loop matches direct Core command application', () {
     final frames = <ReplayCommandFrameV1>[
       for (var tick = 1; tick <= 120; tick += 1)
@@ -135,8 +190,80 @@ void main() {
 
 GameCore _buildCore() => GameCore(
   seed: 871,
-  levelDefinition: LevelRegistry.byId(
-    LevelId.field,
-  ).copyWith(noEnemyChunks: 9999),
+  levelDefinition: LevelRegistry.byId(LevelId.field)
+      .copyWith(noEnemyChunks: 9999),
   playerCharacter: PlayerCharacterRegistry.eloise,
 );
+
+GameCore _buildWaterCore() {
+  final base = stagedAuthoredTerrain.chunks.firstWhere(
+    (chunk) => chunk.levelId == 'field',
+  );
+  final chunk = StagedTerrainChunkData(
+    chunkKey: base.chunkKey,
+    id: base.id,
+    revision: base.revision,
+    status: base.status,
+    levelId: base.levelId,
+    tileSize: base.tileSize,
+    width: base.width,
+    height: base.height,
+    difficulty: base.difficulty,
+    assemblyGroupId: base.assemblyGroupId,
+    authoringPolygonSignature: base.authoringPolygonSignature,
+    sourceSignature: base.sourceSignature,
+    edgeSignature: base.edgeSignature,
+    renderEdgeSignature: base.renderEdgeSignature,
+    placementSignature: base.placementSignature,
+    triangleSignature: base.triangleSignature,
+    polygons: base.polygons,
+    edges: base.edges,
+    renderEdges: base.renderEdges,
+    triangles: base.triangles,
+    placementLineage: base.placementLineage,
+    waterRegions: [
+      WaterRegionData(
+        id: 'pool',
+        x: 0,
+        y: 100,
+        width: base.width,
+        height: 124,
+        materialKey: 'biome_water',
+      ),
+    ],
+  );
+  final catalog = StagedTerrainChunkCatalog(chunks: [chunk]);
+  final candidate = const StagedTerrainStreamCandidateBuilder()
+      .buildFromBindings(
+        bindings: [
+          catalog.bind(
+            chunkKey: chunk.chunkKey,
+            chunkIndex: 0,
+            worldOriginXTicks: 0,
+          ),
+        ],
+        geometryVersion: 1,
+        groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+      );
+  final core = GameCore.terrainMotionHarness(
+    seed: 71,
+    playerCharacter: PlayerCharacterRegistry.eloise,
+    levelDefinition: LevelDefinition(
+      id: LevelId.field,
+      chunkPatternSource: const ChunkPatternListSource(
+        easyPatterns: [],
+        hardPatterns: [],
+      ),
+      groundTopY: 224,
+      killPlaneY: 400,
+      tuning: const CoreTuning(
+        track: TrackTuning(enabled: false),
+        camera: CameraTuning(speedLagMulX: 0),
+      ),
+    ),
+    terrainGeometry: candidate.geometry,
+  );
+  core.queueTerrainHarnessStagedCandidate(candidate.withGeometryVersion(2));
+  core.setPlayerPosXYUnsafeForTest(220, 180);
+  return core;
+}

@@ -2,6 +2,47 @@
   "schemaVersion": 3,
   "materials": [
     {
+      "key": "biome_water",
+      "displayName": "Biome water",
+      "revision": 1,
+      "fill": {
+        "assetPath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+        "x": 784,
+        "y": 450,
+        "width": 1,
+        "height": 1
+      },
+      "top": {
+        "base": {
+          "region": {
+            "assetPath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+            "x": 784,
+            "y": 432,
+            "width": 32,
+            "height": 32
+          },
+          "anchorY": 6,
+          "additionalFrames": [
+            {
+              "assetPath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+              "x": 832,
+              "y": 432,
+              "width": 32,
+              "height": 32
+            },
+            {
+              "assetPath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
+              "x": 880,
+              "y": 432,
+              "width": 32,
+              "height": 32
+            }
+          ],
+          "frameDurationMs": 160
+        }
+      }
+    },
+    {
       "key": "dirt_hole",
       "displayName": "Dirt hole",
       "revision": 4,

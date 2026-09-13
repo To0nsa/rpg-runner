@@ -2,6 +2,8 @@ import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
 import '../../util/fixed_math.dart';
+import '../../terrain/swimming_tuning.dart';
+import '../../util/tick_math.dart';
 import '../../players/player_tuning.dart';
 import '../entity_id.dart';
 import '../stores/mobility_intent_store.dart';
@@ -76,8 +78,18 @@ class JumpSystem {
         continue;
       }
 
+      final swimming = world.swimState.isSwimming(entity);
+      final swimIndex = world.swimState.tryIndexOf(entity);
+      if (swimming &&
+          currentTick < world.swimState.nextStrokeTick[swimIndex!]) {
+        _invalidateIntent(intent, intentIndex);
+        jumpState.jumpBufferTicksLeft[ji] = 0;
+        continue;
+      }
       final canGroundJump =
-          supportView.isGrounded(entity) || jumpState.coyoteTicksLeft[ji] > 0;
+          swimming ||
+          supportView.isGrounded(entity) ||
+          jumpState.coyoteTicksLeft[ji] > 0;
       final canAirJump =
           !canGroundJump && jumpState.airJumpsUsed[ji] < ability.maxAirJumps;
       if (!canGroundJump && !canAirJump) {
@@ -97,12 +109,22 @@ class JumpSystem {
         world.terrainContact.clearSupport(entity);
         world.collision.grounded[ci] = false;
       }
-      final jumpSpeedY = canGroundJump
+      final jumpSpeedY = swimming
+          ? SwimmingTuning.strokeSpeed
+          : canGroundJump
           ? (ability.groundJumpSpeedY ?? tuning.base.jumpSpeed)
           : (ability.airJumpSpeedY ??
                 ability.groundJumpSpeedY ??
                 tuning.base.jumpSpeed);
       world.transform.velY[ti] = -jumpSpeedY;
+      if (swimming) {
+        world.swimState.nextStrokeTick[swimIndex!] =
+            currentTick +
+            ticksFromSecondsCeil(
+              SwimmingTuning.strokeIntervalSeconds,
+              tuning.tickHz,
+            );
+      }
       jumpState.jumpBufferTicksLeft[ji] = 0;
       jumpState.coyoteTicksLeft[ji] = 0;
       if (!canGroundJump) {

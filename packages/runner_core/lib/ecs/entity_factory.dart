@@ -84,6 +84,7 @@ class EntityFactory {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     world.playerInput.add(id);
+    world.swimState.add(id);
     world.abilityInputBuffer.add(id);
     world.abilityCharge.add(id);
     world.activeAbility.add(id);

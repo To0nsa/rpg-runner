@@ -6,6 +6,7 @@ import '../collision/terrain/terrain_authoring_seam_signature.dart';
 import '../collision/terrain/terrain_authoring_triangle_signature.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import 'staged_terrain_data.dart';
+import '../terrain/water_region.dart';
 
 /// Read-only staged-terrain lookup used by deterministic stream binding.
 ///
@@ -187,6 +188,11 @@ final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
         'Staged chunk revision, tileSize, width, and height must be positive.',
       );
     }
+    validateWaterRegionCollection(
+      chunk.waterRegions,
+      chunkWidth: chunk.width,
+      chunkHeight: chunk.height,
+    );
     final sourceIds = <StagedTerrainSourceId>{};
     final modeBySourceId =
         <StagedTerrainSourceId, StagedTerrainCollisionMode>{};

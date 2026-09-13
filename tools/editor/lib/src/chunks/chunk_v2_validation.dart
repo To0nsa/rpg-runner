@@ -1,3 +1,5 @@
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show decodeWaterRegions;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -168,6 +170,38 @@ List<ValidationIssue> validateChunkV2Document(ChunkV2Document document) {
     final chunk = chunks[chunkIndex];
     final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
     final baseline = document.baselineContentsByChunkKey[chunk.chunkKey];
+    try {
+      decodeWaterRegions(
+        chunk.waterRegions.map((region) => region.toJson()).toList(),
+        sourcePath: '${sourcePath ?? chunk.chunkKey}.waterRegions',
+        chunkWidth: chunk.width,
+        chunkHeight: chunk.height,
+      );
+    } on FormatException catch (error) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_water_invalid',
+          message: error.message.toString(),
+          sourcePath: sourcePath,
+          ownerKey: chunk.chunkKey,
+        ),
+      );
+    }
+    for (final water in chunk.waterRegions) {
+      if (!document.availableTerrainMaterialKeys.contains(water.materialKey)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'chunk_water_material_missing',
+            message:
+                'Water ${water.id} references unavailable material ${water.materialKey}.',
+            sourcePath: sourcePath,
+            ownerKey: chunk.chunkKey,
+          ),
+        );
+      }
+    }
     final isCreated = createdChunkKeys.contains(chunk.chunkKey);
     if (sourcePath == null) {
       issues.add(

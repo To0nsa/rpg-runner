@@ -361,6 +361,12 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
           ),
         ],
       ),
+      _animationFields(
+        '${keyPrefix}_base',
+        draft.baseRegion,
+        draft.baseFrames,
+        draft.baseDurationMs,
+      ),
       const SizedBox(height: 8),
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,6 +405,80 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
             ),
           ),
         ],
+      ),
+      if (draft.detailRegion != null)
+        _animationFields(
+          '${keyPrefix}_detail',
+          draft.detailRegion,
+          draft.detailFrames,
+          draft.detailDurationMs,
+        ),
+    ],
+  );
+
+  Widget _animationFields(
+    String keyPrefix,
+    TerrainMaterialImageRegion? base,
+    List<TerrainMaterialImageRegion> frames,
+    TextEditingController duration,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (var index = 0; index < frames.length; index++)
+        _regionField(
+          label: 'Animation frame ${index + 2}',
+          keySuffix: '${keyPrefix}_frame_$index',
+          region: frames[index],
+          optional: true,
+          onChanged: (region) => setState(() {
+            if (region == null) {
+              frames.removeAt(index);
+            } else {
+              frames[index] = region;
+            }
+          }),
+        ),
+      if (frames.isNotEmpty)
+        TextFormField(
+          controller: duration,
+          key: ValueKey('terrain_material_${keyPrefix}_frame_duration'),
+          decoration: const InputDecoration(labelText: 'Frame duration (ms)'),
+          validator: (value) {
+            final ms = int.tryParse(value ?? '');
+            if (ms == null || ms < 1 || ms > 60000) {
+              return 'Use 1-60000 milliseconds.';
+            }
+            if (base != null &&
+                frames.any(
+                  (frame) =>
+                      frame.width != base.width || frame.height != base.height,
+                )) {
+              return 'All frames must match the base region size.';
+            }
+            return null;
+          },
+        ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: ValueKey('terrain_material_${keyPrefix}_add_frame'),
+          onPressed: base == null || frames.length >= 63
+              ? null
+              : () async {
+                  final selected = await showTerrainAtlasRegionPicker(
+                    context,
+                    workspaceRootPath: widget.workspaceRootPath,
+                    atlasImages: widget.atlasImages,
+                    gridSettingsCache: widget.gridSettingsCache,
+                    initialRegion: base,
+                  );
+                  if (selected != null && mounted) {
+                    setState(() => frames.add(selected));
+                  }
+                },
+          icon: const Icon(Icons.add),
+          label: const Text('Add animation frame'),
+        ),
       ),
     ],
   );
@@ -642,17 +722,33 @@ final class _EdgeProfileDraft {
     required double baseAnchorY,
     required this.detailRegion,
     required double detailAnchorY,
-  }) : baseAnchorY = TextEditingController(text: _number(baseAnchorY)),
+    Iterable<TerrainMaterialImageRegion> baseFrames = const [],
+    Iterable<TerrainMaterialImageRegion> detailFrames = const [],
+    int baseDurationMs = 160,
+    int detailDurationMs = 160,
+  }) : baseFrames = List.of(baseFrames),
+       detailFrames = List.of(detailFrames),
+       baseDurationMs = TextEditingController(text: '$baseDurationMs'),
+       detailDurationMs = TextEditingController(text: '$detailDurationMs'),
+       baseAnchorY = TextEditingController(text: _number(baseAnchorY)),
        detailAnchorY = TextEditingController(text: _number(detailAnchorY));
 
   factory _EdgeProfileDraft.fromProfile(TerrainMaterialEdgeProfile? profile) =>
       _EdgeProfileDraft(
         baseRegion: profile?.base.region,
+        baseFrames: profile?.base.additionalFrames ?? const [],
+        detailFrames: profile?.detail?.additionalFrames ?? const [],
+        baseDurationMs: profile?.base.frameDurationMs ?? 160,
+        detailDurationMs: profile?.detail?.frameDurationMs ?? 160,
         baseAnchorY: profile?.base.anchorY ?? 0,
         detailRegion: profile?.detail?.region,
         detailAnchorY: profile?.detail?.anchorY ?? 0,
       );
 
+  final List<TerrainMaterialImageRegion> baseFrames;
+  final List<TerrainMaterialImageRegion> detailFrames;
+  final TextEditingController baseDurationMs;
+  final TextEditingController detailDurationMs;
   TerrainMaterialImageRegion? baseRegion;
   TerrainMaterialImageRegion? detailRegion;
   final TextEditingController baseAnchorY;
@@ -661,17 +757,27 @@ final class _EdgeProfileDraft {
   TerrainMaterialEdgeProfile build() => TerrainMaterialEdgeProfile(
     base: TerrainMaterialEdgeLayer(
       region: baseRegion!,
+      additionalFrames: List.unmodifiable(baseFrames),
+      frameDurationMs: baseFrames.isEmpty
+          ? 160
+          : int.parse(baseDurationMs.text),
       anchorY: double.parse(baseAnchorY.text.trim()),
     ),
     detail: detailRegion == null
         ? null
         : TerrainMaterialEdgeLayer(
             region: detailRegion!,
+            additionalFrames: List.unmodifiable(detailFrames),
+            frameDurationMs: detailFrames.isEmpty
+                ? 160
+                : int.parse(detailDurationMs.text),
             anchorY: double.parse(detailAnchorY.text.trim()),
           ),
   );
 
   void dispose() {
+    baseDurationMs.dispose();
+    detailDurationMs.dispose();
     baseAnchorY.dispose();
     detailAnchorY.dispose();
   }

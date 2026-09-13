@@ -35,6 +35,8 @@ TerrainMaterialEdgeLayerSpec _layer(TerrainMaterialEdgeLayer value) =>
     TerrainMaterialEdgeLayerSpec(
       region: _region(value.region),
       anchorY: value.anchorY,
+      additionalFrames: List.unmodifiable(value.additionalFrames.map(_region)),
+      frameDurationMs: value.frameDurationMs,
     );
 TerrainMaterialEdgeProfileSpec? _profile(TerrainMaterialEdgeProfile? value) =>
     value == null

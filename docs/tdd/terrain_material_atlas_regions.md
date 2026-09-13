@@ -2,7 +2,7 @@
 
 Status: Implemented
 
-Last updated: August 21, 2026
+Last updated: September 13, 2026
 
 ## Purpose
 
@@ -42,6 +42,12 @@ The half-open source rectangle is `[x, x + width) × [y, y + height)`. Its right
 and bottom values may equal the decoded source-image dimensions.
 
 Material roles use regions as follows:
+
+Edge layers also support optional same-sized `additionalFrames` and integer
+`frameDurationMs`. All frames participate in validation, traversal, equality,
+generation and image caching. Shared tick math drives both editor and runtime
+selection. See [animated water](swimmable_water.md#presentation) for the
+animation contract and pool compositor; fills and caps remain static.
 
 | Role | Stored value | Render behavior |
 | --- | --- | --- |

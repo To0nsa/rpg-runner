@@ -5,6 +5,47 @@ part of 'terrain_material_registry.dart';
 
 const Map<String, TerrainMaterialSpec> _authoredTerrainMaterials =
     <String, TerrainMaterialSpec>{
+      'biome_water': TerrainMaterialSpec(
+        key: 'biome_water',
+        displayName: 'Biome water',
+        revision: 1,
+        fill: TerrainMaterialImageRegionSpec(
+          assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
+          x: 784,
+          y: 450,
+          width: 1,
+          height: 1,
+        ),
+        top: TerrainMaterialEdgeProfileSpec(
+          base: TerrainMaterialEdgeLayerSpec(
+            region: TerrainMaterialImageRegionSpec(
+              assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
+              x: 784,
+              y: 432,
+              width: 32,
+              height: 32,
+            ),
+            anchorY: 6.0,
+            additionalFrames: <TerrainMaterialImageRegionSpec>[
+              TerrainMaterialImageRegionSpec(
+                assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
+                x: 832,
+                y: 432,
+                width: 32,
+                height: 32,
+              ),
+              TerrainMaterialImageRegionSpec(
+                assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
+                x: 880,
+                y: 432,
+                width: 32,
+                height: 32,
+              ),
+            ],
+            frameDurationMs: 160,
+          ),
+        ),
+      ),
       'dirt_hole': TerrainMaterialSpec(
         key: 'dirt_hole',
         displayName: 'Dirt hole',

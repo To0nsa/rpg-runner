@@ -55,9 +55,31 @@ final class TerrainMaterialImageRegion {
 
 /// One world-facing atlas region repeated along a compiler-owned terrain edge.
 final class TerrainMaterialEdgeLayer {
-  const TerrainMaterialEdgeLayer({required this.region, required this.anchorY});
+  const TerrainMaterialEdgeLayer({
+    required this.region,
+    required this.anchorY,
+    this.additionalFrames = const [],
+    this.frameDurationMs = 160,
+  });
 
   final TerrainMaterialImageRegion region;
+
+  /// Ordered frames after [region], which is frame zero. All frames have the
+  /// same dimensions and anchor. An empty sequence is a static edge layer.
+  final List<TerrainMaterialImageRegion> additionalFrames;
+
+  /// Milliseconds per frame, quantized to the consumer's fixed tick rate.
+  final int frameDurationMs;
+
+  TerrainMaterialImageRegion regionAtTick(int tick, int tickHz) {
+    final frame = terrainMaterialAnimationFrame(
+      tick: tick,
+      tickHz: tickHz,
+      frameDurationMs: frameDurationMs,
+      frameCount: 1 + additionalFrames.length,
+    );
+    return frame == 0 ? region : additionalFrames[frame - 1];
+  }
 
   /// Tangent-normalized Y coordinate aligned to the exact terrain edge.
   ///
@@ -68,16 +90,29 @@ final class TerrainMaterialEdgeLayer {
   Map<String, Object?> toJson() => <String, Object?>{
     'region': region.toJson(),
     'anchorY': _canonicalNumber(anchorY),
+    if (additionalFrames.isNotEmpty) ...{
+      'additionalFrames': additionalFrames
+          .map((frame) => frame.toJson())
+          .toList(),
+      'frameDurationMs': frameDurationMs,
+    },
   };
 
   @override
   bool operator ==(Object other) =>
       other is TerrainMaterialEdgeLayer &&
       region == other.region &&
-      anchorY == other.anchorY;
+      anchorY == other.anchorY &&
+      frameDurationMs == other.frameDurationMs &&
+      _regionListEquals(additionalFrames, other.additionalFrames);
 
   @override
-  int get hashCode => Object.hash(region, anchorY);
+  int get hashCode => Object.hash(
+    region,
+    anchorY,
+    frameDurationMs,
+    Object.hashAll(additionalFrames),
+  );
 }
 
 /// Ordered base/detail layers for one exposed-edge orientation.
@@ -160,6 +195,14 @@ final class TerrainMaterialDefinition {
   final TerrainMaterialCap? topEndCap;
   final TerrainMaterialCap? undersideStartCap;
   final TerrainMaterialCap? undersideEndCap;
+
+  /// Whether any repeating edge layer has a visual animation sequence.
+  bool get isAnimated => [top, leftWall, rightWall, underside].any(
+    (profile) =>
+        profile != null &&
+        (profile.base.additionalFrames.isNotEmpty ||
+            (profile.detail?.additionalFrames.isNotEmpty ?? false)),
+  );
 
   TerrainMaterialDefinition copyWith({
     String? key,
@@ -330,7 +373,11 @@ List<TerrainMaterialImageRegion> terrainMaterialRegions(
   void addProfile(TerrainMaterialEdgeProfile? profile) {
     if (profile == null) return;
     add(profile.base.region);
-    if (profile.detail case final detail?) add(detail.region);
+    profile.base.additionalFrames.forEach(add);
+    if (profile.detail case final detail?) {
+      add(detail.region);
+      detail.additionalFrames.forEach(add);
+    }
   }
 
   add(material.fill);
@@ -380,8 +427,15 @@ List<TerrainMaterialCatalogIssue> validateTerrainMaterialImageDimensions(
       );
     }
 
-    void validateLayer(String field, TerrainMaterialEdgeLayer layer) =>
-        validateRegion(field, layer.region);
+    void validateLayer(String field, TerrainMaterialEdgeLayer layer) {
+      validateRegion(field, layer.region);
+      for (var i = 0; i < layer.additionalFrames.length; i++) {
+        validateRegion(
+          '$field.additionalFrames[$i]',
+          layer.additionalFrames[i],
+        );
+      }
+    }
 
     void validateProfile(String field, TerrainMaterialEdgeProfile? profile) {
       if (profile == null) return;
@@ -749,7 +803,7 @@ TerrainMaterialEdgeLayer? _edgeLayer(
   }
   _rejectUnknownKeys(
     value,
-    const <String>{'region', 'anchorY'},
+    const <String>{'region', 'anchorY', 'additionalFrames', 'frameDurationMs'},
     path: path,
     materialKey: materialKey,
     issues: issues,
@@ -778,9 +832,57 @@ TerrainMaterialEdgeLayer? _edgeLayer(
       ),
     );
   }
+  final frames = <TerrainMaterialImageRegion>[];
+  final hasAnimation = value.containsKey('additionalFrames');
+  final duration = value['frameDurationMs'];
+  if (hasAnimation || value.containsKey('frameDurationMs')) {
+    final rawFrames = value['additionalFrames'];
+    if (rawFrames is! List ||
+        rawFrames.isEmpty ||
+        rawFrames.length > 63 ||
+        duration is! int ||
+        duration < 1 ||
+        duration > 60000) {
+      issues.add(
+        TerrainMaterialCatalogIssue(
+          code: 'invalid_edge_animation',
+          path: path,
+          materialKey: materialKey,
+          message: 'Animation requires 1-63 additional frames and a 1-60000ms duration.',
+        ),
+      );
+    } else {
+      for (var i = 0; i < rawFrames.length; i++) {
+        final frame = _region(
+          rawFrames[i],
+          '$path.additionalFrames[$i]',
+          materialKey,
+          issues,
+        );
+        if (frame == null) continue;
+        if (region != null &&
+            (frame.width != region.width || frame.height != region.height)) {
+          issues.add(
+            TerrainMaterialCatalogIssue(
+              code: 'edge_animation_frame_size_mismatch',
+              path: '$path.additionalFrames[$i]',
+              materialKey: materialKey,
+              message: 'Every animation frame must match the base region dimensions.',
+            ),
+          );
+        }
+        frames.add(frame);
+      }
+    }
+  }
   return region == null || anchorY == null
       ? null
-      : TerrainMaterialEdgeLayer(region: region, anchorY: anchorY);
+      : TerrainMaterialEdgeLayer(
+          region: region,
+          anchorY: anchorY,
+          additionalFrames: List.unmodifiable(frames),
+          frameDurationMs: duration is int ? duration : 160,
+        );
 }
 
 TerrainMaterialCap? _optionalCap(
@@ -1000,3 +1102,14 @@ void _rejectUnknownKeys(
 Object _canonicalNumber(double value) => value == value.roundToDouble()
     ? value.toInt()
     : double.parse(value.toStringAsFixed(6));
+
+bool _regionListEquals(
+  List<TerrainMaterialImageRegion> a,
+  List<TerrainMaterialImageRegion> b,
+) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}

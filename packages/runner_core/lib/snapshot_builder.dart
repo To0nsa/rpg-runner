@@ -239,7 +239,12 @@ class SnapshotBuilder {
     final jumpStaminaCost = jumpAbility == null
         ? resources.jumpStaminaCost100
         : jumpCost.staminaCost100;
+    final swimming = world.swimState.isSwimming(player);
+    final swimIndex = world.swimState.tryIndexOf(player);
+    final strokeReady =
+        swimIndex == null || tick >= world.swimState.nextStrokeTick[swimIndex];
     final canGroundJumpNow =
+        swimming ||
         onGround ||
         (jumpStateIndex != null &&
             world.jumpState.coyoteTicksLeft[jumpStateIndex] > 0);
@@ -307,10 +312,13 @@ class SnapshotBuilder {
     );
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
-    final canAffordJump = canGroundJumpNow
+    final canAffordJump = swimming
+        ? strokeReady && canAffordGroundJump
+        : canGroundJumpNow
         ? canAffordGroundJump
         : (canAirJumpNow ? canAffordAirJump : false);
     final canAffordMobility =
+        !swimming &&
         stamina >= mobilityStaminaCost &&
         mana >= mobilityManaCost &&
         _canAffordHealthCost(hp100, mobilityCost.healthCost100);
@@ -416,6 +424,10 @@ class SnapshotBuilder {
       EntityRenderSnapshot(
         id: player,
         kind: EntityKind.player,
+        isSwimming: swimming,
+        waterImmersion1000: swimIndex == null
+            ? 0
+            : world.swimState.immersion1000[swimIndex],
         pos: playerPos,
         vel: playerVel,
         size: playerSize,

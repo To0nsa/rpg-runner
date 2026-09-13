@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "water_pool_example",
+  "id": "water_pool_example",
+  "revision": 1,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 320,
+  "difficulty": "normal",
+  "assemblyGroupId": "default",
+  "tags": [
+    "water"
+  ],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "pool_banks_and_floor",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 222
+        },
+        {
+          "x": 128,
+          "y": 222
+        },
+        {
+          "x": 128,
+          "y": 288
+        },
+        {
+          "x": 448,
+          "y": 288
+        },
+        {
+          "x": 448,
+          "y": 222
+        },
+        {
+          "x": 600,
+          "y": 222
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 480,
+          "y": 270
+        },
+        {
+          "x": 480,
+          "y": 320
+        },
+        {
+          "x": 96,
+          "y": 320
+        },
+        {
+          "x": 96,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "pool",
+      "x": 128,
+      "y": 224,
+      "width": 320,
+      "height": 64,
+      "materialKey": "biome_water"
+    }
+  ]
+}

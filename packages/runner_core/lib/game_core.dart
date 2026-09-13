@@ -48,6 +48,7 @@ import 'ecs/systems/flying_enemy_melee_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/terrain_enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
+import 'ecs/systems/water_immersion_system.dart';
 import 'ecs/systems/hashash_teleport_ambush_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
@@ -903,6 +904,7 @@ class GameCore {
   late final WorldMotionAuthority _worldMotionAuthority;
   late final CooldownSystem _cooldownSystem;
   late final GravitySystem _gravitySystem;
+  final WaterImmersionSystem _waterImmersionSystem = WaterImmersionSystem();
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
   late final ProjectileWorldCollisionSystem _projectileWorldCollisionSystem;
@@ -1530,6 +1532,10 @@ class GameCore {
       currentTick: tick,
     );
 
+    // Fluid state must precede action gates and gravity. Both queries use the
+    // atomically published candidate, including captured/prepared Play content.
+    final waterRegions = _worldMotionAuthority.waterRegions;
+    _waterImmersionSystem.step(_world, waterRegions);
     _abilityActivationSystem.step(_world, player: _player, currentTick: tick);
     _jumpSystem.step(_world, _movement, currentTick: tick);
     _movementSystem.step(
@@ -1549,6 +1555,7 @@ class GameCore {
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
       currentTick: tick,
     );
+    _waterImmersionSystem.step(_world, waterRegions);
 
     // ─── Phase 4: Distance tracking ───
     distance += distanceDelta;

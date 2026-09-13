@@ -43,6 +43,8 @@ void paintTerrainMaterialComposition(
   required Map<TerrainMaterialImageRegion, ui.Image> imagesByRegion,
   required Iterable<TerrainMaterialCompositorEdge> edges,
   Paint? fallbackFillPaint,
+  int tick = 0,
+  int tickHz = 60,
 }) {
   final bounds = ownerPath.getBounds();
   if (bounds.isEmpty) return;
@@ -63,7 +65,8 @@ void paintTerrainMaterialComposition(
   }
 
   for (final edge in orderedEdges) {
-    final baseImage = imagesByRegion[edge.profile.base.region];
+    final baseImage =
+        imagesByRegion[edge.profile.base.regionAtTick(tick, tickHz)];
     if (baseImage != null) {
       paintTerrainMaterialEdgeImage(
         canvas,
@@ -94,7 +97,9 @@ void paintTerrainMaterialComposition(
       }
     }
     final detail = edge.profile.detail;
-    final detailImage = detail == null ? null : imagesByRegion[detail.region];
+    final detailImage = detail == null
+        ? null
+        : imagesByRegion[detail.regionAtTick(tick, tickHz)];
     if (detail != null && detailImage != null) {
       paintTerrainMaterialEdgeImage(
         canvas,

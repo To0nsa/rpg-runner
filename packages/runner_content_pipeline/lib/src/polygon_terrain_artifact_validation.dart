@@ -4,6 +4,8 @@ import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.d
 import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 
+import 'package:runner_core/terrain/water_region.dart';
+
 import 'polygon_terrain_compilation.dart';
 import 'polygon_terrain_seam_validation.dart';
 import 'polygon_terrain_source.dart';
@@ -236,6 +238,12 @@ void _validateChunk({
   }
 
   final signatureChecks = <(String, String, String, String)>[
+    (
+      'water_signature_mismatch',
+      'Water regions',
+      waterRegionSignature(chunk.waterRegions),
+      actual.waterSignature,
+    ),
     (
       'authoring_polygon_signature_mismatch',
       'Authoring polygon signature',

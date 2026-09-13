@@ -1,3 +1,7 @@
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show decodeWaterRegions;
+import 'package:runner_core/terrain/water_region.dart';
+
 import '../domain/strict_authoring_json.dart';
 import '../domain/strict_authoring_metadata_codec.dart';
 import '../terrain_authoring/strict_terrain_source_codec.dart';
@@ -38,6 +42,7 @@ abstract final class ChunkV2FileCodec {
         'markers',
         'groundBandZIndex',
         'collisionShapes',
+        'waterRegions',
       },
       required: const <String>{
         'schemaVersion',
@@ -164,6 +169,12 @@ abstract final class ChunkV2FileCodec {
             )
           : 0,
       collisionShapes: collisionShapes,
+      waterRegions: decodeWaterRegions(
+        root.containsKey('waterRegions') ? root['waterRegions'] : const [],
+        sourcePath: '$sourcePath.waterRegions',
+        chunkWidth: root['width'] as int,
+        chunkHeight: root['height'] as int,
+      ),
     );
   }
 
@@ -184,6 +195,8 @@ abstract final class ChunkV2FileCodec {
       prefabs: prefabs,
       markers: markers,
       collisionShapes: canonicalTerrainSourceShapes(data.collisionShapes),
+      waterRegions: List<WaterRegionData>.of(data.waterRegions)
+        ..sort((a, b) => a.id.compareTo(b.id)),
     );
     final encoded = StrictAuthoringJson.encode(canonical.toJson());
     decode(encoded);

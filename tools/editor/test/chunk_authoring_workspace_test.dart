@@ -225,11 +225,7 @@ void main() {
       final materialDropdown = tester.widget<DropdownButton<String>>(
         materialSelector,
       );
-      final firstNamedMaterial = materialDropdown.items!
-          .map((item) => item.value)
-          .whereType<String>()
-          .firstWhere((value) => value.isNotEmpty);
-      expect(materialDropdown.value, firstNamedMaterial);
+      expect(materialDropdown.value, 'grass_dirt');
       expect(legacyCreationPreviewButton, findsNothing);
       expect(grassDirtPreviewButton, findsNothing);
 

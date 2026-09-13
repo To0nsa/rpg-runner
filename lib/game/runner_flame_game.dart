@@ -171,6 +171,10 @@ class RunnerFlameGame extends FlameGame {
       materials: terrainMaterials,
     )..priority = priorityStagedTerrain;
     camera.backdrop.add(_stagedTerrain!);
+    world.add(
+      WaterTerrainForeground(_stagedTerrain!)
+        ..priority = priorityWaterForeground,
+    );
     _applyRenderTheme(controller.snapshot.visualThemeId);
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 

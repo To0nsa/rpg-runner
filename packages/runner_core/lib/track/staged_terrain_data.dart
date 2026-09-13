@@ -4,6 +4,9 @@
 /// admitted instances are the production source for streamed terrain.
 library;
 
+import '../terrain/water_region.dart';
+export '../terrain/water_region.dart' show WaterRegionData;
+
 /// Schema version of [StagedTerrainArtifactData].
 const int stagedTerrainArtifactFormatVersion = 4;
 
@@ -286,12 +289,14 @@ final class StagedTerrainChunkData {
     required this.renderEdgeSignature,
     required this.placementSignature,
     required this.triangleSignature,
+    Iterable<WaterRegionData> waterRegions = const [],
     required Iterable<StagedTerrainPolygonData> polygons,
     required Iterable<StagedTerrainEdgeData> edges,
     required Iterable<StagedTerrainEdgeData> renderEdges,
     required Iterable<StagedTerrainTriangleData> triangles,
     required Iterable<StagedTerrainPlacementLineageData> placementLineage,
-  }) : polygons = List<StagedTerrainPolygonData>.unmodifiable(polygons),
+  }) : waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
+       polygons = List<StagedTerrainPolygonData>.unmodifiable(polygons),
        edges = List<StagedTerrainEdgeData>.unmodifiable(edges),
        renderEdges = List<StagedTerrainEdgeData>.unmodifiable(renderEdges),
        triangles = List<StagedTerrainTriangleData>.unmodifiable(triangles),
@@ -315,6 +320,13 @@ final class StagedTerrainChunkData {
   final String renderEdgeSignature;
   final String placementSignature;
   final String triangleSignature;
+
+  /// Nonblocking fluid volumes, strictly ordered by owner-local ID.
+  final List<WaterRegionData> waterRegions;
+
+  /// Canonical digest kept separate from solid/render polygon signatures.
+  String get waterSignature => waterRegionSignature(waterRegions);
+
   final List<StagedTerrainPolygonData> polygons;
   final List<StagedTerrainEdgeData> edges;
 

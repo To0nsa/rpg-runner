@@ -981,6 +981,18 @@ void _validateTerrainMaterialReferences(
 }) {
   final reported = <String>{};
   for (final chunk in terrain.chunks) {
+    for (final water in chunk.compiled.chunk.waterRegions) {
+      if (!materialKeys.contains(water.materialKey)) {
+        issues.add(
+          _ValidationIssue(
+            path: chunk.sourcePath,
+            code: 'unknown_water_material_key',
+            message:
+                'Water "${water.id}" references unavailable material "${water.materialKey}".',
+          ),
+        );
+      }
+    }
     for (final polygon in chunk.compiled.renderGeometry.polygons) {
       final materialKey = polygon.materialKey;
       if (materialKey == null || materialKeys.contains(materialKey)) continue;

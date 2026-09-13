@@ -1,4 +1,7 @@
 import 'dart:ui' as ui;
+import 'dart:typed_data';
+
+import 'package:rpg_runner/game/components/water_material_painter.dart';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -12,6 +15,7 @@ import '../../shared/terrain_material_corner_layout.dart';
 import '../../shared/terrain_material_compositor.dart';
 import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
+import '../../shared/terrain_animation_preview.dart';
 
 /// Selects the z-band for level and terrain art in the chunk scene.
 enum ChunkPolygonLevelVisualLayer { background, terrain, foreground }
@@ -103,18 +107,27 @@ class _ChunkPolygonLevelVisualSourceState
       );
       if (image != null) imagesByRegion[region] = image;
     }
-    return CustomPaint(
-      painter: _ChunkPolygonLevelVisualPainter(
-        chunk: widget.chunk,
-        parallaxTheme: widget.parallaxTheme,
-        transform: widget.transform,
-        layer: widget.layer,
-        imagesBySourcePath: imagesBySourcePath,
-        imagesByRegion: imagesByRegion,
-        loadedImageCount:
-            _imageCache.loadedImageCount + _imageCache.loadedRegionImageCount,
-        materialCatalog: _materialCatalog,
-        terrainShapes: _terrainShapes,
+    return TerrainAnimationPreview(
+      enabled:
+          widget.layer == ChunkPolygonLevelVisualLayer.terrain &&
+          [
+            ..._terrainShapes.map((shape) => shape.materialKey),
+            ...widget.chunk.waterRegions.map((water) => water.materialKey),
+          ].any((key) => _materialCatalog?.byKey[key]?.isAnimated ?? false),
+      builder: (tick) => CustomPaint(
+        painter: _ChunkPolygonLevelVisualPainter(
+          tick: tick,
+          chunk: widget.chunk,
+          parallaxTheme: widget.parallaxTheme,
+          transform: widget.transform,
+          layer: widget.layer,
+          imagesBySourcePath: imagesBySourcePath,
+          imagesByRegion: imagesByRegion,
+          loadedImageCount:
+              _imageCache.loadedImageCount + _imageCache.loadedRegionImageCount,
+          materialCatalog: _materialCatalog,
+          terrainShapes: _terrainShapes,
+        ),
       ),
     );
   }
@@ -142,6 +155,10 @@ class _ChunkPolygonLevelVisualSourceState
 
   Iterable<TerrainMaterialImageRegion> _requiredMaterialRegions() sync* {
     if (widget.layer != ChunkPolygonLevelVisualLayer.terrain) return;
+    for (final water in widget.chunk.waterRegions) {
+      final material = _materialCatalog?.byKey[water.materialKey];
+      if (material != null) yield* terrainMaterialRegions(material);
+    }
     for (final shape in _terrainShapes) {
       final material = terrainMaterialPreviewForKey(
         _materialCatalog,
@@ -174,6 +191,7 @@ class _ChunkPolygonLevelVisualSourceState
 
 final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
   const _ChunkPolygonLevelVisualPainter({
+    required this.tick,
     required this.chunk,
     required this.parallaxTheme,
     required this.transform,
@@ -185,6 +203,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     required this.terrainShapes,
   });
 
+  final int tick;
   final ChunkV2FileData chunk;
   final ParallaxThemeDef? parallaxTheme;
   final TerrainPolygonViewportTransform transform;
@@ -270,6 +289,41 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     canvas.save();
     canvas.translate(transform.origin.dx, transform.origin.dy);
     canvas.scale(transform.zoom);
+    for (final water in chunk.waterRegions) {
+      final material = materialCatalog?.byKey[water.materialKey];
+      if (material == null) continue;
+      final fill = imagesByRegion[material.fill];
+      final surface = imagesByRegion[material.top.base.regionAtTick(tick, 60)];
+      final bounds = Rect.fromLTWH(
+        water.x.toDouble(),
+        water.y.toDouble(),
+        water.width.toDouble(),
+        water.height.toDouble(),
+      );
+      if (fill == null || surface == null) {
+        canvas.drawRect(bounds, Paint()..color = const Color(0x66055F4F));
+        continue;
+      }
+      final detail = material.top.detail;
+      paintWaterMaterial(
+        canvas,
+        bounds: bounds,
+        fillPaint: Paint()
+          ..filterQuality = FilterQuality.none
+          ..shader = ui.ImageShader(
+            fill,
+            TileMode.repeated,
+            TileMode.repeated,
+            _identityMatrix,
+          ),
+        surfaceImage: surface,
+        anchorY: material.top.base.anchorY,
+        detailImage: detail == null
+            ? null
+            : imagesByRegion[detail.regionAtTick(tick, 60)],
+        detailAnchorY: detail?.anchorY ?? 0,
+      );
+    }
     for (final shape in terrainShapes) {
       final material = terrainMaterialPreviewForKey(
         materialCatalog,
@@ -307,6 +361,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       }
       paintTerrainMaterialComposition(
         canvas,
+        tick: tick,
         ownerPath: path,
         material: material,
         imagesByRegion: imagesByRegion,
@@ -319,6 +374,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ChunkPolygonLevelVisualPainter oldDelegate) =>
+      oldDelegate.tick != tick ||
       oldDelegate.chunk != chunk ||
       oldDelegate.parallaxTheme != parallaxTheme ||
       oldDelegate.transform != transform ||
@@ -406,3 +462,22 @@ double _signedArea(List<TerrainSourceVertexDef> vertices) {
 Paint _fallbackTerrainPaint(String? materialKey) =>
     Paint()
       ..color = Color(0xFF304C34 + ((materialKey?.hashCode ?? 0) & 0x000B0B0B));
+
+final _identityMatrix = Float64List.fromList([
+  1,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  1,
+]);

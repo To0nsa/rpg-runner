@@ -1,6 +1,9 @@
 /// Render-only terrain material lookup.
 library;
 
+import 'package:terrain_materials/terrain_materials.dart'
+    show terrainMaterialAnimationFrame;
+
 part 'authored_terrain_materials.dart';
 
 /// Complete source-region identity used by terrain rendering caches.
@@ -37,9 +40,24 @@ final class TerrainMaterialEdgeLayerSpec {
   const TerrainMaterialEdgeLayerSpec({
     required this.region,
     required this.anchorY,
+    this.additionalFrames = const [],
+    this.frameDurationMs = 160,
   });
 
   final TerrainMaterialImageRegionSpec region;
+  final List<TerrainMaterialImageRegionSpec> additionalFrames;
+  final int frameDurationMs;
+
+  /// Uses the same fixed-tick quantization as editor material previews.
+  TerrainMaterialImageRegionSpec regionAtTick(int tick, int tickHz) {
+    final frame = terrainMaterialAnimationFrame(
+      tick: tick,
+      tickHz: tickHz,
+      frameDurationMs: frameDurationMs,
+      frameCount: additionalFrames.length + 1,
+    );
+    return frame == 0 ? region : additionalFrames[frame - 1];
+  }
 
   /// Source-image Y, in logical pixels, aligned to the terrain edge.
   final double anchorY;
@@ -107,7 +125,11 @@ final class TerrainMaterialSpec {
     ]) {
       if (profile == null) continue;
       yield profile.base.region.assetPath;
-      if (profile.detail case final detail?) yield detail.region.assetPath;
+      yield* profile.base.additionalFrames.map((frame) => frame.assetPath);
+      if (profile.detail case final detail?) {
+        yield detail.region.assetPath;
+        yield* detail.additionalFrames.map((frame) => frame.assetPath);
+      }
     }
     if (topStartCap case final cap?) yield cap.region.assetPath;
     if (topEndCap case final cap?) yield cap.region.assetPath;
@@ -133,7 +155,15 @@ final class TerrainMaterialSpec {
     ]) {
       if (profile == null) continue;
       yield* add(profile.base.region);
-      if (profile.detail case final detail?) yield* add(detail.region);
+      for (final frame in profile.base.additionalFrames) {
+        yield* add(frame);
+      }
+      if (profile.detail case final detail?) {
+        yield* add(detail.region);
+        for (final frame in detail.additionalFrames) {
+          yield* add(frame);
+        }
+      }
     }
     if (topStartCap case final cap?) yield* add(cap.region);
     if (topEndCap case final cap?) yield* add(cap.region);

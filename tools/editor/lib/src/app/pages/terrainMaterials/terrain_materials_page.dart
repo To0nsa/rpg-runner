@@ -320,7 +320,12 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
       return;
     }
     if (scene.materials.every((material) => material.key != _selectedKey)) {
-      _selectedKey = scene.materials.first.key;
+      _selectedKey = scene.materials
+          .firstWhere(
+            (material) => material.key == 'grass_dirt',
+            orElse: () => scene.materials.first,
+          )
+          .key;
     }
   }
 
@@ -328,7 +333,12 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
     for (final material in scene.materials) {
       if (material.key == _selectedKey) return material;
     }
-    return scene.materials.isEmpty ? null : scene.materials.first;
+    return scene.materials.isEmpty
+        ? null
+        : scene.materials.firstWhere(
+            (material) => material.key == 'grass_dirt',
+            orElse: () => scene.materials.first,
+          );
   }
 
   Future<void> _createMaterial(TerrainMaterialScene scene) async {

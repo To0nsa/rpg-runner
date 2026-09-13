@@ -107,7 +107,7 @@ class AbilityActivationSystem {
     final isRecovery = activePhase == AbilityPhase.recovery;
 
     final input = world.playerInput;
-    if (input.dashPressed[inputIndex]) {
+    if (input.dashPressed[inputIndex] && !world.swimState.isSwimming(player)) {
       _cancelCombatOnMobilityPress(world, player);
       _commitSlot(
         world,

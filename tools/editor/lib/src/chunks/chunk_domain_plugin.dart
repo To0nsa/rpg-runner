@@ -14,6 +14,7 @@ import 'chunk_store.dart';
 import 'chunk_level_target.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_collision_commit.dart';
+import 'chunk_water_commit.dart';
 import 'chunk_v2_composition_commit.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_lifecycle_commit.dart';
@@ -39,6 +40,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   /// Current command for one accepted chunk-local polygon interaction commit.
   static const String commitChunkPolygonCommandKind = 'commit_chunk_polygon';
+
+  /// Stale-checked replacement of one chunk's explicit water collection.
+  static const String commitChunkWaterCommandKind = 'commit_chunk_water';
 
   /// Current command for one existing owner's typed metadata commit.
   static const String commitChunkMetadataCommandKind =
@@ -429,6 +433,13 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     late final ChunkV2FileData nextChunk;
     Map<String, String>? nextSourcePaths;
     switch (command.kind) {
+      case commitChunkWaterCommandKind:
+        final commit = command.payload['commit'];
+        if (commit is! ChunkWaterCommit) return document;
+        final replacement = commit.apply(chunk);
+        if (identical(replacement, chunk)) return document;
+        nextChunk = replacement;
+        break;
       case commitChunkPolygonCommandKind:
         final commit = command.payload['commit'];
         if (commit is! TerrainPolygonInteractionCommit) return document;

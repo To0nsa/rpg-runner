@@ -17,6 +17,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 2 authored level layouts: `forest`, `field`
 - Generated polygon terrain is the collision, navigation, placement, and
   rendering authority for normal runs and replay validation
+- Animated, authorable water regions with deterministic player swimming;
+  see the [pool authoring guide](docs/gdd/swimming.md)
 - 2 selectable character definitions
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
 - 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)

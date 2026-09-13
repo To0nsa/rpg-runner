@@ -45,6 +45,7 @@ import 'stores/melee_intent_store.dart';
 import 'stores/mobility_intent_store.dart';
 import 'stores/mobility_impact_state_store.dart';
 import 'stores/player/movement_store.dart';
+import 'stores/player/swim_state_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
@@ -149,6 +150,9 @@ class EcsWorld {
 
   /// Logic and state for movement, including facing direction.
   late final MovementStore movement = _register(MovementStore());
+
+  /// Player immersion and stroke cooldown, owned by fixed-tick swimming rules.
+  late final SwimStateStore swimState = _register(SwimStateStore());
 
   /// Jump-specific runtime state (coyote, buffer, air jump usage).
   late final JumpStateStore jumpState = _register(JumpStateStore());

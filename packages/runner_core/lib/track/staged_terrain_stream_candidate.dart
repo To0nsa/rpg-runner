@@ -1,6 +1,8 @@
 /// Composes one complete, atomically publishable terrain candidate.
 library;
 
+import '../terrain/water_region.dart';
+import '../collision/terrain/terrain_polygon.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../navigation/terrain_runtime_bundle.dart';
 import '../navigation/types/terrain_surface_graph.dart';
@@ -28,6 +30,7 @@ final class StagedTerrainStreamCandidate {
     required this.geometry,
     required this.runtimeBundle,
     required this.renderSnapshot,
+    required this.waterRegions,
   });
 
   /// Canonically ordered generated records selected by the scheduler.
@@ -42,6 +45,9 @@ final class StagedTerrainStreamCandidate {
   /// Direct Chunk terrain fills and boundaries paired with [geometry].
   final StagedTerrainRenderSnapshot renderSnapshot;
 
+  /// Fluid query volumes published atomically with collision and rendering.
+  final List<WaterRegion> waterRegions;
+
   /// Publishes a prepared selection under its actual monotonic Core version.
   ///
   /// Preparation never predicts how many intermediate selections a tick will
@@ -54,10 +60,12 @@ final class StagedTerrainStreamCandidate {
       bindings: bindings,
       geometry: bundle.geometry,
       runtimeBundle: bundle,
+      waterRegions: waterRegions,
       renderSnapshot: StagedTerrainRenderSnapshot(
         geometryVersion: geometryVersion,
         polygons: renderSnapshot.polygons,
         edges: renderSnapshot.edges,
+        waterRegions: waterRegions,
       ),
     );
   }
@@ -124,9 +132,28 @@ final class StagedTerrainStreamCandidateBuilder {
       geometry: geometry,
       groundEnemyProfiles: groundEnemyProfiles,
     );
-    final renderSnapshot = _renderSnapshotBuilder.build(
+    final terrainSnapshot = _renderSnapshotBuilder.build(
       bindings: bindings,
       geometry: geometry,
+    );
+    final waterRegions = List<WaterRegion>.unmodifiable([
+      for (final binding in bindings)
+        for (final data in binding.chunk.waterRegions)
+          WaterRegion(
+            sourceId: TerrainSourceIdentity(
+              chunkIndex: binding.chunkIndex,
+              chunkKey: binding.chunk.chunkKey,
+              shapeId: data.id,
+            ),
+            data: data,
+            worldOriginXTicks: binding.worldOriginXTicks,
+          ),
+    ]);
+    final renderSnapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: geometryVersion,
+      polygons: terrainSnapshot.polygons,
+      edges: terrainSnapshot.edges,
+      waterRegions: waterRegions,
     );
     if (!identical(runtimeBundle.geometry, geometry) ||
         renderSnapshot.geometryVersion != geometry.version) {
@@ -140,6 +167,7 @@ final class StagedTerrainStreamCandidateBuilder {
       geometry: geometry,
       runtimeBundle: runtimeBundle,
       renderSnapshot: renderSnapshot,
+      waterRegions: waterRegions,
     );
   }
 }

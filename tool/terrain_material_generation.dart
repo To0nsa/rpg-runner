@@ -249,8 +249,21 @@ void _writeLayer(
   _writeRegionFields(buffer, layer.region, indent: '$indent    ');
   buffer
     ..writeln('$indent  ),')
-    ..writeln('$indent  anchorY: ${_dartNumber(layer.anchorY)},')
-    ..writeln('$indent),');
+    ..writeln('$indent  anchorY: ${_dartNumber(layer.anchorY)},');
+  if (layer.additionalFrames.isNotEmpty) {
+    buffer.writeln(
+      '$indent  additionalFrames: <TerrainMaterialImageRegionSpec>[',
+    );
+    for (final frame in layer.additionalFrames) {
+      buffer.writeln('$indent    TerrainMaterialImageRegionSpec(');
+      _writeRegionFields(buffer, frame, indent: '$indent      ');
+      buffer.writeln('$indent    ),');
+    }
+    buffer
+      ..writeln('$indent  ],')
+      ..writeln('$indent  frameDurationMs: ${layer.frameDurationMs},');
+  }
+  buffer.writeln('$indent),');
 }
 
 void _writeCap(

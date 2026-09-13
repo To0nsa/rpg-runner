@@ -14,6 +14,11 @@ for older schemas, full-image fallback fields, editor grid state, or image
 decoding to this package. Region bounds against decoded PNG dimensions remain a
 consumer validation step.
 
+Edge layers may have same-sized additional animation frames and an integer
+frame duration. Keep frame traversal, equality, validation and tick selection
+shared here; fill/caps remain static. Material animation never defines fluid
+or collision behavior. Water volumes and swimming belong to Core.
+
 It must not import Flutter, Flame, or `runner_core`. Collision and navigation
 authority remain in `runner_core`; this package describes visual assets only.
 

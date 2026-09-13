@@ -85,6 +85,62 @@ void main() {
     },
   );
 
+  test(
+    'captured water and all animation frames survive background Play',
+    () async {
+      final example = ChunkV2FileCodec.decode(
+        File(p.join(workspaceRoot, 'docs/examples/water_pool_chunk.json'))
+            .readAsStringSync(),
+      ).copyWith(levelId: 'forest');
+      final input = _copy(
+        captured,
+        selectedChunkKey: example.chunkKey,
+        chunks: {'water_pool_example.json': ChunkV2FileCodec.encode(example)},
+        level: captured.level.copyWith(
+          clearAssembly: true,
+          clearFirstChunkKey: true,
+        ),
+      );
+      final direct = preparePlaytest(input);
+      final background = await preparePlaytestInBackground(input);
+      expect(
+        direct.issues,
+        isEmpty,
+        reason: direct.issues.map((e) => "${e.code}: ${e.message}").join("\n"),
+      );
+      expect(
+        background.issues,
+        isEmpty,
+        reason: background.issues
+            .map((e) => "${e.code}: ${e.message}")
+            .join("\n"),
+      );
+      final scenario = background.scenario! as ChunkPlaytestScenario;
+      expect(
+        scenario.draftTerrain.waterSignature,
+        (direct.scenario! as ChunkPlaytestScenario).draftTerrain.waterSignature,
+      );
+      expect(scenario.draftTerrain.waterRegions, example.waterRegions);
+      final material = background.appearance!.terrainMaterials['biome_water']!;
+      expect(material.top.base.additionalFrames, hasLength(2));
+      for (final region in material.regions) {
+        final key = 'assets/images/${region.assetPath}';
+        expect(
+          (await background.assetBundle!.load(key)).lengthInBytes,
+          greaterThan(0),
+        );
+      }
+      final core = GameCore.chunkPlaytest(scenario: scenario);
+      core.setPlayerPosXYUnsafeForTest(220, 245);
+      core.stepOneTick();
+      expect(core.buildSnapshot().playerEntity!.isSwimming, isTrue);
+      expect(
+        core.buildSnapshot().stagedTerrainRenderSnapshot!.waterRegions,
+        isNotEmpty,
+      );
+    },
+  );
+
   test('new level, first chunk, and theme need no generated identities', () {
     final chunk = repositoryDocument.chunks
         .singleWhere((c) => c.chunkKey == 'forest_rocky_grove_easy_001')

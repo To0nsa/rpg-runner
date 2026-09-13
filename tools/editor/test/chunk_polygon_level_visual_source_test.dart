@@ -81,9 +81,10 @@ void main() {
       ),
       (0, 31),
     );
-    expect(decoded.catalog?.materials.map((entry) => entry.key), <String>[
-      'grass_dirt',
-    ]);
+    expect(
+      decoded.catalog?.materials.map((entry) => entry.key),
+      containsAll(<String>['grass_dirt', 'biome_water']),
+    );
     expect(terrainSurfaceKindOptions, <String>['ground', 'obstacle']);
     expect(terrainMaterialPreviewForKey(decoded.catalog, 'missing'), isNull);
   });
