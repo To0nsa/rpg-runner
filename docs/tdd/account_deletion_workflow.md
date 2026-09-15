@@ -236,13 +236,18 @@ Source-controlled production policies under
 `functions/monitoring/account_deletion/` alert on:
 
 - any transition to retryable failure;
-- incomplete work at least twelve hours old or at 400 attempts;
+- incomplete work at least twelve hours old or at 720 attempts;
 - an expired-completion cleanup page containing more than ten eligible records;
 - unexpected scheduled repair runtime errors.
 
-Twelve hours and 400 attempts are operator safety budgets, not completion
-guarantees. The regression fixture verifies populated-account completion under
-the twelve-hour budget using simulated one-minute ticks. Production duration,
+Twelve hours and 720 attempts are operator safety budgets, not completion
+guarantees. The attempt budget matches twelve hours of one-minute ticks and
+accommodates ordinary retained-board traversal. The September production canary
+passed 432 successful stages before its final pass across 56 retained boards
+and three private fixtures, without retryable failures; the former 400-attempt
+alert was too low for that traversal. The regression fixture verifies
+populated-account completion under the twelve-hour budget using simulated
+one-minute ticks. Production duration,
 scheduler cadence, ordered indexes, and alert delivery must be reverified after
 deploying this revision. Log-match policies cannot detect a scheduler that
 stops emitting logs: scheduler execution and heartbeat freshness must also be

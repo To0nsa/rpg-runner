@@ -4,12 +4,16 @@ This bundle owns the production alerts for the resumable account-deletion
 workflow:
 
 - any stage transition to `retryable`;
-- incomplete work older than twelve hours or at 400 attempts;
+- incomplete work older than twelve hours or at 720 attempts;
 - saturation of the bounded expired-completion cleanup page;
 - unexpected errors from the scheduled repair service.
 
-Repair is configured once per minute. Twelve hours and 400 attempts are
-operator safety budgets, not duration guarantees. The former fifteen-minute
+Repair is configured once per minute. Twelve hours and 720 attempts are
+operator safety budgets, not duration guarantees. The attempt budget matches
+twelve hours of one-minute ticks. The September production canary passed 432
+successful stages before its final pass while traversing 56 retained boards
+and three private fixtures; the former 400-attempt alert was too low for this
+healthy traversal. The former fifteen-minute
 cadence required at least 15.5 hours for three inventory passes before extra
 pages or boards. After deployment, remeasure duration and verify the scheduler,
 the `state` + `expiresAtMs` index, and all four alert policies. Each
@@ -24,6 +28,12 @@ Log-match policies do not detect missing heartbeats; operations must separately
 check scheduler execution and heartbeat freshness.
 The heartbeat contains no account identifier. Retryable-failure logs use a truncated
 SHA-256 UID hash for correlation and never emit the raw UID.
+
+For a release adding an index, deploy `firestore:indexes` separately and wait
+until every required index is `READY` before deploying the dependent Functions.
+Firebase CLI completion does not mean index backfill has finished. A combined
+deployment in September produced two repair errors during backfill; repair was
+briefly paused, then resumed successfully once the index became ready.
 
 Apply the bundle with the already verified production notification-channel
 resource:
