@@ -69,6 +69,17 @@ delete cap below the scan cap, the scan request is reduced to the delete cap so
 the cursor never advances past unprocessed objects. Storage deletion is
 idempotent.
 
+The September 15 production configuration uses an unversioned replay bucket
+with a seven-day soft-delete recovery window. Removing a live replay or ghost
+object, including during account deletion or compensation, therefore leaves a
+provider-managed recovery copy until that window expires. The erasure workflow
+certifies primary-record/live-object removal; it does not purge provider
+recovery copies or audit logs. Verify these settings when deploying or changing
+retention, and disclose the configured recovery window accurately. Firestore
+point-in-time recovery was disabled and no backup schedules were configured
+during the same verification. See the
+[production verification record](../archive/2026-09-15/verification/account-deletion-production-2026-09-15.md).
+
 ## Runtime Storage access
 
 `configure_cloud.ps1` applies the operational IAM bindings required by the

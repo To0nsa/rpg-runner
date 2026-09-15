@@ -18,4 +18,8 @@ The old documents' instructions, priorities, and status claims are historical;
 recheck the current implementation before adopting any follow-up work.
 No archived task is automatically part of the new active queue.
 
+Completed verification after the planning reset:
+
+- [Account-deletion production deployment and verification](verification/account-deletion-production-2026-09-15.md).
+
 Return to the [current documentation index](../../README.md).

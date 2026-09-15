@@ -19,10 +19,13 @@ Missing server acceptance or an invalid response leaves local account state
 intact and shows a retryable failure. Server-side retryable erasure stages are
 accepted outcomes, distinct from a rejected deletion request.
 
+Deletion removes live game records and replay/ghost objects. The production
+replay bucket also retains deleted objects for seven days of recovery.
 Completion evidence has a thirty-day expiry deadline, followed by automatic
 bounded cleanup. Operational delays can extend physical removal. Public privacy
-and deletion notices must describe this accurately before launch; historical
-production evidence does not verify the current revision.
+and deletion notices must describe these windows accurately before launch.
+The workflow document records the September server/web production verification
+and its native-device limits.
 
 Technical contracts and retention details are in
 [Account Deletion Workflow](../tdd/account_deletion_workflow.md).

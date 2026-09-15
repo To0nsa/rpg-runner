@@ -2,9 +2,14 @@
 
 ## Status
 
-Implementation reviewed and hardened on September 15, 2026. This document
-describes the repository source; the September changes have not been verified
-in production. The original workflow was deployed on July 19, 2026. Two synthetic
+Implementation reviewed, hardened, deployed, and production-verified with
+controlled fixtures on September 15, 2026. The server and web release,
+generation-fenced Storage operations, expiry cleanup, and a complete
+synthetic account-erasure workflow were checked; native Play Games sign-in
+and device cleanup were not exercised in production. See the
+[September production verification record](../archive/2026-09-15/verification/account-deletion-production-2026-09-15.md)
+for scope and limits. The original workflow was deployed on July 19, 2026.
+Two synthetic
 workflows completed the final reconciliation and Auth-deletion path; the
 controlled evidence is in the
 [Functions production verification record](../archive/2026-09-15/building/functions-audit-remediation/production-verification-2026-07-19.md).
@@ -130,6 +135,16 @@ explicit inventory:
 New UID-owned schemas, projections, or Storage prefixes must extend this
 inventory and its emulator test before shipping.
 
+This inventory erases primary Firestore records and live Storage objects.
+Provider recovery copies follow the bucket/database configuration. Production
+verification on September 15 found seven-day soft-delete retention on the
+unversioned replay bucket; deleted replay and ghost objects remain recoverable
+within that window. Firestore point-in-time recovery was disabled and no backup
+schedules were configured. Provider recovery retention and audit-log lifecycles
+are separate from this worker's inventory; the completion checkpoint does not
+certify immediate physical removal of every provider-held copy. See
+[Cloud Artifact Retention](cloud_artifact_retention.md).
+
 Top-level UID queries repeat from the beginning until empty; they do not advance
 past deleted documents. Nested ownership and board collections use durable
 parent cursors and bounded child pages. A later full pass revisits all stages,
@@ -247,10 +262,13 @@ passed 432 successful stages before its final pass across 56 retained boards
 and three private fixtures, without retryable failures; the former 400-attempt
 alert was too low for that traversal. The regression fixture verifies
 populated-account completion under the twelve-hour budget using simulated
-one-minute ticks. Production duration,
-scheduler cadence, ordered indexes, and alert delivery must be reverified after
-deploying this revision. Log-match policies cannot detect a scheduler that
-stops emitting logs: scheduler execution and heartbeat freshness must also be
+one-minute ticks. September verification confirmed the scheduler, indexes,
+enabled policies, and controlled erasure; manual bounded invocations accelerated
+stage traversal, so the measured duration is not a normal-cadence completion
+SLA. Fresh alert-email receipt was not confirmed. Future releases must reverify
+these operational dependencies. Deploy new indexes separately and wait for
+`READY` before deploying dependent Functions. Log-match policies cannot detect
+a scheduler that stops emitting logs: scheduler execution and heartbeat freshness must also be
 checked by operations.
 
 `expiresAtMs` is set to completion time plus 30 days. It is an expiry deadline,
@@ -280,8 +298,9 @@ completions without logging an account identifier.
 The historical engineering privacy review accepted the compact record with
 launch conditions; it does not establish a hard removal bound for this source.
 The public privacy policy and external deletion resource must disclose the
-purpose, fields, the 30-day expiry deadline, automatic cleanup, and operational
-delays accurately; the historic review's strict maximum must not be presented
+purpose, fields, the 30-day expiry deadline, automatic cleanup, operational
+delays, and the replay bucket's seven-day recovery retention accurately; the
+historic review's strict maximum must not be presented
 as an implemented removal guarantee. The project owner must
 select the applicable lawful basis and obtain jurisdiction-specific advice if
 needed. Changing the fields, purpose, or duration requires updating this
@@ -318,6 +337,22 @@ rejection, memory reset before sign-out, cleanup failures/retry, and in-flight
 spool/upload fencing. These tests do not exercise real Firebase Auth deletion,
 Cloud Storage RPCs, deployed composite indexes, or scheduler/alert delivery.
 
+The September production pass separately verified real Storage copy/discard
+operations with generation preconditions, both ordered deletion indexes as
+`READY`, one-minute successful scheduler execution, and all four enabled
+policies on the API-verified channel. A disposable admin-linked identity
+validated a practice replay, obtained a matching accepted deletion receipt,
+and completed primary Auth/Firestore/Storage erasure in 16.5 minutes, including
+the full signed-upload quiet period and final reconciliation. The worker
+preserved a live leased run, erased its late uncommitted archive, and repaired
+private orphaned/owned views while preserving an unrelated view. Eleven
+synthetic expired completions drained in ten-plus-one pages with the expected
+backlog signal. Production collection counts returned to baseline, with two
+minimal completed checkpoints and zero active/retryable requests. The
+[verification record](../archive/2026-09-15/verification/account-deletion-production-2026-09-15.md)
+distinguishes deployed-worker checks, deployment-user Storage checks,
+artificial fixtures, accelerated scheduling, and native/client limits.
+
 Historical July production verification additionally confirmed:
 
 - the original one-minute repair scheduler and IAM path before the pre-release
@@ -333,5 +368,5 @@ Historical production monitoring verification additionally confirmed the ordered
 index as `READY`, structured zero-work heartbeats from the deployed repair revision,
 all three policies enabled on the verified email channel, and an exact-filter
 synthetic event that touched no deletion state.
-The new expiry index and expired-backlog policy are source-controlled but have
-not been deployed or production-verified by the September implementation pass.
+The expiry index and expired-backlog policy were subsequently deployed and
+verified in the September production pass described above.
