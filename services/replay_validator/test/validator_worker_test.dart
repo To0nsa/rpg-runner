@@ -10,6 +10,7 @@ import 'package:run_protocol/validated_run.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/src/board_repository.dart';
+import 'package:replay_validator/src/account_deletion_fence.dart';
 import 'package:replay_validator/src/metrics.dart';
 import 'package:replay_validator/src/replay_loader.dart';
 import 'package:replay_validator/src/replay_validation_limits.dart';
@@ -19,17 +20,123 @@ import 'package:replay_validator/src/validated_replay_archiver.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
-  test('distanceUnitsToMeters converts world units to meters', () {
-    expect(distanceUnitsToMeters(0), 0);
-    expect(distanceUnitsToMeters(49.9), 0);
-    expect(distanceUnitsToMeters(50), 1);
-    expect(distanceUnitsToMeters(99.9), 1);
-    expect(distanceUnitsToMeters(149.9), 2);
-  });
+  for (final missingRecords in <bool>[false, true]) {
+    for (final discardFails in <bool>[false, true]) {
+      test(
+        'deletion after archive acknowledges work (missing records: $missingRecords, discard fails: $discardFails)',
+        () async {
+          final replay = ReplayBlobV1.withComputedDigest(
+            runSessionId: 'run_delete_archive',
+            tickHz: 60,
+            seed: 42,
+            levelId: 'field',
+            playerCharacterId: 'eloise',
+            loadoutSnapshot: _defaultLoadoutSnapshot(),
+            totalTicks: 0,
+            commandStream: const <ReplayCommandFrameV1>[],
+          );
+          final bytes = utf8.encode(jsonEncode(replay.toJson()));
+          final repository = _FakeRunSessionRepository(
+            leaseResult: RunSessionLeaseAcquireResult(
+              status: RunSessionLeaseStatus.acquired,
+              session: _session(
+                runSessionId: replay.runSessionId,
+                mode: RunMode.practice,
+                seed: replay.seed,
+                digest: replay.canonicalSha256,
+                contentLengthBytes: bytes.length,
+                validationAttempt: 1,
+              ),
+            ),
+            acceptedHandoffError: missingRecords
+                ? StateError('run records already erased')
+                : const AccountDeletionInProgressException('uid_1'),
+          );
+          final archiver = _FakeValidatedReplayArchiver(
+            onArchive: () => repository.accountDeleted = true,
+            discardError: discardFails
+                ? StateError('Storage unavailable')
+                : null,
+          );
+          final metrics = _FakeValidatorMetrics();
+          final dispatcher = _FakeSettlementDispatcher();
+          final worker = DeterministicValidatorWorker(
+            replayLoader: _FakeReplayLoader(
+              bytesByRunSession: {replay.runSessionId: bytes},
+            ),
+            boardRepository: _FakeBoardRepository(),
+            runSessionRepository: repository,
+            validatedReplayArchiver: archiver,
+            metrics: metrics,
+            settlementDispatcher: dispatcher,
+            clockMs: () => 5000,
+          );
+          final result = await worker.validateRunSession(
+            runSessionId: replay.runSessionId,
+          );
+          expect(result.status, ValidationDispatchStatus.accepted);
+          if (discardFails) {
+            expect(
+              metrics.records.map((record) => record.phase),
+              contains('validation_deletion_archive_cleanup_deferred'),
+            );
+          } else {
+            expect(archiver.discarded.single.storageGeneration, '456');
+          }
+          expect(repository.pendingRetryWrites, isEmpty);
+          expect(repository.acceptedSettlementHandoffs, isEmpty);
+          expect(dispatcher.runSessionIds, isEmpty);
+          expect(
+            metrics.records.last.phase,
+            'validation_skipped_account_deletion',
+          );
+        },
+      );
+    }
 
-  test(
-    'accepted current-compat 30 Hz practice replay creates a settlement handoff',
-    () async {
+    test(
+      'deletion raised while scheduling a transient retry is acknowledged',
+      () async {
+        final repository = _FakeRunSessionRepository(
+          leaseResult: RunSessionLeaseAcquireResult(
+            status: RunSessionLeaseStatus.acquired,
+            session: _session(
+              runSessionId: 'run_deleted_retry',
+              mode: RunMode.practice,
+              seed: 42,
+              digest: 'a' * 64,
+              contentLengthBytes: 10,
+              validationAttempt: 1,
+            ),
+          ),
+          retryError: const AccountDeletionInProgressException('uid_1'),
+        );
+        final result = await DeterministicValidatorWorker(
+          replayLoader: _FakeReplayLoader(
+            bytesByRunSession: {},
+            errorByRunSession: {
+              'run_deleted_retry': StateError('temporary outage'),
+            },
+          ),
+          boardRepository: _FakeBoardRepository(),
+          runSessionRepository: repository,
+          metrics: _FakeValidatorMetrics(),
+          clockMs: () => 5000,
+        ).validateRunSession(runSessionId: 'run_deleted_retry');
+        expect(result.status, ValidationDispatchStatus.accepted);
+        expect(repository.pendingRetryWrites, isEmpty);
+      },
+    );
+
+    test('distanceUnitsToMeters converts world units to meters', () {
+      expect(distanceUnitsToMeters(0), 0);
+      expect(distanceUnitsToMeters(49.9), 0);
+      expect(distanceUnitsToMeters(50), 1);
+      expect(distanceUnitsToMeters(99.9), 1);
+      expect(distanceUnitsToMeters(149.9), 2);
+    });
+
+    test('accepted current-compat 30 Hz practice replay creates a settlement handoff', () async {
       final replayBlob = ReplayBlobV1.withComputedDigest(
         runSessionId: 'run_accepted',
         tickHz: 30,
@@ -100,12 +207,9 @@ void main() {
         metrics.records.last.status,
         ValidationDispatchStatus.accepted.name,
       );
-    },
-  );
+    });
 
-  test(
-    'accepted ranked replay uses immutable ticket board data after board deletion',
-    () async {
+    test('accepted ranked replay uses immutable ticket board data after board deletion', () async {
       final boardKey = BoardKey(
         mode: RunMode.competitive,
         levelId: 'field',
@@ -157,23 +261,94 @@ void main() {
 
       expect(result.status, ValidationDispatchStatus.accepted);
       expect(repo.acceptedSettlementHandoffs, hasLength(1));
-    },
-  );
+    });
 
-  test(
-    'missing immutable replay generation is rejected before loading',
-    () async {
+    test(
+      'missing immutable replay generation is rejected before loading',
+      () async {
+        final repo = _FakeRunSessionRepository(
+          leaseResult: RunSessionLeaseAcquireResult(
+            status: RunSessionLeaseStatus.acquired,
+            session: _session(
+              runSessionId: 'run_missing_generation',
+              mode: RunMode.practice,
+              seed: 1,
+              digest: '1' * 64,
+              contentLengthBytes: 16,
+              validationAttempt: 1,
+              storageGeneration: null,
+            ),
+          ),
+        );
+        final worker = DeterministicValidatorWorker(
+          replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
+          boardRepository: _FakeBoardRepository(),
+          runSessionRepository: repo,
+          metrics: _FakeValidatorMetrics(),
+          clockMs: () => 10_000,
+        );
+
+        final result = await worker.validateRunSession(
+          runSessionId: 'run_missing_generation',
+        );
+
+        expect(result.status, ValidationDispatchStatus.rejected);
+        expect(
+          repo.persistedValidatedRuns.single.rejectionReason,
+          'replay_generation_missing',
+        );
+      },
+    );
+
+    test(
+      'ticket identity mismatch is rejected before replay loading',
+      () async {
+        final repo = _FakeRunSessionRepository(
+          leaseResult: RunSessionLeaseAcquireResult(
+            status: RunSessionLeaseStatus.acquired,
+            session: _session(
+              runSessionId: 'run_ticket_identity',
+              ticketRunSessionId: 'other_run',
+              mode: RunMode.practice,
+              seed: 1,
+              digest: '2' * 64,
+              contentLengthBytes: 16,
+              validationAttempt: 1,
+            ),
+          ),
+        );
+        final worker = DeterministicValidatorWorker(
+          replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
+          boardRepository: _FakeBoardRepository(),
+          runSessionRepository: repo,
+          metrics: _FakeValidatorMetrics(),
+          clockMs: () => 10_000,
+        );
+
+        final result = await worker.validateRunSession(
+          runSessionId: 'run_ticket_identity',
+        );
+
+        expect(result.status, ValidationDispatchStatus.rejected);
+        expect(
+          repo.persistedValidatedRuns.single.rejectionReason,
+          'ticket_identity_mismatch',
+        );
+      },
+    );
+
+    test('unsupported game compatibility version is rejected', () async {
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
           status: RunSessionLeaseStatus.acquired,
           session: _session(
-            runSessionId: 'run_missing_generation',
+            runSessionId: 'run_unknown_compat',
             mode: RunMode.practice,
             seed: 1,
-            digest: '1' * 64,
+            digest: '3' * 64,
             contentLengthBytes: 16,
             validationAttempt: 1,
-            storageGeneration: null,
+            gameCompatVersion: '2099.01.0',
           ),
         ),
       );
@@ -186,155 +361,140 @@ void main() {
       );
 
       final result = await worker.validateRunSession(
-        runSessionId: 'run_missing_generation',
+        runSessionId: 'run_unknown_compat',
       );
 
       expect(result.status, ValidationDispatchStatus.rejected);
       expect(
         repo.persistedValidatedRuns.single.rejectionReason,
-        'replay_generation_missing',
-      );
-    },
-  );
-
-  test('ticket identity mismatch is rejected before replay loading', () async {
-    final repo = _FakeRunSessionRepository(
-      leaseResult: RunSessionLeaseAcquireResult(
-        status: RunSessionLeaseStatus.acquired,
-        session: _session(
-          runSessionId: 'run_ticket_identity',
-          ticketRunSessionId: 'other_run',
-          mode: RunMode.practice,
-          seed: 1,
-          digest: '2' * 64,
-          contentLengthBytes: 16,
-          validationAttempt: 1,
-        ),
-      ),
-    );
-    final worker = DeterministicValidatorWorker(
-      replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
-      boardRepository: _FakeBoardRepository(),
-      runSessionRepository: repo,
-      metrics: _FakeValidatorMetrics(),
-      clockMs: () => 10_000,
-    );
-
-    final result = await worker.validateRunSession(
-      runSessionId: 'run_ticket_identity',
-    );
-
-    expect(result.status, ValidationDispatchStatus.rejected);
-    expect(
-      repo.persistedValidatedRuns.single.rejectionReason,
-      'ticket_identity_mismatch',
-    );
-  });
-
-  test('unsupported game compatibility version is rejected', () async {
-    final repo = _FakeRunSessionRepository(
-      leaseResult: RunSessionLeaseAcquireResult(
-        status: RunSessionLeaseStatus.acquired,
-        session: _session(
-          runSessionId: 'run_unknown_compat',
-          mode: RunMode.practice,
-          seed: 1,
-          digest: '3' * 64,
-          contentLengthBytes: 16,
-          validationAttempt: 1,
-          gameCompatVersion: '2099.01.0',
-        ),
-      ),
-    );
-    final worker = DeterministicValidatorWorker(
-      replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
-      boardRepository: _FakeBoardRepository(),
-      runSessionRepository: repo,
-      metrics: _FakeValidatorMetrics(),
-      clockMs: () => 10_000,
-    );
-
-    final result = await worker.validateRunSession(
-      runSessionId: 'run_unknown_compat',
-    );
-
-    expect(result.status, ValidationDispatchStatus.rejected);
-    expect(
-      repo.persistedValidatedRuns.single.rejectionReason,
-      'game_compat_version_unsupported',
-    );
-  });
-
-  for (final versionCase
-      in <
-        ({
-          String name,
-          String? rulesetVersion,
-          String? scoreVersion,
-          String? ghostVersion,
-        })
-      >[
-        (
-          name: 'retired_ruleset',
-          rulesetVersion: 'rules-v1',
-          scoreVersion: null,
-          ghostVersion: null,
-        ),
-        (
-          name: 'ruleset',
-          rulesetVersion: 'rules-v999',
-          scoreVersion: null,
-          ghostVersion: null,
-        ),
-        (
-          name: 'score',
-          rulesetVersion: null,
-          scoreVersion: 'score-v999',
-          ghostVersion: null,
-        ),
-        (
-          name: 'ghost',
-          rulesetVersion: null,
-          scoreVersion: null,
-          ghostVersion: 'ghost-v999',
-        ),
-      ]) {
-    test('unsupported ${versionCase.name} version is rejected', () async {
-      final runSessionId = 'run_unknown_${versionCase.name}';
-      final repo = _FakeRunSessionRepository(
-        leaseResult: RunSessionLeaseAcquireResult(
-          status: RunSessionLeaseStatus.acquired,
-          session: _session(
-            runSessionId: runSessionId,
-            mode: RunMode.competitive,
-            seed: 1,
-            digest: '5' * 64,
-            contentLengthBytes: 16,
-            validationAttempt: 1,
-            rulesetVersion: versionCase.rulesetVersion,
-            scoreVersion: versionCase.scoreVersion,
-            ghostVersion: versionCase.ghostVersion,
-          ),
-        ),
-      );
-      final worker = DeterministicValidatorWorker(
-        replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
-        boardRepository: _FakeBoardRepository(),
-        runSessionRepository: repo,
-        metrics: _FakeValidatorMetrics(),
-        clockMs: () => 10_000,
-      );
-
-      final result = await worker.validateRunSession(
-        runSessionId: runSessionId,
-      );
-
-      expect(result.status, ValidationDispatchStatus.rejected);
-      expect(
-        repo.persistedValidatedRuns.single.rejectionReason,
-        'board_compat_version_unsupported',
+        'game_compat_version_unsupported',
       );
     });
+
+    for (final versionCase
+        in <
+          ({
+            String name,
+            String? rulesetVersion,
+            String? scoreVersion,
+            String? ghostVersion,
+          })
+        >[
+          (
+            name: 'retired_ruleset',
+            rulesetVersion: 'rules-v1',
+            scoreVersion: null,
+            ghostVersion: null,
+          ),
+          (
+            name: 'ruleset',
+            rulesetVersion: 'rules-v999',
+            scoreVersion: null,
+            ghostVersion: null,
+          ),
+          (
+            name: 'score',
+            rulesetVersion: null,
+            scoreVersion: 'score-v999',
+            ghostVersion: null,
+          ),
+          (
+            name: 'ghost',
+            rulesetVersion: null,
+            scoreVersion: null,
+            ghostVersion: 'ghost-v999',
+          ),
+        ]) {
+      test('unsupported ${versionCase.name} version is rejected', () async {
+        final runSessionId = 'run_unknown_${versionCase.name}';
+        final repo = _FakeRunSessionRepository(
+          leaseResult: RunSessionLeaseAcquireResult(
+            status: RunSessionLeaseStatus.acquired,
+            session: _session(
+              runSessionId: runSessionId,
+              mode: RunMode.competitive,
+              seed: 1,
+              digest: '5' * 64,
+              contentLengthBytes: 16,
+              validationAttempt: 1,
+              rulesetVersion: versionCase.rulesetVersion,
+              scoreVersion: versionCase.scoreVersion,
+              ghostVersion: versionCase.ghostVersion,
+            ),
+          ),
+        );
+        final worker = DeterministicValidatorWorker(
+          replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
+          boardRepository: _FakeBoardRepository(),
+          runSessionRepository: repo,
+          metrics: _FakeValidatorMetrics(),
+          clockMs: () => 10_000,
+        );
+
+        final result = await worker.validateRunSession(
+          runSessionId: runSessionId,
+        );
+
+        expect(result.status, ValidationDispatchStatus.rejected);
+        expect(
+          repo.persistedValidatedRuns.single.rejectionReason,
+          'board_compat_version_unsupported',
+        );
+      });
+    }
+  }
+
+  for (final deleted in <bool>[false, true]) {
+    test(
+      'deletion or lease expiry prevents starting an archive (deleted: $deleted)',
+      () async {
+        final replay = ReplayBlobV1.withComputedDigest(
+          runSessionId: 'run_no_archive',
+          tickHz: 60,
+          seed: 42,
+          levelId: 'field',
+          playerCharacterId: 'eloise',
+          loadoutSnapshot: _defaultLoadoutSnapshot(),
+          totalTicks: 0,
+          commandStream: const <ReplayCommandFrameV1>[],
+        );
+        final bytes = utf8.encode(jsonEncode(replay.toJson()));
+        final repository = _FakeRunSessionRepository(
+          accountDeleted: deleted,
+          leaseResult: RunSessionLeaseAcquireResult(
+            status: RunSessionLeaseStatus.acquired,
+            session: _session(
+              runSessionId: replay.runSessionId,
+              mode: RunMode.practice,
+              seed: replay.seed,
+              digest: replay.canonicalSha256,
+              contentLengthBytes: bytes.length,
+              validationAttempt: 1,
+            ),
+          ),
+        );
+        final archiver = _FakeValidatedReplayArchiver();
+        final result = await DeterministicValidatorWorker(
+          replayLoader: _FakeReplayLoader(
+            bytesByRunSession: {replay.runSessionId: bytes},
+          ),
+          boardRepository: _FakeBoardRepository(),
+          runSessionRepository: repository,
+          validatedReplayArchiver: archiver,
+          metrics: _FakeValidatorMetrics(),
+          clockMs: () => deleted ? 5000 : 1000000,
+        ).validateRunSession(runSessionId: replay.runSessionId);
+        expect(
+          result.status,
+          deleted
+              ? ValidationDispatchStatus.accepted
+              : ValidationDispatchStatus.retryScheduled,
+        );
+        expect(archiver.runSessionIds, isEmpty);
+        expect(repository.acceptedSettlementHandoffs, isEmpty);
+        expect(repository.pendingRetryWrites, isEmpty);
+      },
+    );
   }
 
   test('loadout digest mismatch is rejected before replay loading', () async {
@@ -585,6 +745,7 @@ void main() {
       boardRepository: _FakeBoardRepository(),
       runSessionRepository: repo,
       metrics: metrics,
+      clockMs: () => 5000,
     );
 
     final result = await worker.validateRunSession(
@@ -1319,10 +1480,20 @@ class _FakeRunSessionRepository implements RunSessionRepository {
   _FakeRunSessionRepository({
     required this.leaseResult,
     this.acceptedHandoffError,
+    this.accountDeleted = false,
+    this.retryError,
   });
 
   final RunSessionLeaseAcquireResult leaseResult;
   final Object? acceptedHandoffError;
+  final Object? retryError;
+  bool accountDeleted;
+
+  @override
+  Future<void> assertAccountActive({required String uid}) async {
+    if (accountDeleted) throw AccountDeletionInProgressException(uid);
+  }
+
   final List<ValidatedRun> acceptedSettlementHandoffs = <ValidatedRun>[];
   final List<ValidatedRun> persistedValidatedRuns = <ValidatedRun>[];
   final List<_TerminalWrite> terminalWrites = <_TerminalWrite>[];
@@ -1342,6 +1513,9 @@ class _FakeRunSessionRepository implements RunSessionRepository {
   }) async {
     expect(validationLeaseToken, 'lease-token-1');
     if (acceptedHandoffError != null) {
+      if (acceptedHandoffError is AccountDeletionInProgressException) {
+        accountDeleted = true;
+      }
       throw acceptedHandoffError!;
     }
     acceptedSettlementHandoffs.add(validatedRun);
@@ -1388,6 +1562,7 @@ class _FakeRunSessionRepository implements RunSessionRepository {
     required String message,
     int? internalErrorFirstAtMs,
   }) async {
+    if (retryError != null) throw retryError!;
     expect(validationLeaseToken, 'lease-token-1');
     pendingRetryWrites.add(
       _PendingRetryWrite(
@@ -1459,7 +1634,20 @@ class _FakeReplayLoader implements ReplayLoader {
 }
 
 class _FakeValidatedReplayArchiver implements ValidatedReplayArchiver {
+  _FakeValidatedReplayArchiver({this.onArchive, this.discardError});
+
+  final void Function()? onArchive;
+  final Object? discardError;
   final List<String> runSessionIds = <String>[];
+  final List<ArchivedValidatedReplay> discarded = <ArchivedValidatedReplay>[];
+
+  @override
+  Future<void> discard({
+    required ArchivedValidatedReplay archivedReplay,
+  }) async {
+    if (discardError != null) throw discardError!;
+    discarded.add(archivedReplay);
+  }
 
   @override
   Future<ArchivedValidatedReplay> archive({
@@ -1468,6 +1656,7 @@ class _FakeValidatedReplayArchiver implements ValidatedReplayArchiver {
     required String sourceStorageGeneration,
   }) async {
     runSessionIds.add(runSessionId);
+    onArchive?.call();
     return ArchivedValidatedReplay(
       objectPath: 'replay-submissions/validated/$runSessionId.bin.gz',
       storageGeneration: '456',

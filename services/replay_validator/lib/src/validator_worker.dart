@@ -176,7 +176,61 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       );
       return const ValidationDispatchResult.retryScheduled(message: message);
     }
-    final validationLeaseToken = validationLease.token;
+    ArchivedValidatedReplay? archivedReplay;
+    try {
+      return await _validateLeasedSession(
+        session: session,
+        onArchived: (archive) => archivedReplay = archive,
+      );
+    } catch (error) {
+      if (error is! AccountDeletionInProgressException) {
+        try {
+          await runSessionRepository.assertAccountActive(uid: session.uid);
+        } on AccountDeletionInProgressException {
+          return _acknowledgeAccountDeletion(session, archivedReplay);
+        }
+        rethrow;
+      }
+      return _acknowledgeAccountDeletion(session, archivedReplay);
+    }
+  }
+
+  Future<ValidationDispatchResult> _acknowledgeAccountDeletion(
+    ValidatorRunSession session,
+    ArchivedValidatedReplay? archivedReplay,
+  ) async {
+    if (archivedReplay != null) {
+      try {
+        await validatedReplayArchiver.discard(archivedReplay: archivedReplay);
+      } catch (error) {
+        // Deletion retains the run ID until this validator's lease expires;
+        // its erasure worker owns retrying the archive deletion.
+        await metrics.recordDispatch(
+          runSessionId: session.runSessionId,
+          status: ValidationDispatchStatus.accepted.name,
+          phase: 'validation_deletion_archive_cleanup_deferred',
+          errorClass: error.runtimeType.toString(),
+        );
+      }
+    }
+    await metrics.recordDispatch(
+      runSessionId: session.runSessionId,
+      status: ValidationDispatchStatus.accepted.name,
+      phase: 'validation_skipped_account_deletion',
+      mode: session.runTicket.mode.name,
+      attempt: session.validationAttempt,
+    );
+    return const ValidationDispatchResult.accepted(
+      message: 'Account deletion is in progress.',
+    );
+  }
+
+  Future<ValidationDispatchResult> _validateLeasedSession({
+    required ValidatorRunSession session,
+    required void Function(ArchivedValidatedReplay) onArchived,
+  }) async {
+    final normalizedRunSessionId = session.runSessionId;
+    final validationLeaseToken = session.validationLease!.token;
     final mode = session.runTicket.mode.name;
     final attempt = session.validationAttempt;
     try {
@@ -201,11 +255,21 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           'Storage generation.',
         );
       }
+      await runSessionRepository.assertAccountActive(uid: session.uid);
+      if (_clockMs() >= session.validationLease!.expiresAtMs) {
+        return await _recordStaleLeaseRetry(
+          runSessionId: normalizedRunSessionId,
+          mode: mode,
+          attempt: attempt,
+          operation: 'archive creation',
+        );
+      }
       final archivedReplay = await validatedReplayArchiver.archive(
         runSessionId: normalizedRunSessionId,
         sourceObjectPath: session.uploadedReplay.objectPath,
         sourceStorageGeneration: sourceStorageGeneration,
       );
+      onArchived(archivedReplay);
       final acceptedRun = replayedRun.withReplayArtifact(
         replayStorageRef: archivedReplay.objectPath,
         replayStorageGeneration: archivedReplay.storageGeneration,
@@ -244,17 +308,6 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         attempt: attempt,
       );
       return const ValidationDispatchResult.accepted();
-    } on AccountDeletionInProgressException {
-      await metrics.recordDispatch(
-        runSessionId: normalizedRunSessionId,
-        status: ValidationDispatchStatus.accepted.name,
-        phase: 'validation_skipped_account_deletion',
-        mode: mode,
-        attempt: attempt,
-      );
-      return const ValidationDispatchResult.accepted(
-        message: 'Account deletion is in progress.',
-      );
     } on _ValidationRejectedException catch (rejection) {
       final rejectedRun = _buildRejectedRun(
         session: session,
@@ -286,6 +339,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       );
       return ValidationDispatchResult.rejected(message: rejection.message);
     } catch (error) {
+      if (error is AccountDeletionInProgressException) rethrow;
+      await runSessionRepository.assertAccountActive(uid: session.uid);
       final exhausted = attempt >= maxRetryAttempts;
       final message = 'validator failure on attempt $attempt: $error';
       if (exhausted) {

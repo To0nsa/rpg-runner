@@ -112,6 +112,12 @@ Account deletion currently spans:
 
 If the schema grows, update the explicit deletion coverage. Silent partial deletion is a bug.
 
+Keep board best deletion and top-10 invalidation atomic, including orphaned
+views. Preserve run IDs while validator leases are live so uncommitted archives
+remain discoverable. Completed-record expiry is a cleanup deadline, not a hard
+physical-removal guarantee; keep cadence, backlog signals, indexes, and docs
+aligned.
+
 ## App Check And Abuse Controls
 
 - keep App Check in monitoring mode until every enabled platform has measured

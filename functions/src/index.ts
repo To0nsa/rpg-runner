@@ -529,7 +529,7 @@ export const ownershipIdempotencyRetentionCleanup = onSchedule(
 
 export const accountDeletionRepair = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: "every 1 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {

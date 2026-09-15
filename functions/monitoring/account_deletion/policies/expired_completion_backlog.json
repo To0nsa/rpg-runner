@@ -1,0 +1,17 @@
+{
+  "displayName": "RPG Runner - account deletion expired completion backlog",
+  "documentation": {
+    "content": "Expired completion evidence exceeds one bounded cleanup page. The worker deletes the oldest ten completions per one-minute invocation. Confirm repair heartbeats and that the backlog drains; the 30-day value is an expiry deadline, not a guarantee of physical removal during scheduler outages.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [{
+    "displayName": "Expired completion page saturated",
+    "conditionMatchedLog": {
+      "filter": "jsonPayload.message=\"accountDeletionRepair\" AND jsonPayload.expiredCompletionPageSaturated=true"
+    }
+  }],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": { "notificationRateLimit": { "period": "1800s" }, "autoClose": "604800s" },
+  "userLabels": { "component": "account-deletion", "severity": "critical" }
+}

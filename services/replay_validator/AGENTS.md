@@ -83,6 +83,10 @@ Gameplay validation must come from the replay inputs and deterministic Core.
 - transient worker/internal failures use the retry and grace-window paths
 - validation leases are expiring and token-fenced; every validation-owned write
   must prove the current unexpired token
+- lease acquisition must read the deletion tombstone in its write transaction;
+  archive creation checks account state and lease expiry, and deletion-blocked
+  handoffs discard only the copied generation. Functions deletion preserves live
+  validator run IDs for crash/compensation recovery.
 - Cloud Tasks owns ordinary retry timing; the scheduled Functions repair job
   reclaims expired leases and requeues orphaned pending work
 - incident-mode auto-revoke pause must remain fail-closed and explicit

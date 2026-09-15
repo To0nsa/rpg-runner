@@ -1,7 +1,7 @@
 {
   "displayName": "RPG Runner - account deletion stalled or excessive attempts",
   "documentation": {
-    "content": "The repair scan found incomplete account deletion work older than twelve hours or at 400 attempts. Twelve hours accommodates the pre-release 15-minute repair cadence and the multi-board, repeated-reconciliation workflow. Inspect the oldest stage, retryable backlog, page saturation, and repair logs; do not bypass deletion stages.",
+    "content": "The repair scan found incomplete account deletion work older than twelve hours or at 400 attempts. Repair runs once per minute, processing one bounded stage page per selected request. These thresholds are operator safety budgets, not guaranteed completion times. Inspect the oldest stage, retryable backlog, page saturation, and repair logs; do not bypass deletion stages.",
     "mimeType": "text/markdown"
   },
   "conditions": [

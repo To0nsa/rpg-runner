@@ -96,6 +96,9 @@ final class RunSessionLeaseAcquireResult {
 }
 
 abstract class RunSessionRepository {
+  /// Rejects deletion-owned work even after its run documents have been erased.
+  Future<void> assertAccountActive({required String uid});
+
   Future<RunSessionLeaseAcquireResult> acquireValidationLease({
     required String runSessionId,
   });
@@ -127,6 +130,9 @@ abstract class RunSessionRepository {
 }
 
 class NoopRunSessionRepository implements RunSessionRepository {
+  @override
+  Future<void> assertAccountActive({required String uid}) async {}
+
   @override
   Future<RunSessionLeaseAcquireResult> acquireValidationLease({
     required String runSessionId,
@@ -208,6 +214,12 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       '$_databaseRoot/documents/validated_runs/$runSessionId';
   String _rewardGrantDocPath(String runSessionId) =>
       '$_databaseRoot/documents/reward_grants/$runSessionId';
+
+  @override
+  Future<void> assertAccountActive({required String uid}) async {
+    final transaction = await _deletionFence.begin(uids: <String>[uid]);
+    await transaction.rollback();
+  }
 
   @override
   Future<RunSessionLeaseAcquireResult> acquireValidationLease({
@@ -339,19 +351,30 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     );
 
     try {
-      await firestoreApi.projects.databases.documents.patch(
-        patch,
-        docPath,
-        currentDocument_updateTime: updateTime,
-        updateMask_fieldPaths: const <String>[
-          'state',
-          'updatedAtMs',
-          'validationAttempt',
-          'validationStartedAtMs',
-          'validationLeaseToken',
-          'validationLeaseExpiresAtMs',
-          'message',
-        ],
+      final transaction = await _deletionFence.begin(
+        uids: <String>[session.uid],
+      );
+      await transaction.commit(<firestore.Write>[
+        firestore.Write(
+          update: firestore.Document(name: docPath, fields: patch.fields),
+          currentDocument: firestore.Precondition(updateTime: updateTime),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: const <String>[
+              'state',
+              'updatedAtMs',
+              'validationAttempt',
+              'validationStartedAtMs',
+              'validationLeaseToken',
+              'validationLeaseExpiresAtMs',
+              'message',
+            ],
+          ),
+        ),
+      ]);
+    } on AccountDeletionInProgressException {
+      return const RunSessionLeaseAcquireResult(
+        status: RunSessionLeaseStatus.alreadyTerminal,
+        message: 'Account deletion owns this run.',
       );
     } catch (error) {
       if (isApiConflict(error)) {
@@ -385,6 +408,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     required ValidatedRun validatedRun,
     required String validationLeaseToken,
   }) async {
+    await assertAccountActive(uid: validatedRun.uid);
     if (!validatedRun.accepted) {
       throw ArgumentError.value(
         validatedRun.accepted,

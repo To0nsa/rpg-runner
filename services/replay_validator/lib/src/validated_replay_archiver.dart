@@ -22,6 +22,10 @@ final class ArchivedValidatedReplay {
 /// exist before the accepted handoff, but the handoff never commits unless this
 /// exact immutable archive is available.
 abstract interface class ValidatedReplayArchiver {
+  /// Removes only the copied generation when deletion prevents its handoff.
+  /// Missing artifacts and a replacement generation are idempotent outcomes.
+  Future<void> discard({required ArchivedValidatedReplay archivedReplay});
+
   Future<ArchivedValidatedReplay> archive({
     required String runSessionId,
     required String sourceObjectPath,
@@ -33,6 +37,11 @@ abstract interface class ValidatedReplayArchiver {
 /// [GoogleCloudStorageValidatedReplayArchiver].
 class PassthroughValidatedReplayArchiver implements ValidatedReplayArchiver {
   const PassthroughValidatedReplayArchiver();
+
+  @override
+  Future<void> discard({
+    required ArchivedValidatedReplay archivedReplay,
+  }) async {}
 
   @override
   Future<ArchivedValidatedReplay> archive({
@@ -54,6 +63,22 @@ class GoogleCloudStorageValidatedReplayArchiver
 
   final String bucketName;
   final GoogleCloudApiProvider apiProvider;
+
+  @override
+  Future<void> discard({
+    required ArchivedValidatedReplay archivedReplay,
+  }) async {
+    final storageApi = await apiProvider.storageApi();
+    try {
+      await storageApi.objects.delete(
+        bucketName,
+        archivedReplay.objectPath,
+        ifGenerationMatch: archivedReplay.storageGeneration,
+      );
+    } catch (error) {
+      if (!isApiNotFound(error) && !isApiConflict(error)) rethrow;
+    }
+  }
 
   @override
   Future<ArchivedValidatedReplay> archive({

@@ -224,6 +224,13 @@ On accepted run:
    destination generation preconditions. The accepted handoff records both
    source and sealed-artifact lineage in the run session; a pre-handoff copy
    left behind by a crashed worker is verified and reused on retry.
+   Archive creation checks account-deletion state and validation-lease expiry.
+   If deletion blocks the handoff, the copied generation is discarded using
+   `ifGenerationMatch`. Deletion retains live-validator run IDs until lease
+   expiry so a crash or failed compensation remains owned by the erasure
+   worker. Lease acquisition itself is tombstone-fenced. Missing-record errors
+   and exceptions from rejection/retry handlers are also classified as
+   deletion-owned work; see [account deletion](account_deletion_workflow.md).
 2. Atomically persist `validated_runs/<runSessionId>`, update the matching
    `reward_grants/<runSessionId>` to `settlement_pending`, and update the run
    session to `settlement_pending` with

@@ -117,6 +117,14 @@
       ]
     },
     {
+      "collectionGroup": "account_deletion_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "expiresAtMs", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "ghost_manifests",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

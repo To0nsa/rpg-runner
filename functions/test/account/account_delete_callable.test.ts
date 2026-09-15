@@ -394,6 +394,7 @@ test("repair scan reports bounded backlog health without account identifiers", a
     processedCount: 1,
     retryableCount: 0,
     completedRecordDeletes: 0,
+    expiredCompletionPageSaturated: false,
     retryableBacklogCount: 1,
     oldestActiveAgeMs: 7 * 60 * 60 * 1000,
     oldestActiveStage: "disable_auth",
@@ -431,15 +432,105 @@ test("completed tombstone inventory reports malformed retention evidence", async
     maxRequests: 10,
   });
 
-  assert.equal(result.completedInventoryScannedCount, 2);
+  assert.equal(result.completedInventoryScannedCount, 1);
   assert.equal(result.completedMissingExpiryCount, 1);
-  assert.equal(result.expiredCompletionEvidenceCount, 1);
+  assert.equal(result.expiredCompletionEvidenceCount, 0);
   assert.equal(result.nonMinimalCompletionCount, 1);
   assert.equal(
     (await db.collection("account_deletion_requests").doc("uid_expired").get())
       .exists,
     false,
   );
+});
+
+test("deletion repairs orphaned top10 entries without invalidating unrelated boards", async () => {
+  const uid = "uid_orphaned_view";
+  const board = db.collection("leaderboard_boards").doc("board_orphan");
+  const keepBoard = db.collection("leaderboard_boards").doc("board_keep_view");
+  await Promise.all([
+    board.set({ boardId: board.id }),
+    board.collection("views").doc("top10").set({
+      entries: [{ uid, displayName: "Deleted Player" }],
+    }),
+    keepBoard.set({ boardId: keepBoard.id }),
+    keepBoard.collection("views").doc("top10").set({ entries: [{ uid: "uid_keep" }] }),
+    db.collection("account_deletion_requests").doc(uid).set({
+      state: "in_progress", stage: "board_player_bests", requestedAtMs: requestNowMs,
+      pass: 3, finalPass: true, passDeletedCount: 0, deleted: {},
+    }),
+  ]);
+  const result = await drainDeletion({
+    db, uid, nowMs: afterUploadLeaseMs,
+    dependencies: deletionDependencies(new InMemoryAccountDeletionAuth()),
+  });
+  assert.equal(result.status, "deleted");
+  assert.equal((await board.collection("views").doc("top10").get()).exists, false);
+  assert.equal((await keepBoard.collection("views").doc("top10").get()).exists, true);
+});
+
+test("deletion retains live validator run IDs and erases a late archive after lease expiry", async () => {
+  const uid = "uid_live_validator";
+  const run = db.collection("run_sessions").doc("run_late_archive");
+  const artifacts = new InMemoryReplayArtifactStore();
+  const dependencies = deletionDependencies(new InMemoryAccountDeletionAuth(), artifacts);
+  await run.set({ uid, state: "validating", validationLeaseExpiresAtMs: afterUploadLeaseMs });
+  await db.collection("account_deletion_requests").doc(uid).set({
+    state: "in_progress", stage: "run_sessions", requestedAtMs: requestNowMs,
+    pass: 1, finalPass: false, passDeletedCount: 0, deleted: {},
+  });
+  const deferred = await processAccountDeletion({ db, uid, nowMs: requestNowMs + 1, dependencies });
+  assert.equal(deferred.stage, "run_sessions");
+  assert.equal((await run.get()).exists, true);
+  // Copy succeeded but the validator crashed before its Firestore handoff.
+  const path = "replay-submissions/validated/run_late_archive.bin.gz";
+  artifacts.add(path);
+  const result = await drainDeletion({ db, uid, nowMs: afterUploadLeaseMs, dependencies });
+  assert.equal(result.status, "deleted");
+  assert.equal((await run.get()).exists, false);
+  assert.equal(artifacts.hasObject(path), false);
+});
+
+test("one-minute repair ticks complete a populated multi-board fixture within the alert budget", async () => {
+  const uid = "uid_cadence";
+  const artifacts = new InMemoryReplayArtifactStore();
+  const dependencies = deletionDependencies(new InMemoryAccountDeletionAuth(), artifacts);
+  await seedLargeAccount({ db, uid, otherUid: "uid_keep", artifacts });
+  await Promise.all(["board_2", "board_3"].map((boardId) =>
+    db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+  ));
+  await requestAccountDeletion({ db, uid, nowMs: requestNowMs, dependencies });
+  let nowMs = requestNowMs;
+  let result;
+  for (let tick = 0; tick < 400; tick += 1) {
+    nowMs += 60_000;
+    result = await processAccountDeletion({ db, uid, nowMs, dependencies });
+    if (result.status === "deleted") break;
+  }
+  assert.equal(result?.status, "deleted");
+  assert.ok(nowMs - requestNowMs < 12 * 60 * 60 * 1000);
+  assert.ok(nowMs - requestNowMs >= 15 * 60 * 1000);
+});
+
+test("expired completion pages report saturation and drain oldest first without active-record obstruction", async () => {
+  const nowMs = afterUploadLeaseMs;
+  await Promise.all(Array.from({ length: 11 }, (_, index) =>
+    db.collection("account_deletion_requests").doc(`expired_${index}`).set({
+      state: "complete", requestedAtMs: requestNowMs, completedAtMs: requestNowMs,
+      expiresAtMs: nowMs - 11 + index,
+    }),
+  ));
+  const auth = new InMemoryAccountDeletionAuth();
+  await db.collection("account_deletion_requests").doc("active_bad_expiry").set({
+    state: "requested", stage: "disable_auth", requestedAtMs: requestNowMs, expiresAtMs: 1,
+  });
+  const first = await processPendingAccountDeletions({ db, nowMs, dependencies: deletionDependencies(auth) });
+  assert.equal(first.completedRecordDeletes, 10);
+  assert.equal(first.expiredCompletionPageSaturated, true);
+  assert.equal((await db.collection("account_deletion_requests").doc("expired_10").get()).exists, true);
+  const second = await processPendingAccountDeletions({ db, nowMs: nowMs + 60_000, dependencies: deletionDependencies(auth) });
+  assert.equal(second.completedRecordDeletes, 1);
+  assert.equal(second.expiredCompletionPageSaturated, false);
+  assert.equal((await db.collection("account_deletion_requests").doc("active_bad_expiry").get()).exists, true);
 });
 
 test("failure after every deletion stage replays from its durable checkpoint", async () => {

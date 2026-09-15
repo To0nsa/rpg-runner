@@ -6,6 +6,7 @@ import {
   FieldValue,
   type DocumentReference,
   type Firestore,
+  type QueryDocumentSnapshot,
 } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import * as logger from "firebase-functions/logger";
@@ -38,7 +39,7 @@ const ghostArtifactPathPrefix = "ghosts";
 
 const signedUploadQuietPeriodMs = 15 * 60 * 1000;
 /**
- * Maximum lifetime of compact completion evidence: 30 days in milliseconds.
+ * Expiry deadline for compact completion evidence: 30 days in milliseconds.
  *
  * The retained document contains only terminal status and request, completion,
  * and expiry times; gameplay data and workflow diagnostics are removed.
@@ -121,6 +122,7 @@ export interface AccountDeletionRepairResult {
   processedCount: number;
   retryableCount: number;
   completedRecordDeletes: number;
+  expiredCompletionPageSaturated: boolean;
   retryableBacklogCount: number;
   oldestActiveAgeMs: number;
   oldestActiveStage: AccountDeletionStage | null;
@@ -353,25 +355,26 @@ export async function processPendingAccountDeletions(args: {
     throw new Error("maxRequests must be an integer between 1 and 100.");
   }
 
-  const completedInventory = await inspectCompletedTombstones({
-    db: args.db,
-    nowMs,
-    pageSize: maxRequests,
-  });
-
   const expired = await args.db
     .collection(accountDeletionRequestsCollection)
+    .where("state", "==", "complete")
     .where("expiresAtMs", "<=", nowMs)
-    .limit(maxRequests)
+    .orderBy("expiresAtMs")
+    .limit(maxRequests + 1)
     .get();
   let completedRecordDeletes = 0;
-  for (const doc of expired.docs) {
+  for (const doc of expired.docs.slice(0, maxRequests)) {
     const data = doc.data() as AccountDeletionRequestDocument | undefined;
     if (data?.state === "complete") {
       await doc.ref.delete();
       completedRecordDeletes += 1;
     }
   }
+  const completedInventory = await inspectCompletedTombstones({
+    db: args.db,
+    nowMs,
+    pageSize: maxRequests,
+  });
 
   const pending = await args.db
     .collection(accountDeletionRequestsCollection)
@@ -425,6 +428,7 @@ export async function processPendingAccountDeletions(args: {
     processedCount,
     retryableCount,
     completedRecordDeletes,
+    expiredCompletionPageSaturated: expired.size > maxRequests,
     retryableBacklogCount,
     oldestActiveAgeMs,
     oldestActiveStage,
@@ -751,6 +755,7 @@ async function deleteSimpleUidPage(args: {
 async function deleteRunDocumentPage(args: {
   db: Firestore;
   deletion: AcquiredDeletion;
+  nowMs: number;
   pageSize: number;
   dependencies?: AccountDeletionDependencies;
   collection: string;
@@ -763,6 +768,10 @@ async function deleteRunDocumentPage(args: {
     uidField: "uid",
     uid: args.deletion.uid,
     pageSize: args.pageSize,
+    shouldDefer: (doc) =>
+      args.collection === runSessionsCollection &&
+      doc.get("state") === "validating" &&
+      readNonNegativeInteger(doc.get("validationLeaseExpiresAtMs")) > args.nowMs,
     beforeDelete: async (doc) => {
       const deletedArtifact =
         await replayArtifactStore.deleteObjectIfExists({
@@ -773,7 +782,7 @@ async function deleteRunDocumentPage(args: {
       };
     },
   });
-  return repeatedQueryOutcome({
+  const outcome = repeatedQueryOutcome({
     currentStage: args.deletion.stage,
     deletedCount: deleted.documentCount,
     counters: {
@@ -782,6 +791,12 @@ async function deleteRunDocumentPage(args: {
         deleted.validatedReplayObjectDeletes,
     },
   });
+  // Preserve run IDs until live validators finish or their leases expire.
+  // A crashed validator's uncommitted archive is then still discoverable.
+  if (deleted.deferredCount > 0) {
+    outcome.stage = args.deletion.stage;
+  }
+  return outcome;
 }
 
 async function deleteNestedPage(args: {
@@ -875,39 +890,54 @@ async function deleteBoardPlayerBestPage(args: {
   if (!board) {
     return { stage: "pending_replay_artifacts", boardCursor: null };
   }
-  const refs = new Map<string, DocumentReference>();
-  const directRef = board
-    .collection(playerBestsCollection)
-    .doc(args.deletion.uid);
-  const direct = await directRef.get();
-  if (direct.exists) {
-    refs.set(directRef.path, directRef);
-  }
-  const query = await board
-    .collection(playerBestsCollection)
-    .where("uid", "==", args.deletion.uid)
-    .limit(args.pageSize)
-    .get();
-  for (const doc of query.docs) {
-    refs.set(doc.ref.path, doc.ref);
-  }
-  if (refs.size === 0) {
-    return { stage: "board_player_bests", boardCursor: board.id };
-  }
-  await Promise.all([...refs.values()].map((ref) => ref.delete()));
-  const top10Ref = board.collection(boardViewsCollection).doc(top10ViewDocId);
-  const top10 = await top10Ref.get();
-  if (top10.exists) {
-    await top10Ref.delete();
-  }
-  return {
-    stage: "board_player_bests",
-    boardCursor: args.deletion.boardCursor,
-    counters: {
-      leaderboardPlayerBestDocs: refs.size,
-      invalidatedTop10ViewDocs: top10.exists ? 1 : 0,
-    },
-  };
+  return args.db.runTransaction(async (tx) => {
+    const refs = new Map<string, DocumentReference>();
+    const directRef = board
+      .collection(playerBestsCollection)
+      .doc(args.deletion.uid);
+    const direct = await tx.get(directRef);
+    if (direct.exists) {
+      refs.set(directRef.path, directRef);
+    }
+    const query = await tx.get(
+      board
+        .collection(playerBestsCollection)
+        .where("uid", "==", args.deletion.uid)
+        .limit(Math.min(args.pageSize, 498)),
+    );
+    for (const doc of query.docs) {
+      refs.set(doc.ref.path, doc.ref);
+    }
+    const top10Ref = board.collection(boardViewsCollection).doc(top10ViewDocId);
+    const top10 = await tx.get(top10Ref);
+    const entries: unknown = top10.get("entries");
+    const containsDeletedPlayer = Array.isArray(entries) && entries.some(
+      (entry: unknown) =>
+        entry !== null &&
+        typeof entry === "object" &&
+        (entry as { uid?: unknown }).uid === args.deletion.uid,
+    );
+    const invalidateTop10 =
+      top10.exists && (refs.size > 0 || containsDeletedPlayer);
+    if (refs.size === 0 && !invalidateTop10) {
+      return { stage: "board_player_bests", boardCursor: board.id };
+    }
+    // Invalidate atomically with the last best entry; also repair legacy orphans.
+    for (const ref of refs.values()) {
+      tx.delete(ref);
+    }
+    if (invalidateTop10) {
+      tx.delete(top10Ref);
+    }
+    return {
+      stage: "board_player_bests",
+      boardCursor: args.deletion.boardCursor,
+      counters: {
+        leaderboardPlayerBestDocs: refs.size,
+        invalidatedTop10ViewDocs: invalidateTop10 ? 1 : 0,
+      },
+    };
+  });
 }
 
 async function deletePendingReplayArtifactPage(args: {
@@ -957,11 +987,13 @@ async function deleteQueryPage(args: {
   uidField: string;
   uid: string;
   pageSize: number;
+  shouldDefer?: (doc: QueryDocumentSnapshot) => boolean;
   beforeDelete?: (
     doc: FirebaseFirestore.QueryDocumentSnapshot,
   ) => Promise<Partial<AccountDeletionCounters> | void>;
 }): Promise<{
   documentCount: number;
+  deferredCount: number;
   ghostArtifactObjectDeletes: number;
   validatedReplayObjectDeletes: number;
 }> {
@@ -973,16 +1005,24 @@ async function deleteQueryPage(args: {
     .get();
   let ghostArtifactObjectDeletes = 0;
   let validatedReplayObjectDeletes = 0;
+  let deferredCount = 0;
+  let documentCount = 0;
   for (const doc of snapshot.docs) {
+    if (args.shouldDefer?.(doc)) {
+      deferredCount += 1;
+      continue;
+    }
     const before = await args.beforeDelete?.(doc);
     ghostArtifactObjectDeletes +=
       before?.ghostArtifactObjectDeletes ?? 0;
     validatedReplayObjectDeletes +=
       before?.validatedReplayObjectDeletes ?? 0;
     await doc.ref.delete();
+    documentCount += 1;
   }
   return {
-    documentCount: snapshot.size,
+    documentCount,
+    deferredCount,
     ghostArtifactObjectDeletes,
     validatedReplayObjectDeletes,
   };

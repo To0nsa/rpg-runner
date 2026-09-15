@@ -9,16 +9,75 @@ import 'package:run_protocol/validated_run.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/src/firestore_value_codec.dart';
+import 'package:replay_validator/src/account_deletion_fence.dart';
 import 'package:replay_validator/src/google_api_helpers.dart';
 import 'package:replay_validator/src/run_session_repository.dart';
 
 void main() {
+  test('deletion blocks new validator leases and accepted handoffs before reading erased records', () async {
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      if (request.method == 'GET' &&
+          request.url.path.contains('/account_deletion_requests/')) {
+        return _jsonResponse({
+          'name': 'projects/test-project/databases/(default)/documents/account_deletion_requests/uid_1',
+        });
+      }
+      final fence = _deletionFenceResponse(request);
+      if (fence != null) return fence;
+      if (request.method == 'GET' &&
+          request.url.path.contains('/run_sessions/')) {
+        return _jsonResponse(
+          _runSessionDocument(
+            state: 'pending_validation',
+            validationAttempt: 1,
+          ).toJson(),
+        );
+      }
+      fail('Unexpected ${request.method} ${request.url}');
+    });
+    final repository = FirestoreRunSessionRepository(
+      projectId: 'test-project',
+      apiProvider: _TestApiProvider(firestore.FirestoreApi(client)),
+      clockMs: () => 5000,
+    );
+    final lease = await repository.acquireValidationLease(
+      runSessionId: 'run_repo_test',
+    );
+    expect(lease.status, RunSessionLeaseStatus.alreadyTerminal);
+    expect(
+      requests.where(
+        (request) => request.url.path.endsWith('/documents:commit'),
+      ),
+      isEmpty,
+    );
+    requests.clear();
+    await expectLater(
+      repository.handoffAcceptedRunForSettlement(
+        validatedRun: _acceptedRun(),
+        validationLeaseToken: 'current-token',
+      ),
+      throwsA(isA<AccountDeletionInProgressException>()),
+    );
+    expect(
+      requests.where(
+        (request) =>
+            request.url.path.contains('/run_sessions/') ||
+            request.url.path.contains('/reward_grants/'),
+      ),
+      isEmpty,
+    );
+  });
+
   test(
     'acquire preserves grace start and writes a fenced expiring lease',
     () async {
       final requests = <http.Request>[];
       final client = MockClient((request) async {
         requests.add(request);
+        final deletionFence = _deletionFenceResponse(request);
+        if (deletionFence != null) return deletionFence;
         if (request.method == 'GET') {
           return _jsonResponse(
             _runSessionDocument(
@@ -28,7 +87,8 @@ void main() {
             ).toJson(),
           );
         }
-        if (request.method == 'PATCH') {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/documents:commit')) {
           return _jsonResponse(
             _runSessionDocument(
               state: 'validating',
@@ -58,10 +118,10 @@ void main() {
       expect(result.session?.internalErrorFirstAtMs, 1234);
       expect(result.session?.validationLease?.token, 'fixed-token');
       expect(result.session?.validationLease?.expiresAtMs, 15000);
-      expect(requests, hasLength(2));
+      expect(requests, hasLength(4));
       final patch = jsonDecode(requests.last.body) as Map<String, Object?>;
       final fields = decodeFirestoreFields(
-        firestore.Document.fromJson(patch).fields,
+        firestore.CommitRequest.fromJson(patch).writes!.single.update!.fields,
       );
       expect(fields['state'], 'validating');
       expect(fields['validationLeaseToken'], 'fixed-token');
@@ -76,6 +136,8 @@ void main() {
       var patchAttempts = 0;
       final client = MockClient((request) async {
         requests.add(request);
+        final deletionFence = _deletionFenceResponse(request);
+        if (deletionFence != null) return deletionFence;
         if (request.method == 'GET') {
           return _jsonResponse(
             _runSessionDocument(
@@ -84,7 +146,8 @@ void main() {
             ).toJson(),
           );
         }
-        if (request.method == 'PATCH') {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/documents:commit')) {
           patchAttempts += 1;
           if (patchAttempts == 1) {
             return _failedPreconditionResponse();
@@ -113,7 +176,7 @@ void main() {
 
       expect(result.status, RunSessionLeaseStatus.acquired);
       expect(result.session?.validationAttempt, 2);
-      expect(requests, hasLength(4));
+      expect(requests, hasLength(8));
     },
   );
 
@@ -121,6 +184,8 @@ void main() {
     final requests = <http.Request>[];
     final client = MockClient((request) async {
       requests.add(request);
+      final deletionFence = _deletionFenceResponse(request);
+      if (deletionFence != null) return deletionFence;
       if (request.method == 'GET') {
         return _jsonResponse(
           _runSessionDocument(
@@ -129,7 +194,8 @@ void main() {
           ).toJson(),
         );
       }
-      if (request.method == 'PATCH') {
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/documents:commit')) {
         return _failedPreconditionResponse();
       }
       fail('Unexpected ${request.method} ${request.url}');
@@ -147,13 +213,15 @@ void main() {
 
     expect(result.status, RunSessionLeaseStatus.alreadyValidating);
     expect(result.message, contains('after 2 immediate attempts'));
-    expect(requests, hasLength(4));
+    expect(requests, hasLength(8));
   });
 
   test('expired validating lease is reclaimed with a new token', () async {
     final requests = <http.Request>[];
     final client = MockClient((request) async {
       requests.add(request);
+      final deletionFence = _deletionFenceResponse(request);
+      if (deletionFence != null) return deletionFence;
       if (request.method == 'GET') {
         return _jsonResponse(
           _runSessionDocument(
@@ -189,7 +257,7 @@ void main() {
     expect(result.session?.validationAttempt, 3);
     expect(result.session?.validationLease?.token, 'replacement-token');
     expect(result.message, contains('reclaimed'));
-    expect(requests, hasLength(2));
+    expect(requests, hasLength(4));
   });
 
   test(
@@ -198,6 +266,8 @@ void main() {
       final requests = <http.Request>[];
       final client = MockClient((request) async {
         requests.add(request);
+        final deletionFence = _deletionFenceResponse(request);
+        if (deletionFence != null) return deletionFence;
         return _jsonResponse(
           _runSessionDocument(
             state: 'validating',
@@ -227,6 +297,8 @@ void main() {
     final requests = <http.Request>[];
     final client = MockClient((request) async {
       requests.add(request);
+      final deletionFence = _deletionFenceResponse(request);
+      if (deletionFence != null) return deletionFence;
       return _jsonResponse(
         _runSessionDocument(
           state: 'validating',
@@ -453,7 +525,7 @@ void main() {
         validationLeaseToken: 'current-token',
       );
 
-      expect(requests, hasLength(5));
+      expect(requests, hasLength(8));
       final commit = firestore.CommitRequest.fromJson(
         jsonDecode(requests.last.body) as Map<String, Object?>,
       );
@@ -600,6 +672,10 @@ _TestApiProvider _handoffConflictApiProvider() {
 
 http.Response? _deletionFenceResponse(http.Request request) {
   if (request.method == 'POST' &&
+      request.url.path.endsWith('/documents:rollback')) {
+    return _jsonResponse(<String, Object?>{});
+  }
+  if (request.method == 'POST' &&
       request.url.path.endsWith('/documents:beginTransaction')) {
     return _jsonResponse(<String, Object?>{
       'transaction': 'deletion-fence-transaction',
@@ -642,8 +718,7 @@ firestore.Document _runSessionDocument({
     singleUseNonce: 'nonce',
   );
   return firestore.Document(
-    name:
-        'projects/test-project/databases/(default)/documents/run_sessions/run_repo_test',
+    name: 'projects/test-project/databases/(default)/documents/run_sessions/run_repo_test',
     updateTime: '2026-07-18T00:00:00.000000Z',
     fields: encodeFirestoreFields(<String, Object?>{
       'runSessionId': 'run_repo_test',
@@ -669,8 +744,7 @@ firestore.Document _runSessionDocument({
 
 firestore.Document _rewardGrantDocument() {
   return firestore.Document(
-    name:
-        'projects/test-project/databases/(default)/documents/reward_grants/run_repo_test',
+    name: 'projects/test-project/databases/(default)/documents/reward_grants/run_repo_test',
     updateTime: '2026-07-18T00:00:00.000000Z',
     fields: encodeFirestoreFields(<String, Object?>{
       'runSessionId': 'run_repo_test',
