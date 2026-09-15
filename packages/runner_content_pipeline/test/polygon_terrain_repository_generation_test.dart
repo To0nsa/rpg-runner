@@ -9,7 +9,7 @@ void main() {
       chunkInputs: <PolygonTerrainRepositoryChunkInput>[
         const PolygonTerrainRepositoryChunkInput(
           sourcePath: 'assets/authoring/level/chunks/forest/empty.json',
-          contents: _emptyChunk,
+          contents: _flatChunk,
         ),
       ],
       levels: <PolygonTerrainSchedulerLevelSource>[_level()],
@@ -19,10 +19,10 @@ void main() {
     expect(result.issues, isEmpty);
     expect(result.validatedBatch, isNotNull);
     expect(result.chunks, hasLength(1));
-    expect(result.chunks.single.compiled.geometry.polygons, isEmpty);
+    expect(result.chunks.single.compiled.geometry.polygons, hasLength(1));
     expect(
       result.validatedBatch!.seamSignature.canonicalRecord,
-      'authoring-seams-v1\nforest|steady-hard:tier=hard>hard|empty>empty',
+      contains('connections-v1:automatic:'),
     );
   });
 
@@ -47,10 +47,10 @@ void main() {
     );
 
     expect(result.validatedBatch, isNull);
-    expect(result.chunks, isEmpty);
+    expect(result.chunks, hasLength(2));
     expect(
       result.issues.map((issue) => issue.code),
-      contains('staged_reachable_seam_mismatch'),
+      contains('terrain_connection_schedule_dead_end'),
     );
   });
 
@@ -71,7 +71,7 @@ void main() {
     expect(result.issues, isEmpty);
     expect(result.validatedBatch, isNotNull);
     expect(result.chunks, hasLength(1));
-    expect(result.chunks.single.compiled.geometry.polygons, hasLength(1));
+    expect(result.chunks.single.compiled.geometry.polygons, hasLength(2));
   });
 
   test(
@@ -93,7 +93,7 @@ void main() {
       expect(included.validatedBatch, isNull);
       expect(
         included.issues.map((issue) => issue.code),
-        contains('staged_reachable_seam_mismatch'),
+        contains('terrain_connection_schedule_dead_end'),
       );
     },
   );
@@ -127,7 +127,7 @@ void main() {
     () {
       final result = _experiment(
         included: false,
-        extraChunk: _emptyChunk
+        extraChunk: _flatChunk
             .replaceAll('"empty"', '"deprecated"')
             .replaceFirst('"forest"', '"field"')
             .replaceFirst('"active"', '"deprecated"'),
@@ -142,15 +142,18 @@ void main() {
         chunkInputs: <PolygonTerrainRepositoryChunkInput>[
           PolygonTerrainRepositoryChunkInput(
             sourcePath: 'assets/authoring/level/chunks/forest/empty.json',
-            contents: _emptyChunk.replaceFirst('"active"', '"deprecated"'),
+            contents: _flatChunk.replaceFirst('"active"', '"deprecated"'),
           ),
         ],
         levels: <PolygonTerrainSchedulerLevelSource>[_level()],
         schedulerSourcePath: 'assets/authoring/level/level_defs.json',
       );
-      expect(empty.issues, isEmpty);
+      expect(
+        empty.issues.map((issue) => issue.code),
+        contains('terrain_connection_schedule_dead_end'),
+      );
       expect(empty.chunks, hasLength(1));
-      expect(empty.validatedBatch!.chunks, isEmpty);
+      expect(empty.validatedBatch, isNull);
     },
   );
 }
@@ -165,7 +168,7 @@ PolygonTerrainRepositoryGenerationResult _experiment({
   chunkInputs: <PolygonTerrainRepositoryChunkInput>[
     PolygonTerrainRepositoryChunkInput(
       sourcePath: 'assets/authoring/level/chunks/field/empty.json',
-      contents: _emptyChunk.replaceFirst('"forest"', '"field"'),
+      contents: _flatChunk.replaceFirst('"forest"', '"field"'),
     ),
     PolygonTerrainRepositoryChunkInput(
       sourcePath: 'assets/authoring/level/chunks/forest/early.json',
@@ -184,12 +187,16 @@ PolygonTerrainRepositoryGenerationResult _experiment({
   levels: <PolygonTerrainSchedulerLevelSource>[
     const PolygonTerrainSchedulerLevelSource(
       levelId: 'field',
+      groundTopY: 40,
+      spawnX: 80,
       earlyPatternChunks: 0,
       easyPatternChunks: 0,
       normalPatternChunks: 0,
     ),
     PolygonTerrainSchedulerLevelSource(
       levelId: 'forest',
+      groundTopY: 40,
+      spawnX: 80,
       earlyPatternChunks: 1,
       easyPatternChunks: 1,
       normalPatternChunks: 0,
@@ -202,6 +209,8 @@ PolygonTerrainRepositoryGenerationResult _experiment({
 PolygonTerrainSchedulerLevelSource _level({int earlyPatternChunks = 0}) =>
     PolygonTerrainSchedulerLevelSource(
       levelId: 'forest',
+      groundTopY: 40,
+      spawnX: 80,
       earlyPatternChunks: earlyPatternChunks,
       easyPatternChunks: 0,
       normalPatternChunks: 0,
@@ -215,7 +224,7 @@ const String _emptyPrefabs = '''
 }
 ''';
 
-const String _emptyChunk = '''
+const String _flatChunk = '''
 {
   "schemaVersion": 2,
   "chunkKey": "empty",
@@ -232,7 +241,7 @@ const String _emptyChunk = '''
   "tileLayers": [],
   "prefabs": [],
   "markers": [],
-  "collisionShapes": []
+  "collisionShapes": [{"shapeId":"ground", "collisionMode":"solid", "vertices":[{"x":0,"y":40},{"x":100,"y":40},{"x":100,"y":100},{"x":0,"y":100}]}]
 }
 ''';
 
@@ -306,14 +315,14 @@ const String _internalSlopeChunk = '''
   "tileLayers": [],
   "prefabs": [],
   "markers": [],
-  "collisionShapes": [
+  "collisionShapes": [{"shapeId":"ground", "collisionMode":"solid", "vertices":[{"x":0,"y":40},{"x":100,"y":40},{"x":100,"y":100},{"x":0,"y":100}]},
     {
       "shapeId": "slope",
       "vertices": [
-        {"x": 20, "y": 40},
-        {"x": 60, "y": 60},
-        {"x": 60, "y": 80},
-        {"x": 20, "y": 80}
+        {"x": 20, "y": 20},
+        {"x": 60, "y": 30},
+        {"x": 60, "y": 40},
+        {"x": 20, "y": 40}
       ],
       "collisionMode": "solid"
     }

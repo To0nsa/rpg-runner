@@ -311,6 +311,18 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
       );
     }
 
+    if (level.terrainHeightStepPx < 1 || level.terrainHeightStepPx > 32) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_terrain_height_step',
+          ownerKey: level.levelId,
+          fieldKey: 'terrainHeightStepPx',
+          message:
+              'Terrain height step must be a whole number from 1 to 32 px.',
+        ),
+      );
+    }
     if (!level.groundTopY.isFinite) {
       issues.add(
         ValidationIssue(

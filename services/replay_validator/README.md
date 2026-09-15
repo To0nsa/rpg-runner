@@ -60,17 +60,18 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The current validator build accepts game compatibility `2026.08.0` and the
-draining `2026.03.0`; replay/command format `1`, `rules-v2`, `score-v1`, and
-`ghost-v1` are the supported ranked tuple. `rules-v2` owns capsule target
-narrow-phase combat. The retired `rules-v1` is rejected because this repository
-does not ship a historical AABB-combat simulator beside current Core.
+The current validator build accepts game compatibility `2026.09.0`;
+replay/command format `1`, `rules-v2`, `score-v1`, and `ghost-v1` remain the
+supported ranked tuple. Connection-aware selection changes seeded terrain, so
+`2026.03.0` and `2026.08.0` are rejected before replay. This build does not ship
+a historical selector or the retired `rules-v1` combat simulator.
 
-Do not deploy this hard-cutover validator until ranked `rules-v1` issuance is
-paused, every issued/pending session and validation task is drained or
-explicitly closed, and the matching Functions/client build is ready. Remove
-the draining game-compatibility label only in a separate deployment after its
-own 24-hour issuance drain and active-session audit.
+Use the [connection compatibility drain-and-switch policy](../../docs/tdd/chunk_connections.md#compatibility-release).
+Pause old issuance, keep the old worker serving its existing queue for the ticket
+lifetime plus clock skew, and pass the compatibility-retirement audit before
+switching the matching worker, generated content, Functions and client release.
+Remove stale supported-version environment overrides. Old labels must never be
+accepted against the new Core selector.
 
 ## Build Container Image
 
@@ -103,10 +104,9 @@ firebase deploy --project rpg-runner-d7add `
 ```
 
 Then run the checked-in service/queue policy from the repository root.
-For the Phase 7 compatibility cutover in an environment where those paired
-surfaces are already deployed, deploy the dual-compatible validator before the
-Functions/client revision that can issue `2026.08.0`; this guarantees every
-new ticket is accepted from its first issuance:
+For the connection compatibility cutover, complete the drain above first. Deploy
+the matching `2026.09.0` worker and Functions configuration before enabling new
+client issuance. This repository implementation does not deploy those services.
 
 ```powershell
 .\services\replay_validator\configure_cloud.ps1 `

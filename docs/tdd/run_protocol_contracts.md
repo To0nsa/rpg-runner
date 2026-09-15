@@ -87,12 +87,13 @@ snapshot/digest, and compatibility tuple. The validator recomputes the loadout
 digest and compares canonical JSON snapshots rather than trusting client
 claims.
 
-The polygon-terrain cutover is issued as game compatibility `2026.08.0`.
-During its bounded rollout, Functions and the validator also accept draining
-`2026.03.0` tickets for at most the existing 24-hour ticket lifetime. Both
-labels use the current Core; compatibility acceptance never selects a terrain
-implementation. Practice and ranked creation reject any version outside the
-backend allowlist before a run-session document is issued.
+Connection-aware terrain selection is issued as game compatibility `2026.09.0`.
+The default Functions allowlist and worker accept only that release. Old tickets
+must drain on the old worker before switching; compatibility labels do not select
+historical Core implementations. Replay and command encoding remain version 1.
+See the [drain-and-switch policy](chunk_connections.md#compatibility-release).
+Practice and ranked creation reject versions outside the backend allowlist before
+a run-session document is issued.
 
 Managed ranked-board IDs bind mode, level, window, ruleset, score, game
 compatibility, and ghost version. This permits old and new compatibility

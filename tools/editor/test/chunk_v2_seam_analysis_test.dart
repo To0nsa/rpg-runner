@@ -5,9 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
-import 'package:runner_core/levels/level_assembly.dart' as core_level;
-import 'package:runner_core/track/chunk_pattern.dart' as core_track;
-import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
@@ -214,91 +211,89 @@ void main() {
   });
 
   group('reachable scheduler transitions', () {
-    test(
-      'enumerates tier fallback, tier boundaries, both orders, and hard tail',
-      () {
-        final chunks = <ChunkV2FileData>[
-          _chunk('early_a', difficulty: chunkDifficultyEarly),
-          _chunk('early_b', difficulty: chunkDifficultyEarly),
-          _chunk('easy', difficulty: chunkDifficultyEasy),
-          _chunk('normal', difficulty: chunkDifficultyNormal),
-          _chunk(
-            'deprecated_hard',
-            difficulty: chunkDifficultyHard,
-            status: chunkStatusDeprecated,
-          ),
-        ];
-        final analysis = analyzeChunkV2Seams(
-          chunks: chunks,
-          levels: <LevelDef>[_level(early: 2, easy: 1, normal: 0)],
-          collisionExpansionByChunkKey: _flatExpansions(chunks),
-        );
+    test('enumerates tier fallback, tier boundaries, both orders, and hard tail', () {
+      final chunks = <ChunkV2FileData>[
+        _chunk('early_a', difficulty: chunkDifficultyEarly),
+        _chunk('early_b', difficulty: chunkDifficultyEarly),
+        _chunk('easy', difficulty: chunkDifficultyEasy),
+        _chunk('normal', difficulty: chunkDifficultyNormal),
+        _chunk(
+          'deprecated_hard',
+          difficulty: chunkDifficultyHard,
+          status: chunkStatusDeprecated,
+        ),
+      ];
+      final analysis = analyzeChunkV2Seams(
+        chunks: chunks,
+        levels: <LevelDef>[_level(early: 2, easy: 1, normal: 0)],
+        collisionExpansionByChunkKey: _flatExpansions(chunks),
+      );
 
-        expect(analysis.issues, isEmpty);
-        expect(
-          analysis.transitions.map((item) => item.canonicalRecord),
-          containsAll(<String>[
-            'forest|tier=early:within-window|early_a>early_b',
-            'forest|tier=early:within-window|early_b>early_a',
-            'forest|tier=early>easy:boundary|early_a>easy',
-            'forest|tier=easy>hard:boundary|easy>normal',
-            'forest|steady-hard:tier=hard>hard|normal>normal',
-          ]),
+      expect(analysis.issues, isEmpty);
+      expect(
+        analysis.transitions.map(
+          (item) => '${item.leftChunkKey}>${item.rightChunkKey}',
+        ),
+        containsAll([
+          'early_a>early_b',
+          'early_b>early_a',
+          'early_a>easy',
+          'easy>normal',
+          'normal>normal',
+        ]),
+      );
+      expect(
+        analysis.transitions.any(
+          (item) => item.leftChunkKey == 'deprecated_hard',
+        ),
+        isFalse,
+      );
+      if (autoUpdateGoldenFiles) {
+        _sharedSeamGolden().writeAsStringSync(
+          '${const JsonEncoder.withIndent('  ').convert({
+            'format': 'authoring-seams-v1',
+            'transitions': [
+              for (final item in analysis.transitions) {'levelId': item.levelId, 'transitionId': item.transitionId, 'leftChunkKey': item.leftChunkKey, 'rightChunkKey': item.rightChunkKey},
+            ],
+            'reachableAdjacencyRecord': analysis.reachableAdjacencyRecord,
+            'reachableAdjacencyDigest': analysis.reachableAdjacencyDigest,
+          })}\n',
         );
-        expect(
-          analysis.transitions.any(
-            (item) => item.leftChunkKey == 'deprecated_hard',
-          ),
-          isFalse,
-        );
-        expect(analysis.reachableAdjacencyRecord, '''authoring-seams-v1
-forest|steady-hard:tier=hard>hard|normal>normal
-forest|tier=early:within-window|early_a>early_a
-forest|tier=early:within-window|early_a>early_b
-forest|tier=early:within-window|early_b>early_a
-forest|tier=early:within-window|early_b>early_b
-forest|tier=early>easy:boundary|early_a>easy
-forest|tier=early>easy:boundary|early_b>easy
-forest|tier=easy>hard:boundary|easy>normal''');
-        expect(
-          analysis.reachableAdjacencyDigest,
-          '9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b',
-        );
-        final golden =
-            jsonDecode(_sharedSeamGolden().readAsStringSync())
-                as Map<String, Object?>;
-        expect(
-          analysis.reachableAdjacencyRecord,
-          golden['reachableAdjacencyRecord'],
-        );
-        expect(
-          analysis.reachableAdjacencyDigest,
-          golden['reachableAdjacencyDigest'],
-        );
-        expect(
-          analysis.transitions.map((item) => item.canonicalRecord),
-          (golden['transitions']! as List<Object?>).map((item) {
-            final value = item! as Map<String, Object?>;
-            return '${value['levelId']}|${value['transitionId']}|'
-                '${value['leftChunkKey']}>${value['rightChunkKey']}';
-          }),
-        );
+      }
+      final golden = jsonDecode(
+        _sharedSeamGolden().readAsStringSync(),
+      ) as Map<String, Object?>;
+      expect(
+        analysis.reachableAdjacencyRecord,
+        golden['reachableAdjacencyRecord'],
+      );
+      expect(
+        analysis.reachableAdjacencyDigest,
+        golden['reachableAdjacencyDigest'],
+      );
+      expect(
+        analysis.transitions.map((item) => item.canonicalRecord),
+        (golden['transitions']! as List<Object?>).map((item) {
+          final value = item! as Map<String, Object?>;
+          return '${value['levelId']}|${value['transitionId']}|'
+              '${value['leftChunkKey']}>${value['rightChunkKey']}';
+        }),
+      );
 
-        final reversed = analyzeChunkV2Seams(
-          chunks: chunks.reversed,
-          levels: <LevelDef>[_level(early: 2, easy: 1, normal: 0)],
-          collisionExpansionByChunkKey: _flatExpansions(chunks.reversed),
-        );
-        expect(
-          reversed.reachableAdjacencyRecord,
-          analysis.reachableAdjacencyRecord,
-        );
-        expect(
-          reversed.reachableAdjacencyDigest,
-          analysis.reachableAdjacencyDigest,
-        );
-      },
-    );
+      final reversed = analyzeChunkV2Seams(
+        chunks: chunks.reversed,
+        levels: <LevelDef>[_level(early: 2, easy: 1, normal: 0)],
+        collisionExpansionByChunkKey: _flatExpansions(chunks.reversed),
+      );
+      expect(
+        reversed.reachableAdjacencyRecord,
+        analysis.reachableAdjacencyRecord,
+      );
+      expect(
+        reversed.reachableAdjacencyDigest,
+        analysis.reachableAdjacencyDigest,
+      );
+    });
 
     test('enumerates distinct within-runs and directed between-run pairs', () {
       final chunks = <ChunkV2FileData>[
@@ -381,60 +376,11 @@ forest|tier=easy>hard:boundary|easy>normal''');
       final structurallyReachable = analysis.transitions
           .map((item) => '${item.leftChunkKey}>${item.rightChunkKey}')
           .toSet();
-      final runtime = AssembledChunkPatternSource(
-        baseSource: const ChunkPatternListSource(
-          easyPatterns: <core_track.ChunkPattern>[],
-          normalPatterns: <core_track.ChunkPattern>[
-            core_track.ChunkPattern(
-              name: 'a',
-              chunkKey: 'a',
-              assemblyGroupId: 'grove',
-            ),
-            core_track.ChunkPattern(
-              name: 'b',
-              chunkKey: 'b',
-              assemblyGroupId: 'grove',
-            ),
-            core_track.ChunkPattern(
-              name: 'c',
-              chunkKey: 'c',
-              assemblyGroupId: 'ruins',
-            ),
-          ],
-        ),
-        assembly: const core_level.LevelAssemblyDefinition(
-          loopSegments: true,
-          segments: <core_level.LevelAssemblySegment>[
-            core_level.LevelAssemblySegment(
-              segmentId: 'grove_run',
-              groupId: 'grove',
-              minChunkCount: 1,
-              maxChunkCount: 2,
-              requireDistinctChunks: true,
-            ),
-            core_level.LevelAssemblySegment(
-              segmentId: 'ruins_run',
-              groupId: 'ruins',
-              minChunkCount: 1,
-              maxChunkCount: 1,
-              requireDistinctChunks: false,
-            ),
-          ],
-        ),
-      );
-
       for (var seed = 0; seed < 128; seed += 1) {
+        final runtime = analysis.schedules['forest']!.cursor(seed);
         final selected = <String>[];
         for (var index = 0; index < 32; index += 1) {
-          selected.add(
-            runtime
-                .patternFor(
-                  seed: seed,
-                  chunkIndex: index,
-                  tier: ChunkPatternTier.hard,
-                )
-                .chunkKey!,
-          );
+          selected.add(runtime.selectionFor(index).chunk.chunkKey);
         }
         for (var index = 0; index < selected.length - 1; index += 1) {
           expect(
@@ -462,15 +408,12 @@ forest|tier=easy>hard:boundary|easy>normal''');
       );
 
       final mismatch = analysis.issues.singleWhere(
-        (issue) => issue.code == 'chunk_v2_reachable_seam_mismatch',
+        (issue) => issue.code == 'terrain_connection_schedule_dead_end',
       );
       expect(mismatch.sourcePath, 'chunks/low.json');
       expect(mismatch.message, contains('forest'));
-      expect(mismatch.message, contains('low[right] -> high[left]'));
-      expect(mismatch.message, contains('40'));
-      expect(mismatch.message, contains('48'));
-      expect(mismatch.message, contains('Expected/right'));
-      expect(mismatch.message, contains('actual/left'));
+      expect(mismatch.message, contains('low'));
+      expect(mismatch.message, contains('continuation'));
     });
 
     test('global current validation blocks a reachable mismatch', () {
@@ -512,7 +455,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
 
       expect(
         issues.where(
-          (issue) => issue.code == 'chunk_v2_reachable_seam_mismatch',
+          (issue) => issue.code == 'terrain_connection_schedule_dead_end',
         ),
         hasLength(1),
       );
@@ -547,10 +490,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
         analysis.issues.map((issue) => issue.code),
         contains('chunk_v2_scheduler_analysis_capacity_exceeded'),
       );
-      expect(
-        analysis.transitions.map((item) => item.transitionId),
-        contains('steady-hard:segment=default_run>default_run:between-runs'),
-      );
+      expect(analysis.transitions.map((item) => item.transitionId), isEmpty);
     });
   });
 }
@@ -586,6 +526,7 @@ TerrainGeometry _emptyGeometry() =>
 TerrainGeometry _flatGeometry({
   required String chunkKey,
   required double topY,
+  double width = 100,
   String? surfaceKind,
   String? materialKey,
   TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
@@ -593,6 +534,7 @@ TerrainGeometry _flatGeometry({
   _flatInput(
     chunkKey: chunkKey,
     topY: topY,
+    width: width,
     surfaceKind: surfaceKind,
     materialKey: materialKey,
     collisionMode: collisionMode,
@@ -602,6 +544,7 @@ TerrainGeometry _flatGeometry({
 TerrainPolygonInput _flatInput({
   required String chunkKey,
   required double topY,
+  double width = 100,
   String? surfaceKind,
   String? materialKey,
   TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
@@ -612,7 +555,12 @@ TerrainPolygonInput _flatInput({
     chunkKey: chunkKey,
     shapeId: 'ground',
   ),
-  vertices: <(double, double)>[(0, topY), (100, topY), (100, 100), (0, 100)],
+  vertices: <(double, double)>[
+    (0, topY),
+    (width, topY),
+    (width, 100),
+    (0, 100),
+  ],
   surfaceKind: surfaceKind,
   materialKey: materialKey,
   collisionMode: collisionMode,
@@ -663,7 +611,7 @@ ChunkV2FileData _chunk(
   status: status,
   levelId: 'forest',
   tileSize: 16,
-  width: 100,
+  width: 600,
   height: 100,
   difficulty: difficulty,
   assemblyGroupId: groupId,
@@ -680,8 +628,8 @@ TerrainSourceShapeDef _sourceGround(String shapeId, int topY) =>
       shapeId: shapeId,
       vertices: <TerrainSourceVertexDef>[
         TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: topY * 2),
-        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: topY * 2),
-        const TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 200),
+        TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: topY * 2),
+        const TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: 200),
         const TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 200),
       ],
     );
@@ -722,9 +670,9 @@ ChunkV2CollisionExpansionResult _expansionResult(
 }) => ChunkV2CollisionExpansionResult(
   expansion: ChunkV2CollisionExpansion(
     chunkKey: chunkKey,
-    geometry: _flatGeometry(chunkKey: chunkKey, topY: topY),
+    geometry: _flatGeometry(chunkKey: chunkKey, topY: topY, width: 600),
     collisionInputs: <TerrainPolygonInput>[
-      _flatInput(chunkKey: chunkKey, topY: topY),
+      _flatInput(chunkKey: chunkKey, topY: topY, width: 600),
     ],
     directShapeCount: 1,
     expandedPrefabShapes: const [],

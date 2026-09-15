@@ -11,6 +11,7 @@ import '../terrain_materials/terrain_material_domain_models.dart';
 import '../terrain_materials/terrain_material_domain_plugin.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_store.dart';
+import 'chunk_connection_creation.dart';
 import 'chunk_level_target.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_collision_commit.dart';
@@ -37,6 +38,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   static const String pluginId = 'chunks';
 
   static const String createFlatStarterCommandKind = 'create_flat_starter';
+  static const String createConnectingChunkCommandKind =
+      'create_connecting_chunk';
 
   /// Current command for one accepted chunk-local polygon interaction commit.
   static const String commitChunkPolygonCommandKind = 'commit_chunk_polygon';
@@ -411,6 +414,44 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     ChunkV2Document document,
     AuthoringCommand command,
   ) {
+    if (command.kind == createConnectingChunkCommandKind) {
+      final intent = command.payload['intent'];
+      if (intent is! ChunkConnectionCreation) return document;
+      final chunk = buildConnectingChunk(document, intent);
+      if (document.chunks.any(
+        (owner) => owner.chunkKey.toLowerCase() == chunk.chunkKey.toLowerCase(),
+      )) {
+        throw const ChunkTargetException(
+          'connecting_chunk_key_collision',
+          'This chunk key is already in use. Choose a fresh key.',
+        );
+      }
+      final next = document.copyWith(
+        chunks: [...document.chunks, chunk],
+        sourcePathByChunkKey: {
+          ...document.sourcePathByChunkKey,
+          chunk.chunkKey: _store.canonicalV2SourcePath(chunk),
+        },
+        changedChunkKeys: {...document.changedChunkKeys, chunk.chunkKey},
+        createdChunkKeys: {...document.createdChunkKeys, chunk.chunkKey},
+        selectedChunkKey: chunk.chunkKey,
+        targetGroupId: chunk.assemblyGroupId,
+      );
+      final blocking = validateChunkV2Document(next)
+          .where((issue) => issue.blocks(AuthoringOperation.save))
+          .toList();
+      if (blocking.isNotEmpty) {
+        throw ChunkTargetException(
+          'connecting_chunk_source_invalid',
+          'Repair the reported source issues before creation.',
+          issues: blocking,
+        );
+      }
+      _store.buildV2SavePlan(document: next);
+      _preferredChunkKey = chunk.chunkKey;
+      _preferredGroupId = chunk.assemblyGroupId;
+      return next;
+    }
     if (command.kind == createFlatStarterCommandKind) {
       final intent = command.payload['intent'];
       if (intent is! ChunkFlatStarterIntent) return document;

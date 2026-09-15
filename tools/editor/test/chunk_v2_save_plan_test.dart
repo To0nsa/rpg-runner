@@ -183,7 +183,9 @@ void main() {
       );
 
       expect(
-        createdResult.issues.map((issue) => '${issue.code}: ${issue.message}'),
+        createdResult.issues
+            .where((issue) => issue.blocks(AuthoringOperation.save))
+            .map((issue) => '${issue.code}: ${issue.message}'),
         isEmpty,
       );
       expect(createdResult.accepted, isTrue);

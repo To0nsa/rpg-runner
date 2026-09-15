@@ -218,7 +218,7 @@ void main() {
       final invalid = _seamDocument(leftTop: 20, rightTop: 24);
       expect(
         plugin.validate(invalid).map((issue) => issue.code),
-        contains('chunk_v2_reachable_seam_mismatch'),
+        contains('terrain_connection_schedule_dead_end'),
       );
       final invalidLeft = invalid.chunks.singleWhere(
         (chunk) => chunk.chunkKey == 'low',
@@ -670,7 +670,7 @@ ChunkV2Document _document(Iterable<TerrainSourceShapeDef> collisionShapes) {
     status: chunkStatusActive,
     levelId: 'forest',
     tileSize: 16,
-    width: 100,
+    width: 600,
     height: 50,
     difficulty: chunkDifficultyNormal,
     assemblyGroupId: defaultChunkAssemblyGroupId,
@@ -730,7 +730,7 @@ ChunkV2Document _seamDocument({required int leftTop, required int rightTop}) {
     status: chunkStatusActive,
     levelId: 'forest',
     tileSize: 16,
-    width: 100,
+    width: 600,
     height: 50,
     difficulty: difficulty,
     assemblyGroupId: defaultChunkAssemblyGroupId,
@@ -823,8 +823,8 @@ TerrainSourceShapeDef _rectangle({int left = 0, required int top}) =>
       shapeId: 'ground',
       vertices: <TerrainSourceVertexDef>[
         TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: top),
-        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: top),
-        const TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 100),
+        TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: top),
+        const TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: 100),
         TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: 100),
       ],
     );

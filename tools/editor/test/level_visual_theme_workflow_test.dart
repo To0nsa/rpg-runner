@@ -23,19 +23,17 @@ void main() {
         final loaded =
             await plugin.loadFromRepo(workspace) as LevelDefsDocument;
 
-        final candidate =
-            plugin.applyEdit(
-                  loaded,
-                  AuthoringCommand(
-                    kind: 'create_level',
-                    payload: <String, Object?>{
-                      'levelId': 'crystal_caves',
-                      'themeMode': levelThemeModeCreate,
-                      'visualThemeId': 'crystal_caves',
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final candidate = plugin.applyEdit(
+          loaded,
+          AuthoringCommand(
+            kind: 'create_level',
+            payload: <String, Object?>{
+              'levelId': 'crystal_caves',
+              'themeMode': levelThemeModeCreate,
+              'visualThemeId': 'crystal_caves',
+            },
+          ),
+        ) as LevelDefsDocument;
 
         final level = findLevelDefById(candidate.levels, 'crystal_caves');
         final theme = findParallaxThemeById(
@@ -85,19 +83,17 @@ void main() {
       final plugin = LevelDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
 
-      final candidate =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: <String, Object?>{
-                    'levelId': 'forest_path',
-                    'themeMode': levelThemeModeExisting,
-                    'visualThemeId': 'field',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final candidate = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: <String, Object?>{
+            'levelId': 'forest_path',
+            'themeMode': levelThemeModeExisting,
+            'visualThemeId': 'field',
+          },
+        ),
+      ) as LevelDefsDocument;
       final pending = plugin.describePendingChanges(
         workspace,
         document: candidate,
@@ -124,36 +120,32 @@ void main() {
         final loaded =
             await plugin.loadFromRepo(workspace) as LevelDefsDocument;
 
-        final assigned =
-            plugin.applyEdit(
-                  loaded,
-                  AuthoringCommand(
-                    kind: 'create_and_assign_theme',
-                    payload: <String, Object?>{
-                      'levelId': 'field',
-                      'visualThemeId': 'crystal',
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final assigned = plugin.applyEdit(
+          loaded,
+          AuthoringCommand(
+            kind: 'create_and_assign_theme',
+            payload: <String, Object?>{
+              'levelId': 'field',
+              'visualThemeId': 'crystal',
+            },
+          ),
+        ) as LevelDefsDocument;
         expect(findLevelDefById(assigned.levels, 'field')!.revision, 2);
         expect(
           findParallaxThemeById(assigned.parallaxDocument!.themes, 'crystal'),
           isNotNull,
         );
 
-        final reassigned =
-            plugin.applyEdit(
-                  assigned,
-                  AuthoringCommand(
-                    kind: 'update_level',
-                    payload: <String, Object?>{
-                      'levelId': 'field',
-                      'visualThemeId': 'field',
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final reassigned = plugin.applyEdit(
+          assigned,
+          AuthoringCommand(
+            kind: 'update_level',
+            payload: <String, Object?>{
+              'levelId': 'field',
+              'visualThemeId': 'field',
+            },
+          ),
+        ) as LevelDefsDocument;
         expect(findLevelDefById(reassigned.levels, 'field')!.revision, 3);
         expect(
           findParallaxThemeById(reassigned.parallaxDocument!.themes, 'crystal'),
@@ -177,38 +169,34 @@ void main() {
       final plugin = LevelDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
 
-      final rawCollision =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: <String, Object?>{
-                    'levelId': 'cave',
-                    'themeMode': levelThemeModeCreate,
-                    'visualThemeId': 'field',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final rawCollision = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: <String, Object?>{
+            'levelId': 'cave',
+            'themeMode': levelThemeModeCreate,
+            'visualThemeId': 'field',
+          },
+        ),
+      ) as LevelDefsDocument;
       expect(rawCollision.levels, same(loaded.levels));
       expect(
         rawCollision.operationIssues.single.code,
         'create_theme_id_collision',
       );
 
-      final symbolCollision =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: <String, Object?>{
-                    'levelId': 'cave',
-                    'themeMode': levelThemeModeCreate,
-                    'visualThemeId': 'field_',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final symbolCollision = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: <String, Object?>{
+            'levelId': 'cave',
+            'themeMode': levelThemeModeCreate,
+            'visualThemeId': 'field_',
+          },
+        ),
+      ) as LevelDefsDocument;
       expect(symbolCollision.levels, same(loaded.levels));
       expect(
         symbolCollision.operationIssues.single.code,
@@ -236,19 +224,17 @@ void main() {
           ),
         );
 
-        final rejected =
-            plugin.applyEdit(
-                  invalidSource,
-                  AuthoringCommand(
-                    kind: 'create_level',
-                    payload: const <String, Object?>{
-                      'levelId': 'crystal',
-                      'themeMode': levelThemeModeCreate,
-                      'visualThemeId': 'crystal',
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final rejected = plugin.applyEdit(
+          invalidSource,
+          AuthoringCommand(
+            kind: 'create_level',
+            payload: const <String, Object?>{
+              'levelId': 'crystal',
+              'themeMode': levelThemeModeCreate,
+              'visualThemeId': 'crystal',
+            },
+          ),
+        ) as LevelDefsDocument;
 
         expect(rejected.levels, same(invalidSource.levels));
         expect(
@@ -275,19 +261,17 @@ void main() {
       final workspace = EditorWorkspace(rootPath: fixture.path);
       final plugin = LevelDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
-      final candidate =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: <String, Object?>{
-                    'levelId': 'crystal_caves',
-                    'themeMode': levelThemeModeCreate,
-                    'visualThemeId': 'crystal_caves',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final candidate = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: <String, Object?>{
+            'levelId': 'crystal_caves',
+            'themeMode': levelThemeModeCreate,
+            'visualThemeId': 'crystal_caves',
+          },
+        ),
+      ) as LevelDefsDocument;
 
       final result = await plugin.exportToRepo(workspace, document: candidate);
       expect(result.applied, isTrue);
@@ -324,19 +308,17 @@ void main() {
       final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
       final parallaxFile = File(p.join(fixture.path, parallaxDefsSourcePath));
       final originalParallax = parallaxFile.readAsBytesSync();
-      final candidate =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: const <String, Object?>{
-                    'levelId': 'shared_field',
-                    'themeMode': levelThemeModeExisting,
-                    'visualThemeId': 'field',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final candidate = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: const <String, Object?>{
+            'levelId': 'shared_field',
+            'themeMode': levelThemeModeExisting,
+            'visualThemeId': 'field',
+          },
+        ),
+      ) as LevelDefsDocument;
 
       final result = await plugin.exportToRepo(workspace, document: candidate);
       expect(result.applied, isTrue);
@@ -358,19 +340,17 @@ void main() {
       final workspace = EditorWorkspace(rootPath: fixture.path);
       final plugin = LevelDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
-      final candidate =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'create_level',
-                  payload: <String, Object?>{
-                    'levelId': 'crystal_caves',
-                    'themeMode': levelThemeModeCreate,
-                    'visualThemeId': 'crystal_caves',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final candidate = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'create_level',
+          payload: <String, Object?>{
+            'levelId': 'crystal_caves',
+            'themeMode': levelThemeModeCreate,
+            'visualThemeId': 'crystal_caves',
+          },
+        ),
+      ) as LevelDefsDocument;
       final levelFile = File(p.join(fixture.path, levelDefsSourcePath));
       final parallaxFile = File(p.join(fixture.path, parallaxDefsSourcePath));
       final originalLevel = levelFile.readAsStringSync();
@@ -411,9 +391,8 @@ void main() {
         }) {
           beforeReplace();
           for (final artifact in artifacts) {
-            File(
-              artifact.path,
-            ).writeAsStringSync(artifact.contents, flush: true);
+            File(artifact.path)
+                .writeAsStringSync(artifact.contents, flush: true);
           }
           verifyReplacements();
           recoveryPath = '${artifacts.first.path}.authoring-test.bak';
@@ -432,19 +411,17 @@ void main() {
         final plugin = LevelDomainPlugin(saveCoordinator: coordinator);
         final loaded =
             await plugin.loadFromRepo(workspace) as LevelDefsDocument;
-        final candidate =
-            plugin.applyEdit(
-                  loaded,
-                  AuthoringCommand(
-                    kind: 'create_level',
-                    payload: <String, Object?>{
-                      'levelId': 'crystal_caves',
-                      'themeMode': levelThemeModeCreate,
-                      'visualThemeId': 'crystal_caves',
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final candidate = plugin.applyEdit(
+          loaded,
+          AuthoringCommand(
+            kind: 'create_level',
+            payload: <String, Object?>{
+              'levelId': 'crystal_caves',
+              'themeMode': levelThemeModeCreate,
+              'visualThemeId': 'crystal_caves',
+            },
+          ),
+        ) as LevelDefsDocument;
 
         final result = await plugin.exportToRepo(
           workspace,
@@ -512,19 +489,17 @@ void main() {
         final levelPlugin = LevelDomainPlugin();
         final loaded =
             await levelPlugin.loadFromRepo(workspace) as LevelDefsDocument;
-        final candidate =
-            levelPlugin.applyEdit(
-                  loaded,
-                  AuthoringCommand(
-                    kind: 'create_level',
-                    payload: const <String, Object?>{
-                      'levelId': 'crystal',
-                      'themeMode': levelThemeModeCreate,
-                      'visualThemeId': 'crystal',
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final candidate = levelPlugin.applyEdit(
+          loaded,
+          AuthoringCommand(
+            kind: 'create_level',
+            payload: const <String, Object?>{
+              'levelId': 'crystal',
+              'themeMode': levelThemeModeCreate,
+              'visualThemeId': 'crystal',
+            },
+          ),
+        ) as LevelDefsDocument;
         await levelPlugin.exportToRepo(workspace, document: candidate);
         _writeFile(
           fixture.path,
@@ -540,19 +515,17 @@ void main() {
             parallaxThemeId: 'crystal',
           ),
         );
-        final edited =
-            parallaxPlugin.applyEdit(
-                  parallax,
-                  AuthoringCommand(
-                    kind: 'create_layer',
-                    payload: const <String, Object?>{
-                      'layerKey': 'crystal_bg',
-                      'assetPath': 'assets/images/parallax/crystal/bg.png',
-                      'group': parallaxGroupBackground,
-                    },
-                  ),
-                )
-                as ParallaxDefsDocument;
+        final edited = parallaxPlugin.applyEdit(
+          parallax,
+          AuthoringCommand(
+            kind: 'create_layer',
+            payload: const <String, Object?>{
+              'layerKey': 'crystal_bg',
+              'assetPath': 'assets/images/parallax/crystal/bg.png',
+              'group': parallaxGroupBackground,
+            },
+          ),
+        ) as ParallaxDefsDocument;
         expect(
           findParallaxThemeById(
             edited.themes,
@@ -577,7 +550,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('level_theme_workflow_');
   _writeFile(root.path, levelDefsSourcePath, '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -587,6 +560,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,

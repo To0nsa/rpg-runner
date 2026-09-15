@@ -151,7 +151,7 @@ void main() {
       final issues = plugin.validate(next);
       expect(
         issues.any(
-          (issue) => issue.code == 'chunk_v2_scheduler_distinct_pool_too_small',
+          (issue) => issue.code == 'terrain_connection_schedule_dead_end',
         ),
         isTrue,
       );
@@ -334,7 +334,7 @@ void main() {
     expect(moved.chunks.single.assemblyGroupId, 'default');
     final issue = plugin
         .validate(moved)
-        .firstWhere((i) => i.code == 'chunk_v2_scheduler_pool_empty');
+        .firstWhere((i) => i.code == 'terrain_connection_schedule_dead_end');
     expect(issue.ownerKey, 'forest');
     expect(issue.blocks(AuthoringOperation.save), isFalse);
     expect(issue.blocks(AuthoringOperation.play), isTrue);

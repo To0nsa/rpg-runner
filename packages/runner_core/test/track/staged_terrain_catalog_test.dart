@@ -31,8 +31,31 @@ void main() {
     );
 
     expect(catalog.chunksByKey, hasLength(stagedAuthoredTerrain.chunks.length));
-    expect(geometry.polygons, hasLength(48));
-    expect(geometry.edges, hasLength(451));
+    expect(
+      geometry.polygons.length,
+      stagedAuthoredTerrain.chunks.fold<int>(
+        0,
+        (count, chunk) =>
+            count +
+            chunk.polygons
+                .where(
+                  (polygon) =>
+                      polygon.collisionMode != StagedTerrainCollisionMode.none,
+                )
+                .length,
+      ),
+    );
+    // Shared seam edges are stitched out of the world collision boundary.
+    expect(geometry.edges, isNotEmpty);
+    expect(
+      geometry.edges.length,
+      lessThanOrEqualTo(
+        stagedAuthoredTerrain.chunks.fold<int>(
+          0,
+          (count, chunk) => count + chunk.edges.length,
+        ),
+      ),
+    );
     expect(
       geometry.polygons.map((polygon) => polygon.identity.chunkKey).toSet(),
       stagedAuthoredTerrain.chunks.map((chunk) => chunk.chunkKey).toSet(),
@@ -43,7 +66,17 @@ void main() {
             polygon.surfaceKind == 'ground' &&
             polygon.materialKey == 'grass_dirt',
       ),
-      hasLength(15),
+      hasLength(
+        stagedAuthoredTerrain.chunks
+            .expand((chunk) => chunk.polygons)
+            .where(
+              (polygon) =>
+                  polygon.surfaceKind == 'ground' &&
+                  polygon.materialKey == 'grass_dirt' &&
+                  polygon.collisionMode != StagedTerrainCollisionMode.none,
+            )
+            .length,
+      ),
     );
     expect(
       geometry.polygons.where(

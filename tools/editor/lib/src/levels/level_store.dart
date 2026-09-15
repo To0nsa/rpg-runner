@@ -356,6 +356,13 @@ class LevelStore {
       prefix: prefix,
       issues: issues,
     );
+    final terrainHeightStepPx = _readRequiredInt(
+      raw,
+      field: 'terrainHeightStepPx',
+      sourcePath: sourcePath,
+      prefix: prefix,
+      issues: issues,
+    );
     final earlyPatternChunks = _readRequiredInt(
       raw,
       field: 'earlyPatternChunks',
@@ -424,6 +431,7 @@ class LevelStore {
         visualThemeId.isEmpty ||
         cameraCenterY == null ||
         groundTopY == null ||
+        terrainHeightStepPx == null ||
         earlyPatternChunks == null ||
         easyPatternChunks == null ||
         normalPatternChunks == null ||
@@ -442,6 +450,7 @@ class LevelStore {
       firstChunkKey: firstChunkKey,
       cameraCenterY: cameraCenterY,
       groundTopY: groundTopY,
+      terrainHeightStepPx: terrainHeightStepPx,
       earlyPatternChunks: earlyPatternChunks,
       easyPatternChunks: easyPatternChunks,
       normalPatternChunks: normalPatternChunks,

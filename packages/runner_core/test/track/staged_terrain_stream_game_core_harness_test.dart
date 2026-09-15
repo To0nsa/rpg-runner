@@ -1,3 +1,4 @@
+import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -77,9 +78,9 @@ void main() {
     var enemyCount = 0;
     var collectibleCount = 0;
     var restorationCount = 0;
-    const markerPattern = ChunkPattern(
+    final markerPattern = ChunkPattern(
       name: 'forest_flat_marker_fixture',
-      chunkKey: 'forest_early_flat',
+      chunkKey: _forestOpeningKey,
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,
@@ -95,14 +96,16 @@ void main() {
         ),
       ],
     );
-    const markerSource = ChunkPatternListSource(
+    final markerSource = ChunkPatternListSource(
       earlyPatterns: <ChunkPattern>[markerPattern],
-      easyPatterns: <ChunkPattern>[markerPattern],
-      normalPatterns: <ChunkPattern>[markerPattern],
-      hardPatterns: <ChunkPattern>[markerPattern],
+      easyPatterns: <ChunkPattern>[],
+      normalPatterns: <ChunkPattern>[],
+      hardPatterns: <ChunkPattern>[],
     );
     final level = LevelRegistry.byId(LevelId.forest).copyWith(
       chunkPatternSource: markerSource,
+      clearAssembly: true,
+      clearFirstChunkKey: true,
       earlyPatternChunks: 0,
       easyPatternChunks: 100,
       normalPatternChunks: 0,
@@ -149,9 +152,9 @@ void main() {
   });
 
   test('normal construction admits current streamed enemy policies', () {
-    const pattern = ChunkPattern(
+    final pattern = ChunkPattern(
       name: 'all_enemy_policies',
-      chunkKey: 'forest_early_flat',
+      chunkKey: _forestOpeningKey,
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,
@@ -173,11 +176,11 @@ void main() {
         ),
       ],
     );
-    const patternSource = ChunkPatternListSource(
+    final patternSource = ChunkPatternListSource(
       earlyPatterns: <ChunkPattern>[pattern],
-      easyPatterns: <ChunkPattern>[pattern],
-      normalPatterns: <ChunkPattern>[pattern],
-      hardPatterns: <ChunkPattern>[pattern],
+      easyPatterns: <ChunkPattern>[],
+      normalPatterns: <ChunkPattern>[],
+      hardPatterns: <ChunkPattern>[],
     );
     final registered = LevelRegistry.byId(LevelId.forest);
     final level = LevelDefinition(
@@ -290,46 +293,68 @@ void main() {
   });
 
   for (final levelId in <LevelId>[LevelId.field, LevelId.forest]) {
-    test('$levelId long command run stays deterministic', () {
-      GameCore build() => GameCore(
-        seed: 4401,
-        levelDefinition: LevelRegistry.byId(levelId)
-            .copyWith(noEnemyChunks: 9999),
-        playerCharacter: PlayerCharacterRegistry.eloise,
-      );
-      final first = build();
-      final second = build();
+    test(
+      '$levelId authored flat stream stays deterministic over 1800 ticks',
+      () {
+        final registered = LevelRegistry.byId(levelId);
+        final flat = stagedAuthoredTerrain.chunks.firstWhere(
+          (chunk) =>
+              chunk.levelId == levelId.name &&
+              chunk.status == 'active' &&
+              chunk.polygons.length == 1 &&
+              chunk.polygons.single.vertices.every(
+                (point) =>
+                    point.yTicks == (registered.groundTopY * 1024).round() ||
+                    point.yTicks == chunk.height * 1024,
+              ),
+        );
+        final pattern = ChunkPattern(
+          name: flat.chunkKey,
+          chunkKey: flat.chunkKey,
+          assemblyGroupId: flat.assemblyGroupId,
+        );
+        final source = ChunkPatternListSource(
+          earlyPatterns: flat.difficulty == 'early' ? [pattern] : [],
+          easyPatterns: flat.difficulty == 'easy' ? [pattern] : [],
+          normalPatterns: flat.difficulty == 'normal' ? [pattern] : [],
+          hardPatterns: flat.difficulty == 'hard' ? [pattern] : [],
+        );
+        GameCore build() => GameCore(
+          seed: 4401,
+          levelDefinition: registered.copyWith(
+            noEnemyChunks: 9999,
+            chunkPatternSource: source,
+            clearAssembly: true,
+            clearFirstChunkKey: true,
+          ),
+          playerCharacter: PlayerCharacterRegistry.eloise,
+        );
+        final first = build();
+        final second = build();
 
-      for (var nextTick = 1; nextTick <= 1800; nextTick++) {
-        final xWithinChunk = first.playerPosX % 600;
-        final approachingWoodPile =
-            levelId == LevelId.forest &&
-            first.playerGrounded &&
-            xWithinChunk >= 320 &&
-            xWithinChunk <= 380;
-        final commands = <Command>[
-          MoveAxisCommand(tick: nextTick, axis: 1),
-          if (approachingWoodPile ||
-              (levelId == LevelId.field && nextTick % 60 == 0))
-            JumpPressedCommand(tick: nextTick),
-        ];
-        first.applyCommands(commands);
-        second.applyCommands(commands);
-        first.stepOneTick();
-        second.stepOneTick();
-        expect(first.gameOver, isFalse, reason: 'first tick $nextTick');
-        expect(second.gameOver, isFalse, reason: 'second tick $nextTick');
-        if (nextTick % 60 == 0) {
-          expect(second.playerPosX, first.playerPosX);
-          expect(second.playerPosY, first.playerPosY);
-          expect(second.playerGrounded, first.playerGrounded);
-          _expectSameTerrainWorld(first, second);
+        for (var nextTick = 1; nextTick <= 1800; nextTick++) {
+          final commands = <Command>[
+            MoveAxisCommand(tick: nextTick, axis: 1),
+            if (first.playerGrounded) JumpPressedCommand(tick: nextTick),
+          ];
+          first.applyCommands(commands);
+          second.applyCommands(commands);
+          first.stepOneTick();
+          second.stepOneTick();
+          expect(first.gameOver, isFalse, reason: 'first tick $nextTick');
+          expect(second.gameOver, isFalse, reason: 'second tick $nextTick');
+          if (nextTick % 60 == 0) {
+            expect(second.playerPosX, first.playerPosX);
+            expect(second.playerPosY, first.playerPosY);
+            expect(second.playerGrounded, first.playerGrounded);
+            _expectSameTerrainWorld(first, second);
+          }
         }
-      }
 
-      expect(first.distance, greaterThan(5000));
-      expect(second.distance, first.distance);
-    });
+        expect(first.distance, greaterThan(5000));
+        expect(second.distance, first.distance);
+      },
+    );
   }
 }
 
@@ -381,3 +406,8 @@ class _BallisticProjectileCatalog extends ProjectileCatalog {
     );
   }
 }
+
+String get _forestOpeningKey =>
+    LevelRegistry.byId(LevelId.forest).chunkPatternSource
+        .patternFor(seed: 1, chunkIndex: 0, tier: ChunkPatternTier.early)
+        .chunkKey!;

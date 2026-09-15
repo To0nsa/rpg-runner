@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:runner_core/track/chunk_pattern_tier.dart';
+import 'package:runner_core/levels/terrain_elevation.dart';
 
 import 'content_build_report.dart';
 
-const int levelDefsSchemaVersion = 2;
+const int levelDefsSchemaVersion = 3;
 
 const String activeLevelStatus = 'active';
 const String deprecatedLevelStatus = 'deprecated';
@@ -255,6 +256,25 @@ LevelDefinitionSource? _parseLevelEntry(
     path: defsPath,
     fieldPrefix: fieldPrefix,
   );
+  final terrainHeightStepPx = _readRequiredNonNegativeInt(
+    entry,
+    field: 'terrainHeightStepPx',
+    issues: issues,
+    path: defsPath,
+    fieldPrefix: fieldPrefix,
+  );
+  if (terrainHeightStepPx != null &&
+      (terrainHeightStepPx < 1 ||
+          terrainHeightStepPx > maxTerrainHeightStepPx)) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: defsPath,
+        code: 'invalid_terrain_height_step',
+        message:
+            '$fieldPrefix.terrainHeightStepPx must be 1-$maxTerrainHeightStepPx pixels.',
+      ),
+    );
+  }
   final earlyPatternChunks = _readRequiredNonNegativeInt(
     entry,
     field: 'earlyPatternChunks',
@@ -361,6 +381,7 @@ LevelDefinitionSource? _parseLevelEntry(
       visualThemeId.isEmpty ||
       cameraCenterY == null ||
       groundTopY == null ||
+      terrainHeightStepPx == null ||
       earlyPatternChunks == null ||
       easyPatternChunks == null ||
       normalPatternChunks == null ||
@@ -379,6 +400,7 @@ LevelDefinitionSource? _parseLevelEntry(
     firstChunkKey: firstChunkKey,
     cameraCenterY: _normalizeZero(cameraCenterY),
     groundTopY: _normalizeZero(groundTopY),
+    terrainHeightStepPx: terrainHeightStepPx,
     earlyPatternChunks: earlyPatternChunks,
     easyPatternChunks: easyPatternChunks,
     normalPatternChunks: normalPatternChunks,
@@ -708,6 +730,9 @@ String renderCanonicalLevelDefsJson(List<LevelDefinitionSource> levels) {
     );
     buffer.writeln(
       '      "groundTopY": ${_formatCanonicalNumber(level.groundTopY)},',
+    );
+    buffer.writeln(
+      '      "terrainHeightStepPx": ${level.terrainHeightStepPx},',
     );
     buffer.writeln('      "earlyPatternChunks": ${level.earlyPatternChunks},');
     buffer.writeln('      "easyPatternChunks": ${level.easyPatternChunks},');
@@ -1269,6 +1294,7 @@ class LevelDefinitionSource {
     this.firstChunkKey,
     required this.cameraCenterY,
     required this.groundTopY,
+    this.terrainHeightStepPx = defaultTerrainHeightStepPx,
     required this.earlyPatternChunks,
     required this.easyPatternChunks,
     required this.normalPatternChunks,
@@ -1287,6 +1313,7 @@ class LevelDefinitionSource {
   final String? firstChunkKey;
   final double cameraCenterY;
   final double groundTopY;
+  final int terrainHeightStepPx;
   final int earlyPatternChunks;
   final int easyPatternChunks;
   final int normalPatternChunks;

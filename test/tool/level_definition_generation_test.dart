@@ -66,7 +66,7 @@ void main() {
         defsFile.parent.createSync(recursive: true);
         defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "forest",
@@ -76,6 +76,7 @@ void main() {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -92,6 +93,7 @@ void main() {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -132,7 +134,7 @@ void main() {
       defsFile.parent.createSync(recursive: true);
       defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -142,6 +144,7 @@ void main() {
       "chunkThemeGroups": ["default", "cemetery", "none"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -234,7 +237,7 @@ void main() {
       defsFile.parent.createSync(recursive: true);
       defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -244,6 +247,7 @@ void main() {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -260,6 +264,7 @@ void main() {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -342,7 +347,7 @@ void main() {
         defsFile.parent.createSync(recursive: true);
         defsFile.writeAsStringSync(r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -352,6 +357,7 @@ void main() {
       "chunkThemeGroups": ["default", "cemetery"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,

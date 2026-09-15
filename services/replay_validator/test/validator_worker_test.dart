@@ -156,7 +156,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.08.0',
+        gameCompatVersion: '2026.09.0',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -337,39 +337,44 @@ void main() {
       },
     );
 
-    test('unsupported game compatibility version is rejected', () async {
-      final repo = _FakeRunSessionRepository(
-        leaseResult: RunSessionLeaseAcquireResult(
-          status: RunSessionLeaseStatus.acquired,
-          session: _session(
+    for (final unsupportedVersion in ['2026.03.0', '2026.08.0', '2099.01.0']) {
+      test(
+        'game compatibility $unsupportedVersion is rejected before replay',
+        () async {
+          final repo = _FakeRunSessionRepository(
+            leaseResult: RunSessionLeaseAcquireResult(
+              status: RunSessionLeaseStatus.acquired,
+              session: _session(
+                runSessionId: 'run_unknown_compat',
+                mode: RunMode.practice,
+                seed: 1,
+                digest: '3' * 64,
+                contentLengthBytes: 16,
+                validationAttempt: 1,
+                gameCompatVersion: unsupportedVersion,
+              ),
+            ),
+          );
+          final worker = DeterministicValidatorWorker(
+            replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
+            boardRepository: _FakeBoardRepository(),
+            runSessionRepository: repo,
+            metrics: _FakeValidatorMetrics(),
+            clockMs: () => 10_000,
+          );
+
+          final result = await worker.validateRunSession(
             runSessionId: 'run_unknown_compat',
-            mode: RunMode.practice,
-            seed: 1,
-            digest: '3' * 64,
-            contentLengthBytes: 16,
-            validationAttempt: 1,
-            gameCompatVersion: '2099.01.0',
-          ),
-        ),
-      );
-      final worker = DeterministicValidatorWorker(
-        replayLoader: _FakeReplayLoader(bytesByRunSession: const {}),
-        boardRepository: _FakeBoardRepository(),
-        runSessionRepository: repo,
-        metrics: _FakeValidatorMetrics(),
-        clockMs: () => 10_000,
-      );
+          );
 
-      final result = await worker.validateRunSession(
-        runSessionId: 'run_unknown_compat',
+          expect(result.status, ValidationDispatchStatus.rejected);
+          expect(
+            repo.persistedValidatedRuns.single.rejectionReason,
+            'game_compat_version_unsupported',
+          );
+        },
       );
-
-      expect(result.status, ValidationDispatchStatus.rejected);
-      expect(
-        repo.persistedValidatedRuns.single.rejectionReason,
-        'game_compat_version_unsupported',
-      );
-    });
+    }
 
     for (final versionCase
         in <
@@ -1389,7 +1394,7 @@ ValidatorRunSession _session({
   int? boardClosesAtMs,
   String? storageGeneration = '123',
   String? ticketRunSessionId,
-  String gameCompatVersion = '2026.03.0',
+  String gameCompatVersion = '2026.09.0',
   String? rulesetVersion,
   String? scoreVersion,
   String? ghostVersion,

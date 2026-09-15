@@ -41,15 +41,13 @@ void main() {
               .join('\n'),
         );
 
-        final switched =
-            plugin.applyEdit(
-                  loaded,
-                  AuthoringCommand(
-                    kind: 'set_active_level',
-                    payload: const <String, Object?>{'levelId': 'field'},
-                  ),
-                )
-                as LevelDefsDocument;
+        final switched = plugin.applyEdit(
+          loaded,
+          AuthoringCommand(
+            kind: 'set_active_level',
+            payload: const <String, Object?>{'levelId': 'field'},
+          ),
+        ) as LevelDefsDocument;
         expect(switched.activeLevelId, 'field');
       } finally {
         fixtureRoot.deleteSync(recursive: true);
@@ -67,31 +65,29 @@ void main() {
         final loaded =
             await plugin.loadFromRepo(workspace) as LevelDefsDocument;
 
-        final edited =
-            plugin.applyEdit(
-                  loaded,
-                  AuthoringCommand(
-                    kind: 'update_level',
-                    payload: const <String, Object?>{
-                      'levelId': 'field',
-                      'displayName': 'Field Updated',
-                      'visualThemeId': 'forest',
-                      'assembly': <String, Object?>{
-                        'loopSegments': true,
-                        'segments': <Map<String, Object?>>[
-                          <String, Object?>{
-                            'segmentId': 'forest_run',
-                            'groupId': 'forest',
-                            'minChunkCount': 1,
-                            'maxChunkCount': 1,
-                            'requireDistinctChunks': true,
-                          },
-                        ],
-                      },
-                    },
-                  ),
-                )
-                as LevelDefsDocument;
+        final edited = plugin.applyEdit(
+          loaded,
+          AuthoringCommand(
+            kind: 'update_level',
+            payload: const <String, Object?>{
+              'levelId': 'field',
+              'displayName': 'Field Updated',
+              'visualThemeId': 'forest',
+              'assembly': <String, Object?>{
+                'loopSegments': true,
+                'segments': <Map<String, Object?>>[
+                  <String, Object?>{
+                    'segmentId': 'forest_run',
+                    'groupId': 'forest',
+                    'minChunkCount': 1,
+                    'maxChunkCount': 1,
+                    'requireDistinctChunks': true,
+                  },
+                ],
+              },
+            },
+          ),
+        ) as LevelDefsDocument;
         final pending = plugin.describePendingChanges(
           workspace,
           document: edited,
@@ -114,9 +110,8 @@ void main() {
         expect(export.applied, isTrue);
         expect(export.artifacts.single.title, 'level_summary.md');
 
-        final saved = File(
-          p.join(fixtureRoot.path, levelDefsSourcePath),
-        ).readAsStringSync();
+        final saved = File(p.join(fixtureRoot.path, levelDefsSourcePath))
+            .readAsStringSync();
         expect(saved, contains('"displayName": "Field Updated"'));
         expect(saved, contains('"visualThemeId": "forest"'));
         expect(saved, contains('"segmentId": "forest_run"'));
@@ -134,18 +129,16 @@ void main() {
       final plugin = LevelDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
 
-      final edited =
-          plugin.applyEdit(
-                loaded,
-                AuthoringCommand(
-                  kind: 'update_level',
-                  payload: const <String, Object?>{
-                    'levelId': 'field',
-                    'displayName': 'Field Drifted',
-                  },
-                ),
-              )
-              as LevelDefsDocument;
+      final edited = plugin.applyEdit(
+        loaded,
+        AuthoringCommand(
+          kind: 'update_level',
+          payload: const <String, Object?>{
+            'levelId': 'field',
+            'displayName': 'Field Drifted',
+          },
+        ),
+      ) as LevelDefsDocument;
 
       final defsPath = p.join(fixtureRoot.path, levelDefsSourcePath);
       File(defsPath).writeAsStringSync(
@@ -169,7 +162,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('level_plugin_fixture_');
   _writeFile(root.path, levelDefsSourcePath, '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -179,6 +172,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "chunkThemeGroups": ["default", "forest"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -195,6 +189,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "chunkThemeGroups": ["default", "forest"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,

@@ -56,6 +56,14 @@ through `StagedTerrainChunkCatalog` and scenario validation. They retain authore
 identity separately from registered `LevelId` and must never become a run-ticket,
 replay, backend, or normal-constructor option.
 
+## Connection selection
+
+`TerrainConnectionSchedule` owns compiled physical matching, exact continuation
+admission and seeded choice. Normal Core, authored Play and the pipeline share
+that contract. Elevation names are authoring guides; never move geometry during
+selection or infer compatibility from height alone. Selector changes require a
+matching game-compatibility release and worker drain policy.
+
 ## Validation
 
 Minimum Core checks:

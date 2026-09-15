@@ -27,8 +27,9 @@ void main() {
         ],
       );
       const source = ChunkPatternListSource(
-        easyPatterns: <ChunkPattern>[pattern],
-        hardPatterns: <ChunkPattern>[pattern],
+        normalPatterns: <ChunkPattern>[pattern],
+        easyPatterns: <ChunkPattern>[],
+        hardPatterns: <ChunkPattern>[],
       );
 
       final level = LevelRegistry.byId(LevelId.field).copyWith(

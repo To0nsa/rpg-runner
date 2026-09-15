@@ -14,7 +14,7 @@ void main() {
       try {
         _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -23,6 +23,7 @@ void main() {
       "visualThemeId": "field",
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -38,6 +39,7 @@ void main() {
       "visualThemeId": "forest",
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -66,7 +68,7 @@ void main() {
     try {
       _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -76,6 +78,7 @@ void main() {
       "chunkThemeGroups": ["village", "default", "cemetery"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -91,6 +94,7 @@ void main() {
       "visualThemeId": "forest",
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -104,10 +108,13 @@ void main() {
 ''');
 
       final workspace = EditorWorkspace(rootPath: root.path);
-      expect(extractLevelChunkThemeGroups(workspace), const <String, List<String>>{
-        'field': <String>['default', 'cemetery', 'village'],
-        'forest': <String>['default'],
-      });
+      expect(
+        extractLevelChunkThemeGroups(workspace),
+        const <String, List<String>>{
+          'field': <String>['default', 'cemetery', 'village'],
+          'forest': <String>['default'],
+        },
+      );
     } finally {
       root.deleteSync(recursive: true);
     }

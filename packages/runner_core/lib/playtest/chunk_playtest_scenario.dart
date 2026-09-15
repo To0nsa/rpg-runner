@@ -2,6 +2,8 @@
 library;
 
 import '../collision/terrain/terrain_authoring_scheduler.dart';
+import '../collision/terrain/terrain_chunk_connections.dart';
+import '../track/staged_terrain_world_geometry.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../levels/level_definition.dart';
 import '../players/player_character_definition.dart';
@@ -178,7 +180,7 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
     final path = _selectScenarioPath(
       levelId: levelDefinition.identity.value,
       selectedChunkKey: selectedKey,
-      transitions: scheduler.transitions,
+      scheduler: scheduler,
     );
     final patternsByKey = _collectPatternsByKey(
       levelDefinition: levelDefinition,
@@ -297,12 +299,32 @@ TerrainAuthoringSchedulerResult _buildSchedulerResult({
   }
   return enumerateTerrainAuthoringReachability(
     chunks: chunks,
+    connections: {
+      for (final chunk in catalog.chunksByKey.values)
+        chunk.chunkKey: buildTerrainChunkConnection(
+          chunkKey: chunk.chunkKey,
+          chunkWidth: chunk.width,
+          geometry: const StagedTerrainWorldGeometryBuilder().build(
+            bindings: [
+              catalog.bind(
+                chunkKey: chunk.chunkKey,
+                chunkIndex: 0,
+                worldOriginXTicks: 0,
+              ),
+            ],
+            geometryVersion: 0,
+          ),
+          groundTopY: levelDefinition.groundTopY,
+          spawnX: levelDefinition.tuning.track.playerStartX,
+        ),
+    },
     levels: <TerrainAuthoringSchedulerLevel>[
       TerrainAuthoringSchedulerLevel(
         levelId: levelId,
         earlyPatternChunks: levelDefinition.earlyPatternChunks,
         easyPatternChunks: levelDefinition.easyPatternChunks,
         normalPatternChunks: levelDefinition.normalPatternChunks,
+        firstChunkKey: levelDefinition.firstChunkKey,
         assembly: playtestSchedulerAssembly(levelDefinition.assembly),
       ),
     ],
@@ -312,78 +334,27 @@ TerrainAuthoringSchedulerResult _buildSchedulerResult({
 ChunkPlaytestScenarioPath _selectScenarioPath({
   required String levelId,
   required String selectedChunkKey,
-  required Iterable<TerrainAuthoringReachableTransition> transitions,
+  required TerrainAuthoringSchedulerResult scheduler,
 }) {
-  final ordered =
-      transitions.where((transition) => transition.levelId == levelId).toList()
-        ..sort(
-          (left, right) =>
-              left.canonicalRecord.compareTo(right.canonicalRecord),
-        );
-  final touchingSelected = ordered.where(
-    (transition) =>
-        transition.leftChunkKey == selectedChunkKey ||
-        transition.rightChunkKey == selectedChunkKey,
+  final witness = scheduler.schedules[levelId]?.witnessThrough(
+    selectedChunkKey,
   );
-  if (touchingSelected.isEmpty) {
+  if (witness == null) {
     throw PlaytestScenarioException(
       code: 'chunk_playtest_selected_chunk_unreachable',
       message:
-          'Active chunk $selectedChunkKey is not reachable in level $levelId.',
+          'Chunk $selectedChunkKey has no valid opening and continuing schedule in $levelId.',
     );
   }
-
-  final incoming = ordered
-      .where(
-        (transition) =>
-            transition.rightChunkKey == selectedChunkKey &&
-            transition.leftChunkKey != selectedChunkKey,
-      )
-      .toList(growable: false);
-  final chunkKeys = <String>[];
-  final transitionRecords = <String>[];
-  if (incoming.isNotEmpty) {
-    chunkKeys
-      ..add(incoming.first.leftChunkKey)
-      ..add(selectedChunkKey);
-    transitionRecords.add(incoming.first.canonicalRecord);
-  } else {
-    chunkKeys.add(selectedChunkKey);
-  }
-  final selectedChunkIndex = chunkKeys.length - 1;
-  final firstIndexByKey = <String, int>{
-    for (var index = 0; index < chunkKeys.length; index += 1)
-      chunkKeys[index]: index,
-  };
-
-  while (true) {
-    final current = chunkKeys.last;
-    final outgoing = ordered
-        .where((transition) => transition.leftChunkKey == current)
-        .toList(growable: false);
-    if (outgoing.isEmpty) {
-      throw PlaytestScenarioException(
-        code: 'chunk_playtest_scenario_path_dead_end',
-        message:
-            'Scheduler-reachable path for $selectedChunkKey stops at '
-            '$current before a deterministic loop can be formed.',
-      );
-    }
-    final selectedTransition = outgoing.first;
-    transitionRecords.add(selectedTransition.canonicalRecord);
-    final next = selectedTransition.rightChunkKey;
-    final loopStartIndex = firstIndexByKey[next];
-    if (loopStartIndex != null) {
-      return ChunkPlaytestScenarioPath._(
-        chunkKeys: chunkKeys,
-        transitionRecords: transitionRecords,
-        selectedChunkIndex: selectedChunkIndex,
-        loopStartIndex: loopStartIndex,
-      );
-    }
-    firstIndexByKey[next] = chunkKeys.length;
-    chunkKeys.add(next);
-  }
+  return ChunkPlaytestScenarioPath._(
+    chunkKeys: witness.chunkKeys,
+    selectedChunkIndex: witness.selectedIndex,
+    loopStartIndex: witness.loopStartIndex,
+    transitionRecords: [
+      for (var i = 0; i < witness.chunkKeys.length; i++)
+        '$levelId|connections:focused|${witness.chunkKeys[i]}>${witness.chunkKeys[i + 1 < witness.chunkKeys.length ? i + 1 : witness.loopStartIndex]}',
+    ],
+  );
 }
 
 Map<String, ChunkPattern> _collectPatternsByKey({

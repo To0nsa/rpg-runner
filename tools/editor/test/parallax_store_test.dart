@@ -54,9 +54,8 @@ void main() {
       expect(savePlan.hasChanges, isTrue);
       await store.save(workspace, document: edited, savePlan: savePlan);
 
-      final savedRaw = File(
-        p.join(fixtureRoot.path, ParallaxStore.defsPath),
-      ).readAsStringSync();
+      final savedRaw = File(p.join(fixtureRoot.path, ParallaxStore.defsPath))
+          .readAsStringSync();
       expect(savedRaw, isNot(contains('groundMaterialAssetPath')));
       final savedJson = jsonDecode(savedRaw) as Map<String, Object?>;
       expect(savedJson['schemaVersion'], parallaxSchemaVersion);
@@ -109,9 +108,8 @@ void main() {
       );
       final savePlan = store.buildSavePlan(workspace, document: edited);
 
-      File(
-        p.join(fixtureRoot.path, ParallaxStore.defsPath),
-      ).writeAsStringSync('{}\n');
+      File(p.join(fixtureRoot.path, ParallaxStore.defsPath))
+          .writeAsStringSync('{}\n');
 
       await expectLater(
         store.save(workspace, document: edited, savePlan: savePlan),
@@ -127,7 +125,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('parallax_store_fixture_');
   _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -136,6 +134,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "visualThemeId": "field",
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -151,6 +150,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "visualThemeId": "forest",
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,

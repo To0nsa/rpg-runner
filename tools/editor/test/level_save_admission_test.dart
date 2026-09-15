@@ -120,7 +120,7 @@ void main() {
           await plugin.loadFromRepo(fixture.workspace) as LevelDefsDocument;
       final raw = renderCanonicalLevelDefsJson(loaded.levels);
       for (final invalid in <String>[
-        raw.replaceFirst('"schemaVersion": 2', '"schemaVersion": 1'),
+        raw.replaceFirst('"schemaVersion": 3', '"schemaVersion": 1'),
         raw.replaceFirst('      "includeInBuild": true,\n', ''),
         raw.replaceFirst('"includeInBuild": true', '"includeInBuild": "true"'),
       ]) {

@@ -164,32 +164,13 @@ void main() {
       final level = LevelRegistry.byId(LevelId.field).copyWith(
         tuning: const CoreTuning(camera: CameraTuning(), track: TrackTuning()),
         chunkPatternSource: const ChunkPatternListSource(
-          earlyPatterns: <ChunkPattern>[
-            ChunkPattern(
-              name: 'forest_chunk',
-              chunkKey: 'field_flat',
-              assemblyGroupId: 'forest_group',
-            ),
-            ChunkPattern(
-              name: 'none_chunk',
-              chunkKey: 'field_flat',
-              assemblyGroupId: 'none_group',
-            ),
+          normalPatterns: <ChunkPattern>[
+            ChunkPattern(name: 'field_flat', chunkKey: 'field_flat'),
           ],
-          easyPatterns: <ChunkPattern>[
-            ChunkPattern(
-              name: 'forest_chunk',
-              chunkKey: 'field_flat',
-              assemblyGroupId: 'forest_group',
-            ),
-            ChunkPattern(
-              name: 'none_chunk',
-              chunkKey: 'field_flat',
-              assemblyGroupId: 'none_group',
-            ),
-          ],
+          easyPatterns: <ChunkPattern>[],
+          hardPatterns: <ChunkPattern>[],
         ),
-        earlyPatternChunks: 999,
+        earlyPatternChunks: 0,
         easyPatternChunks: 0,
         normalPatternChunks: 0,
         noEnemyChunks: 999,
@@ -198,14 +179,14 @@ void main() {
           segments: <LevelAssemblySegment>[
             LevelAssemblySegment(
               segmentId: 'forest_run',
-              groupId: 'forest_group',
+              groupId: 'default',
               minChunkCount: 1,
               maxChunkCount: 1,
               requireDistinctChunks: false,
             ),
             LevelAssemblySegment(
               segmentId: 'none_run',
-              groupId: 'none_group',
+              groupId: 'default',
               minChunkCount: 1,
               maxChunkCount: 1,
               requireDistinctChunks: false,

@@ -14,7 +14,9 @@ import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:test/test.dart';
 
-const _selectedKey = 'forest_early_flat';
+final _selectedKey = LevelRegistry.byId(LevelId.forest).chunkPatternSource
+    .patternFor(seed: 1, chunkIndex: 0, tier: ChunkPatternTier.early)
+    .chunkKey!;
 const _draftMaterial = 'chunk_playtest_draft_material';
 const _draftAsset = 'playtest/draft-only.png';
 
@@ -30,7 +32,13 @@ void main() {
         scenario.path.transitionRecords,
         hasLength(scenario.path.chunkKeys.length),
       );
-      expect(scenario.path.loopStartIndex, inInclusiveRange(0, 1));
+      expect(
+        scenario.path.loopStartIndex,
+        inInclusiveRange(
+          scenario.path.selectedChunkIndex,
+          scenario.path.chunkKeys.length - 1,
+        ),
+      );
       expect(
         scenario.path.previewChunkKeys(16),
         everyElement(isIn(scenario.path.chunkKeys)),
@@ -229,7 +237,7 @@ void main() {
         isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
-          'staged_reachable_seam_mismatch',
+          'terrain_connection_schedule_dead_end',
         ),
       ),
     );
@@ -279,7 +287,7 @@ ChunkPlaytestScenario _scenario({
   levelDefinition: levelDefinition ?? LevelRegistry.byId(LevelId.forest),
   visualThemeId: 'forest_chunk_playtest',
   seed: 4401,
-  draftPattern: const ChunkPattern(
+  draftPattern: ChunkPattern(
     name: 'forest_early_flat_draft',
     chunkKey: _selectedKey,
     assemblyGroupId: 'default',

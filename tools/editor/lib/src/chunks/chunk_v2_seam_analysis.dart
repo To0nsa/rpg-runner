@@ -1,4 +1,6 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/collision/terrain/terrain_chunk_connections.dart';
+import 'package:runner_core/collision/terrain/terrain_connection_schedule.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
@@ -40,11 +42,13 @@ final class ChunkV2SeamAnalysis {
     required Iterable<ChunkV2ReachableTransition> transitions,
     required Iterable<ChunkV2ReachableSeam> seams,
     required Iterable<ValidationIssue> issues,
+    Map<String, TerrainConnectionSchedule> schedules = const {},
   }) : leftSignaturesByChunkKey = Map.unmodifiable(leftSignaturesByChunkKey),
        rightSignaturesByChunkKey = Map.unmodifiable(rightSignaturesByChunkKey),
        transitions = List.unmodifiable(transitions),
        seams = List.unmodifiable(seams),
-       issues = List.unmodifiable(issues) {
+       issues = List.unmodifiable(issues),
+       schedules = Map.unmodifiable(schedules) {
     final signature = TerrainAuthoringSeamSignature(
       this.transitions.map((transition) => transition.authoringTransition),
     );
@@ -57,6 +61,7 @@ final class ChunkV2SeamAnalysis {
   final List<ChunkV2ReachableTransition> transitions;
   final List<ChunkV2ReachableSeam> seams;
   final List<ValidationIssue> issues;
+  final Map<String, TerrainConnectionSchedule> schedules;
   late final String reachableAdjacencyRecord;
   late final String reachableAdjacencyDigest;
 
@@ -139,6 +144,19 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
   }
   final scheduler = enumerateTerrainAuthoringReachability(
     chunks: schedulerChunks,
+    connections: {
+      for (final chunk in orderedChunks)
+        if (collisionExpansionByChunkKey[chunk.chunkKey]?.expansion
+            case final expansion?)
+          if (orderedLevels.where((l) => l.levelId == chunk.levelId).firstOrNull
+              case final level?)
+            chunk.chunkKey: buildTerrainChunkConnection(
+              chunkKey: chunk.chunkKey,
+              chunkWidth: chunk.width,
+              geometry: expansion.geometry,
+              groundTopY: level.groundTopY,
+            ),
+    },
     levels: orderedLevels.map(_schedulerLevel),
   );
   issues.addAll(
@@ -148,10 +166,13 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
         code: _editorSchedulerIssueCode(issue.code),
         message: issue.message,
         ownerKey: issue.levelId,
-        sourcePath: levelDefsSourcePath,
+        sourcePath: sourcePathByChunkKey[issue.chunkKey] ?? levelDefsSourcePath,
+        elementId: issue.sectionId,
         blockingOperations: switch (issue.code) {
           'terrain_authoring_scheduler_analysis_capacity_exceeded' ||
           'terrain_authoring_scheduler_distinct_pool_too_small' ||
+          'terrain_connection_schedule_dead_end' ||
+          'terrain_connection_profile_missing' ||
           'terrain_authoring_scheduler_pool_empty' => _runtimeOperations(
             orderedLevels,
             issue.levelId,
@@ -166,6 +187,24 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
     ),
   );
   final transitions = scheduler.transitions;
+  final reachable = {
+    for (final entry in scheduler.schedules.entries)
+      entry.key: entry.value.reachableChunkKeys,
+  };
+  for (final chunk in orderedChunks) {
+    if (reachable[chunk.levelId]?.contains(chunk.chunkKey) != false) continue;
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.warning,
+        code: 'chunk_connection_unused',
+        ownerKey: chunk.chunkKey,
+        sourcePath: sourcePathByChunkKey[chunk.chunkKey],
+        blockingOperations: const {},
+        message:
+            '${chunk.chunkKey} has no reachable occurrence in this Flow. Inspect its connections, group and difficulty; focused Chunk Play requires a valid route to it.',
+      ),
+    );
+  }
 
   final seams = <ChunkV2ReachableSeam>[];
   for (final transition in transitions) {
@@ -210,6 +249,7 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
     transitions: transitions,
     seams: seams,
     issues: issues,
+    schedules: scheduler.schedules,
   );
 }
 

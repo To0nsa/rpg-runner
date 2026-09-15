@@ -67,7 +67,9 @@ void main() {
       expect(
         (invalid['issues'] as List)
             .where(
-              (issue) => issue['code'] == 'included_level_has_no_active_chunks',
+              (issue) =>
+                  issue['code'] == 'included_level_has_no_active_chunks' &&
+                  issue['levelId'] == 'forest',
             )
             .single['levelId'],
         'forest',
@@ -1206,7 +1208,7 @@ void main() {
       "prefabId": "bridge_stack",
       "prefabKey": "bridge_stack",
       "x": 160,
-      "y": 160,
+      "y": 80,
       "zIndex": 0,
       "snapToGrid": true,
       "scale": 2.0,
@@ -1562,7 +1564,7 @@ void _writeTerrainMaterialDefs(String rootPath) {
 void _writeLevelDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -1572,6 +1574,7 @@ void _writeLevelDefs(String rootPath) {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -1588,6 +1591,7 @@ void _writeLevelDefs(String rootPath) {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -1604,7 +1608,7 @@ void _writeLevelDefs(String rootPath) {
 void _writeLevelDefsWithAssembly(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -1614,6 +1618,7 @@ void _writeLevelDefsWithAssembly(String rootPath) {
       "chunkThemeGroups": ["default", "cemetery"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -1642,6 +1647,7 @@ void _writeLevelDefsWithAssembly(String rootPath) {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -1798,7 +1804,22 @@ void _writeCurrentChunkFixture(
   decoded.putIfAbsent('tileLayers', () => <Object?>[]);
   decoded.putIfAbsent('prefabs', () => <Object?>[]);
   decoded.putIfAbsent('markers', () => <Object?>[]);
-  decoded.putIfAbsent('collisionShapes', () => <Object?>[]);
+  decoded.putIfAbsent(
+    'collisionShapes',
+    () => <Object?>[
+      {
+        'shapeId': 'ground',
+        'materialKey': 'grass_dirt',
+        'collisionMode': 'solid',
+        'vertices': [
+          {'x': 0, 'y': 224},
+          {'x': decoded['width'], 'y': 224},
+          {'x': decoded['width'], 'y': decoded['height']},
+          {'x': 0, 'y': decoded['height']},
+        ],
+      },
+    ],
+  );
   decoded.remove('groundProfile');
   decoded.remove('groundGaps');
   _writeFile(

@@ -103,20 +103,15 @@ replay was finalized before expiry.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
 - The current hard-cutover compatibility tuple is:
-  - current game compatibility: `2026.08.0`
-  - draining game compatibility: `2026.03.0`
+  - current game compatibility: `2026.09.0`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v2`
   - score: `score-v1`
   - ghost: `ghost-v1`
-- Both game-compatibility labels execute the same current normal `GameCore`
-  constructor, polygon-terrain authority, and capsule combat narrow phase.
-  `rules-v1` tickets are rejected: there is no historical AABB-combat
-  simulation path. Deployment therefore waits until old ruleset issuance has
-  stopped and all old sessions/tasks are drained or explicitly closed. The old
-  game-compatibility label remains a separate bounded ticket drain until its
-  issuance has stopped for at least the 24-hour ticket lifetime and the
-  active-session audit is empty.
+- This build rejects `2026.03.0`, `2026.08.0`, and `rules-v1` tickets. It owns
+  one connection-aware selector and current capsule combat implementation.
+  Drain old issuance and queued work on the old worker before the matching
+  app/Functions/content/worker switch; see the [release policy](chunk_connections.md#compatibility-release).
 - A ranked ticket carries the board window captured at issuance. Validation
   uses that immutable ticket snapshot, so later board closure or deletion does
   not reinterpret an already issued run.

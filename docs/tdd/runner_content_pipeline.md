@@ -98,3 +98,11 @@ dart run tool/generate_chunk_runtime_data.dart --dry-run
 flutter test test/tool/generate_chunk_runtime_data_test.dart
 flutter test test/tool/polygon_terrain_render_test.dart test/tool/polygon_terrain_signature_probe_test.dart
 ```
+
+
+Connection admission derives Core physical profiles from compiled geometry before
+selection. [The complete-state scheduler](chunk_connections.md) admits only
+continuing schedules, including all section lengths and supported Normal spawn.
+Structurally compiled chunks remain available for owner diagnostics on schedule
+failure; `validatedBatch` is null and generation publishes nothing. The accepted
+seam signature includes the selection contract digest as transition provenance.

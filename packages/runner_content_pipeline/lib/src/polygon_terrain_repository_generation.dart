@@ -1,4 +1,5 @@
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
+import 'package:runner_core/collision/terrain/terrain_chunk_connections.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
@@ -27,6 +28,8 @@ final class PolygonTerrainSchedulerLevelSource {
     required this.easyPatternChunks,
     required this.normalPatternChunks,
     this.firstChunkKey,
+    this.groundTopY = 224,
+    this.spawnX = 300,
     this.includeInBuild = true,
     this.assembly,
   });
@@ -36,6 +39,8 @@ final class PolygonTerrainSchedulerLevelSource {
   final int easyPatternChunks;
   final int normalPatternChunks;
   final String? firstChunkKey;
+  final double groundTopY;
+  final double spawnX;
 
   /// Exclusion skips whole-level readiness, never source or geometry validation.
   final bool includeInBuild;
@@ -110,8 +115,8 @@ final class PolygonTerrainRepositoryGenerationResult {
 ///
 /// Every source is decoded and compiled. Only included levels and active chunks
 /// enter scheduler/seam readiness and the runtime render batch.
-/// No partial product is returned when any source, scheduler, geometry, or seam
-/// blocker exists.
+/// A runtime batch is returned only after full admission. Structurally accepted
+/// chunks remain available for owner diagnostics when schedule admission fails.
 PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
   required String prefabSourcePath,
   required String prefabContents,
@@ -203,6 +208,20 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
     ),
   );
   issues.addAll(structuralBatch.issues);
+  if (issues.isNotEmpty ||
+      structuralBatch.batch == null ||
+      compiled.length != parsed.length) {
+    return _failure(issues);
+  }
+  final parsedByKey = {for (final item in parsed) item.source.chunkKey: item};
+  final structuralChunks = [
+    for (final item in structuralBatch.batch!.chunks)
+      PolygonTerrainRepositoryChunk(
+        sourcePath: parsedByKey[item.chunk.chunkKey]!.sourcePath,
+        source: parsedByKey[item.chunk.chunkKey]!.source,
+        compiled: item,
+      ),
+  ];
   final runtimeSources = parsed
       .where(
         (item) =>
@@ -211,6 +230,21 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
       )
       .toList();
   final scheduler = enumerateTerrainAuthoringReachability(
+    connections: {
+      for (final chunk in compiled)
+        if (includedLevelIds.contains(chunk.chunk.levelId))
+          chunk.chunk.chunkKey: buildTerrainChunkConnection(
+            chunkKey: chunk.chunk.chunkKey,
+            chunkWidth: chunk.chunk.width,
+            geometry: chunk.geometry,
+            groundTopY: includedLevels
+                .firstWhere((l) => l.levelId == chunk.chunk.levelId)
+                .groundTopY,
+            spawnX: includedLevels
+                .firstWhere((l) => l.levelId == chunk.chunk.levelId)
+                .spawnX,
+          ),
+    },
     chunks: runtimeSources.map(
       (item) => TerrainAuthoringSchedulerChunk(
         chunkKey: item.source.chunkKey,
@@ -233,7 +267,11 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
     ),
   );
   if (issues.isNotEmpty || compiled.length != parsed.length) {
-    return _failure(issues);
+    return PolygonTerrainRepositoryGenerationResult(
+      chunks: structuralChunks,
+      validatedBatch: null,
+      issues: issues,
+    );
   }
 
   final seamResult = validatePolygonTerrainSeams(
@@ -249,23 +287,10 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
   );
   issues.addAll(seamResult.issues);
   final batch = seamResult.batch;
-  if (issues.isNotEmpty || batch == null) return _failure(issues);
-
-  final parsedByKey =
-      <String, ({String sourcePath, PolygonTerrainChunkSource source})>{
-        for (final item in parsed) item.source.chunkKey: item,
-      };
   return PolygonTerrainRepositoryGenerationResult(
-    chunks: <PolygonTerrainRepositoryChunk>[
-      for (final item in structuralBatch.batch!.chunks)
-        PolygonTerrainRepositoryChunk(
-          sourcePath: parsedByKey[item.chunk.chunkKey]!.sourcePath,
-          source: parsedByKey[item.chunk.chunkKey]!.source,
-          compiled: item,
-        ),
-    ],
-    validatedBatch: batch,
-    issues: const <TerrainAuthoringIssue>[],
+    chunks: structuralChunks,
+    validatedBatch: issues.isEmpty ? batch : null,
+    issues: issues,
   );
 }
 

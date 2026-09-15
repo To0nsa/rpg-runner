@@ -53,15 +53,16 @@ class LevelRegistry {
           normalPatternChunks: 6,
           noEnemyChunks: 3,
           visualThemeId: 'forest',
-          firstChunkKey: 'forest_early_flat',
+          firstChunkKey: 'forest_early_flat_001',
           assembly: const LevelAssemblyDefinition(
             loopSegments: false,
             segments: <LevelAssemblySegment>[
               LevelAssemblySegment(
                 segmentId: 'default',
                 groupId: 'default',
-                minChunkCount: 1,
-                maxChunkCount: 1,
+                difficulty: ChunkPatternTier.early,
+                minChunkCount: 6,
+                maxChunkCount: 6,
                 requireDistinctChunks: true,
               ),
               LevelAssemblySegment(

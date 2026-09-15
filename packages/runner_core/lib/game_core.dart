@@ -110,6 +110,8 @@ import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'track/chunk_pattern.dart' show SpawnPlacementMode;
+import 'track/chunk_pattern_source.dart';
+import 'track/connected_chunk_pattern_source.dart';
 import 'track/staged_authored_terrain.dart';
 import 'track/staged_terrain_catalog.dart';
 import 'track/staged_terrain_preparer.dart';
@@ -391,6 +393,17 @@ class GameCore {
         ? _stagedTerrainCatalogOverride ??
               StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain)
         : null;
+    final authoredSource = levelDefinition.chunkPatternSource;
+    final connectedSource =
+        _stagedTerrainCatalog != null &&
+            (authoredSource is ChunkPatternListSource ||
+                authoredSource is FirstChunkPatternSource ||
+                authoredSource is AssembledChunkPatternSource)
+        ? ConnectedChunkPatternSource.forLevel(
+            level: levelDefinition,
+            catalog: _stagedTerrainCatalog,
+          )
+        : authoredSource;
     TrackStreamer? prewarmedTrackStreamer;
     var initialEnemySpawns = const <SpawnEnemyRequest>[];
     var initialSpawnedChunks = const <TrackSpawnedChunk>[];
@@ -399,7 +412,7 @@ class GameCore {
         seed: seed,
         tuning: _trackTuning,
         groundTopY: levelDefinition.groundTopY,
-        patternSource: levelDefinition.chunkPatternSource,
+        patternSource: connectedSource,
         earlyPatternChunks: levelDefinition.earlyPatternChunks,
         easyPatternChunks: levelDefinition.easyPatternChunks,
         normalPatternChunks: levelDefinition.normalPatternChunks,
@@ -479,7 +492,7 @@ class GameCore {
       restorationItemTuning: _restorationItemTuning,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
-      chunkPatternSource: levelDefinition.chunkPatternSource,
+      chunkPatternSource: connectedSource,
       trackStreamer: prewarmedTrackStreamer,
       earlyPatternChunks: levelDefinition.earlyPatternChunks,
       easyPatternChunks: levelDefinition.easyPatternChunks,

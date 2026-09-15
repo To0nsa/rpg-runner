@@ -23,14 +23,14 @@ void main() {
     );
     expect(
       manifest.signature.digest,
-      '9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b',
+      '77e6fa33bfe9dddd6b056804d0b4614576be33929b504d6b75679b6b931ec2e2',
     );
   });
 
   test('manifest rejects derived drift and duplicate transitions', () {
-    final original =
-        jsonDecode(File(_fixturePath).readAsStringSync())
-            as Map<String, Object?>;
+    final original = jsonDecode(
+      File(_fixturePath).readAsStringSync(),
+    ) as Map<String, Object?>;
     final drifted = Map<String, Object?>.of(original)
       ..['reachableAdjacencyDigest'] = '0' * 64;
     expect(

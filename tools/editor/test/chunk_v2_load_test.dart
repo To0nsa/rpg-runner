@@ -72,8 +72,8 @@ void main() {
       expect(document.visualBoundsByPrefabKey, isEmpty);
       expect(plugin.validate(document), isEmpty);
       final scene = plugin.buildEditableScene(document) as ChunkV2Scene;
-      expect(scene.seamAnalysis.transitions, hasLength(3));
-      expect(scene.seamAnalysis.seams, hasLength(3));
+      expect(scene.seamAnalysis.transitions, hasLength(1));
+      expect(scene.seamAnalysis.seams, hasLength(1));
       expect(
         scene.seamAnalysis.seams.every((seam) => seam.comparison.isCompatible),
         isTrue,
@@ -293,7 +293,7 @@ final class _V2Fixture {
       markers: const <PlacedMarkerDef>[],
       groundBandZIndex: 0,
       collisionShapes: <TerrainSourceShapeDef>[
-        _rectangle('ground', left: 0, right: 1200, bottom: 540),
+        _rectangle('ground', left: 0, right: 1200, top: 448, bottom: 540),
       ],
     );
     final chunkContents = ChunkV2FileCodec.encode(data);

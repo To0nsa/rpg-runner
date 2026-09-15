@@ -65,34 +65,31 @@ void main() {
     }
   });
 
-  test(
-    'ChunkPatternListSource falls back across tiers when requested pool is empty',
-    () {
-      const source = ChunkPatternListSource(
-        easyPatterns: <ChunkPattern>[ChunkPattern(name: 'easy')],
-        hardPatterns: <ChunkPattern>[ChunkPattern(name: 'hard')],
-      );
+  test('ChunkPatternListSource falls back across tiers when requested pool is empty', () {
+    const source = ChunkPatternListSource(
+      easyPatterns: <ChunkPattern>[ChunkPattern(name: 'easy')],
+      hardPatterns: <ChunkPattern>[ChunkPattern(name: 'hard')],
+    );
 
-      expect(
-        source
-            .patternFor(seed: 1, chunkIndex: 0, tier: ChunkPatternTier.early)
-            .name,
-        'easy',
-      );
-      expect(
-        source
-            .patternFor(seed: 1, chunkIndex: 1, tier: ChunkPatternTier.normal)
-            .name,
-        'easy',
-      );
-      expect(
-        source
-            .patternFor(seed: 1, chunkIndex: 2, tier: ChunkPatternTier.hard)
-            .name,
-        'hard',
-      );
-    },
-  );
+    expect(
+      source
+          .patternFor(seed: 1, chunkIndex: 0, tier: ChunkPatternTier.early)
+          .name,
+      'easy',
+    );
+    expect(
+      source
+          .patternFor(seed: 1, chunkIndex: 1, tier: ChunkPatternTier.normal)
+          .name,
+      'easy',
+    );
+    expect(
+      source
+          .patternFor(seed: 1, chunkIndex: 2, tier: ChunkPatternTier.hard)
+          .name,
+      'hard',
+    );
+  });
 
   test('ChunkPatternListSource throws when every tier is empty', () {
     const source = ChunkPatternListSource(easyPatterns: <ChunkPattern>[]);
@@ -149,7 +146,7 @@ void main() {
         level.chunkPatternSource
             .patternFor(seed: seed, chunkIndex: 0, tier: ChunkPatternTier.early)
             .chunkKey,
-        'forest_early_flat',
+        level.firstChunkKey,
       );
     }
   });
@@ -269,72 +266,69 @@ void main() {
     expect(keys.toSet(), hasLength(3));
   });
 
-  test(
-    'AssembledChunkPatternSource draws deterministic run lengths inside authored ranges',
-    () {
-      final source = AssembledChunkPatternSource(
-        baseSource: const ChunkPatternListSource(
-          easyPatterns: <ChunkPattern>[
-            ChunkPattern(name: 'cemetery_a', assemblyGroupId: 'cemetery'),
-            ChunkPattern(name: 'cemetery_b', assemblyGroupId: 'cemetery'),
-            ChunkPattern(name: 'cemetery_c', assemblyGroupId: 'cemetery'),
-            ChunkPattern(name: 'none_a', assemblyGroupId: 'none'),
-            ChunkPattern(name: 'none_b', assemblyGroupId: 'none'),
-            ChunkPattern(name: 'none_c', assemblyGroupId: 'none'),
-            ChunkPattern(name: 'none_d', assemblyGroupId: 'none'),
-          ],
-        ),
-        assembly: const LevelAssemblyDefinition(
-          loopSegments: false,
-          segments: <LevelAssemblySegment>[
-            LevelAssemblySegment(
-              segmentId: 'cemetery_run',
-              groupId: 'cemetery',
-              minChunkCount: 2,
-              maxChunkCount: 4,
-              requireDistinctChunks: false,
-            ),
-            LevelAssemblySegment(
-              segmentId: 'none_run',
-              groupId: 'none',
-              minChunkCount: 4,
-              maxChunkCount: 6,
-              requireDistinctChunks: false,
-            ),
-          ],
-        ),
+  test('AssembledChunkPatternSource draws deterministic run lengths inside authored ranges', () {
+    final source = AssembledChunkPatternSource(
+      baseSource: const ChunkPatternListSource(
+        easyPatterns: <ChunkPattern>[
+          ChunkPattern(name: 'cemetery_a', assemblyGroupId: 'cemetery'),
+          ChunkPattern(name: 'cemetery_b', assemblyGroupId: 'cemetery'),
+          ChunkPattern(name: 'cemetery_c', assemblyGroupId: 'cemetery'),
+          ChunkPattern(name: 'none_a', assemblyGroupId: 'none'),
+          ChunkPattern(name: 'none_b', assemblyGroupId: 'none'),
+          ChunkPattern(name: 'none_c', assemblyGroupId: 'none'),
+          ChunkPattern(name: 'none_d', assemblyGroupId: 'none'),
+        ],
+      ),
+      assembly: const LevelAssemblyDefinition(
+        loopSegments: false,
+        segments: <LevelAssemblySegment>[
+          LevelAssemblySegment(
+            segmentId: 'cemetery_run',
+            groupId: 'cemetery',
+            minChunkCount: 2,
+            maxChunkCount: 4,
+            requireDistinctChunks: false,
+          ),
+          LevelAssemblySegment(
+            segmentId: 'none_run',
+            groupId: 'none',
+            minChunkCount: 4,
+            maxChunkCount: 6,
+            requireDistinctChunks: false,
+          ),
+        ],
+      ),
+    );
+
+    final first = <String>[];
+    final second = <String>[];
+    for (var chunkIndex = 0; chunkIndex < 14; chunkIndex += 1) {
+      first.add(
+        source
+            .selectionFor(
+              seed: 99,
+              chunkIndex: chunkIndex,
+              tier: ChunkPatternTier.easy,
+            )
+            .pattern
+            .assemblyGroupId,
       );
+      second.add(
+        source
+            .selectionFor(
+              seed: 99,
+              chunkIndex: chunkIndex,
+              tier: ChunkPatternTier.easy,
+            )
+            .pattern
+            .assemblyGroupId,
+      );
+    }
 
-      final first = <String>[];
-      final second = <String>[];
-      for (var chunkIndex = 0; chunkIndex < 14; chunkIndex += 1) {
-        first.add(
-          source
-              .selectionFor(
-                seed: 99,
-                chunkIndex: chunkIndex,
-                tier: ChunkPatternTier.easy,
-              )
-              .pattern
-              .assemblyGroupId,
-        );
-        second.add(
-          source
-              .selectionFor(
-                seed: 99,
-                chunkIndex: chunkIndex,
-                tier: ChunkPatternTier.easy,
-              )
-              .pattern
-              .assemblyGroupId,
-        );
-      }
-
-      expect(second, first);
-      final firstNoneIndex = first.indexOf('none');
-      expect(firstNoneIndex, inInclusiveRange(2, 4));
-      expect(first.take(firstNoneIndex), everyElement('cemetery'));
-      expect(first.skip(firstNoneIndex), everyElement('none'));
-    },
-  );
+    expect(second, first);
+    final firstNoneIndex = first.indexOf('none');
+    expect(firstNoneIndex, inInclusiveRange(2, 4));
+    expect(first.take(firstNoneIndex), everyElement('cemetery'));
+    expect(first.skip(firstNoneIndex), everyElement('none'));
+  });
 }

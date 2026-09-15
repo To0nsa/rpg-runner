@@ -330,3 +330,12 @@ must be tested as gameplay changes.
 
 The exact workflow checklists live in `.agent/workflows/`. Use the narrowest
 relevant checks first, then broaden through each affected boundary.
+
+
+## Authored terrain selection
+
+Normal Core binds authored chunk pools to compiled terrain with
+`ConnectedChunkPatternSource` before prewarming or streaming. Its admitted
+continuations, spawn rules, seeded salts and bounded cursor are specified in
+[chunk connections](chunk_connections.md). Level Play and replay consume the same
+Core rules. This selection change is versioned as game compatibility 2026.09.0.

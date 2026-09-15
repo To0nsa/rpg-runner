@@ -437,6 +437,10 @@ class LevelDomainPlugin
         payload['cameraCenterY'],
         fallback: copySource?.cameraCenterY ?? defaultLevelCameraCenterY,
       ),
+      terrainHeightStepPx: _intOrDefault(
+        payload['terrainHeightStepPx'],
+        fallback: copySource?.terrainHeightStepPx ?? 24,
+      ),
       groundTopY: _doubleOrDefault(
         payload['groundTopY'],
         fallback: copySource?.groundTopY ?? defaultLevelGroundTopY,
@@ -652,6 +656,10 @@ class LevelDomainPlugin
           cameraCenterY: _doubleOrDefault(
             payload['cameraCenterY'],
             fallback: source.cameraCenterY,
+          ),
+          terrainHeightStepPx: _intOrDefault(
+            payload['terrainHeightStepPx'],
+            fallback: source.terrainHeightStepPx,
           ),
           groundTopY: _doubleOrDefault(
             payload['groundTopY'],

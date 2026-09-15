@@ -1,3 +1,4 @@
+import 'package:runner_core/levels/terrain_elevation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
 import 'package:runner_core/track/chunk_pattern_tier.dart';
@@ -6,7 +7,7 @@ import '../domain/authoring_identifiers.dart';
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_domain_models.dart';
 
-const int levelDefsSchemaVersion = 2;
+const int levelDefsSchemaVersion = 3;
 const String levelDefsSourcePath = 'assets/authoring/level/level_defs.json';
 const String levelStatusActive = 'active';
 const String levelStatusDeprecated = 'deprecated';
@@ -140,6 +141,7 @@ class LevelDef {
     this.firstChunkKey,
     required this.cameraCenterY,
     required this.groundTopY,
+    this.terrainHeightStepPx = defaultTerrainHeightStepPx,
     required this.earlyPatternChunks,
     required this.easyPatternChunks,
     required this.normalPatternChunks,
@@ -158,6 +160,12 @@ class LevelDef {
   final String? firstChunkKey;
   final double cameraCenterY;
   final double groundTopY;
+  final int terrainHeightStepPx;
+
+  TerrainElevationPresets get elevationPresets => TerrainElevationPresets(
+    groundTopY: groundTopY,
+    stepPx: terrainHeightStepPx,
+  );
   final int earlyPatternChunks;
   final int easyPatternChunks;
   final int normalPatternChunks;
@@ -179,6 +187,7 @@ class LevelDef {
     bool clearFirstChunkKey = false,
     double? cameraCenterY,
     double? groundTopY,
+    int? terrainHeightStepPx,
     int? earlyPatternChunks,
     int? easyPatternChunks,
     int? normalPatternChunks,
@@ -200,6 +209,7 @@ class LevelDef {
           : (firstChunkKey ?? this.firstChunkKey),
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
       groundTopY: groundTopY ?? this.groundTopY,
+      terrainHeightStepPx: terrainHeightStepPx ?? this.terrainHeightStepPx,
       earlyPatternChunks: earlyPatternChunks ?? this.earlyPatternChunks,
       easyPatternChunks: easyPatternChunks ?? this.easyPatternChunks,
       normalPatternChunks: normalPatternChunks ?? this.normalPatternChunks,
@@ -222,6 +232,7 @@ class LevelDef {
       firstChunkKey: firstChunkKey?.trim(),
       cameraCenterY: normalizeLevelNumber(cameraCenterY),
       groundTopY: normalizeLevelNumber(groundTopY),
+      terrainHeightStepPx: terrainHeightStepPx,
       earlyPatternChunks: earlyPatternChunks,
       easyPatternChunks: easyPatternChunks,
       normalPatternChunks: normalPatternChunks,
@@ -435,6 +446,9 @@ String renderCanonicalLevelDefsJson(Iterable<LevelDef> levels) {
     buffer.writeln(
       '      "groundTopY": ${formatCanonicalLevelNumber(level.groundTopY)},',
     );
+    buffer.writeln(
+      '      "terrainHeightStepPx": ${level.terrainHeightStepPx},',
+    );
     buffer.writeln('      "earlyPatternChunks": ${level.earlyPatternChunks},');
     buffer.writeln('      "easyPatternChunks": ${level.easyPatternChunks},');
     buffer.writeln(
@@ -471,6 +485,7 @@ bool levelDefEquals(LevelDef a, LevelDef b, {bool ignoreRevision = false}) {
       left.firstChunkKey == right.firstChunkKey &&
       left.cameraCenterY == right.cameraCenterY &&
       left.groundTopY == right.groundTopY &&
+      left.terrainHeightStepPx == right.terrainHeightStepPx &&
       left.earlyPatternChunks == right.earlyPatternChunks &&
       left.easyPatternChunks == right.easyPatternChunks &&
       left.normalPatternChunks == right.normalPatternChunks &&

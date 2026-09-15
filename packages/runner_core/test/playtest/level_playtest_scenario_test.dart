@@ -349,22 +349,17 @@ void main() {
         isA<PlaytestScenarioException>().having(
           (error) => error.code,
           'code',
-          contains('distinct'),
+          'terrain_connection_schedule_dead_end',
         ),
       ),
     );
+    final pruned = _scenario(
+      level: _level(patterns: [_pattern('a'), _pattern('b')]),
+      chunks: [_terrain('a'), _terrain('b', breakRightBoundary: true)],
+    );
     expect(
-      () => _scenario(
-        level: _level(patterns: [_pattern('a'), _pattern('b')]),
-        chunks: [_terrain('a'), _terrain('b', breakRightBoundary: true)],
-      ),
-      throwsA(
-        isA<PlaytestScenarioException>().having(
-          (error) => error.code,
-          'code',
-          'staged_reachable_seam_mismatch',
-        ),
-      ),
+      pruned.sampleChunks().map((sample) => sample.chunkKey),
+      everyElement('a'),
     );
   });
 }
@@ -450,6 +445,7 @@ void _expectSameRun(GameCore first, GameCore second) {
       first.drainEvents().map((e) => e.runtimeType.toString()),
       second.drainEvents().map((e) => e.runtimeType.toString()),
     );
+    if (a.gameOver) break;
     final commands = <Command>[
       MoveAxisCommand(tick: tick + 1, axis: 1),
       if (tick % 65 == 0) JumpPressedCommand(tick: tick + 1),

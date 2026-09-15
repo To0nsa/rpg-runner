@@ -4,6 +4,41 @@ import '../../tool/level_definition_generation.dart';
 import '../../tool/migrate_level_build_inclusion.dart';
 
 void main() {
+  test(
+    'v2 migration adds guides without changing inclusion or geometry settings',
+    () {
+      final v2 = _legacy
+          .replaceFirst('"schemaVersion": 1', '"schemaVersion": 2')
+          .replaceFirst(
+            '"enumOrdinal": 17,',
+            '"enumOrdinal": 17,\n      "includeInBuild": false,',
+          );
+      final migrated = migrateLevelBuildInclusionSource(
+        v2,
+        sourcePath: 'level_defs.json',
+      );
+      final decoded = decodeLevelDefinitions(
+        migrated,
+        defsPath: 'level_defs.json',
+      );
+      expect(decoded.issues, isEmpty);
+      expect(decoded.levels.single.includeInBuild, isFalse);
+      expect(decoded.levels.single.terrainHeightStepPx, 24);
+      expect(decoded.levels.single.groundTopY, 224);
+      for (final invalid in ['null', '0', '33', '1.5', '"24"']) {
+        expect(
+          decodeLevelDefinitions(
+            migrated.replaceFirst(
+              '"terrainHeightStepPx": 24',
+              '"terrainHeightStepPx": $invalid',
+            ),
+            defsPath: 'level_defs.json',
+          ).issues,
+          isNotEmpty,
+        );
+      }
+    },
+  );
   test('explicit v1 migration preserves identities, ordinals, revisions and design', () {
     final migrated = migrateLevelBuildInclusionSource(
       _legacy,

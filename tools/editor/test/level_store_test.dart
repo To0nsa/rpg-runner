@@ -124,7 +124,7 @@ Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('level_store_fixture_');
   _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "levels": [
     {
       "levelId": "field",
@@ -134,6 +134,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -150,6 +151,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
+      "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,

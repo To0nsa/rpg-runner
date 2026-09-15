@@ -1,12 +1,13 @@
 /// Immutable whole-level construction through the explicit tooling boundary.
 library;
 
-import '../collision/terrain/terrain_authoring_scheduler.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../levels/level_definition.dart';
 import '../players/player_character_definition.dart';
 import '../players/player_tuning.dart' show defaultTickHz;
 import '../track/chunk_pattern_source.dart';
+import '../track/connected_chunk_pattern_source.dart';
+import '../collision/terrain/terrain_connection_schedule.dart';
 import '../track/staged_terrain_catalog.dart';
 import '../track/staged_terrain_data.dart';
 import 'playtest_scenario_validation.dart';
@@ -45,7 +46,6 @@ final class LevelPlaytestScenario implements PlaytestScenario {
       ),
     };
     final seen = <String>{};
-    final schedulerChunks = <TerrainAuthoringSchedulerChunk>[];
     final pools = [
       (ChunkPatternTier.early, base.earlyPatterns),
       (ChunkPatternTier.easy, base.easyPatterns),
@@ -80,15 +80,6 @@ final class LevelPlaytestScenario implements PlaytestScenario {
                 'status, runtime width, group, and authored tier.',
           );
         }
-        schedulerChunks.add(
-          TerrainAuthoringSchedulerChunk(
-            chunkKey: key,
-            levelId: terrain.levelId,
-            tier: tier,
-            assemblyGroupId: terrain.assemblyGroupId,
-            isActive: true,
-          ),
-        );
       }
     }
     if (seen.isEmpty) {
@@ -108,30 +99,10 @@ final class LevelPlaytestScenario implements PlaytestScenario {
         );
       }
     }
-    final scheduler = enumerateTerrainAuthoringReachability(
-      chunks: schedulerChunks,
-      levels: [
-        TerrainAuthoringSchedulerLevel(
-          levelId: level.identity.value,
-          earlyPatternChunks: level.earlyPatternChunks,
-          easyPatternChunks: level.easyPatternChunks,
-          normalPatternChunks: level.normalPatternChunks,
-          firstChunkKey: level.firstChunkKey,
-          assembly: playtestSchedulerAssembly(level.assembly),
-        ),
-      ],
-    );
-    if (scheduler.issues.isNotEmpty) {
-      final issue = scheduler.issues.first;
-      throw PlaytestScenarioException(code: issue.code, message: issue.message);
-    }
-    for (final transition in scheduler.transitions) {
-      validatePlaytestSeam(
-        transitionRecord: transition.canonicalRecord,
-        leftChunkKey: transition.leftChunkKey,
-        rightChunkKey: transition.rightChunkKey,
-        catalog: catalog,
-      );
+    try {
+      ConnectedChunkPatternSource.forLevel(level: level, catalog: catalog);
+    } on TerrainConnectionException catch (error) {
+      throw PlaytestScenarioException(code: error.code, message: error.message);
     }
     return LevelPlaytestScenario._(
       levelDefinition: level,
@@ -172,7 +143,10 @@ final class LevelPlaytestScenario implements PlaytestScenario {
   List<LevelPlaytestChunkSample> sampleChunks({int count = 12}) {
     RangeError.checkValueInInterval(count, 1, 128, 'count');
     final level = buildRuntimeLevelDefinition();
-    final source = level.chunkPatternSource;
+    final source = ConnectedChunkPatternSource.forLevel(
+      level: level,
+      catalog: terrainCatalog,
+    );
     return List.unmodifiable(
       List.generate(count, (index) {
         final tier = chunkPatternTierForIndex(
@@ -195,6 +169,9 @@ final class LevelPlaytestScenario implements PlaytestScenario {
           resolvedTier: playtestTierForDifficulty(terrain.difficulty),
           enemiesSuppressed: index < level.noEnemyChunks,
           assembly: selected.assembly,
+          availableChunkKeys: source
+              .explainSelection(seed: seed, chunkIndex: index)
+              .availableChunkKeys,
         );
       }),
     );
@@ -211,6 +188,7 @@ final class LevelPlaytestChunkSample {
     required this.resolvedTier,
     required this.enemiesSuppressed,
     required this.assembly,
+    this.availableChunkKeys = const [],
   });
 
   final int chunkIndex;
@@ -220,5 +198,8 @@ final class LevelPlaytestChunkSample {
   final ChunkPatternTier resolvedTier;
   final bool enemiesSuppressed;
   final ChunkAssemblySelection? assembly;
+
+  /// Exact choices admitted at this occurrence, before seeded selection.
+  final List<String> availableChunkKeys;
   bool get startsSection => assembly?.startChunkIndex == chunkIndex;
 }

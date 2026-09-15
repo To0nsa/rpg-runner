@@ -526,6 +526,7 @@ PolygonTerrainSchedulerLevelSource _terrainSchedulerLevel(
   LevelDefinitionSource level,
 ) => PolygonTerrainSchedulerLevelSource(
   levelId: level.levelId,
+  groundTopY: level.groundTopY,
   earlyPatternChunks: level.earlyPatternChunks,
   easyPatternChunks: level.easyPatternChunks,
   normalPatternChunks: level.normalPatternChunks,

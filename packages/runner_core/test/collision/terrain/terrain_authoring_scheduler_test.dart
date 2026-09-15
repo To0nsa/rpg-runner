@@ -1,6 +1,7 @@
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
+import 'package:runner_core/collision/terrain/terrain_connection_schedule.dart';
 
 void main() {
   test(
@@ -15,7 +16,7 @@ void main() {
       TerrainAuthoringSchedulerResult enumerate({
         int count = 2,
         ChunkPatternTier tier = ChunkPatternTier.easy,
-      }) => enumerateTerrainAuthoringReachability(
+      }) => _enumerate(
         chunks: chunks,
         levels: [
           TerrainAuthoringSchedulerLevel(
@@ -63,11 +64,11 @@ void main() {
       );
       expect(
         enumerate(count: 3).issues.map((i) => i.code),
-        contains('terrain_authoring_scheduler_distinct_pool_too_small'),
+        contains('terrain_connection_schedule_dead_end'),
       );
       expect(
         enumerate(tier: ChunkPatternTier.early).issues.map((i) => i.code),
-        contains('terrain_authoring_scheduler_pool_empty'),
+        contains('terrain_connection_schedule_dead_end'),
       );
     },
   );
@@ -87,25 +88,28 @@ void main() {
       normalPatternChunks: 0,
     );
 
-    final result = enumerateTerrainAuthoringReachability(
+    final result = _enumerate(
       chunks: chunks,
       levels: <TerrainAuthoringSchedulerLevel>[level],
     );
 
     expect(result.issues, isEmpty);
-    expect(result.signature.canonicalRecord, '''authoring-seams-v1
-forest|steady-hard:tier=hard>hard|normal>normal
-forest|tier=early:within-window|early_a>early_a
-forest|tier=early:within-window|early_a>early_b
-forest|tier=early:within-window|early_b>early_a
-forest|tier=early:within-window|early_b>early_b
-forest|tier=early>easy:boundary|early_a>easy
-forest|tier=early>easy:boundary|early_b>easy
-forest|tier=easy>hard:boundary|easy>normal''');
     expect(
-      result.signature.digest,
-      '9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b',
+      result.transitions
+          .map((t) => '${t.leftChunkKey}>${t.rightChunkKey}')
+          .toSet(),
+      {
+        'normal>normal',
+        'early_a>early_a',
+        'early_a>early_b',
+        'early_b>early_a',
+        'early_b>early_b',
+        'early_a>easy',
+        'early_b>easy',
+        'easy>normal',
+      },
     );
+    expect(result.schedules['forest']!.contractDigest, hasLength(64));
     expect(
       result.transitions.any(
         (transition) => transition.leftChunkKey == 'deprecated_hard',
@@ -113,7 +117,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
       isFalse,
     );
 
-    final reversed = enumerateTerrainAuthoringReachability(
+    final reversed = _enumerate(
       chunks: chunks.reversed,
       levels: <TerrainAuthoringSchedulerLevel>[level],
     );
@@ -127,7 +131,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
   test(
     'assembly reachability enforces distinct runs and directed boundaries',
     () {
-      final result = enumerateTerrainAuthoringReachability(
+      final result = _enumerate(
         chunks: <TerrainAuthoringSchedulerChunk>[
           _chunk('a', ChunkPatternTier.normal, groupId: 'grove'),
           _chunk('b', ChunkPatternTier.normal, groupId: 'grove'),
@@ -176,7 +180,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
   );
 
   test('missing pools and excessive finite windows fail closed', () {
-    final result = enumerateTerrainAuthoringReachability(
+    final result = _enumerate(
       chunks: <TerrainAuthoringSchedulerChunk>[
         _chunk('only', ChunkPatternTier.normal, groupId: 'grove'),
       ],
@@ -206,7 +210,6 @@ forest|tier=easy>hard:boundary|easy>normal''');
       result.issues.map((issue) => issue.code),
       containsAll(<String>{
         'terrain_authoring_scheduler_analysis_capacity_exceeded',
-        'terrain_authoring_scheduler_pool_empty',
       }),
     );
     expect(result.transitions, isEmpty);
@@ -219,7 +222,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
       _chunk('retired', ChunkPatternTier.early, isActive: false),
     ];
     TerrainAuthoringSchedulerResult enumerate(String firstChunkKey) =>
-        enumerateTerrainAuthoringReachability(
+        _enumerate(
           chunks: chunks,
           levels: <TerrainAuthoringSchedulerLevel>[
             TerrainAuthoringSchedulerLevel(
@@ -259,4 +262,19 @@ TerrainAuthoringSchedulerChunk _chunk(
   tier: tier,
   assemblyGroupId: groupId,
   isActive: isActive,
+);
+
+TerrainAuthoringSchedulerResult _enumerate({
+  required Iterable<TerrainAuthoringSchedulerChunk> chunks,
+  required Iterable<TerrainAuthoringSchedulerLevel> levels,
+}) => enumerateTerrainAuthoringReachability(
+  chunks: chunks,
+  levels: levels,
+  connections: {
+    for (final chunk in chunks)
+      chunk.chunkKey: const TerrainChunkConnection(
+        entrance: 'flat',
+        exit: 'flat',
+      ),
+  },
 );
