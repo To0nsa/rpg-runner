@@ -60,7 +60,7 @@ void main() {
         'edges':
             'dfcdc19342298c0d465fdee9a030e9a7f22894224278d460a4b9fc7e64427271',
         'seams':
-            'fa7a0aa0c31a1678a4d82afb5f88957f7b8e520c608d4ceffbdd514dc3c16355',
+            '3e96eb7be5846433fe44192922a9992b37c1819f8c2df267d9ad51f84c101374',
       },
     );
   });

@@ -48,7 +48,10 @@ selected-Level Chunk, including inactive source, to
 It builds authored Level identity and settings, then delegates scheduler/seam
 admission to the appropriate Core scenario. New Levels, first Chunks, themes,
 and materials need no generated enum or catalog entry. Chunk Play admits its
-focused canonical lasso and removes the initial enemy-free prefix. Whole-Level
+focused canonical lasso over complete connection scheduling states, including
+a supported Normal opener and the selected occurrence, and removes the initial
+enemy-free prefix. The lasso retains section lengths, used identities and an
+exactly matching repeating tail; see [chunk connections](chunk_connections.md). Whole-Level
 Play retains actual assembly, pacing, distinctness, looping and marker rules.
 Default tooling selection is seed `4401`, Eloise, and the empty default loadout.
 

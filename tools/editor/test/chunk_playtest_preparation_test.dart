@@ -8,6 +8,7 @@ import 'package:runner_core/levels/level_identity.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
+import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_domain_plugin.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
@@ -95,8 +96,19 @@ void main() {
       final input = _copy(
         captured,
         selectedChunkKey: example.chunkKey,
-        chunks: {'water_pool_example.json': ChunkV2FileCodec.encode(example)},
+        chunks: {
+          'water_pool_example.json': ChunkV2FileCodec.encode(example),
+          'water_opener.json': ChunkV2FileCodec.encode(
+            example.copyWith(
+              chunkKey: 'water_opener',
+              id: 'water_opener',
+              waterRegions: [],
+              collisionShapes: [_flatGround(222)],
+            ),
+          ),
+        },
         level: captured.level.copyWith(
+          groundTopY: 222,
           clearAssembly: true,
           clearFirstChunkKey: true,
         ),
@@ -131,7 +143,10 @@ void main() {
         );
       }
       final core = GameCore.chunkPlaytest(scenario: scenario);
-      core.setPlayerPosXYUnsafeForTest(220, 245);
+      core.setPlayerPosXYUnsafeForTest(
+        scenario.path.selectedChunkIndex * 600 + 220,
+        245,
+      );
       core.stepOneTick();
       expect(core.buildSnapshot().playerEntity!.isSwimming, isTrue);
       expect(
@@ -148,6 +163,9 @@ void main() {
           chunkKey: 'prototype_first',
           id: 'first',
           levelId: 'prototype',
+          prefabs: [],
+          markers: [],
+          collisionShapes: [_flatGround(210)],
         );
     final chunks = {
       'assets/authoring/level/chunks/prototype/prototype_first.json':
@@ -159,6 +177,8 @@ void main() {
       noEnemyChunks: 4,
       cameraCenterY: 123,
       groundTopY: 210,
+      clearAssembly: true,
+      clearFirstChunkKey: true,
     );
     final theme = captured.theme.copyWith(
       parallaxThemeId: 'prototype_background',
@@ -376,4 +396,17 @@ PlaytestPreparationInput _copy(
       ? null
       : (selectedChunkKey ?? input.selectedChunkKey),
   seed: input.seed,
+);
+
+TerrainSourceShapeDef _flatGround(int y) => TerrainSourceShapeDef(
+  shapeId: 'flat_ground',
+  surfaceKind: 'ground',
+  materialKey: 'grass_dirt',
+  vertices: [
+    for (final point in [(0, y), (600, y), (600, 270), (0, 270)])
+      TerrainSourceVertexDef(
+        xHalfPixels: point.$1 * 2,
+        yHalfPixels: point.$2 * 2,
+      ),
+  ],
 );

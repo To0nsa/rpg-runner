@@ -108,3 +108,9 @@ The [documentation index](docs/README.md) links current audits, implementation
 plans, technical contracts, and game design documents. Previous audit and
 planning documents are retained in a dated archive after the September 15,
 2026 planning restart.
+
+
+Chunk/Level authoring includes three terrain elevation guides, exact connecting
+chunk creation, joined previews and schedule readiness. See
+[chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
+required 2026.09.0 compatibility rollout.

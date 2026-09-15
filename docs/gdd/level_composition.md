@@ -39,3 +39,26 @@ then Hard indefinitely, with normal missing-tier fallback. Explicit sections
 override that selection without resetting global chunk indexes. The enemy-free
 opening still suppresses enemies only for the first configured number of chunks;
 terrain hazards remain active.
+
+
+## Ground elevations and connecting chunks
+
+Normal, Raised and High are ground elevations, separate from difficulty. The
+Level's default height step is 24 px: Raised is 24 px and High is 48 px above
+Normal. Level settings can choose 1–32 px per step. Interior terrain remains
+freely authored; custom ground heights still connect when their full edges match.
+
+Use Chunk Creator's Connections card to preview matching neighbors, show Ground
+heights, or Create connecting chunk. The form fixes the entrance from the current
+exit and offers a flat or one-step ascent/descent. Group and difficulty keep their
+existing meaning. Creation opens an ordinary chunk that can be edited, undone and
+saved. Unsupported compound profiles show manual authoring guidance.
+
+The opening must support the player's Normal spawn. After it, seeded selection
+uses matching edges with a valid continuation through all future sections. A
+matching chunk can be excluded because of group, difficulty, uniqueness or a
+later dead end. Every allowed section length must work. Flow shows readiness and
+repair actions; the seed preview shows choices for each sampled position.
+Changing height presets leaves existing terrain in place and identifies edges
+that now have custom heights. Scheduling readiness proves connections, while
+Play remains necessary to judge jumps, enemies, hazards and encounter difficulty.

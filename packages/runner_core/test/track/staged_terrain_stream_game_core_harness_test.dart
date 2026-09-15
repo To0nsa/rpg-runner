@@ -154,7 +154,7 @@ void main() {
   test('normal construction admits current streamed enemy policies', () {
     final pattern = ChunkPattern(
       name: 'all_enemy_policies',
-      chunkKey: _forestOpeningKey,
+      chunkKey: 'field_flat',
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,
@@ -177,12 +177,12 @@ void main() {
       ],
     );
     final patternSource = ChunkPatternListSource(
-      earlyPatterns: <ChunkPattern>[pattern],
+      normalPatterns: <ChunkPattern>[pattern],
+      earlyPatterns: <ChunkPattern>[],
       easyPatterns: <ChunkPattern>[],
-      normalPatterns: <ChunkPattern>[],
       hardPatterns: <ChunkPattern>[],
     );
-    final registered = LevelRegistry.byId(LevelId.forest);
+    final registered = LevelRegistry.byId(LevelId.field);
     final level = LevelDefinition(
       id: registered.identity.requireRegisteredId(),
       chunkPatternSource: patternSource,
@@ -292,7 +292,8 @@ void main() {
     expect(core.gameOver, isFalse);
   });
 
-  for (final levelId in <LevelId>[LevelId.field, LevelId.forest]) {
+  // These registered fixtures contain unadorned flat terrain at both ground references.
+  for (final levelId in <LevelId>[LevelId.field, LevelId.new_level]) {
     test(
       '$levelId authored flat stream stays deterministic over 1800 ticks',
       () {

@@ -8,6 +8,10 @@ import '../../../build/content_build_service.dart';
 import '../shared/content_build_dialog.dart';
 import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../chunks/chunk_domain_plugin.dart';
+import '../../../chunks/chunk_connection_creation.dart';
+import '../../../chunks/chunk_v2_models.dart';
+import '../chunkCreator/v2/chunk_connection_creation_dialog.dart';
+import '../chunkCreator/chunk_creator_location.dart';
 import '../../../chunks/chunk_level_target.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../domain/authoring_dependency_repair.dart';
@@ -780,6 +784,14 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return _navigate(
       EditorNavigationLocation(
         routeId: chunkCreatorRouteId,
+        page: target.intent == LevelCreatorChunkIntent.inspectConnection
+            ? ChunkCreatorLocation(
+                levelId: target.levelId,
+                chunkKey: target.chunkKey,
+                connectionsExpanded: true,
+                showElevationGuides: true,
+              )
+            : null,
         levelReturnContext: target.returnContext,
       ),
       actionForLoadFailure: (error) =>
@@ -831,8 +843,50 @@ class _EditorHomePageState extends State<EditorHomePage> {
       },
       onLoaded: () {
         if (starterCommand != null) _controller.applyCommand(starterCommand!);
+        if (target.intent == LevelCreatorChunkIntent.connecting) {
+          unawaited(_createConnectingChunk(target));
+        }
       },
     );
+  }
+
+  Future<void> _createConnectingChunk(LevelCreatorChunkTarget target) async {
+    final document = _controller.document;
+    final scene = _controller.scene;
+    if (document is! ChunkV2Document ||
+        scene is! ChunkV2Scene ||
+        target.chunkKey == null) {
+      return;
+    }
+    try {
+      final template = inspectChunkConnectionTemplate(
+        document,
+        target.chunkKey!,
+      );
+      final intent = await showDialog<ChunkConnectionCreation>(
+        context: context,
+        builder: (_) => ChunkConnectionCreationDialog(
+          document: document,
+          scene: scene,
+          template: template,
+          workspaceRootPath: _controller.workspacePath,
+          initialGroup: target.groupId,
+          initialDifficulty: target.difficulty,
+        ),
+      );
+      if (!mounted || intent == null) return;
+      _controller.applyCommand(
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.createConnectingChunkCommandKind,
+          payload: {'intent': intent},
+        ),
+      );
+    } on ChunkTargetException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
   }
 
   Future<void> _returnToLevel({required bool save}) async {

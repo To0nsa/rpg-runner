@@ -406,7 +406,7 @@ void main() {
     );
     await tester.ensureVisible(toggle);
     await tester.tap(toggle);
-    await tester.pumpAndSettle();
+    await tester.pump();
     final workspace = tester.state<ChunkAuthoringWorkspaceState>(
       find.byType(ChunkAuthoringWorkspace),
     );
@@ -415,7 +415,10 @@ void main() {
     );
     await tester.ensureVisible(editOwner);
     await tester.tap(editOwner);
-    await tester.pumpAndSettle();
+    await _pumpUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('chunk_v2_owner_ground_band_z_field')),
+    );
     final groundBand = find.byKey(
       const ValueKey<String>('chunk_v2_owner_ground_band_z_field'),
     );
@@ -426,7 +429,7 @@ void main() {
     final play = find.byKey(const ValueKey<String>('chunk_playtest_button'));
     expect(tester.widget<FilledButton>(play).onPressed, isNotNull);
     await tester.runAsync(() async => tester.tap(play));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(capturedInput, isNull);
     expect(find.text('Enter a whole number.'), findsOneWidget);
     expect(tester.widget<TextFormField>(groundBand).controller!.text, '-');
@@ -677,10 +680,13 @@ Future<void> _pumpUntilHostRemoved(WidgetTester tester) async {
 void _unusedListener() {}
 
 Map<String, String> _sourceHashes(String workspaceRoot) {
-  const paths = <String>[
+  final paths = <String>[
     'assets/authoring/level/prefab_defs.json',
     'assets/authoring/level/tile_defs.json',
-    'assets/authoring/level/chunks/forest/forest_early_flat.json',
+    ...Directory(p.join(workspaceRoot, 'assets/authoring/level/chunks'))
+        .listSync(recursive: true)
+        .whereType<File>()
+        .map((file) => p.relative(file.path, from: workspaceRoot)),
     'packages/runner_core/lib/track/authored_chunk_patterns.dart',
     'packages/runner_core/lib/track/staged_authored_terrain.dart',
     'lib/game/themes/authored_parallax_themes.dart',

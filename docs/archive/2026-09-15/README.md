@@ -18,7 +18,9 @@ The old documents' instructions, priorities, and status claims are historical;
 recheck the current implementation before adopting any follow-up work.
 No archived task is automatically part of the new active queue.
 
-Completed verification after the planning reset:
+Completed implementation and verification after the planning reset:
+
+- [Chunk connections and three terrain heights](building/chunk_connections/strategy.md), with [validation evidence](building/chunk_connections/validation.md).
 
 - [Account-deletion production deployment and verification](verification/account-deletion-production-2026-09-15.md).
 

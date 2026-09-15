@@ -10,12 +10,14 @@ class LevelSamplePreview extends StatelessWidget {
     required this.previewBuilder,
     required this.sourceName,
     required this.onSelected,
+    this.joinedPreviewBuilder,
   });
 
   final LevelPlaytestScenario scenario;
   final Widget Function(String chunkKey) previewBuilder;
   final String Function(String chunkKey) sourceName;
   final ValueChanged<String> onSelected;
+  final Widget Function(String leftKey, String rightKey)? joinedPreviewBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,29 @@ class LevelSamplePreview extends StatelessWidget {
                             Text('Source: ${sourceName(item.chunkKey)}'),
                             SizedBox(
                               height: 92,
-                              child: previewBuilder(item.chunkKey),
+                              child: index > 0 && joinedPreviewBuilder != null
+                                  ? joinedPreviewBuilder!(
+                                      sample[index - 1].chunkKey,
+                                      item.chunkKey,
+                                    )
+                                  : previewBuilder(item.chunkKey),
+                            ),
+                            if (index > 0)
+                              const Text(
+                                'Matching entrance from previous chunk',
+                              ),
+                            ExpansionTile(
+                              tilePadding: EdgeInsets.zero,
+                              title: Text(
+                                '${item.availableChunkKeys.length} choices at this position',
+                              ),
+                              children: [
+                                for (final key in item.availableChunkKeys)
+                                  TextButton(
+                                    onPressed: () => onSelected(key),
+                                    child: Text(sourceName(key)),
+                                  ),
+                              ],
                             ),
                             Text(
                               item.requestedTier == item.resolvedTier

@@ -1,3 +1,8 @@
+import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
+
+import '../../../chunks/chunk_domain_plugin.dart';
+import '../../../chunks/chunk_v2_models.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -33,6 +38,7 @@ import 'level_flow.dart';
 import 'level_inspector.dart';
 import 'level_library.dart';
 import 'level_sample_preview.dart';
+import '../chunkCreator/v2/chunk_connections_panel.dart';
 import 'level_view_preferences.dart';
 
 class LevelCreatorPage extends StatefulWidget {
@@ -86,6 +92,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   final TextEditingController _cameraCenterYController =
       TextEditingController();
   final TextEditingController _groundTopYController = TextEditingController();
+  final TextEditingController _terrainHeightStepController =
+      TextEditingController();
   final TextEditingController _earlyPatternChunksController =
       TextEditingController();
   final TextEditingController _easyPatternChunksController =
@@ -139,6 +147,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   int _seenSourceGeneration = -1;
   bool _loadingContent = false;
   LevelContentProjection? _content;
+  ChunkV2Scene? _connectionScene;
+  LevelDef? _connectionLevel;
   String? _contentError;
 
   String? _selectedLevelId;
@@ -176,6 +186,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         'visualThemeId': _visualThemeIdController,
         'cameraCenterY': _cameraCenterYController,
         'groundTopY': _groundTopYController,
+        'terrainHeightStepPx': _terrainHeightStepController,
         'earlyPatternChunks': _earlyPatternChunksController,
         'easyPatternChunks': _easyPatternChunksController,
         'normalPatternChunks': _normalPatternChunksController,
@@ -539,6 +550,23 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     }
     return LevelSamplePreview(
       scenario: scenario,
+      joinedPreviewBuilder: (leftKey, rightKey) {
+        final scene = _connectionScene;
+        final left = scene?.chunks
+            .where((chunk) => chunk.chunkKey == leftKey)
+            .firstOrNull;
+        final right = scene?.chunks
+            .where((chunk) => chunk.chunkKey == rightKey)
+            .firstOrNull;
+        return scene == null || left == null || right == null
+            ? const Icon(Icons.image_not_supported_outlined)
+            : ChunkConnectionPreview(
+                left: left,
+                right: right,
+                scene: scene,
+                workspaceRootPath: widget.controller.workspacePath,
+              );
+      },
       sourceName: (key) =>
           _content?.document.chunks
               .where((chunk) => chunk.chunkKey == key)
@@ -675,6 +703,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     _visualThemeIdController.dispose();
     _cameraCenterYController.dispose();
     _groundTopYController.dispose();
+    _terrainHeightStepController.dispose();
     _earlyPatternChunksController.dispose();
     _easyPatternChunksController.dispose();
     _normalPatternChunksController.dispose();
@@ -1052,6 +1081,11 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 previewBuilder: _chunkPreview,
               ),
               LevelFlow(
+                connectionIssues: _connectionScene?.seamAnalysis.issues,
+                onInspectConnection: (issue) =>
+                    unawaited(_inspectConnection(issue)),
+                onCreateConnection: (issue) =>
+                    unawaited(_createConnectionForIssue(issue)),
                 level: level,
                 chunks: chunks,
                 segments: _assemblySegmentsDraft,
@@ -1139,6 +1173,26 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         ? _previewChunk(level.levelId)
         : null;
     return LevelInspector(
+      boundaryHeights: {
+        for (final entry
+            in _connectionScene
+                    ?.seamAnalysis
+                    .leftSignaturesByChunkKey
+                    .entries ??
+                const <MapEntry<String, TerrainBoundarySignature>>[])
+          if (entry.value.coverageIntervals.length == 1)
+            '${entry.key} entrance':
+                entry.value.coverageIntervals.single.minYTicks / 1024,
+        for (final entry
+            in _connectionScene
+                    ?.seamAnalysis
+                    .rightSignaturesByChunkKey
+                    .entries ??
+                const <MapEntry<String, TerrainBoundarySignature>>[])
+          if (entry.value.coverageIntervals.length == 1)
+            '${entry.key} exit':
+                entry.value.coverageIntervals.single.minYTicks / 1024,
+      },
       level: level,
       segment: segment,
       chunk: chunk,
@@ -1258,6 +1312,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       if (!mounted || request != _contentRequest) return;
       setState(() {
         _content = projection;
+        _connectionLevel = null;
+        _refreshConnectionScene(_inspectorBaseline);
         _loadingContent = false;
       });
     } catch (error) {
@@ -1390,6 +1446,9 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         levelId: _selectedLevelId!,
         intent: intent,
         chunkKey: chunk?.chunkKey,
+        difficulty: _workspaceTab == LevelCreatorTab.flow
+            ? _selectedAssemblySegment?.difficulty?.name
+            : null,
         groupId:
             _groupFilter ??
             chunk?.assemblyGroupId ??
@@ -1402,6 +1461,48 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         returnContext: _returnContext,
       ),
     );
+  }
+
+  Future<void> _createConnectionForIssue(ValidationIssue issue) async {
+    final content = _content;
+    if (content == null) return;
+    final chunk = content.document.chunks
+        .where(
+          (chunk) =>
+              content.document.sourcePathByChunkKey[chunk.chunkKey] ==
+              issue.sourcePath,
+        )
+        .firstOrNull;
+    if (chunk == null) return;
+    final section = _inspectorBaseline?.assembly?.segments
+        .where((section) => section.segmentId == issue.elementId)
+        .firstOrNull;
+    if (!_flushInspectorEdits() || _selectedLevelId == null) return;
+    await widget.onOpenChunk?.call(
+      LevelCreatorChunkTarget(
+        levelId: _selectedLevelId!,
+        intent: LevelCreatorChunkIntent.connecting,
+        chunkKey: chunk.chunkKey,
+        groupId: section?.groupId ?? chunk.assemblyGroupId,
+        difficulty: section?.difficulty?.name,
+        returnContext: _returnContext,
+      ),
+    );
+  }
+
+  Future<void> _inspectConnection(ValidationIssue issue) async {
+    final document = _content?.document;
+    final chunk = document?.chunks
+        .where(
+          (chunk) =>
+              document.sourcePathByChunkKey[chunk.chunkKey] == issue.sourcePath,
+        )
+        .firstOrNull;
+    if (chunk == null) {
+      await _openIssue(issue);
+      return;
+    }
+    await _openChunk(LevelCreatorChunkIntent.inspectConnection, chunk: chunk);
   }
 
   Future<void> _openBackground() async {
@@ -1860,7 +1961,29 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     });
   }
 
+  void _refreshConnectionScene(LevelDef? level) {
+    if (level == null || _content == null) {
+      _connectionScene = null;
+      return;
+    }
+    if (_connectionLevel != null && levelDefEquals(level, _connectionLevel!)) {
+      return;
+    }
+    _connectionLevel = level;
+    _connectionScene = ChunkDomainPlugin().buildEditableScene(
+      _content!.document.copyWith(
+        activeLevelId: level.levelId,
+        levels: [
+          for (final current in _content!.document.levels)
+            if (current.levelId != level.levelId) current,
+          level,
+        ],
+      ),
+    ) as ChunkV2Scene;
+  }
+
   void _bindInspector(LevelDef? level) {
+    _refreshConnectionScene(level);
     _syncingInput = true;
     try {
       _selectedLevelId = level?.levelId;
@@ -1949,6 +2072,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     'visualThemeId': level.visualThemeId,
     'cameraCenterY': formatCanonicalLevelNumber(level.cameraCenterY),
     'groundTopY': formatCanonicalLevelNumber(level.groundTopY),
+    'terrainHeightStepPx': '${level.terrainHeightStepPx}',
     'earlyPatternChunks': '${level.earlyPatternChunks}',
     'easyPatternChunks': '${level.easyPatternChunks}',
     'normalPatternChunks': '${level.normalPatternChunks}',
@@ -1985,6 +2109,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       'easyPatternChunks',
       'normalPatternChunks',
       'noEnemyChunks',
+      'terrainHeightStepPx',
       'enumOrdinal',
     ]) {
       final value = int.tryParse(_levelInputs[key]!.text.trim());
@@ -1993,6 +2118,10 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       } else {
         values[key] = value;
       }
+    }
+    if ((values['terrainHeightStepPx'] ?? 0) < 1 ||
+        (values['terrainHeightStepPx'] ?? 0) > 32) {
+      errors['terrainHeightStepPx'] = 'Enter a whole number from 1 to 32 px.';
     }
     if (_displayNameController.text.trim().isEmpty) {
       errors['displayName'] = 'Enter a display name.';
@@ -2083,6 +2212,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       easyPatternChunks: values['easyPatternChunks'],
       normalPatternChunks: values['normalPatternChunks'],
       noEnemyChunks: values['noEnemyChunks'],
+      terrainHeightStepPx: values['terrainHeightStepPx'],
       enumOrdinal: values['enumOrdinal'],
       assembly: assembly,
       clearAssembly: assembly == null,
@@ -2106,6 +2236,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             'easyPatternChunks': candidate.easyPatternChunks,
             'normalPatternChunks': candidate.normalPatternChunks,
             'noEnemyChunks': candidate.noEnemyChunks,
+            'terrainHeightStepPx': candidate.terrainHeightStepPx,
             'enumOrdinal': candidate.enumOrdinal,
             'assembly': candidate.assembly?.toJson(),
           },
@@ -2210,6 +2341,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       level.cameraCenterY,
     );
     _groundTopYController.text = formatCanonicalLevelNumber(level.groundTopY);
+    _terrainHeightStepController.text = level.terrainHeightStepPx.toString();
     _earlyPatternChunksController.text = level.earlyPatternChunks.toString();
     _easyPatternChunksController.text = level.easyPatternChunks.toString();
     _normalPatternChunksController.text = level.normalPatternChunks.toString();
@@ -2237,6 +2369,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     _visualThemeIdController.text = '';
     _cameraCenterYController.text = '';
     _groundTopYController.text = '';
+    _terrainHeightStepController.text = '';
     _earlyPatternChunksController.text = '';
     _easyPatternChunksController.text = '';
     _normalPatternChunksController.text = '';

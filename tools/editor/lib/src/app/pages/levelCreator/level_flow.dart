@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../domain/authoring_types.dart';
+
 import 'package:runner_core/track/chunk_pattern_source.dart';
 
 import '../../../chunks/chunk_domain_models.dart';
@@ -11,6 +14,9 @@ class LevelFlow extends StatelessWidget {
   const LevelFlow({
     super.key,
     required this.level,
+    this.connectionIssues,
+    this.onInspectConnection,
+    this.onCreateConnection,
     required this.chunks,
     required this.segments,
     required this.selectedSegmentId,
@@ -24,6 +30,9 @@ class LevelFlow extends StatelessWidget {
   });
 
   final LevelDef level;
+  final List<ValidationIssue>? connectionIssues;
+  final ValueChanged<ValidationIssue>? onInspectConnection;
+  final ValueChanged<ValidationIssue>? onCreateConnection;
   final List<ChunkV2FileData> chunks;
   final List<LevelAssemblySegmentDef> segments;
   final String? selectedSegmentId;
@@ -57,6 +66,35 @@ class LevelFlow extends StatelessWidget {
                 ? 'Compose the level from top to bottom. Add sections, choose their group, difficulty and length, then drag them into order. Select a section to edit or duplicate it.'
                 : 'The level selects eligible chunks as difficulty advances. Group filters do not restrict this pool.',
           ),
+          const SizedBox(height: 12),
+          Text(
+            connectionIssues == null
+                ? 'Connections: loading terrain'
+                : !connectionIssues!.any(
+                    (issue) => issue.blocks(AuthoringOperation.play),
+                  )
+                ? 'Connections: valid continuation through the complete Flow'
+                : 'Connections need repair',
+          ),
+          for (final issue in connectionIssues ?? <ValidationIssue>[]) ...[
+            Text(
+              issue.message,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            TextButton(
+              onPressed: onInspectConnection == null
+                  ? null
+                  : () => onInspectConnection!(issue),
+              child: const Text('Inspect connection'),
+            ),
+            if (onCreateConnection != null &&
+                issue.sourcePath?.contains('/chunks/') == true)
+              TextButton.icon(
+                onPressed: () => onCreateConnection!(issue),
+                icon: const Icon(Icons.add),
+                label: const Text('Create connecting chunk'),
+              ),
+          ],
           const SizedBox(height: 12),
           Text(
             'Difficulty coverage',
@@ -122,6 +160,15 @@ class LevelFlow extends StatelessWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  connectionIssues == null
+                      ? 'Connections: awaiting terrain'
+                      : connectionIssues!.any(
+                          (issue) => issue.blocks(AuthoringOperation.play),
+                        )
+                      ? 'Connections: complete Flow needs repair'
+                      : 'Connections: valid through this section and its continuation',
+                ),
                 Text(
                   '${fixedPosition ? 'Chunks $start–${start + segment.maxChunkCount - 1} · ' : ''}$length chunks · ${segment.requireDistinctChunks ? 'Each chunk once per section' : 'Repeats allowed'}',
                 ),

@@ -51,7 +51,14 @@ class LevelCreatorReturnContext extends EditorPageLocation {
 }
 
 /// A flat starter is distinct from normal empty/deprecated Chunk creation.
-enum LevelCreatorChunkIntent { edit, create, flatStarter, assignGroup }
+enum LevelCreatorChunkIntent {
+  edit,
+  inspectConnection,
+  create,
+  flatStarter,
+  connecting,
+  assignGroup,
+}
 
 /// Requests guarded Chunk-domain navigation without granting the Level page
 /// ownership of Chunk geometry, metadata, identity allocation, or persistence.
@@ -63,12 +70,14 @@ class LevelCreatorChunkTarget {
     required this.returnContext,
     this.chunkKey,
     this.groupId,
+    this.difficulty,
   });
 
   final String levelId;
   final LevelCreatorChunkIntent intent;
   final String? chunkKey;
   final String? groupId;
+  final String? difficulty;
   final LevelCreatorReturnContext returnContext;
 }
 

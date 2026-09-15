@@ -468,7 +468,13 @@ StagedTerrainChunkData _terrain(
   bool breakRightBoundary = false,
 }) {
   final base = stagedAuthoredTerrain.chunks.firstWhere(
-    (c) => c.levelId == 'forest',
+    (c) =>
+        c.polygons.length == 1 &&
+        c.placementLineage.isEmpty &&
+        c.polygons.single.vertices.every(
+          (point) =>
+              point.yTicks == 224 * 1024 || point.yTicks == c.height * 1024,
+        ),
   );
   StagedTerrainSourceId sourceId(StagedTerrainSourceId id) =>
       StagedTerrainSourceId(

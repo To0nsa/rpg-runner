@@ -33,6 +33,7 @@ class LevelInspector extends StatelessWidget {
     this.onEditChunk,
     this.onAssignChunk,
     this.revealedFieldKey,
+    this.boundaryHeights = const {},
   });
 
   final LevelDef level;
@@ -57,6 +58,7 @@ class LevelInspector extends StatelessWidget {
   final VoidCallback? onEditChunk;
   final VoidCallback? onAssignChunk;
   final String? revealedFieldKey;
+  final Map<String, double> boundaryHeights;
 
   @override
   Widget build(BuildContext context) => EditorPanelCard(
@@ -85,6 +87,47 @@ class LevelInspector extends StatelessWidget {
 
   List<Widget> _levelFields(BuildContext context) => [
     _field('displayName', 'Display name'),
+    _field(
+      'terrainHeightStepPx',
+      'Terrain height step (px)',
+      numeric: true,
+      helper: 'Normal, Raised (+1 step), High (+2 steps). Updates guides and new chunks; existing terrain stays in place.',
+    ),
+    Text(
+      'Ground elevations: Normal ${level.groundTopY}, Raised ${level.groundTopY - level.terrainHeightStepPx}, High ${level.groundTopY - 2 * level.terrainHeightStepPx}',
+    ),
+    ValueListenableBuilder<TextEditingValue>(
+      valueListenable: inputs['terrainHeightStepPx']!,
+      builder: (context, value, _) {
+        final step = int.tryParse(value.text);
+        if (step == null || step < 1 || step > 32) {
+          return const SizedBox.shrink();
+        }
+        final custom = boundaryHeights.entries.where(
+          (edge) => ![
+            level.groundTopY,
+            level.groundTopY - step,
+            level.groundTopY - 2 * step,
+          ].contains(edge.value),
+        );
+        return custom.isEmpty
+            ? const Text('Existing ground edges fit these presets.')
+            : ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  '${custom.length} edges use custom heights with this step',
+                ),
+                subtitle: const Text(
+                  'Their geometry and physical connections stay in place.',
+                ),
+                children: [
+                  for (final edge in custom)
+                    Text('${edge.key}: Y ${edge.value}'),
+                ],
+              );
+      },
+    ),
+
     ListTile(
       contentPadding: EdgeInsets.zero,
       title: const Text('First chunk'),

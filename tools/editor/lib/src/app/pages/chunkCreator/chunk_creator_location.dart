@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
 
 import '../../../chunks/chunk_v2_models.dart';
 import '../../../domain/authoring_types.dart';
@@ -19,6 +20,9 @@ class ChunkCreatorLocation extends EditorPageLocation {
     this.waterId,
     this.showGrid = false,
     this.showShapeEdges = false,
+    this.showElevationGuides = false,
+    this.connectionsExpanded = false,
+    this.connectionSide = TerrainBoundarySide.right,
     this.visualPreview = false,
     this.terrainSelection,
     this.terrainTool = TerrainPolygonTool.select,
@@ -34,6 +38,9 @@ class ChunkCreatorLocation extends EditorPageLocation {
   final String? waterId;
   final bool showGrid;
   final bool showShapeEdges;
+  final bool showElevationGuides;
+  final bool connectionsExpanded;
+  final TerrainBoundarySide connectionSide;
   final bool visualPreview;
   final TerrainPolygonSelection? terrainSelection;
   final TerrainPolygonTool terrainTool;

@@ -11,6 +11,8 @@ import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter
 import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_location.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_connections_panel.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_water_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
@@ -45,6 +47,71 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets(
+    'Connections opens a neighbor and restores the original Chunk view',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final harness = await _buildHarness(
+        additionalChunks: [
+          _chunkData(
+            chunkKey: 'forest_neighbor',
+            levelId: 'forest',
+            shapeId: 'neighbor_ground',
+          ),
+        ],
+      );
+      addTearDown(harness.dispose);
+      final key = GlobalKey<ChunkAuthoringWorkspaceState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: ChunkAuthoringWorkspace(
+              key: key,
+              controller: harness.session,
+              initialLocation: const ChunkCreatorLocation(
+                levelId: 'forest',
+                chunkKey: 'forest_chunk',
+                zoom: 1.75,
+                pan: Offset(12, 24),
+                connectionsExpanded: true,
+                showElevationGuides: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final origin = key.currentState!.navigationLocation;
+      final dropdown = find.descendant(
+        of: find.byType(ChunkConnectionsPanel),
+        matching: find.byType(DropdownButtonFormField<String>),
+      );
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('forest_neighbor').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Open chunk'));
+      await tester.tap(find.text('Open chunk'));
+      await tester.pumpAndSettle();
+      expect(key.currentState!.selectedChunkKey, 'forest_neighbor');
+      await tester.ensureVisible(find.text('Return to forest_chunk'));
+      await tester.tap(find.text('Return to forest_chunk'));
+      await tester.pumpAndSettle();
+      final returned = key.currentState!.navigationLocation;
+      expect(returned.chunkKey, origin.chunkKey);
+      expect(returned.zoom, origin.zoom);
+      expect(returned.pan, origin.pan);
+      expect(returned.showElevationGuides, isTrue);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('water drawer previews, commits once, and guards local drafts', (
     tester,
   ) async {

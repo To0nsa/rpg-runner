@@ -1237,31 +1237,9 @@ order directly. Active chunks are grouped by authored tier and, when assembly
 is enabled, the selected segment's `assemblyGroupId`; deprecated owners remain
 visible but are not scheduler candidates.
 
-For levels without assembly, enumeration is structural and constant-size: it
-adds within-window Cartesian pool pairs where a tier contains at least two
-scheduled positions, each boundary between nonempty requested windows, and the
-infinite hard-to-hard tail. Empty requested pools use Core's exact tier
-fallback order. Both directions appear whenever independent pool selection can
-emit both orders.
-
-For authored assembly, a finite state set enumerates every segment/run
-alignment through the early/easy/normal prefix, including variable run
-lengths and tier boundaries inside a run. The hard tail is enumerated
-structurally for every possible within-run transition and every directed
-between-run segment transition, including loop-to-first and non-loop
-last-to-last behavior. A distinct run excludes a same-chunk pair only when
-both positions resolve to the same tier/group pool; changing fallback pools at
-a tier boundary keeps the Cartesian pair set because Core resolves each
-position independently. Every eligible pool used by a distinct segment must
-contain at least its maximum run count. Analysis never samples or consumes
-gameplay RNG and never changes scheduling/content.
-
-Assembly-enabled finite prefixes above 256 chunks fail closed with
-`chunk_v2_scheduler_analysis_capacity_exceeded` instead of allocating
-unbounded state. The structurally complete hard tail is still reported. This
-is an authoring-analysis capacity contract, not a gameplay pacing limit; a
-larger supported window requires a reviewed symbolic implementation or a
-measured bound change.
+Selection now uses Core's complete-state connection admission, including every
+authored section length and the repeating tail. See [chunk connections](chunk_connections.md)
+for the fixed-point proof, capacity budgets, spawn requirements and cursor policy.
 
 Each accepted `ChunkV2CollisionExpansion` produces canonical left and right
 `authoring-boundary-v1` evidence from `TerrainGeometry.edges` in integer
@@ -1280,34 +1258,17 @@ open boundaries are compatible. Surface-kind differences block traversal
 continuity; material-key differences remain retained endpoint evidence for
 Phase 5 rendering and do not block the Phase 4 physical gate.
 
-The global staged validator expands all chunks once and applies every
-scheduler-reachable comparison, so an individually valid owner cannot pass
-while breaking another reachable transition. The active-level scene consumes
-the same immutable result only for its compact neighbor/directed-seam summary;
-the Terrain collision sidebar does not list transition cards. This summary
-exposes no edit, revision, pending-diff, RNG, or scheduling authority.
+The global validator derives physical matches before scheduling. Incompatible
+candidates are excluded; every admitted transition is checked again with Core's
+comparator. Incomplete schedules allow Save and block Play/included Build.
+The Chunk Connections card exposes matches, Flow context, joined previews,
+manual profile guidance and one-command successor creation.
 
-Sorted reachable transitions form `authoring-seams-v1`. The pure-Dart Core
-boundary owns both finite scheduler reachability and the immutable transition
-record, total order, duplicate rejection, canonical set record, and SHA-256.
-Its source-neutral level/chunk inputs cover tier fallback, assembly runs,
-distinct selection, deprecated-owner exclusion, loop behavior, and the bounded
-hard tail. The editor adapts its immutable domain models into that boundary and
-compares the result with the checked-in eight-transition
-`reachable_seams.json` golden. Sampled Core assembly runs remain required to be
-subsets of the enumerated set.
-
-The staged generator's strict manifest decoder consumes those same fixture
-bytes and recalculates the exact record and digest
-`9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b`.
-Unknown/missing schema fields, duplicate transitions, delimiter-ambiguous
-identities, canonical-record drift, and digest drift fail closed. This proves
-cross-process adjacency-set parity. The staged generator then resolves every
-transition against the shared Core compiled-boundary comparator before it can
-construct the renderer's accepted batch, as detailed below. The live
-current-schema generator consumes the same enumerator without importing editor
-code or duplicating scheduler logic. Runtime scheduling consumes the generated
-catalog and does not execute this offline enumeration or spend gameplay RNG.
+Sorted transitions retain the `authoring-seams-v1` envelope; transition identities
+carry the `terrain-connections-v1` contract digest. The shared checked-in
+`reachable_seams.json` fixture verifies editor/pipeline equality. Normal Core,
+Level Play and samples construct the same admitted selector from compiled facts.
+Focused Play uses a witness through full states rather than composing pair edges.
 
 ## Generated Artifact Plan And Dry-Run Drift Gate
 

@@ -14,7 +14,6 @@ import 'package:runner_core/levels/level_identity.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
-import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
@@ -47,7 +46,7 @@ void main() {
           chunkPatternSource: focused.levelDefinition.chunkPatternSource,
           visualThemeId: 'draft_background',
           cameraCenterY: 121,
-          groundTopY: 217,
+          groundTopY: focused.levelDefinition.groundTopY,
           assembly: focused.levelDefinition.assembly,
         ),
         terrainChunks: focused.terrainCatalog.chunksByKey.values,
@@ -319,7 +318,9 @@ void main() {
     expect(controller.restart(), isFalse);
     await tester.pump();
     await tester.pump();
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(controller.status.phase, RunnerPlaytestPhase.stopped);
@@ -435,9 +436,13 @@ Future<void> _pumpUntilPhase(
   RunnerPlaytestPhase phase, {
   List<Object>? reportedErrors,
 }) async {
-  for (var attempt = 0; attempt < 200; attempt += 1) {
+  // Terrain preparation crosses an isolate; simulated frame time cannot wait for it.
+  final watch = Stopwatch()..start();
+  while (watch.elapsed < const Duration(seconds: 30)) {
     await tester.pump(const Duration(milliseconds: 25));
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     final reportedError = tester.takeException();
     if (reportedError != null) {
       if (reportedErrors == null) throw reportedError;
@@ -464,7 +469,7 @@ ChunkPlaytestScenario _scenario() {
     _ => throw StateError('Forest test level must be list-backed.'),
   };
   final draftPattern = listSource.earlyPatterns.singleWhere(
-    (pattern) => pattern.chunkKey == 'forest_early_flat',
+    (pattern) => pattern.chunkKey == level.firstChunkKey,
   );
   final draftTerrain = stagedAuthoredTerrain.chunks.singleWhere(
     (chunk) => chunk.chunkKey == draftPattern.chunkKey,

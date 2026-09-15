@@ -156,11 +156,9 @@ void main() {
       runSessionApi: runSessionApi,
     );
     final descriptor = await appState.prepareRunStartDescriptor();
-    final route =
-        UiRouter.onGenerateRoute(
-              RouteSettings(name: UiRoutes.run, arguments: descriptor),
-            )
-            as MaterialPageRoute<void>;
+    final route = UiRouter.onGenerateRoute(
+      RouteSettings(name: UiRoutes.run, arguments: descriptor),
+    ) as MaterialPageRoute<void>;
     late Widget routeChild;
 
     await tester.pumpWidget(
@@ -512,7 +510,7 @@ class _RecordingRunSessionApi implements RunSessionApi {
           userId: 'user_1',
           mode: requestedModes.last,
           levelId: requestedLevels.last,
-          gameCompatVersion: '2026.03.0',
+          gameCompatVersion: '2026.09.0',
         ),
         runSessionId: 'run_session_$createRunSessionCalls',
         expiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,

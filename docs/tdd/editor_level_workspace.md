@@ -133,3 +133,18 @@ precedes source-write locking. Build status is independent of authoring saved
 state and Play readiness. Structured failures navigate to their source domain
 or Level; exclusion from a report creates a normal pending Level edit. See
 [Build process and transaction contracts](editor_content_build.md).
+
+
+## Terrain elevation and connection controls
+
+Level schema v3 adds required `terrainHeightStepPx` (1–32, default 24). Settings
+show Normal/Raised/High guides and existing edges outside the entered presets;
+changes never move authored coordinates. Copy, Undo, source reconciliation and
+Save retain this authoring setting. The explicit Level migration handles older
+schema versions; normal loaders do not migrate implicitly.
+
+Flow reuses the [shared connection schedule](chunk_connections.md) for readiness.
+It identifies the affected section/source, opens connection inspection through
+normal navigation, and can launch Create connecting chunk with that section's
+group/difficulty. The existing seed sample adds joined terrain and exact available
+choices at each occurrence. Incomplete runtime connections remain saveable.

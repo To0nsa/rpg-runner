@@ -1,3 +1,12 @@
+import 'chunk_elevation_guides.dart';
+
+import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
+
+import '../../../../chunks/chunk_connection_creation.dart';
+import '../../../../chunks/chunk_level_target.dart';
+import 'chunk_connection_creation_dialog.dart';
+import 'chunk_connections_panel.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -128,6 +137,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document> _ownerDraft =
       EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document>();
   String? _selectedChunkKey;
+  TerrainBoundarySide _connectionSide = TerrainBoundarySide.right;
+  bool _showElevationGuides = false;
+  bool _connectionsExpanded = false;
+  final _connectionsPanelKey = GlobalKey();
+  ChunkCreatorLocation? _connectionReturnLocation;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
   bool _showGrid = false;
@@ -200,6 +214,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     markerSelectionKey: _sceneCoordinator.selectedMarkerKey,
     waterId: _sceneCoordinator.selectedWaterId,
     showGrid: _showGrid,
+    showElevationGuides: _showElevationGuides,
+    connectionsExpanded: _connectionsExpanded,
+    connectionSide: _connectionSide,
     showShapeEdges: _showShapeEdges,
     visualPreview: _visualPreview,
     terrainSelection: _authoring?.state.selection,
@@ -391,8 +408,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _restoreLocation();
   }
 
-  void _restoreLocation() {
-    final location = widget.initialLocation;
+  void _restoreLocation([ChunkCreatorLocation? restored]) {
+    final location = restored ?? widget.initialLocation;
     final chunk = _authoring?.chunk;
     if (location == null ||
         chunk == null ||
@@ -402,6 +419,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _zoom = location.zoom;
     _pan = location.pan;
     _showGrid = location.showGrid;
+    _showElevationGuides = location.showElevationGuides;
+    _connectionsExpanded = location.connectionsExpanded;
+    _connectionSide = location.connectionSide;
     _showShapeEdges = location.showShapeEdges;
     _visualPreview = location.visualPreview;
     final prefabKey = location.prefabSelectionKey;
@@ -428,6 +448,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     authoring.addListener(_handleAuthoringChanged);
     _sceneCoordinator.selectTerrain(authoring.state.selection);
     _authoringUiFingerprint = _buildAuthoringUiFingerprint(authoring);
+    if (_connectionsExpanded) _revealConnections();
   }
 
   @override
@@ -1207,11 +1228,114 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                   !_visualPreview &&
                   _ownerEditSource == null,
             ),
+            const SizedBox(height: _gap),
+            if (selectedChunk != null)
+              if (document.levels
+                      .where((level) => level.levelId == selectedChunk.levelId)
+                      .firstOrNull
+                  case final level?) ...[
+                ChunkConnectionsPanel(
+                  key: _connectionsPanelKey,
+                  returnChunkKey: _connectionReturnLocation?.chunkKey,
+                  onReturn: _connectionReturnLocation == null
+                      ? null
+                      : () => unawaited(_returnFromConnection()),
+                  chunk: selectedChunk,
+                  scene: scene,
+                  level: level,
+                  showGuides: _showElevationGuides,
+                  onGuidesChanged: (value) =>
+                      setState(() => _showElevationGuides = value),
+                  expanded: _connectionsExpanded,
+                  onExpandedChanged: (value) =>
+                      setState(() => _connectionsExpanded = value),
+                  workspaceRootPath: widget.controller.workspacePath,
+                  side: _connectionSide,
+                  onSideChanged: (side) =>
+                      setState(() => _connectionSide = side),
+                  onOpen: (key) => unawaited(_openConnection(key)),
+                  onCreate: _hasActiveOperation
+                      ? null
+                      : () => unawaited(_createConnectingChunk()),
+                ),
+                const SizedBox(height: _gap),
+              ],
           ],
         ),
       ),
     ),
   );
+
+  void _revealConnections() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final panelContext = _connectionsPanelKey.currentContext;
+      if (panelContext != null) {
+        unawaited(Scrollable.ensureVisible(panelContext));
+      }
+    });
+  }
+
+  Future<void> _openConnection(String key) async {
+    final origin = navigationLocation;
+    await _selectOwner(key);
+    if (!mounted || _selectedChunkKey != key || origin.chunkKey == key) return;
+    setState(() => _connectionReturnLocation ??= origin);
+    _revealConnections();
+  }
+
+  Future<void> _returnFromConnection() async {
+    final origin = _connectionReturnLocation;
+    final document = _documentOrNull;
+    if (origin == null ||
+        document == null ||
+        !document.chunks.any((chunk) => chunk.chunkKey == origin.chunkKey)) {
+      return;
+    }
+    await _selectOwner(origin.chunkKey!);
+    if (!mounted || _selectedChunkKey != origin.chunkKey) return;
+    setState(() {
+      _restoreLocation(origin);
+      _connectionReturnLocation = null;
+    });
+  }
+
+  Future<void> _createConnectingChunk() async {
+    if (!await finalizeLocalEdits() || !mounted) return;
+    final document = widget.controller.document;
+    final scene = _sceneOrNull;
+    final key = _selectedChunkKey;
+    if (document is! ChunkV2Document || scene == null || key == null) return;
+    try {
+      final template = inspectChunkConnectionTemplate(document, key);
+      final intent = await showDialog<ChunkConnectionCreation>(
+        context: context,
+        builder: (context) => ChunkConnectionCreationDialog(
+          document: document,
+          scene: scene,
+          template: template,
+          workspaceRootPath: widget.controller.workspacePath,
+        ),
+      );
+      if (!mounted || intent == null) return;
+      widget.controller.applyCommand(
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.createConnectingChunkCommandKind,
+          payload: {'intent': intent},
+        ),
+      );
+      final current = widget.controller.document;
+      if (current is ChunkV2Document &&
+          current.chunks.any((chunk) => chunk.chunkKey == intent.chunkKey)) {
+        await _selectOwner(intent.chunkKey);
+      }
+    } on ChunkTargetException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
+  }
 
   Widget _buildScenePanel(
     ChunkV2Scene scene,
@@ -1694,6 +1818,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                   foreground: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
+                      if (!_visualPreview && _showElevationGuides)
+                        if (_documentOrNull?.levels
+                                .where(
+                                  (level) => level.levelId == chunk.levelId,
+                                )
+                                .firstOrNull
+                            case final level?)
+                          IgnorePointer(
+                            child: CustomPaint(
+                              painter: ChunkElevationGuides(
+                                presets: level.elevationPresets,
+                                transform: transform,
+                                chunkWidth: chunk.width,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+
                       if (atOrAboveTerrainVisuals.isNotEmpty)
                         ChunkSceneVisualSource(
                           key: const ValueKey<String>(
@@ -1814,7 +1956,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         ),
                     ],
                   ),
-                  onInspectWorldPoint: null,
+                  onInspectWorldPoint: (point) {
+                    if (point.dx.abs() <= 10 / transform.zoom ||
+                        (point.dx - chunk.width).abs() <= 10 / transform.zoom) {
+                      setState(() {
+                        _connectionSide = point.dx < chunk.width / 2
+                            ? TerrainBoundarySide.left
+                            : TerrainBoundarySide.right;
+                        _showElevationGuides = true;
+                        _connectionsExpanded = true;
+                      });
+                      _revealConnections();
+                    }
+                  },
                   onBeforeTerrainResize: () {
                     if (!_hasPendingSelectedSceneEdit) return true;
                     _resolvePendingSceneEdit(authoring);

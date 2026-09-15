@@ -26,6 +26,11 @@ outside the editor:
 - do not turn the editor into a gameplay shell, a generic asset manager, or a
   backend/admin tool
 
+Chunk connection inspection consumes Core scheduling facts. Connecting starters
+are ordinary source owners created through the Chunk plugin command and existing
+Undo/Save transaction. Level schema v3 owns elevation step settings; loaders must
+not implicitly migrate old source. Use the explicit migration tool.
+
 ## Scope And Growth Direction
 
 Keep the editor small, focused, and extensible.

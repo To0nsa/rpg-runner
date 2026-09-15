@@ -219,8 +219,8 @@ dart run tool/migrate_level_build_inclusion.dart --check
 dart run tool/migrate_level_build_inclusion.dart --apply
 ```
 
-The editor requires current schema v2. Migration preserves existing inclusion
-and identity ordinals. Excluded levels retain identity metadata but cannot be
+The editor requires Level schema v3, including `terrainHeightStepPx`. Migration
+from v1/v2 preserves inclusion, identity ordinals and terrain coordinates. Excluded levels retain identity metadata but cannot be
 started through the normal compiled runtime. CLI generation remains available:
 
 ```bash
@@ -813,3 +813,14 @@ The archived release-signoff walkthrough uses a disposable Git worktree so a
 creator can exercise diagnostics, editing, Save/reload, narrow-window,
 and keyboard behavior without changing the main workspace. See the
 [archived Phase 4 manual polygon usability pass](../../docs/archive/2026-09-15/building/slopes/phase4-manual-usability-pass.md).
+
+
+### Chunk connections
+
+The Connections card below the Chunk library shows Previous/Next matches, joined
+previews and Normal/Raised/High ground guides. **Create connecting chunk** opens
+a standard form for a flat or adjacent-height successor, with one Undo step and
+normal Save. Flow offers connection inspection and creation for missing routes;
+seed samples show the actual available choices at each position. See the
+[connection contract](../../docs/tdd/chunk_connections.md) for supported profiles,
+Level migration, exact admission and release compatibility.

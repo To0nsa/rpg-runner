@@ -23,7 +23,21 @@ class ChunkCompositionPreview extends StatelessWidget {
     required this.visualBoundsByPrefabKey,
     required this.parallaxTheme,
     this.showForeground = false,
-  });
+  }) : _framed = true;
+
+  /// Shares an exact edge with an adjacent preview, without thumbnail padding.
+  const ChunkCompositionPreview.joined({
+    super.key,
+    required this.workspaceRootPath,
+    required this.chunk,
+    required this.prefabData,
+    required this.tileData,
+    required this.visualBoundsByPrefabKey,
+    required this.parallaxTheme,
+    this.showForeground = true,
+  }) : _framed = false;
+
+  final bool _framed;
 
   final String workspaceRootPath;
   final ChunkV2FileData chunk;
@@ -56,11 +70,13 @@ class ChunkCompositionPreview extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerLowest,
-            border: Border.all(color: colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            border: _framed
+                ? Border.all(color: colorScheme.outlineVariant)
+                : null,
+            borderRadius: _framed ? BorderRadius.circular(8) : null,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(2),
+            padding: _framed ? const EdgeInsets.all(2) : EdgeInsets.zero,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (constraints.maxWidth <= 0 || constraints.maxHeight <= 0) {
