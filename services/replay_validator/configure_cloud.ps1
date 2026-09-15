@@ -107,8 +107,8 @@ Invoke-Gcloud @(
 Invoke-Gcloud @(
   "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
   "--member=serviceAccount:$ValidatorServiceAccount",
-  "--role=roles/storage.objectCreator",
-  "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/replay-submissions/validated/'),title=ValidatedReplayArtifactsWrite,description=Write sealed validated replay artifacts"
+  "--role=roles/storage.objectUser",
+  "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/replay-submissions/validated/'),title=ValidatedReplayArtifactsManage,description=Create and generation-fenced delete sealed validated replay artifacts"
 )
 Invoke-Gcloud @(
   "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",

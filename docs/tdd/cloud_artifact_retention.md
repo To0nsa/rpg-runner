@@ -74,8 +74,9 @@ idempotent.
 `configure_cloud.ps1` applies the operational IAM bindings required by the
 implemented lifecycle:
 
-- `sa-replay-validator` reads `replay-submissions/`, creates sealed
-  `replay-submissions/validated/` artifacts, and manages `ghosts/` objects;
+- `sa-replay-validator` reads `replay-submissions/`, creates and deletes sealed
+  `replay-submissions/validated/` artifacts for generation-fenced deletion
+  compensation, and manages `ghosts/` objects;
 - `sa-run-control` lists the replay bucket for scheduled cleanup and account
   deletion, while object mutation is limited to `replay-submissions/` and
   `ghosts/`.
