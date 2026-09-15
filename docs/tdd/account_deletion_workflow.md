@@ -5,10 +5,10 @@
 Implemented and deployed on July 19, 2026. Two synthetic workflows completed
 the final reconciliation and Auth-deletion path; the controlled evidence is in
 the
-[Functions production verification record](../building/functions-audit-remediation/production-verification-2026-07-19.md).
+[Functions production verification record](../archive/2026-09-15/building/functions-audit-remediation/production-verification-2026-07-19.md).
 The engineering privacy review accepted a compact 30-day maximum with launch
 conditions; see the
-[retention review](../building/functions-audit-remediation/deletion-retention-privacy-review-2026-07-19.md).
+[retention review](../archive/2026-09-15/building/functions-audit-remediation/deletion-retention-privacy-review-2026-07-19.md).
 
 ## Purpose
 

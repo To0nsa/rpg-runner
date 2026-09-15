@@ -231,10 +231,10 @@ dart run tool/generate_chunk_runtime_data.dart --dry-run
 See [workspace contracts](../../docs/tdd/editor_level_workspace.md) and
 [Build contracts](../../docs/tdd/editor_content_build.md).
 
-The remaining independent creator pass uses the
-[acceptance session](../../docs/building/editor/levelCreator/creator-acceptance-session.md).
+The previous independent creator acceptance guide is retained in the
+[archived acceptance session](../../docs/archive/2026-09-15/building/editor/levelCreator/creator-acceptance-session.md).
 Native Windows and larger-pool preparation measurements are recorded separately
-in the [verification ledger](../../docs/building/editor/levelCreator/implementation-verification.md).
+in the [archived verification ledger](../../docs/archive/2026-09-15/building/editor/levelCreator/implementation-verification.md).
 
 ## Entity Collider Preview
 
@@ -809,7 +809,7 @@ rectangle or Chunk-v1 ground/gap controls. The one-time migration command is
 complete. Authored Play compiles current polygons into the deterministic Core
 through the shared content pipeline.
 
-The release-signoff walkthrough uses a disposable Git worktree so a
+The archived release-signoff walkthrough uses a disposable Git worktree so a
 creator can exercise diagnostics, editing, Save/reload, narrow-window,
 and keyboard behavior without changing the main workspace. See the
-[Phase 4 manual polygon usability pass](../../docs/building/slopes/phase4-manual-usability-pass.md).
+[archived Phase 4 manual polygon usability pass](../../docs/archive/2026-09-15/building/slopes/phase4-manual-usability-pass.md).

@@ -1,6 +1,6 @@
 # Level Creator workspace and authoring sessions
 
-Status: Implemented; creator acceptance is tracked in the [delivery checklist](../building/editor/levelCreator/ui-ux-redesign-checklist.md).
+Status: Implemented. Historical creator acceptance is recorded in the [archived delivery checklist](../archive/2026-09-15/building/editor/levelCreator/ui-ux-redesign-checklist.md).
 
 ## Ownership and workspace
 

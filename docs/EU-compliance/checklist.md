@@ -396,7 +396,7 @@ It is a practical engineering status check against the checklist above. It is no
   request, completion, and expiry times, retained for at most 30 days, and
   removed by scheduled cleanup. The engineering privacy review and launch
   conditions are recorded in
-  `docs/building/functions-audit-remediation/deletion-retention-privacy-review-2026-07-19.md`.
+  [archived engineering privacy review](../archive/2026-09-15/building/functions-audit-remediation/deletion-retention-privacy-review-2026-07-19.md).
 - [x] Backend callables require authentication and reject mismatched `userId` values (`functions/src/index.ts`).
 - [x] Firestore client access is locked down with deny-by-default rules (`firestore.rules`).
 - [x] Emulator-backed backend tests exist for ownership and account-deletion flows (`functions/package.json`, `functions/test/account/account_delete_callable.test.ts`, `functions/test/ownership/ownership_callable.test.ts`).

@@ -48,18 +48,15 @@ Keep the editor small, focused, and extensible.
 
 - repo root: `AGENTS.md`
 - docs policy: `docs/rules/code-documentation-policy.md`
-- chunk roadmap/checklists: `docs/building/editor/chunkCreator/**` when changing
-  prefab/chunk contracts or milestone status
-- Windows playtest roadmap/checklists:
-  `docs/building/archived/editor/windowsChunkPlaytest/**` when changing desktop input,
-  preview preparation, or Play mode
-- active Level Creator implementation and acceptance:
-  `docs/building/editor/levelCreator/ui-ux-redesign-plan.md` and its checklist
+- current planning index: `docs/building/README.md`; consult a matching active
+  plan when one exists
+- current desktop input, preview preparation, and Play contracts:
+  `docs/tdd/editor_chunk_playtest_host.md`
 - implemented Level workspace, Save/repair, and Build contracts:
   `docs/tdd/editor_level_workspace.md` and `docs/tdd/editor_content_build.md`
-- archived level creator plan:
-  `docs/building/archived/editor/levelCreator/plan.md` for historical level
-  authoring context
+- historical editor plans: `docs/archive/2026-09-15/building/editor/**` and
+  `docs/archive/2026-09-15/building/archived/editor/**`; consult them only as
+  background, not as active milestone instructions
 
 ## Commenting For Onboarding
 
@@ -457,8 +454,8 @@ When editor contracts or workflows change:
   workflow or UX changes; update both when both are affected
 - update this file if boundaries/rules drift
 - update `tools/editor/README.md` for user-visible capability changes
-- update `docs/building/editor/chunkCreator/plan.md` and relevant phase
-  checklist/closure docs for chunk/prefab milestone changes
+- update a matching active plan and checklist under `docs/building/**` when
+  milestone scope changes; do not reactivate archived plans implicitly
 - use `docs/building/**` for proposed or in-progress work; it does not replace
   TDD/GDD documentation for delivered behavior
 - for newly added authoring domains, add focused documentation only for the

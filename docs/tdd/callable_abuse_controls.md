@@ -18,15 +18,15 @@ task, and
 resource/cost-pressure alerts are deployed to the verified production channel.
 The initial production evidence, completed legacy-idempotency migration, and
 web rollout are recorded in the
-[Functions production verification](../building/functions-audit-remediation/production-verification-2026-07-19.md)
+[Functions production verification](../archive/2026-09-15/building/functions-audit-remediation/production-verification-2026-07-19.md)
 and
-[App Check client rollout](../building/functions-audit-remediation/app-check-client-rollout-2026-07-19.md),
+[App Check client rollout](../archive/2026-09-15/building/functions-audit-remediation/app-check-client-rollout-2026-07-19.md),
 with native readiness details in the
-[native App Check preflight](../building/functions-audit-remediation/native-app-check-readiness-2026-07-19.md)
+[native App Check preflight](../archive/2026-09-15/building/functions-audit-remediation/native-app-check-readiness-2026-07-19.md)
 and quota selection and enforcement in the
-[quota rollout record](../building/functions-audit-remediation/quota-selection-and-enforcement-2026-07-19.md).
+[quota rollout record](../archive/2026-09-15/building/functions-audit-remediation/quota-selection-and-enforcement-2026-07-19.md).
 The extension deployment and its canary gate are recorded in the
-[August 2 monitor rollout record](../building/functions-audit-remediation/quota-extension-monitor-deployment-2026-08-02.md).
+[August 2 monitor rollout record](../archive/2026-09-15/building/functions-audit-remediation/quota-extension-monitor-deployment-2026-08-02.md).
 
 ## Purpose and boundary
 

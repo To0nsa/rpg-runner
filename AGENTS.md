@@ -57,8 +57,11 @@ Also consult:
 - `services/replay_validator/`: Dart Cloud Run worker for replay validation and projection side effects
 - `tools/editor/`: standalone Flutter editor for repository-backed content authoring
 - `test/`: Dart tests across core, game, UI, and integration slices
+- `docs/README.md`: entry point for current documentation and planning
+- `docs/audit/`: current audits, linked to accepted implementation work
 - `docs/building/`: active implementation plans and checklists
-- `docs/building/archived/`: implemented or otherwise closed building plans
+- `docs/archive/`: historical audits, plans, and evidence, including superseded
+  planning baselines
 - `docs/tdd/`: technical design documents for architecture, system behavior, and contracts
 - `docs/gdd/`: game design documents for player-facing mechanics, content, and tuning
 - `.agent/workflows/`: task-specific workflow notes
@@ -174,7 +177,12 @@ do not defer necessary technical or game-design documentation to a later task.
 - update the relevant `AGENTS.md` file when working rules or boundaries drift
 - update `README.md` when public capabilities or setup steps change
 - update the relevant `docs/building/**` plan/checklist when milestone scope shifts
-- move implemented or closed building plans to `docs/building/archived/` and update active links
+- move implemented, closed, or explicitly user-superseded audits and plans to
+  `docs/archive/<date>/`, preserve their original folder structure, and update
+  incoming links; archiving does not mark unresolved findings complete
+- use `docs/README.md` and the current audit/building indexes to find active work;
+  archived instructions and checklists do not automatically authorize or queue
+  new work
 - update public API docs around `lib/runner.dart`, `lib/ui/runner_game_widget.dart`, and `lib/ui/runner_game_route.dart` when embedding behavior changes
 
 ## Practical Guardrails

@@ -44,8 +44,8 @@ deleted:
   compiler edges for surface strips; the legacy ground bands, rectangle debug
   views, and temporary floor mask are deleted
 
-Final Phase 4 acceptance work remains tracked in
-[the Phase 4 checklist](../building/slopes/phase4-implementation-checklist.md).
+Historical Phase 4 acceptance is recorded in
+[the archived Phase 4 checklist](../archive/2026-09-15/building/slopes/phase4-implementation-checklist.md).
 
 ## Ownership
 

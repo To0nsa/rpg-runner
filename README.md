@@ -102,10 +102,9 @@ firebase deploy --only hosting --project rpg-runner-d7add
 - Provider
 - SharedPreferences
 
-## Roadmap Direction
+## Documentation And Planning
 
-- Expand to 3+ polished levels and more enemy types
-- Add deeper character/loadout progression
-- Implement metaloop, achievements based progression, and unlockables
-- Implement ghost runs and online race-ready infrastructure
-- Connect leaderboard/progression to backend services
+The [documentation index](docs/README.md) links current audits, implementation
+plans, technical contracts, and game design documents. Previous audit and
+planning documents are retained in a dated archive after the September 15,
+2026 planning restart.
