@@ -136,12 +136,14 @@ Why:
 
 ### `accountDelete`
 
-- Client adapter: `lib/ui/state/firebase_account_deletion_api.dart`
+- Client adapter: `lib/ui/state/profile/firebase_account_deletion_api.dart`
 - Called by: profile page destructive action.
 - Creates an idempotent `account_deletion_requests/{uid}` tombstone before
   returning an accepted deletion status.
 - Disables Auth and delegates bounded, resumable erasure to the scheduled
   `accountDeletionRepair` worker.
+- Requires linked Play Games identity and authentication no older than five
+  minutes. The response contains an explicit status and UID request ID.
 
 Why:
 
@@ -351,6 +353,10 @@ Why:
 ### `accountDeletionRepair` (scheduled)
 
 - Leases one bounded page at a time from active account deletion requests.
+- Runs every minute, defers run records with live validator leases, and
+  atomically erases board best entries with affected top-10 views.
+- Deletes expired completions oldest-first in bounded pages and reports expiry
+  backlog saturation; 30 days is an expiry deadline with eventual removal.
 - Resumes retryable failures without requiring the deleted account to remain
   authenticated.
 - Removes completed tombstones after the documented retention window.

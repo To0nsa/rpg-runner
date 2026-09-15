@@ -16,52 +16,111 @@ import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 
 void main() {
-  test('deleteAccountAndData clears in-memory state and signs out', () async {
-    final authApi = _StaticAuthApi();
-    final ownershipOutbox = _TrackingOwnershipOutboxStore();
-    final submissionSpool = _TrackingSubmissionSpoolStore();
-    final replayArtifacts = _TrackingReplayArtifactStore();
-    final deletionApi = _StaticAccountDeletionApi(
-      result: const AccountDeletionResult(
-        status: AccountDeletionStatus.deleted,
-      ),
-    );
-    final appState = AppState(
-      authApi: authApi,
-      accountDeletionApi: deletionApi,
-      userProfileRemoteApi: const _StaticUserProfileRemoteApi(
-        profile: UserProfile(
-          displayName: 'Hero',
-          displayNameLastChangedAtMs: 1,
-          namePromptCompleted: true,
+  for (final status in <AccountDeletionStatus>[
+    AccountDeletionStatus.requested,
+    AccountDeletionStatus.inProgress,
+    AccountDeletionStatus.retrying,
+    AccountDeletionStatus.deleted,
+  ]) {
+    test('accepted $status clears state before sign-out', () async {
+      final authApi = _StaticAuthApi();
+      final ownershipOutbox = _TrackingOwnershipOutboxStore();
+      final submissionSpool = _TrackingSubmissionSpoolStore();
+      final replayArtifacts = _TrackingReplayArtifactStore();
+      final deletionApi = _StaticAccountDeletionApi(
+        result: AccountDeletionResult(status: status),
+      );
+      final appState = AppState(
+        authApi: authApi,
+        accountDeletionApi: deletionApi,
+        userProfileRemoteApi: const _StaticUserProfileRemoteApi(
+          profile: UserProfile(
+            displayName: 'Hero',
+            displayNameLastChangedAtMs: 1,
+            namePromptCompleted: true,
+          ),
         ),
-      ),
-      loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
-      ownershipOutboxStore: ownershipOutbox,
-      runSubmissionCoordinator: RunSubmissionCoordinator(
-        runSessionApi: const NoopRunSessionApi(),
-        spoolStore: submissionSpool,
-        localReplayArtifactStore: replayArtifacts,
-      ),
-    );
+        loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
+        ownershipOutboxStore: ownershipOutbox,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: const NoopRunSessionApi(),
+          spoolStore: submissionSpool,
+          localReplayArtifactStore: replayArtifacts,
+        ),
+      );
 
-    await appState.bootstrap(force: true);
-    final result = await appState.deleteAccountAndData();
+      await appState.bootstrap(force: true);
+      authApi.onClearSession = () {
+        expect(appState.profile.displayName, isEmpty);
+        expect(appState.authSession.isAuthenticated, isFalse);
+      };
+      final result = await appState.deleteAccountAndData();
 
-    expect(result.succeeded, isTrue);
-    expect(deletionApi.calls.length, 1);
-    expect(deletionApi.calls.single.userId, 'u1');
-    expect(deletionApi.calls.single.sessionId, 's1');
-    expect(authApi.reauthenticateCalls, 1);
-    expect(authApi.clearSessionCalls, 1);
-    expect(appState.authSession.userId, isEmpty);
-    expect(appState.profile.displayName, isEmpty);
-    expect(appState.progression.gold, 0);
-    expect(appState.isBootstrapped, isFalse);
-    expect(ownershipOutbox.clearCalls, 1);
-    expect(submissionSpool.clearCalls, 1);
-    expect(replayArtifacts.clearCalls, 1);
-  });
+      expect(result.succeeded, isTrue);
+      expect(deletionApi.calls.length, 1);
+      expect(deletionApi.calls.single.userId, 'u1');
+      expect(deletionApi.calls.single.sessionId, 's1');
+      expect(authApi.reauthenticateCalls, 1);
+      expect(authApi.clearSessionCalls, 1);
+      expect(appState.authSession.userId, isEmpty);
+      expect(appState.profile.displayName, isEmpty);
+      expect(appState.progression.gold, 0);
+      expect(appState.isBootstrapped, isFalse);
+      expect(ownershipOutbox.clearCalls, 1);
+      expect(submissionSpool.clearCalls, 1);
+      expect(replayArtifacts.clearCalls, 1);
+    });
+  }
+
+  test(
+    'local failures keep the accepted outcome and retry without authentication',
+    () async {
+      final auth = _StaticAuthApi()..clearFailure = true;
+      final ownership = _TrackingOwnershipOutboxStore()..clearFailure = true;
+      final spool = _TrackingSubmissionSpoolStore()..clearFailure = true;
+      final artifacts = _TrackingReplayArtifactStore()..clearFailure = true;
+      final backend = _StaticAccountDeletionApi(
+        result: const AccountDeletionResult(
+          status: AccountDeletionStatus.requested,
+        ),
+      );
+      final app = AppState(
+        authApi: auth,
+        accountDeletionApi: backend,
+        ownershipOutboxStore: ownership,
+        loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: const NoopRunSessionApi(),
+          spoolStore: spool,
+          localReplayArtifactStore: artifacts,
+        ),
+      );
+      await app.bootstrap();
+      final result = await app.deleteAccountAndData();
+      expect(result.succeeded, isTrue);
+      expect(result.localCleanupSucceeded, isFalse);
+      expect(
+        result.localCleanupIssues,
+        AccountDeletionLocalCleanupIssue.values,
+      );
+      expect(app.authSession.isAuthenticated, isFalse);
+      expect(app.progression.gold, 0);
+      expect(artifacts.clearCalls, 1);
+      expect(auth.clearSessionCalls, 1);
+      await expectLater(app.bootstrap(), throwsStateError);
+      auth.clearFailure = ownership.clearFailure = spool.clearFailure =
+          artifacts.clearFailure = false;
+      final retry = await app.retryAccountDeletionLocalCleanup();
+      expect(retry.status, AccountDeletionStatus.requested);
+      expect(retry.localCleanupSucceeded, isTrue);
+      expect(backend.calls, hasLength(1));
+      expect(auth.reauthenticateCalls, 1);
+      expect(ownership.clearCalls, 2);
+      expect(spool.clearCalls, 2);
+      expect(artifacts.clearCalls, 2);
+      expect(auth.clearSessionCalls, 2);
+    },
+  );
 
   test(
     'deleteAccountAndData keeps state when backend deletion fails',
@@ -109,6 +168,8 @@ class _StaticAuthApi implements AuthApi {
 
   int clearSessionCalls = 0;
   int reauthenticateCalls = 0;
+  bool clearFailure = false;
+  void Function()? onClearSession;
 
   @override
   Future<AuthSession> ensureAuthenticatedSession() async => _session;
@@ -134,6 +195,8 @@ class _StaticAuthApi implements AuthApi {
   @override
   Future<void> clearSession() async {
     clearSessionCalls += 1;
+    onClearSession?.call();
+    if (clearFailure) throw StateError('sign-out unavailable');
   }
 }
 
@@ -267,20 +330,24 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
 
 class _TrackingOwnershipOutboxStore extends InMemoryOwnershipOutboxStore {
   int clearCalls = 0;
+  bool clearFailure = false;
 
   @override
   Future<void> clear() async {
     clearCalls += 1;
+    if (clearFailure) throw StateError('ownership cleanup unavailable');
     await super.clear();
   }
 }
 
 class _TrackingSubmissionSpoolStore implements RunSubmissionSpoolStore {
   int clearCalls = 0;
+  bool clearFailure = false;
 
   @override
   Future<void> clear() async {
     clearCalls += 1;
+    if (clearFailure) throw StateError('spool cleanup unavailable');
   }
 
   @override
@@ -300,9 +367,11 @@ class _TrackingSubmissionSpoolStore implements RunSubmissionSpoolStore {
 
 class _TrackingReplayArtifactStore implements LocalReplayArtifactStore {
   int clearCalls = 0;
+  bool clearFailure = false;
 
   @override
   Future<void> clear() async {
     clearCalls += 1;
+    if (clearFailure) throw StateError('artifact cleanup unavailable');
   }
 }

@@ -20,7 +20,7 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
         userId: userId,
         sessionId: sessionId,
       );
-      return _decodeResult(response);
+      return _decodeResult(response, userId);
     } on FirebaseFunctionsException catch (error) {
       return _mapFirebaseFunctionsError(error);
     } on PlatformException catch (error) {
@@ -34,7 +34,10 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
     }
   }
 
-  AccountDeletionResult _decodeResult(Map<String, dynamic> response) {
+  AccountDeletionResult _decodeResult(
+    Map<String, dynamic> response,
+    String userId,
+  ) {
     final wrapped = response['result'];
     final payload = wrapped is Map<String, dynamic>
         ? wrapped
@@ -44,30 +47,22 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
     final errorCode = payload['errorCode'];
     final errorMessage = payload['errorMessage'];
     if (status != null) {
-      return AccountDeletionResult(
+      final result = AccountDeletionResult(
         status: status,
         errorCode: errorCode is String ? errorCode : null,
         errorMessage: errorMessage is String ? errorMessage : null,
+        requestId: payload['requestId'] is String
+            ? payload['requestId'] as String
+            : null,
       );
+      if (!result.succeeded || result.requestId == userId) return result;
     }
-
-    final deletedRaw = payload['deleted'];
-    if (deletedRaw is bool && deletedRaw) {
-      return const AccountDeletionResult(status: AccountDeletionStatus.deleted);
-    }
-
-    final okRaw = payload['ok'];
-    if (okRaw is bool) {
-      return AccountDeletionResult(
-        status: okRaw
-            ? AccountDeletionStatus.deleted
-            : AccountDeletionStatus.failed,
-        errorCode: errorCode is String ? errorCode : null,
-        errorMessage: errorMessage is String ? errorMessage : null,
-      );
-    }
-
-    return const AccountDeletionResult(status: AccountDeletionStatus.deleted);
+    return const AccountDeletionResult(
+      status: AccountDeletionStatus.failed,
+      errorCode: 'invalid-response',
+      errorMessage:
+          'Account deletion was not confirmed by the server. Please try again.',
+    );
   }
 
   AccountDeletionResult _mapFirebaseFunctionsError(
@@ -143,10 +138,10 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
       return null;
     }
     return switch (raw) {
-      'deleted' || 'success' => AccountDeletionStatus.deleted,
+      'deleted' => AccountDeletionStatus.deleted,
       'requested' => AccountDeletionStatus.requested,
-      'in_progress' || 'in-progress' => AccountDeletionStatus.inProgress,
-      'retryable' || 'retrying' => AccountDeletionStatus.retrying,
+      'in_progress' => AccountDeletionStatus.inProgress,
+      'retryable' => AccountDeletionStatus.retrying,
       'requiresRecentLogin' ||
       'requires-recent-login' => AccountDeletionStatus.requiresRecentLogin,
       'unauthorized' => AccountDeletionStatus.unauthorized,

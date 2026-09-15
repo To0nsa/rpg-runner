@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+
 import 'dart:async';
+
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/components/app_dialog.dart';
@@ -25,6 +27,64 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
+  testWidgets(
+    'accepted deletion reports device failure and retries cleanup before closing',
+    (tester) async {
+      final authApi = _StaticAuthApi(session: _anonymousSession());
+      final deletionApi = _StaticAccountDeletionApi(
+        result: const AccountDeletionResult(
+          status: AccountDeletionStatus.requested,
+        ),
+      );
+      final artifacts = _FailOnceReplayArtifactStore();
+      final appState = AppState(
+        authApi: authApi,
+        accountDeletionApi: deletionApi,
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: const NoopRunSessionApi(),
+          spoolStore: _InMemorySpoolStore(),
+          localReplayArtifactStore: artifacts,
+        ),
+      );
+      final platformCalls = <MethodCall>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        platformCalls.add(call);
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.tap(find.text('Delete account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      await tester.tap(_dialogButton('Delete account'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Account deletion was accepted. Device cleanup needs another attempt.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        platformCalls.any((call) => call.method == 'SystemNavigator.pop'),
+        isFalse,
+      );
+      await tester.tap(find.text('Retry cleanup'));
+      await tester.pumpAndSettle();
+      expect(
+        platformCalls.any((call) => call.method == 'SystemNavigator.pop'),
+        isTrue,
+      );
+      expect(artifacts.calls, 2);
+      expect(deletionApi.calls, 1);
+    },
+  );
+
   testWidgets('shows Play Games upgrade action for anonymous account', (
     tester,
   ) async {
@@ -456,6 +516,15 @@ class _NoopLocalReplayArtifactStore implements LocalReplayArtifactStore {
 
   @override
   Future<void> clear() async {}
+}
+
+class _FailOnceReplayArtifactStore implements LocalReplayArtifactStore {
+  int calls = 0;
+  @override
+  Future<void> clear() async {
+    calls += 1;
+    if (calls == 1) throw StateError('recorder directory locked');
+  }
 }
 
 class _StaticAccountDeletionApi implements AccountDeletionApi {

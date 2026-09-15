@@ -12,6 +12,13 @@ Local storage in the current app is split into:
 
 Authoritative gameplay/profile/progression state is still server-backed and fetched through callables.
 
+After explicit server acceptance of account deletion, AppState resets memory
+before sign-out, fences the submission coordinator, drains started spool writes,
+and attempts ownership-outbox, submission-spool, and recorder-directory cleanup.
+Device failures are reported separately and can be retried in the current app
+instance. Cleanup is not guaranteed when OS/file/preference operations fail;
+see [the account deletion workflow](account_deletion_workflow.md).
+
 ## 2) Persistent local data (SharedPreferences)
 
 ## A) Practice leaderboard entries

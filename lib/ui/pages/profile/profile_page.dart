@@ -72,9 +72,8 @@ class _ProfilePageState extends State<ProfilePage> {
     await appState.updateDisplayName(trimmed);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Name updated')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Name updated')));
   }
 
   String _accountDeletionFailureMessage(AccountDeletionResult result) {
@@ -220,7 +219,7 @@ class _ProfilePageState extends State<ProfilePage> {
         );
         return;
       }
-      await SystemNavigator.pop();
+      await _finishAccountDeletion(result);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +234,30 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
+  }
+
+  Future<void> _finishAccountDeletion(AccountDeletionResult result) async {
+    if (!mounted) return;
+    if (!result.localCleanupSucceeded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Account deletion was accepted. Device cleanup needs another attempt.',
+          ),
+          action: SnackBarAction(
+            label: 'Retry cleanup',
+            onPressed: () async {
+              final retry = await context
+                  .read<AppState>()
+                  .retryAccountDeletionLocalCleanup();
+              if (mounted) await _finishAccountDeletion(retry);
+            },
+          ),
+        ),
+      );
+      return;
+    }
+    await SystemNavigator.pop();
   }
 
   @override

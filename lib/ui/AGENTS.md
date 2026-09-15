@@ -36,6 +36,11 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
 
 ## House Style
 
+Accepted account deletion resets memory before device cleanup or sign-out.
+Keep server acceptance separate from local cleanup errors, fence late state
+writes, and retry cleanup without reauthentication. Unknown deletion responses
+must never count as acceptance.
+
 Default to the existing UI patterns:
 
 - use `ThemeExtension`-driven component themes

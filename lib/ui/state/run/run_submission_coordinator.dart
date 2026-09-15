@@ -210,6 +210,25 @@ class RunSubmissionCoordinator {
   final RunSubmissionClock _clock;
   final List<Duration> _retryBackoffSchedule;
   final int verificationDelayedThresholdMs;
+  bool _localSubmissionsDiscarded = false;
+  final Set<Future<void>> _spoolMutations = <Future<void>>{};
+
+  Future<void> _persistSubmission({required PendingRunSubmission submission}) =>
+      _mutateSpool(() => _spoolStore.upsert(submission: submission));
+
+  Future<void> _removeSubmission({required String runSessionId}) =>
+      _mutateSpool(() => _spoolStore.remove(runSessionId: runSessionId));
+
+  Future<void> _mutateSpool(Future<void> Function() mutation) async {
+    if (_localSubmissionsDiscarded) return;
+    final pending = mutation();
+    _spoolMutations.add(pending);
+    try {
+      await pending;
+    } finally {
+      _spoolMutations.remove(pending);
+    }
+  }
 
   static const List<Duration> _defaultRetryBackoffSchedule = <Duration>[
     Duration(seconds: 30),
@@ -242,6 +261,9 @@ class RunSubmissionCoordinator {
     String contentType = 'application/octet-stream',
     Map<String, Object?>? provisionalSummary,
   }) async {
+    if (_localSubmissionsDiscarded) {
+      throw StateError('Local submissions have been discarded.');
+    }
     final nowMs = _clock();
     final pending = PendingRunSubmission(
       ownerUserId: userId,
@@ -256,7 +278,7 @@ class RunSubmissionCoordinator {
       updatedAtMs: nowMs,
       provisionalSummary: provisionalSummary,
     );
-    await _spoolStore.upsert(submission: pending);
+    await _persistSubmission(submission: pending);
     return pending;
   }
 
@@ -281,7 +303,16 @@ class RunSubmissionCoordinator {
   ///
   /// Both cleanup steps are attempted so a missing or locked replay file does
   /// not leave the submission spool behind after account deletion.
+  /// This permanently fences spool mutations for this coordinator instance.
   Future<void> discardAllLocalSubmissions() async {
+    _localSubmissionsDiscarded = true;
+    for (final pending in _spoolMutations.toList()) {
+      try {
+        await pending;
+      } catch (_) {
+        /* The caller owns the mutation error. */
+      }
+    }
     Object? firstError;
     StackTrace? firstStackTrace;
     try {
@@ -305,6 +336,7 @@ class RunSubmissionCoordinator {
     required String userId,
     required String sessionId,
   }) async {
+    if (_localSubmissionsDiscarded) return const <RunSubmissionStatus>[];
     final nowMs = _clock();
     final pendingEntries = await _spoolStore.loadAll();
     final statuses = <RunSubmissionStatus>[];
@@ -374,7 +406,7 @@ class RunSubmissionCoordinator {
         lastErrorCode: null,
         lastErrorMessage: null,
       );
-      await _spoolStore.upsert(submission: pending);
+      await _persistSubmission(submission: pending);
 
       final uploadGrant = await _runSessionApi.createUploadGrant(
         userId: userId,
@@ -387,7 +419,7 @@ class RunSubmissionCoordinator {
         updatedAtMs: _clock(),
         objectPath: uploadGrant.objectPath,
       );
-      await _spoolStore.upsert(submission: pending);
+      await _persistSubmission(submission: pending);
 
       await _replayUploader.uploadReplay(
         uploadGrant: uploadGrant,
@@ -401,7 +433,7 @@ class RunSubmissionCoordinator {
         updatedAtMs: _clock(),
         uploadCompletedAtMs: _clock(),
       );
-      await _spoolStore.upsert(submission: pending);
+      await _persistSubmission(submission: pending);
 
       final submissionStatus = await _runSessionApi.finalizeUpload(
         userId: userId,
@@ -415,7 +447,7 @@ class RunSubmissionCoordinator {
       );
 
       if (submissionStatus.isTerminal) {
-        await _spoolStore.remove(runSessionId: runSessionId);
+        await _removeSubmission(runSessionId: runSessionId);
         return RunSubmissionStatus.fromServerStatus(
           submissionStatus,
           nowMs: _clock(),
@@ -432,7 +464,7 @@ class RunSubmissionCoordinator {
         lastErrorCode: null,
         lastErrorMessage: null,
       );
-      await _spoolStore.upsert(submission: pending);
+      await _persistSubmission(submission: pending);
       return RunSubmissionStatus.fromServerStatus(
         submissionStatus,
         pendingSubmission: pending,
@@ -442,7 +474,7 @@ class RunSubmissionCoordinator {
     } catch (error) {
       final failedAtMs = _clock();
       if (!_isRetryableError(error)) {
-        await _spoolStore.remove(runSessionId: runSessionId);
+        await _removeSubmission(runSessionId: runSessionId);
         return RunSubmissionStatus(
           runSessionId: runSessionId,
           phase: RunSubmissionPhase.internalError,
@@ -461,7 +493,7 @@ class RunSubmissionCoordinator {
         lastErrorCode: _errorCode(error),
         lastErrorMessage: _errorMessage(error),
       );
-      await _spoolStore.upsert(submission: failedPending);
+      await _persistSubmission(submission: failedPending);
       return RunSubmissionStatus.fromPending(
         failedPending,
         nowMs: failedAtMs,
@@ -570,7 +602,7 @@ class RunSubmissionCoordinator {
       runSessionId: runSessionId,
     );
     if (status.isTerminal) {
-      await _spoolStore.remove(runSessionId: runSessionId);
+      await _removeSubmission(runSessionId: runSessionId);
       return RunSubmissionStatus.fromServerStatus(
         status,
         nowMs: nowMs,
@@ -590,7 +622,7 @@ class RunSubmissionCoordinator {
       lastErrorCode: null,
       lastErrorMessage: null,
     );
-    await _spoolStore.upsert(submission: refreshedPending);
+    await _persistSubmission(submission: refreshedPending);
     return RunSubmissionStatus.fromServerStatus(
       status,
       pendingSubmission: refreshedPending,

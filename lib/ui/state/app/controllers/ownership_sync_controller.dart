@@ -5,6 +5,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
   Future<void> flushOwnershipEdits({
     required OwnershipFlushTrigger trigger,
   }) async {
+    if (_app._accountDeletionAccepted) return;
     // Play Games opens a native activity during bootstrap. Its lifecycle
     // events must not start another sign-in when that attempt fails.
     if (!_bootstrapped &&
@@ -49,8 +50,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
     if (_ownershipSyncStatus.pendingCount > 0) {
       throw const RunStartRemoteException(
         code: 'failed-precondition',
-        message:
-            'Pending ownership changes are still syncing. Check your connection and try again.',
+        message: 'Pending ownership changes are still syncing. Check your connection and try again.',
       );
     }
   }
@@ -75,7 +75,12 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
 
   @override
   Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) async {
+    if (_app._accountDeletionAccepted) return;
     await _ownershipOutboxStore.upsertCoalesced(command: command);
+    if (_app._accountDeletionAccepted) {
+      await _ownershipOutboxStore.clear();
+      return;
+    }
     await _refreshOwnershipSyncStatusFromOutbox(
       ownerUserId: command.ownerUserId,
     );
@@ -107,7 +112,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
     _notifyListeners();
     try {
       final session = await _ensureAuthSession();
-      while (true) {
+      while (!_app._accountDeletionAccepted) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final pending = await _ownershipOutboxStore.loadAll(
           ownerUserId: session.userId,
@@ -236,10 +241,12 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
       );
       _notifyListeners();
     } catch (_) {
+      if (_app._accountDeletionAccepted) return;
       final superseded = await _isPendingCommandSuperseded(
         command: command,
         sentPayloadHash: payloadHash,
       );
+      if (_app._accountDeletionAccepted) return;
       if (superseded) {
         return;
       }

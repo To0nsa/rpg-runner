@@ -259,6 +259,13 @@ class AppState extends ChangeNotifier {
   Future<AccountDeletionResult> deleteAccountAndData() =>
       _authProfileController.deleteAccountAndData();
 
+  /// Retries device cleanup after accepted deletion without authenticating again.
+  Future<AccountDeletionResult> retryAccountDeletionLocalCleanup() =>
+      _authProfileController.retryAccountDeletionLocalCleanup();
+
+  bool get _accountDeletionAccepted =>
+      _authProfileController._acceptedDeletionResult != null;
+
   void startWarmup() => _authProfileController.startWarmup();
 
   Future<void> setLevel(LevelId levelId) =>
@@ -519,6 +526,7 @@ class AppState extends ChangeNotifier {
   }
 
   void _applyCanonicalState(OwnershipCanonicalState canonical) {
+    if (_accountDeletionAccepted) return;
     _clearRunTicketPrefetchState();
     _profileId = canonical.profileId;
     _selection = canonical.selection;
@@ -528,7 +536,13 @@ class AppState extends ChangeNotifier {
   }
 
   Future<AuthSession> _ensureAuthSession() async {
+    if (_accountDeletionAccepted) {
+      throw StateError('Account deletion has been accepted.');
+    }
     final session = await _authApi.ensureAuthenticatedSession();
+    if (_accountDeletionAccepted) {
+      throw StateError('Account deletion has been accepted.');
+    }
     final userChanged = _authSession.userId != session.userId;
     if (userChanged || _authSession.sessionId != session.sessionId) {
       _clearRunTicketPrefetchState();

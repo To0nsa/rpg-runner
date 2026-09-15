@@ -2,6 +2,7 @@ part of 'package:rpg_runner/ui/state/app/app_state.dart';
 
 final class _AppStateAuthProfileController extends _AppStateController {
   _AppStateAuthProfileController(super._app);
+  AccountDeletionResult? _acceptedDeletionResult;
   Future<void> bootstrap({bool force = false}) async {
     if (_bootstrapped && !force) return;
     final session = await _ensureAuthSession();
@@ -13,6 +14,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
       userId: session.userId,
       sessionId: session.sessionId,
     );
+    if (_app._accountDeletionAccepted) return;
     _profile = loadedProfile;
     _applyCanonicalState(canonical);
     _bootstrapped = true;
@@ -21,14 +23,15 @@ final class _AppStateAuthProfileController extends _AppStateController {
 
   Future<void> applyDefaults() async {
     final session = await _ensureAuthSession();
+    UserProfile loadedProfile;
     try {
-      _profile = await _profileRemoteApi.loadProfile(
+      loadedProfile = await _profileRemoteApi.loadProfile(
         userId: session.userId,
         sessionId: session.sessionId,
       );
     } catch (error) {
       debugPrint('Profile fallback load failed: $error');
-      _profile = UserProfile.empty;
+      loadedProfile = UserProfile.empty;
     }
 
     OwnershipCanonicalState canonical;
@@ -47,6 +50,8 @@ final class _AppStateAuthProfileController extends _AppStateController {
         progression: ProgressionState.initial,
       );
     }
+    if (_app._accountDeletionAccepted) return;
+    _profile = loadedProfile;
     _applyCanonicalState(canonical);
     _bootstrapped = true;
     _notifyListeners();
@@ -63,6 +68,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
       sessionId: session.sessionId,
       update: UserProfileUpdate(displayName: trimmed),
     );
+    if (_app._accountDeletionAccepted) return;
     _profile = nextProfile;
     _notifyListeners();
   }
@@ -79,18 +85,23 @@ final class _AppStateAuthProfileController extends _AppStateController {
         namePromptCompleted: true,
       ),
     );
+    if (_app._accountDeletionAccepted) return;
     _profile = nextProfile;
     _notifyListeners();
   }
 
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
     final result = await _authApi.linkAuthProvider(provider);
+    if (_app._accountDeletionAccepted) return result;
     _authSession = result.session;
     _notifyListeners();
     return result;
   }
 
   Future<AccountDeletionResult> deleteAccountAndData() async {
+    if (_acceptedDeletionResult != null) {
+      return retryAccountDeletionLocalCleanup();
+    }
     final session = await _authApi.reauthenticateForSensitiveOperation();
     _authSession = session;
     final result = await _accountDeletionApi.deleteAccountAndData(
@@ -101,8 +112,9 @@ final class _AppStateAuthProfileController extends _AppStateController {
       return result;
     }
 
-    await _discardPersistentAccountState();
-    await _authApi.clearSession();
+    _acceptedDeletionResult = result;
+    _ownershipFlushTimer?.cancel();
+    _ownershipFlushTimer = null;
     _selection = SelectionState.defaults;
     _meta = const MetaService().createNew();
     _progression = ProgressionState.initial;
@@ -111,20 +123,35 @@ final class _AppStateAuthProfileController extends _AppStateController {
     _profileId = defaultOwnershipProfileId;
     _ownershipRevision = 0;
     _ownershipSyncStatusUpdatedAtMs = null;
+    _ownershipSyncStatus = OwnershipSyncStatus.idle;
     _runSubmissionStatuses.clear();
     _clearRunTicketPrefetchState();
     _bootstrapped = false;
     _warmupStarted = false;
     _notifyListeners();
-    return result;
+    return retryAccountDeletionLocalCleanup();
   }
 
-  Future<void> _discardPersistentAccountState() async {
+  Future<AccountDeletionResult> retryAccountDeletionLocalCleanup() async {
+    final result = _acceptedDeletionResult;
+    if (result == null) {
+      throw StateError('Account deletion has not been accepted.');
+    }
+    final issues = <AccountDeletionLocalCleanupIssue>[];
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;
+    final flush = _app._activeOwnershipFlush;
+    if (flush != null) {
+      try {
+        await flush;
+      } catch (_) {
+        /* Cleanup owns discarding failed delivery. */
+      }
+    }
     try {
       await _ownershipOutboxStore.clear();
     } catch (error, stackTrace) {
+      issues.add(AccountDeletionLocalCleanupIssue.ownershipOutbox);
       debugPrint(
         'Account-deletion ownership cleanup failed: '
         '$error\n$stackTrace',
@@ -133,14 +160,31 @@ final class _AppStateAuthProfileController extends _AppStateController {
     try {
       await _runSubmissionCoordinator.discardAllLocalSubmissions();
     } catch (error, stackTrace) {
+      issues.add(AccountDeletionLocalCleanupIssue.replaySubmissions);
       debugPrint(
         'Account-deletion replay cleanup failed: '
         '$error\n$stackTrace',
       );
     }
+    try {
+      await _authApi.clearSession();
+    } catch (error, stackTrace) {
+      issues.add(AccountDeletionLocalCleanupIssue.signOut);
+      debugPrint('Account-deletion sign-out failed: $error\n$stackTrace');
+    }
+    return AccountDeletionResult(
+      status: result.status,
+      requestId: result.requestId,
+      errorCode: result.errorCode,
+      errorMessage: result.errorMessage,
+      localCleanupIssues: List<AccountDeletionLocalCleanupIssue>.unmodifiable(
+        issues,
+      ),
+    );
   }
 
   void startWarmup() {
+    if (_app._accountDeletionAccepted) return;
     if (_warmupStarted) return;
     _warmupStarted = true;
     unawaited(() async {

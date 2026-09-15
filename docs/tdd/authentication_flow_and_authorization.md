@@ -217,8 +217,11 @@ Server flow (`functions/src/account/delete.ts`):
   final pass before deleting Firebase Auth.
 - Tolerates already-missing Auth users, documents, and objects.
 
-Flutter treats `requested`, `in_progress`, `retryable`, and `deleted` as
-accepted server-owned outcomes, clears local state, and signs out. Detailed
+Flutter requires one of `requested`, `in_progress`, `retryable`, and `deleted`
+with the matching UID request ID. Empty/unknown/legacy boolean responses are
+rejected. Acceptance immediately resets memory before device cleanup and
+sign-out; individual cleanup failures are reported separately and can be
+retried without authentication or another deletion request. Detailed
 stages, retention, and inventory rules are in
 [`account_deletion_workflow.md`](account_deletion_workflow.md).
 

@@ -9,17 +9,31 @@ enum AccountDeletionStatus {
   failed,
 }
 
+/// Device cleanup failures after the server has accepted account deletion.
+enum AccountDeletionLocalCleanupIssue {
+  ownershipOutbox,
+  replaySubmissions,
+  signOut,
+}
+
 class AccountDeletionResult {
   const AccountDeletionResult({
     required this.status,
     this.errorCode,
     this.errorMessage,
+    this.requestId,
+    this.localCleanupIssues = const <AccountDeletionLocalCleanupIssue>[],
   });
 
   final AccountDeletionStatus status;
   final String? errorCode;
   final String? errorMessage;
+  final String? requestId;
+  final List<AccountDeletionLocalCleanupIssue> localCleanupIssues;
 
+  bool get localCleanupSucceeded => localCleanupIssues.isEmpty;
+
+  /// Whether the server owns deletion, independently of device cleanup.
   bool get succeeded =>
       status == AccountDeletionStatus.requested ||
       status == AccountDeletionStatus.inProgress ||

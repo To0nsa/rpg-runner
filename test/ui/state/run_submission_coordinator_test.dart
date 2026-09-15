@@ -1,4 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+
+import 'dart:async';
+
+import 'package:rpg_runner/ui/state/run/local_replay_artifact_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/run_ticket.dart';
@@ -12,6 +16,91 @@ import 'package:rpg_runner/ui/state/run/run_submission_status.dart';
 import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 
 void main() {
+  test(
+    'an upload finishing after discard cannot recreate retry metadata',
+    () async {
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final spool = _InMemorySpoolStore();
+      final uploader = _FakeReplayUploader()
+        ..onUpload = (() {
+          started.complete();
+        })
+        ..uploadGate = release.future
+        ..uploadFailure = const RunReplayUploadException(
+          code: 'network',
+          message: 'upload interrupted',
+        );
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: _FakeRunSessionApi(),
+        spoolStore: spool,
+        replayUploader: uploader,
+        localReplayArtifactStore: _NoopLocalReplayArtifactStore(),
+      );
+      await coordinator.enqueueSubmission(
+        userId: 'u1',
+        runSessionId: 'run_late_upload',
+        runMode: RunMode.practice,
+        replayFilePath: 'replay.json',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 10,
+        contentType: 'application/json',
+      );
+      final upload = coordinator.processRunSession(
+        userId: 'u1',
+        sessionId: 's1',
+        runSessionId: 'run_late_upload',
+      );
+      await started.future;
+      await coordinator.discardAllLocalSubmissions();
+      release.complete();
+      await upload;
+      expect(await spool.loadAll(), isEmpty);
+    },
+  );
+
+  test('discard waits for started spool writes and prevents late upload metadata from returning', () async {
+    final writeStarted = Completer<void>();
+    final finishWrite = Completer<void>();
+    final spool = _BlockingSpoolStore(writeStarted, finishWrite);
+    final coordinator = RunSubmissionCoordinator(
+      runSessionApi: _FakeRunSessionApi(),
+      spoolStore: spool,
+      localReplayArtifactStore: _NoopLocalReplayArtifactStore(),
+    );
+    final enqueue = coordinator.enqueueSubmission(
+      userId: 'u1',
+      runSessionId: 'run_discard',
+      runMode: RunMode.practice,
+      replayFilePath: 'replay.json',
+      canonicalSha256: 'a' * 64,
+      contentLengthBytes: 10,
+      contentType: 'application/json',
+    );
+    await writeStarted.future;
+    final cleanup = coordinator.discardAllLocalSubmissions();
+    finishWrite.complete();
+    await enqueue;
+    await cleanup;
+    expect(await spool.loadAll(), isEmpty);
+    expect(
+      await coordinator.processReadySubmissions(userId: 'u1', sessionId: 's1'),
+      isEmpty,
+    );
+    await expectLater(
+      coordinator.enqueueSubmission(
+        userId: 'u1',
+        runSessionId: 'run_again',
+        runMode: RunMode.practice,
+        replayFilePath: 'replay.json',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 10,
+        contentType: 'application/json',
+      ),
+      throwsStateError,
+    );
+  });
+
   group('RunSubmissionCoordinator', () {
     late _InMemorySpoolStore spoolStore;
     late _FakeRunSessionApi runSessionApi;
@@ -32,89 +121,81 @@ void main() {
       );
     });
 
-    test(
-      'processRunSession uploads + finalizes and keeps non-terminal pending',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_1',
-          runSessionId: 'run_1',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_1.replay.json',
-          canonicalSha256:
-              'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-          contentLengthBytes: 2048,
-        );
+    test('processRunSession uploads + finalizes and keeps non-terminal pending', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_1',
+        runSessionId: 'run_1',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_1.replay.json',
+        canonicalSha256:
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        contentLengthBytes: 2048,
+      );
 
-        runSessionApi.finalizeStatus = SubmissionStatus(
-          runSessionId: 'run_1',
-          state: RunSessionState.pendingValidation,
-          updatedAtMs: clock.now(),
-        );
+      runSessionApi.finalizeStatus = SubmissionStatus(
+        runSessionId: 'run_1',
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: clock.now(),
+      );
 
-        final status = await coordinator.processRunSession(
-          userId: 'uid_1',
-          sessionId: 'session_1',
-          runSessionId: 'run_1',
-        );
+      final status = await coordinator.processRunSession(
+        userId: 'uid_1',
+        sessionId: 'session_1',
+        runSessionId: 'run_1',
+      );
 
-        expect(status.phase, RunSubmissionPhase.pendingValidation);
-        expect(replayUploader.uploadedRunSessionIds, <String>['run_1']);
-        expect(runSessionApi.finalizeRunSessionIds, <String>['run_1']);
-        expect(
-          runSessionApi.finalizeObjectPaths.single,
-          'replay-submissions/pending/uid_1/run_1/replay.bin.gz',
-        );
+      expect(status.phase, RunSubmissionPhase.pendingValidation);
+      expect(replayUploader.uploadedRunSessionIds, <String>['run_1']);
+      expect(runSessionApi.finalizeRunSessionIds, <String>['run_1']);
+      expect(
+        runSessionApi.finalizeObjectPaths.single,
+        'replay-submissions/pending/uid_1/run_1/replay.bin.gz',
+      );
 
-        final pending = await spoolStore.load(runSessionId: 'run_1');
-        expect(pending, isNotNull);
-        expect(pending!.step, PendingRunSubmissionStep.awaitingServerStatus);
-      },
-    );
+      final pending = await spoolStore.load(runSessionId: 'run_1');
+      expect(pending, isNotNull);
+      expect(pending!.step, PendingRunSubmissionStep.awaitingServerStatus);
+    });
 
-    test(
-      'a forced close after journaling resumes submission on the next bootstrap',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_restart',
-          runSessionId: 'run_forced_close',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_forced_close.replay.json',
-          canonicalSha256:
-              'abababababababababababababababababababababababababababababababab',
-          contentLengthBytes: 1024,
-        );
+    test('a forced close after journaling resumes submission on the next bootstrap', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_restart',
+        runSessionId: 'run_forced_close',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_forced_close.replay.json',
+        canonicalSha256:
+            'abababababababababababababababababababababababababababababababab',
+        contentLengthBytes: 1024,
+      );
 
-        // Simulate process death: no upload/finalize future survives this point.
-        final afterRestart = RunSubmissionCoordinator(
-          runSessionApi: runSessionApi,
-          spoolStore: spoolStore,
-          replayUploader: replayUploader,
-          clock: clock.now,
-        );
-        runSessionApi.finalizeStatus = SubmissionStatus(
-          runSessionId: 'run_forced_close',
-          state: RunSessionState.pendingValidation,
-          updatedAtMs: clock.now(),
-        );
+      // Simulate process death: no upload/finalize future survives this point.
+      final afterRestart = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: spoolStore,
+        replayUploader: replayUploader,
+        clock: clock.now,
+      );
+      runSessionApi.finalizeStatus = SubmissionStatus(
+        runSessionId: 'run_forced_close',
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: clock.now(),
+      );
 
-        final statuses = await afterRestart.processReadySubmissions(
-          userId: 'uid_restart',
-          sessionId: 'session_restart',
-        );
+      final statuses = await afterRestart.processReadySubmissions(
+        userId: 'uid_restart',
+        sessionId: 'session_restart',
+      );
 
-        expect(statuses.single.phase, RunSubmissionPhase.pendingValidation);
-        expect(replayUploader.uploadedRunSessionIds, <String>[
-          'run_forced_close',
-        ]);
-        expect(runSessionApi.finalizeRunSessionIds, <String>[
-          'run_forced_close',
-        ]);
-        expect(
-          await spoolStore.load(runSessionId: 'run_forced_close'),
-          isNotNull,
-        );
-      },
-    );
+      expect(statuses.single.phase, RunSubmissionPhase.pendingValidation);
+      expect(replayUploader.uploadedRunSessionIds, <String>[
+        'run_forced_close',
+      ]);
+      expect(runSessionApi.finalizeRunSessionIds, <String>['run_forced_close']);
+      expect(
+        await spoolStore.load(runSessionId: 'run_forced_close'),
+        isNotNull,
+      );
+    });
 
     test('does not process a replay journaled by another account', () async {
       await coordinator.enqueueSubmission(
@@ -138,35 +219,32 @@ void main() {
       expect(runSessionApi.finalizeRunSessionIds, isEmpty);
     });
 
-    test(
-      'processRunSession removes local spool row for terminal status',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_2',
-          runSessionId: 'run_2',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_2.replay.json',
-          canonicalSha256:
-              'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
-          contentLengthBytes: 1024,
-        );
-        runSessionApi.finalizeStatus = SubmissionStatus(
-          runSessionId: 'run_2',
-          state: RunSessionState.validated,
-          updatedAtMs: clock.now(),
-        );
+    test('processRunSession removes local spool row for terminal status', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_2',
+        runSessionId: 'run_2',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_2.replay.json',
+        canonicalSha256:
+            'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+        contentLengthBytes: 1024,
+      );
+      runSessionApi.finalizeStatus = SubmissionStatus(
+        runSessionId: 'run_2',
+        state: RunSessionState.validated,
+        updatedAtMs: clock.now(),
+      );
 
-        final status = await coordinator.processRunSession(
-          userId: 'uid_2',
-          sessionId: 'session_2',
-          runSessionId: 'run_2',
-        );
+      final status = await coordinator.processRunSession(
+        userId: 'uid_2',
+        sessionId: 'session_2',
+        runSessionId: 'run_2',
+      );
 
-        expect(status.phase, RunSubmissionPhase.validated);
-        final pending = await spoolStore.load(runSessionId: 'run_2');
-        expect(pending, isNull);
-      },
-    );
+      expect(status.phase, RunSubmissionPhase.validated);
+      final pending = await spoolStore.load(runSessionId: 'run_2');
+      expect(pending, isNull);
+    });
 
     test('processRunSession schedules retry when grant fails', () async {
       await coordinator.enqueueSubmission(
@@ -202,146 +280,132 @@ void main() {
       expect(pending.lastErrorCode, 'unavailable');
     });
 
-    test(
-      'processRunSession marks non-retryable upload failures terminal',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_403',
-          runSessionId: 'run_403',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_403.replay.json',
-          canonicalSha256:
-              'abababababababababababababababababababababababababababababababab',
-          contentLengthBytes: 1024,
-        );
-        replayUploader.uploadFailure = const RunReplayUploadException(
-          code: 'upload-access-denied',
-          message:
-              'Replay upload denied (HTTP 403): replay upload service account '
-              'is missing storage.objects.create permission.',
-          statusCode: 403,
-        );
+    test('processRunSession marks non-retryable upload failures terminal', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_403',
+        runSessionId: 'run_403',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_403.replay.json',
+        canonicalSha256:
+            'abababababababababababababababababababababababababababababababab',
+        contentLengthBytes: 1024,
+      );
+      replayUploader.uploadFailure = const RunReplayUploadException(
+        code: 'upload-access-denied',
+        message:
+            'Replay upload denied (HTTP 403): replay upload service account '
+            'is missing storage.objects.create permission.',
+        statusCode: 403,
+      );
 
-        final status = await coordinator.processRunSession(
-          userId: 'uid_403',
-          sessionId: 'session_403',
-          runSessionId: 'run_403',
-        );
+      final status = await coordinator.processRunSession(
+        userId: 'uid_403',
+        sessionId: 'session_403',
+        runSessionId: 'run_403',
+      );
 
-        expect(status.phase, RunSubmissionPhase.internalError);
-        expect(status.message, contains('storage.objects.create'));
-        expect(await spoolStore.load(runSessionId: 'run_403'), isNull);
-      },
-    );
+      expect(status.phase, RunSubmissionPhase.internalError);
+      expect(status.message, contains('storage.objects.create'));
+      expect(await spoolStore.load(runSessionId: 'run_403'), isNull);
+    });
 
-    test(
-      'processRunSession awaiting server status does not re-upload replay',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_await',
-          runSessionId: 'run_await',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_await.replay.json',
-          canonicalSha256:
-              '1212121212121212121212121212121212121212121212121212121212121212',
-          contentLengthBytes: 1024,
-        );
-        final pending = (await spoolStore.load(
-          runSessionId: 'run_await',
-        ))!.copyWith(step: PendingRunSubmissionStep.awaitingServerStatus);
-        await spoolStore.upsert(submission: pending);
-        runSessionApi.loadStatus = SubmissionStatus(
-          runSessionId: 'run_await',
-          state: RunSessionState.pendingValidation,
-          updatedAtMs: clock.now(),
-        );
+    test('processRunSession awaiting server status does not re-upload replay', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_await',
+        runSessionId: 'run_await',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_await.replay.json',
+        canonicalSha256:
+            '1212121212121212121212121212121212121212121212121212121212121212',
+        contentLengthBytes: 1024,
+      );
+      final pending = (await spoolStore.load(runSessionId: 'run_await'))!
+          .copyWith(step: PendingRunSubmissionStep.awaitingServerStatus);
+      await spoolStore.upsert(submission: pending);
+      runSessionApi.loadStatus = SubmissionStatus(
+        runSessionId: 'run_await',
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: clock.now(),
+      );
 
-        final status = await coordinator.processRunSession(
-          userId: 'uid_await',
-          sessionId: 'session_await',
-          runSessionId: 'run_await',
-        );
+      final status = await coordinator.processRunSession(
+        userId: 'uid_await',
+        sessionId: 'session_await',
+        runSessionId: 'run_await',
+      );
 
-        expect(status.phase, RunSubmissionPhase.pendingValidation);
-        expect(replayUploader.uploadedRunSessionIds, isEmpty);
-        expect(runSessionApi.finalizeRunSessionIds, isEmpty);
-        expect(runSessionApi.loadStatusRunSessionIds, <String>['run_await']);
-      },
-    );
+      expect(status.phase, RunSubmissionPhase.pendingValidation);
+      expect(replayUploader.uploadedRunSessionIds, isEmpty);
+      expect(runSessionApi.finalizeRunSessionIds, isEmpty);
+      expect(runSessionApi.loadStatusRunSessionIds, <String>['run_await']);
+    });
 
-    test(
-      'refreshRunSessionStatus keeps deferred retry state instead of server uploading',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_retry',
-          runSessionId: 'run_retry',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_retry.replay.json',
-          canonicalSha256:
-              '3434343434343434343434343434343434343434343434343434343434343434',
-          contentLengthBytes: 1024,
-        );
-        final deferred = (await spoolStore.load(runSessionId: 'run_retry'))!
-            .copyWith(
-              step: PendingRunSubmissionStep.retryScheduled,
-              attemptCount: 1,
-              nextAttemptAtMs:
-                  clock.now() + const Duration(seconds: 30).inMilliseconds,
-              lastErrorCode: 'upload-access-denied',
-              lastErrorMessage: 'Replay upload denied',
-            );
-        await spoolStore.upsert(submission: deferred);
-        runSessionApi.loadStatus = SubmissionStatus(
-          runSessionId: 'run_retry',
-          state: RunSessionState.uploading,
-          updatedAtMs: clock.now(),
-        );
+    test('refreshRunSessionStatus keeps deferred retry state instead of server uploading', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_retry',
+        runSessionId: 'run_retry',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_retry.replay.json',
+        canonicalSha256:
+            '3434343434343434343434343434343434343434343434343434343434343434',
+        contentLengthBytes: 1024,
+      );
+      final deferred = (await spoolStore.load(runSessionId: 'run_retry'))!
+          .copyWith(
+            step: PendingRunSubmissionStep.retryScheduled,
+            attemptCount: 1,
+            nextAttemptAtMs:
+                clock.now() + const Duration(seconds: 30).inMilliseconds,
+            lastErrorCode: 'upload-access-denied',
+            lastErrorMessage: 'Replay upload denied',
+          );
+      await spoolStore.upsert(submission: deferred);
+      runSessionApi.loadStatus = SubmissionStatus(
+        runSessionId: 'run_retry',
+        state: RunSessionState.uploading,
+        updatedAtMs: clock.now(),
+      );
 
-        final status = await coordinator.refreshRunSessionStatus(
-          userId: 'uid_retry',
-          sessionId: 'session_retry',
-          runSessionId: 'run_retry',
-        );
+      final status = await coordinator.refreshRunSessionStatus(
+        userId: 'uid_retry',
+        sessionId: 'session_retry',
+        runSessionId: 'run_retry',
+      );
 
-        expect(status.phase, RunSubmissionPhase.retryScheduled);
-        expect(status.message, 'Replay upload denied');
-        expect(runSessionApi.loadStatusRunSessionIds, isEmpty);
-      },
-    );
+      expect(status.phase, RunSubmissionPhase.retryScheduled);
+      expect(status.message, 'Replay upload denied');
+      expect(runSessionApi.loadStatusRunSessionIds, isEmpty);
+    });
 
-    test(
-      'refreshRunSessionStatus removes local spool row when server terminal',
-      () async {
-        await coordinator.enqueueSubmission(
-          userId: 'uid_4',
-          runSessionId: 'run_4',
-          runMode: RunMode.practice,
-          replayFilePath: '/tmp/run_4.replay.json',
-          canonicalSha256:
-              'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-          contentLengthBytes: 1024,
-        );
-        final pending = (await spoolStore.load(
-          runSessionId: 'run_4',
-        ))!.copyWith(step: PendingRunSubmissionStep.awaitingServerStatus);
-        await spoolStore.upsert(submission: pending);
-        runSessionApi.loadStatus = SubmissionStatus(
-          runSessionId: 'run_4',
-          state: RunSessionState.rejected,
-          updatedAtMs: clock.now(),
-        );
+    test('refreshRunSessionStatus removes local spool row when server terminal', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_4',
+        runSessionId: 'run_4',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_4.replay.json',
+        canonicalSha256:
+            'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        contentLengthBytes: 1024,
+      );
+      final pending = (await spoolStore.load(runSessionId: 'run_4'))!
+          .copyWith(step: PendingRunSubmissionStep.awaitingServerStatus);
+      await spoolStore.upsert(submission: pending);
+      runSessionApi.loadStatus = SubmissionStatus(
+        runSessionId: 'run_4',
+        state: RunSessionState.rejected,
+        updatedAtMs: clock.now(),
+      );
 
-        final status = await coordinator.refreshRunSessionStatus(
-          userId: 'uid_4',
-          sessionId: 'session_4',
-          runSessionId: 'run_4',
-        );
+      final status = await coordinator.refreshRunSessionStatus(
+        userId: 'uid_4',
+        sessionId: 'session_4',
+        runSessionId: 'run_4',
+      );
 
-        expect(status.phase, RunSubmissionPhase.rejected);
-        final loaded = await spoolStore.load(runSessionId: 'run_4');
-        expect(loaded, isNull);
-      },
-    );
+      expect(status.phase, RunSubmissionPhase.rejected);
+      final loaded = await spoolStore.load(runSessionId: 'run_4');
+      expect(loaded, isNull);
+    });
   });
 }
 
@@ -356,6 +420,8 @@ class _FakeClock {
 class _FakeReplayUploader implements RunReplayUploader {
   final List<String> uploadedRunSessionIds = <String>[];
   Object? uploadFailure;
+  void Function()? onUpload;
+  Future<void>? uploadGate;
 
   @override
   Future<void> uploadReplay({
@@ -364,6 +430,8 @@ class _FakeReplayUploader implements RunReplayUploader {
     required int contentLengthBytes,
     required String contentType,
   }) async {
+    onUpload?.call();
+    if (uploadGate != null) await uploadGate;
     if (uploadFailure != null) {
       throw uploadFailure!;
     }
@@ -401,6 +469,23 @@ class _InMemorySpoolStore implements RunSubmissionSpoolStore {
   Future<void> upsert({required PendingRunSubmission submission}) async {
     _entries[submission.runSessionId] = submission;
   }
+}
+
+class _BlockingSpoolStore extends _InMemorySpoolStore {
+  _BlockingSpoolStore(this.started, this.release);
+  final Completer<void> started;
+  final Completer<void> release;
+  @override
+  Future<void> upsert({required PendingRunSubmission submission}) async {
+    started.complete();
+    await release.future;
+    await super.upsert(submission: submission);
+  }
+}
+
+class _NoopLocalReplayArtifactStore implements LocalReplayArtifactStore {
+  @override
+  Future<void> clear() async {}
 }
 
 class _FakeRunSessionApi implements RunSessionApi {
