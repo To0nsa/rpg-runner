@@ -40,6 +40,25 @@ override that selection without resetting global chunk indexes. The enemy-free
 opening still suppresses enemies only for the first configured number of chunks;
 terrain hazards remain active.
 
+## Camera pacing by difficulty
+
+The chunk containing the camera center sets the horizontal auto-scroll target.
+The target uses the chunk's resolved difficulty after automatic-pool fallback
+or an explicit section override:
+
+| Difficulty | Baseline multiplier | Default target |
+| --- | ---: | ---: |
+| Early | 75% | 150 world units/second |
+| Easy | 80% | 160 world units/second |
+| Normal | 90% | 180 world units/second |
+| Hard | 95% | 190 world units/second |
+
+The default targets use the 200-world-unit-per-second baseline derived from the
+player's normal maximum speed. At an exact chunk seam, the entering chunk owns
+the target. Existing acceleration smooths both increases and decreases; player
+pull-forward behavior can still move the camera target ahead when the player
+crosses the follow threshold.
+
 
 ## Ground elevations and connecting chunks
 

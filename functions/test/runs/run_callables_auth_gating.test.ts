@@ -158,7 +158,7 @@ test("handleRunBoardsLoadActive rejects unsupported game compatibility", async (
       handleRunBoardsLoadActive(
         callableRequest(
           validBoardLoadPayload({
-            gameCompatVersion: "2099.01.0",
+            gameCompatVersion: "2026.09.1",
           }),
           uid,
         ),

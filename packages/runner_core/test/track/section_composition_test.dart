@@ -76,6 +76,7 @@ void main() {
             selected.map((s) => s.assembly!.difficulty),
             everyElement(section.$2),
           );
+          expect(selected.map((s) => s.tier), everyElement(section.$2));
           expect(
             selected.map((s) => s.pattern.name),
             everyElement(startsWith('${section.$1}_${section.$2.name}_')),

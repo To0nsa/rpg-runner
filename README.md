@@ -114,4 +114,5 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The current gameplay
-compatibility is 2026.09.1, which adds the camera fall-behind grace distance.
+compatibility is 2026.09.2, which paces camera target speed by the resolved
+chunk difficulty while retaining the 2026.09.1 fall-behind grace distance.

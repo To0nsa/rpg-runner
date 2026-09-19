@@ -337,7 +337,13 @@ void main() {
       },
     );
 
-    for (final unsupportedVersion in ['2026.03.0', '2026.08.0', '2099.01.0']) {
+    for (final unsupportedVersion in [
+      '2026.03.0',
+      '2026.08.0',
+      '2026.09.0',
+      '2026.09.1',
+      '2099.01.0',
+    ]) {
       test(
         'game compatibility $unsupportedVersion is rejected before replay',
         () async {

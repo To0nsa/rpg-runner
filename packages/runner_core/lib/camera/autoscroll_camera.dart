@@ -89,21 +89,37 @@ class AutoscrollCamera {
   /// [playerRightX] must be the collider/front-right X used by run-end
   /// behind-camera checks so camera pull and failure rules share one reference
   /// point.
+  ///
+  /// [targetSpeedX] overrides the baseline target for the current tick. Speed
+  /// still approaches it through the configured acceleration.
   void updateTick({
     required double dtSeconds,
     required double? playerRightX,
     required double? playerY,
+    double? targetSpeedX,
   }) {
     final t = _tuning;
+    final resolvedTargetSpeedX = targetSpeedX ?? t.targetSpeedX;
+    if (!resolvedTargetSpeedX.isFinite || resolvedTargetSpeedX < 0.0) {
+      throw ArgumentError.value(
+        targetSpeedX,
+        'targetSpeedX',
+        'Must be finite and non-negative.',
+      );
+    }
 
     // 1. Update base scroll speed (accelerate/decelerate towards target speed).
     var speedX = _state.speedX;
-    if (speedX < t.targetSpeedX) {
-      speedX = clampDouble(speedX + t.accelX * dtSeconds, 0.0, t.targetSpeedX);
-    } else if (speedX > t.targetSpeedX) {
+    if (speedX < resolvedTargetSpeedX) {
+      speedX = clampDouble(
+        speedX + t.accelX * dtSeconds,
+        0.0,
+        resolvedTargetSpeedX,
+      );
+    } else if (speedX > resolvedTargetSpeedX) {
       speedX = clampDouble(
         speedX - t.accelX * dtSeconds,
-        t.targetSpeedX,
+        resolvedTargetSpeedX,
         speedX,
       );
     }

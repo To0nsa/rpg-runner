@@ -131,6 +131,7 @@ final class ConnectedChunkPatternSource extends ChunkPatternSource {
     final selected = explainSelection(seed: seed, chunkIndex: chunkIndex);
     return ChunkPatternSelection(
       pattern: patterns[selected.chunk.chunkKey]!,
+      tier: selected.chunk.tier,
       assembly: selected.assembly,
     );
   }

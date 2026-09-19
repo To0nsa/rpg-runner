@@ -1583,6 +1583,9 @@ class GameCore {
       dtSeconds: _movement.dtSeconds,
       playerRightX: _playerRightX(),
       playerY: _playerYOrNull(),
+      targetSpeedX: _cameraTuning.targetSpeedXFor(
+        _trackManager.difficultyAtWorldX(_camera.state.centerX),
+      ),
     );
     final cameraLeft = _camera.left();
     if (_checkFellBehindCamera(cameraLeft: cameraLeft)) {
@@ -2055,8 +2058,7 @@ class GameCore {
     final rightX = _playerRightX();
     if (rightX == null) return false;
 
-    final deathLineX =
-        cameraLeft - _cameraTuning.fallBehindGraceDistance;
+    final deathLineX = cameraLeft - _cameraTuning.fallBehindGraceDistance;
     return rightX < deathLineX;
   }
 

@@ -82,7 +82,7 @@ test("createRunSession rejects unsupported compatibility before issuance", async
         uid,
         mode: "practice",
         levelId: "field",
-        gameCompatVersion: "2099.01.0",
+        gameCompatVersion: "2026.09.1",
       }),
     (error: { code?: string; message?: string }) =>
       error.code === "failed-precondition" &&

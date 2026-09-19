@@ -10,6 +10,7 @@ import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/levels/level_world_constants.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/track/chunk_pattern_tier.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
@@ -113,6 +114,87 @@ void main() {
       prevSpeed = cam.state.speedX;
     }
     expect(cam.state.speedX, closeTo(tuning.targetSpeedX, 1e-9));
+  });
+
+  test('camera difficulty targets scale baseline speed and ease downward', () {
+    final tuning = derived(const CameraTuning());
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.early), 150.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.easy), 160.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.normal), 180.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.hard), 190.0);
+
+    final cam = AutoscrollCamera(
+      viewWidth: virtualWidth.toDouble(),
+      viewHeight: virtualHeight.toDouble(),
+      tuning: tuning,
+      initial: const CameraState(
+        centerX: virtualWidth * 0.5,
+        targetX: virtualWidth * 0.5,
+        centerY: defaultLevelCameraCenterY,
+        targetY: defaultLevelCameraCenterY,
+        speedX: 190.0,
+      ),
+    );
+
+    cam.updateTick(
+      dtSeconds: 1.0 / 60.0,
+      playerRightX: null,
+      playerY: null,
+      targetSpeedX: tuning.targetSpeedXFor(ChunkPatternTier.early),
+    );
+
+    expect(cam.state.speedX, 170.0);
+  });
+
+  test('GameCore applies the resolved chunk difficulty camera target', () {
+    final baseLevel = LevelRegistry.byId(LevelId.field);
+    const fixedSpeedCamera = CameraTuning(
+      earlySpeedMultiplier: 1.0,
+      easySpeedMultiplier: 1.0,
+      normalSpeedMultiplier: 1.0,
+      hardSpeedMultiplier: 1.0,
+    );
+    final fixedSpeedLevel = baseLevel.copyWith(
+      tuning: CoreTuning(
+        physics: baseLevel.tuning.physics,
+        unocoDemon: baseLevel.tuning.unocoDemon,
+        groundEnemy: baseLevel.tuning.groundEnemy,
+        navigation: baseLevel.tuning.navigation,
+        spatialGrid: baseLevel.tuning.spatialGrid,
+        camera: fixedSpeedCamera,
+        track: baseLevel.tuning.track,
+        collectible: baseLevel.tuning.collectible,
+        restorationItem: baseLevel.tuning.restorationItem,
+        score: baseLevel.tuning.score,
+      ),
+    );
+    final player = PlayerCharacterRegistry.eloise.copyWith(
+      catalog: testPlayerCatalog(
+        bodyTemplate: const BodyDef(isKinematic: true, useGravity: false),
+      ),
+    );
+    final adaptive = GameCore(
+      levelDefinition: baseLevel,
+      seed: 1,
+      playerCharacter: player,
+    );
+    final fixed = GameCore(
+      levelDefinition: fixedSpeedLevel,
+      seed: 1,
+      playerCharacter: player,
+    );
+
+    for (var i = 0; i < 30; i += 1) {
+      adaptive.stepOneTick();
+      fixed.stepOneTick();
+    }
+
+    expect(adaptive.gameOver, isFalse);
+    expect(fixed.gameOver, isFalse);
+    expect(
+      adaptive.buildSnapshot().camera.centerX,
+      lessThan(fixed.buildSnapshot().camera.centerX),
+    );
   });
 
   test('AutoscrollCamera invariant: pull-forward is strict past threshold', () {

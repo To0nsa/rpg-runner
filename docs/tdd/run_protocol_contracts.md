@@ -89,10 +89,11 @@ claims.
 
 Connection-aware terrain selection was introduced in game compatibility
 `2026.09.0`. The 128-world-unit camera fall-behind grace distance is issued as
-`2026.09.1`; the default Functions allowlist and worker accept only that current
-release. Old tickets must drain on the old worker before switching because
-compatibility labels do not select historical Core implementations. Replay and
-command encoding remain version 1. See the
+`2026.09.1`, and difficulty-paced camera targets are issued as `2026.09.2`.
+The default Functions allowlist and worker accept only that current release.
+Old tickets must drain on the old worker before switching because compatibility
+labels do not select historical Core implementations. Replay and command
+encoding remain version 1. See the
 [drain-and-switch policy](chunk_connections.md#compatibility-release).
 Practice and ranked creation reject versions outside the backend allowlist before
 a run-session document is issued.

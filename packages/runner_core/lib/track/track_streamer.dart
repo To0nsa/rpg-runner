@@ -174,6 +174,19 @@ class TrackStreamer {
   /// polygon-terrain binding rather than selecting a fallback record.
   List<ActiveTrackChunkSnapshot> get activeChunks => _activeChunksSnapshot;
 
+  /// Resolves the selected chunk difficulty at [worldX].
+  ///
+  /// Chunk starts are inclusive and ends are exclusive, so an exact seam uses
+  /// the chunk being entered. Returns null outside the active streamed range.
+  ChunkPatternTier? difficultyAtWorldX(double worldX) {
+    for (final chunk in _active) {
+      if (worldX >= chunk.startX && worldX < chunk.endX) {
+        return chunk.tier;
+      }
+    }
+    return null;
+  }
+
   /// Projects the next [count] selection states for a forward-moving camera.
   ///
   /// Uses world-unit [viewWidth] and the live scheduler cursors without moving
@@ -294,6 +307,7 @@ class TrackStreamer {
           endX: endX,
           patternName: pattern.name,
           chunkKey: pattern.chunkKey,
+          tier: selection.tier,
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
         ),
@@ -458,6 +472,7 @@ class _ActiveChunk {
     required this.endX,
     required this.patternName,
     required this.chunkKey,
+    required this.tier,
     required this.visualSprites,
     this.pendingHashashSpawns = 0,
   });
@@ -476,6 +491,9 @@ class _ActiveChunk {
 
   /// Stable authored chunk identity, if the fixture provides one.
   final String? chunkKey;
+
+  /// Resolved authored difficulty after any automatic-pool fallback.
+  final ChunkPatternTier tier;
 
   /// Render sprites for authored prefab visuals in this chunk.
   final List<ChunkVisualSpriteWorld> visualSprites;

@@ -4,6 +4,7 @@ library;
 import 'dart:math';
 
 import '../players/player_tuning.dart';
+import '../track/chunk_pattern_tier.dart';
 
 /// Vertical camera behavior mode.
 enum CameraVerticalMode {
@@ -16,13 +17,17 @@ enum CameraVerticalMode {
 
 /// Off-screen distance the player may fall behind before the run ends.
 ///
-/// The 128-world-unit default is approximately 0.64 seconds at the baseline
-/// 200-world-unit-per-second camera target speed.
+/// The 128-world-unit default is approximately 0.67 seconds at the default
+/// 190-world-unit-per-second Hard camera target speed.
 const double defaultFallBehindGraceDistance = 128.0;
 
 class CameraTuning {
   const CameraTuning({
     this.speedLagMulX = 1.0,
+    this.earlySpeedMultiplier = 0.75,
+    this.easySpeedMultiplier = 0.80,
+    this.normalSpeedMultiplier = 0.90,
+    this.hardSpeedMultiplier = 0.95,
     this.accelX = 1200.0,
     this.followThresholdRatio = 0.5,
     this.catchupLerp = 8.0,
@@ -32,7 +37,20 @@ class CameraTuning {
     this.verticalCatchupLerp = 8.0,
     this.verticalTargetCatchupLerp = 6.0,
     this.verticalDeadZone = 6.0,
-  }) : assert(followThresholdRatio >= 0.0 && followThresholdRatio <= 1.0),
+  }) : assert(
+         earlySpeedMultiplier >= 0.0 && earlySpeedMultiplier < double.infinity,
+       ),
+       assert(
+         easySpeedMultiplier >= 0.0 && easySpeedMultiplier < double.infinity,
+       ),
+       assert(
+         normalSpeedMultiplier >= 0.0 &&
+             normalSpeedMultiplier < double.infinity,
+       ),
+       assert(
+         hardSpeedMultiplier >= 0.0 && hardSpeedMultiplier < double.infinity,
+       ),
+       assert(followThresholdRatio >= 0.0 && followThresholdRatio <= 1.0),
        assert(
          fallBehindGraceDistance >= 0.0 &&
              fallBehindGraceDistance < double.infinity,
@@ -40,6 +58,18 @@ class CameraTuning {
 
   /// Baseline auto-scroll lags behind `MovementTuning.maxSpeedX` by this multiplier.
   final double speedLagMulX;
+
+  /// Early-chunk target speed relative to the baseline camera target.
+  final double earlySpeedMultiplier;
+
+  /// Easy-chunk target speed relative to the baseline camera target.
+  final double easySpeedMultiplier;
+
+  /// Normal-chunk target speed relative to the baseline camera target.
+  final double normalSpeedMultiplier;
+
+  /// Hard-chunk target speed relative to the baseline camera target.
+  final double hardSpeedMultiplier;
 
   /// Acceleration used to ease camera speed toward its target speed.
   final double accelX;
@@ -83,6 +113,10 @@ class CameraTuning {
 class CameraTuningDerived {
   const CameraTuningDerived({
     required this.targetSpeedX,
+    required this.earlySpeedMultiplier,
+    required this.easySpeedMultiplier,
+    required this.normalSpeedMultiplier,
+    required this.hardSpeedMultiplier,
     required this.accelX,
     required this.followThresholdRatio,
     required this.catchupLerp,
@@ -104,6 +138,10 @@ class CameraTuningDerived {
     );
     return CameraTuningDerived(
       targetSpeedX: targetSpeedX,
+      earlySpeedMultiplier: tuning.earlySpeedMultiplier,
+      easySpeedMultiplier: tuning.easySpeedMultiplier,
+      normalSpeedMultiplier: tuning.normalSpeedMultiplier,
+      hardSpeedMultiplier: tuning.hardSpeedMultiplier,
       accelX: tuning.accelX,
       followThresholdRatio: tuning.followThresholdRatio,
       catchupLerp: tuning.catchupLerp,
@@ -117,6 +155,10 @@ class CameraTuningDerived {
   }
 
   final double targetSpeedX;
+  final double earlySpeedMultiplier;
+  final double easySpeedMultiplier;
+  final double normalSpeedMultiplier;
+  final double hardSpeedMultiplier;
   final double accelX;
   final double followThresholdRatio;
   final double catchupLerp;
@@ -126,4 +168,19 @@ class CameraTuningDerived {
   final double verticalCatchupLerp;
   final double verticalTargetCatchupLerp;
   final double verticalDeadZone;
+
+  /// Resolves the target horizontal speed for an authored chunk difficulty.
+  ///
+  /// A null tier preserves the baseline target for track-disabled fixtures or
+  /// positions outside the active streamed range.
+  double targetSpeedXFor(ChunkPatternTier? tier) {
+    final multiplier = switch (tier) {
+      ChunkPatternTier.early => earlySpeedMultiplier,
+      ChunkPatternTier.easy => easySpeedMultiplier,
+      ChunkPatternTier.normal => normalSpeedMultiplier,
+      ChunkPatternTier.hard => hardSpeedMultiplier,
+      null => 1.0,
+    };
+    return targetSpeedX * multiplier;
+  }
 }

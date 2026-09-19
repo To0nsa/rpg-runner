@@ -71,24 +71,25 @@ void main() {
       hardPatterns: <ChunkPattern>[ChunkPattern(name: 'hard')],
     );
 
-    expect(
-      source
-          .patternFor(seed: 1, chunkIndex: 0, tier: ChunkPatternTier.early)
-          .name,
-      'easy',
+    final early = source.selectionFor(
+      seed: 1,
+      chunkIndex: 0,
+      tier: ChunkPatternTier.early,
     );
-    expect(
-      source
-          .patternFor(seed: 1, chunkIndex: 1, tier: ChunkPatternTier.normal)
-          .name,
-      'easy',
+    final normal = source.selectionFor(
+      seed: 1,
+      chunkIndex: 1,
+      tier: ChunkPatternTier.normal,
     );
-    expect(
-      source
-          .patternFor(seed: 1, chunkIndex: 2, tier: ChunkPatternTier.hard)
-          .name,
-      'hard',
+    final hard = source.selectionFor(
+      seed: 1,
+      chunkIndex: 2,
+      tier: ChunkPatternTier.hard,
     );
+
+    expect((early.pattern.name, early.tier), ('easy', ChunkPatternTier.easy));
+    expect((normal.pattern.name, normal.tier), ('easy', ChunkPatternTier.easy));
+    expect((hard.pattern.name, hard.tier), ('hard', ChunkPatternTier.hard));
   });
 
   test('ChunkPatternListSource throws when every tier is empty', () {
@@ -202,6 +203,10 @@ void main() {
     expect(
       selections.take(2).map((selection) => selection.pattern.name).toSet(),
       <String>{'cemetery_a', 'cemetery_b'},
+    );
+    expect(
+      selections.map((selection) => selection.tier),
+      everyElement(ChunkPatternTier.easy),
     );
     expect(selections[2].pattern.name, 'none_a');
     expect(

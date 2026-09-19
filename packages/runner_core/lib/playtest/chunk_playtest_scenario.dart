@@ -252,6 +252,7 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
       seed: seed,
       path: path,
       patternsByKey: _patternsByKey,
+      terrainCatalog: terrainCatalog,
     ),
     groundTopY: levelDefinition.groundTopY,
     tuning: levelDefinition.tuning,
@@ -432,11 +433,13 @@ final class _ChunkPlaytestPatternSource extends ChunkPatternSource {
     required this.seed,
     required this.path,
     required this.patternsByKey,
+    required this.terrainCatalog,
   });
 
   final int seed;
   final ChunkPlaytestScenarioPath path;
   final Map<String, ChunkPattern> patternsByKey;
+  final StagedTerrainCatalog terrainCatalog;
 
   @override
   ChunkPatternSelection selectionFor({
@@ -449,8 +452,12 @@ final class _ChunkPlaytestPatternSource extends ChunkPatternSource {
         'Chunk playtest path was built for seed ${this.seed}, not $seed.',
       );
     }
-    final _ = tier;
     final key = path.chunkKeyForIndex(chunkIndex);
-    return ChunkPatternSelection(pattern: patternsByKey[key]!);
+    return ChunkPatternSelection(
+      pattern: patternsByKey[key]!,
+      tier: playtestTierForDifficulty(
+        terrainCatalog.requireChunk(key).difficulty,
+      ),
+    );
   }
 }

@@ -110,6 +110,10 @@ class TrackManager {
   List<ActiveTrackChunkSnapshot> get activeChunks =>
       _trackStreamer?.activeChunks ?? const <ActiveTrackChunkSnapshot>[];
 
+  /// Returns the resolved difficulty of the active chunk containing [worldX].
+  ChunkPatternTier? difficultyAtWorldX(double worldX) =>
+      _trackStreamer?.difficultyAtWorldX(worldX);
+
   /// Projects future selections without applying scheduler or ECS mutations.
   /// See [TrackStreamer.upcomingSelections] for boundary and matching rules.
   List<List<ActiveTrackChunkSnapshot>> upcomingSelections({

@@ -51,9 +51,17 @@ final class ChunkAssemblySelection {
 
 /// Deterministic pattern + render-theme selection for a chunk index.
 class ChunkPatternSelection {
-  const ChunkPatternSelection({required this.pattern, this.assembly});
+  const ChunkPatternSelection({
+    required this.pattern,
+    required this.tier,
+    this.assembly,
+  });
 
   final ChunkPattern pattern;
+
+  /// Difficulty pool that supplied [pattern] after deterministic fallback.
+  final ChunkPatternTier tier;
+
   final ChunkAssemblySelection? assembly;
 }
 
@@ -110,20 +118,34 @@ class ChunkPatternListSource extends ChunkPatternSource {
     return null;
   }
 
+  /// Returns the authored difficulty pool containing [chunkKey].
+  ChunkPatternTier? tierByChunkKey(String chunkKey) {
+    for (final (:patterns, :tier)
+        in <({List<ChunkPattern> patterns, ChunkPatternTier tier})>[
+          (patterns: earlyPatterns, tier: ChunkPatternTier.early),
+          (patterns: easyPatterns, tier: ChunkPatternTier.easy),
+          (patterns: normalPatterns, tier: ChunkPatternTier.normal),
+          (patterns: hardPatterns, tier: ChunkPatternTier.hard),
+        ]) {
+      if (patterns.any((pattern) => pattern.chunkKey == chunkKey)) return tier;
+    }
+    return null;
+  }
+
   @override
   ChunkPatternSelection selectionFor({
     required int seed,
     required int chunkIndex,
     required ChunkPatternTier tier,
   }) {
-    final patterns = resolvePatternsForTier(
+    final pool = _resolvePatternPoolForTier(
       tier: tier,
       earlyPatterns: earlyPatterns,
       easyPatterns: easyPatterns,
       normalPatterns: normalPatterns,
       hardPatterns: hardPatterns,
     );
-    if (patterns == null) {
+    if (pool == null) {
       throw StateError(
         'ChunkPatternListSource has no patterns available for '
         'tier=${tier.name}, chunkIndex=$chunkIndex.',
@@ -131,8 +153,8 @@ class ChunkPatternListSource extends ChunkPatternSource {
     }
 
     final h = mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ 0x27d4eb2d);
-    final idx = h % patterns.length;
-    return ChunkPatternSelection(pattern: patterns[idx]);
+    final idx = h % pool.patterns.length;
+    return ChunkPatternSelection(pattern: pool.patterns[idx], tier: pool.tier);
   }
 }
 
@@ -162,7 +184,12 @@ class FirstChunkPatternSource extends ChunkPatternSource {
     required ChunkPatternTier tier,
   }) {
     if (chunkIndex == 0) {
-      return ChunkPatternSelection(pattern: firstPattern);
+      return ChunkPatternSelection(
+        pattern: firstPattern,
+        tier:
+            baseSource.tierByChunkKey(firstPattern.chunkKey!) ??
+            (throw StateError('Pinned first chunk has no difficulty pool.')),
+      );
     }
     return baseSource.selectionFor(
       seed: seed,
@@ -200,18 +227,19 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
   }) {
     final run = _resolvedRunFor(seed: seed, chunkIndex: chunkIndex);
     final effectiveTier = run.segment.difficulty ?? tier;
-    final eligiblePatterns = _eligiblePatternsForSegment(
+    final eligiblePool = _eligiblePatternPoolForSegment(
       tier: effectiveTier,
       groupId: run.segment.groupId,
       allowFallback: run.segment.difficulty == null,
     );
-    if (eligiblePatterns == null || eligiblePatterns.isEmpty) {
+    if (eligiblePool == null || eligiblePool.patterns.isEmpty) {
       throw StateError(
         'AssembledChunkPatternSource has no patterns available for '
         'groupId="${run.segment.groupId}", tier=${effectiveTier.name}, '
         'chunkIndex=$chunkIndex.',
       );
     }
+    final eligiblePatterns = eligiblePool.patterns;
 
     final offsetInRun = chunkIndex - run.startChunkIndex;
     final firstPattern = firstChunkKey == null || run.startChunkIndex != 0
@@ -252,6 +280,7 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
 
     return ChunkPatternSelection(
       pattern: selectedPattern,
+      tier: eligiblePool.tier,
       assembly: ChunkAssemblySelection(
         segmentId: run.segment.segmentId,
         difficulty: run.segment.difficulty,
@@ -344,7 +373,7 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
     );
   }
 
-  List<ChunkPattern>? _eligiblePatternsForSegment({
+  _ResolvedPatternPool? _eligiblePatternPoolForSegment({
     required ChunkPatternTier tier,
     required String groupId,
     required bool allowFallback,
@@ -361,7 +390,7 @@ class AssembledChunkPatternSource extends ChunkPatternSource {
           .where((pattern) => pattern.assemblyGroupId == groupId)
           .toList(growable: false);
       if (eligible.isNotEmpty) {
-        return eligible;
+        return _ResolvedPatternPool(tier: candidateTier, patterns: eligible);
       }
     }
     return null;
@@ -431,6 +460,20 @@ List<ChunkPattern>? resolvePatternsForTier({
   required List<ChunkPattern> easyPatterns,
   required List<ChunkPattern> normalPatterns,
   required List<ChunkPattern> hardPatterns,
+}) => _resolvePatternPoolForTier(
+  tier: tier,
+  earlyPatterns: earlyPatterns,
+  easyPatterns: easyPatterns,
+  normalPatterns: normalPatterns,
+  hardPatterns: hardPatterns,
+)?.patterns;
+
+_ResolvedPatternPool? _resolvePatternPoolForTier({
+  required ChunkPatternTier tier,
+  required List<ChunkPattern> earlyPatterns,
+  required List<ChunkPattern> easyPatterns,
+  required List<ChunkPattern> normalPatterns,
+  required List<ChunkPattern> hardPatterns,
 }) {
   for (final candidateTier in fallbackOrderForTier(tier)) {
     final patterns = switch (candidateTier) {
@@ -440,10 +483,17 @@ List<ChunkPattern>? resolvePatternsForTier({
       ChunkPatternTier.hard => hardPatterns,
     };
     if (patterns.isNotEmpty) {
-      return patterns;
+      return _ResolvedPatternPool(tier: candidateTier, patterns: patterns);
     }
   }
   return null;
+}
+
+final class _ResolvedPatternPool {
+  const _ResolvedPatternPool({required this.tier, required this.patterns});
+
+  final ChunkPatternTier tier;
+  final List<ChunkPattern> patterns;
 }
 
 List<ChunkPatternTier> fallbackOrderForTier(ChunkPatternTier tier) {

@@ -300,7 +300,10 @@ not require a replay wire-schema, score-version, kill-plane, or camera-mode
 change. The corresponding worker accepted 2026.09.0 and rejected older
 2026.03.0 and 2026.08.0 runs rather than replaying old inputs through the new
 selector. The later camera-grace outcome change advances the current coordinated
-Core release to 2026.09.1 without changing this selector contract.
+Core release to 2026.09.1 without changing this selector contract. Difficulty-
+paced camera targets use the selector's resolved tier, including fallback and
+explicit sections, and advance the coordinated Core release to 2026.09.2. They
+do not change selector ordering, eligibility, salts, or the connection digest.
 
 Any future change to profile equality, pool resolution, graph viability,
 candidate ordering, or selection salts is replay-sensitive and requires a new

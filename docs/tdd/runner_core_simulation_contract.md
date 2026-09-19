@@ -242,10 +242,26 @@ simulation and sets the run paused.
 The camera terminal check runs after final player motion and the camera update.
 It ends the run only when the player's right collider edge is strictly less
 than `cameraLeft - CameraTuning.fallBehindGraceDistance`; equality remains
-safe. The default grace distance is 128 world units, approximately 0.64 seconds
-at the baseline 200-world-unit-per-second camera target. This is a spatial rule,
+safe. The default grace distance is 128 world units, approximately 0.67 seconds
+at the default 190-world-unit-per-second Hard target. This is a spatial rule,
 not a timer, so its effective duration varies with relative player/camera
-motion. The outcome change is released as game compatibility `2026.09.1`.
+motion.
+
+Before each horizontal camera update, Core resolves the active streamed chunk
+containing the pre-update camera center. Starts are inclusive and ends are
+exclusive, so an exact seam uses the entering chunk. The resolved authored tier
+is retained by selection after automatic-pool fallback or an explicit section
+override; Core never re-infers it from the global chunk index. Early, Easy,
+Normal and Hard multiply the baseline target by 0.75, 0.80, 0.90 and 0.95,
+respectively. With the default 200-world-unit-per-second baseline, the targets
+are 150, 160, 180 and 190 world units per second. The existing acceleration
+eases toward the new target in either direction. Track-disabled fixtures or a
+position outside the active stream retain the baseline target.
+
+The grace-distance outcome change was released as game compatibility
+`2026.09.1`. Difficulty-paced camera targets change camera position, streaming
+timing and possible terminal outcomes, so they are released as game
+compatibility `2026.09.2`.
 
 ## Outputs and consumers
 
