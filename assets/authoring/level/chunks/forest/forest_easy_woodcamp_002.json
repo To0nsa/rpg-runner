@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_easy_woodcamp_002",
   "id": "forest_easy_woodcamp_002",
-  "revision": 18,
+  "revision": 39,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -12,7 +12,56 @@
   "assemblyGroupId": "woodcamp",
   "tags": [],
   "tileLayers": [],
-  "prefabs": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_ground_platform_05_64x64_platform",
+      "prefabKey": "tiny_swords_ground_platform_05_64x64_platform",
+      "x": 336,
+      "y": 96,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 224,
+      "y": 128,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_well_01",
+      "prefabKey": "tiny_swords_well_01",
+      "x": 448,
+      "y": 161,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_01",
+      "prefabKey": "tiny_swords_bush_01",
+      "x": 285,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_wall_01",
+      "prefabKey": "tiny_swords_wall_01",
+      "x": 96,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_02",
+      "prefabKey": "tiny_swords_bush_02",
+      "x": 346,
+      "y": 186,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
   "markers": [],
   "collisionShapes": [
     {
@@ -22,6 +71,14 @@
         {
           "x": 175,
           "y": 224
+        },
+        {
+          "x": 249,
+          "y": 209
+        },
+        {
+          "x": 515,
+          "y": 209
         },
         {
           "x": 600,
@@ -48,11 +105,11 @@
           "y": 224
         },
         {
-          "x": 54,
+          "x": 175,
           "y": 224
         },
         {
-          "x": 54,
+          "x": 175,
           "y": 270
         },
         {
@@ -62,16 +119,6 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
-    }
-  ],
-  "waterRegions": [
-    {
-      "id": "water_1",
-      "x": 54,
-      "y": 224,
-      "width": 121,
-      "height": 46,
-      "materialKey": "biome_water"
     }
   ]
 }

@@ -13,7 +13,7 @@ void main() {
       expect(result.issues, isEmpty);
       expect(
         result.catalog!.materials.map((material) => material.key),
-        <String>['grass_dirt'],
+        <String>['biome_water', 'dirt_hole', 'grass_dirt'],
       );
       expect(
         result.output!.content,

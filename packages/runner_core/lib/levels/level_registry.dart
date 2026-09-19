@@ -61,8 +61,8 @@ class LevelRegistry {
                 segmentId: 'default',
                 groupId: 'default',
                 difficulty: ChunkPatternTier.early,
-                minChunkCount: 6,
-                maxChunkCount: 6,
+                minChunkCount: 11,
+                maxChunkCount: 11,
                 requireDistinctChunks: true,
               ),
               LevelAssemblySegment(
@@ -74,11 +74,19 @@ class LevelRegistry {
                 requireDistinctChunks: true,
               ),
               LevelAssemblySegment(
-                segmentId: 'rocky_grove',
-                groupId: 'ruin',
+                segmentId: 'default_2_2',
+                groupId: 'woodcamp',
                 difficulty: ChunkPatternTier.easy,
                 minChunkCount: 3,
                 maxChunkCount: 3,
+                requireDistinctChunks: true,
+              ),
+              LevelAssemblySegment(
+                segmentId: 'rocky_grove',
+                groupId: 'ruin',
+                difficulty: ChunkPatternTier.easy,
+                minChunkCount: 4,
+                maxChunkCount: 4,
                 requireDistinctChunks: true,
               ),
               LevelAssemblySegment(

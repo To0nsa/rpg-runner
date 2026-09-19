@@ -5140,10 +5140,10 @@
     {
       "id": "woods_tent_01",
       "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
-      "x": 0,
-      "y": 32,
+      "x": 96,
+      "y": 48,
       "width": 96,
-      "height": 64,
+      "height": 48,
       "tags": [
         "decor",
         "woods"
@@ -5152,10 +5152,10 @@
     {
       "id": "woods_tent_02",
       "sourceImagePath": "assets/images/level/atlases/woods/decor.png",
-      "x": 96,
-      "y": 32,
+      "x": 0,
+      "y": 48,
       "width": 96,
-      "height": 64,
+      "height": 48,
       "tags": [
         "decor",
         "woods"
@@ -9935,7 +9935,7 @@
     {
       "prefabKey": "gandalf_hardcore_fallen_dead_tree_02",
       "id": "gandalf_hardcore_fallen_dead_tree_02",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -9951,7 +9951,7 @@
           "vertices": [
             {
               "x": -44,
-              "y": 16
+              "y": 15
             },
             {
               "x": -43,
@@ -9975,7 +9975,7 @@
             },
             {
               "x": 42,
-              "y": 16
+              "y": 15
             }
           ]
         }
@@ -17421,16 +17421,59 @@
     {
       "prefabKey": "tiny_swords_wall_01",
       "id": "tiny_swords_wall_01",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "tiny_swords_wall_01"
       },
       "anchorXPx": 80,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -65,
+              "y": 16
+            },
+            {
+              "x": -49,
+              "y": -8
+            },
+            {
+              "x": -24,
+              "y": -9
+            },
+            {
+              "x": -13,
+              "y": -15
+            },
+            {
+              "x": 34,
+              "y": -15
+            },
+            {
+              "x": 51,
+              "y": -8
+            },
+            {
+              "x": 61,
+              "y": 1
+            },
+            {
+              "x": 61,
+              "y": 24
+            },
+            {
+              "x": -65,
+              "y": 24
+            }
+          ]
+        }
+      ],
       "tags": [
         "tiny_swords",
         "village_props"
@@ -18885,7 +18928,7 @@
     {
       "prefabKey": "woods_tent_01",
       "id": "woods_tent_01",
-      "revision": 2,
+      "revision": 21,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -18900,100 +18943,36 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -47,
-              "y": 26
-            },
-            {
-              "x": -45,
-              "y": 26
-            },
-            {
-              "x": -44,
-              "y": 28
-            },
-            {
-              "x": -42,
-              "y": 28
-            },
-            {
-              "x": -38,
-              "y": 24
-            },
-            {
-              "x": -34,
+              "x": -43,
               "y": 16
             },
             {
-              "x": -30,
-              "y": -1
-            },
-            {
-              "x": -30,
-              "y": -7
-            },
-            {
-              "x": -28,
-              "y": -7
-            },
-            {
               "x": -27,
-              "y": -5
+              "y": -23
             },
             {
-              "x": -19,
-              "y": -3
+              "x": -16,
+              "y": -19
             },
             {
-              "x": 8,
-              "y": -3
+              "x": 11,
+              "y": -19
             },
             {
-              "x": 25,
-              "y": -5
+              "x": 31,
+              "y": -23
             },
             {
-              "x": 26,
-              "y": -7
+              "x": 32,
+              "y": -13
             },
             {
-              "x": 28,
-              "y": -7
+              "x": 41,
+              "y": 9
             },
             {
-              "x": 29,
-              "y": 3
-            },
-            {
-              "x": 36,
-              "y": 22
-            },
-            {
-              "x": 38,
-              "y": 23
-            },
-            {
-              "x": 38,
-              "y": 25
-            },
-            {
-              "x": 44,
-              "y": 30
-            },
-            {
-              "x": 45,
-              "y": 27
-            },
-            {
-              "x": 47,
-              "y": 27
-            },
-            {
-              "x": 46,
-              "y": 32
-            },
-            {
-              "x": -46,
-              "y": 32
+              "x": 48,
+              "y": 16
             }
           ]
         }
@@ -19006,16 +18985,63 @@
     {
       "prefabKey": "woods_tent_02",
       "id": "woods_tent_02",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "woods_tent_02"
       },
       "anchorXPx": 48,
       "anchorYPx": 32,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -46,
+              "y": 16
+            },
+            {
+              "x": -38,
+              "y": 8
+            },
+            {
+              "x": -30,
+              "y": -17
+            },
+            {
+              "x": -30,
+              "y": -23
+            },
+            {
+              "x": -19,
+              "y": -19
+            },
+            {
+              "x": 8,
+              "y": -19
+            },
+            {
+              "x": 28,
+              "y": -23
+            },
+            {
+              "x": 29,
+              "y": -13
+            },
+            {
+              "x": 38,
+              "y": 9
+            },
+            {
+              "x": 46,
+              "y": 16
+            }
+          ]
+        }
+      ],
       "tags": [
         "decor",
         "woods"
