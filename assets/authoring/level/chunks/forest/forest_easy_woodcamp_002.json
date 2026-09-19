@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_easy_woodcamp_002",
+  "id": "forest_easy_woodcamp_002",
+  "revision": 18,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "woodcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 175,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 175,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 54,
+          "y": 224
+        },
+        {
+          "x": 54,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "water_1",
+      "x": 54,
+      "y": 224,
+      "width": 121,
+      "height": 46,
+      "materialKey": "biome_water"
+    }
+  ]
+}

@@ -170,6 +170,52 @@ void main() {
     );
   });
 
+  test(
+    'Flow uses the next section pool and prunes incompatible predecessors',
+    () {
+      final plan = build(
+        {
+          'good': ('normal', 'high'),
+          'trap': ('normal', 'missing'),
+          'next': ('high', 'normal'),
+        },
+        segments: [
+          const TerrainAuthoringSchedulerSegment(
+            segmentId: 'grove',
+            groupId: 'grove',
+            difficulty: ChunkPatternTier.easy,
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: false,
+          ),
+          const TerrainAuthoringSchedulerSegment(
+            segmentId: 'ruin',
+            groupId: 'ruin',
+            difficulty: ChunkPatternTier.hard,
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: false,
+          ),
+        ],
+        groups: {'good': 'grove', 'trap': 'grove', 'next': 'ruin'},
+        tiers: {
+          'good': ChunkPatternTier.easy,
+          'trap': ChunkPatternTier.easy,
+          'next': ChunkPatternTier.hard,
+        },
+      );
+      expect(plan.reachableChunkKeys, {'good', 'next'});
+      final cursor = plan.cursor(17);
+      expect(
+        [for (var i = 0; i < 12; i++) cursor.selectionFor(i).chunk.chunkKey],
+        [
+          for (var i = 0; i < 6; i++) ...['good', 'next'],
+        ],
+      );
+      expect(plan.transitionExclusions('good', 'trap'), isNotEmpty);
+    },
+  );
+
   test('distinctness and repeated section boundary are proven together', () {
     final plan = build(
       {'up': ('normal', 'high'), 'down': ('high', 'normal')},
@@ -217,6 +263,7 @@ TerrainConnectionSchedule build(
   Map<String, (String, String)> profiles, {
   List<TerrainAuthoringSchedulerSegment>? segments,
   Map<String, String> groups = const {},
+  Map<String, ChunkPatternTier> tiers = const {},
 }) => TerrainConnectionSchedule.build(
   level: TerrainAuthoringSchedulerLevel(
     levelId: 'test',
@@ -234,7 +281,7 @@ TerrainConnectionSchedule build(
     (key) => TerrainAuthoringSchedulerChunk(
       chunkKey: key,
       levelId: 'test',
-      tier: ChunkPatternTier.hard,
+      tier: tiers[key] ?? ChunkPatternTier.hard,
       assemblyGroupId: groups[key] ?? 'default',
       isActive: true,
     ),

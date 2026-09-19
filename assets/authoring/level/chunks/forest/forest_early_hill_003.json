@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_early_flat_001",
-  "id": "forest_early_flat_001",
-  "revision": 8,
+  "chunkKey": "forest_early_hill_003",
+  "id": "forest_early_hill_003",
+  "revision": 3,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -16,12 +16,12 @@
   "markers": [],
   "collisionShapes": [
     {
-      "shapeId": "ground_001",
+      "shapeId": "solid_001",
       "collisionMode": "solid",
       "vertices": [
         {
           "x": 0,
-          "y": 224
+          "y": 162
         },
         {
           "x": 600,

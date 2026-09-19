@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:runner_core/levels/terrain_elevation.dart';
 
 import '../../../../chunks/chunk_connection_creation.dart';
 import '../../../../chunks/chunk_level_target.dart';
@@ -38,7 +37,6 @@ class _ChunkConnectionCreationDialogState
   final _keyInput = TextEditingController();
   late String _group;
   late String _difficulty;
-  late TerrainElevation _exit;
   ChunkV2FileData? _preview;
   String? _error;
 
@@ -48,7 +46,6 @@ class _ChunkConnectionCreationDialogState
     final predecessor = widget.template.predecessor;
     _group = widget.initialGroup ?? predecessor.assemblyGroupId;
     _difficulty = widget.initialDifficulty ?? predecessor.difficulty;
-    _exit = widget.template.entranceElevation;
     final base = '${predecessor.chunkKey}_next';
     var key = base;
     var suffix = 2;
@@ -75,7 +72,6 @@ class _ChunkConnectionCreationDialogState
     chunkKey: _keyInput.text.trim(),
     groupId: _group,
     difficulty: _difficulty,
-    exitElevation: _exit,
   );
 
   void _refresh() {
@@ -94,7 +90,8 @@ class _ChunkConnectionCreationDialogState
 
   @override
   Widget build(BuildContext context) {
-    final entrance = widget.template.entranceElevation;
+    final entranceYHalfPixels =
+        widget.template.boundary.coverageIntervals.single.minYTicks ~/ 512;
     final level = widget.document.levels.firstWhere(
       (level) => level.levelId == widget.template.predecessor.levelId,
     );
@@ -110,7 +107,7 @@ class _ChunkConnectionCreationDialogState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Entrance elevation: ${entrance.name} · matched from ${widget.template.predecessor.chunkKey}',
+                  'Flat ground: ${_heightLabel(entranceYHalfPixels)} · matches ${widget.template.predecessor.chunkKey} exit',
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -122,35 +119,6 @@ class _ChunkConnectionCreationDialogState
                     document: widget.document,
                   ),
                   onChanged: (_) => setState(_refresh),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<TerrainElevation>(
-                  initialValue: _exit,
-                  decoration: const InputDecoration(
-                    labelText: 'Exit elevation',
-                  ),
-                  items: [
-                    for (final height in TerrainElevation.values)
-                      if ((height.index - entrance.index).abs() <= 1)
-                        DropdownMenuItem(
-                          value: height,
-                          child: Text(
-                            '${height.name[0].toUpperCase()}${height.name.substring(1)} · ${height == entrance
-                                ? 'Flat'
-                                : height.index > entrance.index
-                                ? 'Ascending'
-                                : 'Descending'}',
-                          ),
-                        ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _exit = value;
-                        _refresh();
-                      });
-                    }
-                  },
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -236,5 +204,14 @@ class _ChunkConnectionCreationDialogState
         ),
       ],
     );
+  }
+
+  String _heightLabel(int yHalfPixels) {
+    final y = yHalfPixels / 2;
+    final elevation = widget.template.presets.elevationAt(y);
+    final name = elevation == null
+        ? 'Custom'
+        : '${elevation.name[0].toUpperCase()}${elevation.name.substring(1)}';
+    return '$name · Y ${y.toStringAsFixed(y == y.roundToDouble() ? 0 : 1)}';
   }
 }

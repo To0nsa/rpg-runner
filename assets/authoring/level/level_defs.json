@@ -20,11 +20,11 @@
     },
     {
       "levelId": "forest",
-      "revision": 50,
+      "revision": 68,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
-      "firstChunkKey": "forest_early_flat_001",
+      "firstChunkKey": "forest_early_first_chunk_001",
       "cameraCenterY": 135,
       "groundTopY": 224,
       "terrainHeightStepPx": 24,
@@ -42,8 +42,16 @@
             "segmentId": "default",
             "groupId": "default",
             "difficulty": "early",
-            "minChunkCount": 6,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": false
+          },
+          {
+            "segmentId": "default_2_2",
+            "groupId": "woodcamp",
+            "difficulty": "easy",
+            "minChunkCount": 2,
+            "maxChunkCount": 2,
             "requireDistinctChunks": true
           },
           {
@@ -58,8 +66,8 @@
             "segmentId": "rocky_grove",
             "groupId": "ruin",
             "difficulty": "easy",
-            "minChunkCount": 3,
-            "maxChunkCount": 3,
+            "minChunkCount": 4,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {

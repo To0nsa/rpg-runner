@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_early_forest_005",
+  "id": "forest_early_forest_005",
+  "revision": 21,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "pixel_fantasy_caves_tree_02",
+      "prefabKey": "pixel_fantasy_caves_tree_02",
+      "x": 448,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "pixel_fantasy_caves_bush_02",
+      "prefabKey": "pixel_fantasy_caves_bush_02",
+      "x": 259,
+      "y": 195,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 108,
+          "y": 224
+        },
+        {
+          "x": 108,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 108,
+          "y": 224
+        },
+        {
+          "x": 177,
+          "y": 224
+        },
+        {
+          "x": 177,
+          "y": 270
+        },
+        {
+          "x": 108,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 177,
+          "y": 224
+        },
+        {
+          "x": 363,
+          "y": 224
+        },
+        {
+          "x": 363,
+          "y": 270
+        },
+        {
+          "x": 177,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_003",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 363,
+          "y": 224
+        },
+        {
+          "x": 439,
+          "y": 224
+        },
+        {
+          "x": 439,
+          "y": 270
+        },
+        {
+          "x": 363,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_004",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 439,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 439,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

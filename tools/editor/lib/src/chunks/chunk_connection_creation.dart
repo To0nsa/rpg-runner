@@ -10,8 +10,9 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_models.dart';
 
-/// Frozen creation intent; the predecessor and preset are checked again by the
-/// plugin before an ordinary independently editable Chunk is added to history.
+/// Frozen creation intent for a flat successor at the predecessor's exact exit
+/// height. The predecessor and Level guides are checked again before the new
+/// independently editable Chunk is added to history.
 final class ChunkConnectionCreation {
   const ChunkConnectionCreation({
     required this.predecessorKey,
@@ -21,7 +22,6 @@ final class ChunkConnectionCreation {
     required this.chunkKey,
     required this.groupId,
     required this.difficulty,
-    required this.exitElevation,
   });
   final String predecessorKey;
   final String predecessorSignature;
@@ -30,7 +30,6 @@ final class ChunkConnectionCreation {
   final String chunkKey;
   final String groupId;
   final String difficulty;
-  final TerrainElevation exitElevation;
 }
 
 /// Read-only facts used by the creation form, from current compiled geometry.
@@ -40,7 +39,6 @@ final class ChunkConnectionTemplate {
     required this.signature,
     required this.boundary,
     required this.presets,
-    required this.entranceElevation,
     required this.materialKey,
     required this.surfaceKind,
   });
@@ -48,7 +46,6 @@ final class ChunkConnectionTemplate {
   final String signature;
   final TerrainBoundarySignature boundary;
   final TerrainElevationPresets presets;
-  final TerrainElevation entranceElevation;
   final String materialKey;
   final String? surfaceKind;
 }
@@ -96,7 +93,7 @@ ChunkConnectionTemplate inspectChunkConnectionTemplate(
   );
   const unsupported = ChunkTargetException(
     'connecting_chunk_manual_profile',
-    'This edge needs manual terrain authoring. The starter supports one solid ground interval at Normal, Raised, or High. Use the connection profile as a drawing guide.',
+    'This edge needs manual terrain authoring. The starter supports one solid ground interval on the half-pixel grid. Use the connection profile as a drawing guide.',
   );
   if (boundary.coverageIntervals.length != 1) throw unsupported;
   final interval = boundary.coverageIntervals.single;
@@ -105,10 +102,6 @@ ChunkConnectionTemplate inspectChunkConnectionTemplate(
       interval.maxYTicks % 512 != 0) {
     throw unsupported;
   }
-  final elevation = level.elevationPresets.elevationAt(
-    interval.minYTicks / 1024,
-  );
-  if (elevation == null) throw unsupported;
   final topEdges = expansion.geometry.edges
       .where(
         (edge) =>
@@ -139,7 +132,6 @@ ChunkConnectionTemplate inspectChunkConnectionTemplate(
     signature: expansion.geometry.sourceSignature(),
     boundary: boundary,
     presets: level.elevationPresets,
-    entranceElevation: elevation,
     materialKey: material,
     surfaceKind: topEdges.firstOrNull?.surfaceKind,
   );
@@ -174,26 +166,13 @@ ChunkV2FileData buildConnectingChunk(
       'Choose a current group and difficulty.',
     );
   }
-  if ((intent.exitElevation.index - template.entranceElevation.index).abs() >
-      1) {
-    throw const ChunkTargetException(
-      'connecting_chunk_height_step',
-      'Choose the same or an adjacent ground elevation.',
-    );
-  }
   final bottom = template.boundary.coverageIntervals.single.maxYTicks ~/ 512;
   final entranceY = template.boundary.coverageIntervals.single.minYTicks ~/ 512;
-  final exitY = (template.presets.yFor(intent.exitElevation) * 2).round();
   final width = predecessor.width * 2;
-  const landing = 128; // 64 px level landing at either end of a ramp.
-  if (exitY < 0 ||
-      exitY >= bottom ||
-      bottom > predecessor.height * 2 ||
-      width <= landing * 2 ||
-      (entranceY - exitY).abs() > width - 2 * landing) {
+  if (entranceY < 0 || entranceY >= bottom || bottom > predecessor.height * 2) {
     throw const ChunkTargetException(
       'connecting_chunk_dimensions',
-      'This height change needs more room or a different solid depth. Author it with the boundary guide.',
+      'This edge needs a valid solid depth. Author it with the boundary guide.',
     );
   }
   TerrainSourceVertexDef vertex(int x, int y) =>
@@ -221,11 +200,7 @@ ChunkV2FileData buildConnectingChunk(
         materialKey: template.materialKey,
         vertices: [
           vertex(0, entranceY),
-          if (entranceY != exitY) ...[
-            vertex(landing, entranceY),
-            vertex(width - landing, exitY),
-          ],
-          vertex(width, exitY),
+          vertex(width, entranceY),
           vertex(width, bottom),
           vertex(0, bottom),
         ],

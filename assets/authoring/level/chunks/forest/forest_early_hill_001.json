@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_early_hill_001",
+  "id": "forest_early_hill_001",
+  "revision": 48,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_cimetery_statue_05",
+      "prefabKey": "tiny_swords_cimetery_statue_05",
+      "x": 352,
+      "y": 151,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "flipX": true
+    },
+    {
+      "prefabId": "tiny_swords_fire_vasque_01",
+      "prefabKey": "tiny_swords_fire_vasque_01",
+      "x": 240,
+      "y": 175,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "ancient_forest_flower_02",
+      "prefabKey": "ancient_forest_flower_02",
+      "x": 320,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "ancient_forest_flower_03",
+      "prefabKey": "ancient_forest_flower_03",
+      "x": 336,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "gandalf_hardcore_tall_grass_01",
+      "prefabKey": "gandalf_hardcore_tall_grass_01",
+      "x": 336,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "ancient_forest_flower_01",
+      "prefabKey": "ancient_forest_flower_01",
+      "x": 352,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 173,
+          "y": 190
+        },
+        {
+          "x": 446,
+          "y": 190
+        },
+        {
+          "x": 600,
+          "y": 162
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

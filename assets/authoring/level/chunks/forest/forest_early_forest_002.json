@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_early_flat_003",
-  "id": "forest_early_flat_003",
-  "revision": 41,
+  "chunkKey": "forest_early_forest_002",
+  "id": "forest_early_forest_002",
+  "revision": 32,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,26 +14,27 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "ancient_forest_rock_01",
-      "prefabKey": "ancient_forest_rock_01",
-      "x": 81,
-      "y": 183,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "tiny_swords_ground_platform_06_32x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_06_32x32_platform",
-      "x": 336,
-      "y": 192,
+      "prefabId": "pixel_fantasy_caves_tree_01",
+      "prefabKey": "pixel_fantasy_caves_tree_01",
+      "x": 144,
+      "y": 144,
       "zIndex": 0,
       "snapToGrid": true
+    },
+    {
+      "prefabId": "pixel_fantasy_caves_caves_rock_04",
+      "prefabKey": "pixel_fantasy_caves_caves_rock_04",
+      "x": 448,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.5
     }
   ],
   "markers": [],
   "collisionShapes": [
     {
-      "shapeId": "solid_001",
+      "shapeId": "ground_001",
       "collisionMode": "solid",
       "vertices": [
         {
@@ -41,11 +42,11 @@
           "y": 224
         },
         {
-          "x": 288,
+          "x": 221,
           "y": 224
         },
         {
-          "x": 288,
+          "x": 221,
           "y": 270
         },
         {
@@ -57,23 +58,23 @@
       "materialKey": "grass_dirt"
     },
     {
-      "shapeId": "solid_002",
+      "shapeId": "solid_001",
       "collisionMode": "none",
       "vertices": [
         {
-          "x": 288,
+          "x": 221,
           "y": 224
         },
         {
-          "x": 384,
+          "x": 290,
           "y": 224
         },
         {
-          "x": 384,
+          "x": 290,
           "y": 270
         },
         {
-          "x": 288,
+          "x": 221,
           "y": 270
         }
       ],
@@ -81,11 +82,11 @@
       "materialKey": "dirt_hole"
     },
     {
-      "shapeId": "solid_003",
+      "shapeId": "solid_002",
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 384,
+          "x": 290,
           "y": 224
         },
         {
@@ -97,7 +98,7 @@
           "y": 270
         },
         {
-          "x": 384,
+          "x": 290,
           "y": 270
         }
       ],

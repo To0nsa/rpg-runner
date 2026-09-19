@@ -1,138 +1,326 @@
-# Chunk connections and elevation authoring
+# Chunk Connection Scheduling And Authoring
 
-The editor, generator, normal Core, and authored Play share Core's exact terrain
-connection schedule. It admits complete continuations before seeded selection.
-Equal elevation labels alone never establish compatibility.
+## Status And Scope
 
-## Physical and scheduling authority
+Chunk connections are implemented as an exact, deterministic terrain-selection
+contract. The editor, repository generator, normal `GameCore`, and authored Play
+all use the same Core boundary-signature and scheduling code. A connection is
+therefore more than two chunks having similar ground heights: the compiled exit
+of the first chunk must equal the compiled entrance of the next, and the
+resulting choice must still permit the level to continue indefinitely.
 
-`buildTerrainChunkConnection` derives entrance and exit from compiled geometry.
-Equality uses `TerrainBoundarySignature.physicalRecord`: collision-mode coverage
-and surface-kind continuation points at exact 1/1024 px coordinates. Materials
-remain visual evidence and do not change a physical connection. Open, compound,
-and custom profiles remain valid scheduling inputs.
+This document covers:
 
-The opening additionally needs Normal entrance ground and a flat solid landing
-across X=300 ±16 px with 64 px of unobstructed space above the Level ground.
-Runtime uses the actual `TrackTuning.playerStartX`. The envelope covers both
-current characters. An elevated or unsupported opening blocks admission even
-when its entrance matches another chunk. Terrain coordinates are never shifted
-to accommodate a spawn.
+- how compiled polygon terrain becomes an entrance and exit profile;
+- how Flow, difficulty, group, distinctness, and future continuations restrict
+  the available successors;
+- how a seed selects from the proven choices at runtime;
+- how the editor inspects and creates connections; and
+- which validation and compatibility rules protect generated content and
+  replay determinism.
 
-`TerrainConnectionSchedule` resolves group and difficulty fallback before
-matching entrances. Explicit difficulty has no fallback. Graph states contain
-the progression index (saturated at the Hard tail), section, remaining count,
-previous chunk and distinct identities used in the current section. Boundary
-nodes choose a section length; selection nodes choose a chunk. A greatest fixed
-point removes a length node if **any** authored count fails, and a selection
-node if **all** choices fail. Surviving cycles prove continuing tails, including
-Repeat all and Continue last. Distinct identities reset at each section boundary.
+The connection system never moves or vertically aligns chunk geometry. Chunks
+remain in their ordinary fixed-width track slots. Elevation names are editor
+guides; compiled geometry is the authority.
 
-Exact analysis stops at 32,768 states or 262,144 edges. The finite automatic
-progression prefix remains limited to 256 chunks. Exceeding a budget blocks
-Play/Build; no sampling or shortened lookahead substitutes for admission.
-Canonical profile indexes and memoized resolved pools avoid repeated pair scans.
+## End-To-End Data Flow
 
-`ConnectedChunkPatternSource` binds this graph to the existing compiled catalog
-and authored patterns. Normal `GameCore` creates the source before streaming and
-uses it for both preparation and live selection. Whole-Level Play and seed
-samples use the same factory. Focused Chunk Play uses a full-state witness from
-a supported opening, through the selected chunk, into a proven repeating suffix.
-An unused chunk can remain saved, but has no focused Play witness.
+```text
+Chunk-v2 polygons + Prefab-v3 collision + Level-v3 Flow
+                         |
+                         v
+              compile exact Core geometry
+                         |
+                         v
+       derive left/right physical boundary profiles
+                         |
+                         v
+    build complete finite-state connection schedule
+       |                 |                    |
+       v                 v                    v
+ editor diagnostics   generator admission   GameCore / authored Play
+ and joined preview   + seam signature       seeded streaming cursor
+```
 
-## Deterministic selection and evidence
+The repository generator and editor use
+`packages/runner_content_pipeline` to decode and compile current-schema source.
+The reusable connection authority itself remains in `runner_core`:
 
-Candidates are sorted by stable chunk key. Selection uses `mix32(seed ^
-index*0x9e3779b9 ^ 0x85ebca6b)`. Section-length selection uses run sequence in
-place of index and salt `0x27d4eb2d`; counts are ascending and none are removed.
-The canonical `terrain-connections-v1` contract digest covers Level progression,
-first chunk, section order/settings, active identities, tiers/groups, physical
-profiles and spawn eligibility. Adjacency transition IDs carry that digest, so
-the generated seam signature changes even when altered counts emit the same
-chunk pairs. Geometry retains its existing separate source/edge signatures.
+| Responsibility | Authority |
+| --- | --- |
+| Exact boundary evidence and comparisons | `TerrainBoundarySignature` in `terrain_boundary_signature.dart` |
+| Entrance, exit, and valid-opening derivation | `buildTerrainChunkConnection` in `terrain_chunk_connections.dart` |
+| Complete schedule construction and seeded selection | `TerrainConnectionSchedule` in `terrain_connection_schedule.dart` |
+| Editor/generator reachability projection | `enumerateTerrainAuthoringReachability` in `terrain_authoring_scheduler.dart` |
+| Runtime binding from authored patterns to compiled terrain | `ConnectedChunkPatternSource` in `connected_chunk_pattern_source.dart` |
+| Source compilation, publication gating, and seam validation | `packages/runner_content_pipeline` |
 
-A cursor retains the current graph node, section occurrence and latest result.
-Forward streaming advances once per chunk; repeated latest queries are cached.
-Older queries restart and replay deterministically. New seeds and previews have
-independent cursors. There is no unbounded history cache. Sampling reports the
-exact available choices at that occurrence, before the hash selects one.
+No editor cache or generated adjacency list becomes gameplay authority. Normal
+Core reconstructs the same schedule from the generated level definition,
+authored chunk patterns, and admitted compiled terrain when it creates a
+`ConnectedChunkPatternSource`.
 
-The pipeline retains structurally accepted chunks for source-owner diagnostics
-when schedule admission fails. `validatedBatch` remains null on every blocker;
-the root generator publishes nothing unless the entire operation succeeds.
-Structural validation still covers excluded/deprecated source.
+## Physical Connection Contract
 
-## Level schema and starter command
+### Boundary profiles
 
-Level schema **v3** requires integer `terrainHeightStepPx` in 1..32, default 24.
-Normal is `groundTopY`, Raised subtracts one step, High subtracts two. The field
-is authoring data; generated runtime collision continues to come from polygons.
-`tool/migrate_level_build_inclusion.dart --check/--apply` explicitly upgrades
-canonical v1/v2 Level source, preserving identities, inclusion and coordinates.
-Normal loaders accept only v3. Copy/create, serialization and Undo retain the
-step. Changing it updates guides and future starters; existing polygons stay
-fixed. Settings list the edges that become custom heights under the entered step.
+For each compiled chunk, Core inspects the local left boundary at `x = 0` and
+the right boundary at `x = chunkWidth`. Coordinates use deterministic physics
+ticks, where one world pixel is 1,024 ticks.
 
-`ChunkConnectionCreation` freezes a fresh key, predecessor geometry signature,
-Level ground and step, exit elevation, group and difficulty. The domain command
-rechecks current dependencies/settings, group membership, identity uniqueness,
-source validity and the full compiled entrance. Failed attempts retain the form's
-key; a collision with an existing owner cannot duplicate or overwrite it.
+The physical profile contains two kinds of facts:
 
-The initial starter supports one solid interval at a standard elevation. It
-inherits solid depth, ground surface semantics and available terrain material,
-uses the runtime chunk width, and creates ordinary independently editable source.
-Flat or adjacent-height ramps have 64 px landings and at most a 1:1 slope.
-Compound, open, custom, one-way or otherwise unrepresentable entrances report
-manual authoring guidance. Full comparison remains the final check. Creation is
-one existing session command/Undo step; cancellation performs no write, and Save
-uses the normal canonical store transaction.
+- **coverage intervals**: merged positive-length vertical intervals occupied
+  by a boundary edge, including its collision mode; and
+- **continuation vertices**: points where a non-boundary terrain edge reaches
+  the boundary, including collision mode, `surfaceKind`, and exact Y.
 
-## Editor presentation
+An exit connects to an entrance only when those physical records are equal.
+This supports flat, raised, open, compound, one-way, and custom boundaries
+without reducing them to one height label. For example, a solid continuation
+and a one-way continuation at the same Y are different connections.
 
-Connections is a collapsible existing-style card below the Chunk owner library.
-It derives entrance/exit labels, Previous/Next terrain matches, a read-only joined
-preview and exact profile details. Availability lists the valid Flow contexts;
-excluded pairs explain the required group or resolved difficulty, an already-used
-identity, or a future dead end. The Ground
-heights toggle draws three canvas guides. Boundary inspection reveals its side.
-Opening a neighbor offers a guarded return to the original Chunk and viewport.
-View restoration retains the guide toggle, side and expansion state.
+The full signature also retains exact boundary-edge records and material keys
+for evidence. A material mismatch can be reported to an author, but material is
+visual metadata and does not make physically equal boundaries incompatible.
+The signature is derived after Prefab collision expansion and terrain
+compilation, so placed Prefabs that reach a chunk edge participate in the same
+comparison as direct Chunk polygons.
 
-Create connecting chunk uses the existing naming, group and difficulty controls
-in a dialog with a joined preview. Flow keeps its existing section controls and
-adds full-schedule readiness, Inspect connection and Create connecting chunk
-repair actions. Repair creation carries the affected section's group/difficulty
-through guarded navigation and preserves the Level return context. Seed samples
-show joined entrances and occurrence-specific choices. Structural errors block
-Save; incomplete schedules block Play and included Build while remaining saveable.
+### Opening eligibility
 
-## Compatibility release
+The first streamed chunk has an extra `canStart` requirement. At the Level's
+Normal `groundTopY`, the compiled chunk must provide:
 
-This changes seeded gameplay and requires **2026.09.0** across app tickets,
-Functions defaults/boards and the replay worker. The new worker rejects both
-2026.03.0 and 2026.08.0 before replay. It must not replay old inputs with new Core.
-No wire schema, score version, kill plane or camera mode changes accompany it.
+- solid entrance coverage beginning at the Normal ground line;
+- a flat upward-facing solid edge supporting the interval from
+  `playerStartX - 16` through `playerStartX + 16`; and
+- 64 px of unobstructed space above that landing.
 
-Deploy as a drain-and-switch release: stop issuing old tickets, leave the old
-worker serving its existing queue, wait for the 24-hour ticket lifetime plus
-allowed clock skew, and use the existing compatibility-retirement audit to prove
-no old sessions/leases/submissions or settlement work remain. Then publish the
-matching worker/content and Functions defaults/boards before enabling new app
-traffic. Remove stale `RUN_SUPPORTED_GAME_COMPAT_VERSIONS` overrides. Keep old
-board/ghost artifacts under their original version. Roll back the matching
-app/backend/worker/content set together. This repository change does not deploy.
+Normal runtime and authored Play supply the actual
+`TrackTuning.playerStartX`. Repository generation and editor analysis currently
+use 300 px, matching the shipped Level tuning; these values must remain aligned
+if start-position tuning becomes authored. The 32-by-64 px envelope covers both
+current characters. A configured `firstChunkKey` must also belong to the
+resolved first pool and satisfy this opening rule. Unsupported or elevated
+openings are rejected rather than translated into place.
 
-## Evidence
+## Complete Schedule Admission
 
-The elevation fixture creates Normal → Raised → High → Raised → Normal with
-an extra flat High chunk, verifies exact seams and Undo/Save/reload, and traverses
-the loop for 1,800 ticks with each character at both the 24 px default and 32 px
-maximum step. A jump at High stays inside the
-locked 270 px viewport; replayed commands yield equal positions. A ten-chunk,
-four-distinct selection fixture uses 482 states / 3,451 edges: approximately
-5 ms analysis and 0.51 s for 200,000 choices on the development Windows host.
-These are diagnostic measurements, not timing-dependent gameplay rules.
-Existing water, marker, enemy, projectile and terrain publication checks remain
-separate from schedule readiness; compatible terrain is not a promise that an
-arbitrary authored encounter can be completed by a player.
+`TerrainConnectionSchedule` builds an immutable graph before any seed is used.
+Its state records:
+
+- the saturated global progression phase;
+- the current Flow section;
+- the number of chunks remaining in that section occurrence;
+- the previously selected chunk; and
+- the chunk identities already used when that section requires distinct
+  chunks.
+
+For each selection state, candidate resolution happens in this order:
+
+1. Keep only active chunks owned by the target Level; sort them by stable
+   `chunkKey`.
+2. Apply the current Flow group, if the Level has a Flow.
+3. Resolve difficulty. An explicit section difficulty requires that exact
+   tier; a section without one, or a Level without Flow, follows global
+   early/easy/normal/hard progression and Core's existing tier fallback.
+4. At index zero, apply `firstChunkKey` when present and require `canStart`.
+5. Otherwise require the previous exit profile to equal the candidate entrance
+   profile.
+6. Reject an identity already used in the current distinct section.
+7. Retain only choices whose target state has a proven future continuation.
+
+Group and difficulty belong to the slot being filled, not to the preceding
+chunk. When Flow advances to another section, its new group and difficulty
+apply. If an otherwise eligible current-section chunk has no physical route
+into that next pool, the graph removes that earlier choice before the seed can
+select it; it never skips the required section or fabricates a terrain match.
+
+Flow section lengths are also graph choices. Counts are represented in
+ascending order from `minChunkCount` through `maxChunkCount`; none may be
+discarded merely because a particular count dead-ends. At a section boundary,
+the distinct-identity set resets. `loopSegments: true` returns to the first
+section after the last. `loopSegments: false` repeats the final section.
+
+After graph construction, a greatest-fixed-point pass removes dead states:
+
+- a section-length node is viable only when **every** authored count remains
+  viable, because any count can be selected by the seed; and
+- a chunk-selection node is viable when **at least one** candidate remains
+  viable.
+
+The saturated Hard phase and the finite Flow state make the indefinitely
+repeating tail representable as cycles in a finite graph. Surviving cycles are
+the proof that streaming can continue forever; a finite look-ahead or sampled
+set of seeds is not accepted as a substitute.
+
+Exact analysis fails closed at 32,768 states or 262,144 transitions. The finite
+automatic progression prefix is limited to 256 chunks. Exceeding a limit is a
+content-readiness error, not a reason to shorten the analysis.
+
+## Deterministic Runtime Selection
+
+The admitted graph is seed-independent. Each run or preview creates a fresh
+`TerrainConnectionCursor`; the cursor chooses only among viable graph edges.
+
+Chunk candidates are already ordered by stable key. For chunk index `i`, the
+choice hash is:
+
+```text
+mix32(seed ^ (i * 0x9e3779b9) ^ 0x85ebca6b)
+```
+
+For Flow occurrence number `r`, section length uses:
+
+```text
+mix32(seed ^ (r * 0x9e3779b9) ^ 0x27d4eb2d)
+```
+
+The modulo of each hash selects from the ordered edges. Seed samples expose the
+complete `availableChunkKeys` list for that exact occurrence before identifying
+the selected chunk.
+
+The cursor retains only its current state, section occurrence, and latest
+selection. Forward streaming advances once per chunk. Repeating the latest
+query returns the cached result; querying an older index resets and replays the
+same deterministic choices. Different runs and previews do not share cursor
+state.
+
+`ConnectedChunkPatternSource` is installed before normal track prewarming, so
+the initial chunks and later streamed chunks use one cursor and one contract.
+Whole-Level Play builds the same source. Focused Chunk Play asks the schedule
+for a witness consisting of a supported opening, a path through the selected
+chunk, and a proven repeating suffix. A valid but unreachable chunk may remain
+saved; it cannot be started in focused Play.
+
+## Generation And Failure Semantics
+
+Repository generation validates every current-schema Chunk and its individual
+geometry, including chunks in excluded Levels. Runtime scheduling contains only
+active chunks in Levels with `includeInBuild: true`; deprecated chunks cannot
+satisfy a pool or enter the published runtime batch.
+
+For included content, generation performs these fail-closed stages:
+
+1. Decode and compile all source owners.
+2. Check global identity uniqueness and individual compiled geometry.
+3. Derive every active chunk's connection profiles.
+4. Build the complete schedules and enumerate their reachable directed pairs.
+5. Compare every reachable exit/entrance seam again against compiled geometry.
+6. Publish a `validatedBatch` only when every stage succeeds.
+
+Structurally compiled chunks remain in the result for owner diagnostics when
+schedule admission fails, but `validatedBatch` is null and the root generator
+publishes nothing.
+
+The editor applies the same distinction:
+
+| Condition | Save | Play | Included Build |
+| --- | --- | --- | --- |
+| Malformed source, invalid geometry, or invalid identity/configuration | Blocked | Blocked | Blocked |
+| No complete schedule or a reachable seam mismatch | Allowed so the work can be repaired incrementally | Blocked | Blocked |
+| Active chunk has no reachable occurrence | Allowed with a warning | Focused Play for that chunk is blocked | Allowed when the Level schedule itself is complete |
+| Level is excluded from the build | Still structurally validated | Uses authored readiness when requested | Its schedule and chunks are omitted from publication |
+
+Water regions, markers, enemy placement, projectiles, and terrain publication
+have their own validation. A compatible terrain connection proves structural
+continuation; it does not promise that an arbitrary authored encounter is
+player-completable.
+
+## Elevation Guides And Connecting-Chunk Creation
+
+Level schema v3 requires integer `terrainHeightStepPx` in the range 1–32; the
+default and migration value is 24. With positive Y pointing downward, the
+editor guides are:
+
+| Guide | Y coordinate |
+| --- | --- |
+| Normal | `groundTopY` |
+| Raised | `groundTopY - terrainHeightStepPx` |
+| High | `groundTopY - 2 * terrainHeightStepPx` |
+
+These values drive guides and starter creation only. Existing polygon vertices
+do not move when the step changes, and generated collision continues to come
+from compiled polygons. Normal loaders accept Level-v3 only;
+`tool/migrate_level_build_inclusion.dart --check` and `--apply` are the explicit
+v1/v2 migration path.
+
+The editor's **Create connecting chunk** command supports one solid boundary
+interval on the authored half-pixel grid. Its top may be a custom height: the
+successor is flat at the predecessor's exact exit Y (for example, Y 162),
+without changing the Level elevation step. The creator does not offer an
+alternate exit height; authors can reshape the new chunk afterward. The
+command freezes the new key, predecessor geometry signature, Level ground and
+step, group, and difficulty. On apply it rechecks those dependencies, source
+validity, group membership, identity uniqueness, and the final compiled
+entrance.
+
+The resulting Chunk-v2 owner:
+
+- inherits the predecessor's solid depth, terrain material, and surface kind;
+- preserves the runtime chunk width;
+- has a flat top with both its entrance and exit at the predecessor's exact
+  exit Y; and
+- is an ordinary independently editable source owner.
+
+Compound, open, one-way, or otherwise unrepresentable entrances return
+manual-authoring guidance. A custom *height* alone is not a reason to reject a
+single solid interval. The command never approximates a compound profile by
+its top height. A full compiled boundary comparison is the final acceptance
+check.
+Creation is one normal session command and one Undo step; cancellation writes
+nothing, and Save uses the standard canonical workspace transaction.
+
+The Chunk workspace's Connections card shows entrance/exit labels,
+Previous/Next matches, joined previews, exact profiles, Flow availability, and
+Normal/Raised/High guides. Flow diagnostics can navigate to the affected
+connection or carry the section's group and difficulty into connecting-chunk
+creation. Return navigation preserves the inspected side, guide visibility,
+expansion state, and viewport.
+
+## Signatures And Compatibility
+
+The canonical `terrain-connections-v1` digest commits to:
+
+- selection-contract version and Level identity;
+- global progression counts and optional `firstChunkKey`;
+- Flow order, loop mode, group, exact difficulty, count range, and distinctness;
+- active chunk identity, difficulty, and group; and
+- every chunk's entrance, exit, and opening eligibility.
+
+Reachable transition IDs contain this digest. The generated seam signature
+therefore changes when scheduling rules change even if the resulting set of
+chunk pairs happens to remain the same. Geometry source and edge signatures
+remain separate evidence.
+
+Connection-aware selection is released as game compatibility **2026.09.0**
+across app tickets, Functions defaults and boards, and the replay worker. It did
+not require a replay wire-schema, score-version, kill-plane, or camera-mode
+change. The current worker accepts 2026.09.0 and rejects older 2026.03.0 and
+2026.08.0 runs rather than replaying old inputs through the new selector.
+
+Any future change to profile equality, pool resolution, graph viability,
+candidate ordering, or selection salts is replay-sensitive and requires a new
+coordinated game-compatibility release. Rollout must use the existing
+drain-and-switch process: stop issuing the old version, keep its worker for the
+existing queue, wait for the 24-hour ticket lifetime plus allowed clock skew,
+prove that no old sessions, leases, submissions, or settlement work remain,
+then switch matching app, backend defaults/boards, content, and worker builds.
+Board and ghost artifacts remain under their original compatibility version.
+
+## Verification Evidence
+
+The main executable specifications are:
+
+- [`terrain_boundary_signature_test.dart`](../../packages/runner_core/test/collision/terrain/terrain_boundary_signature_test.dart) for exact physical profiles and material-only differences;
+- [`terrain_connection_schedule_test.dart`](../../packages/runner_core/test/collision/terrain/terrain_connection_schedule_test.dart) for future-dead-end pruning across different Flow groups and difficulties, all-length admission, distinctness, deterministic query order, digest changes, and capacity failure;
+- [`polygon_terrain_repository_generation_test.dart`](../../packages/runner_content_pipeline/test/polygon_terrain_repository_generation_test.dart) for fail-closed generation, excluded-Level behavior, deprecated chunks, and validated seam publication;
+- [`chunk_connection_creation_test.dart`](../../tools/editor/test/chunk_connection_creation_test.dart) for exact flat custom-height continuation, Undo/Save/reload, both current characters, and 24 px and 32 px steps; and
+- authored Level/Chunk Play tests under
+  [`packages/runner_core/test/playtest`](../../packages/runner_core/test/playtest)
+  for runtime-source parity and focused repeating witnesses.
+
+Performance output from the long-stream scheduler test is diagnostic only.
+Correctness is governed by deterministic results and the explicit graph
+capacity limits, never by a wall-clock threshold.

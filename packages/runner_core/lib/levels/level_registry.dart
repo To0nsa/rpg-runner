@@ -53,7 +53,7 @@ class LevelRegistry {
           normalPatternChunks: 6,
           noEnemyChunks: 3,
           visualThemeId: 'forest',
-          firstChunkKey: 'forest_early_flat_001',
+          firstChunkKey: 'forest_early_first_chunk_001',
           assembly: const LevelAssemblyDefinition(
             loopSegments: false,
             segments: <LevelAssemblySegment>[

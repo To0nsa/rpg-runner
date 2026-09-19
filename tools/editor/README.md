@@ -819,8 +819,9 @@ and keyboard behavior without changing the main workspace. See the
 
 The Connections card below the Chunk library shows Previous/Next matches, joined
 previews and Normal/Raised/High ground guides. **Create connecting chunk** opens
-a standard form for a flat or adjacent-height successor, with one Undo step and
-normal Save. Flow offers connection inspection and creation for missing routes;
-seed samples show the actual available choices at each position. See the
+a standard form for a flat successor at the exact current exit height (including
+custom heights), with one Undo step and normal Save. You can reshape its exit
+after creation. Flow offers connection inspection and creation for missing
+routes; seed samples show the actual available choices at each position. See the
 [connection contract](../../docs/tdd/chunk_connections.md) for supported profiles,
 Level migration, exact admission and release compatibility.

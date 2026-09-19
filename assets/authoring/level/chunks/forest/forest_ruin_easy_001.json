@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_easy_001",
+  "id": "forest_ruin_easy_001",
+  "revision": 76,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "kauzz_forest_tree_04",
+      "prefabKey": "kauzz_forest_tree_04",
+      "x": 176,
+      "y": 128,
+      "zIndex": -21,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "fantasy_environment_bush_01",
+      "prefabKey": "fantasy_environment_bush_01",
+      "x": 426,
+      "y": 188,
+      "zIndex": -4,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_ruin_arch_01",
+      "prefabKey": "ancient_forest_ruin_arch_01",
+      "x": 416,
+      "y": 139,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_15",
+      "prefabKey": "rune_rocks_mossy_rock_15",
+      "x": 246,
+      "y": 163,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 2.0
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_03",
+      "prefabKey": "rune_rocks_mossy_rock_03",
+      "x": 165,
+      "y": 179,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_bush_03",
+      "prefabKey": "fantasy_environment_bush_03",
+      "x": 336,
+      "y": 187,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_bush_02",
+      "prefabKey": "fantasy_environment_bush_02",
+      "x": 503,
+      "y": 195,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [
+    {
+      "markerId": "hashash",
+      "x": 385,
+      "y": 91,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 141,
+          "y": 203
+        },
+        {
+          "x": 519,
+          "y": 203
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

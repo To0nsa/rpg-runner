@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
-import 'package:runner_core/levels/terrain_elevation.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_connection_creation_dialog.dart';
 import 'package:runner_editor/src/chunks/chunk_connection_creation.dart';
@@ -19,15 +18,23 @@ import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_domain_plugin.dart';
 import 'package:runner_editor/src/playtest/authored_playtest_preparation.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
+import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 import 'test_support/chunk_level_fixture.dart';
 
 void main() {
   for (final step in [24, 32]) {
     test(
-      'joined starters survive Undo, Save and both characters at step $step',
+      'flat joined starters survive Undo, Save and both characters at step $step',
       () async {
-        const groups = ['default', 'up', 'high', 'top', 'down', 'return'];
+        const groups = [
+          'default',
+          'grove',
+          'path',
+          'clearing',
+          'ridge',
+          'return',
+        ];
         final workspace = await createChunkLevelFixture(
           level: standardChunkFixtureLevel.copyWith(
             terrainHeightStepPx: step,
@@ -73,21 +80,9 @@ void main() {
         addTearDown(controller.dispose);
         await controller.loadWorkspace();
         var predecessor = starter.chunkKey;
-        for (final (group, height) in [
-          ('up', TerrainElevation.raised),
-          ('high', TerrainElevation.high),
-          ('top', TerrainElevation.high),
-          ('down', TerrainElevation.raised),
-          ('return', TerrainElevation.normal),
-        ]) {
+        for (final group in groups.skip(1)) {
           final before = controller.document! as ChunkV2Document;
-          final intent = _intent(
-            before,
-            predecessor,
-            group,
-            height,
-            group: group,
-          );
+          final intent = _intent(before, predecessor, group, group: group);
           final sourceBytes = ChunkV2FileCodec.encode(
             before.chunks.firstWhere((chunk) => chunk.chunkKey == predecessor),
           );
@@ -100,6 +95,13 @@ void main() {
           final next = controller.document! as ChunkV2Document;
           expect(next.chunks.length, before.chunks.length + 1);
           expect(next.selectedChunkKey, group);
+          final created = next.chunks.singleWhere(
+            (chunk) => chunk.chunkKey == group,
+          );
+          expect(
+            created.collisionShapes.single.vertices[0].yHalfPixels,
+            created.collisionShapes.single.vertices[1].yHalfPixels,
+          );
           expect(
             ChunkV2FileCodec.encode(
               next.chunks.firstWhere((chunk) => chunk.chunkKey == predecessor),
@@ -170,15 +172,8 @@ void main() {
           );
           final core = GameCore.levelPlaytest(scenario: scenario);
           final replay = GameCore.levelPlaytest(scenario: scenario);
-          var jumpedAtHigh = false;
           for (var tick = 1; tick <= 1800; tick++) {
-            final onHigh = (core.playerPosX ~/ 600) % groups.length == 3;
-            final jump = onHigh && !jumpedAtHigh && core.playerGrounded;
-            if (jump) jumpedAtHigh = true;
-            final commands = <Command>[
-              MoveAxisCommand(tick: tick, axis: 1),
-              if (jump) JumpPressedCommand(tick: tick),
-            ];
+            final commands = <Command>[MoveAxisCommand(tick: tick, axis: 1)];
             core.applyCommands(commands);
             replay.applyCommands(commands);
             core.stepOneTick();
@@ -190,17 +185,7 @@ void main() {
             );
             expect(replay.playerPosX, core.playerPosX);
             expect(replay.playerPosY, core.playerPosY);
-            final bodyTop =
-                core.playerPosY +
-                character.catalog.colliderOffsetY -
-                character.catalog.colliderHeight / 2;
-            expect(
-              bodyTop,
-              greaterThan(0),
-              reason: 'High jump remains in the locked viewport',
-            );
           }
-          expect(jumpedAtHigh, isTrue);
           expect(core.distance, greaterThan(4000));
         }
       },
@@ -227,12 +212,7 @@ void main() {
           payload: {'intent': starter},
         ),
       ) as ChunkV2Document;
-      final intent = _intent(
-        document,
-        starter.chunkKey,
-        'up',
-        TerrainElevation.raised,
-      );
+      final intent = _intent(document, starter.chunkKey, 'up');
       final changed = document.copyWith(
         levels: [document.levels.single.copyWith(terrainHeightStepPx: 25)],
       );
@@ -280,8 +260,80 @@ void main() {
     },
   );
 
+  test('custom solid exit creates an exact-height successor', () async {
+    final workspace = await createChunkLevelFixture();
+    final plugin = ChunkDomainPlugin();
+    var document = await plugin.loadForLevel(
+      workspace,
+      target: const ChunkLevelTarget('forest'),
+    );
+    final starter = plugin.flatStarterIntentForLevel(
+      document,
+      levelId: 'forest',
+    );
+    document = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: 'create_flat_starter',
+        payload: {'intent': starter},
+      ),
+    ) as ChunkV2Document;
+    document = _withCustomExit(document);
+    final template = inspectChunkConnectionTemplate(document, starter.chunkKey);
+    final intent = ChunkConnectionCreation(
+      predecessorKey: starter.chunkKey,
+      predecessorSignature: template.signature,
+      heightStepPx: template.presets.stepPx,
+      groundTopY: template.presets.groundTopY,
+      chunkKey: 'custom_successor',
+      groupId: 'default',
+      difficulty: 'early',
+    );
+    final next = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.createConnectingChunkCommandKind,
+        payload: {'intent': intent},
+      ),
+    ) as ChunkV2Document;
+    final successor = next.chunks.singleWhere(
+      (chunk) => chunk.chunkKey == 'custom_successor',
+    );
+    expect(successor.collisionShapes.single.vertices.first.yHalfPixels, 324);
+    expect(successor.collisionShapes.single.vertices[1].yHalfPixels, 324);
+    final scene = plugin.buildEditableScene(next) as ChunkV2Scene;
+    expect(
+      scene
+          .seamAnalysis
+          .rightSignaturesByChunkKey[starter.chunkKey]!
+          .physicalRecord,
+      scene
+          .seamAnalysis
+          .leftSignaturesByChunkKey[successor.chunkKey]!
+          .physicalRecord,
+    );
+    expect(
+      (await plugin.exportToRepo(workspace, document: next)).applied,
+      isTrue,
+    );
+    final reloaded = await plugin.loadForLevel(
+      workspace,
+      target: const ChunkLevelTarget('forest'),
+    );
+    expect(
+      reloaded.chunks
+          .singleWhere((chunk) => chunk.chunkKey == successor.chunkKey)
+          .collisionShapes
+          .single
+          .vertices
+          .first
+          .yHalfPixels,
+      324,
+    );
+  });
+
   testWidgets(
-    'creation dialog previews a matching ramp and cancel leaves no owner',
+    'creation dialog previews a flat match and cancel leaves no owner',
     (tester) async {
       final workspace = (await tester.runAsync(createChunkLevelFixture))!;
       final plugin = ChunkDomainPlugin();
@@ -331,8 +383,8 @@ void main() {
       );
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      expect(find.text('Exit elevation'), findsOneWidget);
-      expect(find.textContaining('Normal'), findsWidgets);
+      expect(find.textContaining('Flat ground: Normal'), findsOneWidget);
+      expect(find.text('Exit elevation'), findsNothing);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(result, isNull);
@@ -345,13 +397,104 @@ void main() {
       );
     },
   );
+
+  testWidgets('creation dialog fixes both edges at the custom exit height', (
+    tester,
+  ) async {
+    final workspace = (await tester.runAsync(createChunkLevelFixture))!;
+    final plugin = ChunkDomainPlugin();
+    var document = (await tester.runAsync(
+      () => plugin.loadForLevel(
+        workspace,
+        target: const ChunkLevelTarget('forest'),
+      ),
+    ))!;
+    final starter = plugin.flatStarterIntentForLevel(
+      document,
+      levelId: 'forest',
+    );
+    document = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: 'create_flat_starter',
+        payload: {'intent': starter},
+      ),
+    ) as ChunkV2Document;
+    document = _withCustomExit(document);
+    final scene = plugin.buildEditableScene(document) as ChunkV2Scene;
+    ChunkConnectionCreation? result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                result = await showDialog<ChunkConnectionCreation>(
+                  context: context,
+                  builder: (_) => ChunkConnectionCreationDialog(
+                    document: document,
+                    scene: scene,
+                    template: inspectChunkConnectionTemplate(
+                      document,
+                      starter.chunkKey,
+                    ),
+                    workspaceRootPath: workspace.rootPath,
+                  ),
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Flat ground: Custom · Y 162'), findsOneWidget);
+    expect(find.text('Exit elevation'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('connecting_chunk_create')));
+    await tester.pumpAndSettle();
+    expect(result, isNotNull);
+    final created = buildConnectingChunk(document, result!);
+    expect(created.collisionShapes.single.vertices[0].yHalfPixels, 324);
+    expect(created.collisionShapes.single.vertices[1].yHalfPixels, 324);
+  });
+}
+
+ChunkV2Document _withCustomExit(ChunkV2Document document) {
+  final predecessor = document.chunks.single;
+  final originalShape = predecessor.collisionShapes.single;
+  const points = [
+    (0, 224),
+    (173, 190),
+    (446, 190),
+    (600, 162),
+    (600, 270),
+    (0, 270),
+  ];
+  return document.copyWith(
+    chunks: [
+      predecessor.copyWith(
+        collisionShapes: [
+          TerrainSourceShapeDef(
+            shapeId: originalShape.shapeId,
+            surfaceKind: originalShape.surfaceKind,
+            materialKey: originalShape.materialKey,
+            vertices: [
+              for (final (x, y) in points)
+                TerrainSourceVertexDef(xHalfPixels: x * 2, yHalfPixels: y * 2),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 ChunkConnectionCreation _intent(
   ChunkV2Document document,
   String predecessor,
-  String key,
-  TerrainElevation exit, {
+  String key, {
   String group = 'default',
 }) {
   final template = inspectChunkConnectionTemplate(document, predecessor);
@@ -363,6 +506,5 @@ ChunkConnectionCreation _intent(
     chunkKey: key,
     groupId: group,
     difficulty: 'early',
-    exitElevation: exit,
   );
 }

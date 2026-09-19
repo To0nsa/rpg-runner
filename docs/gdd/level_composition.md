@@ -50,9 +50,10 @@ freely authored; custom ground heights still connect when their full edges match
 
 Use Chunk Creator's Connections card to preview matching neighbors, show Ground
 heights, or Create connecting chunk. The form fixes the entrance from the current
-exit and offers a flat or one-step ascent/descent. Group and difficulty keep their
-existing meaning. Creation opens an ordinary chunk that can be edited, undone and
-saved. Unsupported compound profiles show manual authoring guidance.
+exit and makes a flat chunk at that exact height, including custom heights.
+Group and difficulty keep their existing meaning. Creation opens an ordinary
+chunk that can be reshaped afterward, undone and saved. Unsupported compound
+profiles show manual authoring guidance.
 
 The opening must support the player's Normal spawn. After it, seeded selection
 uses matching edges with a valid continuation through all future sections. A

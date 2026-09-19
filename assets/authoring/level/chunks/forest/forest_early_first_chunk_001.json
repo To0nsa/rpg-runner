@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_early_flat_002",
-  "id": "forest_early_flat_002",
-  "revision": 12,
+  "chunkKey": "forest_early_first_chunk_001",
+  "id": "forest_early_first_chunk_001",
+  "revision": 24,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,28 +14,29 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_05_64x64_platform",
-      "prefabKey": "tiny_swords_ground_platform_05_64x64_platform",
-      "x": 304,
-      "y": 96,
+      "prefabId": "gandalf_hardcore_willow_tree_01",
+      "prefabKey": "gandalf_hardcore_willow_tree_01",
+      "x": 372,
+      "y": 102,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.3
+    },
+    {
+      "prefabId": "ancient_forest_lamp_post_01",
+      "prefabKey": "ancient_forest_lamp_post_01",
+      "x": 112,
+      "y": 176,
       "zIndex": 0,
       "snapToGrid": true
     },
     {
-      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
-      "x": 448,
-      "y": 144,
+      "prefabId": "tiny_swords_bench_01",
+      "prefabKey": "tiny_swords_bench_01",
+      "x": 158,
+      "y": 200,
       "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "tiny_swords_ground_platform_09_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_09_96x32_platform",
-      "x": 144,
-      "y": 160,
-      "zIndex": 0,
-      "snapToGrid": true
+      "snapToGrid": false
     }
   ],
   "markers": [],

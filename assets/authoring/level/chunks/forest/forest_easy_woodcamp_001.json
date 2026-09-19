@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_easy_woodcamp_001",
+  "id": "forest_easy_woodcamp_001",
+  "revision": 47,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "woodcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_bush_01",
+      "prefabKey": "tiny_swords_bush_01",
+      "x": 240,
+      "y": 208,
+      "zIndex": -1,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_tree_01",
+      "prefabKey": "tiny_swords_tree_01",
+      "x": 88,
+      "y": 151,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_wood_logs_01",
+      "prefabKey": "tiny_swords_wood_logs_01",
+      "x": 194,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sawbuck_01",
+      "prefabKey": "tiny_swords_sawbuck_01",
+      "x": 335,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_boulder_03",
+      "prefabKey": "tiny_swords_boulder_03",
+      "x": 75,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_boulder_02",
+      "prefabKey": "tiny_swords_boulder_02",
+      "x": 110,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_wood_log_01",
+      "prefabKey": "tiny_swords_wood_log_01",
+      "x": 464,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_03",
+      "prefabKey": "tiny_swords_bush_03",
+      "x": 526,
+      "y": 199,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}
