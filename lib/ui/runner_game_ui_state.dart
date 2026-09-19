@@ -15,6 +15,9 @@ class RunnerGameUiState {
 
   bool get isRunning => canRun && !paused;
 
+  /// Keeps player-facing run UI hidden until Flame's initial world is ready.
+  bool get showLoadingOverlay => !runLoaded;
+
   bool get showReadyOverlay => !started && runLoaded;
 
   bool get showPauseOverlay => started && paused && !gameOver;

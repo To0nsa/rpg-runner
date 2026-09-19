@@ -543,6 +543,11 @@ Start. Each simulation owns its cache; controller shutdown, ghost completion,
 replacement, and widget disposal release it. A worker already in progress can
 finish but cannot retain results or schedule another batch after disposal.
 
+The run route keeps its loading presentation above the Flame view until the
+initial terrain, parallax, player, static prefabs, and render registries have
+finished loading and `RunnerFlameGame` publishes `worldReady`. The player HUD,
+controls, and ready prompt are not mounted before that boundary.
+
 A cold cache, a jump beyond the window, or unsupported/failed isolate work uses
 the original synchronous build. Speculative failures are diagnostic only and
 cannot make a future invalid selection fail an earlier simulation tick; actual

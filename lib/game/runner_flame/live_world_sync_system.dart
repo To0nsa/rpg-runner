@@ -81,17 +81,24 @@ class LiveWorldSyncSystem {
 
   bool get hasTriggerHitboxes => _hitboxes.isNotEmpty;
 
-  void mountPlayer(SpriteAnimSet playerAnimations) {
+  /// Mounts the initial player view and completes after Flame loads it.
+  Future<void> mountPlayer(SpriteAnimSet playerAnimations) async {
     _player = PlayerView(
       animationSet: playerAnimations,
       renderScale: Vector2.all(runnerPlayerRenderTuning.scale),
       feedbackTuning: _combatFeedbackTuning,
     )..priority = priorityPlayer;
-    world.add(_player);
+    await world.add(_player);
   }
 
-  void mountStaticPrefabSprites(List<StaticPrefabSpriteSnapshot> sprites) {
+  /// Mounts the first static-prefab set and awaits every referenced image.
+  Future<void> mountStaticPrefabSprites(
+    List<StaticPrefabSpriteSnapshot> sprites,
+  ) async {
     syncStaticPrefabSprites(sprites);
+    await Future.wait<void>(
+      _staticPrefabSpritesByKey.values.map((view) => view.loaded),
+    );
   }
 
   void syncStaticPrefabSprites(List<StaticPrefabSpriteSnapshot> sprites) {

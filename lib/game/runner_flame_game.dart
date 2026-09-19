@@ -125,6 +125,9 @@ class RunnerFlameGame extends FlameGame {
   final PlayerCharacterDefinition playerCharacter;
 
   /// UI-facing load progress for the run route.
+  ///
+  /// `worldReady` guarantees that initial terrain, parallax, player, static
+  /// prefabs, and render registries have finished loading.
   final ValueNotifier<RunLoadState> loadState = ValueNotifier<RunLoadState>(
     RunLoadState.initial,
   );
@@ -168,12 +171,15 @@ class RunnerFlameGame extends FlameGame {
       controller: controller,
       materials: terrainMaterials,
     )..priority = priorityStagedTerrain;
-    world.add(_stagedTerrain!);
-    world.add(
-      WaterTerrainForeground(_stagedTerrain!)
-        ..priority = priorityWaterForeground,
+    final terrainLoad = Future<void>.value(world.add(_stagedTerrain!));
+    final waterForegroundLoad = Future<void>.value(
+      world.add(
+        WaterTerrainForeground(_stagedTerrain!)
+          ..priority = priorityWaterForeground,
+      ),
     );
     _applyRenderTheme(controller.snapshot.visualThemeId);
+    final parallaxLoad = _backgroundParallax?.loaded ?? Future<void>.value();
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
     final playerAnimations = await loadPlayerAnimations(
@@ -188,10 +194,13 @@ class RunnerFlameGame extends FlameGame {
       _projectileRenderRegistry.load(images),
       _spellImpactRenderRegistry.load(images),
       _pickupRenderRegistry.load(images),
+      terrainLoad,
+      waterForegroundLoad,
+      parallaxLoad,
     ]);
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
 
-    _liveWorldSync.mountPlayer(playerAnimations);
+    await _liveWorldSync.mountPlayer(playerAnimations);
 
     world.add(
       AimRay(
@@ -217,7 +226,7 @@ class RunnerFlameGame extends FlameGame {
       )..priority = priorityMeleeAimRay,
     );
 
-    _liveWorldSync.mountStaticPrefabSprites(
+    await _liveWorldSync.mountStaticPrefabSprites(
       controller.snapshot.staticPrefabSprites,
     );
     _setLoadState(RunLoadPhase.worldReady, 1.0);

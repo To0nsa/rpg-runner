@@ -26,6 +26,8 @@ import '../game/replay/ghost_playback_runner.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
+import 'bootstrap/loader_content.dart';
+import 'components/loader_shell.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'haptics/haptics_cue.dart';
@@ -44,8 +46,10 @@ import 'viewport/viewport_metrics.dart';
 ///
 /// Intended to be mounted by a host app. It owns its [GameController] and
 /// cleans it up on dispose.
-/// Run loading prepares upcoming terrain in the background; Start also awaits
-/// the selected ghost's first window before either simulation advances.
+/// The loading presentation stays mounted while render assets and upcoming
+/// terrain are prepared; HUD and controls appear only after the initial world
+/// is render-ready. Start also awaits the selected ghost's first window before
+/// either simulation advances.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.
@@ -1005,7 +1009,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 key: ValueKey(_game),
                 game: _game,
                 autofocus: false,
-                loadingBuilder: null,
+                loadingBuilder: (_) => const _RunLoadingView(),
               ),
             );
 
@@ -1020,6 +1024,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
               animation: _controller,
               builder: (context, _) {
                 final uiState = _buildUiState(runLoaded: runLoaded);
+                if (uiState.showLoadingOverlay) {
+                  return const SizedBox.shrink();
+                }
                 if (uiState.gameOver) {
                   final runEndedEvent = _controller.lastRunEndedEvent;
                   final runEndKey =
@@ -1081,6 +1088,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           },
         ),
       ],
+    );
+  }
+}
+
+class _RunLoadingView extends StatelessWidget {
+  const _RunLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const LoaderShell(
+      child: LoaderContent(loadingMessage: 'Building level...'),
     );
   }
 }

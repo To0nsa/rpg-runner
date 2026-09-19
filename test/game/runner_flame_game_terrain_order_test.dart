@@ -59,7 +59,10 @@ void main() {
           ],
         );
         final level = base.copyWith(
-          chunkPatternSource: ChunkPatternListSource(easyPatterns: [pattern]),
+          chunkPatternSource: ChunkPatternListSource(
+            easyPatterns: const [],
+            normalPatterns: [pattern],
+          ),
         );
         final core = playtest
             ? GameCore.chunkPlaytest(
@@ -125,10 +128,7 @@ void main() {
           await tester.pump(const Duration(milliseconds: 25));
           await tester.runAsync(() => Future<void>.delayed(Duration.zero));
           expect(tester.takeException(), isNull);
-          if (game.loadState.value.phase == RunLoadPhase.worldReady &&
-              game.world.children
-                  .whereType<StaticPrefabSpriteComponent>()
-                  .isNotEmpty) {
+          if (game.loadState.value.phase == RunLoadPhase.worldReady) {
             break;
           }
         }
@@ -138,14 +138,30 @@ void main() {
           Vector2(virtualWidth.toDouble(), virtualHeight.toDouble()),
         );
 
-        expect(game.world.children.whereType<StagedTerrain>(), hasLength(1));
+        final stagedTerrain = game.world.children
+            .whereType<StagedTerrain>()
+            .single;
+        expect(stagedTerrain.debugAssetsReady, isTrue);
         expect(
           game.camera.backdrop.children.whereType<StagedTerrain>(),
           isEmpty,
         );
         expect(
+          game.camera.backdrop.children
+              .whereType<PixelParallaxBackdrop>()
+              .single
+              .isLoaded,
+          isTrue,
+        );
+        expect(
           game.world.children.whereType<StaticPrefabSpriteComponent>().length,
           greaterThanOrEqualTo(4),
+        );
+        expect(
+          game.world.children.whereType<StaticPrefabSpriteComponent>().every(
+            (component) => component.isLoaded,
+          ),
+          isTrue,
         );
 
         for (final center in [
