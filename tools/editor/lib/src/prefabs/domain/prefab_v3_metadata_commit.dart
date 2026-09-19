@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
 
+import '../../terrain_authoring/terrain_source_models.dart';
 import '../models/models.dart';
 import '../store/prefab_determinism.dart';
 import '../validation/prefab_validation.dart';
@@ -9,8 +10,10 @@ import 'prefab_v3_owner_validation.dart';
 
 /// Immutable revision-owned metadata for one existing prefab-v3 owner.
 ///
-/// Stable identity, revision, and collision geometry are absent so this
-/// contract cannot mutate them.
+/// Stable identity and collision geometry are absent so callers cannot rewrite
+/// them. Applying an obstacle-to-decoration kind transition is the sole
+/// geometry side effect: the policy clears every collision shape because
+/// decorations are visual-only.
 @immutable
 final class PrefabV3MetadataSnapshot {
   PrefabV3MetadataSnapshot({
@@ -142,6 +145,9 @@ final class PrefabV3MetadataCommitPolicy {
       visualSource: after.visualSource,
       anchorXPx: after.anchorXPx,
       anchorYPx: after.anchorYPx,
+      collisionShapes: after.kind == PrefabKind.decoration
+          ? const <TerrainSourceShapeDef>[]
+          : current.collisionShapes,
       tags: after.tags,
     );
     final prefabs = document.data.prefabs.toList(growable: false);

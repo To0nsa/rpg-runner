@@ -199,6 +199,13 @@ choices to that source family, and copies the captured visual source into the
 metadata commit. Editing status, kind, anchor, or tags therefore cannot rebind
 an existing stable Prefab owner to different artwork.
 
+An atlas-backed obstacle may select `decoration` directly in that same Kind
+field. Applying the metadata command clears all of the owner's collision shapes
+as part of the same revision and history entry, without a separate prompt.
+This is the only geometry side effect of owner metadata editing; every other
+metadata edit preserves collision exactly. Platform-module owners remain
+Platforms because changing their kind would invalidate their visual source.
+
 Dirty owner forms are part of the route's local-draft projection. Source apply
 and session undo/redo cannot bypass them: undo cancels the local form before
 session history and redo is unavailable. Owner, level, or Prefab workspace

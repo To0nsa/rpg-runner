@@ -354,6 +354,40 @@ void main() {
     expect(plugin.validate(edited), isEmpty);
   });
 
+  test('changing an obstacle to decoration clears collision atomically', () {
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
+    final before = document.data.prefabs.single;
+    final beforeMetadata = PrefabV3MetadataSnapshot.fromPrefab(before);
+
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3MetadataCommandKind,
+        payload: <String, Object?>{
+          'prefabKey': before.prefabKey,
+          'commit': PrefabV3MetadataCommit(
+            before: beforeMetadata,
+            after: PrefabV3MetadataSnapshot(
+              status: before.status,
+              kind: PrefabKind.decoration,
+              visualSource: before.visualSource,
+              anchorXPx: before.anchorXPx,
+              anchorYPx: before.anchorYPx,
+              tags: before.tags,
+            ),
+          ),
+        },
+      ),
+    ) as PrefabV3Document;
+
+    final after = edited.data.prefabs.single;
+    expect(after.kind, PrefabKind.decoration);
+    expect(after.collisionShapes, isEmpty);
+    expect(after.revision, before.revision + 1);
+    expect(edited.changedPrefabKeys, <String>['target']);
+    expect(plugin.validate(edited), isEmpty);
+  });
+
   test('stale invalid and no-op metadata commands preserve identity', () {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
     final current = document.data.prefabs.single;

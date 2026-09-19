@@ -178,6 +178,10 @@ Save/Discard/Cancel, while a rejected or stale command leaves the mounted form,
 values, and diagnostic intact. Dirty owner forms participate in
 `EditorPageLocalDraftState`, block source apply, consume undo before it can
 reach session history, disable redo, and guard Prefab workspace-view changes.
+Selecting Decoration for an atlas-backed obstacle clears its collision shapes
+inside that metadata command, producing one revision and one undoable history
+entry without confirmation. Other metadata edits preserve collision, and
+platform-module owners cannot leave the Platform kind.
 Chunk presents `chunkKey` as its sole identity field; accepted edits mirror it
 into the required schema-v2 `id` value instead of exposing a second name.
 An active Prefab polygon gesture also blocks

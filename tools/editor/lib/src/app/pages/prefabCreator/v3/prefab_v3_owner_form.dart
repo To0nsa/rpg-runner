@@ -521,7 +521,8 @@ List<PrefabKind> _resolveAvailableKinds(
   } else {
     kinds = <PrefabKind>[
       if (!hasCollision || allSolid) PrefabKind.obstacle,
-      if (!hasCollision) PrefabKind.decoration,
+      if (!hasCollision || prefab.kind == PrefabKind.obstacle)
+        PrefabKind.decoration,
     ];
   }
   if (kinds.isNotEmpty) return kinds;

@@ -1650,6 +1650,65 @@ void main() {
   );
 
   testWidgets(
+    'kind selection converts an obstacle to a collision-free decoration',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openOwnerLibrary(tester);
+
+      final original = _prefab(harness.session, 'obstacle');
+      expect(original.collisionShapes, isNotEmpty);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+      );
+      await tester.pump();
+
+      final kindField = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_kind_obstacle'),
+      );
+      await tester.ensureVisible(kindField);
+      await tester.tap(kindField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('decoration').last);
+      await tester.pump();
+
+      final apply = find.byKey(
+        const ValueKey<String>('prefab_v3_owner_inline_apply_obstacle'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      var converted = _prefab(harness.session, 'obstacle');
+      expect(converted.kind, PrefabKind.decoration);
+      expect(converted.collisionShapes, isEmpty);
+      expect(converted.revision, original.revision + 1);
+
+      expect(
+        _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
+        isTrue,
+      );
+      await tester.pump();
+      converted = _prefab(harness.session, 'obstacle');
+      expect(converted.kind, PrefabKind.obstacle);
+      expect(converted.collisionShapes, original.collisionShapes);
+      expect(converted.revision, original.revision);
+    },
+  );
+
+  testWidgets(
     'owner atlas catalog filters usage and creates from a visual slice card',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1100);
