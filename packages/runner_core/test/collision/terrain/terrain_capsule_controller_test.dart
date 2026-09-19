@@ -307,6 +307,57 @@ void main() {
       expect(landResult.supportEdgeId, harness.upwardEdges.single.id);
     });
 
+    test('one-way rounded endpoint retains support below the face plane', () {
+      final harness = _Harness([
+        _polygon('one-way', const [
+          (0, 100),
+          (200, 100),
+          (200, 110),
+          (0, 110),
+        ], collisionMode: TerrainCollisionMode.oneWay),
+      ]);
+      var capsule = _circle(-5, 91.2);
+      var result = TerrainCapsuleMotionResult();
+      harness.controller.move(
+        capsule: capsule,
+        request: TerrainMotionRequest(
+          displacementXTicks: 0,
+          displacementYTicks: 256,
+          mode: TerrainMotionMode.worldSpace,
+        ),
+        beganGrounded: false,
+        out: result,
+      );
+      expect(result.grounded, isTrue);
+      expect(
+        result.finalCenterYTicks + capsule.radiusTicks,
+        greaterThan(100 * 1024),
+      );
+      final support = result.supportEdgeId;
+      final centerX = result.finalCenterXTicks;
+      final centerY = result.finalCenterYTicks;
+      for (var tick = 0; tick < 30; tick += 1) {
+        capsule = _circle(centerX / 1024, centerY / 1024);
+        result = TerrainCapsuleMotionResult();
+        harness.controller.move(
+          capsule: capsule,
+          request: TerrainMotionRequest(
+            displacementXTicks: 0,
+            displacementYTicks: 0,
+            gravityYTicks: 341,
+            mode: TerrainMotionMode.groundedHorizontal,
+          ),
+          beganGrounded: true,
+          priorSupportEdgeId: support,
+          priorSupportGeometryVersion: harness.geometry.version,
+          out: result,
+        );
+        expect(result.grounded, isTrue, reason: 'tick $tick');
+        expect(result.finalCenterXTicks, centerX);
+        expect(result.finalCenterYTicks, centerY);
+      }
+    });
+
     test(
       'inclusive 60-degree edge supports while over-limit edge is a wall',
       () {

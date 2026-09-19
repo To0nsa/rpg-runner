@@ -666,13 +666,14 @@ class TerrainCapsuleController {
       final thresholdX =
           vertex.xTicks +
           _roundedDivide(radiusWithSkin * _rawNormalX(edge), edgeLength);
-      final transition = _supportTransitionScratch..set(
-        nextSupport: adjacent,
-        vertex: vertex,
-        thresholdX: thresholdX,
-        thresholdY: _supportCenterYAtX(edge, thresholdX),
-        convex: true,
-      );
+      final transition = _supportTransitionScratch
+        ..set(
+          nextSupport: adjacent,
+          vertex: vertex,
+          thresholdX: thresholdX,
+          thresholdY: _supportCenterYAtX(edge, thresholdX),
+          convex: true,
+        );
       _cacheSupportTransition(edge, direction, exists: true);
       return transition;
     }
@@ -682,13 +683,14 @@ class TerrainCapsuleController {
       _cacheSupportTransition(edge, direction, exists: false);
       return null;
     }
-    final transition = _supportTransitionScratch..set(
-      nextSupport: adjacent,
-      vertex: vertex,
-      thresholdX: intersection.xTicks,
-      thresholdY: intersection.yTicks,
-      convex: false,
-    );
+    final transition = _supportTransitionScratch
+      ..set(
+        nextSupport: adjacent,
+        vertex: vertex,
+        thresholdX: intersection.xTicks,
+        thresholdY: intersection.yTicks,
+        convex: false,
+      );
     _cacheSupportTransition(edge, direction, exists: true);
     return transition;
   }
@@ -923,6 +925,9 @@ class TerrainCapsuleController {
       {
         final sweepStartX = _centerX;
         final sweepStartY = _centerY;
+        final traversalSupport = mode == TerrainMotionMode.worldSpace
+            ? null
+            : _provisionalSupport;
         _querySweptCapsule(
           centerX: sweepStartX,
           centerY: sweepStartY,
@@ -968,6 +973,7 @@ class TerrainCapsuleController {
             displacementYTicks: remainingY,
             edge: edge,
             hit: _scratchHit,
+            traversalSupport: traversalSupport,
             out: _scratchDecision,
           );
           if (!_scratchDecision.blocks) continue;
@@ -993,6 +999,7 @@ class TerrainCapsuleController {
           displacementYTicks: remainingY,
           edge: bestEdge,
           hit: _bestHit,
+          traversalSupport: traversalSupport,
           out: _scratchDecision,
         );
         final retainedSkin =
@@ -1043,6 +1050,7 @@ class TerrainCapsuleController {
             displacementYTicks: remainingY,
             edge: edge,
             hit: _scratchHit,
+            traversalSupport: traversalSupport,
             out: _scratchDecision,
           );
           if (!_scratchDecision.blocks) continue;
@@ -1456,9 +1464,10 @@ class TerrainCapsuleController {
 
     switch (decision.kind) {
       case TerrainContactKind.support:
+        final support = geometry.edgeById[decision.constraintEdgeId] ?? edge;
         if (_provisionalSupport == null ||
-            edge.id.compareTo(_provisionalSupport!.id) < 0) {
-          _provisionalSupport = edge;
+            support.id.compareTo(_provisionalSupport!.id) < 0) {
+          _provisionalSupport = support;
         }
       case TerrainContactKind.wall:
         _out.wallNormalXTicks = decision.normalXTicks;

@@ -222,6 +222,19 @@ Jump "feel" typically also uses:
 
 Those values should live in a movement tuning doc or file-level tuning.
 
+### 7.4 Platform edges and obstacle corners
+
+Descending onto the walkable upper rim of a one-way platform can establish
+support even when the rounded player collider overhangs its edge. Moving inward
+follows that rim onto the top; an accepted stationary edge landing retains
+support. Upward jumps still pass through one-way platforms, and their sides
+do not become walls. A miss outside the walkable rim can slide off normally.
+
+Solid obstacle corners allow the player to slide around the exposed corner
+instead of becoming pinned by simultaneous floor and wall contacts. Ordinary
+grounded movement still uses the four-pixel automatic step limit; taller
+obstacles require a jump. These rules apply in normal runs and editor Play.
+
 ---
 
 ## 8. Button layout (current overlay)

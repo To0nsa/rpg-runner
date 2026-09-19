@@ -38,12 +38,16 @@ class TerrainContactPolicy {
   final TerrainTraversalProfile profile;
 
   /// Classifies one successful continuous hit for the supplied tick motion.
+  ///
+  /// Supply [traversalSupport] only for grounded motion; see
+  /// [classifySweepAtCenter] for the step-barrier contract.
   void classifySweep({
     required UprightCapsule tickStartCapsule,
     required int displacementXTicks,
     required int displacementYTicks,
     required TerrainEdge edge,
     required CapsuleSweepHit hit,
+    TerrainEdge? traversalSupport,
     required TerrainContactDecision out,
   }) {
     classifySweepAtCenter(
@@ -55,11 +59,16 @@ class TerrainContactPolicy {
       displacementYTicks: displacementYTicks,
       edge: edge,
       hit: hit,
+      traversalSupport: traversalSupport,
       out: out,
     );
   }
 
   /// Primitive-center equivalent of [classifySweep] for controller hot loops.
+  ///
+  /// [traversalSupport] is the current support for grounded traversal only.
+  /// An elevated solid corner then remains a step barrier, so sliding around
+  /// its capsule-radius arc cannot bypass the authored step-height limit.
   @pragma('vm:prefer-inline')
   void classifySweepAtCenter({
     required int tickStartCenterXTicks,
@@ -70,6 +79,7 @@ class TerrainContactPolicy {
     required int displacementYTicks,
     required TerrainEdge edge,
     required CapsuleSweepHit hit,
+    TerrainEdge? traversalSupport,
     required TerrainContactDecision out,
   }) {
     out.reset();
@@ -93,7 +103,16 @@ class TerrainContactPolicy {
     var normalX = hit.normalXTicks;
     var normalY = hit.normalYTicks;
     var constraintEdge = edge;
-    if (hit.feature != TerrainSegmentFeature.face &&
+    final stepWall = traversalSupport == null
+        ? null
+        : _stepWallAtEndpoint(edge, hit, traversalSupport);
+    if (stepWall != null) {
+      normalX = stepWall.outwardNormal.xTicks;
+      normalY = stepWall.outwardNormal.yTicks;
+      constraintEdge = stepWall;
+    }
+    if (stepWall == null &&
+        hit.feature != TerrainSegmentFeature.face &&
         _hasCompatibleJoin(edge, hit.feature) &&
         !_isConvexJoin(edge, hit.feature)) {
       final adjacent = _adjacentEdge(edge, hit.feature);
@@ -122,6 +141,13 @@ class TerrainContactPolicy {
         displacementXTicks * normalX + displacementYTicks * normalY;
     if (entering >= 0) return;
     _classifyBlockingNormal(normalX, normalY, out);
+    if (out.kind == TerrainContactKind.support &&
+        !profile.isWalkableSupport(constraintEdge)) {
+      final adjacent = _adjacentEdge(edge, hit.feature);
+      if (adjacent != null && profile.isWalkableSupport(adjacent)) {
+        constraintEdge = adjacent;
+      }
+    }
     if (out.blocks) out.constraintEdgeId = constraintEdge.id;
   }
 
@@ -162,14 +188,13 @@ class TerrainContactPolicy {
           )) {
         return false;
       }
-      return capsulePlaneClearanceNumeratorAtCenter(
-            centerXTicks: tickStartCenterXTicks,
-            centerYTicks: tickStartCenterYTicks,
-            radiusTicks: radiusTicks,
-            verticalHalfSegmentTicks: verticalHalfSegmentTicks,
-            edge: edge,
-          ) >=
-          terrainContactEpsilonTicks * terrainDirectionScale;
+      return _oneWayStartsOutside(
+        centerX: tickStartCenterXTicks,
+        centerY: tickStartCenterYTicks,
+        radius: radiusTicks,
+        halfSegment: verticalHalfSegmentTicks,
+        edge: edge,
+      );
     }
     return true;
   }
@@ -279,27 +304,70 @@ class TerrainContactPolicy {
     if (!profile.oneWaySupportEnabled || !profile.isWalkableSupport(edge)) {
       return;
     }
-    if (capsulePlaneClearanceNumeratorAtCenter(
-          centerXTicks: tickStartCenterXTicks,
-          centerYTicks: tickStartCenterYTicks,
-          radiusTicks: radiusTicks,
-          verticalHalfSegmentTicks: verticalHalfSegmentTicks,
-          edge: edge,
-        ) <
-        terrainContactEpsilonTicks * terrainDirectionScale) {
+    if (!_oneWayStartsOutside(
+      centerX: tickStartCenterXTicks,
+      centerY: tickStartCenterYTicks,
+      radius: radiusTicks,
+      halfSegment: verticalHalfSegmentTicks,
+      edge: edge,
+    )) {
       return;
     }
     final approach =
         displacementXTicks * edge.outwardNormal.xTicks +
         displacementYTicks * edge.outwardNormal.yTicks;
-    if (approach >= 0) return;
+    if (approach > 0) return;
     if (!_pointLiesOnFiniteEdge(hit.pointXTicks, hit.pointYTicks, edge)) return;
+    if (-hit.normalYTicks < profile.minimumSupportUpComponent) return;
+    if (displacementXTicks * hit.normalXTicks +
+            displacementYTicks * hit.normalYTicks >=
+        0) {
+      return;
+    }
 
     out
       ..kind = TerrainContactKind.support
-      ..normalXTicks = edge.outwardNormal.xTicks
-      ..normalYTicks = edge.outwardNormal.yTicks
+      ..normalXTicks = hit.normalXTicks
+      ..normalYTicks = hit.normalYTicks
       ..constraintEdgeId = edge.id;
+  }
+
+  bool _oneWayStartsOutside({
+    required int centerX,
+    required int centerY,
+    required int radius,
+    required int halfSegment,
+    required TerrainEdge edge,
+  }) {
+    if (capsulePlaneClearanceNumeratorAtCenter(
+          centerXTicks: centerX,
+          centerYTicks: centerY,
+          radiusTicks: radius,
+          verticalHalfSegmentTicks: halfSegment,
+          edge: edge,
+        ) >=
+        terrainContactEpsilonTicks * terrainDirectionScale) {
+      return true;
+    }
+    final bottomY = centerY + halfSegment;
+    final projection =
+        (centerX - edge.start.xTicks) * edge.dxTicks +
+        (bottomY - edge.start.yTicks) * edge.dyTicks;
+    final TerrainPoint endpoint;
+    if (projection < 0) {
+      endpoint = edge.start;
+    } else if (projection > edge.lengthSquaredTicks) {
+      endpoint = edge.end;
+    } else {
+      return false;
+    }
+    final dx = centerX - endpoint.xTicks;
+    final dy = bottomY - endpoint.yTicks;
+    // At a rounded endpoint the foot may lie below the infinite face plane
+    // while the capsule is still outside the finite platform on its upper side.
+    return dy < 0 &&
+        dx * edge.outwardNormal.xTicks + dy * edge.outwardNormal.yTicks > 0 &&
+        dx * dx + dy * dy >= radius * radius;
   }
 
   void _classifyBlockingNormal(
@@ -354,13 +422,29 @@ class TerrainContactPolicy {
     return adjacentId == null ? null : geometry.edgeById[adjacentId];
   }
 
+  TerrainEdge? _stepWallAtEndpoint(
+    TerrainEdge edge,
+    CapsuleSweepHit hit,
+    TerrainEdge traversalSupport,
+  ) {
+    final adjacent = _adjacentEdge(edge, hit.feature);
+    if (adjacent == null ||
+        profile.isWalkableSupport(edge) ==
+            profile.isWalkableSupport(adjacent)) {
+      return null;
+    }
+    final rise =
+        (hit.pointXTicks - traversalSupport.start.xTicks) *
+            traversalSupport.outwardNormal.xTicks +
+        (hit.pointYTicks - traversalSupport.start.yTicks) *
+            traversalSupport.outwardNormal.yTicks;
+    if (rise <= terrainContactEpsilonTicks * terrainDirectionScale) return null;
+    return profile.isWalkableSupport(edge) ? adjacent : edge;
+  }
+
   bool _isConvexJoin(TerrainEdge edge, TerrainSegmentFeature feature) {
     final adjacent = _adjacentEdge(edge, feature);
     if (adjacent == null) return false;
-    if (!profile.isWalkableSupport(edge) ||
-        !profile.isWalkableSupport(adjacent)) {
-      return false;
-    }
     final incoming = feature == TerrainSegmentFeature.endEndpoint
         ? edge
         : adjacent;
@@ -370,6 +454,8 @@ class TerrainContactPolicy {
     final cross =
         incoming.dxTicks * outgoing.dyTicks -
         incoming.dyTicks * outgoing.dxTicks;
+    // Convexity is geometric even where a walkable top meets a vertical wall.
+    // Splitting that shared radial contact into two face normals pins landings.
     return cross > 0;
   }
 }

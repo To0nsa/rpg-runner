@@ -116,13 +116,27 @@ or ceiling. One-way faces:
 
 - block only from the collidable side,
 - require an approaching/crossing motion,
-- require a finite-face projection,
+- require an approaching finite-face or walkable upper-endpoint contact,
 - never recover a capsule from the back side,
 - never turn an exposed endpoint into a wall or step.
 
+One-way sidedness uses the full capsule clearance for face contacts. Outside
+the finite face, a capsule may also approach an endpoint while its lower spine
+endpoint is above the vertex and the capsule is still outside the vertex
+radius. This same test validates retained support: a rounded foot dipping below
+the infinite face plane cannot invalidate an otherwise valid endpoint landing
+on the following tick. Endpoint sweeps keep their radial normal, reject steep
+or underside contacts, and reject motion leaving the platform's outward face.
+Consequently moving inward across a pixel-stepped platform rim follows the
+upper boundary rather than moving through it. Upward jumps remain pass-through.
+
 Compatible endpoint adjacency suppresses ghost normals at smooth joins and
 exact cross-polygon seams. Convex peaks and concave valleys retain support
-through their canonical adjacent edges. A ledge beyond snap range clears
+through their canonical adjacent edges. Convexity depends on the geometric turn,
+including a walkable top joined to a vertical wall. Both edges then report the
+same radial corner constraint rather than independent floor and wall blockers.
+An accepted support contact on the wall's endpoint binds the adjacent walkable
+edge for final support. A ledge beyond snap range clears
 support on the first unsupported tick.
 
 Equal-time non-parallel blockers are solved as a deterministic 2D half-space
@@ -138,9 +152,25 @@ and the geometric height between the source and destination supports remain
 bounded by the authored step height. An eligible endpoint may therefore be
 used during the exact-boundary transition, but it cannot ratchet a capsule
 onto a `5 px` ledge. Snap applies the matching geometric source/destination
-height check. Complete support-width validation remains the responsibility of
+height check. Grounded traversal supplies its current support to contact policy;
+an elevated solid top/wall junction remains a step barrier until that bounded
+sequence succeeds. Airborne corner sliding therefore does not let grounded
+walking or dashing bypass the step limit. Complete support-width validation
+remains the responsibility of
 navigation and placement queries; the runtime helper does not authorize a
 narrow authored spawn perch.
+
+These endpoint and corner rules are included in game compatibility `2026.09.2`,
+alongside the difficulty-paced camera change, with matching client, Functions
+defaults/boards, and replay worker. Tick order, wire formats, and fixed iteration
+limits are unchanged. Older inputs must drain on the older worker under the
+[compatibility release policy](chunk_connections.md#compatibility-release).
+
+`terrain_player_edge_landing_test.dart` exercises both player definitions and
+both entry directions against a solid corner and the authored narrow platform
+rim, including upward passage. Controller tests also cover stationary rounded
+endpoint support, exact step limits, blocked clearance, and genuine concave
+floor/wall contacts.
 
 Recovery is bounded. If correction exceeds one radius, cannot make progress,
 or remains unresolved after four iterations, the controller restores the
@@ -208,6 +238,12 @@ navigation, contacts, placement/teleport/combat outcomes, lifecycle state,
 and each scenario's legacy disposition. Test-only fixtures drive the real Core
 systems; normal gameplay and replay construction do not consume the signature
 fixture.
+
+The `2026.09.2` corner fix changes only the navigation-graph and enemy-run
+goldens: `SG-E05` gains two valid jump edges, and three grounded `SG-E03`
+checkpoints advance differently around corrected corners. The four-pixel step
+acceptance and five-pixel rejection remain unchanged. Source, edge, contact,
+player-run, and navigation-surface signatures retain their prior hashes.
 
 ## Future Ground Targets
 
