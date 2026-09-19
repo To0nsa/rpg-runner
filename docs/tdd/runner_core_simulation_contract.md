@@ -239,6 +239,14 @@ Player death may enter a death-animation freeze: only animation advances until
 the terminal `RunEndedEvent` is emitted. Any terminal end freezes normal
 simulation and sets the run paused.
 
+The camera terminal check runs after final player motion and the camera update.
+It ends the run only when the player's right collider edge is strictly less
+than `cameraLeft - CameraTuning.fallBehindGraceDistance`; equality remains
+safe. The default grace distance is 128 world units, approximately 0.64 seconds
+at the baseline 200-world-unit-per-second camera target. This is a spatial rule,
+not a timer, so its effective duration varies with relative player/camera
+motion. The outcome change is released as game compatibility `2026.09.1`.
+
 ## Outputs and consumers
 
 Core exposes immutable snapshots through `GameCore.buildSnapshot` and transient

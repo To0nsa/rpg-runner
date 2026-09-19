@@ -103,13 +103,14 @@ replay was finalized before expiry.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
 - The current hard-cutover compatibility tuple is:
-  - current game compatibility: `2026.09.0`
+  - current game compatibility: `2026.09.1`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v2`
   - score: `score-v1`
   - ghost: `ghost-v1`
-- This build rejects `2026.03.0`, `2026.08.0`, and `rules-v1` tickets. It owns
-  one connection-aware selector and current capsule combat implementation.
+- This build rejects `2026.03.0`, `2026.08.0`, `2026.09.0`, and `rules-v1`
+  tickets. It owns one connection-aware selector, the 128-world-unit camera
+  grace rule, and the current capsule combat implementation.
   Drain old issuance and queued work on the old worker before the matching
   app/Functions/content/worker switch; see the [release policy](chunk_connections.md#compatibility-release).
 - A ranked ticket carries the board window captured at issuance. Validation

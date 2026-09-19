@@ -470,6 +470,9 @@ Notes:
 - Run-ending checks for the terrain fall threshold (`fellIntoGap`) and the
   camera threshold (`fellBehindCamera`) happen before broadphase/hit resolution;
   when triggered, later combat phases do not run.
+- Falling behind the camera has a 128-world-unit off-screen grace distance,
+  measured from the viewport's left edge to the player's right collider edge.
+  The boundary itself is safe; crossing strictly beyond it ends the run.
 - If paused/game-over, `stepOneTick` returns early with no gameplay updates.
 - During death-animation freeze ticks, only animation advances; combat systems do not run.
 - Player mobility/jump presses still preempt queued/active combat intents before mobility/jump commit in `AbilityActivationSystem`.

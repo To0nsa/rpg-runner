@@ -294,11 +294,13 @@ therefore changes when scheduling rules change even if the resulting set of
 chunk pairs happens to remain the same. Geometry source and edge signatures
 remain separate evidence.
 
-Connection-aware selection is released as game compatibility **2026.09.0**
+Connection-aware selection was released as game compatibility **2026.09.0**
 across app tickets, Functions defaults and boards, and the replay worker. It did
 not require a replay wire-schema, score-version, kill-plane, or camera-mode
-change. The current worker accepts 2026.09.0 and rejects older 2026.03.0 and
-2026.08.0 runs rather than replaying old inputs through the new selector.
+change. The corresponding worker accepted 2026.09.0 and rejected older
+2026.03.0 and 2026.08.0 runs rather than replaying old inputs through the new
+selector. The later camera-grace outcome change advances the current coordinated
+Core release to 2026.09.1 without changing this selector contract.
 
 Any future change to profile equality, pool resolution, graph viability,
 candidate ordering, or selection salts is replay-sensitive and requires a new

@@ -113,4 +113,5 @@ planning documents are retained in a dated archive after the September 15,
 Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
-required 2026.09.0 compatibility rollout.
+the selector's 2026.09.0 compatibility rollout. The current gameplay
+compatibility is 2026.09.1, which adds the camera fall-behind grace distance.

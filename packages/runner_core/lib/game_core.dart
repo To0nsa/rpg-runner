@@ -2047,16 +2047,17 @@ class GameCore {
   // Death Condition Checks
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Checks if the player has fallen behind the camera's left edge.
+  /// Checks if the player has crossed the grace line behind the camera.
   ///
   /// This is a "soft" death—the player can still be on solid ground but
-  /// has failed to keep up with the autoscrolling camera.
+  /// has failed to recover within the configured world-space distance.
   bool _checkFellBehindCamera({required double cameraLeft}) {
     final rightX = _playerRightX();
     if (rightX == null) return false;
 
-    // Player's right edge must stay ahead of camera's left edge.
-    return rightX < cameraLeft;
+    final deathLineX =
+        cameraLeft - _cameraTuning.fallBehindGraceDistance;
+    return rightX < deathLineX;
   }
 
   double? _playerRightX() {

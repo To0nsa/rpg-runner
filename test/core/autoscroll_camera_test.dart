@@ -9,8 +9,10 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/levels/level_world_constants.dart';
 import 'package:runner_core/players/player_character_registry.dart';
-import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/tuning/camera_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
 import '../support/test_player.dart';
 
@@ -195,4 +197,57 @@ void main() {
         ? 'Requires autoscroll (CameraTuning.speedLagMulX > 0)'
         : false,
   );
+
+  test('GameCore: camera grace distance uses a strict collider boundary', () {
+    GameCore buildCore(double graceDistance) {
+      final base = PlayerCharacterRegistry.eloise;
+      return GameCore(
+        levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
+          tuning: CoreTuning(
+            camera: CameraTuning(
+              speedLagMulX: 0.0,
+              fallBehindGraceDistance: graceDistance,
+            ),
+            track: const TrackTuning(enabled: false),
+          ),
+        ),
+        seed: 1,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          ),
+        ),
+      );
+    }
+
+    const colliderHalfWidth = 11.0;
+    final graceCore = buildCore(defaultFallBehindGraceDistance);
+    final cameraLeft = graceCore.buildSnapshot().camera.left;
+
+    graceCore.setPlayerPosXYUnsafeForTest(
+      cameraLeft - defaultFallBehindGraceDistance - colliderHalfWidth,
+      graceCore.playerPosY,
+    );
+    graceCore.stepOneTick();
+    expect(graceCore.gameOver, isFalse);
+
+    graceCore.setPlayerPosXYUnsafeForTest(
+      cameraLeft - defaultFallBehindGraceDistance - colliderHalfWidth - 0.001,
+      graceCore.playerPosY,
+    );
+    graceCore.stepOneTick();
+    expect(graceCore.gameOver, isTrue);
+    expect(
+      graceCore.drainEvents().whereType<RunEndedEvent>().single.reason,
+      RunEndReason.fellBehindCamera,
+    );
+
+    final zeroGraceCore = buildCore(0.0);
+    zeroGraceCore.setPlayerPosXYUnsafeForTest(
+      zeroGraceCore.buildSnapshot().camera.left - colliderHalfWidth - 0.001,
+      zeroGraceCore.playerPosY,
+    );
+    zeroGraceCore.stepOneTick();
+    expect(zeroGraceCore.gameOver, isTrue);
+  });
 }

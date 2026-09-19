@@ -60,10 +60,10 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The current validator build accepts game compatibility `2026.09.0`;
+The current validator build accepts game compatibility `2026.09.1`;
 replay/command format `1`, `rules-v2`, `score-v1`, and `ghost-v1` remain the
-supported ranked tuple. Connection-aware selection changes seeded terrain, so
-`2026.03.0` and `2026.08.0` are rejected before replay. This build does not ship
+supported ranked tuple. The camera grace rule changes terminal outcomes, so
+`2026.03.0`, `2026.08.0`, and `2026.09.0` are rejected before replay. This build does not ship
 a historical selector or the retired `rules-v1` combat simulator.
 
 Use the [connection compatibility drain-and-switch policy](../../docs/tdd/chunk_connections.md#compatibility-release).
@@ -104,8 +104,8 @@ firebase deploy --project rpg-runner-d7add `
 ```
 
 Then run the checked-in service/queue policy from the repository root.
-For the connection compatibility cutover, complete the drain above first. Deploy
-the matching `2026.09.0` worker and Functions configuration before enabling new
+For the game compatibility cutover, complete the drain above first. Deploy
+the matching `2026.09.1` worker and Functions configuration before enabling new
 client issuance. This repository implementation does not deploy those services.
 
 ```powershell
