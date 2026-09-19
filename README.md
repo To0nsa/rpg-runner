@@ -39,8 +39,10 @@ This is a portfolio-style game project designed to demonstrate production-minded
 
 ## Run Locally
 
-The supported development baseline is Flutter 3.47.1 (Dart 3.13.1). Backend
-work uses Node 24 and pnpm 11.22.0 through Corepack.
+The supported development baseline is Flutter 3.47.1 (Dart 3.13.1). Android
+builds use JDK 17 or newer with the checked-in Gradle 9.3.1 wrapper and Android
+Gradle Plugin 9.1.0. Backend work uses Node 24 and pnpm 11.22.0 through
+Corepack.
 
 ```bash
 flutter pub get
