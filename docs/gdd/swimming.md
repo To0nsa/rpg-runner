@@ -3,16 +3,43 @@
 Status: implemented. September 13, 2026.
 
 Players enter swimming automatically when their body is sufficiently immersed.
-Movement accelerates more gently, sinking slows, and **Jump** gives an upward
-stroke. Repeated strokes can lift the player above the surface and onto a bank.
-Strokes use the equipped jump's normal ground-jump resource cost and respect
-action locks. Dashes end on entry and are unavailable while swimming. Existing
-air jumps remain available after leaving the pool.
+Horizontal cruising speed is 20% lower than on dry land, movement accelerates
+more gently, sinking slows, and **Jump** gives an upward stroke. Repeated strokes
+can lift the player above the surface and onto a bank. Strokes use the equipped
+jump's normal ground-jump resource cost and respect action locks. Dashes end on
+entry and are unavailable while swimming. Existing air jumps remain available
+after leaving the pool.
 
 The water animation and translucent foreground communicate immersion. There is
 no breath meter, drowning timer, water damage, current, or fluid simulation.
-Other actors retain their existing movement. The scrolling camera and ordinary
+The scrolling camera and ordinary
 death rules still apply; water never makes falling below the kill plane safe.
+
+## Enemies in water
+
+Grojib and Hashash swim automatically at the same immersion thresholds as the
+player. Their horizontal target speed is 80% of their own normal speed, with
+the same slower acceleration, coasting and sinking as the player. Status and
+combat movement modifiers still apply, so they can remain faster swimmers than
+the player when their normal running speed is higher.
+
+They pursue a submerged player's depth, or use upward strokes to reach the
+surface and climb out toward a player on land. Strokes have a 0.20-second
+cooldown and cost no resources; movement, navigation, jump and stun locks gate
+their respective movement. Their existing attacks and Hashash teleport retain
+their normal rules. Death stops active swimming propulsion.
+
+Open rectangular pools and adjoining regions support direct pursuit. Land
+navigation handles the approach; when no land route exists, an adjacent pool
+up to 64 px below a bank permits entry. On immersion, old land-jump plans and
+bank stopping bounds are cleared. Bank exits use strokes and normal solid
+collision, then land navigation resumes. Walls still block movement: this is
+not an underwater maze pathfinder. Author reachable bank exits near water
+height and test both directions with both enemies.
+
+Unoco continues flying through water without swimming penalties. Derf stays
+stationary. Enemies reuse existing jump/fall animations and the shared water
+foreground tint; there are no new swimming sprite sheets.
 
 ## Create a pool
 

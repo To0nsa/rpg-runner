@@ -58,6 +58,10 @@ commit and recovery rules remain in force while airborne; ground snap cannot
 pull the enemy back onto the takeoff slope. A drop likewise keeps its committed
 horizontal direction until landing or deterministic fallback.
 
+Grojib and Hashash also use [swimming pursuit](swimming.md#enemies-in-water)
+inside authored pools, including the 20% speed penalty and bank-exit strokes.
+Swimming suspends their land graph commitments until they return to terrain.
+
 ## Unoco Flying Terrain Rules
 
 Unoco remains a flying enemy and never joins the grounded surface graph. Its

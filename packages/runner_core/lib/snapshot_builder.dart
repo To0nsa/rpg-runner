@@ -925,6 +925,10 @@ class SnapshotBuilder {
         EntityRenderSnapshot(
           id: e,
           kind: EntityKind.enemy,
+          isSwimming: world.swimState.isSwimming(e),
+          waterImmersion1000: world.swimState.has(e)
+              ? world.swimState.immersion1000[world.swimState.indexOf(e)]
+              : 0,
           pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
           vel: Vec2(world.transform.velX[ti], world.transform.velY[ti]),
           size: size,

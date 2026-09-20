@@ -199,6 +199,15 @@ navigation-intent contract, including finite fallback bounds and active jump
 timing consumed by the shared ground-enemy locomotion system. Normal Field and
 Forest streams select this adapter from their published terrain authority.
 
+Water immersion refreshes after Hashash teleport placement and before enemy
+navigation, player action gates and locomotion; it refreshes again after terrain
+integration for final snapshots. Grojib/Hashash share player buoyancy, bypass dry
+surface plans while swimming, and use deterministic cooldown-limited strokes
+for pursuit and bank exits. Swimming player targets bypass dry landing
+prediction. See [swimming](swimmable_water.md) for local entry and depth rules.
+These enemy rules and the player's 0.8 swimming target-speed multiplier require
+game compatibility `2026.09.3` across client, Functions and replay validator.
+
 Terrain authority rejects unknown enabled dynamic bodies and never falls
 back to rectangle collision. Catalog-owned actors use their capsule policies;
 physics-driven projectiles use a distinct continuous AABB terrain sweep in the

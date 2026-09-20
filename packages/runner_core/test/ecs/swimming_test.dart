@@ -6,6 +6,7 @@ import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
 import 'package:runner_core/ecs/systems/jump_system.dart';
+import 'package:runner_core/ecs/systems/player_movement_system.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/systems/water_immersion_system.dart';
 import 'package:runner_core/ecs/world.dart';
@@ -135,6 +136,32 @@ void main() {
     expect(world.swimState.nextStrokeTick[si], 30);
   });
 
+  test('swimming caps horizontal cruising speed at 80 percent of running', () {
+    final (world, player) = _world();
+    final inputIndex = world.playerInput.indexOf(player);
+    final transformIndex = world.transform.indexOf(player);
+    final swimIndex = world.swimState.indexOf(player);
+    const maxSpeedX = 200.0;
+    final tuning = MovementTuningDerived.from(
+      const MovementTuning(maxSpeedX: maxSpeedX, accelerationX: 60000),
+      tickHz: 60,
+    );
+    final system = PlayerMovementSystem();
+    world.playerInput.moveAxis[inputIndex] = 1;
+
+    WaterImmersionSystem().step(world, [_pool('pool', 0, 200)]);
+    system.step(world, tuning, currentTick: 1);
+    expect(
+      world.transform.velX[transformIndex],
+      closeTo(maxSpeedX * SwimmingTuning.maxSpeedMultiplier, 1e-9),
+    );
+
+    world.swimState.setImmersion(swimIndex, 0);
+    world.transform.velX[transformIndex] = 0;
+    system.step(world, tuning, currentTick: 2);
+    expect(world.transform.velX[transformIndex], closeTo(maxSpeedX, 1e-9));
+  });
+
   test(
     'buoyancy caps falling but preserves upward strokes and stun sinking',
     () {
@@ -169,12 +196,20 @@ void main() {
     final (world, first) = _world();
     final second = world.createEntity();
     world.swimState.add(second);
-    world.swimState.setImmersion(world.swimState.indexOf(second), 1000);
+    world.swimState.setImmersion(
+      world.swimState.indexOf(second),
+      1000,
+      surfaceY: 102400,
+    );
     world.swimState.nextStrokeTick[world.swimState.indexOf(second)] = 44;
     world.destroyEntity(first);
     expect(world.swimState.has(first), isFalse);
     expect(world.swimState.isSwimming(second), isTrue);
     expect(world.swimState.nextStrokeTick[world.swimState.indexOf(second)], 44);
+    expect(
+      world.swimState.surfaceYTicks[world.swimState.indexOf(second)],
+      102400,
+    );
   });
 }
 
@@ -184,6 +219,7 @@ void main() {
   world.transform.add(player, posX: 50, posY: 110, velX: 0, velY: 0);
   world.body.add(player, const BodyDef());
   world.movement.add(player, facing: Facing.right);
+  world.playerInput.add(player);
   world.swimState.add(player);
   world.worldContactCapsule.add(
     player,

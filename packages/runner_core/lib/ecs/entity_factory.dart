@@ -142,7 +142,8 @@ class EntityFactory {
   /// Adds specific components based on [enemyId]:
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
   /// - [EnemyId.grojib]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
-  ///   [NavIntentStore], and [EngagementIntentStore] for ground navigation/engagement.
+  ///   [NavIntentStore], [EngagementIntentStore], and swimming state for pursuit
+  ///   across terrain and water.
   /// - [EnemyId.hashash]: Uses the same ground-navigation stack as [EnemyId.grojib],
   ///   plus [HashashTeleportStateStore] for evade/ambush behavior.
   EntityId createEnemy({
@@ -204,6 +205,7 @@ class EntityFactory {
       );
     }
     if (enemyId == EnemyId.grojib || enemyId == EnemyId.hashash) {
+      world.swimState.add(id);
       world.surfaceNav.add(id);
       world.groundEnemyChaseOffset.add(
         id,

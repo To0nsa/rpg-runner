@@ -10,6 +10,8 @@ import 'package:runner_core/ecs/stores/faction_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
@@ -28,6 +30,63 @@ import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('enemy swimming snapshots match direct Core and protocol replay', () {
+    final direct = _buildWaterCore(withEnemies: true);
+    final replayed = _buildWaterCore(withEnemies: true);
+    var sawSwimmingEnemy = false;
+    for (var tick = 1; tick <= 90; tick++) {
+      direct.applyCommands([MoveAxisCommand(tick: tick, axis: 0)]);
+      direct.stepOneTick();
+      sawSwimmingEnemy |= direct.buildSnapshot().entities.any(
+        (e) => e.enemyId != null && e.isSwimming,
+      );
+    }
+    final result = runReplaySimulation(
+      core: replayed,
+      totalTicks: 90,
+      commandStream: [
+        for (var tick = 1; tick <= 90; tick++)
+          ReplayCommandFrameV1(tick: tick, moveAxis: 0, pressedMask: 0),
+      ],
+    );
+    expect(result.runEnded, isNull);
+    final expected = direct
+        .buildSnapshot()
+        .entities
+        .where((e) => e.enemyId != null)
+        .toList();
+    final actual = replayed
+        .buildSnapshot()
+        .entities
+        .where((e) => e.enemyId != null)
+        .toList();
+    expect(actual.length, expected.length);
+    for (var i = 0; i < expected.length; i++) {
+      sawSwimmingEnemy |= expected[i].isSwimming;
+      expect(
+        (
+          actual[i].id,
+          actual[i].pos.x,
+          actual[i].pos.y,
+          actual[i].vel!.x,
+          actual[i].vel!.y,
+          actual[i].isSwimming,
+          actual[i].waterImmersion1000,
+        ),
+        (
+          expected[i].id,
+          expected[i].pos.x,
+          expected[i].pos.y,
+          expected[i].vel!.x,
+          expected[i].vel!.y,
+          expected[i].isSwimming,
+          expected[i].waterImmersion1000,
+        ),
+      );
+    }
+    expect(sawSwimmingEnemy, isTrue);
+  });
+
   test('protocol jump frames replay swimming through the same Core rules', () {
     final direct = _buildWaterCore();
     final replayed = _buildWaterCore();
@@ -41,7 +100,9 @@ void main() {
             moveAxis: 0,
             pressedMask:
                 (tick == 30 ? ReplayCommandFrameV1.pressedJumpBit : 0) |
-                (tick == 30 || tick == 40 ? ReplayCommandFrameV1.pressedDashBit : 0),
+                (tick == 30 || tick == 40
+                    ? ReplayCommandFrameV1.pressedDashBit
+                    : 0),
           ),
       ],
     );
@@ -195,7 +256,7 @@ GameCore _buildCore() => GameCore(
   playerCharacter: PlayerCharacterRegistry.eloise,
 );
 
-GameCore _buildWaterCore() {
+GameCore _buildWaterCore({bool withEnemies = false}) {
   final base = stagedAuthoredTerrain.chunks.firstWhere(
     (chunk) => chunk.levelId == 'field',
   );
@@ -250,15 +311,37 @@ GameCore _buildWaterCore() {
     playerCharacter: PlayerCharacterRegistry.eloise,
     levelDefinition: LevelDefinition(
       id: LevelId.field,
-      chunkPatternSource: const ChunkPatternListSource(
-        easyPatterns: [],
+      noEnemyChunks: 0,
+      chunkPatternSource: ChunkPatternListSource(
+        easyPatterns: [
+          if (withEnemies)
+            ChunkPattern(
+              name: 'water_enemies',
+              spawnMarkers: [
+                SpawnMarker(
+                  enemyId: EnemyId.grojib,
+                  x: 440,
+                  chancePercent: 100,
+                  salt: 1,
+                  placement: SpawnPlacementMode.highestSurfaceAtX,
+                ),
+                SpawnMarker(
+                  enemyId: EnemyId.hashash,
+                  x: 360,
+                  chancePercent: 100,
+                  salt: 2,
+                  placement: SpawnPlacementMode.highestSurfaceAtX,
+                ),
+              ],
+            ),
+        ],
         hardPatterns: [],
       ),
       groundTopY: 224,
       killPlaneY: 400,
-      tuning: const CoreTuning(
-        track: TrackTuning(enabled: false),
-        camera: CameraTuning(speedLagMulX: 0),
+      tuning: CoreTuning(
+        track: TrackTuning(enabled: withEnemies),
+        camera: const CameraTuning(speedLagMulX: 0),
       ),
     ),
     terrainGeometry: candidate.geometry,

@@ -180,9 +180,14 @@ class PlayerMovementSystem {
     bool swimming,
   ) {
     final t = tuning.base;
+    final maxSpeedMultiplier = swimming ? SwimmingTuning.maxSpeedMultiplier : 1;
     final desiredX = axis == 0.0
         ? 0.0
-        : axis * t.maxSpeedX * moveSpeedMul * slopeTargetMultiplier;
+        : axis *
+              t.maxSpeedX *
+              moveSpeedMul *
+              slopeTargetMultiplier *
+              maxSpeedMultiplier;
     return applyAccelDecel(
       current: velocityX,
       desired: desiredX,

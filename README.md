@@ -17,7 +17,7 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 2 authored level layouts: `forest`, `field`
 - Generated polygon terrain is the collision, navigation, placement, and
   rendering authority for normal runs and replay validation
-- Animated, authorable water regions with deterministic player swimming;
+- Animated, authorable water regions with deterministic player and ground-enemy swimming;
   see the [pool authoring guide](docs/gdd/swimming.md)
 - 2 selectable character definitions
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
@@ -116,5 +116,6 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The current gameplay
-compatibility is 2026.09.2, which paces camera target speed by the resolved
-chunk difficulty while retaining the 2026.09.1 fall-behind grace distance.
+compatibility is 2026.09.3, which adds ground-enemy swimming and a shared 20%
+water-speed penalty. It retains difficulty-paced camera targets and the
+fall-behind grace distance.

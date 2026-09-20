@@ -31,18 +31,22 @@ immutable water list publishes atomically with the terrain runtime bundle and
 render snapshot. Version rebinding and prepared/captured Play preserve those
 same records. Water is never looked up from repository files during a run.
 
-Players receive a registered `SwimStateStore` at spawn. `WaterImmersionSystem`
-classifies the facing-aware capsule centre column before ability activation,
-movement and gravity, then refreshes it after terrain motion. Immersion is the
+Players, Grojib and Hashash receive a registered `SwimStateStore` at spawn.
+`WaterImmersionSystem` classifies the capsule centre column after Hashash
+teleport placement and before enemy navigation, ability activation, movement
+and gravity, then refreshes it after terrain motion. Authored capsule offsets
+use the shared player/enemy art-facing mirror rule. Immersion is the
 vertical intersection divided by capsule height, in thousandths. Half-open X
 bounds avoid ambiguity between adjoining pools; maximum vertical immersion is
-independent of query order. Invalid/disabled/kinematic bodies become dry.
+independent of query order. The winning region also publishes its surface Y in
+physics ticks; equal immersion chooses the upper surface deterministically.
+Invalid/disabled/kinematic bodies become dry.
 
 Swimming starts at 450/1000 immersion and ends below 250/1000. The state does
 not place the player on a support edge. Horizontal acceleration is multiplied
-by 0.5 and deceleration by 0.45; maximum running speed is preserved because the
-camera continues scrolling. Gravity is multiplied by 0.12, with downward speed
-capped at 42 px/s. Upward strokes are not clamped to the sinking speed.
+by 0.5, deceleration by 0.45, and the horizontal target speed by 0.8. Gravity is
+multiplied by 0.12, with downward speed capped at 42 px/s. Upward strokes are not
+clamped to the sinking speed.
 
 Jump input while swimming requests an upward 260 px/s stroke, with a minimum
 0.20-second interval rounded upward to simulation ticks. Jump action locks,
@@ -54,8 +58,39 @@ and control rules remain owned by their existing systems.
 
 Snapshots expose `isSwimming` and `waterImmersion1000`. HUD affordability uses
 stroke timing and ground-jump costs, and disables mobility while swimming.
-Existing jump/fall character clips remain in use. Only players swim in this
-version; enemies, pickups and projectiles retain their current motion rules.
+Enemy snapshots expose the same immersion fields, and existing jump/fall clips
+remain in use. Unoco, Derf, pickups and projectiles have no swimming state.
+
+### Ground enemy pursuit
+
+`TerrainEnemyNavigationSystem` consumes water regions from the same published
+candidate as the solid graph. Swimming clears cached surface paths, active
+ballistic jump commitments and safe bank bounds, and targets the player's
+current X. Swimming player targets bypass the dry ballistic landing predictor.
+On land, a failed graph route may release its safe-range clamp only when a
+probe immediately beyond that bank is inside water no more than 64 px below
+the foot. Ordinary dry gaps keep their existing safety bounds. Landing after
+swimming rebuilds the ordinary surface route.
+
+`GroundEnemyLocomotionSystem` owns water propulsion. Its horizontal target
+composes engagement, status and the shared 0.8 water multiplier, with the shared
+0.5 acceleration and 0.45 deceleration. It steers depth with 260 px/s strokes
+at least 0.20 seconds apart (ceil to ticks), using the player's capsule centre
+while the player swims and a bank-clearing surface target otherwise. A 6 px
+depth tolerance limits oscillation; ascending past a submerged target stops
+upward velocity. Strokes clear prior support, so terrain integrates them in
+world space rather than projecting them along the pool floor. Gravity remains
+owned by `GravitySystem` and uses shared buoyancy/sink limits.
+
+Enemy strokes do not spend stamina. Move/nav/stun locks stop active swimming;
+jump locks only stop strokes. Existing combat, teleport, death, culling and
+terrain collision policies still apply. Local water pursuit does not search
+around underwater mazes or make tall/closed walls traversable.
+
+This outcome change and the player's 20% water-speed penalty ship as game
+compatibility `2026.09.3`, with matching client, Functions and validator gates.
+Replay input encoding is unchanged; older compatibility labels are rejected
+before simulation under the existing drain-and-switch release policy.
 
 ## Presentation
 

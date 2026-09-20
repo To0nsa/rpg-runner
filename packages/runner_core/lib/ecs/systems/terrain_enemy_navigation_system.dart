@@ -7,6 +7,8 @@ import '../../navigation/terrain_surface_navigator.dart';
 import '../../navigation/terrain_trajectory_predictor.dart';
 import '../../navigation/types/terrain_surface_graph.dart';
 import '../../tuning/physics_tuning.dart';
+import '../../terrain/swimming_tuning.dart';
+import '../../terrain/water_region.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -51,10 +53,13 @@ final class TerrainEnemyNavigationSystem {
   /// Whether the latest airborne player target produced a terrain landing.
   bool lastPredictedPlayerLanding = false;
 
+  /// Writes land or water pursuit from the currently published terrain and
+  /// [waterRegions]. Immersion must be refreshed before this call.
   void step(
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
+    Iterable<WaterRegion> waterRegions = const [],
   }) {
     lastNavigatedEnemyCount = 0;
     lastPredictedPlayerLanding = false;
@@ -103,6 +108,18 @@ final class TerrainEnemyNavigationSystem {
         graph: graph,
         bundleVersion: bundle.version,
       );
+      if (world.swimState.isSwimming(enemy)) {
+        // Surface paths assume dry ballistic motion. Discard them on immersion,
+        // including retained bank bounds that would otherwise pull swimmers back.
+        navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
+        _writeWaterIntent(
+          world,
+          intentIndex,
+          world.transform.posX[world.transform.indexOf(player)],
+        );
+        lastNavigatedEnemyCount += 1;
+        continue;
+      }
       final intent = _navigator.update(
         state: navStore.terrainState[navIndex],
         graph: graph,
@@ -130,8 +147,76 @@ final class TerrainEnemyNavigationSystem {
         target: target,
         intent: intent,
       );
+      if (!intent.hasPlan &&
+          actor.grounded &&
+          intent.hasSafeBodyRange &&
+          !world.controlLock.isLocked(enemy, LockFlag.nav, currentTick) &&
+          !world.controlLock.isLocked(enemy, LockFlag.move, currentTick) &&
+          !world.controlLock.isStunned(enemy, currentTick) &&
+          _canEnterWater(
+            actor,
+            intent,
+            target.bodyCenter.xTicks,
+            waterRegions,
+          )) {
+        navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
+        _writeWaterIntent(
+          world,
+          intentIndex,
+          target.bodyCenter.xTicks / terrainPhysicsTicksPerWorldUnit,
+        );
+      }
       lastNavigatedEnemyCount += 1;
     }
+  }
+
+  void _writeWaterIntent(EcsWorld world, int index, double targetX) {
+    final intents = world.navIntent;
+    intents.navTargetX[index] = targetX;
+    intents.desiredX[index] = targetX;
+    intents.hasPlan[index] = false;
+    intents.jumpNow[index] = false;
+    intents.commitMoveDirX[index] = 0;
+    intents.hasSafeSurface[index] = false;
+    intents.clearActiveJumpTraversalAt(index);
+  }
+
+  bool _canEnterWater(
+    TerrainSurfaceNavigationActorSnapshot actor,
+    TerrainSurfaceNavIntent intent,
+    int targetX,
+    Iterable<WaterRegion> regions,
+  ) {
+    final direction = (targetX - actor.bodyCenter.xTicks).sign;
+    if (direction == 0) return false;
+    final safeEdge = direction > 0
+        ? intent.safeMaximumBodyXTicks
+        : intent.safeMinimumBodyXTicks;
+    if ((targetX - safeEdge) * direction <= 0) return false;
+    final footY =
+        actor.bodyCenter.yTicks +
+        actor.capsule.offsetYTicks +
+        actor.capsule.radiusTicks +
+        actor.capsule.verticalHalfSegmentTicks;
+    // Probe immediately beyond the current capsule-width bank foothold. Never
+    // release a ledge clamp for a distant pool or an ordinary dry gap.
+    final probeX =
+        safeEdge +
+        actor.capsule.resolvedOffsetXTicks +
+        direction *
+            (actor.capsule.radiusTicks + 4 * terrainPhysicsTicksPerWorldUnit);
+    for (final water in regions) {
+      if (probeX >= water.leftTicks &&
+          probeX < water.rightTicks &&
+          water.bottomTicks > footY &&
+          water.topTicks >= footY - 4 * terrainPhysicsTicksPerWorldUnit &&
+          water.topTicks - footY <=
+              SwimmingTuning.enemyEntryMaxDrop *
+                  terrainPhysicsTicksPerWorldUnit) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _bindBundle(
@@ -202,6 +287,7 @@ final class TerrainEnemyNavigationSystem {
   }
 
   bool _canPredictPlayer(EcsWorld world, EntityId player) {
+    if (world.swimState.isSwimming(player)) return false;
     final gravityIndex = world.gravityControl.tryIndexOf(player);
     return gravityIndex == null ||
         world.gravityControl.suppressGravityTicksLeft[gravityIndex] <= 0;

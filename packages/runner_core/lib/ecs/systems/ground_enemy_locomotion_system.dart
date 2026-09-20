@@ -3,6 +3,7 @@ import 'package:runner_core/ecs/entity_id.dart';
 import '../../combat/control_lock.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../snapshots/enums.dart';
+import '../../terrain/swimming_tuning.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
@@ -92,6 +93,21 @@ class GroundEnemyLocomotionSystem {
           meleeState == MeleeEngagementState.strike ||
           meleeState == MeleeEngagementState.recover;
 
+      if (world.swimState.isSwimming(enemy)) {
+        _swim(
+          world,
+          enemy: enemy,
+          enemyTi: enemyTi,
+          enemyIndex: enemyIndex,
+          engagementIndex: engagementIndex,
+          player: player,
+          playerTi: playerTi,
+          currentTick: currentTick,
+          dtSeconds: dtSeconds,
+        );
+        continue;
+      }
+
       final ex = world.transform.posX[enemyTi];
       _applyGroundEnemyLocomotion(
         world,
@@ -105,6 +121,104 @@ class GroundEnemyLocomotionSystem {
         playerX: playerX,
         dtSeconds: dtSeconds,
       );
+    }
+  }
+
+  void _swim(
+    EcsWorld world, {
+    required EntityId enemy,
+    required int enemyTi,
+    required int enemyIndex,
+    required int engagementIndex,
+    required EntityId player,
+    required int playerTi,
+    required int currentTick,
+    required double dtSeconds,
+  }) {
+    if (world.controlLock.isLocked(enemy, LockFlag.nav, currentTick)) {
+      _stopLocomotion(world, enemy, enemyTi, false);
+      return;
+    }
+    final tuning = groundEnemyTuning.locomotion;
+    final intents = world.engagementIntent;
+    final dx =
+        intents.desiredTargetX[engagementIndex] - world.transform.posX[enemyTi];
+    final modifier = world.statModifier.tryIndexOf(enemy);
+    final speedMultiplier = modifier == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modifier];
+    final arrivalRadius = intents.arrivalSlowRadiusX[engagementIndex];
+    final arrivalScale = arrivalRadius > 0
+        ? clampDouble(dx.abs() / arrivalRadius, 0, 1)
+        : 1.0;
+    final desired = dx.abs() <= tuning.stopDistanceX
+        ? 0.0
+        : dx.sign *
+              tuning.speedX *
+              SwimmingTuning.maxSpeedMultiplier *
+              speedMultiplier *
+              intents.speedScale[engagementIndex] *
+              intents.stateSpeedMul[engagementIndex] *
+              arrivalScale;
+    world.transform.velX[enemyTi] = applyAccelDecel(
+      current: world.transform.velX[enemyTi],
+      desired: desired,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.accelX * SwimmingTuning.accelerationMultiplier,
+      decelPerSecond: tuning.decelX * SwimmingTuning.decelerationMultiplier,
+    );
+    _writeLocomotionReferenceSpeed(world, enemy, desired.abs());
+    final playerDx =
+        world.transform.posX[playerTi] - world.transform.posX[enemyTi];
+    if (playerDx != 0) {
+      world.enemy.facing[enemyIndex] = playerDx > 0
+          ? Facing.right
+          : Facing.left;
+    }
+
+    final swimIndex = world.swimState.indexOf(enemy);
+    final capsuleIndex = world.worldContactCapsule.indexOf(enemy);
+    final capsule = world.worldContactCapsule;
+    final centerY =
+        world.transform.posY[enemyTi] +
+        capsule.offsetYTicks[capsuleIndex] / terrainPhysicsTicksPerWorldUnit;
+    final surfaceY = world.swimState.surfaceYTicks[swimIndex];
+    if (surfaceY == null) return;
+    final playerCapsule = capsule.tryIndexOf(player);
+    final playerSwimming = world.swimState.isSwimming(player);
+    final targetY = playerSwimming
+        ? world.transform.posY[playerTi] +
+              (playerCapsule == null
+                  ? 0
+                  : capsule.offsetYTicks[playerCapsule] /
+                        terrainPhysicsTicksPerWorldUnit)
+        : (surfaceY -
+                  capsule.radiusTicks[capsuleIndex] -
+                  capsule.verticalHalfSegmentTicks[capsuleIndex]) /
+              terrainPhysicsTicksPerWorldUnit;
+    // A submerged target may be below us: stop rising and let buoyancy-controlled
+    // sinking close the gap. A land target instead requests a bank-clearing stroke.
+    if (playerSwimming &&
+        centerY <= targetY &&
+        world.transform.velY[enemyTi] < 0) {
+      world.transform.velY[enemyTi] = 0;
+    }
+    if (centerY <= targetY + SwimmingTuning.enemyDepthSlack ||
+        currentTick < world.swimState.nextStrokeTick[swimIndex] ||
+        world.controlLock.isLocked(enemy, LockFlag.jump, currentTick)) {
+      return;
+    }
+    world.transform.velY[enemyTi] = -SwimmingTuning.strokeSpeed;
+    world.swimState.nextStrokeTick[swimIndex] =
+        currentTick +
+        (SwimmingTuning.strokeIntervalSeconds * groundEnemyTuning.tickHz)
+            .ceil();
+    if (world.terrainContact.has(enemy)) {
+      world.terrainContact.clearSupport(enemy);
+    }
+    final collisionIndex = world.collision.tryIndexOf(enemy);
+    if (collisionIndex != null) {
+      world.collision.grounded[collisionIndex] = false;
     }
   }
 

@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../abilities/ability_def.dart';
-import '../../snapshots/enums.dart';
 import '../../terrain/water_region.dart';
+import '../collider_aabb_utils.dart';
 import '../world.dart';
 
 /// Classifies fluid contact before movement and refreshes it after integration.
@@ -23,7 +23,6 @@ class WaterImmersionSystem {
       final bi = world.body.tryIndexOf(entity);
       if (ti == null ||
           ci == null ||
-          mi == null ||
           bi == null ||
           !world.body.enabled[bi] ||
           world.body.isKinematic[bi]) {
@@ -31,7 +30,7 @@ class WaterImmersionSystem {
         continue;
       }
       final capsule = world.worldContactCapsule;
-      final facing = world.movement.facing[mi] == Facing.right ? 1 : -1;
+      final facing = colliderFacingSign(world, entity);
       final x =
           physicsCoordinateToTicks(world.transform.posX[ti]) +
           capsule.offsetXTicks[ci] * facing;
@@ -41,17 +40,24 @@ class WaterImmersionSystem {
       final halfHeight =
           capsule.radiusTicks[ci] + capsule.verticalHalfSegmentTicks[ci];
       var immersion = 0;
+      int? surfaceY;
       for (final region in regions) {
         if (x < region.leftTicks || x >= region.rightTicks) continue;
         final depth =
             math.min(y + halfHeight, region.bottomTicks) -
             math.max(y - halfHeight, region.topTicks);
         if (depth > 0) {
-          immersion = math.max(immersion, depth * 1000 ~/ (2 * halfHeight));
+          final candidate = depth * 1000 ~/ (2 * halfHeight);
+          if (candidate > immersion ||
+              (candidate == immersion &&
+                  (surfaceY == null || region.topTicks < surfaceY))) {
+            immersion = candidate;
+            surfaceY = region.topTicks;
+          }
         }
       }
-      state.setImmersion(index, immersion);
-      if (state.swimming[index]) {
+      state.setImmersion(index, immersion, surfaceY: surfaceY);
+      if (mi != null && state.swimming[index]) {
         final intent = world.mobilityIntent.tryIndexOf(entity);
         if (intent != null &&
             world.mobilityIntent.slot[intent] == AbilitySlot.mobility) {
@@ -64,7 +70,9 @@ class WaterImmersionSystem {
           world.activeAbility.clear(entity);
         }
       }
-      if (state.swimming[index] && world.movement.dashTicksLeft[mi] > 0) {
+      if (mi != null &&
+          state.swimming[index] &&
+          world.movement.dashTicksLeft[mi] > 0) {
         // Water ends an active dash before its next velocity write. Ordinary
         // jump/control gates remain authoritative for the following stroke.
         world.movement.dashTicksLeft[mi] = 0;

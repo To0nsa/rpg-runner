@@ -16,8 +16,18 @@ abstract final class SwimmingTuning {
   /// Downward terminal speed in px/s; upward strokes retain their launch speed.
   static const double maxSinkSpeed = 42;
 
-  /// Water slows acceleration and coasting decay; cruising speed still matches
-  /// the runner camera so long pools do not guarantee a fell-behind death.
+  /// Water caps horizontal cruising speed at 80% of the dry-land target so
+  /// swimming remains a meaningful traversal penalty.
+  static const double maxSpeedMultiplier = 0.8;
+
+  /// Water also makes changes in horizontal momentum feel heavier.
   static const double accelerationMultiplier = 0.5;
   static const double decelerationMultiplier = 0.45;
+
+  /// Enemy depth tolerance in px, avoiding repeated strokes at chase depth.
+  static const double enemyDepthSlack = 6;
+
+  /// Maximum drop in px from a bank to water admitted by local entry steering.
+  /// Deeper dry drops still require an ordinary terrain-navigation route.
+  static const double enemyEntryMaxDrop = 64;
 }

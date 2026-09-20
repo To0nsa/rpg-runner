@@ -825,7 +825,7 @@ async function createPracticeRunSession(
     uid: ownerUid,
     mode: "practice",
     levelId: "field",
-    gameCompatVersion: "2026.09.2",
+    gameCompatVersion: "2026.09.3",
   });
   return String(result.runTicket.runSessionId);
 }

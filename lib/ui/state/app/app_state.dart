@@ -50,7 +50,7 @@ part 'controllers/run_submission_controller.dart';
 part 'controllers/boards_controller.dart';
 part 'controllers/run_start_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.09.2';
+const String _defaultGameCompatVersion = '2026.09.3';
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;
 const int _runTicketPrefetchExpirySafetySkewMs = 5000;

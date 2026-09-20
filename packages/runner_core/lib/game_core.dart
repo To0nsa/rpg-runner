@@ -1524,10 +1524,15 @@ class GameCore {
       player: _player,
       currentTick: tick,
     );
+    // Observe teleports and the published water before both enemy AI and player
+    // action gates; refresh again after integration for snapshots and next tick.
+    final waterRegions = _worldMotionAuthority.waterRegions;
+    _waterImmersionSystem.step(_world, waterRegions);
     _terrainEnemyNavigationSystem.step(
       _world,
       player: _player,
       currentTick: tick,
+      waterRegions: waterRegions,
     );
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);
@@ -1545,10 +1550,6 @@ class GameCore {
       currentTick: tick,
     );
 
-    // Fluid state must precede action gates and gravity. Both queries use the
-    // atomically published candidate, including captured/prepared Play content.
-    final waterRegions = _worldMotionAuthority.waterRegions;
-    _waterImmersionSystem.step(_world, waterRegions);
     _abilityActivationSystem.step(_world, player: _player, currentTick: tick);
     _jumpSystem.step(_world, _movement, currentTick: tick);
     _movementSystem.step(
