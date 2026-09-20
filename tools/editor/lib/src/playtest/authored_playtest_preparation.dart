@@ -57,7 +57,8 @@ final class PlaytestPreparationInput {
     required this.terrainMaterialContents,
     required Map<String, String> sourceBaseline,
     required Iterable<String> repositoryChunkPaths,
-    this.selectedChunkKey,
+    String? selectedChunkKey,
+    Iterable<String>? selectedChunkKeys,
     this.seed = playtestDefaultSeed,
   }) : level = level.normalized(),
        theme = theme.normalized(),
@@ -68,7 +69,11 @@ final class PlaytestPreparationInput {
          ),
        ),
        sourceBaseline = Map.unmodifiable(sourceBaseline),
-       repositoryChunkPaths = List.unmodifiable(repositoryChunkPaths);
+       repositoryChunkPaths = List.unmodifiable(repositoryChunkPaths),
+       selectedChunkKeys = _normalizeSelectedChunkKeys(
+         selectedChunkKey: selectedChunkKey,
+         selectedChunkKeys: selectedChunkKeys,
+       );
 
   final String workspaceRoot;
   final LevelDef level;
@@ -80,8 +85,12 @@ final class PlaytestPreparationInput {
   final Map<String, String> sourceBaseline;
   final List<String> repositoryChunkPaths;
 
-  /// Null selects the whole-Level scope; otherwise this is the focused owner.
-  final String? selectedChunkKey;
+  /// Null selects whole-Level scope; otherwise these are the filtered owners.
+  final List<String>? selectedChunkKeys;
+
+  /// Compatibility view for single-owner callers and focused diagnostics.
+  String? get selectedChunkKey =>
+      selectedChunkKeys?.length == 1 ? selectedChunkKeys!.single : null;
   final int seed;
 
   String get fingerprint => WorkspaceFileIo.fingerprint(
@@ -93,9 +102,31 @@ final class PlaytestPreparationInput {
       'tiles': tileContents,
       'materials': terrainMaterialContents,
       'seed': seed,
-      'selectedChunkKey': selectedChunkKey,
+      'selectedChunkKeys': selectedChunkKeys,
     }),
   );
+}
+
+List<String>? _normalizeSelectedChunkKeys({
+  required String? selectedChunkKey,
+  required Iterable<String>? selectedChunkKeys,
+}) {
+  if (selectedChunkKey != null && selectedChunkKeys != null) {
+    throw ArgumentError(
+      'Provide selectedChunkKey or selectedChunkKeys, not both.',
+    );
+  }
+  if (selectedChunkKey == null && selectedChunkKeys == null) return null;
+  final keys = <String>{?selectedChunkKey, ...?selectedChunkKeys}.toList()
+    ..sort();
+  if (keys.isEmpty || keys.any((key) => key.trim().isEmpty)) {
+    throw ArgumentError.value(
+      selectedChunkKeys,
+      'selectedChunkKeys',
+      'Chunk Play requires at least one non-empty owner key.',
+    );
+  }
+  return List<String>.unmodifiable(keys);
 }
 
 @immutable
@@ -174,21 +205,36 @@ typedef PlaytestPreparationRunner = Future<PlaytestPreparationResult> Function(
 /// Captures accepted Chunk edits with their complete authored level dependencies.
 Future<PlaytestPreparationInput> captureChunkPlaytestPreparationInput({
   required ChunkV2Document document,
-  required String selectedChunkKey,
+  String? selectedChunkKey,
+  Iterable<String>? selectedChunkKeys,
   required String workspaceRoot,
   int seed = playtestDefaultSeed,
 }) async {
+  final keys = _normalizeSelectedChunkKeys(
+    selectedChunkKey: selectedChunkKey,
+    selectedChunkKeys: selectedChunkKeys,
+  );
+  if (keys == null) {
+    throw ArgumentError('Chunk Play requires selected owner keys.');
+  }
   final selected = document.chunks
-      .where((c) => c.chunkKey == selectedChunkKey)
-      .firstOrNull;
-  if (selected == null) {
+      .where((chunk) => keys.contains(chunk.chunkKey))
+      .toList(growable: false);
+  if (selected.length != keys.length) {
     throw const PlaytestPreparationException(
       code: 'chunk_playtest_owner_missing',
-      message: 'The selected chunk no longer exists.',
+      message: 'A filtered chunk owner no longer exists.',
+    );
+  }
+  final levelIds = selected.map((chunk) => chunk.levelId).toSet();
+  if (levelIds.length != 1) {
+    throw const PlaytestPreparationException(
+      code: 'chunk_playtest_level_mismatch',
+      message: 'Filtered chunk owners must belong to one authored level.',
     );
   }
   final level = document.levels
-      .where((l) => l.levelId == selected.levelId)
+      .where((candidate) => candidate.levelId == levelIds.single)
       .firstOrNull;
   if (level == null) {
     throw const PlaytestPreparationException(
@@ -210,7 +256,7 @@ Future<PlaytestPreparationInput> captureChunkPlaytestPreparationInput({
     level: level,
     theme: theme,
     content: document,
-    selectedChunkKey: selectedChunkKey,
+    selectedChunkKeys: keys,
     seed: seed,
     expectedLevels: renderCanonicalLevelDefsJson(document.levels),
     expectedThemes: renderCanonicalParallaxDefsJson(document.parallaxThemes),
@@ -262,6 +308,7 @@ Future<PlaytestPreparationInput> _capture({
   required String? expectedLevels,
   required String? expectedThemes,
   String? selectedChunkKey,
+  Iterable<String>? selectedChunkKeys,
 }) async {
   final bundle = RunnerWorkspaceAssetBundle(workspaceRoot: workspaceRoot);
   final repositoryChunkPaths = await _chunkPaths(workspaceRoot);
@@ -337,6 +384,7 @@ Future<PlaytestPreparationInput> _capture({
     terrainMaterialContents: materials,
     sourceBaseline: sources,
     selectedChunkKey: selectedChunkKey,
+    selectedChunkKeys: selectedChunkKeys,
     seed: seed,
     repositoryChunkPaths: repositoryChunkPaths,
   );
@@ -495,7 +543,10 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
     final active = runtimeChunks
         .where((c) => isRuntimeEligibleChunkStatus(c.stagedTerrain.status))
         .toList();
-    List<ChunkPattern> tier(String name) => active
+    List<ChunkPattern> tier(
+      Iterable<PolygonTerrainRuntimeChunk> chunks,
+      String name,
+    ) => chunks
         .where((c) => c.stagedTerrain.difficulty == name)
         .map((c) => c.pattern)
         .toList(growable: false);
@@ -515,10 +566,10 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
     final level = LevelDefinition.authored(
       identity: AuthoredLevelIdentity(sourceLevel.levelId),
       chunkPatternSource: ChunkPatternListSource(
-        earlyPatterns: tier('early'),
-        easyPatterns: tier('easy'),
-        normalPatterns: tier('normal'),
-        hardPatterns: tier('hard'),
+        earlyPatterns: tier(active, 'early'),
+        easyPatterns: tier(active, 'easy'),
+        normalPatterns: tier(active, 'normal'),
+        hardPatterns: tier(active, 'hard'),
       ),
       groundTopY: sourceLevel.groundTopY,
       cameraCenterY: sourceLevel.cameraCenterY,
@@ -545,16 +596,45 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
               ],
             ),
     );
-    final selected = runtimeChunks
-        .where((c) => c.stagedTerrain.chunkKey == input.selectedChunkKey)
-        .firstOrNull;
-    if (input.selectedChunkKey != null && selected == null) {
-      throw const PlaytestPreparationException(
-        code: 'chunk_playtest_owner_missing',
-        message: 'The selected captured chunk is missing.',
+    final selectedKeys = input.selectedChunkKeys;
+    final selectedChunks = selectedKeys == null
+        ? null
+        : <PolygonTerrainRuntimeChunk>[
+            for (final key in selectedKeys)
+              runtimeChunks
+                      .where((c) => c.stagedTerrain.chunkKey == key)
+                      .firstOrNull ??
+                  (throw PlaytestPreparationException(
+                    code: 'chunk_playtest_owner_missing',
+                    message: 'Filtered chunk $key is missing from the capture.',
+                  )),
+          ];
+    final inactiveSelected = selectedChunks
+        ?.where(
+          (chunk) => !isRuntimeEligibleChunkStatus(chunk.stagedTerrain.status),
+        )
+        .map((chunk) => chunk.stagedTerrain.chunkKey)
+        .toList(growable: false);
+    if (inactiveSelected != null && inactiveSelected.isNotEmpty) {
+      throw PlaytestPreparationException(
+        code: 'chunk_playtest_filtered_chunk_inactive',
+        message:
+            'Filtered Play requires active chunks. Activate or exclude: '
+            '${inactiveSelected.join(', ')}.',
       );
     }
-    final PlaytestScenario scenario = selected == null
+    final usesFilteredPool =
+        selectedChunks != null && selectedChunks.length > 1;
+    final focusedLevel = selectedChunks == null
+        ? null
+        : usesFilteredPool
+        ? _buildFilteredChunkPlaytestLevel(
+            level: level,
+            chunks: selectedChunks,
+            tier: tier,
+          )
+        : level;
+    final PlaytestScenario scenario = selectedChunks == null
         ? LevelPlaytestScenario(
             levelDefinition: level,
             terrainChunks: runtimeChunks.map((c) => c.stagedTerrain),
@@ -562,20 +642,31 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             playerCharacter: PlayerCharacterRegistry.eloise,
             equippedLoadout: const EquippedLoadoutDef(),
           )
+        : usesFilteredPool
+        ? ChunkPlaytestScenario.filteredPool(
+            levelDefinition: focusedLevel!,
+            terrainChunks: selectedChunks.map((c) => c.stagedTerrain),
+            patterns: selectedChunks.map((c) => c.pattern),
+            visualThemeId: sourceLevel.visualThemeId,
+            seed: input.seed,
+            playerCharacter: PlayerCharacterRegistry.eloise,
+            equippedLoadout: const EquippedLoadoutDef(),
+          )
         : ChunkPlaytestScenario(
             levelDefinition: level,
             terrainChunks: runtimeChunks.map((c) => c.stagedTerrain),
-            draftPattern: selected.pattern,
-            draftTerrain: selected.stagedTerrain,
+            draftPattern: selectedChunks.first.pattern,
+            draftTerrain: selectedChunks.first.stagedTerrain,
             visualThemeId: sourceLevel.visualThemeId,
             seed: input.seed,
             playerCharacter: PlayerCharacterRegistry.eloise,
             equippedLoadout: const EquippedLoadoutDef(),
           );
+    final appearanceChunks = usesFilteredPool ? selectedChunks : active;
     final referencedMaterials = <String>{
-      for (final chunk in active)
+      for (final chunk in appearanceChunks)
         for (final water in chunk.stagedTerrain.waterRegions) water.materialKey,
-      for (final chunk in active)
+      for (final chunk in appearanceChunks)
         for (final polygon in chunk.stagedTerrain.polygons)
           if (polygon.materialKey != null) polygon.materialKey!,
     };
@@ -620,6 +711,28 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
   } on Object catch (error) {
     return _failure(error);
   }
+}
+
+LevelDefinition _buildFilteredChunkPlaytestLevel({
+  required LevelDefinition level,
+  required List<PolygonTerrainRuntimeChunk> chunks,
+  required List<ChunkPattern> Function(
+    Iterable<PolygonTerrainRuntimeChunk> chunks,
+    String difficulty,
+  )
+  tier,
+}) {
+  return level.copyWith(
+    chunkPatternSource: ChunkPatternListSource(
+      earlyPatterns: tier(chunks, 'early'),
+      easyPatterns: tier(chunks, 'easy'),
+      normalPatterns: tier(chunks, 'normal'),
+      hardPatterns: tier(chunks, 'hard'),
+    ),
+    noEnemyChunks: 0,
+    clearFirstChunkKey: true,
+    clearAssembly: true,
+  );
 }
 
 void _validateTheme(PlaytestPreparationInput input) {

@@ -68,7 +68,7 @@ page constructor. These snapshots retain view data only:
 | --- | --- |
 | Entities | Entry, text/type/dirty filters, zoom, animation/frame |
 | Prefab Creator | Owner, workflow, collision selection/tool, pan/zoom, atlas source and prefab/tile slice selections, module and painting-tile selection |
-| Chunk Creator | Level and Chunk, scene tab, placed prefab/marker/water selections, terrain selection/tool, pan/zoom, grid/edge/visual-preview toggles |
+| Chunk Creator | Level and Chunk, owner search/difficulty/group filters, scene tab, placed prefab/marker/water selections, terrain selection/tool, pan/zoom, grid/edge/visual-preview toggles |
 | Level Creator | Level, tab, Chunk/section selection, group filter, preview seed, search fields, settings visibility |
 | Parallax | Active Level/theme and layer |
 | Terrain Materials | Material key |

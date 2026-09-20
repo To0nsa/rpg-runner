@@ -3,6 +3,7 @@ library;
 
 import '../collision/terrain/terrain_authoring_scheduler.dart';
 import '../collision/terrain/terrain_chunk_connections.dart';
+import '../collision/terrain/terrain_connection_schedule.dart';
 import '../track/staged_terrain_world_geometry.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../levels/level_definition.dart';
@@ -218,6 +219,110 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
     );
   }
 
+  /// Builds a deterministic loop that contains every chunk in an editor
+  /// filter result and no chunks outside that result.
+  ///
+  /// Pool order is derived from stable chunk keys and exact compiled boundary
+  /// compatibility. Repeated connector chunks from the same pool are allowed
+  /// when needed to reach every owner and close the loop.
+  factory ChunkPlaytestScenario.filteredPool({
+    required LevelDefinition levelDefinition,
+    required String visualThemeId,
+    required int seed,
+    int tickHz = defaultTickHz,
+    required Iterable<ChunkPattern> patterns,
+    required Iterable<StagedTerrainChunkData> terrainChunks,
+    required PlayerCharacterDefinition playerCharacter,
+    required EquippedLoadoutDef equippedLoadout,
+  }) {
+    levelDefinition = immutablePlaytestLevelDefinition(levelDefinition);
+    if (seed <= 0) {
+      throw ArgumentError.value(seed, 'seed', 'Must be positive.');
+    }
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'Must be positive.');
+    }
+    if (visualThemeId.trim().isEmpty) {
+      throw ArgumentError.value(
+        visualThemeId,
+        'visualThemeId',
+        'Must not be empty.',
+      );
+    }
+    validatePlaytestLevelSettings(levelDefinition);
+
+    final terrainCatalog = StagedTerrainChunkCatalog(chunks: terrainChunks);
+    final patternsByKey = <String, ChunkPattern>{};
+    for (final source in patterns) {
+      final pattern = immutablePlaytestPattern(source);
+      final key = pattern.chunkKey;
+      if (key == null || key.isEmpty || patternsByKey.containsKey(key)) {
+        throw const PlaytestScenarioException(
+          code: 'chunk_playtest_pattern_key_invalid',
+          message: 'Filtered patterns require unique stable chunk keys.',
+        );
+      }
+      patternsByKey[key] = pattern;
+    }
+    if (patternsByKey.isEmpty) {
+      throw const PlaytestScenarioException(
+        code: 'chunk_playtest_filtered_pool_empty',
+        message: 'Filtered Chunk Play requires at least one active owner.',
+      );
+    }
+    if (patternsByKey.length != terrainCatalog.chunksByKey.length ||
+        !patternsByKey.keys.every(terrainCatalog.chunksByKey.containsKey)) {
+      throw const PlaytestScenarioException(
+        code: 'chunk_playtest_filtered_pool_mismatch',
+        message: 'Filtered patterns and compiled terrain must have exact matching keys.',
+      );
+    }
+    final levelId = levelDefinition.identity.value;
+    for (final entry in patternsByKey.entries) {
+      final terrain = terrainCatalog.requireChunk(entry.key);
+      if (terrain.levelId != levelId ||
+          terrain.status != 'active' ||
+          terrain.width.toDouble() != levelDefinition.tuning.track.chunkWidth ||
+          terrain.assemblyGroupId != entry.value.assemblyGroupId) {
+        throw PlaytestScenarioException(
+          code: 'chunk_playtest_filtered_pool_invalid',
+          message:
+              'Filtered chunk ${entry.key} must match level $levelId, active '
+              'status, runtime width, and its authored group.',
+        );
+      }
+      playtestTierForDifficulty(terrain.difficulty);
+    }
+
+    final connections = <String, TerrainChunkConnection>{
+      for (final key in patternsByKey.keys)
+        key: _buildChunkConnection(
+          chunkKey: key,
+          levelDefinition: levelDefinition,
+          catalog: terrainCatalog,
+        ),
+    };
+    final path = _selectFilteredPoolPath(
+      levelId: levelId,
+      connections: connections,
+    );
+    _validatePathSeams(path: path, catalog: terrainCatalog);
+    final firstKey = path.chunkKeys.first;
+    return ChunkPlaytestScenario._(
+      levelDefinition: levelDefinition,
+      visualThemeId: visualThemeId,
+      seed: seed,
+      tickHz: tickHz,
+      draftPattern: patternsByKey[firstKey]!,
+      draftTerrain: terrainCatalog.requireChunk(firstKey),
+      playerCharacter: playerCharacter,
+      equippedLoadout: equippedLoadout,
+      path: path,
+      terrainCatalog: terrainCatalog,
+      patternsByKey: Map<String, ChunkPattern>.unmodifiable(patternsByKey),
+    );
+  }
+
   const ChunkPlaytestScenario._({
     required this.levelDefinition,
     required this.visualThemeId,
@@ -302,21 +407,10 @@ TerrainAuthoringSchedulerResult _buildSchedulerResult({
     chunks: chunks,
     connections: {
       for (final chunk in catalog.chunksByKey.values)
-        chunk.chunkKey: buildTerrainChunkConnection(
+        chunk.chunkKey: _buildChunkConnection(
           chunkKey: chunk.chunkKey,
-          chunkWidth: chunk.width,
-          geometry: const StagedTerrainWorldGeometryBuilder().build(
-            bindings: [
-              catalog.bind(
-                chunkKey: chunk.chunkKey,
-                chunkIndex: 0,
-                worldOriginXTicks: 0,
-              ),
-            ],
-            geometryVersion: 0,
-          ),
-          groundTopY: levelDefinition.groundTopY,
-          spawnX: levelDefinition.tuning.track.playerStartX,
+          levelDefinition: levelDefinition,
+          catalog: catalog,
         ),
     },
     levels: <TerrainAuthoringSchedulerLevel>[
@@ -328,6 +422,101 @@ TerrainAuthoringSchedulerResult _buildSchedulerResult({
         firstChunkKey: levelDefinition.firstChunkKey,
         assembly: playtestSchedulerAssembly(levelDefinition.assembly),
       ),
+    ],
+  );
+}
+
+TerrainChunkConnection _buildChunkConnection({
+  required String chunkKey,
+  required LevelDefinition levelDefinition,
+  required StagedTerrainCatalog catalog,
+}) => buildTerrainChunkConnection(
+  chunkKey: chunkKey,
+  chunkWidth: catalog.requireChunk(chunkKey).width,
+  geometry: const StagedTerrainWorldGeometryBuilder().build(
+    bindings: [
+      catalog.bind(chunkKey: chunkKey, chunkIndex: 0, worldOriginXTicks: 0),
+    ],
+    geometryVersion: 0,
+  ),
+  groundTopY: levelDefinition.groundTopY,
+  spawnX: levelDefinition.tuning.track.playerStartX,
+);
+
+ChunkPlaytestScenarioPath _selectFilteredPoolPath({
+  required String levelId,
+  required Map<String, TerrainChunkConnection> connections,
+}) {
+  final keys = connections.keys.toList()..sort();
+  final start = keys.where((key) => connections[key]!.canStart).firstOrNull;
+  if (start == null) {
+    throw const PlaytestScenarioException(
+      code: 'chunk_playtest_filtered_pool_no_opener',
+      message: 'No filtered chunk supports the normal player opener.',
+    );
+  }
+  List<String>? route(String from, String to) {
+    if (from == to) return const <String>[];
+    final parents = <String, String?>{from: null};
+    final pending = <String>[from];
+    for (var index = 0; index < pending.length; index += 1) {
+      final current = pending[index];
+      for (final candidate in keys) {
+        if (parents.containsKey(candidate) ||
+            connections[current]!.exit != connections[candidate]!.entrance) {
+          continue;
+        }
+        parents[candidate] = current;
+        if (candidate == to) {
+          final reversed = <String>[candidate];
+          var cursor = current;
+          while (cursor != from) {
+            reversed.add(cursor);
+            cursor = parents[cursor]!;
+          }
+          return reversed.reversed.toList(growable: false);
+        }
+        pending.add(candidate);
+      }
+    }
+    return null;
+  }
+
+  final path = <String>[start];
+  final visited = <String>{start};
+  var current = start;
+  for (final target in keys) {
+    if (visited.contains(target)) continue;
+    final segment = route(current, target);
+    if (segment == null) {
+      throw PlaytestScenarioException(
+        code: 'chunk_playtest_filtered_pool_disconnected',
+        message:
+            'Filtered chunk $target cannot be reached from $current using only the filtered pool.',
+      );
+    }
+    path.addAll(segment);
+    visited.addAll(segment);
+    current = target;
+  }
+  final closing = route(current, start);
+  if (closing == null) {
+    throw PlaytestScenarioException(
+      code: 'chunk_playtest_filtered_pool_disconnected',
+      message:
+          'Filtered chunk $current cannot loop back to opener $start using only the filtered pool.',
+    );
+  }
+  if (closing.isNotEmpty) {
+    path.addAll(closing.take(closing.length - 1));
+  }
+  return ChunkPlaytestScenarioPath._(
+    chunkKeys: path,
+    selectedChunkIndex: 0,
+    loopStartIndex: 0,
+    transitionRecords: [
+      for (var index = 0; index < path.length; index += 1)
+        '$levelId|connections:filtered|${path[index]}>${path[index + 1 < path.length ? index + 1 : 0]}',
     ],
   );
 }

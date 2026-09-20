@@ -7,11 +7,17 @@ import '../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../shared/editor_page_navigation_state.dart';
 import 'v2/chunk_scene_coordinator.dart';
 
-/// Stable Chunk owner and scene view; pending geometry and forms are excluded.
+/// Stable Chunk owner, catalog filters, and scene view.
+///
+/// Pending geometry and forms are excluded. Owner filters are presentation
+/// state and are reconciled against the freshly loaded level on restoration.
 class ChunkCreatorLocation extends EditorPageLocation {
   const ChunkCreatorLocation({
     required this.levelId,
     required this.chunkKey,
+    this.ownerSearch = '',
+    this.ownerDifficultyFilter = '',
+    this.ownerGroupFilter = '',
     this.zoom = 1,
     this.pan = Offset.zero,
     this.domain = ChunkSceneDomain.terrain,
@@ -30,6 +36,9 @@ class ChunkCreatorLocation extends EditorPageLocation {
 
   final String? levelId;
   final String? chunkKey;
+  final String ownerSearch;
+  final String ownerDifficultyFilter;
+  final String ownerGroupFilter;
   final double zoom;
   final Offset pan;
   final ChunkSceneDomain domain;

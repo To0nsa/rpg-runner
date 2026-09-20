@@ -64,7 +64,16 @@ An ability-driven dash is an active action and therefore uses the active
 action's relative elapsed-tick origin; only the locomotion dash uses global
 tick origin.
 
-This policy is locked by resolver tests in `test/core/anim_resolver_test.dart`.
+For actors with support-following locomotion, `AnimSystem` replaces the
+resolver's global-tick `walk`/`run` frame with a phase derived from accepted
+travel along the current support. This keeps footfalls aligned with actual
+ground movement and pauses them when the actor is blocked. Flying and other
+support-free actors retain the resolver's global-tick frame so their locomotion
+loops continue while moving through world space.
+
+Resolver origins are locked by `test/core/anim_resolver_test.dart`; the
+support-following override and flying fallback are covered by
+`test/core/anim_system_test.dart`.
 
 ## 4) How render computes visible frame
 

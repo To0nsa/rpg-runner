@@ -6,6 +6,7 @@ import '../../../snapshots/enums.dart';
 import '../../../enemies/death_behavior.dart';
 import '../../../enemies/enemy_catalog.dart';
 import '../../../enemies/enemy_id.dart';
+import '../../../enemies/enemy_terrain_profile.dart';
 import '../../../players/player_tuning.dart';
 import '../../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../../util/tick_math.dart';
@@ -245,12 +246,19 @@ class AnimSystem {
 
       final result = AnimResolver.resolve(profile, signals);
       animStore.anim[ai] = result.anim;
-      animStore.animFrame[ai] = _terrainLocomotionAnimFrame(
-        world,
-        entity: e,
-        animStateIndex: ai,
-        resolved: result,
-      );
+      final terrainLocomotionKind = enemyCatalog
+          .terrainContactProfile(enemyId)
+          .locomotionKind;
+      animStore.animFrame[ai] =
+          terrainLocomotionKind ==
+              EnemyTerrainLocomotionKind.constantSurfaceDistance
+          ? _terrainLocomotionAnimFrame(
+              world,
+              entity: e,
+              animStateIndex: ai,
+              resolved: result,
+            )
+          : result.animFrame;
     }
   }
 

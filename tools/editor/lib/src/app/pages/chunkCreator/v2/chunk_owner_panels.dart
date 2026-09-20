@@ -12,17 +12,23 @@ import 'chunk_owner_order.dart';
 import 'chunk_v2_owner_form.dart';
 
 /// Existing-owner list with previews and a row-local editor slot.
-class ChunkOwnerListSection extends StatefulWidget {
+class ChunkOwnerListSection extends StatelessWidget {
   const ChunkOwnerListSection({
     super.key,
     required this.document,
     required this.scene,
     required this.selectedChunk,
     required this.expandedChunk,
+    required this.searchController,
+    required this.difficultyFilter,
+    required this.groupFilter,
     required this.workspaceRootPath,
     required this.expandedPrefabShapeCount,
     required this.onSelected,
     required this.onEdit,
+    required this.onDifficultyFilterChanged,
+    required this.onGroupFilterChanged,
+    required this.onClearFilters,
     required this.selectedDetailsBuilder,
   });
 
@@ -30,67 +36,29 @@ class ChunkOwnerListSection extends StatefulWidget {
   final ChunkV2Scene scene;
   final ChunkV2FileData? selectedChunk;
   final ChunkV2FileData? expandedChunk;
+  final TextEditingController searchController;
+  final String difficultyFilter;
+  final String groupFilter;
   final String workspaceRootPath;
   final int Function(String chunkKey) expandedPrefabShapeCount;
   final ValueChanged<ChunkV2FileData> onSelected;
   final ValueChanged<ChunkV2FileData> onEdit;
+  final ValueChanged<String> onDifficultyFilterChanged;
+  final ValueChanged<String> onGroupFilterChanged;
+  final VoidCallback onClearFilters;
   final Widget Function(BuildContext context, ChunkV2FileData chunk)
   selectedDetailsBuilder;
 
   @override
-  State<ChunkOwnerListSection> createState() => _ChunkOwnerListSectionState();
-}
-
-class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
-  late final TextEditingController _searchController;
-  String _difficultyFilter = '';
-  String _groupFilter = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController = TextEditingController()
-      ..addListener(_handleSearchChanged);
-  }
-
-  @override
-  void didUpdateWidget(covariant ChunkOwnerListSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_difficultyFilter.isNotEmpty &&
-        !widget.scene.chunks.any(
-          (chunk) => chunk.difficulty == _difficultyFilter,
-        )) {
-      _difficultyFilter = '';
-    }
-    if (_groupFilter.isNotEmpty &&
-        !widget.scene.chunks.any(
-          (chunk) => chunk.assemblyGroupId == _groupFilter,
-        )) {
-      _groupFilter = '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_handleSearchChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final document = widget.document;
-    final scene = widget.scene;
-    final selectedChunk = widget.selectedChunk;
-    final expandedChunk = widget.expandedChunk;
-    final workspaceRootPath = widget.workspaceRootPath;
-    final expandedPrefabShapeCount = widget.expandedPrefabShapeCount;
-    final onSelected = widget.onSelected;
-    final onEdit = widget.onEdit;
-    final selectedDetailsBuilder = widget.selectedDetailsBuilder;
     final allChunks = List<ChunkV2FileData>.of(scene.chunks)
       ..sort(compareChunkOwners);
-    final chunks = _filteredChunks(allChunks);
+    final chunks = filterChunkOwners(
+      allChunks,
+      search: searchController.text,
+      difficulty: difficultyFilter,
+      group: groupFilter,
+    );
     final difficulties =
         allChunks
             .map((chunk) => chunk.difficulty)
@@ -113,7 +81,7 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           EditorVisualCatalogControls(
-            searchController: _searchController,
+            searchController: searchController,
             searchKey: const ValueKey<String>('chunk_owner_search'),
             searchLabel: 'Search chunk owners',
             searchHint: 'Chunk key contains…',
@@ -124,9 +92,9 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
                 width: 164,
                 child: DropdownButtonFormField<String>(
                   key: ValueKey<String>(
-                    'chunk_owner_difficulty_filter_$_difficultyFilter',
+                    'chunk_owner_difficulty_filter_$difficultyFilter',
                   ),
-                  initialValue: _difficultyFilter,
+                  initialValue: difficultyFilter,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Difficulty',
@@ -143,17 +111,16 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
                         child: Text(difficulty),
                       ),
                   ],
-                  onChanged: (value) =>
-                      setState(() => _difficultyFilter = value ?? ''),
+                  onChanged: (value) => onDifficultyFilterChanged(value ?? ''),
                 ),
               ),
               SizedBox(
                 width: 164,
                 child: DropdownButtonFormField<String>(
                   key: ValueKey<String>(
-                    'chunk_owner_group_filter_$_groupFilter',
+                    'chunk_owner_group_filter_$groupFilter',
                   ),
-                  initialValue: _groupFilter,
+                  initialValue: groupFilter,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Group',
@@ -170,13 +137,12 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
                         child: Text(group),
                       ),
                   ],
-                  onChanged: (value) =>
-                      setState(() => _groupFilter = value ?? ''),
+                  onChanged: (value) => onGroupFilterChanged(value ?? ''),
                 ),
               ),
               TextButton.icon(
                 key: const ValueKey<String>('chunk_owner_clear_filters'),
-                onPressed: _hasFilters ? _clearFilters : null,
+                onPressed: _hasFilters ? onClearFilters : null,
                 icon: const Icon(Icons.filter_alt_off_outlined),
                 label: const Text('Clear filters'),
               ),
@@ -276,32 +242,9 @@ class _ChunkOwnerListSectionState extends State<ChunkOwnerListSection> {
   }
 
   bool get _hasFilters =>
-      _searchController.text.isNotEmpty ||
-      _difficultyFilter.isNotEmpty ||
-      _groupFilter.isNotEmpty;
-
-  List<ChunkV2FileData> _filteredChunks(List<ChunkV2FileData> chunks) {
-    final query = _searchController.text.trim().toLowerCase();
-    return chunks
-        .where(
-          (chunk) =>
-              (query.isEmpty || chunk.chunkKey.toLowerCase().contains(query)) &&
-              (_difficultyFilter.isEmpty ||
-                  chunk.difficulty == _difficultyFilter) &&
-              (_groupFilter.isEmpty || chunk.assemblyGroupId == _groupFilter),
-        )
-        .toList(growable: false);
-  }
-
-  void _clearFilters() {
-    _searchController.clear();
-    setState(() {
-      _difficultyFilter = '';
-      _groupFilter = '';
-    });
-  }
-
-  void _handleSearchChanged() => setState(() {});
+      searchController.text.isNotEmpty ||
+      difficultyFilter.isNotEmpty ||
+      groupFilter.isNotEmpty;
 }
 
 /// Inline creation section using an existing owner as dimension template.

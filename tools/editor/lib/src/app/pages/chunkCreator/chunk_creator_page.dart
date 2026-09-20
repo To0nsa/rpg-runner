@@ -267,8 +267,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       return;
     }
     final document = widget.controller.document;
-    final selectedChunkKey = readiness.selectedChunkKey;
-    if (document is! ChunkV2Document || selectedChunkKey == null) {
+    final chunkKeys = readiness.chunkKeys;
+    if (document is! ChunkV2Document || chunkKeys.isEmpty) {
       _showPlaytestBlocked('The accepted Chunk-v2 document is unavailable.');
       return;
     }
@@ -280,7 +280,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           mounted && identical(widget.controller.document, document),
       capture: () => captureChunkPlaytestPreparationInput(
         document: document,
-        selectedChunkKey: selectedChunkKey,
+        selectedChunkKeys: chunkKeys,
         workspaceRoot: widget.controller.workspacePath,
       ),
       runner: widget.preparationRunner,

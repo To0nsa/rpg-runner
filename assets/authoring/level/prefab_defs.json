@@ -10407,7 +10407,7 @@
     {
       "prefabKey": "gandalf_hardcore_small_tent_01",
       "id": "gandalf_hardcore_small_tent_01",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -10416,7 +10416,62 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 32,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": 32
+            },
+            {
+              "x": -31,
+              "y": 9
+            },
+            {
+              "x": -31,
+              "y": -4
+            },
+            {
+              "x": -20,
+              "y": -10
+            },
+            {
+              "x": -5,
+              "y": -26
+            },
+            {
+              "x": 0,
+              "y": -32
+            },
+            {
+              "x": 6,
+              "y": -23
+            },
+            {
+              "x": 22,
+              "y": -8
+            },
+            {
+              "x": 30,
+              "y": -5
+            },
+            {
+              "x": 29,
+              "y": 11
+            },
+            {
+              "x": 30,
+              "y": 24
+            },
+            {
+              "x": 32,
+              "y": 32
+            }
+          ]
+        }
+      ],
       "tags": [
         "Small Tent",
         "gandalf_hardcore"
@@ -14035,7 +14090,7 @@
     {
       "prefabKey": "tiny_swords_bleachers_03",
       "id": "tiny_swords_bleachers_03",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -14044,7 +14099,54 @@
       },
       "anchorXPx": 40,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -26,
+              "y": -11
+            },
+            {
+              "x": -8,
+              "y": -11
+            },
+            {
+              "x": -7,
+              "y": -3
+            },
+            {
+              "x": 6,
+              "y": -3
+            },
+            {
+              "x": 8,
+              "y": 5
+            },
+            {
+              "x": 20,
+              "y": 5
+            },
+            {
+              "x": 22,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 36,
+              "y": 24
+            },
+            {
+              "x": -26,
+              "y": 24
+            }
+          ]
+        }
+      ],
       "tags": [
         "tiny_swords",
         "village_props"
@@ -15077,59 +15179,16 @@
     {
       "prefabKey": "tiny_swords_firecamp_01",
       "id": "tiny_swords_firecamp_01",
-      "revision": 6,
+      "revision": 7,
       "status": "active",
-      "kind": "obstacle",
+      "kind": "decoration",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "tiny_swords_firecamp_01"
       },
       "anchorXPx": 32,
       "anchorYPx": 16,
-      "collisionShapes": [
-        {
-          "shapeId": "collision_001",
-          "collisionMode": "solid",
-          "vertices": [
-            {
-              "x": -29,
-              "y": 10
-            },
-            {
-              "x": -20,
-              "y": 6
-            },
-            {
-              "x": -12,
-              "y": -2
-            },
-            {
-              "x": 8,
-              "y": -2
-            },
-            {
-              "x": 13,
-              "y": 4
-            },
-            {
-              "x": 23,
-              "y": 6
-            },
-            {
-              "x": 28,
-              "y": 10
-            },
-            {
-              "x": 27,
-              "y": 16
-            },
-            {
-              "x": -27,
-              "y": 16
-            }
-          ]
-        }
-      ],
+      "collisionShapes": [],
       "tags": [
         "tiny_swords",
         "village_props"

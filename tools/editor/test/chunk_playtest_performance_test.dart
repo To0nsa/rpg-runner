@@ -93,7 +93,7 @@ void main() {
     expect(captureMicros, everyElement(lessThan(30000000)));
     expect(synchronousPreparationMicros, everyElement(lessThan(30000000)));
     expect(backgroundPreparationMicros, everyElement(lessThan(30000000)));
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }
 
 Map<String, int> _summarize(List<int> samples) {

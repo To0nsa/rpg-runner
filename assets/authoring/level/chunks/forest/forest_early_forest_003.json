@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_forest_003",
   "id": "forest_early_forest_003",
-  "revision": 71,
+  "revision": 78,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -114,11 +114,11 @@
           "y": 224
         },
         {
-          "x": 416,
+          "x": 255,
           "y": 224
         },
         {
-          "x": 416,
+          "x": 255,
           "y": 270
         },
         {
@@ -152,6 +152,54 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_004",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 255,
+          "y": 225
+        },
+        {
+          "x": 319,
+          "y": 225
+        },
+        {
+          "x": 319,
+          "y": 270
+        },
+        {
+          "x": 255,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_005",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 319,
+          "y": 225
+        },
+        {
+          "x": 416,
+          "y": 225
+        },
+        {
+          "x": 416,
+          "y": 270
+        },
+        {
+          "x": 319,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
     }
   ]
 }

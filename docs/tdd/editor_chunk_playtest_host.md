@@ -47,13 +47,22 @@ selected-Level Chunk, including inactive source, to
 `compilePolygonTerrainRuntimeChunkSource`; malformed source is never skipped.
 It builds authored Level identity and settings, then delegates scheduler/seam
 admission to the appropriate Core scenario. New Levels, first Chunks, themes,
-and materials need no generated enum or catalog entry. Chunk Play admits its
-focused canonical lasso over complete connection scheduling states, including
-a supported Normal opener and the selected occurrence, and removes the initial
-enemy-free prefix. The lasso retains section lengths, used identities and an
-exactly matching repeating tail; see [chunk connections](chunk_connections.md). Whole-Level
-Play retains actual assembly, pacing, distinctness, looping and marker rules.
-Default tooling selection is seed `4401`, Eloise, and the empty default loadout.
+and materials need no generated enum or catalog entry. Chunk Play projects the
+current owner-catalog search, difficulty, and group filters into a playtest
+pool. When several owners match, it creates deterministic
+Core validates the exact compiled pool, chooses a stable supported opener, and
+builds a deterministic closed walk through matching physical boundaries that
+covers every filtered active owner. No non-matching owner can enter that
+multi-owner lasso; repeated matching owners may act as connectors. A filtered
+set that cannot be covered and closed fails with a focused connection or seam
+diagnostic instead of silently substituting content. A single matching owner
+retains the established scheduler-aware focused-lasso behavior and may use
+required connector chunks around that owner. The initial enemy-free prefix is
+removed. The lasso retains an exactly matching repeating tail; see [chunk
+connections](chunk_connections.md).
+Whole-Level Play retains actual assembly, pacing, distinctness, looping and
+marker rules. Default tooling selection is seed `4401`, Eloise, and the empty
+default loadout.
 
 `preparePlaytestInBackground` compiles off the UI isolate, captures the complete
 image set used by the real renderer, validates decoded image dimensions and
@@ -74,12 +83,13 @@ returns diagnostics with no partial host input.
 
 ## Editor readiness and route state
 
-The current-schema Chunk workspace exposes only the selected accepted owner
-and a fail-closed readiness result. Windows desktop targeting, a selected owner
-and level, an idle session, no active gesture, finalized valid inspector input,
-and no blocking validation issue are required. The request finalizes completed
-visible edits before checking strict capture readiness; invalid fields stay in
-the editor and stop preparation. Accepted session pending
+The current-schema Chunk workspace exposes the canonically ordered filtered
+owner keys and a fail-closed readiness result. Windows desktop targeting, a
+selected owner and level, at least one filtered active owner, an idle session,
+no active gesture, finalized valid inspector input, and no blocking validation
+issue are required. The request finalizes completed visible edits before
+checking strict capture readiness; invalid fields stay in the editor and stop
+preparation. Accepted session pending
 changes are deliberately not a blocker. Migration-required or unavailable
 source never exposes a usable Play action.
 

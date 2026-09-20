@@ -128,6 +128,53 @@ void main() {
     },
   );
 
+  test('filtered pool path covers only its compatible owners and repeats', () {
+    final level = LevelRegistry.byId(LevelId.forest);
+    final source = level.chunkPatternSource;
+    final base = switch (source) {
+      ChunkPatternListSource value => value,
+      FirstChunkPatternSource value => value.baseSource,
+      AssembledChunkPatternSource value => value.baseSource,
+      _ => throw StateError('Forest must use an authored list source.'),
+    };
+    final patterns = base.easyPatterns
+        .where((pattern) => pattern.assemblyGroupId == 'rocky_grove')
+        .take(3)
+        .toList(growable: false);
+    final keys = patterns.map((pattern) => pattern.chunkKey!).toSet();
+    final scenario = ChunkPlaytestScenario.filteredPool(
+      levelDefinition: level.copyWith(
+        chunkPatternSource: ChunkPatternListSource(easyPatterns: patterns),
+        noEnemyChunks: 0,
+        clearFirstChunkKey: true,
+        clearAssembly: true,
+      ),
+      visualThemeId: 'forest_chunk_playtest',
+      seed: 4401,
+      patterns: patterns,
+      terrainChunks: stagedAuthoredTerrain.chunks.where(
+        (chunk) => keys.contains(chunk.chunkKey),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      equippedLoadout: const EquippedLoadoutDef(),
+    );
+
+    expect(scenario.path.chunkKeys.toSet(), keys);
+    expect(scenario.path.chunkKeys, everyElement(isIn(keys)));
+    expect(scenario.path.previewChunkKeys(scenario.path.chunkKeys.length * 2), [
+      ...scenario.path.chunkKeys,
+      ...scenario.path.chunkKeys,
+    ]);
+    expect(
+      GameCore.chunkPlaytest(scenario: scenario)
+          .buildSnapshot()
+          .stagedTerrainRenderSnapshot!
+          .polygons
+          .map((polygon) => polygon.sourceId.chunkKey),
+      everyElement(isIn(keys)),
+    );
+  });
+
   test('same scenario and command stream produce identical snapshots', () {
     final scenario = _scenario();
     final first = GameCore.chunkPlaytest(scenario: scenario);

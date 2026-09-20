@@ -14,7 +14,7 @@ final class ChunkPlaytestWorkspaceReadiness {
   const ChunkPlaytestWorkspaceReadiness({
     required this.code,
     required this.message,
-    required this.selectedChunkKey,
+    required this.chunkKeys,
   });
 
   /// Stable readiness code used by tests and editor presentation.
@@ -23,8 +23,8 @@ final class ChunkPlaytestWorkspaceReadiness {
   /// Concise author-facing explanation or ready-state description.
   final String message;
 
-  /// Selected accepted owner, absent when owner/level context is incomplete.
-  final String? selectedChunkKey;
+  /// Filtered accepted owners, empty when capture context is incomplete.
+  final List<String> chunkKeys;
 
   bool get isReady => code == 'ready';
 
@@ -96,7 +96,11 @@ class ChunkWorkspaceHeader extends StatelessWidget {
           key: const ValueKey<String>('chunk_playtest_button'),
           onPressed: readiness.canRequestPlay ? onPlayRequested : null,
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Play (F5)'),
+          label: Text(
+            readiness.chunkKeys.isEmpty
+                ? 'Play (F5)'
+                : 'Play ${readiness.chunkKeys.length} (F5)',
+          ),
         ),
       ),
     ],

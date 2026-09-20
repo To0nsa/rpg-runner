@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_easy_woodcamp_002_copy",
-  "id": "forest_easy_woodcamp_002_copy",
+  "chunkKey": "forest_easy_training_camp_001",
+  "id": "forest_easy_training_camp_001",
   "revision": 37,
   "status": "active",
   "levelId": "forest",
@@ -9,49 +9,41 @@
   "width": 600,
   "height": 270,
   "difficulty": "easy",
-  "assemblyGroupId": "woodcamp",
+  "assemblyGroupId": "trainingcamp",
   "tags": [],
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_tree_01",
-      "prefabKey": "tiny_swords_tree_01",
-      "x": 425,
-      "y": 152,
-      "zIndex": -1,
-      "snapToGrid": false
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 336,
+      "y": 96,
+      "zIndex": 0,
+      "snapToGrid": true
     },
     {
-      "prefabId": "tiny_swords_tree_02",
-      "prefabKey": "tiny_swords_tree_02",
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
       "x": 64,
-      "y": 112,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "woods_clothline_01",
-      "prefabKey": "woods_clothline_01",
-      "x": 496,
-      "y": 192,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "woods_tent_01",
-      "prefabKey": "woods_tent_01",
-      "x": 96,
-      "y": 200,
+      "y": 176,
       "zIndex": 0,
       "snapToGrid": true,
-      "scale": 1.5,
-      "flipX": true
+      "scale": 1.5
     },
     {
-      "prefabId": "woods_tent_02",
-      "prefabKey": "woods_tent_02",
-      "x": 352,
-      "y": 200,
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 208,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 480,
+      "y": 176,
       "zIndex": 0,
       "snapToGrid": true,
       "scale": 1.5,
@@ -60,7 +52,7 @@
     {
       "prefabId": "tiny_swords_firecamp_01",
       "prefabKey": "tiny_swords_firecamp_01",
-      "x": 224,
+      "x": 336,
       "y": 208,
       "zIndex": 0,
       "snapToGrid": true
@@ -69,7 +61,7 @@
   "markers": [],
   "collisionShapes": [
     {
-      "shapeId": "solid_002",
+      "shapeId": "ground_001",
       "collisionMode": "solid",
       "vertices": [
         {

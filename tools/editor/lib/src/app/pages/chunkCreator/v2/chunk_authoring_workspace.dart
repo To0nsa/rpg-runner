@@ -136,6 +136,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       GlobalKey<EditorInlineIdFormState>();
   final EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document> _ownerDraft =
       EditorOwnerDraftState<ChunkV2FileData, ChunkV2Document>();
+  late final TextEditingController _ownerSearchController;
+  String _ownerDifficultyFilter = '';
+  String _ownerGroupFilter = '';
   String? _selectedChunkKey;
   TerrainBoundarySide _connectionSide = TerrainBoundarySide.right;
   bool _showElevationGuides = false;
@@ -200,13 +203,28 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   bool get hasActiveOperation => _hasActiveOperation;
 
-  /// Stable selected owner used when the route captures a playtest snapshot.
+  /// Stable selected owner used by the editor and navigation state.
   String? get selectedChunkKey => _selectedChunkKey;
+
+  /// Canonically ordered owners represented by the current catalog filters.
+  List<String> get filteredChunkKeys {
+    final scene = _sceneOrNull;
+    if (scene == null) return const <String>[];
+    return filterChunkOwners(
+      scene.chunks,
+      search: _ownerSearchController.text,
+      difficulty: _ownerDifficultyFilter,
+      group: _ownerGroupFilter,
+    ).map((chunk) => chunk.chunkKey).toList(growable: false);
+  }
 
   /// Captures view identity only; restoration resolves placement keys anew.
   ChunkCreatorLocation get navigationLocation => ChunkCreatorLocation(
     levelId: _sceneOrNull?.activeLevelId,
     chunkKey: _selectedChunkKey,
+    ownerSearch: _ownerSearchController.text,
+    ownerDifficultyFilter: _ownerDifficultyFilter,
+    ownerGroupFilter: _ownerGroupFilter,
     zoom: _zoom,
     pan: _pan,
     domain: _sceneCoordinator.sourceDomain,
@@ -230,16 +248,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return const ChunkPlaytestWorkspaceReadiness(
         code: 'unsupportedPlatformOrSourceGeneration',
         message: 'Play mode is available only in the Windows Chunk-v2 editor.',
-        selectedChunkKey: null,
+        chunkKeys: <String>[],
       );
     }
+    final chunkKeys = filteredChunkKeys;
     if (widget.controller.isLoading || widget.controller.isExporting) {
       return ChunkPlaytestWorkspaceReadiness(
         code: 'activeLocalOperationOrDraft',
         message: widget.controller.isLoading
             ? 'Wait for the workspace to finish loading.'
             : 'Wait for Save to finish.',
-        selectedChunkKey: _selectedChunkKey,
+        chunkKeys: chunkKeys,
       );
     }
     final selectedChunkKey = _selectedChunkKey;
@@ -251,7 +270,32 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return const ChunkPlaytestWorkspaceReadiness(
         code: 'missingOwnerOrLevelContext',
         message: 'Select a current chunk owner and level before Play.',
-        selectedChunkKey: null,
+        chunkKeys: <String>[],
+      );
+    }
+    if (chunkKeys.isEmpty) {
+      return const ChunkPlaytestWorkspaceReadiness(
+        code: 'emptyOwnerFilter',
+        message:
+            'Adjust the owner filters so at least one chunk can be played.',
+        chunkKeys: <String>[],
+      );
+    }
+    final inactiveKeys = scene.chunks
+        .where(
+          (chunk) =>
+              chunkKeys.contains(chunk.chunkKey) &&
+              chunk.status != chunkStatusActive,
+        )
+        .map((chunk) => chunk.chunkKey)
+        .toList(growable: false);
+    if (inactiveKeys.isNotEmpty) {
+      return ChunkPlaytestWorkspaceReadiness(
+        code: 'inactiveFilteredOwner',
+        message:
+            'Filtered Play requires active chunks. Activate or exclude: '
+            '${inactiveKeys.join(', ')}.',
+        chunkKeys: chunkKeys,
       );
     }
     if (_hasActiveOperation) {
@@ -260,14 +304,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         message:
             'Finish, save, or cancel the active gesture or inspector draft '
             'before Play.',
-        selectedChunkKey: selectedChunkKey,
+        chunkKeys: chunkKeys,
       );
     }
     if (_hasPendingSelectedSceneEdit || _ownerEditDirty || _ownerCreateDirty) {
       return ChunkPlaytestWorkspaceReadiness(
         code: 'pendingInspectorInput',
         message: 'Play validates the current inspector input before starting.',
-        selectedChunkKey: selectedChunkKey,
+        chunkKeys: chunkKeys,
       );
     }
     if (widget.controller.issues.any(
@@ -276,13 +320,15 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return ChunkPlaytestWorkspaceReadiness(
         code: 'blockingValidationIssue',
         message: 'Resolve the blocking Chunk diagnostics before Play.',
-        selectedChunkKey: selectedChunkKey,
+        chunkKeys: chunkKeys,
       );
     }
     return ChunkPlaytestWorkspaceReadiness(
       code: 'ready',
-      message: 'Test this chunk in a focused loop with authored markers and no level enemy-free opening.',
-      selectedChunkKey: selectedChunkKey,
+      message:
+          'Test ${chunkKeys.length} filtered chunk owner${chunkKeys.length == 1 ? '' : 's'} '
+          'in a focused loop with authored markers and no level enemy-free opening.',
+      chunkKeys: chunkKeys,
     );
   }
 
@@ -402,6 +448,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   @override
   void initState() {
     super.initState();
+    final initialLocation = widget.initialLocation;
+    _ownerSearchController = TextEditingController(
+      text: initialLocation?.ownerSearch ?? '',
+    )..addListener(_handleOwnerSearchChanged);
+    _ownerDifficultyFilter = initialLocation?.ownerDifficultyFilter ?? '';
+    _ownerGroupFilter = initialLocation?.ownerGroupFilter ?? '';
     _exactEditController.addListener(_handleExactEditChanged);
     _reloadMaterialCatalog();
     _selectInitialOwner();
@@ -466,6 +518,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   @override
   void dispose() {
     _disposeAuthoring();
+    _ownerSearchController
+      ..removeListener(_handleOwnerSearchChanged)
+      ..dispose();
     _exactEditController
       ..removeListener(_handleExactEditChanged)
       ..dispose();
@@ -475,6 +530,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _handleExactEditChanged() {
     if (mounted) setState(() {});
     widget.onDraftStateChanged?.call();
+  }
+
+  void _handleOwnerSearchChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -604,11 +663,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     scene: scene,
     selectedChunk: selectedChunk,
     expandedChunk: _ownerEditSource,
+    searchController: _ownerSearchController,
+    difficultyFilter: _ownerDifficultyFilter,
+    groupFilter: _ownerGroupFilter,
     workspaceRootPath: widget.controller.workspacePath,
     expandedPrefabShapeCount: (chunkKey) =>
         _expansionFor(chunkKey)?.expansion?.expandedPrefabShapeCount ?? 0,
     onSelected: (chunk) => unawaited(_selectOwner(chunk.chunkKey)),
     onEdit: (chunk) => unawaited(_openOwnerEditor(chunk)),
+    onDifficultyFilterChanged: (value) =>
+        setState(() => _ownerDifficultyFilter = value),
+    onGroupFilterChanged: (value) => setState(() => _ownerGroupFilter = value),
+    onClearFilters: () {
+      _ownerSearchController.clear();
+      setState(() {
+        _ownerDifficultyFilter = '';
+        _ownerGroupFilter = '';
+      });
+    },
     selectedDetailsBuilder: (context, chunk) =>
         _buildOwnerEditDetails(document, chunk),
   );
@@ -3167,6 +3239,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _reconcileReloadedOwner(ChunkV2Scene scene) {
+    if (_ownerDifficultyFilter.isNotEmpty &&
+        !scene.chunks.any(
+          (chunk) => chunk.difficulty == _ownerDifficultyFilter,
+        )) {
+      _ownerDifficultyFilter = '';
+    }
+    if (_ownerGroupFilter.isNotEmpty &&
+        !scene.chunks.any(
+          (chunk) => chunk.assemblyGroupId == _ownerGroupFilter,
+        )) {
+      _ownerGroupFilter = '';
+    }
     final selectedKey = _selectedChunkKey;
     if (selectedKey != null &&
         scene.chunks.any((chunk) => chunk.chunkKey == selectedKey)) {

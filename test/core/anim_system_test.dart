@@ -487,6 +487,23 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.run));
       });
 
+      test('moving flight keeps its tick-driven animation frame', () {
+        final enemy = spawnUnocoDemon(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 50,
+          velY: 10,
+        );
+        world.resolvedMotion.add(enemy);
+
+        stepEnemies(17);
+
+        final ai = world.animState.indexOf(enemy);
+        expect(world.animState.anim[ai], equals(AnimKey.run));
+        expect(world.animState.animFrame[ai], equals(17));
+      });
+
       test('strike uses dedicated strike strip', () {
         final enemy = spawnUnocoDemon(world, posX: 100, posY: 100);
 
@@ -598,6 +615,35 @@ void main() {
 
         final ai = world.animState.indexOf(enemy);
         expect(world.animState.anim[ai], equals(AnimKey.run));
+      });
+
+      test('ground locomotion keeps its supported-distance frame', () {
+        final profile = enemyCatalog.get(EnemyId.grojib).animProfile;
+        final enemy = spawnGroundEnemy(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: profile.runSpeedThresholdX + 10,
+          velY: 0,
+        );
+        world.collision.grounded[world.collision.indexOf(enemy)] = true;
+        world.resolvedMotion.add(enemy);
+        world.resolvedMotion.setLocomotionReferenceSpeed(
+          enemy,
+          ticksPerSecond: 6000,
+        );
+        world.resolvedMotion.setResolved(
+          enemy,
+          displacementXTicks: 100,
+          displacementYTicks: 0,
+          travelAlongSupportTicks: 100,
+        );
+
+        stepEnemies(20);
+
+        final ai = world.animState.indexOf(enemy);
+        expect(world.animState.anim[ai], equals(AnimKey.run));
+        expect(world.animState.animFrame[ai], equals(1));
       });
 
       test('jump when airborne with negative velY', () {

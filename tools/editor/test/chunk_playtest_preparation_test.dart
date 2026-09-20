@@ -55,6 +55,68 @@ void main() {
   );
 
   test(
+    'filtered owner pool becomes the complete repeating Chunk path',
+    () async {
+      final keys = <String>[
+        'forest_rocky_grove_easy_003',
+        'forest_rocky_grove_easy_001',
+        'forest_rocky_grove_easy_002',
+      ];
+      final input = await captureChunkPlaytestPreparationInput(
+        document: repositoryDocument,
+        selectedChunkKeys: keys,
+        workspaceRoot: workspaceRoot,
+      );
+      final result = preparePlaytest(input);
+
+      expect(
+        result.issues,
+        isEmpty,
+        reason: result.issues.map((issue) => issue.toString()).join('\n'),
+      );
+      expect(input.selectedChunkKeys, <String>[...keys]..sort());
+      final scenario = result.scenario! as ChunkPlaytestScenario;
+      expect(scenario.path.chunkKeys, everyElement(isIn(keys)));
+      expect(scenario.path.chunkKeys.toSet(), keys.toSet());
+      expect(scenario.levelDefinition.noEnemyChunks, 0);
+      expect(scenario.levelDefinition.assembly, isNull);
+      expect(
+        scenario.path.previewChunkKeys(scenario.path.chunkKeys.length * 2),
+        <String>[...scenario.path.chunkKeys, ...scenario.path.chunkKeys],
+      );
+    },
+  );
+
+  test('unfiltered owner catalog remains a bounded exact Chunk pool', () async {
+    final keys =
+        repositoryDocument.chunks
+            .where(
+              (chunk) => chunk.levelId == 'forest' && chunk.status == 'active',
+            )
+            .map((chunk) => chunk.chunkKey)
+            .toList()
+          ..sort();
+    final input = await captureChunkPlaytestPreparationInput(
+      document: repositoryDocument,
+      selectedChunkKeys: keys,
+      workspaceRoot: workspaceRoot,
+    );
+    final watch = Stopwatch()..start();
+    final result = preparePlaytest(input);
+    watch.stop();
+
+    expect(
+      result.issues,
+      isEmpty,
+      reason: result.issues.map((issue) => issue.message).join('\n'),
+    );
+    final scenario = result.scenario! as ChunkPlaytestScenario;
+    expect(scenario.path.chunkKeys.toSet(), keys.toSet());
+    expect(scenario.path.chunkKeys, everyElement(isIn(keys)));
+    expect(watch.elapsed, lessThan(const Duration(seconds: 5)));
+  });
+
+  test(
     'accepted Chunk edits compile without changing persisted baseline',
     () async {
       final source = repositoryDocument.chunks.singleWhere(
@@ -392,9 +454,10 @@ PlaytestPreparationInput _copy(
   terrainMaterialContents: materialContents ?? input.terrainMaterialContents,
   sourceBaseline: baseline ?? input.sourceBaseline,
   repositoryChunkPaths: input.repositoryChunkPaths,
-  selectedChunkKey: wholeLevel
+  selectedChunkKey: wholeLevel ? null : selectedChunkKey,
+  selectedChunkKeys: wholeLevel || selectedChunkKey != null
       ? null
-      : (selectedChunkKey ?? input.selectedChunkKey),
+      : input.selectedChunkKeys,
   seed: input.seed,
 );
 

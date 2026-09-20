@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:rpg_runner/playtest.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_location.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
@@ -83,6 +84,11 @@ void main() {
         tester,
         session: session,
         fixtureImage: fixtureImage,
+        initialLocation: const ChunkCreatorLocation(
+          levelId: 'forest',
+          chunkKey: null,
+          ownerSearch: 'forest_rocky_grove_easy_',
+        ),
         onShellStateChanged: () => shellNotifications += 1,
         preparationRunner: (input) async {
           capturedInput = input;
@@ -134,6 +140,11 @@ void main() {
         capturedInput!.chunkSources.values.join(),
         contains('phase5_pending'),
       );
+      expect(capturedInput!.selectedChunkKeys, <String>[
+        'forest_rocky_grove_easy_001',
+        'forest_rocky_grove_easy_002',
+        'forest_rocky_grove_easy_003',
+      ]);
 
       final host = tester.widget<RunnerPlaytestHost>(
         find.byType(RunnerPlaytestHost),
@@ -595,6 +606,7 @@ Future<void> _mountPage(
   WidgetTester tester, {
   required EditorSessionController session,
   required ui.Image fixtureImage,
+  ChunkCreatorLocation? initialLocation,
   PlaytestPreparationRunner preparationRunner = preparePlaytestInBackground,
   bool playtestPlatformSupported = true,
   VoidCallback? onShellStateChanged,
@@ -609,6 +621,7 @@ Future<void> _mountPage(
       home: Scaffold(
         body: ChunkCreatorPage(
           controller: session,
+          initialLocation: initialLocation,
           onShellStateChanged: onShellStateChanged,
           playtestPlatformSupported: playtestPlatformSupported,
           preparationRunner: preparationRunner,

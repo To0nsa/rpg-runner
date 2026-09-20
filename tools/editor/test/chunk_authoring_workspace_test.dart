@@ -27,6 +27,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_v2_composition
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_navigation.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
@@ -1869,7 +1870,7 @@ void main() {
     },
   );
 
-  testWidgets('owner search combines chunk key difficulty and group filters', (
+  testWidgets('owner filters combine and restore from route navigation', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1800, 1000);
@@ -1909,7 +1910,12 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
-        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        home: Scaffold(
+          body: ChunkCreatorPage(
+            controller: harness.session,
+            playtestPlatformSupported: true,
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -1934,7 +1940,6 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_c')),
       findsOneWidget,
     );
-
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_owner_difficulty_filter_')),
     );
@@ -1970,6 +1975,63 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_c')),
       findsOneWidget,
     );
+    final filteredWorkspace = tester.state<ChunkAuthoringWorkspaceState>(
+      find.byType(ChunkAuthoringWorkspace),
+    );
+    expect(filteredWorkspace.filteredChunkKeys, <String>['forest_easy_c']);
+    expect(filteredWorkspace.playtestReadiness.chunkKeys, <String>[
+      'forest_easy_c',
+    ]);
+    expect(find.text('Play 1 (F5)'), findsOneWidget);
+
+    final location =
+        (tester.state(
+              find.byType(ChunkCreatorPage),
+            ) as EditorPageNavigationState).navigationLocation!
+            as ChunkCreatorLocation;
+    expect(location.ownerSearch, 'easy');
+    expect(location.ownerDifficultyFilter, chunkDifficultyEasy);
+    expect(location.ownerGroupFilter, 'bridges');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: ChunkCreatorPage(
+            key: const ValueKey<String>('restored_chunk_creator'),
+            controller: harness.session,
+            initialLocation: location,
+            playtestPlatformSupported: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_polygon_owner_forest_easy_c',
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey<String>('chunk_owner_search')),
+          )
+          .controller!
+          .text,
+      'easy',
+    );
+    expect(
+      find.byKey(
+        ValueKey<String>('chunk_owner_difficulty_filter_$chunkDifficultyEasy'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_owner_group_filter_bridges')),
+      findsOneWidget,
+    );
+    expect(find.text('1 of 4 owners'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_owner_clear_filters')),
@@ -1979,6 +2041,25 @@ void main() {
     expect(
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
       findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('chunk_owner_search')),
+      'no_owner_matches_this',
+    );
+    await tester.pump();
+    final restoredWorkspace = tester.state<ChunkAuthoringWorkspaceState>(
+      find.byType(ChunkAuthoringWorkspace),
+    );
+    expect(restoredWorkspace.filteredChunkKeys, isEmpty);
+    expect(restoredWorkspace.playtestReadiness.code, 'emptyOwnerFilter');
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey<String>('chunk_playtest_button')),
+          )
+          .onPressed,
+      isNull,
     );
   });
 

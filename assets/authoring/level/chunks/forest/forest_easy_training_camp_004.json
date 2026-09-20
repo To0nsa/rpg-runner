@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_easy_training_camp_004",
+  "id": "forest_easy_training_camp_004",
+  "revision": 8,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "trainingcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}
