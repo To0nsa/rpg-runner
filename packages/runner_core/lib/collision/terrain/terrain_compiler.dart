@@ -40,10 +40,11 @@ class TerrainCompiler {
   /// Removed source vertices are reported as stable non-blocking diagnostics on
   /// the returned geometry.
   ///
-  /// Distinct solid Prefab placements may overlap within a chunk. Their source
-  /// polygons remain intact; only the boundary of their occupied union collides.
-  /// Direct terrain, shapes within one placement, and one-way overlaps remain
-  /// invalid. Intersection coordinates round once to the physics grid.
+  /// Solid Prefab placements may overlap each other and direct solid terrain
+  /// within a chunk. Source polygons remain intact; only the boundary of their
+  /// occupied union collides. Overlap between direct terrain shapes, within one
+  /// placement, or involving one-way collision remains invalid. Intersection
+  /// coordinates round once to the physics grid.
   TerrainGeometry compile(
     Iterable<TerrainPolygonInput> inputs, {
     required int geometryVersion,
@@ -111,10 +112,7 @@ class TerrainCompiler {
       }
     }
 
-    final edges = _buildAdjacency(
-      exposed,
-      connectSolidPlacements: hasSolidOverlap,
-    );
+    final edges = _buildAdjacency(exposed, connectSolidUnion: hasSolidOverlap);
     return TerrainGeometry(
       version: geometryVersion,
       polygons: polygons,
@@ -389,7 +387,7 @@ List<_RawEdge> _removeInternalSolidEdges(List<_RawEdge> edges) {
 
 List<TerrainEdge> _buildAdjacency(
   List<_RawEdge> rawEdges, {
-  bool connectSolidPlacements = false,
+  bool connectSolidUnion = false,
 }) {
   final incoming = <TerrainPoint, List<_RawEdge>>{};
   final outgoing = <TerrainPoint, List<_RawEdge>>{};
@@ -409,14 +407,10 @@ List<TerrainEdge> _buildAdjacency(
       final previous = _firstCompatible(
         raw,
         incoming[raw.start],
-        connectSolidPlacements,
+        connectSolidUnion,
         previous: true,
       );
-      final next = _firstCompatible(
-        raw,
-        outgoing[raw.end],
-        connectSolidPlacements,
-      );
+      final next = _firstCompatible(raw, outgoing[raw.end], connectSolidUnion);
       final tangent = TerrainDirection.fromDelta(
         raw.end.xTicks - raw.start.xTicks,
         raw.end.yTicks - raw.start.yTicks,
@@ -452,7 +446,7 @@ List<TerrainEdge> _buildAdjacency(
 _RawEdge? _firstCompatible(
   _RawEdge edge,
   List<_RawEdge>? candidates,
-  bool connectSolidPlacements, {
+  bool connectSolidUnion, {
   bool previous = false,
 }) {
   if (candidates == null) return null;
@@ -461,11 +455,11 @@ _RawEdge? _firstCompatible(
     if (candidate.id != edge.id &&
         candidate.collisionMode == edge.collisionMode &&
         (candidate.surfaceKind == edge.surfaceKind ||
-            (connectSolidPlacements &&
+            (connectSolidUnion &&
                 edge.collisionMode == TerrainCollisionMode.solid &&
-                edge.id.placementKey != null &&
-                candidate.id.placementKey != null))) {
-      if (!connectSolidPlacements ||
+                (edge.id.placementKey != null ||
+                    candidate.id.placementKey != null)))) {
+      if (!connectSolidUnion ||
           edge.collisionMode != TerrainCollisionMode.solid) {
         return candidate;
       }
@@ -539,8 +533,6 @@ bool _validatePolygonOverlaps(
 bool _allowsSolidPlacementOverlap(TerrainPolygon left, TerrainPolygon right) =>
     left.collisionMode == TerrainCollisionMode.solid &&
     right.collisionMode == TerrainCollisionMode.solid &&
-    left.identity.placementKey != null &&
-    right.identity.placementKey != null &&
     left.identity.placementKey != right.identity.placementKey &&
     left.identity.chunkIndex == right.identity.chunkIndex &&
     left.identity.chunkKey == right.identity.chunkKey;

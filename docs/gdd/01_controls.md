@@ -235,8 +235,8 @@ instead of becoming pinned by simultaneous floor and wall contacts. Ordinary
 grounded movement still uses the four-pixel automatic step limit; taller
 obstacles require a jump. These rules apply in normal runs and editor Play.
 
-Overlapping solid obstacle placements behave as one occupied shape. Players
-and enemies collide with its exposed outline; buried sides and tops provide
+Solid obstacles overlapping each other or solid terrain behave as one occupied
+shape. Players and enemies collide with its exposed outline; buried sides and tops provide
 neither walls nor standing surfaces. Uncovered ledges remain solid and holes
 remain open.
 

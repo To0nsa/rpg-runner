@@ -1745,11 +1745,21 @@ void main() {
       await tester.tap(applyVertex);
       await tester.pump();
       forestChunk = _chunk(harness.session, 'forest_chunk');
-      expect(forestChunk.revision, 4);
-      expect(harness.session.pendingChanges.hasChanges, isFalse);
-      expect(tester.widget<TextField>(xField).controller!.text, '101');
+      expect(forestChunk.revision, 5);
+      expect(harness.session.pendingChanges.hasChanges, isTrue);
+      expect(
+        forestChunk.collisionShapes.single.vertices,
+        contains(
+          const TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 20),
+        ),
+        reason: 'exact input clamps to the chunk edge and may overlap the rock',
+      );
       final outOfBoundsIssue = find.text('chunk_collision_shape_out_of_bounds');
       expect(outOfBoundsIssue, findsNothing);
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
 
       await tester.drag(authoringSidebar, const Offset(0, 5000));
       await tester.pump();

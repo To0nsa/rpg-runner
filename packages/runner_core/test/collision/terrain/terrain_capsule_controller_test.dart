@@ -14,116 +14,118 @@ import 'package:test/test.dart';
 
 void main() {
   group('terrain capsule controller', () {
-    test(
-      'overlapping obstacles match one outline during landing and travel',
-      () {
-        final union = _Harness([
-          _polygon('left', const [
-            (0, 100),
-            (120, 100),
-            (120, 200),
-            (0, 200),
-          ], placementKey: 'left'),
-          _polygon('right', const [
-            (80, 100),
-            (220, 100),
-            (220, 200),
-            (80, 200),
-          ], placementKey: 'right'),
-        ]);
-        final outline = _Harness([
-          _polygon('outline', const [
-            (0, 100),
-            (220, 100),
-            (220, 200),
-            (0, 200),
-          ]),
-        ]);
-        for (final x in [60.0, 90.0, 110.0, 140.0]) {
-          final results = <TerrainCapsuleMotionResult>[];
-          for (final harness in [union, outline]) {
-            final landed = TerrainCapsuleMotionResult();
-            harness.controller.move(
-              capsule: _circle(x, 60),
-              request: TerrainMotionRequest(
-                displacementXTicks: 0,
-                displacementYTicks: 60 * 1024,
-                mode: TerrainMotionMode.worldSpace,
-              ),
-              beganGrounded: false,
-              out: landed,
-            );
-            expect(landed.grounded, isTrue);
-            final moved = TerrainCapsuleMotionResult();
-            harness.controller.move(
-              capsule: UprightCapsule(
-                center: TerrainPoint(
-                  landed.finalCenterXTicks,
-                  landed.finalCenterYTicks,
+    for (final terrainBase in [false, true]) {
+      test(
+        'overlap matches one outline during landing and travel (terrain: $terrainBase)',
+        () {
+          final union = _Harness([
+            _polygon(
+              'left',
+              const [(0, 100), (120, 100), (120, 200), (0, 200)],
+              placementKey: terrainBase ? null : 'left',
+              surfaceKind: terrainBase ? 'ground' : 'obstacle',
+            ),
+            _polygon(
+              'right',
+              const [(80, 100), (220, 100), (220, 200), (80, 200)],
+              placementKey: 'right',
+              surfaceKind: 'obstacle',
+            ),
+          ]);
+          final outline = _Harness([
+            _polygon('outline', const [
+              (0, 100),
+              (220, 100),
+              (220, 200),
+              (0, 200),
+            ]),
+          ]);
+          for (final x in [60.0, 90.0, 110.0, 140.0]) {
+            final results = <TerrainCapsuleMotionResult>[];
+            for (final harness in [union, outline]) {
+              final landed = TerrainCapsuleMotionResult();
+              harness.controller.move(
+                capsule: _circle(x, 60),
+                request: TerrainMotionRequest(
+                  displacementXTicks: 0,
+                  displacementYTicks: 60 * 1024,
+                  mode: TerrainMotionMode.worldSpace,
                 ),
-                radiusTicks: 10 * 1024,
-                verticalHalfSegmentTicks: 0,
-              ),
-              request: TerrainMotionRequest(
-                displacementXTicks: 40 * 1024,
-                displacementYTicks: 0,
-                gravityYTicks: 200,
-                mode: TerrainMotionMode.groundedHorizontal,
-              ),
-              beganGrounded: true,
-              priorSupportEdgeId: landed.supportEdgeId,
-              priorSupportGeometryVersion: harness.geometry.version,
-              out: moved,
+                beganGrounded: false,
+                out: landed,
+              );
+              expect(landed.grounded, isTrue);
+              final moved = TerrainCapsuleMotionResult();
+              harness.controller.move(
+                capsule: UprightCapsule(
+                  center: TerrainPoint(
+                    landed.finalCenterXTicks,
+                    landed.finalCenterYTicks,
+                  ),
+                  radiusTicks: 10 * 1024,
+                  verticalHalfSegmentTicks: 0,
+                ),
+                request: TerrainMotionRequest(
+                  displacementXTicks: 40 * 1024,
+                  displacementYTicks: 0,
+                  gravityYTicks: 200,
+                  mode: TerrainMotionMode.groundedHorizontal,
+                ),
+                beganGrounded: true,
+                priorSupportEdgeId: landed.supportEdgeId,
+                priorSupportGeometryVersion: harness.geometry.version,
+                out: moved,
+              );
+              expect(moved.diagnostic, TerrainControllerDiagnostic.none);
+              expect(moved.grounded, isTrue);
+              expect(moved.hitLeft || moved.hitRight, isFalse);
+              results.add(moved);
+            }
+            expect(
+              results.first.finalCenterXTicks,
+              results.last.finalCenterXTicks,
             );
-            expect(moved.diagnostic, TerrainControllerDiagnostic.none);
-            expect(moved.grounded, isTrue);
-            expect(moved.hitLeft || moved.hitRight, isFalse);
-            results.add(moved);
+            expect(
+              results.first.finalCenterYTicks,
+              results.last.finalCenterYTicks,
+            );
           }
-          expect(
-            results.first.finalCenterXTicks,
-            results.last.finalCenterXTicks,
-          );
-          expect(
-            results.first.finalCenterYTicks,
-            results.last.finalCenterYTicks,
-          );
-        }
-      },
-    );
+        },
+      );
 
-    test(
-      'a fully buried obstacle cannot provide an interior recovery surface',
-      () {
-        final harness = _Harness([
-          _polygon('outer', const [
-            (0, 0),
-            (100, 0),
-            (100, 100),
-            (0, 100),
-          ], placementKey: 'outer'),
-          _polygon('inner', const [
-            (30, 30),
-            (70, 30),
-            (70, 70),
-            (30, 70),
-          ], placementKey: 'inner'),
-        ]);
-        final result = TerrainCapsuleMotionResult();
-        harness.controller.move(
-          capsule: _circle(50, 29),
-          request: TerrainMotionRequest(
-            displacementXTicks: 0,
-            displacementYTicks: 0,
-            mode: TerrainMotionMode.worldSpace,
-          ),
-          beganGrounded: false,
-          out: result,
-        );
-        expect(result.diagnostic, TerrainControllerDiagnostic.recoveryFailed);
-        expect(result.grounded, isFalse);
-      },
-    );
+      test(
+        'buried obstacle has no interior recovery surface (terrain: $terrainBase)',
+        () {
+          final harness = _Harness([
+            _polygon('outer', const [
+              (0, 0),
+              (100, 0),
+              (100, 100),
+              (0, 100),
+            ], placementKey: terrainBase ? null : 'outer'),
+            _polygon('inner', const [
+              (30, 30),
+              (70, 30),
+              (70, 70),
+              (30, 70),
+            ], placementKey: 'inner'),
+          ]);
+          final result = TerrainCapsuleMotionResult();
+          harness.controller.move(
+            capsule: _circle(50, 29),
+            request: TerrainMotionRequest(
+              displacementXTicks: 0,
+              displacementYTicks: 0,
+              mode: TerrainMotionMode.worldSpace,
+            ),
+            beganGrounded: false,
+            out: result,
+          );
+          expect(result.diagnostic, TerrainControllerDiagnostic.recoveryFailed);
+          expect(result.grounded, isFalse);
+        },
+      );
+    }
 
     test('stationary support and horizontal travel retain stable ground', () {
       final harness = _Harness([
@@ -1794,6 +1796,7 @@ TerrainPolygonInput _polygon(
   List<(double, double)> vertices, {
   TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
   String? placementKey,
+  String? surfaceKind,
 }) => TerrainPolygonInput.fromWorld(
   sourcePath: 'test/$shapeId',
   identity: TerrainSourceIdentity(
@@ -1804,6 +1807,7 @@ TerrainPolygonInput _polygon(
   ),
   vertices: vertices,
   collisionMode: collisionMode,
+  surfaceKind: surfaceKind,
 );
 
 UprightCapsule _circle(double x, double y) => UprightCapsule(

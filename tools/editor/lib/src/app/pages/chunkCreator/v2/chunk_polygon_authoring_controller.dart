@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_collision_commit.dart';
@@ -275,7 +276,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return !identical(before, _state);
   }
 
-  /// Starts a rectangle outside occupied collision, snapping near solid edges.
+  /// Starts a rectangle respecting direct-terrain and platform overlap rules.
   bool beginCreateRectangle({
     required int pointer,
     required TerrainPolygonScenePoint point,
@@ -948,6 +949,10 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   List<TerrainAuthoringCollisionLoop> _collisionTargets({
     String? excludedDirectShapeId,
   }) {
+    final mode =
+        _state.draft?.collisionMode ??
+        _state.gesture?.originalShape.collisionMode ??
+        _newShapeCollisionMode;
     final targets = <TerrainAuthoringCollisionLoop>[
       for (final shape in _state.shapes)
         if (shape.shapeId != excludedDirectShapeId)
@@ -962,6 +967,13 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
           scene.collisionExpansionByChunkKey[_chunkKey]?.expansion;
       if (expansion != null) {
         for (final shape in expansion.expandedPrefabShapes) {
+          // Solid terrain unions with placed solids. Render-only terrain is
+          // reviewed as solid but never enters gameplay collision. Neither
+          // should be stopped at an obstacle by the editor's contact helper.
+          if (mode != TerrainSourceCollisionMode.oneWay &&
+              shape.collisionMode == TerrainCollisionMode.solid) {
+            continue;
+          }
           targets.add(
             TerrainAuthoringCollisionLoop(
               stableKey: 'expanded:${shape.placementKey}:${shape.shapeId}',

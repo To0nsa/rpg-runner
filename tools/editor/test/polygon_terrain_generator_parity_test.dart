@@ -19,64 +19,94 @@ const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
-  test(
-    'editor and pipeline agree on overlapping obstacle placement boundaries',
-    () {
-      final prefabSource = _fixture('prefab_defs.json');
-      final root = jsonDecode(_fixture('chunk.json')) as Map<String, Object?>;
-      final placement =
-          (root['prefabs']! as List).single as Map<String, Object?>;
-      root['prefabs'] = [
-        {...placement, 'x': 61, 'y': 19},
-        placement,
-      ];
-      final chunkSource = jsonEncode(root);
-      final prefabs = PrefabV3FileCodec.decode(
-        prefabSource,
-        sourcePath: 'prefab_defs.json',
-      );
-      final chunk = ChunkV2FileCodec.decode(
-        chunkSource,
-        sourcePath: _chunkSourcePath,
-      );
-      final editor = expandChunkV2Collision(
-        chunk: chunk,
-        prefabs: prefabs.prefabs,
-        sourcePath: _chunkSourcePath,
-      );
-      final pipeline = compilePolygonTerrainSourceText(
-        prefabSourcePath: 'prefab_defs.json',
-        prefabSource: prefabSource,
-        chunkSourcePath: _chunkSourcePath,
-        chunkSource: chunkSource,
-      );
-      expect(
-        editor.issues,
-        isEmpty,
-        reason: editor.issues
-            .map((issue) => '${issue.code}: ${issue.message}')
-            .join('\n'),
-      );
-      expect(
-        pipeline.issues,
-        isEmpty,
-        reason: pipeline.issues
-            .map((issue) => '${issue.code}: ${issue.message}')
-            .join('\n'),
-      );
-      expect(
-        editor.expansion!.geometry.canonicalEdgeRecords(),
-        pipeline.compiled!.geometry.canonicalEdgeRecords(),
-      );
-      expect(editor.expansion!.expandedPrefabShapes, hasLength(2));
-      expect(
-        editor.expansion!.geometry.edges.where(
-          (edge) => edge.id.placementKey != null,
-        ),
-        hasLength(8),
-      );
-    },
-  );
+  for (final overlapTarget in [
+    'obstacle',
+    'solid terrain',
+    'render-only terrain',
+  ]) {
+    test(
+      'editor and pipeline agree on obstacle overlap with $overlapTarget',
+      () {
+        final prefabSource = _fixture('prefab_defs.json');
+        final root = jsonDecode(_fixture('chunk.json')) as Map<String, Object?>;
+        final placement =
+            (root['prefabs']! as List).single as Map<String, Object?>;
+        if (overlapTarget == 'obstacle') {
+          root['prefabs'] = [
+            {...placement, 'x': 61, 'y': 19},
+            placement,
+          ];
+        } else {
+          root['collisionShapes'] = [
+            {
+              'shapeId': 'ground',
+              'collisionMode': overlapTarget == 'solid terrain'
+                  ? 'solid'
+                  : 'none',
+              'surfaceKind': 'ground',
+              'materialKey': 'earth',
+              'vertices': [
+                for (final (x, y) in [(0, 20), (100, 20), (100, 50), (0, 50)])
+                  {'x': x, 'y': y},
+              ],
+            },
+          ];
+        }
+        final chunkSource = jsonEncode(root);
+        final prefabs = PrefabV3FileCodec.decode(
+          prefabSource,
+          sourcePath: 'prefab_defs.json',
+        );
+        final chunk = ChunkV2FileCodec.decode(
+          chunkSource,
+          sourcePath: _chunkSourcePath,
+        );
+        final editor = expandChunkV2Collision(
+          chunk: chunk,
+          prefabs: prefabs.prefabs,
+          sourcePath: _chunkSourcePath,
+        );
+        final pipeline = compilePolygonTerrainSourceText(
+          prefabSourcePath: 'prefab_defs.json',
+          prefabSource: prefabSource,
+          chunkSourcePath: _chunkSourcePath,
+          chunkSource: chunkSource,
+        );
+        expect(
+          editor.issues,
+          isEmpty,
+          reason: editor.issues
+              .map((issue) => '${issue.code}: ${issue.message}')
+              .join('\n'),
+        );
+        expect(
+          pipeline.issues,
+          isEmpty,
+          reason: pipeline.issues
+              .map((issue) => '${issue.code}: ${issue.message}')
+              .join('\n'),
+        );
+        expect(
+          editor.expansion!.geometry.canonicalEdgeRecords(),
+          pipeline.compiled!.geometry.canonicalEdgeRecords(),
+        );
+        expect(
+          editor.expansion!.expandedPrefabShapes,
+          hasLength(overlapTarget == 'obstacle' ? 2 : 1),
+        );
+        expect(
+          editor.expansion!.geometry.edges.where(
+            (edge) => edge.id.placementKey != null,
+          ),
+          hasLength(switch (overlapTarget) {
+            'obstacle' => 8,
+            'solid terrain' => 3,
+            _ => 4,
+          }),
+        );
+      },
+    );
+  }
 
   test('editor compile matches staged generator fixture signatures', () {
     _expectFixtureParity(

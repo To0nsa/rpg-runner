@@ -99,12 +99,12 @@ void main() {
   });
 
   test(
-    'compiles direct and placed shapes together for overlap diagnostics',
+    'fully buried obstacle retains editable source without collision edges',
     () {
       final result = expandChunkV2Collision(
         chunk: _chunk(
           directShapes: <TerrainSourceShapeDef>[
-            _rectangle('ground', left: 0, top: 0, right: 40, bottom: 40),
+            _rectangle('ground', left: 0, top: 0, right: 80, bottom: 80),
           ],
           placements: const <PlacedPrefabDef>[
             PlacedPrefabDef(
@@ -131,13 +131,18 @@ void main() {
         sourcePath: 'chunks/forest/test.json',
       );
 
-      expect(result.expansion, isNull);
-      final overlap = result.issues.singleWhere(
-        (issue) => issue.code == 'polygon_area_overlap',
+      expect(result.issues, isEmpty);
+      final expansion = result.expansion!;
+      expect(
+        expansion.expandedPrefabShapes.single.placementKey,
+        'prefab_rock|10|10|0',
       );
-      expect(overlap.placementKey, 'prefab_rock|10|10|0');
-      expect(overlap.ownerKey, 'prefab_rock');
-      expect(overlap.shapeId, 'collision_001');
+      expect(expansion.geometry.polygons, hasLength(2));
+      expect(expansion.geometry.edges, hasLength(4));
+      expect(
+        expansion.geometry.edges.every((edge) => edge.id.placementKey == null),
+        isTrue,
+      );
     },
   );
 

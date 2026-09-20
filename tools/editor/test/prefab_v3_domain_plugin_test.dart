@@ -1283,37 +1283,66 @@ void main() {
     expect(root.listSync(recursive: true), isEmpty);
   });
 
-  test('polygon commits reject newly overlapping downstream placements', () {
-    final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
-    final chunk = _chunk(
-      placements: const <PlacedPrefabDef>[
-        PlacedPrefabDef(prefabId: 'target', prefabKey: 'target', x: 10, y: 10),
-      ],
-      directShapes: <TerrainSourceShapeDef>[
-        _namedRectangle('ground', left: 28, top: 12, right: 40, bottom: 28),
-      ],
-    );
-    final document = _document(
-      before,
-      downstreamChunks: <PrefabV3DownstreamChunk>[_downstreamChunk(chunk)],
-    );
+  for (final mode in <TerrainSourceCollisionMode>[
+    TerrainSourceCollisionMode.solid,
+    TerrainSourceCollisionMode.oneWay,
+  ]) {
+    test(
+      'polygon commits review downstream overlap with ${mode.name} terrain',
+      () {
+        final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+        final chunk = _chunk(
+          placements: const <PlacedPrefabDef>[
+            PlacedPrefabDef(
+              prefabId: 'target',
+              prefabKey: 'target',
+              x: 10,
+              y: 10,
+            ),
+          ],
+          directShapes: <TerrainSourceShapeDef>[
+            _namedRectangle(
+              'ground',
+              left: 28,
+              top: 12,
+              right: 40,
+              bottom: 28,
+              collisionMode: mode,
+            ),
+          ],
+        );
+        final document = _document(
+          before,
+          downstreamChunks: <PrefabV3DownstreamChunk>[_downstreamChunk(chunk)],
+        );
 
-    final edited = plugin.applyEdit(
-      document,
-      AuthoringCommand(
-        kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
-        payload: <String, Object?>{
-          'prefabKey': 'target',
-          'commit': _commit(
-            before: before,
-            after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+        final edited = plugin.applyEdit(
+          document,
+          AuthoringCommand(
+            kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+            payload: <String, Object?>{
+              'prefabKey': 'target',
+              'commit': _commit(
+                before: before,
+                after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+              ),
+            },
           ),
-        },
-      ),
-    );
+        );
 
-    expect(edited, same(document));
-  });
+        if (mode == TerrainSourceCollisionMode.oneWay) {
+          expect(edited, same(document));
+        } else {
+          expect(edited, isNot(same(document)));
+          final owner = (edited as PrefabV3Document).data.prefabs.single;
+          expect(owner.revision, document.data.prefabs.single.revision + 1);
+          expect(owner.collisionShapes, <TerrainSourceShapeDef>[
+            _rectangle(right: 10),
+          ]);
+        }
+      },
+    );
+  }
 
   test('polygon commits reject transformed downstream bounds failures', () {
     final before = <TerrainSourceShapeDef>[
@@ -1498,68 +1527,83 @@ void main() {
     },
   );
 
-  test('export independently rechecks introduced downstream errors', () async {
-    final root = Directory.systemTemp.createTempSync(
-      'prefab_downstream_export_review_',
-    );
-    addTearDown(() => root.deleteSync(recursive: true));
-    final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
-    final chunk = _chunk(
-      placements: const <PlacedPrefabDef>[
-        PlacedPrefabDef(prefabId: 'target', prefabKey: 'target', x: 10, y: 10),
-      ],
-      directShapes: <TerrainSourceShapeDef>[
-        _namedRectangle('ground', left: 28, top: 12, right: 40, bottom: 28),
-      ],
-    );
-    final source = _downstreamChunk(chunk);
-    final original = _document(
-      before,
-      downstreamImpacts: <PrefabV3DownstreamImpact>[
-        PrefabV3DownstreamImpact(
-          prefabKey: 'target',
-          referencingChunkKeys: <String>['forest_test'],
-          placementCount: 1,
-        ),
-      ],
-      downstreamChunks: <PrefabV3DownstreamChunk>[source],
-    );
-    final candidateOwner = original.data.prefabs.single.copyWith(
-      revision: original.data.prefabs.single.revision + 1,
-      collisionShapes: <TerrainSourceShapeDef>[_rectangle(right: 10)],
-    );
-    final candidate = original.copyWith(
-      data: original.data.copyWith(prefabs: <PrefabV3Def>[candidateOwner]),
-      changedPrefabKeys: const <String>['target'],
-    );
-    for (final entry in <String, String>{
-      PrefabStore.prefabDefsPath: original.prefabBaselineContents!,
-      PrefabStore.tileDefsPath: original.tileBaselineContents!,
-      source.sourcePath: source.baselineContents,
-    }.entries) {
-      File('${root.path}/${entry.key}')
-        ..createSync(recursive: true)
-        ..writeAsStringSync(entry.value);
-    }
+  test(
+    'export independently rechecks downstream one-way overlap errors',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'prefab_downstream_export_review_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+      final chunk = _chunk(
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'target',
+            prefabKey: 'target',
+            x: 10,
+            y: 10,
+          ),
+        ],
+        directShapes: <TerrainSourceShapeDef>[
+          _namedRectangle(
+            'ground',
+            left: 28,
+            top: 12,
+            right: 40,
+            bottom: 28,
+            collisionMode: TerrainSourceCollisionMode.oneWay,
+          ),
+        ],
+      );
+      final source = _downstreamChunk(chunk);
+      final original = _document(
+        before,
+        downstreamImpacts: <PrefabV3DownstreamImpact>[
+          PrefabV3DownstreamImpact(
+            prefabKey: 'target',
+            referencingChunkKeys: <String>['forest_test'],
+            placementCount: 1,
+          ),
+        ],
+        downstreamChunks: <PrefabV3DownstreamChunk>[source],
+      );
+      final candidateOwner = original.data.prefabs.single.copyWith(
+        revision: original.data.prefabs.single.revision + 1,
+        collisionShapes: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+      );
+      final candidate = original.copyWith(
+        data: original.data.copyWith(prefabs: <PrefabV3Def>[candidateOwner]),
+        changedPrefabKeys: const <String>['target'],
+      );
+      for (final entry in <String, String>{
+        PrefabStore.prefabDefsPath: original.prefabBaselineContents!,
+        PrefabStore.tileDefsPath: original.tileBaselineContents!,
+        source.sourcePath: source.baselineContents,
+      }.entries) {
+        File('${root.path}/${entry.key}')
+          ..createSync(recursive: true)
+          ..writeAsStringSync(entry.value);
+      }
 
-    await expectLater(
-      plugin.exportToRepo(
-        EditorWorkspace(rootPath: root.path),
-        document: candidate,
-      ),
-      throwsA(
-        isA<StateError>().having(
-          (error) => error.message,
-          'message',
-          contains('invalidate Chunk forest_test'),
+      await expectLater(
+        plugin.exportToRepo(
+          EditorWorkspace(rootPath: root.path),
+          document: candidate,
         ),
-      ),
-    );
-    expect(
-      File('${root.path}/${PrefabStore.prefabDefsPath}').readAsStringSync(),
-      original.prefabBaselineContents,
-    );
-  });
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('invalidate Chunk forest_test'),
+          ),
+        ),
+      );
+      expect(
+        File('${root.path}/${PrefabStore.prefabDefsPath}').readAsStringSync(),
+        original.prefabBaselineContents,
+      );
+    },
+  );
 }
 
 PrefabV3Document _document(
@@ -1721,8 +1765,10 @@ TerrainSourceShapeDef _namedRectangle(
   required int top,
   required int right,
   required int bottom,
+  TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
 }) => TerrainSourceShapeDef(
   shapeId: shapeId,
+  collisionMode: collisionMode,
   vertices: <TerrainSourceVertexDef>[
     TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: top),
     TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: top),

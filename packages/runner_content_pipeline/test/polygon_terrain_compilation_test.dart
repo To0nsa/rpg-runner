@@ -15,6 +15,73 @@ const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
+  for (final terrainMode in ['solid', 'none']) {
+    test(
+      'obstacle overlaps $terrainMode terrain without cutting its rendered geometry',
+      () {
+        final root = _json('chunk.json');
+        root['collisionShapes'] = [
+          {
+            ..._shapeJson('ground', const [
+              (0, 20),
+              (100, 20),
+              (100, 50),
+              (0, 50),
+            ]),
+            'collisionMode': terrainMode,
+            'surfaceKind': 'ground',
+            'materialKey': 'earth',
+          },
+        ];
+        PolygonTerrainCompiledChunk compile(Map<String, Object?> source) {
+          final result = compilePolygonTerrainSourceText(
+            prefabSourcePath: 'prefab_defs.json',
+            prefabSource: _fixture('prefab_defs.json'),
+            chunkSourcePath: _chunkSourcePath,
+            chunkSource: jsonEncode(source),
+          );
+          expect(
+            result.issues,
+            isEmpty,
+            reason: result.issues
+                .map((issue) => '${issue.code}: ${issue.message}')
+                .join('\n'),
+          );
+          return result.compiled!;
+        }
+
+        final compiled = compile(root);
+        final terrainOnly = compile({...root, 'prefabs': <Object?>[]});
+        expect(
+          compiled.renderEdgeGeometry.canonicalEdgeRecords(),
+          terrainOnly.renderEdgeGeometry.canonicalEdgeRecords(),
+        );
+        expect(compiled.triangleSignature(), terrainOnly.triangleSignature());
+        expect(compiled.placementLineage, hasLength(1));
+        expect(
+          compiled.geometry.edges,
+          hasLength(terrainMode == 'solid' ? 8 : 4),
+        );
+        final staged = materializeStagedTerrainChunk(compiled);
+        final catalog = StagedTerrainChunkCatalog(chunks: [staged]);
+        final runtime = const StagedTerrainWorldGeometryBuilder().build(
+          bindings: [
+            catalog.bind(
+              chunkKey: staged.chunkKey,
+              chunkIndex: 0,
+              worldOriginXTicks: 0,
+            ),
+          ],
+          geometryVersion: compiled.geometry.version,
+        );
+        expect(
+          runtime.canonicalEdgeRecords(),
+          compiled.geometry.canonicalEdgeRecords(),
+        );
+      },
+    );
+  }
+
   test(
     'overlapping placed obstacles survive source and runtime materialization',
     () {

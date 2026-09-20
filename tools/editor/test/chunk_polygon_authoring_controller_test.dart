@@ -882,7 +882,7 @@ void main() {
   });
 
   test(
-    'expanded prefab collision blocks and attracts draft vertices',
+    'expanded solid prefab still blocks and attracts one-way draft vertices',
     () async {
       final prefab = _solidPrefab();
       final harness = await _buildHarness(
@@ -897,7 +897,9 @@ void main() {
         ],
       );
       final controller = harness.authoring;
-      controller.beginCreatePolygon();
+      controller.beginCreatePolygon(
+        collisionMode: TerrainSourceCollisionMode.oneWay,
+      );
 
       expect(
         controller.addDraftVertex(const TerrainPolygonScenePoint(150, 30)),
@@ -936,7 +938,9 @@ void main() {
       );
 
       controller.cancelActiveOperation();
-      controller.beginCreatePolygon();
+      controller.beginCreatePolygon(
+        collisionMode: TerrainSourceCollisionMode.oneWay,
+      );
       expect(
         controller.addDraftVertex(const TerrainPolygonScenePoint(130, 10)),
         isTrue,
@@ -952,6 +956,72 @@ void main() {
       expect(controller.state.draft!.vertices, hasLength(2));
     },
   );
+
+  test('solid terrain can be drawn through an obstacle and undone', () async {
+    final harness = await _buildHarness(
+      prefabs: [_solidPrefab()],
+      placements: const [
+        PlacedPrefabDef(
+          prefabId: 'rock',
+          prefabKey: 'prefab_rock',
+          x: 70,
+          y: 10,
+        ),
+      ],
+    );
+    final controller = harness.authoring;
+    final original = controller.chunk;
+    expect(controller.beginCreatePolygon(), isTrue);
+    for (final point in const [
+      TerrainPolygonScenePoint(150, 30),
+      TerrainPolygonScenePoint(180, 30),
+      TerrainPolygonScenePoint(180, 60),
+      TerrainPolygonScenePoint(150, 60),
+    ]) {
+      expect(controller.addDraftVertex(point), isTrue);
+    }
+    expect(controller.saveDraft(), isTrue);
+    expect(controller.chunk.collisionShapes, hasLength(2));
+    expect(controller.chunk.prefabs, original.prefabs);
+    expect(controller.undo(), isTrue);
+    expect(controller.chunk, original);
+    expect(controller.redo(), isTrue);
+    expect(controller.chunk.collisionShapes, hasLength(2));
+  });
+
+  test('moving terrain into an obstacle keeps the intended position', () async {
+    final harness = await _buildHarness(
+      prefabs: [_solidPrefab()],
+      placements: const [
+        PlacedPrefabDef(
+          prefabId: 'rock',
+          prefabKey: 'prefab_rock',
+          x: 70,
+          y: 10,
+        ),
+      ],
+    );
+    final controller = harness.authoring;
+    controller.select(TerrainPolygonSelection.shape('ground_001'));
+    controller.setTool(TerrainPolygonTool.translateShape);
+    expect(
+      controller.beginGesture(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(20, 20),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 1,
+      point: const TerrainPolygonScenePoint(100, 20),
+    );
+    expect(controller.commitGesture(1), isTrue);
+    expect(
+      controller.chunk.collisionShapes.single.vertices.first,
+      const TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
+    );
+    expect(controller.chunk.prefabs.single.x, 70);
+  });
 
   test('rejected collinear preview normalizes as one source commit', () async {
     final harness = await _buildHarness(shape: _pentagon());

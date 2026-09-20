@@ -185,7 +185,79 @@ void main() {
     },
   );
 
-  test('platforms, direct terrain and same-placement overlap still reject', () {
+  test('obstacle embedded in terrain exposes a joined outline across surface kinds', () {
+    final terrain = _placed(null, const [
+      (0, 10),
+      (40, 10),
+      (40, 40),
+      (0, 40),
+    ], kind: 'ground');
+    final obstacle = _rect('rock', 10, 0, 30, 20);
+    final geometry = _compile([terrain, obstacle]);
+    expect(geometry.polygons, hasLength(2));
+    expect(_segments(geometry), {
+      (0.0, 10.0, 10.0, 10.0),
+      (10.0, 10.0, 10.0, 0.0),
+      (10.0, 0.0, 30.0, 0.0),
+      (30.0, 0.0, 30.0, 10.0),
+      (30.0, 10.0, 40.0, 10.0),
+      (40.0, 10.0, 40.0, 40.0),
+      (40.0, 40.0, 0.0, 40.0),
+      (0.0, 40.0, 0.0, 10.0),
+    });
+    _expectClosed(geometry);
+    expect(
+      _compile([obstacle, terrain]).canonicalEdgeRecords(),
+      geometry.canonicalEdgeRecords(),
+    );
+  });
+
+  test('fully buried obstacles leave only the terrain outline', () {
+    final terrain = _placed(null, const [
+      (0, 0),
+      (40, 0),
+      (40, 40),
+      (0, 40),
+    ], kind: 'ground');
+    final geometry = _compile([terrain, _rect('rock', 10, 10, 30, 30)]);
+    expect(_segments(geometry), _segments(_compile([terrain])));
+    expect(
+      geometry.edges.every((edge) => edge.id.placementKey == null),
+      isTrue,
+    );
+    _expectClosed(geometry);
+  });
+
+  test(
+    'sloped terrain clips obstacle sides at a shared physics-grid crossing',
+    () {
+      final terrain = _placed(null, const [
+        (0, 0),
+        (30, 20),
+        (30, 40),
+        (0, 40),
+      ], kind: 'ground');
+      final geometry = _compile([terrain, _rect('rock', 10, 0, 20, 30)]);
+      expect(geometry.edges, hasLength(8));
+      expect(
+        geometry.edges.where((edge) => edge.id.placementKey == 'rock'),
+        hasLength(3),
+      );
+      expect(
+        geometry.edges.any((edge) => edge.end == TerrainPoint(10 * 1024, 6827)),
+        isTrue,
+      );
+      expect(
+        geometry.edges.any(
+          (edge) => edge.start == TerrainPoint(20 * 1024, 13653),
+        ),
+        isTrue,
+      );
+      _expectClosed(geometry);
+    },
+  );
+
+  test('platforms and same-placement overlap still reject', () {
     for (final other in [
       _placed('b', const [
         (5, 0),
@@ -193,7 +265,12 @@ void main() {
         (15, 10),
         (5, 10),
       ], mode: TerrainCollisionMode.oneWay),
-      _placed(null, const [(5, 0), (15, 0), (15, 10), (5, 10)]),
+      _placed(null, const [
+        (5, 0),
+        (15, 0),
+        (15, 10),
+        (5, 10),
+      ], mode: TerrainCollisionMode.oneWay),
       _placed('a', const [(5, 0), (15, 0), (15, 10), (5, 10)], shape: 'second'),
     ]) {
       expect(
@@ -201,6 +278,26 @@ void main() {
         throwsA(isA<TerrainValidationException>()),
       );
     }
+  });
+
+  test('overlap between direct terrain shapes remains invalid', () {
+    expect(
+      () => _compile([
+        _placed(null, const [
+          (0, 0),
+          (10, 0),
+          (10, 10),
+          (0, 10),
+        ], shape: 'ground'),
+        _placed(null, const [
+          (5, 0),
+          (15, 0),
+          (15, 10),
+          (5, 10),
+        ], shape: 'other'),
+      ]),
+      throwsA(isA<TerrainValidationException>()),
+    );
   });
 }
 
@@ -220,6 +317,7 @@ TerrainPolygonInput _placed(
   List<(double, double)> vertices, {
   TerrainCollisionMode mode = TerrainCollisionMode.solid,
   String shape = 'shape',
+  String kind = 'obstacle',
 }) => TerrainPolygonInput.fromWorld(
   sourcePath: 'test/${placement ?? 'direct'}/$shape',
   identity: TerrainSourceIdentity(
@@ -230,7 +328,7 @@ TerrainPolygonInput _placed(
   ),
   vertices: vertices,
   collisionMode: mode,
-  surfaceKind: 'obstacle',
+  surfaceKind: kind,
 );
 
 Set<(double, double, double, double)> _segments(TerrainGeometry geometry) => {

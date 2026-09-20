@@ -68,10 +68,12 @@ Editor foundations shared across those domains:
 
 ## Windows Level And Chunk Play
 
-Separate solid obstacle Prefabs may overlap in Chunk Creator. Turn off
-**Surface snap** to push one obstacle into another; each placement remains
-independently selectable and editable. Play and Build compile their combined
-exposed collision outline automatically. Direct terrain and one-way platform
+Solid obstacle Prefabs may overlap each other and solid terrain in Chunk
+Creator. Turn off **Surface snap** to push an obstacle into another obstacle
+or the ground; each placement remains independently selectable and editable.
+Solid terrain can also be drawn or moved through an obstacle. Play and Build
+compile their combined exposed collision outline automatically while terrain
+artwork keeps its original shape. Terrain-to-terrain and one-way platform
 overlap checks still apply.
 
 Chunk Creator's **Water** tab uses Terrain's creation and inline-edit workflow.
@@ -606,7 +608,8 @@ draft has at least three vertices.
 In **Terrain → Select**, select an axis-aligned rectangle and drag a square
 corner handle to resize it while keeping the opposite corner fixed. Use the
 selected shape's grid and neighbor switches for alignment. Collision constraints
-stop the preview at occupied terrain/prefab boundaries. Release accepts one
+stop the preview at disallowed terrain/platform overlaps; solid obstacle
+placements can overlap solid terrain. Release accepts one
 undoable edit and refreshes its rectangle fields; **Escape** cancels. Pending
 inspector input is resolved before resizing. An invalid resize release restores
 the source and retains validation diagnostics. General polygons retain their
@@ -761,9 +764,11 @@ expanded Prefab/Marker edits and deletes, and retained tile-layer dialogs all
 dispatch the canonical Chunk composition command.
 
 Direct-terrain rectangle, vertex, insertion, and whole-shape gestures cannot
-enter another direct terrain shape or expanded prefab collision. This
-authoring-only occupied-area rule also covers render-only shapes, preventing
-ambiguous stacked fills even though they are removed before collision compile.
+enter another direct terrain shape or overlap a one-way platform. Solid and
+render-only terrain may overlap placed solid obstacles; one-way terrain still
+cannot. The terrain-to-terrain occupied-area rule also covers render-only
+shapes, preventing ambiguous stacked fills even though they are removed before
+collision compile.
 Within eight canvas pixels, vertices and solid shapes snap to a solid boundary;
 the visual radius remains stable while zooming. Contact is allowed, including
 exact shared solid edges. One-way shapes block overlap but do not attract seam

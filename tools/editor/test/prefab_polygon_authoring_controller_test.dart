@@ -991,66 +991,101 @@ void main() {
     },
   );
 
-  test('fit review disables Save for a transformed Chunk collision', () async {
-    final chunk = ChunkV2FileData(
-      chunkKey: 'forest_test',
-      id: 'forest_test',
-      revision: 1,
-      status: chunkStatusActive,
-      levelId: 'forest',
-      tileSize: 16,
-      width: 100,
-      height: 100,
-      difficulty: chunkDifficultyNormal,
-      assemblyGroupId: defaultChunkAssemblyGroupId,
-      tags: const <String>[],
-      tileLayers: const <TileLayerDef>[],
-      prefabs: const <PlacedPrefabDef>[
-        PlacedPrefabDef(prefabId: 'target', prefabKey: 'target', x: 10, y: 10),
-      ],
-      markers: const <PlacedMarkerDef>[],
-      groundBandZIndex: 0,
-      collisionShapes: <TerrainSourceShapeDef>[
-        _box('ground', left: 28, top: 12, right: 40, bottom: 28),
-      ],
-    );
-    final harness = await _buildHarness(
-      downstreamChunks: <PrefabV3DownstreamChunk>[
-        PrefabV3DownstreamChunk(
-          data: chunk,
-          sourcePath: 'assets/authoring/level/chunks/forest_test.json',
-          baselineContents: ChunkV2FileCodec.encode(chunk),
-        ),
-      ],
-    );
-    final controller = harness.authoring;
-    final mask = _alphaMask(List<String>.filled(10, '##########'));
-    final result = PrefabCollisionFitter.generate(
-      mask: mask,
-      method: PrefabCollisionCreationMethod.fitVisibleBounds,
-    );
-    final token = controller.startFitGeneration(
-      method: PrefabCollisionCreationMethod.fitVisibleBounds,
-      settings: const PrefabCollisionFitSettings(),
-      refitShapeId: 'collision_001',
-    );
+  for (final mode in <TerrainSourceCollisionMode>[
+    TerrainSourceCollisionMode.solid,
+    TerrainSourceCollisionMode.oneWay,
+  ]) {
+    test(
+      'fit review checks transformed overlap with ${mode.name} terrain',
+      () async {
+        final chunk = ChunkV2FileData(
+          chunkKey: 'forest_test',
+          id: 'forest_test',
+          revision: 1,
+          status: chunkStatusActive,
+          levelId: 'forest',
+          tileSize: 16,
+          width: 100,
+          height: 100,
+          difficulty: chunkDifficultyNormal,
+          assemblyGroupId: defaultChunkAssemblyGroupId,
+          tags: const <String>[],
+          tileLayers: const <TileLayerDef>[],
+          prefabs: const <PlacedPrefabDef>[
+            PlacedPrefabDef(
+              prefabId: 'target',
+              prefabKey: 'target',
+              x: 10,
+              y: 10,
+            ),
+          ],
+          markers: const <PlacedMarkerDef>[],
+          groundBandZIndex: 0,
+          collisionShapes: <TerrainSourceShapeDef>[
+            _box(
+              'ground',
+              left: 28,
+              top: 12,
+              right: 40,
+              bottom: 28,
+              collisionMode: mode,
+            ),
+          ],
+        );
+        final harness = await _buildHarness(
+          downstreamChunks: <PrefabV3DownstreamChunk>[
+            PrefabV3DownstreamChunk(
+              data: chunk,
+              sourcePath: 'assets/authoring/level/chunks/forest_test.json',
+              baselineContents: ChunkV2FileCodec.encode(chunk),
+            ),
+          ],
+        );
+        final controller = harness.authoring;
+        final mask = _alphaMask(List<String>.filled(10, '##########'));
+        final result = PrefabCollisionFitter.generate(
+          mask: mask,
+          method: PrefabCollisionCreationMethod.fitVisibleBounds,
+        );
+        final token = controller.startFitGeneration(
+          method: PrefabCollisionCreationMethod.fitVisibleBounds,
+          settings: const PrefabCollisionFitSettings(),
+          refitShapeId: 'collision_001',
+        );
 
-    expect(
-      controller.completeFitGeneration(
-        token: token,
-        sourceMask: mask,
-        sourceIdentity: 'downstream-overlap',
-        result: result,
-        visualOriginXPx: -5,
-        visualOriginYPx: -5,
-      ),
-      isFalse,
+        expect(
+          controller.completeFitGeneration(
+            token: token,
+            sourceMask: mask,
+            sourceIdentity: 'downstream-overlap',
+            result: result,
+            visualOriginXPx: -5,
+            visualOriginYPx: -5,
+          ),
+          mode == TerrainSourceCollisionMode.solid,
+        );
+        expect(
+          controller.canSaveFitDraft,
+          mode == TerrainSourceCollisionMode.solid,
+        );
+        if (mode == TerrainSourceCollisionMode.oneWay) {
+          expect(controller.fitMessages.join(' '), contains('overlap'));
+        }
+        expect(controller.prefab.revision, 4);
+        expect(harness.session.canUndo, isFalse);
+        if (mode == TerrainSourceCollisionMode.solid) {
+          expect(
+            controller.saveFitDraft(
+              currentSourceIdentity: 'downstream-overlap',
+            ),
+            isTrue,
+          );
+          expect(controller.prefab.revision, 5);
+          expect(harness.session.canUndo, isTrue);
+        }
+      },
     );
-    expect(controller.canSaveFitDraft, isFalse);
-    expect(controller.fitMessages.join(' '), contains('overlap'));
-    expect(controller.prefab.revision, 4);
-    expect(harness.session.canUndo, isFalse);
-  });
+  }
 
   test('refit scopes components, clears terrain metadata, and allocates IDs atomically', () async {
     final selected = _box(
@@ -1355,10 +1390,12 @@ TerrainSourceShapeDef _box(
   required int top,
   required int right,
   required int bottom,
+  TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
   String? surfaceKind,
   String? materialKey,
 }) => TerrainSourceShapeDef(
   shapeId: shapeId,
+  collisionMode: collisionMode,
   surfaceKind: surfaceKind,
   materialKey: materialKey,
   vertices: <TerrainSourceVertexDef>[

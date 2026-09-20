@@ -55,8 +55,9 @@ void main() {
       );
       expect(
         penetrating.issues.any((issue) => issue.code == 'polygon_area_overlap'),
-        isTrue,
+        isFalse,
       );
+      expect(penetrating.expansion, isNotNull);
     },
   );
 
