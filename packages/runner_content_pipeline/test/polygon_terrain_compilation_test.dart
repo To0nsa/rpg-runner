@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
+import 'package:runner_core/track/staged_terrain_catalog.dart';
+import 'package:runner_core/track/staged_terrain_world_geometry.dart';
 
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:test/test.dart';
@@ -13,6 +15,55 @@ const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
+  test(
+    'overlapping placed obstacles survive source and runtime materialization',
+    () {
+      final chunkSource = _mutated(_json('chunk.json'), (root) {
+        final placement =
+            (root['prefabs']! as List).single as Map<String, Object?>;
+        root['prefabs'] = [
+          {...placement, 'x': 61, 'y': 19},
+          placement,
+        ];
+      });
+      final compilation = compilePolygonTerrainSourceText(
+        prefabSourcePath: 'prefab_defs.json',
+        prefabSource: _fixture('prefab_defs.json'),
+        chunkSourcePath: _chunkSourcePath,
+        chunkSource: chunkSource,
+      );
+      expect(
+        compilation.issues,
+        isEmpty,
+        reason: compilation.issues
+            .map((issue) => '${issue.code}: ${issue.message}')
+            .join('\n'),
+      );
+      final compiled = compilation.compiled!;
+      final placedEdges = compiled.geometry.edges.where(
+        (edge) => edge.id.placementKey != null,
+      );
+      expect(placedEdges, hasLength(8));
+      expect(compiled.placementLineage, hasLength(2));
+      final staged = materializeStagedTerrainChunk(compiled);
+      final catalog = StagedTerrainChunkCatalog(chunks: [staged]);
+      final runtime = const StagedTerrainWorldGeometryBuilder().build(
+        bindings: [
+          catalog.bind(
+            chunkKey: staged.chunkKey,
+            chunkIndex: 0,
+            worldOriginXTicks: 0,
+          ),
+        ],
+        geometryVersion: compiled.geometry.version,
+      );
+      expect(
+        runtime.canonicalEdgeRecords(),
+        compiled.geometry.canonicalEdgeRecords(),
+      );
+    },
+  );
+
   test('strict current-schema fixture compiles through Core exactly', () {
     final compiled = _compileFixture();
     final golden = _golden();

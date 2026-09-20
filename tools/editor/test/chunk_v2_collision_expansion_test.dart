@@ -9,6 +9,46 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
+  test(
+    'separate overlapping obstacle placements compile one exposed boundary',
+    () {
+      final prefab = _prefab(
+        shapes: [
+          _rectangle('collision_001', left: 0, top: 0, right: 20, bottom: 20),
+        ],
+      );
+      final result = expandChunkV2Collision(
+        chunk: _chunk(
+          placements: const [
+            PlacedPrefabDef(
+              prefabId: 'rock',
+              prefabKey: 'prefab_rock',
+              x: 10,
+              y: 20,
+            ),
+            PlacedPrefabDef(
+              prefabId: 'rock',
+              prefabKey: 'prefab_rock',
+              x: 20,
+              y: 10,
+            ),
+          ],
+        ),
+        prefabs: [prefab],
+        sourcePath: 'chunks/forest/test.json',
+      );
+      expect(result.issues, isEmpty);
+      expect(result.expansion!.expandedPrefabShapes, hasLength(2));
+      expect(result.expansion!.geometry.edges, hasLength(8));
+      expect(
+        result.expansion!.geometry.edges.every(
+          (edge) => edge.previousId != null && edge.nextId != null,
+        ),
+        isTrue,
+      );
+    },
+  );
+
   test('expands anchor-relative prefab source through Core exactly once', () {
     final prefab = _prefab(
       anchorXPx: 8,

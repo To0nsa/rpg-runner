@@ -401,6 +401,73 @@ void main() {
     );
   });
 
+  test('composition accepts overlapping solid obstacles and preserves revision guards', () {
+    final original = _document(<TerrainSourceShapeDef>[_rectangle(top: 80)]);
+    final prefab = original.prefabData.prefabs.single.copyWith(
+      kind: PrefabKind.obstacle,
+      collisionShapes: [
+        TerrainSourceShapeDef(
+          shapeId: 'body',
+          vertices: const [
+            TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+            TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 0),
+            TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 40),
+            TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 40),
+          ],
+        ),
+      ],
+    );
+    final document = original.copyWith(
+      prefabData: PrefabV3FileData(
+        slices: original.prefabData.slices,
+        prefabs: [prefab],
+      ),
+    );
+    final chunk = document.chunks.single;
+    final commit = ChunkV2CompositionCommit(
+      expectedChunkKey: chunk.chunkKey,
+      expectedRevision: chunk.revision,
+      before: ChunkV2CompositionSnapshot.fromChunk(chunk),
+      after: ChunkV2CompositionSnapshot(
+        tileLayers: chunk.tileLayers,
+        markers: chunk.markers,
+        prefabs: const [
+          PlacedPrefabDef(
+            prefabId: 'shrub',
+            prefabKey: 'prefab_shrub',
+            x: 50,
+            y: 0,
+          ),
+          PlacedPrefabDef(
+            prefabId: 'shrub',
+            prefabKey: 'prefab_shrub',
+            x: 40,
+            y: 10,
+          ),
+        ],
+      ),
+    );
+    final result = const ChunkV2CompositionCommitPolicy().apply(
+      document: document,
+      chunkIndex: 0,
+      commit: commit,
+    );
+    expect(
+      result.issues.where((issue) => issue.blocks(AuthoringOperation.save)),
+      isEmpty,
+    );
+    expect(result.accepted, isTrue);
+    expect(result.changed, isTrue);
+    expect(result.chunk.prefabs, hasLength(2));
+    expect(result.chunk.revision, chunk.revision + 1);
+    final stale = const ChunkV2CompositionCommitPolicy().apply(
+      document: document.copyWith(chunks: [result.chunk]),
+      chunkIndex: 0,
+      commit: commit,
+    );
+    expect(stale.accepted, isFalse);
+  });
+
   test('typed composition commit validates retained authoring and protects terrain', () {
     final plugin = ChunkDomainPlugin();
     final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);

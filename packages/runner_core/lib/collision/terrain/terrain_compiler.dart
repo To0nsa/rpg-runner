@@ -9,6 +9,8 @@ import 'terrain_polygon.dart';
 import 'terrain_polygon_overlap.dart';
 import 'terrain_source_canonicalizer.dart';
 
+part 'terrain_solid_union.dart';
+
 /// Hard runtime-safety limits applied before compiled geometry is published.
 abstract final class TerrainGeometryLimits {
   /// Maximum collision shapes contributed by one placed prefab.
@@ -37,6 +39,11 @@ class TerrainCompiler {
   /// Set [normalizeCollinear] only in an explicit source-normalization flow.
   /// Removed source vertices are reported as stable non-blocking diagnostics on
   /// the returned geometry.
+  ///
+  /// Distinct solid Prefab placements may overlap within a chunk. Their source
+  /// polygons remain intact; only the boundary of their occupied union collides.
+  /// Direct terrain, shapes within one placement, and one-way overlaps remain
+  /// invalid. Intersection coordinates round once to the physics grid.
   TerrainGeometry compile(
     Iterable<TerrainPolygonInput> inputs, {
     required int geometryVersion,
@@ -73,13 +80,15 @@ class TerrainCompiler {
       throw TerrainValidationException(diagnostics);
     }
 
-    _validatePolygonOverlaps(polygons, diagnostics);
+    final hasSolidOverlap = _validatePolygonOverlaps(polygons, diagnostics);
     if (diagnostics.any(terrainDiagnosticIsBlocking)) {
       throw TerrainValidationException(diagnostics);
     }
 
     final splitEdges = _splitCollinearEdges(_emitRawEdges(polygons));
-    final exposed = _removeInternalSolidEdges(splitEdges);
+    final exposed = hasSolidOverlap
+        ? _solidUnionBoundary(splitEdges, polygons)
+        : _removeInternalSolidEdges(splitEdges);
     exposed.sort((left, right) => left.id.compareTo(right.id));
 
     final edgeCountsByChunk = <(int, String), int>{};
@@ -102,7 +111,10 @@ class TerrainCompiler {
       }
     }
 
-    final edges = _buildAdjacency(exposed);
+    final edges = _buildAdjacency(
+      exposed,
+      connectSolidPlacements: hasSolidOverlap,
+    );
     return TerrainGeometry(
       version: geometryVersion,
       polygons: polygons,
@@ -375,7 +387,10 @@ List<_RawEdge> _removeInternalSolidEdges(List<_RawEdge> edges) {
   ];
 }
 
-List<TerrainEdge> _buildAdjacency(List<_RawEdge> rawEdges) {
+List<TerrainEdge> _buildAdjacency(
+  List<_RawEdge> rawEdges, {
+  bool connectSolidPlacements = false,
+}) {
   final incoming = <TerrainPoint, List<_RawEdge>>{};
   final outgoing = <TerrainPoint, List<_RawEdge>>{};
   for (final edge in rawEdges) {
@@ -391,8 +406,17 @@ List<TerrainEdge> _buildAdjacency(List<_RawEdge> rawEdges) {
 
   return List<TerrainEdge>.unmodifiable(
     rawEdges.map((raw) {
-      final previous = _firstCompatible(raw, incoming[raw.start]);
-      final next = _firstCompatible(raw, outgoing[raw.end]);
+      final previous = _firstCompatible(
+        raw,
+        incoming[raw.start],
+        connectSolidPlacements,
+        previous: true,
+      );
+      final next = _firstCompatible(
+        raw,
+        outgoing[raw.end],
+        connectSolidPlacements,
+      );
       final tangent = TerrainDirection.fromDelta(
         raw.end.xTicks - raw.start.xTicks,
         raw.end.yTicks - raw.start.yTicks,
@@ -425,16 +449,41 @@ List<TerrainEdge> _buildAdjacency(List<_RawEdge> rawEdges) {
   );
 }
 
-_RawEdge? _firstCompatible(_RawEdge edge, List<_RawEdge>? candidates) {
+_RawEdge? _firstCompatible(
+  _RawEdge edge,
+  List<_RawEdge>? candidates,
+  bool connectSolidPlacements, {
+  bool previous = false,
+}) {
   if (candidates == null) return null;
+  _RawEdge? best;
   for (final candidate in candidates) {
     if (candidate.id != edge.id &&
         candidate.collisionMode == edge.collisionMode &&
-        candidate.surfaceKind == edge.surfaceKind) {
-      return candidate;
+        (candidate.surfaceKind == edge.surfaceKind ||
+            (connectSolidPlacements &&
+                edge.collisionMode == TerrainCollisionMode.solid &&
+                edge.id.placementKey != null &&
+                candidate.id.placementKey != null))) {
+      if (!connectSolidPlacements ||
+          edge.collisionMode != TerrainCollisionMode.solid) {
+        return candidate;
+      }
+      // At a point contact, continue around the same occupied face instead of
+      // jumping into the other component merely because its ID sorts first.
+      if (best == null ||
+          _compareUnionTurns(
+                previous ? candidate : edge,
+                previous ? edge : candidate,
+                previous ? best : edge,
+                previous ? edge : best,
+              ) <
+              0) {
+        best = candidate;
+      }
     }
   }
-  return null;
+  return best;
 }
 
 TerrainVertexJoin _joinFor(_RawEdge? previous, _RawEdge? next) {
@@ -452,10 +501,11 @@ TerrainVertexJoin _joinFor(_RawEdge? previous, _RawEdge? next) {
       : TerrainVertexJoin.connected;
 }
 
-void _validatePolygonOverlaps(
+bool _validatePolygonOverlaps(
   List<TerrainPolygon> polygons,
   List<TerrainDiagnostic> diagnostics,
 ) {
+  var hasSolidOverlap = false;
   final bounds = <TerrainAabb>[
     for (final polygon in polygons) _bounds(polygon.vertices),
   ];
@@ -465,6 +515,10 @@ void _validatePolygonOverlaps(
       final left = polygons[i];
       final right = polygons[j];
       if (TerrainPolygonOverlap.physicsLoops(left.vertices, right.vertices)) {
+        if (_allowsSolidPlacementOverlap(left, right)) {
+          hasSolidOverlap = true;
+          continue;
+        }
         diagnostics.add(
           TerrainDiagnostic(
             sourcePath: right.sourcePath,
@@ -479,7 +533,17 @@ void _validatePolygonOverlaps(
       }
     }
   }
+  return hasSolidOverlap;
 }
+
+bool _allowsSolidPlacementOverlap(TerrainPolygon left, TerrainPolygon right) =>
+    left.collisionMode == TerrainCollisionMode.solid &&
+    right.collisionMode == TerrainCollisionMode.solid &&
+    left.identity.placementKey != null &&
+    right.identity.placementKey != null &&
+    left.identity.placementKey != right.identity.placementKey &&
+    left.identity.chunkIndex == right.identity.chunkIndex &&
+    left.identity.chunkKey == right.identity.chunkKey;
 
 BigInt _signedAreaPhysics(List<TerrainPoint> vertices) {
   var area = BigInt.zero;

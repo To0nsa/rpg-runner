@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_authoring_polygon_signature.dart';
@@ -18,6 +19,65 @@ const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
+  test(
+    'editor and pipeline agree on overlapping obstacle placement boundaries',
+    () {
+      final prefabSource = _fixture('prefab_defs.json');
+      final root = jsonDecode(_fixture('chunk.json')) as Map<String, Object?>;
+      final placement =
+          (root['prefabs']! as List).single as Map<String, Object?>;
+      root['prefabs'] = [
+        {...placement, 'x': 61, 'y': 19},
+        placement,
+      ];
+      final chunkSource = jsonEncode(root);
+      final prefabs = PrefabV3FileCodec.decode(
+        prefabSource,
+        sourcePath: 'prefab_defs.json',
+      );
+      final chunk = ChunkV2FileCodec.decode(
+        chunkSource,
+        sourcePath: _chunkSourcePath,
+      );
+      final editor = expandChunkV2Collision(
+        chunk: chunk,
+        prefabs: prefabs.prefabs,
+        sourcePath: _chunkSourcePath,
+      );
+      final pipeline = compilePolygonTerrainSourceText(
+        prefabSourcePath: 'prefab_defs.json',
+        prefabSource: prefabSource,
+        chunkSourcePath: _chunkSourcePath,
+        chunkSource: chunkSource,
+      );
+      expect(
+        editor.issues,
+        isEmpty,
+        reason: editor.issues
+            .map((issue) => '${issue.code}: ${issue.message}')
+            .join('\n'),
+      );
+      expect(
+        pipeline.issues,
+        isEmpty,
+        reason: pipeline.issues
+            .map((issue) => '${issue.code}: ${issue.message}')
+            .join('\n'),
+      );
+      expect(
+        editor.expansion!.geometry.canonicalEdgeRecords(),
+        pipeline.compiled!.geometry.canonicalEdgeRecords(),
+      );
+      expect(editor.expansion!.expandedPrefabShapes, hasLength(2));
+      expect(
+        editor.expansion!.geometry.edges.where(
+          (edge) => edge.id.placementKey != null,
+        ),
+        hasLength(8),
+      );
+    },
+  );
+
   test('editor compile matches staged generator fixture signatures', () {
     _expectFixtureParity(
       prefabFixture: 'prefab_defs.json',

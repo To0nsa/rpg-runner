@@ -68,6 +68,12 @@ Editor foundations shared across those domains:
 
 ## Windows Level And Chunk Play
 
+Separate solid obstacle Prefabs may overlap in Chunk Creator. Turn off
+**Surface snap** to push one obstacle into another; each placement remains
+independently selectable and editable. Play and Build compile their combined
+exposed collision outline automatically. Direct terrain and one-way platform
+overlap checks still apply.
+
 Chunk Creator's **Water** tab uses Terrain's creation and inline-edit workflow.
 Expand **Create water region**, choose a name/material, set **Snap to grid** and
 **Snap to neighbor vertices**, and press **Draw rectangle**. Drag opposite

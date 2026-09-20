@@ -106,7 +106,9 @@ special-case non-collider.
 
 Chunk validation and generation first map every source shape into an
 authoring-only review input. That pass owns canonical topology, bounds,
-positive-area no-overlap, material references, and normalized loops. The
+positive-area overlap policy, material references, and normalized loops.
+Only separate solid Prefab placements may overlap; direct source owners keep
+the no-overlap rule. The
 pipeline compiles three deliberate products: gameplay `TerrainGeometry` from
 direct collidable shapes plus placed Prefab collision, fill geometry from only
 direct Chunk shapes including `none`, and material-edge geometry from only
@@ -1058,7 +1060,46 @@ owns reflection, exact scale, placement translation, one `1/1024 px`
 quantization, transformed canonicalization, occupied-area overlap, shape/vertex
 limits, exposed-edge construction, and edge limits. Direct and expanded shapes
 enter the same compile call, so a placed polygon cannot overlap direct terrain
-or another placement unnoticed.
+unnoticed. Distinct solid Prefab placements in the same Chunk may overlap;
+Core compiles their exposed union boundary as described below.
+
+### Overlapping solid obstacle placements
+
+`TerrainCompiler` accepts positive-area overlap between solid polygons from
+different non-null placement keys within one Chunk. Shapes inside one Prefab,
+direct terrain, and any pair involving a one-way platform retain the existing
+overlap rejection. Editor composition validation, Save, authored Play, and the
+repository generator all consume this same rule without a schema change.
+
+Source polygons, transforms, artwork, and placement identity remain separate.
+The compiler splits solid edges at collinear endpoints and exact rational
+crossings, classifies each interval against the other solid loops, and removes
+buried intervals. Opposing coincident faces both disappear; coincident outward
+faces retain the lowest canonical source-edge identity. Full containment emits
+no boundary for the hidden polygon. Concave outlines and empty holes remain.
+Surviving edges retain their source metadata and lineage. Physical adjacency
+between placed solids is connected even when surface classifiers differ.
+At point contacts, exact clockwise-turn ordering preserves separate reciprocal
+boundary loops instead of joining unrelated components by source ID.
+
+All intersection and containment products use `BigInt`. Interval classification
+precedes rounding; each surviving endpoint rounds once to `1/1024` world units,
+with half ties away from zero, matching placement quantization. Intervals that
+collapse to one physics point emit no edge. Split IDs follow exact directed
+interval order, so source iteration order cannot change output. Shape, vertex,
+and exposed-edge limits still apply. The existing compilation path and edge
+signatures remain unchanged when no placed solids overlap.
+
+Surface snap still proposes exact, non-penetrating support contact. Disable
+**Surface snap** when placing obstacles intentionally inside one another.
+The expanded source-loop overlay retains both editable shapes; actor collision
+and traversal consume the compiled exposed edges. No source collider is edited
+or deleted by this operation.
+
+Regression coverage includes partial and triple overlap, containment,
+coincident boundaries, slopes, holes, large negative coordinates, order
+independence, player landing/travel, editor composition revision checks,
+editor/pipeline parity, and staged runtime materialization.
 
 ### Whole-pixel prefab surface contact
 
@@ -1099,8 +1140,10 @@ profile and checked against closed Chunk bounds and
 `TerrainPolygonOverlap.physicsLoops` for every accepted polygon except the
 moved source. Deterministic choice orders by vertical distance, Core edge ID,
 and support-edge index. Exact shared boundary remains legal; positive-area
-penetration remains blocking in both preview and the unchanged final Chunk
-compiler.
+penetration remains blocking in both preview and final Chunk compilation
+when it involves direct terrain or a one-way platform. Separate solid
+placements may overlap on final commit; surface snapping itself continues to
+select non-penetrating contacts.
 
 The expanded-collision painter suppresses the accepted loop being moved and
 draws candidate Core ticks orange, or green after exact contact succeeds. The

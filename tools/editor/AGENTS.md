@@ -276,6 +276,10 @@ maintainability concerns.
   must be partitioned before Core collision expansion while remaining in the
   generated render snapshot; Prefab collision shapes remain solid/one-way;
   legacy flat-profile/gap parsing belongs to offline migration only
+- separate solid Prefab placements may overlap; Core owns their exposed
+  collision union. Retain independent source placements and the existing
+  direct-terrain, within-Prefab, and one-way overlap checks. Editor snapping
+  must not become an alternate runtime collision compiler.
 - keep one-chunk-per-file semantics, explicit `chunkKey` identity edits that
   atomically rekey document ownership, deterministic save-plan output,
   source-drift checks, and case-insensitive path-collision protection
