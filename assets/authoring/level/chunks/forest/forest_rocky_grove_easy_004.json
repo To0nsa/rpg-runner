@@ -1,51 +1,33 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_easy_training_camp_003",
-  "id": "forest_easy_training_camp_003",
-  "revision": 37,
+  "chunkKey": "forest_rocky_grove_easy_004",
+  "id": "forest_rocky_grove_easy_004",
+  "revision": 41,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
   "width": 600,
   "height": 270,
   "difficulty": "easy",
-  "assemblyGroupId": "trainingcamp",
+  "assemblyGroupId": "rocky_grove",
   "tags": [],
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "grimstone_platformer_32x32_tree_02",
-      "prefabKey": "grimstone_platformer_32x32_tree_02",
-      "x": 496,
-      "y": 144,
-      "zIndex": 0,
-      "snapToGrid": true,
-      "scale": 2.5
-    },
-    {
-      "prefabId": "tiny_swords_hay_01",
-      "prefabKey": "tiny_swords_hay_01",
-      "x": 527,
-      "y": 188,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 1.5
-    },
-    {
-      "prefabId": "tiny_swords_bleachers_03",
-      "prefabKey": "tiny_swords_bleachers_03",
-      "x": 246,
-      "y": 200,
+      "prefabId": "kauzz_forest_tree_03",
+      "prefabKey": "kauzz_forest_tree_03",
+      "x": 363,
+      "y": 121,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_training_target_01",
-      "prefabKey": "tiny_swords_training_target_01",
-      "x": 480,
-      "y": 200,
+      "prefabId": "pixel_fantasy_caves_small_rock_09",
+      "prefabKey": "pixel_fantasy_caves_small_rock_09",
+      "x": 94,
+      "y": 220,
       "zIndex": 0,
-      "snapToGrid": true
+      "snapToGrid": false
     }
   ],
   "markers": [],
@@ -59,12 +41,20 @@
           "y": 224
         },
         {
-          "x": 111,
+          "x": 181,
           "y": 224
         },
         {
-          "x": 111,
-          "y": 270
+          "x": 287,
+          "y": 183
+        },
+        {
+          "x": 365,
+          "y": 183
+        },
+        {
+          "x": 365,
+          "y": 269
         },
         {
           "x": 0,
@@ -79,19 +69,19 @@
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 202,
-          "y": 224
+          "x": 463,
+          "y": 183
         },
         {
           "x": 600,
-          "y": 224
+          "y": 152
         },
         {
           "x": 600,
           "y": 270
         },
         {
-          "x": 202,
+          "x": 463,
           "y": 270
         }
       ],
@@ -102,10 +92,10 @@
   "waterRegions": [
     {
       "id": "water_1",
-      "x": 111,
-      "y": 224,
-      "width": 92,
-      "height": 46,
+      "x": 365,
+      "y": 183,
+      "width": 98,
+      "height": 87,
       "materialKey": "biome_water"
     }
   ]

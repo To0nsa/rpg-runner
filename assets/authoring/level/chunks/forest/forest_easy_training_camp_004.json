@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_easy_training_camp_004",
   "id": "forest_easy_training_camp_004",
-  "revision": 8,
+  "revision": 41,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -12,7 +12,50 @@
   "assemblyGroupId": "trainingcamp",
   "tags": [],
   "tileLayers": [],
-  "prefabs": [],
+  "prefabs": [
+    {
+      "prefabId": "gandalf_hardcore_fruit_tree_01",
+      "prefabKey": "gandalf_hardcore_fruit_tree_01",
+      "x": 306,
+      "y": 57,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.3
+    },
+    {
+      "prefabId": "gandalf_hardcore_large_tent_01",
+      "prefabKey": "gandalf_hardcore_large_tent_01",
+      "x": 224,
+      "y": 123,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "cimetery_statue_01",
+      "prefabKey": "cimetery_statue_01",
+      "x": 368,
+      "y": 145,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.4
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_01",
+      "prefabKey": "rune_rocks_mossy_rock_01",
+      "x": 99,
+      "y": 169,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_04",
+      "prefabKey": "rune_rocks_mossy_rock_04",
+      "x": 71,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
   "markers": [],
   "collisionShapes": [
     {
@@ -22,6 +65,14 @@
         {
           "x": 0,
           "y": 224
+        },
+        {
+          "x": 144,
+          "y": 187
+        },
+        {
+          "x": 429,
+          "y": 187
         },
         {
           "x": 600,

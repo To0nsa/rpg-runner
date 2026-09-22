@@ -20,7 +20,7 @@
     },
     {
       "levelId": "forest",
-      "revision": 94,
+      "revision": 108,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
@@ -47,19 +47,27 @@
             "requireDistinctChunks": true
           },
           {
+            "segmentId": "default_2_3",
+            "groupId": "rocky_grove",
+            "difficulty": "easy",
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
+            "requireDistinctChunks": true
+          },
+          {
             "segmentId": "ruin_4",
             "groupId": "trainingcamp",
             "difficulty": "easy",
-            "minChunkCount": 1,
-            "maxChunkCount": 1,
+            "minChunkCount": 4,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
             "segmentId": "default_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 3,
-            "maxChunkCount": 3,
+            "minChunkCount": 6,
+            "maxChunkCount": 6,
             "requireDistinctChunks": true
           },
           {
@@ -68,6 +76,14 @@
             "difficulty": "easy",
             "minChunkCount": 3,
             "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "default_2_3_2",
+            "groupId": "rocky_grove",
+            "difficulty": "easy",
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {

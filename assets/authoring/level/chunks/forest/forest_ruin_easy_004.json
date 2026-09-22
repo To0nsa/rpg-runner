@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_ruin_building_easy_001",
-  "id": "forest_ruin_building_easy_001",
-  "revision": 52,
+  "chunkKey": "forest_ruin_easy_004",
+  "id": "forest_ruin_easy_004",
+  "revision": 13,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,26 +14,35 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "fantasy_environment_tree_02",
-      "prefabKey": "fantasy_environment_tree_02",
-      "x": 400,
-      "y": 160,
-      "zIndex": -1,
-      "snapToGrid": true
+      "prefabId": "crystal_world_dead_tree_02",
+      "prefabKey": "crystal_world_dead_tree_02",
+      "x": 448,
+      "y": 144,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.3
     },
     {
-      "prefabId": "tiny_swords_ground_platform_09_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_09_96x32_platform",
-      "x": 192,
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 176,
       "y": 160,
       "zIndex": 0,
       "snapToGrid": true
     },
     {
-      "prefabId": "ancient_forest_ruin_wall_01",
-      "prefabKey": "ancient_forest_ruin_wall_01",
-      "x": 336,
-      "y": 160,
+      "prefabId": "ancient_forest_ruin_pillar_02",
+      "prefabKey": "ancient_forest_ruin_pillar_02",
+      "x": 304,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "high_forest_bush_03",
+      "prefabKey": "high_forest_bush_03",
+      "x": 416,
+      "y": 208,
       "zIndex": 0,
       "snapToGrid": true
     }

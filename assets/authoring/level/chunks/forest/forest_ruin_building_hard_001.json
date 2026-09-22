@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_building_hard_001",
   "id": "forest_ruin_building_hard_001",
-  "revision": 17,
+  "revision": 19,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -48,22 +48,13 @@
     {
       "prefabId": "ancient_forest_statue_02",
       "prefabKey": "ancient_forest_statue_02",
-      "x": 112,
-      "y": 189,
+      "x": 192,
+      "y": 192,
       "zIndex": 0,
       "snapToGrid": true
     }
   ],
-  "markers": [
-    {
-      "markerId": "derf",
-      "x": 244,
-      "y": 46,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "obstacleTop"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

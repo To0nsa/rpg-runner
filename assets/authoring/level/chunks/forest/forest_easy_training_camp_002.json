@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_easy_training_camp_002",
   "id": "forest_easy_training_camp_002",
-  "revision": 26,
+  "revision": 30,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -55,27 +55,19 @@
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_barrel_01",
-      "prefabKey": "tiny_swords_barrel_01",
-      "x": 48,
-      "y": 192,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
       "prefabId": "tiny_swords_crate_01",
       "prefabKey": "tiny_swords_crate_01",
-      "x": 96,
+      "x": 112,
       "y": 192,
       "zIndex": 0,
       "snapToGrid": true
     },
     {
-      "prefabId": "tiny_swords_table_01",
-      "prefabKey": "tiny_swords_table_01",
-      "x": 304,
-      "y": 208,
-      "zIndex": 0,
+      "prefabId": "tiny_swords_barrel_01",
+      "prefabKey": "tiny_swords_barrel_01",
+      "x": 80,
+      "y": 192,
+      "zIndex": 1,
       "snapToGrid": true
     }
   ],

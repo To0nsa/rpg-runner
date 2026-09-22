@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_001",
   "id": "forest_rocky_grove_easy_001",
-  "revision": 49,
+  "revision": 57,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -22,6 +22,15 @@
       "snapToGrid": true
     },
     {
+      "prefabId": "pixel_fantasy_caves_small_rock_08",
+      "prefabKey": "pixel_fantasy_caves_small_rock_08",
+      "x": 430,
+      "y": 155,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.7
+    },
+    {
       "prefabId": "tiny_swords_tree_01",
       "prefabKey": "tiny_swords_tree_01",
       "x": 112,
@@ -33,14 +42,6 @@
       "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
       "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
       "x": 224,
-      "y": 160,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "dark_forest_rock_01",
-      "prefabKey": "dark_forest_rock_01",
-      "x": 416,
       "y": 160,
       "zIndex": 0,
       "snapToGrid": true
@@ -62,16 +63,7 @@
       "snapToGrid": true
     }
   ],
-  "markers": [
-    {
-      "markerId": "unocoDemon",
-      "x": 336,
-      "y": 57,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

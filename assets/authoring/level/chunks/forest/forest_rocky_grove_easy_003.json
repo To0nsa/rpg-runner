@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_003",
   "id": "forest_rocky_grove_easy_003",
-  "revision": 28,
+  "revision": 33,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,12 +14,12 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "dark_forest_rock_04",
-      "prefabKey": "dark_forest_rock_04",
-      "x": 144,
-      "y": 157,
+      "prefabId": "pixel_fantasy_caves_rock_02",
+      "prefabKey": "pixel_fantasy_caves_rock_02",
+      "x": 171,
+      "y": 139,
       "zIndex": 0,
-      "snapToGrid": true
+      "snapToGrid": false
     },
     {
       "prefabId": "dark_forest_herb_03",

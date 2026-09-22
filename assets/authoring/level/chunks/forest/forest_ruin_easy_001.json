@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_easy_001",
   "id": "forest_ruin_easy_001",
-  "revision": 76,
+  "revision": 80,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -49,7 +49,7 @@
     {
       "prefabId": "rune_rocks_mossy_rock_03",
       "prefabKey": "rune_rocks_mossy_rock_03",
-      "x": 165,
+      "x": 190,
       "y": 179,
       "zIndex": 0,
       "snapToGrid": false
@@ -71,16 +71,7 @@
       "snapToGrid": false
     }
   ],
-  "markers": [
-    {
-      "markerId": "hashash",
-      "x": 385,
-      "y": 91,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

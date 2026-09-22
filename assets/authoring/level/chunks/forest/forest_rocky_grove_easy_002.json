@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_002",
   "id": "forest_rocky_grove_easy_002",
-  "revision": 65,
+  "revision": 101,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,20 +14,28 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
-      "x": 416,
-      "y": 112,
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 560,
+      "y": 48,
       "zIndex": 0,
       "snapToGrid": true
     },
     {
-      "prefabId": "dark_forest_rock_02",
-      "prefabKey": "dark_forest_rock_02",
-      "x": 288,
-      "y": 114,
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 384,
+      "y": 80,
       "zIndex": 0,
       "snapToGrid": true
+    },
+    {
+      "prefabId": "pixel_fantasy_caves_small_rock_01",
+      "prefabKey": "pixel_fantasy_caves_small_rock_01",
+      "x": 275,
+      "y": 102,
+      "zIndex": 0,
+      "snapToGrid": false
     },
     {
       "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
@@ -46,13 +54,12 @@
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_rock_03",
-      "prefabKey": "dark_forest_rock_03",
-      "x": 526,
-      "y": 169,
+      "prefabId": "pixel_fantasy_caves_small_rock_06",
+      "prefabKey": "pixel_fantasy_caves_small_rock_06",
+      "x": 513,
+      "y": 171,
       "zIndex": 0,
-      "snapToGrid": false,
-      "flipX": true
+      "snapToGrid": false
     },
     {
       "prefabId": "kauzz_forest_tree_01",
@@ -61,18 +68,18 @@
       "y": 118,
       "zIndex": 1,
       "snapToGrid": false
-    }
-  ],
-  "markers": [
+    },
     {
-      "markerId": "grojib",
-      "x": 119,
-      "y": 130,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
+      "prefabId": "pixel_fantasy_caves_small_rock_05",
+      "prefabKey": "pixel_fantasy_caves_small_rock_05",
+      "x": 579,
+      "y": 203,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "flipX": true
     }
   ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "ground_001",
@@ -91,11 +98,11 @@
           "y": 185
         },
         {
-          "x": 225,
-          "y": 169
+          "x": 219,
+          "y": 170
         },
         {
-          "x": 354,
+          "x": 351,
           "y": 170
         },
         {
