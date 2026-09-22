@@ -309,8 +309,11 @@ An existing Chunk prefab placement is transform-only: its stable Prefab owner
 cannot be replaced from the inline editor. **Open prefab**, **Open atlas**, and
 **Open collision** navigate through the guarded shell to that placement's exact
 owner, prefab atlas slice, or collision workspace; collision is unavailable for
-Decoration Prefabs. The separate Chunk Prefab library remains the source for
-creating new placements and for scene Place selection.
+Decoration Prefabs. Returning after Save reloads the Prefab dependency and its
+expanded Chunk collision immediately; it never requires a placement Apply.
+The placement action stays disabled until a transform, snapping, position, or
+visual-order value actually changes. The separate Chunk Prefab library remains
+the source for creating new placements and for scene Place selection.
 
 Prefab Creator separates **Prefabs and Platforms** from **Collision**. The
 former owns inline creation with visual-source selection, a visual-only

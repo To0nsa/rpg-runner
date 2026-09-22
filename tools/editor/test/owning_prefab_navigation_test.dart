@@ -283,6 +283,118 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'returning from collision authoring reloads prefab collision without applying the placement',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final root = Directory.systemTemp.createTempSync(
+        'owning_prefab_collision_return_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final fixture = _navigationFixture();
+      final chunkPlugin = _NavigationChunkPlugin(fixture.chunkDocument);
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(
+          plugins: <AuthoringDomainPlugin>[
+            _NavigationEntitiesPlugin(),
+            _NavigationPrefabPlugin(fixture.prefabDocument),
+            chunkPlugin,
+          ],
+        ),
+        initialPluginId: ChunkDomainPlugin.pluginId,
+        initialWorkspacePath: root.path,
+      );
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: EditorHomePage(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey('chunk_polygon_owner_selector')),
+          )
+          .onChanged!('forest_chunk');
+      await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_prefab_placements_section_toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      const placementKey = 'prefab_target|20|10|0';
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_$placementKey')),
+      );
+      await tester.pumpAndSettle();
+      final openCollision = find.byKey(
+        const ValueKey<String>(
+          'chunk_v2_placement_open_collision_$placementKey',
+        ),
+      );
+      await tester.ensureVisible(openCollision);
+      await tester.tap(openCollision);
+      await tester.pumpAndSettle();
+
+      final previousPrefab = fixture.prefabDocument.data.prefabs.singleWhere(
+        (prefab) => prefab.prefabKey == 'prefab_target',
+      );
+      final changedPrefab = previousPrefab.copyWith(
+        revision: previousPrefab.revision + 1,
+        collisionShapes: <TerrainSourceShapeDef>[
+          _collisionShape(rightHalfPixels: 18),
+        ],
+      );
+      final changedPrefabData = fixture.prefabDocument.data.copyWith(
+        prefabs: <PrefabV3Def>[
+          for (final prefab in fixture.prefabDocument.data.prefabs)
+            if (prefab.prefabKey == changedPrefab.prefabKey)
+              changedPrefab
+            else
+              prefab,
+        ],
+      );
+      chunkPlugin.document = fixture.chunkDocument.copyWith(
+        prefabData: changedPrefabData,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('editor_navigation_back')));
+      await tester.pumpAndSettle();
+
+      final scene = controller.scene! as ChunkV2Scene;
+      final expanded = scene
+          .collisionExpansionByChunkKey['forest_chunk']!
+          .expansion!
+          .expandedPrefabShapes
+          .single;
+      expect(expanded.prefabRevision, changedPrefab.revision);
+      expect(
+        expanded.vertices.any((vertex) => vertex.xTicks == 29 * 1024),
+        isTrue,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_placement_inline_apply_$placementKey',
+          ),
+        ),
+        findsNothing,
+      );
+      expect(fixture.chunk.revision, 1);
+      expect(controller.pendingChanges.hasChanges, isFalse);
+    },
+  );
 }
 
 Future<void> _selectRoute(WidgetTester tester, String label) async {
@@ -409,15 +521,16 @@ _NavigationFixture _navigationFixture() {
   );
 }
 
-TerrainSourceShapeDef _collisionShape() => TerrainSourceShapeDef(
-  shapeId: 'collision_001',
-  vertices: const <TerrainSourceVertexDef>[
-    TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
-    TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 0),
-    TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 10),
-    TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 10),
-  ],
-);
+TerrainSourceShapeDef _collisionShape({int rightHalfPixels = 10}) =>
+    TerrainSourceShapeDef(
+      shapeId: 'collision_001',
+      vertices: <TerrainSourceVertexDef>[
+        const TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: rightHalfPixels, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: rightHalfPixels, yHalfPixels: 10),
+        const TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 10),
+      ],
+    );
 
 const LevelDef _forestLevel = LevelDef(
   levelId: 'forest',

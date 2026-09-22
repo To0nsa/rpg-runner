@@ -51,6 +51,10 @@ forward branch unchanged. Discard permits replacement only once the target
 loads successfully. There is no retained source-document cache: returning to a
 Chunk after saving Prefab collision reloads its dependencies. Navigation also
 establishes the normal fresh content Undo/Redo baseline for the loaded domain.
+The restored placed-Prefab selection is presentation state only. Its collision
+projection uses the freshly loaded Prefab revision, while the placement Apply
+action remains disabled until a position, scale, reflection, snapping, or
+visual-order value actually changes.
 
 Dependency repair remains a bounded exception to page replacement: its origin
 stays mounted with its raw inputs while a separate controller edits a dependency.

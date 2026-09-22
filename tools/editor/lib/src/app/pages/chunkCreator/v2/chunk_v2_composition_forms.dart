@@ -4,6 +4,7 @@ import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_prefab_surface_snap.dart';
 import '../../../../chunks/chunk_scene_coordinate_policy.dart';
+import '../../../../chunks/chunk_v2_composition_semantics.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../prefabs/models/models.dart';
 
@@ -195,6 +196,9 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
     _zIndexController = TextEditingController(
       text: '${placement?.zIndex ?? 0}',
     );
+    _xController.addListener(_handleFieldChanged);
+    _yController.addListener(_handleFieldChanged);
+    _zIndexController.addListener(_handleFieldChanged);
     _snapToGrid = placement?.snapToGrid ?? true;
     _flipX = placement?.flipX ?? false;
     _flipY = placement?.flipY ?? false;
@@ -221,9 +225,15 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
 
   @override
   void dispose() {
-    _xController.dispose();
-    _yController.dispose();
-    _zIndexController.dispose();
+    _xController
+      ..removeListener(_handleFieldChanged)
+      ..dispose();
+    _yController
+      ..removeListener(_handleFieldChanged)
+      ..dispose();
+    _zIndexController
+      ..removeListener(_handleFieldChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -310,7 +320,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
           _FormActions(
             submitKey: widget.submitKey,
             submitLabel: widget.submitLabel,
-            enabled: widget.enabled,
+            enabled: widget.enabled && _hasPlacementChanges,
             onCancel: widget.onCancel,
             onSubmit: _submit,
           ),
@@ -321,24 +331,38 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final candidate = _candidateOrNull();
+    if (candidate != null) widget.onSubmit(candidate);
+  }
+
+  bool get _hasPlacementChanges {
+    final placement = widget.placement;
+    if (placement == null) return true;
+    final candidate = _candidateOrNull();
+    return candidate == null || !chunkPrefabsEqual(placement, candidate);
+  }
+
+  PlacedPrefabDef? _candidateOrNull() {
+    final x = int.tryParse(_xController.text.trim());
+    final y = int.tryParse(_yController.text.trim());
+    final zIndex = int.tryParse(_zIndexController.text.trim());
+    if (x == null || y == null || zIndex == null) return null;
     final prefab = widget.prefab;
-    widget.onSubmit(
-      PlacedPrefabDef(
-        prefabId: prefab.id,
-        prefabKey: prefab.prefabKey,
-        x: preserveChunkExactPixelCoordinate(
-          int.parse(_xController.text.trim()),
-        ),
-        y: preserveChunkExactPixelCoordinate(
-          int.parse(_yController.text.trim()),
-        ),
-        zIndex: int.parse(_zIndexController.text.trim()),
-        snapToGrid: _snapToGrid,
-        scale: _scale,
-        flipX: _flipX,
-        flipY: _flipY,
-      ),
+    return PlacedPrefabDef(
+      prefabId: prefab.id,
+      prefabKey: prefab.prefabKey,
+      x: preserveChunkExactPixelCoordinate(x),
+      y: preserveChunkExactPixelCoordinate(y),
+      zIndex: zIndex,
+      snapToGrid: _snapToGrid,
+      scale: _scale,
+      flipX: _flipX,
+      flipY: _flipY,
     );
+  }
+
+  void _handleFieldChanged() {
+    if (mounted) setState(() {});
   }
 }
 

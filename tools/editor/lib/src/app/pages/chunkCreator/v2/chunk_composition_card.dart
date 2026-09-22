@@ -661,8 +661,9 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Adjust this saved placement. Changes are '
-          'staged only after Apply. Switching context discards this draft.',
+          'Prefab visual and collision edits are loaded automatically. '
+          'Apply changes only saves placement values such as position, scale, '
+          'reflection, and visual order.',
         ),
         const SizedBox(height: 12),
         ChunkV2PlacementForm(

@@ -4893,8 +4893,7 @@ void main() {
         ),
       );
       await tester.ensureVisible(noOpPlacementApply);
-      await tester.tap(noOpPlacementApply);
-      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(noOpPlacementApply).onPressed, isNull);
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(
         find.textContaining('Composition change was rejected'),
@@ -5081,6 +5080,7 @@ void main() {
         ),
         '85',
       );
+      await tester.pump();
       final editPlacementApply = find.byKey(
         const ValueKey<String>(
           'chunk_v2_placement_inline_apply_prefab_rock|80|10|0',
