@@ -118,6 +118,31 @@ available to Chunk Creator. Debug damage poses use the catalog's current frame.
 
 All three trap sheets join run-start warmup and the game's awaited registry load.
 
+## Chunk Creator
+
+The Traps scene domain owns selection, catalog placement, sprite movement,
+independent trigger movement/redrawing/corner resizing, and a numeric geometry
+dialog. Facing mirrors the catalog art/damage preview while retaining the saved
+trigger. A frame slider projects exact catalog poses, damage capsules and dart
+muzzle/path; blue authoring rectangles are activation triggers, not damage.
+Idle/active art is partitioned around terrain and prefab layers. The common
+warning/active painter runs after the complete editor scene.
+
+Water and traps share `SceneRectangleGesture` for pointer ownership, whole-pixel
+or tile-grid snapping, neighbor snapping, movement, resize and chunk bounds.
+Each domain retains its own validation and commit policy. Trap previews remain
+local until pointer release or dialog acceptance. The full Core placement
+validator checks the candidate before the existing revision-checked composition
+command, session Undo/Redo and atomic chunk Save path accept it. Navigation
+restores selection by canonical placement value and reconciles against the
+current document. No separate trap document or writer exists.
+
+Build fingerprints and watching include `assets/images/entities/traps/**`.
+Captured Chunk/Level Play freezes all three sheets and validates their decoded
+dimensions against every catalog source region, including dart flight/impact.
+The shared codec and materializer preserve traps in unsaved Play captures and
+generated patterns. Missing/invalid art blocks Play with a source-path diagnostic.
+
 ## Player projectile boundary
 
 `playerEquippableProjectileIds` explicitly retains all eight existing spells,

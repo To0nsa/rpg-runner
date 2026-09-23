@@ -1,7 +1,6 @@
 import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
-import '../contracts/render_frame_rect.dart';
 import '../traps/trap_catalog.dart';
 import '../traps/trap_id.dart';
 import 'projectile_id.dart';
@@ -410,9 +409,7 @@ class ProjectileRenderCatalog {
     },
     sourceFramesByKey: {
       AnimKey.idle: const [TrapCatalog.dartSource],
-      AnimKey.hit: [
-        for (var i = 0; i < 12; i++) RenderFrameRect(i * 128, 768, 128, 128),
-      ],
+      AnimKey.hit: TrapCatalog.dartImpactFrames,
     },
     frameCountsByKey: const {AnimKey.idle: 1, AnimKey.hit: 12},
     stepTimeSecondsByKey: const {AnimKey.idle: 0.1, AnimKey.hit: 0.06},

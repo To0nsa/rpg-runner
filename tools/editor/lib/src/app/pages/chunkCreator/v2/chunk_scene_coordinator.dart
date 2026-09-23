@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_v2_composition_operation.dart';
@@ -18,6 +19,7 @@ enum ChunkSceneDomain {
   markers,
   layers,
   compiledEdgeInspection,
+  traps,
 }
 
 /// Typed route-local selection for the shared Chunk scene.
@@ -36,6 +38,12 @@ final class ChunkTerrainSceneSelection extends ChunkSceneSelection {
 final class ChunkWaterSceneSelection extends ChunkSceneSelection {
   const ChunkWaterSceneSelection(this.regionId);
   final String regionId;
+}
+
+@immutable
+final class ChunkTrapSceneSelection extends ChunkSceneSelection {
+  const ChunkTrapSceneSelection(this.placement);
+  final TrapPlacement placement;
 }
 
 @immutable
@@ -74,6 +82,20 @@ final class ChunkSceneCoordinator {
       ? _sourceDomainBeforeInspection
       : _domain;
   ChunkSceneSelection? get selection => _selections[_domain];
+
+  TrapPlacement? get selectedTrap =>
+      switch (_selections[ChunkSceneDomain.traps]) {
+        ChunkTrapSceneSelection(:final placement) => placement,
+        _ => null,
+      };
+  void selectTrap(TrapPlacement? placement) {
+    _domain = ChunkSceneDomain.traps;
+    _sourceDomainBeforeInspection = _domain;
+    _setSelection(
+      _domain,
+      placement == null ? null : ChunkTrapSceneSelection(placement),
+    );
+  }
 
   String? get selectedWaterId => switch (_selections[ChunkSceneDomain.water]) {
     ChunkWaterSceneSelection(:final regionId) => regionId,
@@ -172,6 +194,9 @@ final class ChunkSceneCoordinator {
   void clearSelection() => _selections.remove(_domain);
 
   void reconcileComposition(ChunkV2FileData chunk) {
+    if (selectedTrap != null && !chunk.traps.contains(selectedTrap)) {
+      _selections.remove(ChunkSceneDomain.traps);
+    }
     final waterId = selectedWaterId;
     if (waterId != null &&
         !chunk.waterRegions.any((region) => region.id == waterId)) {
@@ -187,7 +212,8 @@ final class ChunkSceneCoordinator {
           ChunkSceneDomain.prefabs,
           resolved == null ? null : ChunkPrefabSceneSelection(resolved),
         );
-      case ChunkWaterSceneSelection() ||
+      case ChunkTrapSceneSelection() ||
+          ChunkWaterSceneSelection() ||
           ChunkTerrainSceneSelection() ||
           ChunkMarkerSceneSelection() ||
           ChunkCompiledEdgeSceneSelection() ||
@@ -204,7 +230,8 @@ final class ChunkSceneCoordinator {
           ChunkSceneDomain.markers,
           resolved == null ? null : ChunkMarkerSceneSelection(resolved),
         );
-      case ChunkWaterSceneSelection() ||
+      case ChunkTrapSceneSelection() ||
+          ChunkWaterSceneSelection() ||
           ChunkTerrainSceneSelection() ||
           ChunkPrefabSceneSelection() ||
           ChunkCompiledEdgeSceneSelection() ||

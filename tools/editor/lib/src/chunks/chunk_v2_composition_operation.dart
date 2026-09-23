@@ -12,6 +12,18 @@ enum ChunkV2CompositionTarget { tileLayers, prefabs, markers, traps }
 /// The structural change applied to the captured target list.
 enum ChunkV2CompositionOperationKind { add, replace, delete }
 
+/// View identity only; edits capture the complete source and its revision.
+String chunkTrapSelectionKey(TrapPlacement trap) => [
+  trap.trapId.sourceKey,
+  trap.x,
+  trap.y,
+  trap.facing.name,
+  trap.trigger.offsetX,
+  trap.trigger.offsetY,
+  trap.trigger.width,
+  trap.trigger.height,
+].join('|');
+
 /// Immutable identity and source snapshot captured before a composition UI
 /// operation begins.
 ///

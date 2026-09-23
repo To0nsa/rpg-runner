@@ -5,6 +5,9 @@ import 'package:path/path.dart' as p;
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_identity.dart';
+import 'package:runner_core/traps/trap_geometry.dart';
+import 'package:runner_core/traps/trap_id.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
@@ -220,6 +223,67 @@ void main() {
       expect(
         core.buildSnapshot().stagedTerrainRenderSnapshot!.waterRegions,
         isNotEmpty,
+      );
+    },
+  );
+
+  test(
+    'unsaved traps compile identically in captured Chunk and Level Play',
+    () async {
+      const traps = [
+        TrapPlacement(
+          trapId: TrapId.spike,
+          x: 300,
+          y: 220,
+          trigger: TrapRect(-80, -40, 120, 48),
+        ),
+      ];
+      final chunk = repositoryDocument.chunks
+          .singleWhere((c) => c.chunkKey == captured.selectedChunkKey)
+          .copyWith(
+            prefabs: [],
+            markers: [],
+            collisionShapes: [_flatGround(224)],
+            traps: traps,
+          );
+      final sources = {
+        'assets/authoring/level/chunks/forest/${chunk.chunkKey}.json':
+            ChunkV2FileCodec.encode(chunk),
+      };
+      final level = captured.level.copyWith(
+        clearAssembly: true,
+        clearFirstChunkKey: true,
+      );
+      final focusedInput = _copy(captured, level: level, chunks: sources);
+      final focused = await preparePlaytestInBackground(focusedInput);
+      final full = preparePlaytest(_copy(focusedInput, wholeLevel: true));
+      expect(
+        focused.issues,
+        isEmpty,
+        reason: focused.issues.map((e) => '${e.code}: ${e.message}').join('\n'),
+      );
+      expect(
+        full.issues,
+        isEmpty,
+        reason: full.issues.map((e) => '${e.code}: ${e.message}').join('\n'),
+      );
+      final chunkScenario = focused.scenario! as ChunkPlaytestScenario;
+      final levelScenario = full.scenario! as LevelPlaytestScenario;
+      expect(chunkScenario.draftPattern.traps, traps);
+      final chunkCore = GameCore.chunkPlaytest(scenario: chunkScenario);
+      final levelCore = GameCore.levelPlaytest(scenario: levelScenario);
+      expect(
+        chunkCore.buildSnapshot().traps.map((t) => t.source.trapId),
+        everyElement(TrapId.spike),
+      );
+      expect(levelCore.buildSnapshot().traps, isNotEmpty);
+      expect(
+        levelCore.buildSnapshot().traps.map((t) => t.source.trapId),
+        everyElement(TrapId.spike),
+      );
+      expect(
+        focused.assetBundle!.assetKeys,
+        contains('assets/images/entities/traps/spike/trap_spike.png'),
       );
     },
   );

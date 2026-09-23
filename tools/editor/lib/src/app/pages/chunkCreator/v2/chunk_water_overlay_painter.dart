@@ -3,6 +3,7 @@ import 'package:runner_core/terrain/water_region.dart';
 
 import '../../shared/terrain_polygon_scene_painter.dart';
 import 'chunk_water_drawing.dart';
+import '../../shared/scene_rectangle_gesture.dart';
 
 /// Whole-pixel water bounds and the current snap target above the material art.
 class ChunkWaterOverlayPainter extends CustomPainter {
@@ -50,7 +51,7 @@ class ChunkWaterOverlayPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
-      for (final corner in ChunkWaterCorner.values) {
+      for (final corner in SceneRectangleCorner.values) {
         final point = corner.position(bounds);
         if (handles) {
           paintTerrainRectangleHandle(

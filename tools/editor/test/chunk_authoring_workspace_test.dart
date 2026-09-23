@@ -1299,8 +1299,9 @@ void main() {
           ChunkSceneDomain.terrain,
           ChunkSceneDomain.water,
           ChunkSceneDomain.prefabs,
-          ChunkSceneDomain.markers,
-          ChunkSceneDomain.layers,
+            ChunkSceneDomain.markers,
+            ChunkSceneDomain.traps,
+            ChunkSceneDomain.layers,
         ],
       );
       final globalControls = find.byKey(
@@ -4847,7 +4848,8 @@ void main() {
               toggleKey: 'chunk_layer_metadata_section_toggle',
               bodyKey: key,
             );
-          case ChunkSceneDomain.water ||
+          case ChunkSceneDomain.traps ||
+              ChunkSceneDomain.water ||
               ChunkSceneDomain.terrain ||
               ChunkSceneDomain.compiledEdgeInspection:
             break;

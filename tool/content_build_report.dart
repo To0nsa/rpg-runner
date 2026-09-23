@@ -42,6 +42,7 @@ final class ContentBuildSnapshot {
     'assets/authoring/level': '.json',
     'assets/images/level/atlases': '.png',
     'assets/images/parallax': '.png',
+    'assets/images/entities/traps': '.png',
     'tool': '.dart',
     'packages/runner_content_pipeline/lib': '.dart',
     'packages/terrain_materials/lib': '.dart',

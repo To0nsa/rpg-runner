@@ -1,6 +1,8 @@
 import 'package:image/image.dart' as image;
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
+import 'package:runner_core/traps/trap_catalog.dart';
+import 'package:runner_core/traps/trap_id.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../terrain_materials/terrain_material_domain_models.dart';
@@ -49,6 +51,25 @@ Future<List<PlaytestPreparationIssue>> validateCapturedPlaytestAssets({
     materialContents,
     sourcePath: terrainMaterialDefsSourcePath,
   ).catalog!;
+  for (final id in TrapId.values) {
+    final key = 'assets/images/${TrapCatalog.get(id).assetPath}';
+    final size = dimensions[key];
+    if (size == null ||
+        TrapCatalog.sourceRegions(id).any(
+          (rect) =>
+              rect.x + rect.width > size.width ||
+              rect.y + rect.height > size.height,
+        )) {
+      issues.add(
+        PlaytestPreparationIssue(
+          code: 'playtest_trap_art_invalid',
+          sourcePath: key,
+          message:
+              '${id.sourceKey} requires its complete reviewed sprite sheet, including dart impact frames.',
+        ),
+      );
+    }
+  }
   issues.addAll(
     validateTerrainMaterialImageDimensions(
       TerrainMaterialCatalog(

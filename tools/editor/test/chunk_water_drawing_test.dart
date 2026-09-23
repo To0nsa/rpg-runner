@@ -1,3 +1,5 @@
+import 'package:runner_editor/src/app/pages/shared/scene_rectangle_gesture.dart';
+
 import 'dart:io';
 import 'dart:ui';
 
@@ -158,7 +160,7 @@ void main() {
     });
 
     ChunkWaterDrawing resize({
-      ChunkWaterCorner corner = ChunkWaterCorner.bottomRight,
+      SceneRectangleCorner corner = SceneRectangleCorner.bottomRight,
       Offset? pointerStart,
       bool grid = false,
       bool neighbors = false,
@@ -175,11 +177,11 @@ void main() {
 
     test('hit radius stays in canvas pixels and picks the nearest corner', () {
       for (final zoom in [.5, 1.0, 4.0]) {
-        for (final corner in ChunkWaterCorner.values) {
+        for (final corner in SceneRectangleCorner.values) {
           final point = corner.position(waterRegionBounds(region));
           expect(
-            hitTestChunkWaterCorner(
-              region: region,
+            hitTestSceneRectangleCorner(
+              bounds: waterRegionBounds(region),
               worldPoint: point + Offset(9 / zoom, 0),
               zoom: zoom,
             ),
@@ -187,8 +189,8 @@ void main() {
           );
         }
         expect(
-          hitTestChunkWaterCorner(
-            region: region,
+          hitTestSceneRectangleCorner(
+            bounds: waterRegionBounds(region),
             worldPoint: Offset(61 + 11 / zoom, 81),
             zoom: zoom,
           ),
@@ -196,16 +198,16 @@ void main() {
         );
       }
       expect(
-        hitTestChunkWaterCorner(
-          region: region,
+        hitTestSceneRectangleCorner(
+          bounds: waterRegionBounds(region),
           worldPoint: const Offset(57, 79),
           zoom: 1,
         ),
-        ChunkWaterCorner.bottomRight,
+        SceneRectangleCorner.bottomRight,
       );
     });
 
-    for (final corner in ChunkWaterCorner.values) {
+    for (final corner in SceneRectangleCorner.values) {
       test('$corner expands and shrinks with the opposite corner fixed', () {
         final rect = waterRegionBounds(region);
         final anchor = corner.opposite.position(rect);

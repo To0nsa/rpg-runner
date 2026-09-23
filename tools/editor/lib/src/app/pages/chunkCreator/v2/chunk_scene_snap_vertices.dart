@@ -1,4 +1,5 @@
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
@@ -11,6 +12,7 @@ List<TerrainSourceVertexDef> chunkWholePixelSnapVertices({
   ChunkV2CollisionExpansion? expansion,
   String? excludingTerrainId,
   String? excludingWaterId,
+  TrapPlacement? excludingTrap,
 }) =>
     [
           for (final shape in chunk.collisionShapes)
@@ -29,6 +31,20 @@ List<TerrainSourceVertexDef> chunkWholePixelSnapVertices({
             if (region.id != excludingWaterId)
               for (final x in [region.x, region.x + region.width])
                 for (final y in [region.y, region.y + region.height])
+                  TerrainSourceVertexDef(
+                    xHalfPixels: x * 2,
+                    yHalfPixels: y * 2,
+                  ),
+          for (final trap in chunk.traps)
+            if (trap != excludingTrap)
+              for (final x in [
+                trap.x + trap.trigger.offsetX,
+                trap.x + trap.trigger.right,
+              ])
+                for (final y in [
+                  trap.y + trap.trigger.offsetY,
+                  trap.y + trap.trigger.bottom,
+                ])
                   TerrainSourceVertexDef(
                     xHalfPixels: x * 2,
                     yHalfPixels: y * 2,

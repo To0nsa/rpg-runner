@@ -22,6 +22,18 @@ abstract final class TrapCatalog {
   static const double dartRadius = 2.5;
   static const RenderFrameRect dartSource = RenderFrameRect(0, 640, 128, 128);
   static const Vec2 dartAnchor = Vec2(15, 72);
+  static final List<RenderFrameRect> dartImpactFrames = List.unmodifiable([
+    for (var i = 0; i < 12; i++) RenderFrameRect(i * 128, 768, 128, 128),
+  ]);
+
+  /// Every renderer-consumed region, including the launcher's separate dart FX.
+  static Iterable<RenderFrameRect> sourceRegions(TrapId id) sync* {
+    yield* get(id).frames.map((frame) => frame.source);
+    if (id == TrapId.poisonDarts) {
+      yield dartSource;
+      yield* dartImpactFrames;
+    }
+  }
 
   static TrapDefinition _spike() {
     const tipY = [

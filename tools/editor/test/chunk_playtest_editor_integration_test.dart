@@ -39,7 +39,7 @@ void main() {
     final canvas = ui.Canvas(recorder);
     canvas.drawColor(const ui.Color(0x00000000), ui.BlendMode.src);
     final picture = recorder.endRecording();
-    fixtureImage = await picture.toImage(2048, 2048);
+    fixtureImage = await picture.toImage(3072, 2048);
     picture.dispose();
     final repositoryDocument = await ChunkDomainPlugin().loadV2FromRepo(
       EditorWorkspace(rootPath: workspaceRoot),

@@ -29,6 +29,11 @@ void main() {
         'packages/runner_core/lib/levels/level_id.dart',
         [1],
       );
+      final trap = source('assets/images/entities/traps/spike/trap_spike.png', [
+        1,
+        2,
+        3,
+      ]);
       final snapshot = await ContentBuildSnapshot.capture(
         workspaceRoot: root.path,
       );
@@ -47,6 +52,12 @@ void main() {
       ]);
       generated.writeAsBytesSync([2]);
       await snapshot.verifyCurrent();
+      trap.writeAsBytesSync([4, 5, 6]);
+      await expectLater(
+        snapshot.verifyCurrent(),
+        throwsA(isA<ContentBuildInterruption>()),
+      );
+      trap.writeAsBytesSync([1, 2, 3]);
       image.writeAsBytesSync([4, 5, 6]);
       await expectLater(
         snapshot.verifyCurrent(),

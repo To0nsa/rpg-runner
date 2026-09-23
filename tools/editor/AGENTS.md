@@ -267,6 +267,11 @@ maintainability concerns.
 
 ### Chunk Domain
 
+- trap placements and editable triggers use the existing chunk composition
+  command, revision guard and Save path; Core owns the catalog and damage rules
+- water/trap rectangle interaction shares `pages/shared/scene_rectangle_gesture.dart`;
+  keep validation and commit policy in each domain
+
 - owner: `tools/editor/lib/src/chunks/**` and
   `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
 - plugin: `ChunkDomainPlugin`

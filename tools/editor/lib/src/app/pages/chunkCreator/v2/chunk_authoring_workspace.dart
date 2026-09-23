@@ -1,3 +1,8 @@
+import '../../../../chunks/chunk_v2_composition_commit.dart';
+import 'chunk_trap_gesture.dart';
+import 'chunk_trap_panel.dart';
+import 'chunk_trap_dialog.dart';
+import 'chunk_trap_visual_source.dart';
 import 'chunk_elevation_guides.dart';
 
 import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
@@ -63,6 +68,7 @@ import 'chunk_owner_panels.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_water_panel.dart';
 import 'chunk_water_drawing.dart';
+import '../../shared/scene_rectangle_gesture.dart';
 import 'chunk_water_edit_draft.dart';
 import 'chunk_shape_creation_card.dart';
 import 'chunk_water_overlay_painter.dart';
@@ -168,6 +174,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final ChunkPrefabSceneGesture _prefabGesture = ChunkPrefabSceneGesture();
   final ChunkMarkerSceneGesture _markerGesture = ChunkMarkerSceneGesture();
   final ChunkWaterDrawing _waterDrawing = ChunkWaterDrawing();
+  final ChunkTrapGesture _trapGesture = ChunkTrapGesture()..previewFrame = -1;
+  final EditorUiImageCache _trapImages = EditorUiImageCache();
   String? _waterMaterialKey;
   bool _waterDrawArmed = false;
   bool _waterMoveArmed = false;
@@ -199,7 +207,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _prefabGesture.hasActiveOperation ||
       _prefabTransformDraft != null ||
       _markerGesture.hasActiveOperation ||
-      _waterDrawing.hasActiveOperation;
+      _waterDrawing.hasActiveOperation ||
+      _trapGesture.hasActiveOperation;
 
   bool get hasActiveOperation => _hasActiveOperation;
 
@@ -231,6 +240,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     prefabSelectionKey: _sceneCoordinator.selectedPrefabKey,
     markerSelectionKey: _sceneCoordinator.selectedMarkerKey,
     waterId: _sceneCoordinator.selectedWaterId,
+    trapSelectionKey: _sceneCoordinator.selectedTrap == null
+        ? null
+        : chunkTrapSelectionKey(_sceneCoordinator.selectedTrap!),
     showGrid: _showGrid,
     showElevationGuides: _showElevationGuides,
     connectionsExpanded: _connectionsExpanded,
@@ -489,6 +501,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           : resolveChunkMarkerSelection(chunk.markers, markerKey),
     );
     _bindWaterSelection(location.waterId);
+    _sceneCoordinator.selectTrap(
+      chunk.traps
+          .where(
+            (trap) => chunkTrapSelectionKey(trap) == location.trapSelectionKey,
+          )
+          .firstOrNull,
+    );
     _sceneCoordinator.reconcileComposition(chunk);
     _sceneCoordinator.setSourceDomain(location.domain);
     final authoring = _authoring!;
@@ -517,6 +536,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   @override
   void dispose() {
+    _trapImages.dispose();
     _disposeAuthoring();
     _ownerSearchController
       ..removeListener(_handleOwnerSearchChanged)
@@ -775,6 +795,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               )
             : _buildShapePanel(authoring),
       ),
+      ChunkSceneDomain.traps =>
+        authoring == null
+            ? const Text('Select or create a chunk owner first.')
+            : _buildTrapPanel(authoring.chunk),
       ChunkSceneDomain.water =>
         authoring == null
             ? const Text('Select or create a chunk owner first.')
@@ -826,6 +850,136 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _waterNewNameInput.trim().isEmpty
       ? nextChunkWaterId(chunk.waterRegions)
       : _waterNewNameInput.trim();
+
+  Widget _buildTrapPanel(ChunkV2FileData chunk) => Column(
+    children: [
+      _buildTerrainSnapSwitch(
+        _authoring!,
+        forCreation: true,
+        keyName: 'chunk_trap_snap_to_grid',
+      ),
+      _buildTerrainNeighborVertexSnapSwitch(
+        _authoring!,
+        keyName: 'chunk_trap_snap_to_neighbors',
+      ),
+      ChunkTrapPanel(
+        workspaceRootPath: widget.controller.workspacePath,
+        images: _trapImages,
+        traps: chunk.traps,
+        selected: _sceneCoordinator.selectedTrap,
+        catalogId: _trapGesture.catalogId,
+        tool: _trapGesture.tool,
+        frame: _trapGesture.previewFrame,
+        enabled: !_hasActiveOperation && !_visualPreview,
+        error: _trapGesture.error,
+        onCatalog: (id) => setState(() {
+          _trapGesture.catalogId = id;
+          _trapGesture.tool = ChunkTrapTool.place;
+        }),
+        onSelect: (trap) => setState(() {
+          _sceneCoordinator.selectTrap(trap);
+          _trapGesture.tool = ChunkTrapTool.select;
+          _trapGesture.previewFrame = -1;
+        }),
+        onTool: (tool) => setState(() => _trapGesture.tool = tool),
+        onFrame: (frame) => setState(() => _trapGesture.previewFrame = frame),
+        onEdit: () => _editSelectedTrap(),
+        onDuplicate: () => _editSelectedTrap(duplicate: true),
+        onDelete: _deleteSelectedTrap,
+      ),
+    ],
+  );
+
+  Future<void> _editSelectedTrap({bool duplicate = false}) async {
+    final source = _sceneCoordinator.selectedTrap;
+    final chunk = _authoring?.chunk;
+    if (source == null || chunk == null || _hasActiveOperation) return;
+    final operation = duplicate
+        ? ChunkV2CompositionOperation.add(
+            chunk: chunk,
+            target: ChunkV2CompositionTarget.traps,
+          )
+        : ChunkV2CompositionOperation.replace(
+            chunk: chunk,
+            target: ChunkV2CompositionTarget.traps,
+            sourceIndex: chunk.traps.indexOf(source),
+          );
+    setState(() => _compositionOperationActive = true);
+    try {
+      final candidate = await showChunkTrapDialog(
+        context,
+        workspaceRootPath: widget.controller.workspacePath,
+        images: _trapImages,
+        chunk: chunk,
+        source: source,
+        duplicate: duplicate,
+      );
+      if (!mounted || candidate == null) return;
+      _dispatchTrapResult((
+        candidate: candidate,
+        commit: operation.buildTrap(candidate: candidate),
+        error: null,
+      ));
+    } finally {
+      if (mounted) setState(() => _compositionOperationActive = false);
+      widget.onDraftStateChanged?.call();
+    }
+  }
+
+  void _deleteSelectedTrap() {
+    final source = _sceneCoordinator.selectedTrap;
+    final chunk = _authoring?.chunk;
+    if (source == null || chunk == null || _hasActiveOperation) return;
+    final commit = ChunkV2CompositionOperation.delete(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.traps,
+      sourceIndex: chunk.traps.indexOf(source),
+    ).buildTrap();
+    _dispatchTrapResult((
+      candidate: source,
+      commit: commit,
+      error: null,
+    ), deleted: true);
+  }
+
+  bool _applySceneCompositionCommit(ChunkV2CompositionCommit commit) {
+    final before = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+        payload: {'chunkKey': commit.expectedChunkKey, 'commit': commit},
+      ),
+    );
+    return !identical(before, widget.controller.document);
+  }
+
+  void _dispatchTrapResult(
+    ChunkTrapGestureResult result, {
+    bool deleted = false,
+  }) {
+    if (result.error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result.error!)));
+      return;
+    }
+    final commit = result.commit;
+    if (commit == null) return;
+    if (_applySceneCompositionCommit(commit)) {
+      setState(() {
+        _sceneCoordinator.selectTrap(deleted ? null : result.candidate);
+        _trapGesture.tool = ChunkTrapTool.select;
+        _trapGesture.previewFrame = -1;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Trap edit was rejected. Review validation diagnostics and retry from the current chunk.',
+          ),
+        ),
+      );
+    }
+  }
 
   Widget _buildWaterPanel(ChunkV2FileData chunk) {
     final authoring = _authoring!;
@@ -1543,6 +1697,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 label: Text('Markers'),
               ),
               ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.traps,
+                label: Text('Traps'),
+              ),
+              ButtonSegment<ChunkSceneDomain>(
                 value: ChunkSceneDomain.layers,
                 label: Text('Layers'),
               ),
@@ -1701,6 +1859,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               ? 'Visual preview shows runtime-facing chunk art only. Exit it '
                     'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
                     'zooms.'
+              : _sceneCoordinator.sourceDomain == ChunkSceneDomain.traps
+              ? 'Place or move trap art; blue handles resize the independent trigger. Preview frames show damage and warning cues. Ctrl+drag pans; Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.water
               ? (_waterDrawArmed ||
                         (_waterDrawing.hasActiveOperation &&
@@ -1793,6 +1953,28 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     _pan,
                 zoom: _zoom,
               );
+              final trapPreview = [
+                for (final (index, trap) in chunk.traps.indexed)
+                  if (index != _trapGesture.hiddenSourceIndex) trap,
+                ?_trapGesture.candidate,
+              ];
+              Widget trapVisual(
+                ChunkTrapVisualPass pass,
+              ) => ChunkTrapVisualSource(
+                key: ValueKey('chunk_traps_${pass.name}'),
+                workspaceRootPath: widget.controller.workspacePath,
+                images: _trapImages,
+                traps: trapPreview,
+                selected:
+                    _trapGesture.candidate ?? _sceneCoordinator.selectedTrap,
+                previewFrame: _trapGesture.previewFrame,
+                transform: transform,
+                pass: pass,
+                authoring:
+                    !_visualPreview &&
+                    _sceneCoordinator.sourceDomain == ChunkSceneDomain.traps,
+                invalid: _trapGesture.error != null,
+              );
               return EditorSceneViewportFrame(
                 showBorder: !_visualPreview,
                 child: ChunkSceneSurface(
@@ -1832,7 +2014,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             'chunk_polygon_visual_below_terrain',
                           ),
                           workspaceRootPath: widget.controller.workspacePath,
-                          placements: belowTerrainVisuals,
+                          placements: belowTerrainVisuals.where(
+                            (p) => p.zIndex < chunk.groundBandZIndex - 1,
+                          ),
+                          transform: transform,
+                        ),
+                      trapVisual(ChunkTrapVisualPass.idle),
+                      if (belowTerrainVisuals.isNotEmpty)
+                        ChunkSceneVisualSource(
+                          workspaceRootPath: widget.controller.workspacePath,
+                          placements: belowTerrainVisuals.where(
+                            (p) => p.zIndex >= chunk.groundBandZIndex - 1,
+                          ),
                           transform: transform,
                         ),
                       ListenableBuilder(
@@ -1914,7 +2107,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             'chunk_polygon_visual_at_or_above_terrain',
                           ),
                           workspaceRootPath: widget.controller.workspacePath,
-                          placements: atOrAboveTerrainVisuals,
+                          placements: atOrAboveTerrainVisuals.where(
+                            (p) => p.zIndex < chunk.groundBandZIndex + 1,
+                          ),
+                          transform: transform,
+                        ),
+                      trapVisual(ChunkTrapVisualPass.active),
+                      if (atOrAboveTerrainVisuals.isNotEmpty)
+                        ChunkSceneVisualSource(
+                          workspaceRootPath: widget.controller.workspacePath,
+                          placements: atOrAboveTerrainVisuals.where(
+                            (p) => p.zIndex >= chunk.groundBandZIndex + 1,
+                          ),
                           transform: transform,
                         ),
                       if (!_visualPreview &&
@@ -2026,6 +2230,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                                 _sceneCoordinator.selectedCompiledEdgeId,
                           ),
                         ),
+                      trapVisual(ChunkTrapVisualPass.overlay),
                     ],
                   ),
                   onInspectWorldPoint: (point) {
@@ -3505,6 +3710,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _disposeAuthoring() {
+    _trapGesture.cancel();
     _waterDrawing.cancel();
     _waterDrawArmed = false;
     _waterEditDraft = null;
@@ -3687,6 +3893,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           radiusWorld: 8 / _zoom,
         );
         setState(() => _sceneCoordinator.selectMarker(hit));
+      case ChunkSceneDomain.traps:
+        setState(() {
+          _sceneCoordinator.selectTrap(
+            hitTestChunkTrap(chunk.traps, worldPoint),
+          );
+          _trapGesture.previewFrame = -1;
+        });
       case ChunkSceneDomain.water ||
           ChunkSceneDomain.terrain ||
           ChunkSceneDomain.layers ||
@@ -3704,6 +3917,45 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }) {
     if (_hasActiveOperation) return false;
     switch (_sceneCoordinator.domain) {
+      case ChunkSceneDomain.traps:
+        var selected = _sceneCoordinator.selectedTrap;
+        if (_trapGesture.tool != ChunkTrapTool.drawTrigger &&
+            _trapGesture.tool != ChunkTrapTool.place) {
+          final corner = selected == null
+              ? null
+              : hitTestSceneRectangleCorner(
+                  bounds: trapTriggerBounds(selected),
+                  worldPoint: worldPoint,
+                  zoom: _zoom,
+                );
+          if (corner == null ||
+              _trapGesture.tool == ChunkTrapTool.moveTrigger) {
+            selected = hitTestChunkTrap(
+              chunk.traps,
+              worldPoint,
+              trigger: _trapGesture.tool == ChunkTrapTool.moveTrigger,
+            );
+          }
+        }
+        var began = false;
+        setState(() {
+          if (selected != _sceneCoordinator.selectedTrap) {
+            _trapGesture.previewFrame = -1;
+          }
+          _sceneCoordinator.selectTrap(selected);
+          began = _trapGesture.begin(
+            chunk: chunk,
+            pointer: pointer,
+            point: worldPoint,
+            selected: selected,
+            zoom: _zoom,
+            snapToGrid: _terrainCreationSnapToGrid,
+            snapToNeighbors: _terrainCreationSnapToNeighborVertices,
+            expansion: _expansionFor(chunk.chunkKey)?.expansion,
+          );
+        });
+        widget.onDraftStateChanged?.call();
+        return began;
       case ChunkSceneDomain.prefabs:
         switch (_prefabGesture.tool) {
           case ChunkPrefabSceneTool.select:
@@ -3833,8 +4085,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               .firstOrNull;
           final corner = selected == null
               ? null
-              : hitTestChunkWaterCorner(
-                  region: selected,
+              : hitTestSceneRectangleCorner(
+                  bounds: waterRegionBounds(selected),
                   worldPoint: worldPoint,
                   zoom: _zoom,
                 );
@@ -3897,6 +4149,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _updateDomainGesture(int pointer, Offset worldPoint) {
+    if (_trapGesture.hasActiveOperation) {
+      setState(
+        () => _trapGesture.update(
+          pointer: pointer,
+          point: worldPoint,
+          zoom: _zoom,
+        ),
+      );
+      return;
+    }
     if (_waterDrawing.hasActiveOperation) {
       setState(
         () => _waterDrawing.update(
@@ -3917,6 +4179,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _endDomainGesture(int pointer, Offset worldPoint) {
+    if (_trapGesture.hasActiveOperation) {
+      final result = _trapGesture.finish(
+        pointer: pointer,
+        point: worldPoint,
+        zoom: _zoom,
+      );
+      if (result != null) _dispatchTrapResult(result);
+      setState(() {});
+      widget.onDraftStateChanged?.call();
+      return;
+    }
     if (_waterDrawing.hasActiveOperation) {
       setState(
         () => _waterDrawing.finish(
@@ -3951,6 +4224,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _cancelDomainGesture(int pointer) {
+    if (_trapGesture.hasActiveOperation) {
+      setState(_trapGesture.cancel);
+      widget.onDraftStateChanged?.call();
+      return;
+    }
     if (_waterDrawing.hasActiveOperation) {
       _cancelWaterDrawing();
       return;
@@ -3975,7 +4253,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return;
     }
     setState(() {
-      final cancelled = _prefabGesture.cancel() || _markerGesture.cancel();
+      final cancelled =
+          _trapGesture.cancel() ||
+          _prefabGesture.cancel() ||
+          _markerGesture.cancel();
       if (cancelled) return;
       if (_prefabTransformDraft != null) {
         _prefabTransformDraft = null;
@@ -4030,6 +4311,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           ChunkMarkerGestureResult(candidate: selection.marker, commit: commit),
           deleted: true,
         );
+      case ChunkSceneDomain.traps:
+        _deleteSelectedTrap();
       case ChunkSceneDomain.water:
         _deleteSelectedWater();
       case ChunkSceneDomain.terrain ||
@@ -4045,17 +4328,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }) {
     final commit = result.commit;
     if (commit == null) return;
-    final beforeDocument = widget.controller.document;
-    widget.controller.applyCommand(
-      AuthoringCommand(
-        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
-        payload: <String, Object?>{
-          'chunkKey': commit.expectedChunkKey,
-          'commit': commit,
-        },
-      ),
-    );
-    final accepted = !identical(widget.controller.document, beforeDocument);
+    final accepted = _applySceneCompositionCommit(commit);
     final authoring = _authoring;
     if (accepted && authoring != null) {
       setState(() {
@@ -4093,17 +4366,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }) {
     final commit = result.commit;
     if (commit == null) return;
-    final beforeDocument = widget.controller.document;
-    widget.controller.applyCommand(
-      AuthoringCommand(
-        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
-        payload: <String, Object?>{
-          'chunkKey': commit.expectedChunkKey,
-          'commit': commit,
-        },
-      ),
-    );
-    final accepted = !identical(widget.controller.document, beforeDocument);
+    final accepted = _applySceneCompositionCommit(commit);
     final authoring = _authoring;
     if (accepted && authoring != null) {
       setState(() {

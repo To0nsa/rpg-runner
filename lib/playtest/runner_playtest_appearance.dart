@@ -5,6 +5,7 @@ import '../game/components/enemies/enemy_render_registry.dart';
 import '../game/components/projectiles/projectile_render_registry.dart';
 import '../game/components/pickups/pickup_render_registry.dart';
 import '../game/components/spell_impacts/spell_impact_render_registry.dart';
+import '../game/components/traps/trap_render_registry.dart';
 import '../game/themes/parallax_theme.dart';
 import '../game/themes/terrain_material_registry.dart';
 
@@ -44,6 +45,7 @@ final class RunnerPlaytestAppearance {
       ...ProjectileRenderRegistry().assetPaths,
       ...PickupRenderRegistry().assetPaths,
       ...SpellImpactRenderRegistry().assetPaths,
+      ...TrapRenderRegistry().assetPaths,
       for (final theme in parallaxThemes.values)
         for (final layer in theme.backgroundLayers) layer.assetPath,
       for (final material in terrainMaterials.values) ...material.assetPaths,
