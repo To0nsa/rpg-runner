@@ -1,5 +1,6 @@
 import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
+import '../../combat/hit_target_policy.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
@@ -20,6 +21,8 @@ class ProjectileEntityDef {
     this.pierce = false,
     this.maxPierceHits = 1,
     this.usePhysics = false,
+    this.firstHitTick = 0,
+    this.targetPolicy = HitTargetPolicy.hostile,
   }) : assert(maxPierceHits > 0, 'maxPierceHits must be > 0');
 
   final ProjectileId projectileId;
@@ -42,6 +45,10 @@ class ProjectileEntityDef {
   /// If true, this projectile is moved by core physics (GravitySystem +
   /// terrain motion authority) rather than [ProjectileSystem].
   final bool usePhysics;
+
+  /// Environmental launches defer collision until their first moved tick.
+  final int firstHitTick;
+  final HitTargetPolicy targetPolicy;
 }
 
 /// Immutable metadata for active projectiles.
@@ -64,6 +71,13 @@ class ProjectileStore extends SparseSet {
   final List<bool> pierce = <bool>[];
   final List<int> maxPierceHits = <int>[];
   final List<bool> usePhysics = <bool>[];
+  final List<int> firstHitTick = <int>[];
+  final List<HitTargetPolicy> targetPolicy = <HitTargetPolicy>[];
+
+  /// Start-of-step transform position, null until the first motion capture.
+  /// New ordinary launches use their current position for launch-tick overlap.
+  final List<double?> previousX = <double?>[];
+  final List<double?> previousY = <double?>[];
 
   void add(EntityId entity, ProjectileEntityDef def) {
     final i = addEntity(entity);
@@ -80,6 +94,10 @@ class ProjectileStore extends SparseSet {
     pierce[i] = def.pierce;
     maxPierceHits[i] = def.maxPierceHits;
     usePhysics[i] = def.usePhysics;
+    firstHitTick[i] = def.firstHitTick;
+    targetPolicy[i] = def.targetPolicy;
+    previousX[i] = null;
+    previousY[i] = null;
   }
 
   @override
@@ -97,6 +115,10 @@ class ProjectileStore extends SparseSet {
     pierce.add(false);
     maxPierceHits.add(1);
     usePhysics.add(false);
+    firstHitTick.add(0);
+    targetPolicy.add(HitTargetPolicy.hostile);
+    previousX.add(null);
+    previousY.add(null);
   }
 
   @override
@@ -114,6 +136,10 @@ class ProjectileStore extends SparseSet {
     pierce[removeIndex] = pierce[lastIndex];
     maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     usePhysics[removeIndex] = usePhysics[lastIndex];
+    firstHitTick[removeIndex] = firstHitTick[lastIndex];
+    targetPolicy[removeIndex] = targetPolicy[lastIndex];
+    previousX[removeIndex] = previousX[lastIndex];
+    previousY[removeIndex] = previousY[lastIndex];
 
     projectileId.removeLast();
     faction.removeLast();
@@ -128,5 +154,9 @@ class ProjectileStore extends SparseSet {
     pierce.removeLast();
     maxPierceHits.removeLast();
     usePhysics.removeLast();
+    firstHitTick.removeLast();
+    targetPolicy.removeLast();
+    previousX.removeLast();
+    previousY.removeLast();
   }
 }

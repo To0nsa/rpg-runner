@@ -52,6 +52,7 @@ class ProjectileHitSystem {
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
       final p = projectiles.denseEntities[pi];
+      if (currentTick < projectiles.firstHitTick[pi]) continue;
 
       // Validation: Projectiles must have physical presence.
       final ti = transforms.tryIndexOf(p);
@@ -115,6 +116,7 @@ class ProjectileHitSystem {
           owner: owner,
           sourceFaction: sourceFaction,
           outTargetIndices: _overlaps,
+          targetPolicy: projectiles.targetPolicy[pi],
         );
         if (_overlaps.isEmpty) continue;
 
@@ -166,24 +168,31 @@ class ProjectileHitSystem {
         continue;
       }
 
-      // Query the broadphase for the first valid intersection.
-      // This respects "Friendly Fire" rules via [sourceFaction].
-      final targetIndex = _resolver.firstOrderedOverlapCapsule(
+      final deltaX =
+          transforms.posX[ti] -
+          (projectiles.previousX[pi] ?? transforms.posX[ti]);
+      final deltaY =
+          transforms.posY[ti] -
+          (projectiles.previousY[pi] ?? transforms.posY[ti]);
+      final contact = _resolver.firstSweptCapsuleContact(
         broadphase: broadphase,
-        ax: ax,
-        ay: ay,
-        bx: bx,
-        by: by,
+        ax: ax - deltaX,
+        ay: ay - deltaY,
+        bx: bx - deltaX,
+        by: by - deltaY,
         radius: radius,
+        deltaX: deltaX,
+        deltaY: deltaY,
         owner: owner,
         sourceFaction: sourceFaction,
+        targetPolicy: projectiles.targetPolicy[pi],
       );
 
       // -- Impact Handling --
-      if (targetIndex != null) {
+      if (contact != null) {
         _queueProjectileDamage(
           world,
-          target: broadphase.targets.entities[targetIndex],
+          target: broadphase.targets.entities[contact.targetIndex],
           owner: owner,
           projectileEntity: p,
           projectileStoreIndex: pi,
@@ -195,8 +204,8 @@ class ProjectileHitSystem {
           currentTick: currentTick,
           projectileEntity: p,
           projectileStoreIndex: pi,
-          projectileStoreCenterX: pcx,
-          projectileStoreCenterY: pcy,
+          projectileStoreCenterX: pcx - deltaX * (1 - contact.fraction),
+          projectileStoreCenterY: pcy - deltaY * (1 - contact.fraction),
           facing: facing,
           rotationRad: rotationRad,
           projectiles: projectiles,
@@ -242,7 +251,7 @@ class ProjectileHitSystem {
         critChanceBp: projectiles.critChanceBp[projectileStoreIndex],
         damageType: projectiles.damageType[projectileStoreIndex],
         procs: projectiles.procs[projectileStoreIndex],
-        source: owner,
+        source: owner == 0 ? null : owner,
         sourceKind: DeathSourceKind.projectile,
         sourceEnemyId: enemyId,
         sourceProjectileId:

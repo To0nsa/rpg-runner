@@ -51,3 +51,8 @@ Projectile-slot spell options also come from Spell List ownership:
 - Eloise starter Spell List is defined in character catalog fields and currently
   includes all authored spell projectile IDs.
 - Any learned spell projectile can be selected regardless of equipped spellbook.
+
+Nonpiercing projectiles strike the first eligible actor touched along their
+travel during a simulation tick, including when a fast projectile crosses an
+actor completely between ticks. Friendly actors remain excluded from ordinary
+spell hits. Equal-contact ties use stable actor identity.

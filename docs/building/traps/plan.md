@@ -5,6 +5,10 @@ pulses are implemented and validated. Trap placement decoding, catalog frame
 maps, generation and editor composition contracts are implemented. Trap gameplay
 and the editor authoring interface are not complete.
 
+Completed commits also provide shared nearest-contact projectile sweeps,
+environmental target filtering and explicit first-hit tick eligibility. Trap
+launchers and their gameplay state will consume these contracts next.
+
 Date: September 23, 2026.
 
 ## Outcome

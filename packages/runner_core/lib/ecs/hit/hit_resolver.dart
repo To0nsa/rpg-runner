@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 
 import '../../combat/faction.dart';
+import '../../combat/hit_target_policy.dart';
 import '../entity_id.dart';
 import '../spatial/broadphase_grid.dart';
 import 'aabb_hit_utils.dart';
 import 'capsule_hit_utils.dart';
+import 'capsule_sweep.dart';
 
 /// Shared capsule narrow phase and deterministic hit candidate ordering.
 ///
@@ -27,6 +29,7 @@ class HitResolver {
     required EntityId owner,
     required Faction sourceFaction,
     required List<int> outTargetIndices,
+    HitTargetPolicy targetPolicy = HitTargetPolicy.hostile,
   }) {
     outTargetIndices.clear();
 
@@ -41,7 +44,13 @@ class HitResolver {
 
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
-      if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction) ||
+      if (!_isValidTarget(
+            targetIndex,
+            broadphase,
+            owner,
+            sourceFaction,
+            targetPolicy,
+          ) ||
           !_attackOverlapsTarget(
             broadphase: broadphase,
             targetIndex: targetIndex,
@@ -67,6 +76,7 @@ class HitResolver {
     required double radius,
     required EntityId owner,
     required Faction sourceFaction,
+    HitTargetPolicy targetPolicy = HitTargetPolicy.hostile,
   }) {
     final hasCandidates = _prepareCandidates(
       broadphase: broadphase,
@@ -79,7 +89,13 @@ class HitResolver {
 
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
-      if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction) ||
+      if (!_isValidTarget(
+            targetIndex,
+            broadphase,
+            owner,
+            sourceFaction,
+            targetPolicy,
+          ) ||
           !_attackOverlapsTarget(
             broadphase: broadphase,
             targetIndex: targetIndex,
@@ -95,6 +111,68 @@ class HitResolver {
     }
 
     return null;
+  }
+
+  /// Nearest contact along a capsule's translation; entity ID breaks ties.
+  /// Returns the contact fraction as well as the cached target index so impact
+  /// effects can be placed at contact rather than at the end of a fast step.
+  ({int targetIndex, double fraction})? firstSweptCapsuleContact({
+    required BroadphaseGrid broadphase,
+    required double ax,
+    required double ay,
+    required double bx,
+    required double by,
+    required double radius,
+    required double deltaX,
+    required double deltaY,
+    required EntityId owner,
+    required Faction sourceFaction,
+    HitTargetPolicy targetPolicy = HitTargetPolicy.hostile,
+  }) {
+    if (!_prepareCandidates(
+      broadphase: broadphase,
+      minX: math.min(ax, bx) + math.min(0, deltaX) - radius,
+      minY: math.min(ay, by) + math.min(0, deltaY) - radius,
+      maxX: math.max(ax, bx) + math.max(0, deltaX) + radius,
+      maxY: math.max(ay, by) + math.max(0, deltaY) + radius,
+    )) {
+      return null;
+    }
+    int? firstIndex;
+    var firstFraction = double.infinity;
+    final targets = broadphase.targets;
+    for (final index in _candidates) {
+      if (!_isValidTarget(
+        index,
+        broadphase,
+        owner,
+        sourceFaction,
+        targetPolicy,
+      )) {
+        continue;
+      }
+      final fraction = capsuleSweepFirstContact(
+        ax: ax,
+        ay: ay,
+        bx: bx,
+        by: by,
+        radius: radius,
+        deltaX: deltaX,
+        deltaY: deltaY,
+        targetAx: targets.capsuleAx[index],
+        targetAy: targets.capsuleAy[index],
+        targetBx: targets.capsuleBx[index],
+        targetBy: targets.capsuleBy[index],
+        targetRadius: targets.capsuleRadius[index],
+      );
+      if (fraction != null && fraction < firstFraction) {
+        firstIndex = index;
+        firstFraction = fraction;
+      }
+    }
+    return firstIndex == null
+        ? null
+        : (targetIndex: firstIndex, fraction: firstFraction);
   }
 
   bool _attackOverlapsTarget({
@@ -148,9 +226,14 @@ class HitResolver {
     BroadphaseGrid broadphase,
     EntityId owner,
     Faction sourceFaction,
+    HitTargetPolicy targetPolicy,
   ) {
     final target = broadphase.targets.entities[targetIndex];
-    return target != owner &&
-        !areAllies(sourceFaction, broadphase.targets.factions[targetIndex]);
+    return targetPolicy == HitTargetPolicy.allActors ||
+        (target != owner &&
+            !areAllies(
+              sourceFaction,
+              broadphase.targets.factions[targetIndex],
+            ));
   }
 }

@@ -1560,6 +1560,7 @@ class GameCore {
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
     );
     _mobilitySystem.step(_world, _movement, currentTick: tick);
+    _projectileSystem.capturePhysicsPositions(_world);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
     final distanceDelta = _worldMotionAuthority.step(
       _world,

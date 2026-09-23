@@ -87,7 +87,19 @@ that AABB grid only for candidates. `HitResolver` preserves stable entity-ID
 ordering and owner/faction filters, then confirms attack capsule versus target
 capsule. Tangency is inclusive; overlap limited to an enclosing AABB corner is
 not a hit. This shape change does not move a phase or change hit-once,
-piercing, source-attribution, status, or damage-queue ordering.
+piercing, status, or damage-queue ordering.
+
+Nonpiercing projectiles resolve the first contact along their previous-to-current
+position sweep, with stable entity ID breaking equal-contact ties. The capsule
+keeps its current tick's direction during this translation. Physics-driven
+projectiles capture their origin before world motion; straight projectiles
+capture before their own integration. Impact events use the contact position.
+Ordinary new projectiles retain launch-tick overlap behavior. `firstHitTick`
+allows environmental launches to defer collision until their first moved tick.
+`HitTargetPolicy.allActors` explicitly bypasses faction/owner filtering for
+environmental attacks; normal combat still excludes owners and allies. The
+damageable cache excludes both dying actors and zero-health actors. Ownerless
+projectile damage carries a null source entity, never the store's zero sentinel.
 
 Every `GameCore` construction owns polygon terrain. Normal streamed
 construction performs the scheduler prewarm, installs the multi-body capsule

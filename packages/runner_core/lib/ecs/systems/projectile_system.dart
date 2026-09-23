@@ -13,6 +13,19 @@ import '../world.dart';
 /// in the full physics/collision resolution loop (no `Body` component), hence the
 /// manual position integration here.
 class ProjectileSystem {
+  /// Capture ballistic positions before world motion. Straight motion captures
+  /// itself in [step], preserving the same contract for standalone callers.
+  void capturePhysicsPositions(EcsWorld world) {
+    final projectiles = world.projectile;
+    for (var i = 0; i < projectiles.denseEntities.length; i++) {
+      if (!projectiles.usePhysics[i]) continue;
+      final ti = world.transform.tryIndexOf(projectiles.denseEntities[i]);
+      if (ti == null) continue;
+      projectiles.previousX[i] = world.transform.posX[ti];
+      projectiles.previousY[i] = world.transform.posY[ti];
+    }
+  }
+
   void step(EcsWorld world, MovementTuningDerived movement) {
     final dt = movement.dtSeconds;
     final projectiles = world.projectile;
@@ -42,6 +55,8 @@ class ProjectileSystem {
       }
 
       // Calculate velocity from direction and speed.
+      projectiles.previousX[pi] = transforms.posX[ti];
+      projectiles.previousY[pi] = transforms.posY[ti];
       final vx = projectiles.dirX[pi] * projectiles.speedUnitsPerSecond[pi];
       final vy = projectiles.dirY[pi] * projectiles.speedUnitsPerSecond[pi];
 

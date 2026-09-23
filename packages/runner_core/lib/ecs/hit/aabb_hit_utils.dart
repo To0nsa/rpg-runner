@@ -78,7 +78,7 @@ class DamageableTargetCache {
     for (var i = 0; i < health.denseEntities.length; i += 1) {
       final e = health.denseEntities[i];
 
-      if (world.deathState.has(e)) continue;
+      if (health.hp[i] <= 0 || world.deathState.has(e)) continue;
 
       // 3. Filter: Must have Faction, Transform, and Collider.
       // (Using tryIndexOf avoids exception overhead for missing components)
