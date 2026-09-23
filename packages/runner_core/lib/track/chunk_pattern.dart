@@ -4,6 +4,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../traps/trap_placement.dart';
 
 /// Generated chunk template defining identity, visuals, and spawn markers.
 ///
@@ -15,6 +16,7 @@ class ChunkPattern {
     this.assemblyGroupId = defaultChunkAssemblyGroupId,
     this.spawnMarkers = const <SpawnMarker>[],
     this.visualSprites = const <ChunkVisualSpriteRel>[],
+    this.traps = const <TrapPlacement>[],
   });
 
   /// Human-readable identifier for debugging/logging.
@@ -34,6 +36,9 @@ class ChunkPattern {
 
   /// Author-authored visual sprites for this chunk.
   final List<ChunkVisualSpriteRel> visualSprites;
+
+  /// Canonically ordered environmental traps, independent of solid terrain.
+  final List<TrapPlacement> traps;
 }
 
 /// Default chunk assembly group used when source omits explicit sequencing.

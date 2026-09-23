@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:runner_core/terrain/water_region.dart';
+import 'package:runner_core/traps/trap_placement.dart';
+
+import 'trap_placement_source.dart';
 
 import 'water_region_source.dart';
 
@@ -208,7 +211,9 @@ final class PolygonTerrainChunkSource {
         const <PolygonTerrainMarkerSource>[],
     required Iterable<PolygonTerrainShapeSource> collisionShapes,
     Iterable<WaterRegionData> waterRegions = const [],
-  }) : waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
+    Iterable<TrapPlacement> traps = const [],
+  }) : traps = List<TrapPlacement>.unmodifiable(traps),
+       waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
        placements = List<PolygonTerrainPlacementSource>.unmodifiable(
          placements,
        ),
@@ -234,6 +239,7 @@ final class PolygonTerrainChunkSource {
   final List<PolygonTerrainMarkerSource> markers;
   final List<PolygonTerrainShapeSource> collisionShapes;
   final List<WaterRegionData> waterRegions;
+  final List<TrapPlacement> traps;
 
   List<PolygonTerrainPlacementSelection> placementSelections() {
     final counts = <String, int>{};
@@ -481,6 +487,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       'groundBandZIndex',
       'collisionShapes',
       'waterRegions',
+      'traps',
     },
     required: const {
       'schemaVersion',
@@ -648,6 +655,12 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
   }
 
   return PolygonTerrainChunkSource(
+    traps: decodeTrapPlacements(
+      root.containsKey('traps') ? root['traps'] : const [],
+      sourcePath: '$sourcePath.traps',
+      chunkWidth: _positiveInt(root['width'], '$sourcePath.width'),
+      chunkHeight: _positiveInt(root['height'], '$sourcePath.height'),
+    ),
     waterRegions: decodeWaterRegions(
       root.containsKey('waterRegions') ? root['waterRegions'] : const [],
       sourcePath: '$sourcePath.waterRegions',

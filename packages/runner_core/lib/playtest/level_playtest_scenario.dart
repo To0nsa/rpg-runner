@@ -68,6 +68,7 @@ final class LevelPlaytestScenario implements PlaytestScenario {
             message: 'Pattern $key has no captured compiled terrain.',
           );
         }
+        validatePlaytestTraps(pattern, terrain);
         if (terrain.levelId != level.identity.value ||
             terrain.status != 'active' ||
             terrain.width.toDouble() != level.tuning.track.chunkWidth ||

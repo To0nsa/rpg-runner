@@ -189,6 +189,7 @@ PolygonTerrainRuntimeChunkResult materializePolygonTerrainRuntimeChunk({
         assemblyGroupId: compiled.chunk.assemblyGroupId,
         visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(sprites),
         spawnMarkers: List<SpawnMarker>.unmodifiable(markers),
+        traps: compiled.chunk.traps,
       ),
     ),
     issues: const <PolygonTerrainGenerationIssue>[],

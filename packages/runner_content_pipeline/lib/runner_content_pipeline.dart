@@ -11,3 +11,4 @@ export 'src/polygon_terrain_seam_validation.dart';
 export 'src/polygon_terrain_source.dart';
 export 'src/polygon_tile_source.dart';
 export 'src/water_region_source.dart';
+export 'src/trap_placement_source.dart';

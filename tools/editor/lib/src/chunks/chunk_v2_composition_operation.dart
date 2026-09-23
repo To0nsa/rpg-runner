@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 
 import 'chunk_domain_models.dart';
 import 'chunk_v2_composition_commit.dart';
@@ -6,7 +7,7 @@ import 'chunk_v2_composition_semantics.dart';
 import 'chunk_v2_file_data.dart';
 
 /// The one canonical composition list targeted by a local operation.
-enum ChunkV2CompositionTarget { tileLayers, prefabs, markers }
+enum ChunkV2CompositionTarget { tileLayers, prefabs, markers, traps }
 
 /// The structural change applied to the captured target list.
 enum ChunkV2CompositionOperationKind { add, replace, delete }
@@ -80,6 +81,7 @@ final class ChunkV2CompositionOperation {
       ChunkV2CompositionTarget.tileLayers => chunk.tileLayers.length,
       ChunkV2CompositionTarget.prefabs => chunk.prefabs.length,
       ChunkV2CompositionTarget.markers => chunk.markers.length,
+      ChunkV2CompositionTarget.traps => chunk.traps.length,
     };
     RangeError.checkValidIndex(sourceIndex, List<Object?>.filled(length, null));
     return ChunkV2CompositionOperation._(
@@ -109,6 +111,7 @@ final class ChunkV2CompositionOperation {
     return _build(
       ChunkV2CompositionSnapshot(
         tileLayers: canonicalizeChunkTileLayers(next),
+        traps: before.traps,
         prefabs: before.prefabs,
         markers: before.markers,
       ),
@@ -122,6 +125,7 @@ final class ChunkV2CompositionOperation {
       ChunkV2CompositionSnapshot(
         tileLayers: before.tileLayers,
         prefabs: canonicalizeChunkPrefabs(next),
+        traps: before.traps,
         markers: before.markers,
       ),
     );
@@ -135,6 +139,20 @@ final class ChunkV2CompositionOperation {
         tileLayers: before.tileLayers,
         prefabs: before.prefabs,
         markers: canonicalizeChunkMarkers(next),
+        traps: before.traps,
+      ),
+    );
+  }
+
+  ChunkV2CompositionCommit? buildTrap({TrapPlacement? candidate}) {
+    _requireTarget(ChunkV2CompositionTarget.traps, candidate);
+    final next = _apply(before.traps, candidate)..sort(compareTrapPlacements);
+    return _build(
+      ChunkV2CompositionSnapshot(
+        tileLayers: before.tileLayers,
+        prefabs: before.prefabs,
+        markers: before.markers,
+        traps: next,
       ),
     );
   }
@@ -185,9 +203,8 @@ String? uniqueChunkPrefabSelectionKey(
   Iterable<PlacedPrefabDef> current,
   PlacedPrefabDef accepted,
 ) {
-  final matches = buildChunkPlacedPrefabSelections(
-    current,
-  ).where((selection) => chunkPrefabsEqual(selection.prefab, accepted));
+  final matches = buildChunkPlacedPrefabSelections(current)
+      .where((selection) => chunkPrefabsEqual(selection.prefab, accepted));
   return matches.length == 1 ? matches.single.selectionKey : null;
 }
 
@@ -196,9 +213,8 @@ String? uniqueChunkMarkerSelectionKey(
   Iterable<PlacedMarkerDef> current,
   PlacedMarkerDef accepted,
 ) {
-  final matches = buildChunkPlacedMarkerSelections(
-    current,
-  ).where((selection) => chunkMarkersEqual(selection.marker, accepted));
+  final matches = buildChunkPlacedMarkerSelections(current)
+      .where((selection) => chunkMarkersEqual(selection.marker, accepted));
   return matches.length == 1 ? matches.single.selectionKey : null;
 }
 
@@ -207,9 +223,8 @@ ChunkPlacedPrefabSelection? resolveChunkPrefabSelection(
   Iterable<PlacedPrefabDef> current,
   String selectionKey,
 ) {
-  final matches = buildChunkPlacedPrefabSelections(
-    current,
-  ).where((selection) => selection.selectionKey == selectionKey);
+  final matches = buildChunkPlacedPrefabSelections(current)
+      .where((selection) => selection.selectionKey == selectionKey);
   return matches.length == 1 ? matches.single : null;
 }
 
@@ -218,8 +233,7 @@ ChunkPlacedMarkerSelection? resolveChunkMarkerSelection(
   Iterable<PlacedMarkerDef> current,
   String selectionKey,
 ) {
-  final matches = buildChunkPlacedMarkerSelections(
-    current,
-  ).where((selection) => selection.selectionKey == selectionKey);
+  final matches = buildChunkPlacedMarkerSelections(current)
+      .where((selection) => selection.selectionKey == selectionKey);
   return matches.length == 1 ? matches.single : null;
 }

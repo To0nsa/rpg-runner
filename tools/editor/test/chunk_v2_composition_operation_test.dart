@@ -1,9 +1,50 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/traps/trap_geometry.dart';
+import 'package:runner_core/traps/trap_id.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_composition_operation.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 
 void main() {
+  test('trap operations preserve composition and other edits retain traps', () {
+    const trap = TrapPlacement(
+      trapId: TrapId.spike,
+      x: 200,
+      y: 128,
+      trigger: TrapRect(-20, -20, 40, 40),
+    );
+    final chunk = _chunk().copyWith(width: 600, height: 270, traps: [trap]);
+    final moved = trap.copyWith(x: 300);
+    final replace = ChunkV2CompositionOperation.replace(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.traps,
+      sourceIndex: 0,
+    ).buildTrap(candidate: moved)!;
+    expect(replace.before.traps, [trap]);
+    expect(replace.after.traps, [moved]);
+    expect(replace.after.prefabs, chunk.prefabs);
+    final otherEdit = ChunkV2CompositionOperation.delete(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.prefabs,
+      sourceIndex: 0,
+    ).buildPrefab()!;
+    expect(otherEdit.after.traps, [trap]);
+    final deletion = ChunkV2CompositionOperation.delete(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.traps,
+      sourceIndex: 0,
+    ).buildTrap()!;
+    expect(deletion.after.traps, isEmpty);
+    expect(
+      ChunkV2CompositionOperation.replace(
+        chunk: chunk,
+        target: ChunkV2CompositionTarget.traps,
+        sourceIndex: 0,
+      ).buildTrap(candidate: trap),
+      isNull,
+    );
+  });
   test('operation captures owner revision and complete before snapshot', () {
     final chunk = _chunk();
     final operation = ChunkV2CompositionOperation.replace(

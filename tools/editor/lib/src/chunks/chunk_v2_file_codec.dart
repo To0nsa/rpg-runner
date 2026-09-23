@@ -1,6 +1,7 @@
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
-    show decodeWaterRegions;
+    show decodeWaterRegions, decodeTrapPlacements;
 import 'package:runner_core/terrain/water_region.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 
 import '../domain/strict_authoring_json.dart';
 import '../domain/strict_authoring_metadata_codec.dart';
@@ -43,6 +44,7 @@ abstract final class ChunkV2FileCodec {
         'groundBandZIndex',
         'collisionShapes',
         'waterRegions',
+        'traps',
       },
       required: const <String>{
         'schemaVersion',
@@ -175,6 +177,12 @@ abstract final class ChunkV2FileCodec {
         chunkWidth: root['width'] as int,
         chunkHeight: root['height'] as int,
       ),
+      traps: decodeTrapPlacements(
+        root.containsKey('traps') ? root['traps'] : const [],
+        sourcePath: '$sourcePath.traps',
+        chunkWidth: root['width'] as int,
+        chunkHeight: root['height'] as int,
+      ),
     );
   }
 
@@ -197,6 +205,7 @@ abstract final class ChunkV2FileCodec {
       collisionShapes: canonicalTerrainSourceShapes(data.collisionShapes),
       waterRegions: List<WaterRegionData>.of(data.waterRegions)
         ..sort((a, b) => a.id.compareTo(b.id)),
+      traps: List<TrapPlacement>.of(data.traps)..sort(compareTrapPlacements),
     );
     final encoded = StrictAuthoringJson.encode(canonical.toJson());
     decode(encoded);

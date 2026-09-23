@@ -1,12 +1,39 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/traps/trap_geometry.dart';
+import 'package:runner_core/traps/trap_id.dart';
+import 'package:runner_core/traps/trap_placement.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
+  test('trap export and pipeline share canonical immutable placements', () {
+    const a = TrapPlacement(
+      trapId: TrapId.spike,
+      x: 100,
+      y: 128,
+      trigger: TrapRect(-20, -20, 40, 40),
+    );
+    final b = a.copyWith(x: 200);
+    final input = _data().copyWith(traps: [b, a]);
+    final source = ChunkV2FileCodec.encode(input);
+    final decoded = ChunkV2FileCodec.decode(source);
+    final compiledSource = decodePolygonTerrainChunk(
+      source,
+      sourcePath: 'chunk.json',
+    );
+    expect(decoded.traps, [a, b]);
+    expect(compiledSource.traps, decoded.traps);
+    expect(input.traps, [b, a]);
+    expect(decoded.copyWith(revision: 8).traps, decoded.traps);
+    expect(ChunkV2FileCodec.encode(decoded), source);
+    expect(() => decoded.traps.clear(), throwsUnsupportedError);
+    expect(ChunkV2FileCodec.encode(_data()), isNot(contains('"traps"')));
+  });
   test(
     'file data snapshots author order and copyWith preserves the source',
     () {

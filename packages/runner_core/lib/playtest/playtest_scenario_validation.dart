@@ -8,7 +8,10 @@ import '../levels/level_definition.dart';
 import '../track/chunk_pattern.dart';
 import '../track/chunk_pattern_source.dart';
 import '../track/staged_terrain_catalog.dart';
+import '../track/staged_terrain_data.dart';
 import '../track/staged_terrain_world_geometry.dart';
+import '../traps/trap_placement.dart';
+import '../traps/trap_validation.dart';
 
 /// Stable preparation failure surfaced to an authoring host.
 final class PlaytestScenarioException implements Exception {
@@ -58,7 +61,27 @@ ChunkPattern immutablePlaytestPattern(ChunkPattern source) => ChunkPattern(
   assemblyGroupId: source.assemblyGroupId,
   spawnMarkers: List<SpawnMarker>.unmodifiable(source.spawnMarkers),
   visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(source.visualSprites),
+  traps: List<TrapPlacement>.unmodifiable(source.traps),
 );
+
+/// Applies the same trap admission to typed tooling inputs as source decoding.
+void validatePlaytestTraps(
+  ChunkPattern pattern,
+  StagedTerrainChunkData terrain,
+) {
+  try {
+    validateTrapPlacements(
+      pattern.traps,
+      chunkWidth: terrain.width,
+      chunkHeight: terrain.height,
+    );
+  } on ArgumentError catch (error) {
+    throw PlaytestScenarioException(
+      code: 'playtest_traps_invalid',
+      message: 'Chunk ${terrain.chunkKey}: ${error.message}',
+    );
+  }
+}
 
 void validatePlaytestSeam({
   required String transitionRecord,

@@ -196,6 +196,10 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
               'level has no runtime pattern for it.',
         );
       }
+      validatePlaytestTraps(
+        patternsByKey[chunkKey]!,
+        overlayCatalog.requireChunk(chunkKey),
+      );
     }
     _validateDraftReachableSeams(
       selectedChunkKey: selectedKey,
@@ -280,6 +284,7 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
     final levelId = levelDefinition.identity.value;
     for (final entry in patternsByKey.entries) {
       final terrain = terrainCatalog.requireChunk(entry.key);
+      validatePlaytestTraps(entry.value, terrain);
       if (terrain.levelId != levelId ||
           terrain.status != 'active' ||
           terrain.width.toDouble() != levelDefinition.tuning.track.chunkWidth ||

@@ -1,8 +1,9 @@
 # Hardcoded traps with Chunk Creator placement
 
 Status: In progress. Shared accepted-hit status eligibility and terminal DoT
-pulses are implemented and validated. Trap gameplay and editor authoring are
-not complete.
+pulses are implemented and validated. Trap placement decoding, catalog frame
+maps, generation and editor composition contracts are implemented. Trap gameplay
+and the editor authoring interface are not complete.
 
 Date: September 23, 2026.
 
@@ -397,7 +398,7 @@ comparisons.
   Functions allowlist for offers, purchase, learn, and equip; parity-test the
   two lists. Preserve existing spells, including Thunder Bolt; reject the
   unknown sentinel and trap dart without migrating existing ownership.
-- [ ] Add optional `traps` to Chunk-v2 source, strict editor codec, shared
+- [x] Add optional `traps` to Chunk-v2 source, strict editor codec, shared
   content-pipeline decoder, canonical comparison/export, and generator
   materialization. Preserve existing trap-free chunk bytes on unrelated saves.
 - [ ] Extend `ChunkPattern` and Play scenario copying/validation with typed

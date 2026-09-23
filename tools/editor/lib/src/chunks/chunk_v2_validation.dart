@@ -1,5 +1,5 @@
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
-    show decodeWaterRegions;
+    show decodeWaterRegions, decodeTrapPlacements;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -170,6 +170,24 @@ List<ValidationIssue> validateChunkV2Document(ChunkV2Document document) {
     final chunk = chunks[chunkIndex];
     final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
     final baseline = document.baselineContentsByChunkKey[chunk.chunkKey];
+    try {
+      decodeTrapPlacements(
+        chunk.traps.map((trap) => trap.toJson()).toList(),
+        sourcePath: '${sourcePath ?? chunk.chunkKey}.traps',
+        chunkWidth: chunk.width,
+        chunkHeight: chunk.height,
+      );
+    } on FormatException catch (error) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_traps_invalid',
+          message: error.message.toString(),
+          sourcePath: sourcePath,
+          ownerKey: chunk.chunkKey,
+        ),
+      );
+    }
     try {
       decodeWaterRegions(
         chunk.waterRegions.map((region) => region.toJson()).toList(),

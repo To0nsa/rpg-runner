@@ -672,6 +672,13 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
   if (hasAnySpawnMarkers) {
     buffer.writeln("import '../enemies/enemy_id.dart';");
   }
+  if (chunks.any((chunk) => chunk.pattern.traps.isNotEmpty)) {
+    buffer
+      ..writeln("import '../snapshots/enums.dart';")
+      ..writeln("import '../traps/trap_id.dart';")
+      ..writeln("import '../traps/trap_geometry.dart';")
+      ..writeln("import '../traps/trap_placement.dart';");
+  }
   buffer
     ..writeln("import 'chunk_pattern.dart';")
     ..writeln("import 'chunk_pattern_source.dart';")
@@ -767,9 +774,25 @@ void _writePatternList(
         '      SpawnMarker(enemyId: ${_enemyEnum(marker.enemyId)}, x: ${marker.x}, chancePercent: ${marker.chancePercent}, salt: ${marker.salt}, placement: ${_placementEnum(marker.placement)}),',
       );
     }
-    buffer
-      ..writeln('    ],')
-      ..writeln('  ),');
+    buffer.writeln('    ],');
+    if (chunk.pattern.traps.isNotEmpty) {
+      buffer.writeln('    traps: <TrapPlacement>[');
+      for (final trap in chunk.pattern.traps) {
+        final rect = trap.trigger;
+        buffer
+          ..writeln('      TrapPlacement(')
+          ..writeln('        trapId: TrapId.${trap.trapId.name},')
+          ..writeln(
+            '        x: ${trap.x}, y: ${trap.y}, facing: Facing.${trap.facing.name},',
+          )
+          ..writeln(
+            '        trigger: TrapRect(${rect.offsetX}, ${rect.offsetY}, ${rect.width}, ${rect.height}),',
+          )
+          ..writeln('      ),');
+      }
+      buffer.writeln('    ],');
+    }
+    buffer.writeln('  ),');
   }
   buffer.writeln('];');
 }

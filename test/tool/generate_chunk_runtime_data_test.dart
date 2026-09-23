@@ -9,6 +9,41 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/level_definition_generation.dart' as level_source;
 
 void main() {
+  test('trap source generates compilable typed placements without terrain drift', () async {
+    final root = await Directory.systemTemp.createTemp('trap_generator_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    _writeValidSmokeFixture(root.path);
+    final first = await _runGenerate(workingDirectory: root.path);
+    expect(first.exitCode, 0, reason: first.stderr);
+    final terrain = File(
+      '${root.path}/packages/runner_core/lib/track/staged_authored_terrain.dart',
+    );
+    final terrainBefore = terrain.readAsStringSync();
+    final source = File(
+      '${root.path}/assets/authoring/level/chunks/field/chunk_ok.json',
+    );
+    final json = jsonDecode(source.readAsStringSync()) as Map<String, dynamic>;
+    json['traps'] = [
+      {
+        'trapId': 'spike',
+        'x': 200,
+        'y': 128,
+        'trigger': {'offsetX': -20, 'offsetY': -20, 'width': 40, 'height': 40},
+      },
+    ];
+    source.writeAsStringSync(jsonEncode(json));
+    final generated = await _runGenerate(workingDirectory: root.path);
+    expect(generated.exitCode, 0, reason: generated.stderr);
+    expect(terrain.readAsStringSync(), terrainBefore);
+    final probe = await _runCompiledRegistryProbe(root.path, '''
+  final level = LevelRegistry.byId(LevelId.field);
+  final pattern = level.chunkPatternSource.patternFor(chunkIndex: 0, seed: 1, tier: ChunkPatternTier.easy);
+  if (pattern.traps.single.x != 200 || pattern.traps.single.trigger.width != 40) {
+    throw StateError('Generated trap placement differs from source.');
+  }
+''');
+    expect(probe.exitCode, 0, reason: probe.stderr);
+  });
   test(
     'machine reports exact included/excluded source and content freshness',
     () async {
@@ -1417,6 +1452,7 @@ Future<ProcessResult> _runCompiledRegistryProbe(
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/levels/level_availability.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 void main() {
 $checks
 }

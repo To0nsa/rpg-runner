@@ -6,6 +6,48 @@ import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('traps materialize without changing terrain signatures', () {
+    PolygonTerrainRuntimeChunk compile({required bool withTraps}) {
+      final source = jsonDecode(_chunk) as Map<String, dynamic>;
+      if (withTraps) {
+        source['traps'] = [
+          {
+            'trapId': 'spike',
+            'x': 200,
+            'y': 128,
+            'trigger': {
+              'offsetX': -40,
+              'offsetY': -20,
+              'width': 80,
+              'height': 40,
+            },
+          },
+        ];
+      }
+      return compilePolygonTerrainRuntimeChunkSource(
+        prefabSourcePath: 'prefab.json',
+        prefabContents: _prefabs,
+        tileSourcePath: 'tile.json',
+        tileContents: _tiles,
+        chunkSourcePath: 'chunk.json',
+        chunkContents: jsonEncode(source),
+      ).chunk!;
+    }
+
+    final empty = compile(withTraps: false), added = compile(withTraps: true);
+    expect(empty.pattern.traps, isEmpty);
+    expect(added.pattern.traps.single.x, 200);
+    expect(added.pattern.traps, added.compiled.chunk.traps);
+    expect(
+      added.stagedTerrain.sourceSignature,
+      empty.stagedTerrain.sourceSignature,
+    );
+    expect(
+      added.stagedTerrain.triangleSignature,
+      empty.stagedTerrain.triangleSignature,
+    );
+    expect(() => added.pattern.traps.clear(), throwsUnsupportedError);
+  });
   test('single source boundary returns typed staged terrain and pattern', () {
     final result = compilePolygonTerrainRuntimeChunkSource(
       prefabSourcePath: 'assets/authoring/level/prefab_defs.json',

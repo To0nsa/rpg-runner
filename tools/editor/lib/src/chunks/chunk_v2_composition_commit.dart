@@ -1,4 +1,7 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/traps/trap_placement.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show decodeTrapPlacements;
 
 import '../domain/authoring_types.dart';
 import '../domain/strict_authoring_json.dart';
@@ -19,20 +22,24 @@ final class ChunkV2CompositionSnapshot {
     required Iterable<TileLayerDef> tileLayers,
     required Iterable<PlacedPrefabDef> prefabs,
     required Iterable<PlacedMarkerDef> markers,
+    Iterable<TrapPlacement> traps = const [],
   }) : tileLayers = List<TileLayerDef>.unmodifiable(tileLayers),
        prefabs = List<PlacedPrefabDef>.unmodifiable(prefabs),
-       markers = List<PlacedMarkerDef>.unmodifiable(markers);
+       markers = List<PlacedMarkerDef>.unmodifiable(markers),
+       traps = List<TrapPlacement>.unmodifiable(traps);
 
   factory ChunkV2CompositionSnapshot.fromChunk(ChunkV2FileData chunk) =>
       ChunkV2CompositionSnapshot(
         tileLayers: chunk.tileLayers,
         prefabs: chunk.prefabs,
         markers: chunk.markers,
+        traps: chunk.traps,
       );
 
   final List<TileLayerDef> tileLayers;
   final List<PlacedPrefabDef> prefabs;
   final List<PlacedMarkerDef> markers;
+  final List<TrapPlacement> traps;
 }
 
 /// One optimistic-concurrency composition edit for an existing chunk owner.
@@ -114,6 +121,7 @@ final class ChunkV2CompositionCommitPolicy {
       tileLayers: commit.after.tileLayers,
       prefabs: commit.after.prefabs,
       markers: commit.after.markers,
+      traps: commit.after.traps,
     );
     final chunks = document.chunks.toList(growable: false);
     chunks[chunkIndex] = nextChunk;
@@ -141,6 +149,12 @@ ValidationIssue? _strictStructureIssue({
   required String sourcePath,
 }) {
   try {
+    decodeTrapPlacements(
+      snapshot.traps.map((trap) => trap.toJson()).toList(),
+      sourcePath: '$sourcePath.traps',
+      chunkWidth: chunk.width,
+      chunkHeight: chunk.height,
+    );
     StrictAuthoringJson.requireStrictStringOrder(
       snapshot.tileLayers.map((layer) => layer.id),
       sourcePath: '$sourcePath.tileLayers',
@@ -240,4 +254,9 @@ bool chunkCompositionSnapshotsEqual(
       right.prefabs,
       chunkPrefabsEqual,
     ) &&
-    chunkCompositionListsEqual(left.markers, right.markers, chunkMarkersEqual);
+    chunkCompositionListsEqual(
+      left.markers,
+      right.markers,
+      chunkMarkersEqual,
+    ) &&
+    chunkCompositionListsEqual(left.traps, right.traps, (a, b) => a == b);
