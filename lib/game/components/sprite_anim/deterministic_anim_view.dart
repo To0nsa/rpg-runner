@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
+
 import '../../tuning/combat_feedback_tuning.dart';
 import 'sprite_anim_set.dart';
 import '../../util/math_util.dart' as math;
@@ -16,8 +17,7 @@ typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
 
 enum RenderVisualStyle { live, ghost }
 
-class DeterministicAnimView
-    extends SpriteAnimationGroupComponent<AnimKey> {
+class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
   DeterministicAnimView({
     required SpriteAnimSet animSet,
     AnimKey initial = AnimKey.idle,
@@ -33,8 +33,8 @@ class DeterministicAnimView
        _fallbackResolver = fallbackResolver,
        _baseScale = renderScale?.clone() ?? Vector2.all(1.0),
        _feedbackTuning = feedbackTuning,
-      _respectFacing = respectFacing,
-      _visualStyle = visualStyle,
+       _respectFacing = respectFacing,
+       _visualStyle = visualStyle,
        super(
          animations: animSet.animations,
          current: initial,
@@ -148,6 +148,7 @@ class DeterministicAnimView
     if (current != next) {
       current = next;
     }
+    anchor = _animSet.anchorFor(next);
 
     if (_respectFacing) {
       final artFacing = e.artFacingDir ?? Facing.right;

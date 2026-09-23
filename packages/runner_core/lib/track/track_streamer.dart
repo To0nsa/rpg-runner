@@ -6,6 +6,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../traps/trap_placement.dart';
 import '../tuning/track_tuning.dart';
 import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_pattern.dart';
@@ -76,6 +77,7 @@ class ActiveTrackChunkSnapshot {
     required this.endX,
     required this.patternName,
     required this.chunkKey,
+    this.traps = const [],
   });
 
   /// Deterministic sequential streamed instance index.
@@ -92,6 +94,9 @@ class ActiveTrackChunkSnapshot {
 
   /// Stable authored chunk key, or null in scheduler-only fixtures.
   final String? chunkKey;
+
+  /// Immutable canonical placements from this exact selected pattern.
+  final List<TrapPlacement> traps;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -227,6 +232,7 @@ class TrackStreamer {
             endX: nextStart + tuning.chunkWidth,
             patternName: pattern.name,
             chunkKey: pattern.chunkKey,
+            traps: List<TrapPlacement>.unmodifiable(pattern.traps),
           ),
         );
         nextIndex += 1;
@@ -310,6 +316,7 @@ class TrackStreamer {
           tier: selection.tier,
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
+          traps: List<TrapPlacement>.unmodifiable(pattern.traps),
         ),
       );
       spawnedChunks.add(
@@ -352,6 +359,7 @@ class TrackStreamer {
             endX: c.endX,
             patternName: c.patternName,
             chunkKey: c.chunkKey,
+            traps: c.traps,
           ),
         );
       }
@@ -474,6 +482,7 @@ class _ActiveChunk {
     required this.chunkKey,
     required this.tier,
     required this.visualSprites,
+    required this.traps,
     this.pendingHashashSpawns = 0,
   });
 
@@ -497,6 +506,7 @@ class _ActiveChunk {
 
   /// Render sprites for authored prefab visuals in this chunk.
   final List<ChunkVisualSpriteWorld> visualSprites;
+  final List<TrapPlacement> traps;
 
   /// Deferred hashash spawns that should trigger when this chunk is camera-right.
   int pendingHashashSpawns;

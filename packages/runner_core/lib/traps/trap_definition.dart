@@ -30,6 +30,7 @@ final class TrapDefinition {
     required this.defaultTrigger,
     required this.damage100,
     required Iterable<TrapFrame> frames,
+    this.idleFrameIndex = 0,
     this.muzzle = const Vec2(0, 0),
   }) : frames = List.unmodifiable(frames);
 
@@ -42,6 +43,7 @@ final class TrapDefinition {
   final int damage100;
   final Vec2 muzzle;
   final List<TrapFrame> frames;
+  final int idleFrameIndex;
 
   /// One second after the complete sequence, followed by empty-trigger rearming.
   int cooldownTicks(int tickHz) => tickHz;

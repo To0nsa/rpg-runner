@@ -13,6 +13,7 @@ import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
 import 'package:runner_core/weapons/weapon_category.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
+
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
 import '../../components/gold_display.dart';
@@ -236,9 +237,8 @@ class _TownPageState extends State<TownPage> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -357,10 +357,7 @@ List<_StoreCandidateDefinition> _candidatePoolForBucket(
       }
       return out;
     case StoreBucket.projectileSpell:
-      for (final id in ProjectileId.values) {
-        if (id == ProjectileId.unknown) {
-          continue;
-        }
+      for (final id in playerEquippableProjectileIds) {
         out.add(
           _StoreCandidateDefinition(
             domain: StoreDomain.projectileSpell,
@@ -449,7 +446,7 @@ bool _isCandidateOwned({
       }
     case StoreDomain.projectileSpell:
       final ownership = appState.meta.abilityOwnershipFor(characterId);
-      final id = _enumByName(ProjectileId.values, candidate.itemId);
+      final id = _enumByName(playerEquippableProjectileIds, candidate.itemId);
       if (id == null) {
         return false;
       }

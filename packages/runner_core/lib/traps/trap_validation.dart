@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../snapshots/enums.dart';
 import 'trap_catalog.dart';
 import 'trap_geometry.dart';
@@ -51,16 +53,26 @@ void validateTrapPlacements(
     final def = TrapCatalog.get(p.trapId);
     rectangle(def.spriteBounds, 'sprite', mirrored: p.facing == Facing.left);
     final sign = p.facing == Facing.left ? -1 : 1;
-    for (final frame in def.frames) {
+    for (var frameIndex = 0; frameIndex < def.frames.length; frameIndex++) {
+      final frame = def.frames[frameIndex];
       final h = frame.hitbox;
       if (h == null) continue;
-      final ax = p.x + h.ax * sign, bx = p.x + h.bx * sign;
-      final ay = p.y + h.ay, by = p.y + h.by;
+      final previous = frameIndex > 0
+          ? def.frames[frameIndex - 1].hitbox ?? h
+          : h;
+      final radius = math.max(h.radius, previous.radius);
+      final xs = [
+        h.ax,
+        h.bx,
+        previous.ax,
+        previous.bx,
+      ].map((x) => p.x + x * sign);
+      final ys = [h.ay, h.by, previous.ay, previous.by].map((y) => p.y + y);
       if (!contains(
-        (ax < bx ? ax : bx) - h.radius,
-        (ay < by ? ay : by) - h.radius,
-        (ax > bx ? ax : bx) + h.radius,
-        (ay > by ? ay : by) + h.radius,
+        xs.reduce(math.min) - radius,
+        ys.reduce(math.min) - radius,
+        xs.reduce(math.max) + radius,
+        ys.reduce(math.max) + radius,
       )) {
         throw ArgumentError(
           'Trap ${p.trapId.sourceKey} damage sweep must fit inside the chunk.',

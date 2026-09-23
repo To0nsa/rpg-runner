@@ -14,6 +14,7 @@ class SpriteAnimSet {
     required this.oneShotKeys,
     required this.frameSize,
     this.anchor = Anchor.center,
+    this.anchorByKey = const {},
   });
 
   final Map<AnimKey, SpriteAnimation> animations;
@@ -27,6 +28,8 @@ class SpriteAnimSet {
   ///
   /// Defaults to `Anchor.center`.
   final Anchor anchor;
+  final Map<AnimKey, Anchor> anchorByKey;
+  Anchor anchorFor(AnimKey key) => anchorByKey[key] ?? anchor;
 
   final Map<int, Map<AnimKey, int>> _ticksPerFrameCache =
       <int, Map<AnimKey, int>>{};

@@ -350,7 +350,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
           fieldName: 'setProjectileSpell.characterId',
         );
         final spellId = _enumByName(
-          ProjectileId.values,
+          playerEquippableProjectileIds,
           '${command.payloadJson['spellId']}',
           fieldName: 'setProjectileSpell.spellId',
         );

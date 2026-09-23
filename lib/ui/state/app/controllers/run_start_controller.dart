@@ -262,7 +262,7 @@ final class _AppStateRunStartController extends _AppStateController {
         fallback.spellBookId,
       ),
       projectileSlotSpellId: _enumFromStringOrFallback(
-        ProjectileId.values,
+        playerEquippableProjectileIds,
         snapshot['projectileSlotSpellId'],
         fallback.projectileSlotSpellId,
       ),

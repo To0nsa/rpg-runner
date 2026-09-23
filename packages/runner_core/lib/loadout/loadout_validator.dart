@@ -281,7 +281,10 @@ class LoadoutValidator {
   }) {
     if (slot != AbilitySlot.projectile) return null;
 
-    final selectedSpell = projectileCatalog.tryGet(projectileSlotSpellId);
+    final selectedSpell =
+        playerEquippableProjectileIds.contains(projectileSlotSpellId)
+        ? projectileCatalog.tryGet(projectileSlotSpellId)
+        : null;
     if (selectedSpell == null) {
       issues.add(
         LoadoutIssue(

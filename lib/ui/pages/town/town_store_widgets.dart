@@ -382,7 +382,10 @@ class _ProjectileOfferDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final projectileId = _enumByName(ProjectileId.values, offer.itemId);
+    final projectileId = _enumByName(
+      playerEquippableProjectileIds,
+      offer.itemId,
+    );
     if (projectileId == null || projectileId == ProjectileId.unknown) {
       return Text(
         'No details available right now.',
@@ -679,7 +682,10 @@ class _OfferIcon extends StatelessWidget {
         }
         return GameIcon.gear(slot: gearSlot, id: typedId, size: iconSize);
       case StoreDomain.projectileSpell:
-        final projectileId = _enumByName(ProjectileId.values, offer.itemId);
+        final projectileId = _enumByName(
+          playerEquippableProjectileIds,
+          offer.itemId,
+        );
         if (projectileId == null || projectileId == ProjectileId.unknown) {
           break;
         }
@@ -739,7 +745,10 @@ String townStoreOfferDisplayName(StoreOfferState offer) {
       }
       return gearDisplayNameForSlot(gearSlot, typedId);
     case StoreDomain.projectileSpell:
-      final projectileId = _enumByName(ProjectileId.values, offer.itemId);
+      final projectileId = _enumByName(
+        playerEquippableProjectileIds,
+        offer.itemId,
+      );
       if (projectileId == null) {
         return offer.itemId;
       }

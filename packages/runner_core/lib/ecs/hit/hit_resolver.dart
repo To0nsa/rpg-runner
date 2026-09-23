@@ -7,6 +7,7 @@ import '../spatial/broadphase_grid.dart';
 import 'aabb_hit_utils.dart';
 import 'capsule_hit_utils.dart';
 import 'capsule_sweep.dart';
+import 'capsule_pose_sweep.dart';
 
 /// Shared capsule narrow phase and deterministic hit candidate ordering.
 ///
@@ -173,6 +174,64 @@ class HitResolver {
     return firstIndex == null
         ? null
         : (targetIndex: firstIndex, fraction: firstFraction);
+  }
+
+  /// All contacts in a changing capsule pose's conservative swept envelope.
+  /// A zero-radius pair of horizontal spines also represents a trigger rect.
+  void collectOrderedPoseSweepOverlaps({
+    required BroadphaseGrid broadphase,
+    required double ax,
+    required double ay,
+    required double bx,
+    required double by,
+    required double previousAx,
+    required double previousAy,
+    required double previousBx,
+    required double previousBy,
+    required double radius,
+    required EntityId owner,
+    required Faction sourceFaction,
+    required List<int> outTargetIndices,
+    HitTargetPolicy targetPolicy = HitTargetPolicy.hostile,
+  }) {
+    outTargetIndices.clear();
+    if (!_prepareCandidates(
+      broadphase: broadphase,
+      minX:
+          math.min(math.min(ax, bx), math.min(previousAx, previousBx)) - radius,
+      minY:
+          math.min(math.min(ay, by), math.min(previousAy, previousBy)) - radius,
+      maxX:
+          math.max(math.max(ax, bx), math.max(previousAx, previousBx)) + radius,
+      maxY:
+          math.max(math.max(ay, by), math.max(previousAy, previousBy)) + radius,
+    )) {
+      return;
+    }
+    final targets = broadphase.targets;
+    for (final i in _candidates) {
+      if (!_isValidTarget(i, broadphase, owner, sourceFaction, targetPolicy)) {
+        continue;
+      }
+      if (capsulePoseSweepOverlaps(
+        ax: ax,
+        ay: ay,
+        bx: bx,
+        by: by,
+        previousAx: previousAx,
+        previousAy: previousAy,
+        previousBx: previousBx,
+        previousBy: previousBy,
+        radius: radius,
+        targetAx: targets.capsuleAx[i],
+        targetAy: targets.capsuleAy[i],
+        targetBx: targets.capsuleBx[i],
+        targetBy: targets.capsuleBy[i],
+        targetRadius: targets.capsuleRadius[i],
+      )) {
+        outTargetIndices.add(i);
+      }
+    }
   }
 
   bool _attackOverlapsTarget({

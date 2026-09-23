@@ -1,13 +1,13 @@
 # Hardcoded traps with Chunk Creator placement
 
-Status: In progress. Shared accepted-hit status eligibility and terminal DoT
-pulses are implemented and validated. Trap placement decoding, catalog frame
-maps, generation and editor composition contracts are implemented. Trap gameplay
-and the editor authoring interface are not complete.
+Status: In progress. Shared combat fixes, trap source/catalog contracts,
+fixed-tick trap gameplay, dart spawning, immutable snapshots and player spell
+allowlists are implemented and tested. Flame trap art/cue integration and the
+editor authoring interface remain in progress.
 
 Completed commits also provide shared nearest-contact projectile sweeps,
 environmental target filtering and explicit first-hit tick eligibility. Trap
-launchers and their gameplay state will consume these contracts next.
+launchers and their gameplay state consume these contracts.
 Poison processing, immutable trap attribution through DoT/death, persistent
 Poison feedback and trap death text are implemented and tested.
 

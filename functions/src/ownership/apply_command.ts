@@ -1,3 +1,4 @@
+import { isPlayerEquippableProjectileId } from "./projectile_spells.js";
 import type {
   JsonObject,
   OwnershipCanonicalState,
@@ -257,7 +258,7 @@ function applyLearnProjectileSpell(
 ): ApplyCommandResult {
   const characterId = nonEmptyString(payload.characterId);
   const spellId = nonEmptyString(payload.spellId);
-  if (characterId === null || spellId === null) {
+  if (characterId === null || spellId === null || !isPlayerEquippableProjectileId(spellId)) {
     return rejected("invalidCommand");
   }
   if (!isKnownCharacterId(characterId)) {

@@ -1,3 +1,5 @@
+import { playerEquippableProjectileIds } from "./projectile_spells.js";
+
 export const defaultPriceGold = 150;
 
 export const storeBuckets = [
@@ -77,15 +79,10 @@ export const storeOfferDefinitions: readonly StoreOfferDefinition[] = [
   { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "galeFolio" },
   { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "nullTestament" },
   { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "crownOfFocus" },
-  // Projectile spells.
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "iceBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "fireBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "acidBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "darkBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "earthBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "holyBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "waterBolt" },
-  { bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId: "thunderBolt" },
+  // Projectile spells share the learn/equip allowlist.
+  ...playerEquippableProjectileIds.map((itemId): StoreOfferDefinition => ({
+    bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId,
+  })),
   // Spell-slot abilities.
   { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.arcane_haste" },
   { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.focus" },

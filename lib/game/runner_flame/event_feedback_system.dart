@@ -125,7 +125,7 @@ class RunEventFeedbackSystem {
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
-        anchor: entry.animSet.anchor,
+        anchor: entry.animSet.anchorFor(AnimKey.hit),
         paint: Paint()..filterQuality = FilterQuality.none,
         removeOnFinish: true,
       )..priority = priority;
@@ -163,7 +163,7 @@ class RunEventFeedbackSystem {
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
-        anchor: entry.animSet.anchor,
+        anchor: entry.animSet.anchorFor(AnimKey.hit),
         paint: Paint()..filterQuality = FilterQuality.none,
         removeOnFinish: true,
       )..priority = priority;

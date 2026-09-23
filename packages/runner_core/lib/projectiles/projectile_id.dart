@@ -1,7 +1,7 @@
 /// Identifies a projectile type for catalog lookup and rendering.
 ///
-/// Each ID maps to a projectile item entry and determines visual appearance
-/// in the renderer.
+/// IDs include both player items and environmental projectiles. Player item
+/// membership is defined by [playerEquippableProjectileIds].
 enum ProjectileId {
   /// Sentinel value for uninitialized/placeholder projectile slots.
   unknown,
@@ -27,6 +27,21 @@ enum ProjectileId {
   /// Player's water spell projectile. Medium speed and lifetime.
   waterBolt,
 
-  /// Enemy ranged strike. Slower but longer range.
+  /// Equippable thunder spell, also used by enemies.
   thunderBolt,
+
+  /// Environmental trap projectile; never an equippable spell.
+  poisonDart,
 }
+
+/// Explicit player spell catalog. Rendering may support additional projectiles.
+const playerEquippableProjectileIds = <ProjectileId>[
+  ProjectileId.iceBolt,
+  ProjectileId.fireBolt,
+  ProjectileId.acidBolt,
+  ProjectileId.darkBolt,
+  ProjectileId.earthBolt,
+  ProjectileId.holyBolt,
+  ProjectileId.waterBolt,
+  ProjectileId.thunderBolt,
+];

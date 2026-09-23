@@ -12,10 +12,11 @@ class ProjectileCatalog {
   ProjectileItemDef get(ProjectileId id) {
     switch (id) {
       case ProjectileId.unknown:
+      case ProjectileId.poisonDart:
         throw ArgumentError.value(
           id,
           'id',
-          'ProjectileId.unknown has no catalog entry.',
+          'Projectile is not a player-equippable item.',
         );
 
       // Spells

@@ -45,6 +45,7 @@ class AbilityOwnershipState {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'projectileSpells': learnedProjectileSpellIds
+          .where(playerEquippableProjectileIds.contains)
           .map((id) => id.name)
           .toList(growable: false),
       'abilitiesBySlot': <String, Object?>{
@@ -89,18 +90,22 @@ Set<ProjectileId> _readProjectileIdSet(
   Object? raw,
   Set<ProjectileId> fallback,
 ) {
-  if (raw is! List) return Set<ProjectileId>.from(fallback);
+  if (raw is! List) {
+    return fallback.where(playerEquippableProjectileIds.contains).toSet();
+  }
   final result = <ProjectileId>{};
   for (final item in raw) {
     if (item is! String) continue;
-    for (final value in ProjectileId.values) {
+    for (final value in playerEquippableProjectileIds) {
       if (value.name == item) {
         result.add(value);
         break;
       }
     }
   }
-  return result.isEmpty ? Set<ProjectileId>.from(fallback) : result;
+  return result.isEmpty
+      ? fallback.where(playerEquippableProjectileIds.contains).toSet()
+      : result;
 }
 
 Set<AbilityKey> _readAbilityKeySet(Object? raw, Set<AbilityKey> fallback) {

@@ -39,6 +39,7 @@ import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/staged_terrain_render_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
+import 'snapshots/trap_snapshot.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
@@ -159,6 +160,7 @@ class SnapshotBuilder {
     required int collectibleScore,
     required List<StaticPrefabSpriteSnapshot> staticPrefabSprites,
     StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot,
+    List<TrapSnapshot> traps = const [],
   }) {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
@@ -505,6 +507,7 @@ class SnapshotBuilder {
       ),
       entities: entities,
       staticPrefabSprites: staticPrefabSprites,
+      traps: traps,
       stagedTerrainRenderSnapshot: stagedTerrainRenderSnapshot,
     );
   }

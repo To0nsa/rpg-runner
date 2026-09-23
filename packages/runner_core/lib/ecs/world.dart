@@ -70,6 +70,7 @@ import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/spawn_state_store.dart';
 import 'stores/target_point_intent_store.dart';
 import 'stores/transform_store.dart';
+import 'stores/trap_store.dart';
 
 /// Minimal Entity Component System (ECS) world container.
 ///
@@ -92,6 +93,7 @@ class EcsWorld {
 
   /// Seed used for deterministic RNG in the core, passed to components that need it.
   final int seed;
+  final TrapStore traps = TrapStore();
 
   /// Counter for generating new unique Entity IDs.
   EntityId _nextEntityId = 1;
@@ -411,6 +413,7 @@ class EcsWorld {
       store.removeEntity(entity);
     }
     mobilityImpactState.removeEntity(entity);
+    traps.removeEntity(entity);
     parryConsume.removeEntity(entity);
     reactiveProcCooldown.removeEntity(entity);
     _freeIds.add(entity);

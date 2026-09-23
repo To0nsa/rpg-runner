@@ -356,7 +356,8 @@ class MetaService {
   }
 
   bool _isSpellProjectile(ProjectileId id) {
-    return projectiles.tryGet(id)?.weaponType == WeaponType.spell;
+    return playerEquippableProjectileIds.contains(id) &&
+        projectiles.tryGet(id)?.weaponType == WeaponType.spell;
   }
 
   bool _isAbilityForSlotAndCharacter(

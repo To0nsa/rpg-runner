@@ -29,6 +29,30 @@ const Map<AbilitySlot, Set<String>> _eloiseStarterAbilitiesBySlot =
     };
 
 void main() {
+  test(
+    'ownership discards environmental IDs, including malformed fallbacks',
+    () {
+      const fallback = AbilityOwnershipState(
+        learnedProjectileSpellIds: {
+          ProjectileId.poisonDart,
+          ProjectileId.unknown,
+          ProjectileId.thunderBolt,
+        },
+        learnedAbilityIdsBySlot: {},
+      );
+      for (final raw in [
+        null,
+        ['unknown', 'poisonDart'],
+        ['thunderBolt', 'poisonDart'],
+      ]) {
+        final ownership = AbilityOwnershipState.fromJson({
+          'projectileSpells': raw,
+        }, fallback: fallback);
+        expect(ownership.learnedProjectileSpellIds, {ProjectileId.thunderBolt});
+      }
+      expect(fallback.toJson()['projectileSpells'], ['thunderBolt']);
+    },
+  );
   test('MetaService.createNew equips defaults for every character', () {
     const service = MetaService();
     final meta = service.createNew();
@@ -212,51 +236,46 @@ void main() {
     }
   });
 
-  test(
-    'MetaService.normalize seeds default ability ownership for older schema saves',
-    () {
-      const service = MetaService();
-      final legacy = MetaState(
-        schemaVersion: 1,
-        inventory: InventoryState(
-          unlockedWeaponIds: service
-              .seedAllUnlockedInventory()
-              .unlockedWeaponIds,
-          unlockedSpellBookIds: <SpellBookId>{
-            SpellBookId.apprenticePrimer,
-            SpellBookId.bastionCodex,
-          },
-          unlockedAccessoryIds: service
-              .seedAllUnlockedInventory()
-              .unlockedAccessoryIds,
-        ),
-        equippedByCharacter: <PlayerCharacterId, EquippedGear>{
-          for (final id in PlayerCharacterId.values)
-            id: MetaDefaults.equippedGear,
+  test('MetaService.normalize seeds default ability ownership for older schema saves', () {
+    const service = MetaService();
+    final legacy = MetaState(
+      schemaVersion: 1,
+      inventory: InventoryState(
+        unlockedWeaponIds: service.seedAllUnlockedInventory().unlockedWeaponIds,
+        unlockedSpellBookIds: <SpellBookId>{
+          SpellBookId.apprenticePrimer,
+          SpellBookId.bastionCodex,
         },
-        abilityOwnershipByCharacter: <PlayerCharacterId, AbilityOwnershipState>{
-          for (final id in PlayerCharacterId.values)
-            id: AbilityOwnershipState.empty,
-        },
+        unlockedAccessoryIds: service
+            .seedAllUnlockedInventory()
+            .unlockedAccessoryIds,
+      ),
+      equippedByCharacter: <PlayerCharacterId, EquippedGear>{
+        for (final id in PlayerCharacterId.values)
+          id: MetaDefaults.equippedGear,
+      },
+      abilityOwnershipByCharacter: <PlayerCharacterId, AbilityOwnershipState>{
+        for (final id in PlayerCharacterId.values)
+          id: AbilityOwnershipState.empty,
+      },
+    );
+
+    final normalized = service.normalize(legacy);
+
+    for (final id in PlayerCharacterId.values) {
+      final abilityOwnership = normalized.abilityOwnershipFor(id);
+      expect(
+        abilityOwnership.learnedProjectileSpellIds,
+        _eloiseStarterProjectileSpells,
       );
-
-      final normalized = service.normalize(legacy);
-
-      for (final id in PlayerCharacterId.values) {
-        final abilityOwnership = normalized.abilityOwnershipFor(id);
+      for (final slot in AbilitySlot.values) {
         expect(
-          abilityOwnership.learnedProjectileSpellIds,
-          _eloiseStarterProjectileSpells,
+          abilityOwnership.learnedAbilityIdsForSlot(slot),
+          _eloiseStarterAbilitiesBySlot[slot],
         );
-        for (final slot in AbilitySlot.values) {
-          expect(
-            abilityOwnership.learnedAbilityIdsForSlot(slot),
-            _eloiseStarterAbilitiesBySlot[slot],
-          );
-        }
       }
-    },
-  );
+    }
+  });
 
   test(
     'MetaState load with legacy accessory id normalizes to starter accessory',

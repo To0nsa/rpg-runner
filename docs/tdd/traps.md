@@ -1,11 +1,8 @@
 # Trap placement and animation contracts
 
-The Core trap catalog and optional Chunk-v2 `traps` collection are implemented.
-Runtime activation, damage, renderer integration and the Traps authoring tab
-remain in [the implementation plan](../building/traps/plan.md).
-
-Poison status processing and trap damage attribution are implemented in the
-shared combat pipeline. Trap-specific spawning and attack state remain pending.
+The Core trap catalog, Chunk-v2 `traps` collection, fixed-tick activation and
+damage are implemented. Flame trap art/cue integration and the Traps authoring
+tab remain in [the implementation plan](../building/traps/plan.md).
 
 ## Ownership and source
 
@@ -54,7 +51,12 @@ The Poison Darts pack has no reference GIF. Its initial safe timing is explicit
 catalog tuning. Launcher rectangles are 52×64, offset (32,48) within each
 128-pixel sheet cell. This crops the baked flying darts from the launcher art.
 The muzzle is (22,-2) relative to the anchor. The independent flight rectangle
-is (0,704,32,16). The launcher sequence fires exactly once.
+is the full cell (0,640,128,128), with pivot (15,72), retaining native pixel size.
+Impact uses row 6 cells 0–11 at 60 ms each, with its own pivot (64,76).
+The shared animation loader supports explicit rectangles and per-animation
+anchors, so flight and impact do not inherit the launcher's crop or pivot.
+The launcher sequence fires exactly once. Idle Axe art uses occupied cell 0;
+the triggered cycle begins at cell 10.
 
 Core frame boundaries use ceiling of cumulative milliseconds × tickHz / 1000.
 This avoids accumulating per-frame rounding error. At 60 Hz the Spike sequence
@@ -65,6 +67,48 @@ tick. The catalog gives a one-second cooldown following each sequence.
 `RenderFrameRect` is pure data for explicit sprite extraction. Frame selection
 belongs to fixed-tick Core timing; renderers must not infer hit windows from
 elapsed animation time.
+
+## Runtime lifecycle and ordering
+
+`TrapStore` binds selected chunk placements after terrain publication and retains
+their state across selection refreshes. Culling retires only launcher state.
+Already-fired darts and queued statuses retain their immutable source values.
+Traps are separate state, not attackable entities.
+
+`TrapSystem` queries the shared living-target cache after movement and self
+defenses, before damage middleware. A trigger overlaps actor capsules; it never
+deals damage itself. Both resting art and the cue must positively overlap Core's
+camera bounds. Losing either during warning or attack cancels the cycle into
+cooldown. A finished cycle requires one second of cooldown, an empty trigger,
+and no live dart before it can activate again. Pause and player-death freeze
+skip the gameplay system with the rest of Core.
+
+Spike and Axe resolve every target in stable entity-ID order and remember one
+attempt per target per cycle, including blocked hits. Between harmful poses,
+the shared hit resolver tests the convex hull of the capsule endpoints expanded
+by the larger radius. Source validation bounds that complete conservative sweep.
+Frame transitions into nonharmful art do not repeat the prior pose's damage.
+
+Darts use the common projectile motion, nearest swept hit, damage, status and
+lifetime systems. The trap spawn adapter gives them environmental targeting,
+1 HP base Poison impact, speed 340 units/second and three seconds of travel.
+They have no physical terrain body. A dart created on T first hits on T+1,
+including actors overlapping its muzzle; ordinary projectiles retain their
+existing launch-tick eligibility. Ownerless projectile source zero is converted
+to null damage attribution. The launcher cannot create a second live dart.
+
+Snapshots publish immutable trap identity, position, facing, phase and exact
+frame. No elapsed renderer time controls attacks.
+
+## Player projectile boundary
+
+`playerEquippableProjectileIds` explicitly retains all eight existing spells,
+including Thunder Bolt. The environmental `poisonDart` enum case is appended
+only for shared entity/render identity and has no player catalog item. Ownership
+decoding/normalization, shop candidates, loadout validation and replay loadout
+decoders use the explicit list. Functions derives store offers from its matching
+list and rejects invalid learn/equip/purchase commands. A cross-language test
+checks parity; no ownership migration is needed.
 
 ## Damage attribution and Poison
 

@@ -78,6 +78,7 @@ import 'ecs/systems/anim/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
+import 'ecs/systems/trap_system.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/death_behavior.dart';
 import 'enemies/enemy_id.dart';
@@ -573,6 +574,7 @@ class GameCore {
 
     // Projectile lifecycle.
     _projectileSystem = ProjectileSystem();
+    _trapSystem = TrapSystem(tickHz: tickHz);
     _projectileHitSystem = ProjectileHitSystem();
     _projectileWorldCollisionSystem = ProjectileWorldCollisionSystem();
 
@@ -919,6 +921,7 @@ class GameCore {
   late final GravitySystem _gravitySystem;
   final WaterImmersionSystem _waterImmersionSystem = WaterImmersionSystem();
   late final ProjectileSystem _projectileSystem;
+  late final TrapSystem _trapSystem;
   late final ProjectileHitSystem _projectileHitSystem;
   late final ProjectileWorldCollisionSystem _projectileWorldCollisionSystem;
   late final BroadphaseGrid _broadphaseGrid;
@@ -1662,6 +1665,15 @@ class GameCore {
       queueStatus: _statusSystem.queue,
     );
     _projectileWorldCollisionSystem.step(_world);
+    _trapSystem.step(
+      _world,
+      _broadphaseGrid,
+      currentTick: tick,
+      cameraLeft: _camera.left(),
+      cameraTop: _camera.top(),
+      cameraRight: _camera.right(),
+      cameraBottom: _camera.bottom(),
+    );
     // ─── Phase 13: Status + damage ───
     _entityVisualCueCoalescer.resetForTick(tick);
     _statusSystem.tickExisting(
@@ -1877,6 +1889,7 @@ class GameCore {
     required List<SpawnEnemyRequest> enemyRequests,
     required List<TrackSpawnedChunk> spawnedChunks,
   }) {
+    _world.traps.synchronize(_trackManager.activeChunks, _stagedTerrainCatalog);
     for (final request in enemyRequests) {
       _spawnTrackEnemy(request);
     }
@@ -2265,6 +2278,7 @@ class GameCore {
       collectibles: collectibles,
       collectibleScore: collectibleScore,
       staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
+      traps: _world.traps.buildSnapshots(),
       stagedTerrainRenderSnapshot:
           _worldMotionAuthority.terrainRenderSnapshot ??
           _stagedTerrainCandidate?.renderSnapshot,

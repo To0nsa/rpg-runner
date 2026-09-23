@@ -121,6 +121,10 @@ class ProjectileRenderRegistry {
 
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
+        ProjectileId.poisonDart: ProjectileRenderEntry(
+          id: ProjectileId.poisonDart,
+          renderScale: Vector2.all(1.0),
+        ),
         ProjectileId.iceBolt: ProjectileRenderEntry(
           id: ProjectileId.iceBolt,
           renderScale: Vector2.all(1.0),

@@ -7,8 +7,10 @@ import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
 import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/contracts/render_frame_rect.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/util/vec2.dart';
+
 import 'sprite_anim_set.dart';
 
 Future<SpriteAnimSet> loadStripAnimations(
@@ -20,11 +22,24 @@ Future<SpriteAnimSet> loadStripAnimations(
   required Vec2 anchorPoint,
   Map<AnimKey, int> frameStartByKey = const <AnimKey, int>{},
   Map<AnimKey, int> gridColumnsByKey = const <AnimKey, int>{},
+  Map<AnimKey, List<RenderFrameRect>> sourceFramesByKey = const {},
+  Map<AnimKey, Vec2> anchorPointByKey = const {},
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
 }) async {
   final frameSize = Vector2(frameWidth.toDouble(), frameHeight.toDouble());
+
+  for (final point in [anchorPoint, ...anchorPointByKey.values]) {
+    if (!point.x.isFinite ||
+        !point.y.isFinite ||
+        point.x < 0 ||
+        point.x > frameWidth ||
+        point.y < 0 ||
+        point.y > frameHeight) {
+      throw ArgumentError('Animation anchors must fit the logical frame.');
+    }
+  }
 
   assert(
     anchorPoint.x >= 0 && anchorPoint.x <= frameWidth,
@@ -64,6 +79,12 @@ Future<SpriteAnimSet> loadStripAnimations(
     final row = rowByKey[key] ?? 0;
     final startFrame = frameStartByKey[key] ?? 0;
     final gridColumns = gridColumnsByKey[key];
+    final explicitFrames = sourceFramesByKey[key];
+    if (explicitFrames != null && explicitFrames.length != frameCount) {
+      throw ArgumentError(
+        'Explicit frame count for $key differs from metadata.',
+      );
+    }
 
     assert(
       startFrame >= 0,
@@ -75,6 +96,24 @@ Future<SpriteAnimSet> loadStripAnimations(
     );
 
     final sprites = List<Sprite>.generate(frameCount, (i) {
+      if (explicitFrames != null) {
+        final rect = explicitFrames[i];
+        if (rect.width != frameWidth ||
+            rect.height != frameHeight ||
+            rect.x < 0 ||
+            rect.y < 0 ||
+            rect.x + rect.width > img.width ||
+            rect.y + rect.height > img.height) {
+          throw ArgumentError(
+            'Explicit frame $i for $key is outside $path or has inconsistent dimensions.',
+          );
+        }
+        return Sprite(
+          img,
+          srcPosition: Vector2(rect.x.toDouble(), rect.y.toDouble()),
+          srcSize: frameSize,
+        );
+      }
       final frameIndex = startFrame + i;
       final col = gridColumns == null ? frameIndex : frameIndex % gridColumns;
       final rowOffset = gridColumns == null ? 0 : frameIndex ~/ gridColumns;
@@ -101,6 +140,13 @@ Future<SpriteAnimSet> loadStripAnimations(
     oneShotKeys: oneShotKeys,
     frameSize: frameSize,
     anchor: anchor,
+    anchorByKey: {
+      for (final entry in anchorPointByKey.entries)
+        entry.key: Anchor(
+          entry.value.x / frameWidth,
+          entry.value.y / frameHeight,
+        ),
+    },
   );
 }
 
@@ -118,6 +164,8 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     anchorPoint: renderAnim.anchorPoint,
     frameStartByKey: renderAnim.frameStartByKey,
     gridColumnsByKey: renderAnim.gridColumnsByKey,
+    sourceFramesByKey: renderAnim.sourceFramesByKey,
+    anchorPointByKey: renderAnim.anchorPointByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,

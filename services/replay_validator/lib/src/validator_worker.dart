@@ -1100,7 +1100,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         fieldName: 'loadoutSnapshot.spellBookId',
       ),
       projectileSlotSpellId: _enumByName(
-        ProjectileId.values,
+        playerEquippableProjectileIds,
         _requiredString(snapshot, 'projectileSlotSpellId'),
         fieldName: 'loadoutSnapshot.projectileSlotSpellId',
       ),

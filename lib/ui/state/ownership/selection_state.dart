@@ -224,7 +224,7 @@ EquippedLoadoutDef _loadoutFromJson(
       fallback.spellBookId,
     ),
     projectileSlotSpellId: _enumFromName(
-      ProjectileId.values,
+      playerEquippableProjectileIds,
       map['projectileSlotSpellId'] as String?,
       fallback.projectileSlotSpellId,
     ),

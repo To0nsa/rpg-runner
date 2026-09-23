@@ -20,7 +20,8 @@ abstract final class TrapCatalog {
   static const int dartDamage100 = 100;
   static const double dartHalfLength = 4.5;
   static const double dartRadius = 2.5;
-  static const RenderFrameRect dartSource = RenderFrameRect(0, 704, 32, 16);
+  static const RenderFrameRect dartSource = RenderFrameRect(0, 640, 128, 128);
+  static const Vec2 dartAnchor = Vec2(15, 72);
 
   static TrapDefinition _spike() {
     const tipY = [
@@ -128,6 +129,7 @@ abstract final class TrapCatalog {
 
     return TrapDefinition(
       id: TrapId.swingingAxe,
+      idleFrameIndex: 50,
       assetPath: 'entities/traps/swinging_axe/trap_axe_ambient.png',
       anchor: const Vec2(64, 26),
       restingBounds: const TrapRect(-15, -16, 62, 29),

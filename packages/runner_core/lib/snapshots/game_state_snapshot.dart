@@ -11,6 +11,7 @@ import 'enums.dart';
 import 'player_hud_snapshot.dart';
 import 'staged_terrain_render_snapshot.dart';
 import 'static_prefab_sprite_snapshot.dart';
+import 'trap_snapshot.dart';
 
 /// Complete game state snapshot at a specific simulation tick.
 ///
@@ -31,6 +32,7 @@ class GameStateSnapshot {
     required this.entities,
     required this.staticPrefabSprites,
     this.stagedTerrainRenderSnapshot,
+    this.traps = const [],
   });
 
   /// Current simulation tick.
@@ -71,6 +73,7 @@ class GameStateSnapshot {
 
   /// Render-only authored prefab visual sprites for static streamed chunks.
   final List<StaticPrefabSpriteSnapshot> staticPrefabSprites;
+  final List<TrapSnapshot> traps;
 
   /// Compiler-owned terrain fill data published with the active terrain bundle.
   ///

@@ -44,6 +44,25 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
+    test(
+      'Thunder Bolt stays equippable; trap and unknown projectiles fail',
+      () {
+        for (final id in [
+          ProjectileId.thunderBolt,
+          ProjectileId.poisonDart,
+          ProjectileId.unknown,
+        ]) {
+          final result = validator.validate(
+            EquippedLoadoutDef(
+              projectileSlotSpellId: id,
+              abilityProjectileId: 'eloise.quick_shot',
+            ),
+          );
+          expect(result.isValid, id == ProjectileId.thunderBolt);
+        }
+      },
+    );
+
     test('melee auto-aim and shield guard are valid in authored slots', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
@@ -205,57 +224,57 @@ void main() {
       );
     });
 
-    test('missing required weapon types (shield block with sword) should fail', () {
-      const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId
-            .plainsteel, // Invalid for other reasons, but let's test gating
-        abilitySecondaryId:
-            'eloise.aegis_riposte', // Requires shield weapon type.
-      );
-
-      // Note: This layout also triggers CategoryMismatch because Sword is not OffHand.
-      // But we want to ensure tag checking logic works if reached (or if we fix category).
-      // Since our validator fails fast on category (returns null weapon), we expect CategoryMismatch here.
-      // To strictly test Tag Gating, we rely on the next test case ("valid category, wrong capabilities").
-      // So this test case essentially duplicates "category mismatch" but checks for offhand slot.
-      // Let's check for ANY failure for now or expect CategoryMismatch.
-
-      final result = validator.validate(loadout);
-      expect(result.isValid, isFalse);
-      expect(result.issues.isNotEmpty, isTrue);
-    });
-
     test(
-      'missing required weapon types (valid category, wrong capabilities) should fail',
+      'missing required weapon types (shield block with sword) should fail',
       () {
-        const tagValidator = LoadoutValidator(
-          abilityCatalog: TestAbilityCatalog(),
-          weaponCatalog: weaponCatalog,
-          projectileCatalog: projectileCatalog,
-          spellBookCatalog: SpellBookCatalog(),
-        );
-
         const loadout = EquippedLoadoutDef(
-          offhandWeaponId: WeaponId.roadguard,
-          abilitySecondaryId: TestAbilityCatalog.testAbilityId,
+          mainWeaponId: WeaponId.plainsteel,
+          offhandWeaponId: WeaponId
+              .plainsteel, // Invalid for other reasons, but let's test gating
+          abilitySecondaryId:
+              'eloise.aegis_riposte', // Requires shield weapon type.
         );
 
-        final result = tagValidator.validate(loadout);
+        // Note: This layout also triggers CategoryMismatch because Sword is not OffHand.
+        // But we want to ensure tag checking logic works if reached (or if we fix category).
+        // Since our validator fails fast on category (returns null weapon), we expect CategoryMismatch here.
+        // To strictly test Tag Gating, we rely on the next test case ("valid category, wrong capabilities").
+        // So this test case essentially duplicates "category mismatch" but checks for offhand slot.
+        // Let's check for ANY failure for now or expect CategoryMismatch.
+
+        final result = validator.validate(loadout);
         expect(result.isValid, isFalse);
-        expect(
-          result.issues.any(
-            (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
-          ),
-          isTrue,
-        );
-
-        final issue = result.issues.firstWhere(
-          (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
-        );
-        expect(issue.missingWeaponTypes, contains(WeaponType.oneHandedSword));
+        expect(result.issues.isNotEmpty, isTrue);
       },
     );
+
+    test('missing required weapon types (valid category, wrong capabilities) should fail', () {
+      const tagValidator = LoadoutValidator(
+        abilityCatalog: TestAbilityCatalog(),
+        weaponCatalog: weaponCatalog,
+        projectileCatalog: projectileCatalog,
+        spellBookCatalog: SpellBookCatalog(),
+      );
+
+      const loadout = EquippedLoadoutDef(
+        offhandWeaponId: WeaponId.roadguard,
+        abilitySecondaryId: TestAbilityCatalog.testAbilityId,
+      );
+
+      final result = tagValidator.validate(loadout);
+      expect(result.isValid, isFalse);
+      expect(
+        result.issues.any(
+          (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
+        ),
+        isTrue,
+      );
+
+      final issue = result.issues.firstWhere(
+        (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
+      );
+      expect(issue.missingWeaponTypes, contains(WeaponType.oneHandedSword));
+    });
 
     test('two-handed primary with off-hand equipped should fail', () {
       // Use mock catalog that defines stormneedle as Two-Handed.

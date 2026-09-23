@@ -1,6 +1,9 @@
 import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
+import '../contracts/render_frame_rect.dart';
+import '../traps/trap_catalog.dart';
+import '../traps/trap_id.dart';
 import 'projectile_id.dart';
 
 // -----------------------------------------------------------------------------
@@ -396,6 +399,25 @@ const RenderAnimSetDefinition _waterBoltRenderAnim = RenderAnimSetDefinition(
 class ProjectileRenderCatalog {
   const ProjectileRenderCatalog();
 
+  static final _poisonDart = RenderAnimSetDefinition(
+    frameWidth: 128,
+    frameHeight: 128,
+    anchorPoint: TrapCatalog.dartAnchor,
+    anchorPointByKey: const {AnimKey.hit: Vec2(64, 76)},
+    sourcesByKey: {
+      AnimKey.idle: TrapCatalog.get(TrapId.poisonDarts).assetPath,
+      AnimKey.hit: TrapCatalog.get(TrapId.poisonDarts).assetPath,
+    },
+    sourceFramesByKey: {
+      AnimKey.idle: const [TrapCatalog.dartSource],
+      AnimKey.hit: [
+        for (var i = 0; i < 12; i++) RenderFrameRect(i * 128, 768, 128, 128),
+      ],
+    },
+    frameCountsByKey: const {AnimKey.idle: 1, AnimKey.hit: 12},
+    stepTimeSecondsByKey: const {AnimKey.idle: 0.1, AnimKey.hit: 0.06},
+  );
+
   RenderAnimSetDefinition get(ProjectileId id) {
     switch (id) {
       case ProjectileId.unknown:
@@ -420,6 +442,8 @@ class ProjectileRenderCatalog {
         return _holyBoltRenderAnim;
       case ProjectileId.waterBolt:
         return _waterBoltRenderAnim;
+      case ProjectileId.poisonDart:
+        return _poisonDart;
     }
   }
 }
