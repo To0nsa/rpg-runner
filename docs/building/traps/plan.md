@@ -2,8 +2,9 @@
 
 Status: In progress. Shared combat fixes, trap source/catalog contracts,
 fixed-tick trap gameplay, dart spawning, immutable snapshots and player spell
-allowlists are implemented and tested. Flame trap art/cue integration and the
-editor authoring interface remain in progress.
+allowlists are implemented and tested. Flame displays snapshot frames, loads
+the reviewed sheets and draws cues in the camera's post-world overlay. The
+editor authoring interface remains in progress.
 
 Completed commits also provide shared nearest-contact projectile sweeps,
 environmental target filtering and explicit first-hit tick eligibility. Trap

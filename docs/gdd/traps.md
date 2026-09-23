@@ -28,6 +28,11 @@ dart continues independently. After its animation, a trap waits one second and
 requires an empty trigger before another activation. A dart launcher also waits
 for its previous dart to disappear. Continuous overlap never auto-repeats.
 
+Warning cues are amber and turn red during the active cycle. Their border and
+exclamation mark remain above scenery and actors, even when scenery hides the
+trap's machinery. Idle machinery sits behind terrain; active art sits above
+terrain and behind actors.
+
 Traps are indestructible. Enemy trap deaths use normal enemy kill scoring but
 have no attacker gear procs. The Poison dart is environmental and cannot be
 learned, bought or equipped. All existing spells, including Thunder Bolt, remain

@@ -91,7 +91,7 @@ void main() {
         late _FixtureImages images;
         await tester.runAsync(() async {
           images = _FixtureImages(
-            transparent: await _solidImage(const Color(0x00000000), 2048),
+            transparent: await _solidImage(const Color(0x00000000), 3072),
             prefab: await _solidImage(const Color(0xFFFF0000), 1),
             terrain: await _solidImage(const Color(0xFF00FF00), 1),
             background: await _solidImage(const Color(0xFF0000FF), 1),

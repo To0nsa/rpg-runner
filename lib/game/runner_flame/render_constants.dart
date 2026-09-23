@@ -5,6 +5,8 @@ const int priorityStaticPrefabs = -5;
 
 /// Runtime sprite z=0 is the terrain plane. Mount terrain first so ties cover it.
 const int priorityStagedTerrain = priorityStaticPrefabs;
+const int priorityIdleTraps = -6;
+const int priorityActiveTraps = -4;
 const int priorityGhostEntities = -4;
 const int priorityPlayer = -3;
 const int priorityEnemies = -2;

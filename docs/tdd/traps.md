@@ -1,8 +1,8 @@
 # Trap placement and animation contracts
 
 The Core trap catalog, Chunk-v2 `traps` collection, fixed-tick activation and
-damage are implemented. Flame trap art/cue integration and the Traps authoring
-tab remain in [the implementation plan](../building/traps/plan.md).
+damage and Flame rendering are implemented. The Traps authoring tab remains in
+[the implementation plan](../building/traps/plan.md).
 
 ## Ownership and source
 
@@ -99,6 +99,24 @@ to null damage attribution. The launcher cannot create a second live dart.
 
 Snapshots publish immutable trap identity, position, facing, phase and exact
 frame. No elapsed renderer time controls attacks.
+
+## Rendering
+
+`TrapRenderRegistry` loads the catalog's explicit source rectangles through the
+shared animation loader. `TrapRenderSystem` selects the snapshot frame directly,
+mirrors around the catalog anchor and uses the existing camera-space pixel snap.
+Idle/cooldown machinery has priority -6; warning/active art has priority -4.
+Terrain remains -5 and darts retain projectile priority -1.
+
+`TrapCueOverlay` is mounted on `CameraComponent.viewfinder`. Flame renders that
+pass after the entire world using its current camera transform, before viewport
+HUD content. This preserves arbitrary authored prefab priorities. A pixel test
+places an opaque world component at priority 1,000,000 and verifies warning and
+active cues above it and the HUD above both. Cues are amber for warning and red
+for active, and include an exclamation marker. The same pure Canvas painter is
+available to Chunk Creator. Debug damage poses use the catalog's current frame.
+
+All three trap sheets join run-start warmup and the game's awaited registry load.
 
 ## Player projectile boundary
 
