@@ -1,0 +1,56 @@
+{
+  "benchmark": "replay-validator-terrain-stream-v1",
+  "revision": "4da3af57",
+  "dirty": true,
+  "os": "windows",
+  "osVersion": "\"Windows 11 Home\" 10.0 (Build 26200)",
+  "dartVersion": "3.13.1 (stable) (Tue Aug 18 01:00:59 2026 -0700) on \"windows_x64\"",
+  "fixture": "normal-included-levels-no-enemy-stream",
+  "tickHz": 60,
+  "ticksPerLevel": 36000,
+  "measurements": {
+    "forest": {
+      "elapsedMicros": 761663,
+      "elapsedSeconds": 0.761663,
+      "simulatedSeconds": 600.0,
+      "realTimeMultiple": 787.749962910106,
+      "commandFrames": 36000,
+      "finalDistance": 331.7548828125,
+      "finalGeometryVersion": 1,
+      "deterministicOutcome": true
+    },
+    "field": {
+      "elapsedMicros": 467556,
+      "elapsedSeconds": 0.467556,
+      "simulatedSeconds": 600.0,
+      "realTimeMultiple": 1283.268742139979,
+      "commandFrames": 36000,
+      "finalDistance": 113872.732421875,
+      "finalGeometryVersion": 190,
+      "deterministicOutcome": true
+    },
+    "new_level": {
+      "elapsedMicros": 459510,
+      "elapsedSeconds": 0.45951,
+      "simulatedSeconds": 600.0,
+      "realTimeMultiple": 1305.7387216817915,
+      "commandFrames": 36000,
+      "finalDistance": 113872.732421875,
+      "finalGeometryVersion": 190,
+      "deterministicOutcome": true
+    }
+  },
+  "gates": {
+    "forest_at_least_2x_real_time": true,
+    "field_at_least_2x_real_time": true,
+    "new_level_at_least_2x_real_time": true,
+    "forest_36000_ticks_under_300_seconds": true,
+    "field_36000_ticks_under_300_seconds": true,
+    "new_level_36000_ticks_under_300_seconds": true,
+    "forest_deterministic_outcome": true,
+    "field_deterministic_outcome": true,
+    "new_level_deterministic_outcome": true
+  },
+  "passed": true,
+  "phase7ContainerVerificationRequired": true
+}

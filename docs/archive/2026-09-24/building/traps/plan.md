@@ -1,16 +1,14 @@
 # Hardcoded traps with Chunk Creator placement
 
-Status: In progress. Shared combat fixes, trap source/catalog contracts,
-fixed-tick trap gameplay, dart spawning, immutable snapshots and player spell
-allowlists are implemented and tested. Flame displays snapshot frames, loads
-the reviewed sheets and draws cues in the camera's post-world overlay. The
-editor authoring interface remains in progress.
+Status: Implementation complete on September 24, 2026. Core gameplay, Flame,
+Chunk Creator, source compilation, captured Play and replay validation are
+implemented and committed. Local validation and its one remaining authored-data
+baseline warning expectation are recorded in
+[verification](../../verification/traps.md).
 
-Completed commits also provide shared nearest-contact projectile sweeps,
-environmental target filtering and explicit first-hit tick eligibility. Trap
-launchers and their gameplay state consume these contracts.
-Poison processing, immutable trap attribution through DoT/death, persistent
-Poison feedback and trap death text are implemented and tested.
+Compatibility `2026.09.4` is implemented. Remote deployment and cancellation/reset
+of disposable test runs have not been performed; the release operations below
+remain pending. Archiving this implementation plan does not mark them complete.
 
 Date: September 23, 2026.
 
@@ -32,11 +30,11 @@ damage, cooldowns, projectile behavior, or animation timing.
 
 | Boundary | Existing contract | Planned extension |
 | --- | --- | --- |
-| [Chunk source](../../../tools/editor/lib/src/chunks/chunk_v2_file_data.dart) | Strict v2 source stores prefabs, enemy markers, terrain, and optional water. | Add an optional `traps` list; absent means empty. Keep the current schema version, as with the optional water extension. |
-| [Content pipeline](../../../packages/runner_content_pipeline/lib/src/chunk_runtime_materialization.dart) | Strict decoding and typed `ChunkPattern` materialization are shared by generation and Play. | Validate and compile trap placements into typed Core data. |
-| [Core](../../../packages/runner_core/lib/track/chunk_pattern.dart) | The streamed pattern owns prefab visuals and enemy spawn markers. | Add a separate trap placement list and deterministic trap lifecycle. |
-| [Editor scene](../../../tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart) | Terrain, water, prefabs, markers, and layers have explicit input ownership. | Add a Traps domain with its own selection, gestures, and overlay. |
-| [Renderer](../../../lib/game/runner_flame_game.dart) | Flame reads Core snapshots and uses render registries. | Render trap snapshots through a trap registry; Core decides every active and hit frame. |
+| [Chunk source](../../../../../tools/editor/lib/src/chunks/chunk_v2_file_data.dart) | Strict v2 source stores prefabs, enemy markers, terrain, and optional water. | Add an optional `traps` list; absent means empty. Keep the current schema version, as with the optional water extension. |
+| [Content pipeline](../../../../../packages/runner_content_pipeline/lib/src/chunk_runtime_materialization.dart) | Strict decoding and typed `ChunkPattern` materialization are shared by generation and Play. | Validate and compile trap placements into typed Core data. |
+| [Core](../../../../../packages/runner_core/lib/track/chunk_pattern.dart) | The streamed pattern owns prefab visuals and enemy spawn markers. | Add a separate trap placement list and deterministic trap lifecycle. |
+| [Editor scene](../../../../../tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart) | Terrain, water, prefabs, markers, and layers have explicit input ownership. | Add a Traps domain with its own selection, gestures, and overlay. |
+| [Renderer](../../../../../lib/game/runner_flame_game.dart) | Flame reads Core snapshots and uses render registries. | Render trap snapshots through a trap registry; Core decides every active and hit frame. |
 
 Do not encode traps as terrain prefabs: prefab collision is solid physical
 terrain, while the trap trigger is an overlap area. Do not encode them as
@@ -382,23 +380,23 @@ comparisons.
 
 ### 1. Shared contract and assets
 
-- [ ] Inventory relevant Core, Game, pipeline, and editor helpers before
+- [x] Inventory relevant Core, Game, pipeline, and editor helpers before
   writing trap code. Record the chosen extension points and any bounded
   extraction in the implementation review; migrate the original caller with
   tests when a shared helper is extracted.
-- [ ] Reconcile the candidate 128 × 128 sheet cells with the source GIFs;
+- [x] Reconcile the candidate 128 × 128 sheet cells with the source GIFs;
   create reviewed per-trap frame maps, durations, stable pivots, muzzle
   coordinates, hitbox tracks, and fire ticks. Treat Poison launcher, flying
   dart, and impact as separate sequences. Keep tracked runtime PNGs under
   `assets/images/entities/traps/`; original packs remain in ignored
   `resources/traps/`.
-- [ ] Add `TrapId`, hardcoded trap definitions, default trigger geometry,
+- [x] Add `TrapId`, hardcoded trap definitions, default trigger geometry,
   orientation rules, 5.0 HP physical Spike and 8.0 HP physical Axe hits,
   one-hit-attempt-per-target-per-cycle gating, at least 0.5 seconds of warning,
   a 1.0-second post-attack cooldown, one-dart-per-launcher limit, and rendering
   metadata in Core without Flutter or Flame imports.
   Keep editor display labels in an editor projection of the Core IDs.
-- [ ] Append the dart's `ProjectileId` for store/render identity, keep its
+- [x] Append the dart's `ProjectileId` for store/render identity, keep its
   gameplay definition outside `ProjectileCatalog`, and add an explicit Core
   player-equippable projectile list. Use that list for client shop offers,
   ownership normalization, and loadout validation. Enforce a matching
@@ -408,20 +406,20 @@ comparisons.
 - [x] Add optional `traps` to Chunk-v2 source, strict editor codec, shared
   content-pipeline decoder, canonical comparison/export, and generator
   materialization. Preserve existing trap-free chunk bytes on unrelated saves.
-- [ ] Extend `ChunkPattern` and Play scenario copying/validation with typed
+- [x] Extend `ChunkPattern` and Play scenario copying/validation with typed
   placements. Regenerate Core output with the root generator; never hand-edit
   generated patterns.
-- [ ] Test missing-list compatibility, exact round trips, invalid IDs and
+- [x] Test missing-list compatibility, exact round trips, invalid IDs and
   rectangles, complete Spike/Axe damage envelopes, the eight-trap limit,
   canonical order, duplicate rejection, and generator/Play materialization
   parity.
 
 ### 2. Authoritative simulation and rendering
 
-- [ ] Bind traps only after selected chunk terrain is admitted. Create and
+- [x] Bind traps only after selected chunk terrain is admitted. Create and
   retire state with streamed chunk lifecycle, including prewarmed initial
   chunks, without double activation when selections refresh.
-- [ ] Add a focused Core trap system/store for fixed-tick phase and cooldown
+- [x] Add a focused Core trap system/store for fixed-tick phase and cooldown
   state. Query living player/enemy targets after world motion and broadphase
   rebuild; resolve viewport-gated trigger activation and spike/axe
   frame-specific hitboxes separately, then queue all eligible target hits
@@ -430,7 +428,7 @@ comparisons.
   on visibility loss. Add empty-trigger rearming, one hit attempt per target
   per cycle, stable same-tick ordering, and environmental trap attribution.
   Route hits through `DamageRequest` and status application.
-- [ ] Give Poison Darts a separate launcher-to-projectile path: fire at the
+- [x] Give Poison Darts a separate launcher-to-projectile path: fire at the
   exact Core tick represented by the sheet, spawn at the muzzle, and use the
   existing projectile store, straight motion, hit resolver, hit-once, damage,
   status, snapshot, rendering, and expiry contracts. Add only a trap-specific
@@ -443,7 +441,7 @@ comparisons.
   projectiles keep their existing launch-tick hits. Convert ownerless darts
   to a null damage source while retaining trap attribution. Never make the
   trigger rectangle or launcher sprite the projectile collider.
-- [ ] Add one Poison status profile with 2.0 DPS and 25% movement slow for
+- [x] Add one Poison status profile with 2.0 DPS and 25% movement slow for
   5 seconds and 1.0 HP direct dart damage. Reuse the current DoT and Slow
   application/stacking paths, map Poison resistance to Acid resistance, and
   ensure the profile is applied exactly once per successful dart hit. Fix the
@@ -452,7 +450,7 @@ comparisons.
   and DoT damage, while the Slow status retains its existing immunity and
   vulnerability behavior. Add distinct persistent Poison feedback and keep
   Acid's Vulnerable profile intact for Acid attacks.
-- [ ] Fix accepted-hit on-hit/on-crit status eligibility in the shared damage
+- [x] Fix accepted-hit on-hit/on-crit status eligibility in the shared damage
   and status pipeline. Retain the existing queued-status phase and immediate
   post-hit damage protection. Test the player's default 15 post-hit ticks at
   60 Hz: an accepted 1.0 HP dart hit applies Poison and Slow once, a hit during
@@ -460,12 +458,12 @@ comparisons.
   requests still respect invulnerability. Cover canceled hits, status immunity,
   fully resisted accepted hits, later same-tick damage, and ordinary on-hit
   effects; do not test only with post-hit invulnerability disabled.
-- [ ] Extend damage, queued status, DoT channel, applied-damage, and death
+- [x] Extend damage, queued status, DoT channel, applied-damage, and death
   contracts with optional immutable `TrapSourceRef`. Preserve the effective
   application source on stronger replacement or equal-strength duration
   extension; retain the previous source on ignored applications. Cover
   trap-killed player feedback, multiple Poison launchers, and generic DoTs.
-- [ ] Publish stable trap identity, position, phase/frame, and orientation in
+- [x] Publish stable trap identity, position, phase/frame, and orientation in
   immutable Core snapshots or events. Publish dart entities through the
   projectile snapshot path. Add Flame trap/projectile registry entries and
   asset loading/warmup. Add named trap render priorities (`-6` idle, `-4`
@@ -474,7 +472,7 @@ comparisons.
   all world content and before the HUD. Preserve arbitrary authored prefab
   layers and test that high-z covering sprites cannot hide the cue. Flame must
   only display the Core frame, warning state, and projectile position.
-- [ ] Cover trigger entry, sustained overlap, exit/re-entry, warning and active
+- [x] Cover trigger entry, sustained overlap, exit/re-entry, warning and active
   frame boundaries, first-visible-tick overlap, partial viewport visibility,
   cancellation when the cue or sprite leaves view, enemy-started attacks,
   late entrants seeing the active cue, spike/axe hitbox placement, fast axe
@@ -496,7 +494,7 @@ comparisons.
 
 ### 3. Chunk Creator authoring
 
-- [ ] Add the Traps tab and catalog previews alongside the existing Prefabs
+- [x] Add the Traps tab and catalog previews alongside the existing Prefabs
   and Markers domains. Add trap selection, placement, drag, move, resize,
   numeric rectangle fields, orientation where applicable, and a clear overlay
   that distinguishes sprite, editable activation trigger, and read-only
@@ -504,18 +502,18 @@ comparisons.
   snapping, and rectangle-handle patterns already used by water authoring.
   Preview idle machinery behind terrain, active art above terrain, and the
   warning/active cue above obstacles and actors as in the game renderer.
-- [ ] Route every accepted edit through the chunk plugin's revision-checked
+- [x] Route every accepted edit through the chunk plugin's revision-checked
   composition commit, Undo/Redo, Save, and pending-change guards. Keep pointer
   previews local until a valid commit; no writes in widget build methods.
-- [ ] Use the shared codec/catalog to validate draft and saved rectangles.
+- [x] Use the shared codec/catalog to validate draft and saved rectangles.
   Show actionable diagnostics for unknown IDs, missing art, out-of-bounds
   trigger, sprite or damage sweep, the eight-trap limit, and invalid
   orientation. Preview facing changes without silently moving the trigger.
-- [ ] Include trap PNGs in Build input fingerprints/watching and in captured
+- [x] Include trap PNGs in Build input fingerprints/watching and in captured
   Chunk/Level Play asset validation. Verify an edited unsaved chunk can be
   played through the existing captured-source path, then saved and built
   without mismatched runtime data.
-- [ ] Test tab switching, scene selection, independent trigger movement and
+- [x] Test tab switching, scene selection, independent trigger movement and
   resizing, moving the sprite with its trigger, accurate damage/muzzle overlay
   and draw layer across preview frames, revision conflict, Undo/Redo,
   Save/reload, Build, and Chunk/Level Play. Include water/marker/prefab
@@ -523,12 +521,12 @@ comparisons.
 
 ### 4. Integration, documentation, and release
 
-- [ ] Update the focused TDD for source ownership, lifecycle, ordering,
+- [x] Update the focused TDD for source ownership, lifecycle, ordering,
   snapshot/projectile contracts, and determinism. Add a GDD for trap tells,
   trigger behavior, damage, and timing; update combat/status/resistance GDD
   for Poison. Mark these initial safe defaults for playtest review and record
   the final tuned values when implemented and tested.
-- [ ] Run `dart analyze` and relevant tests for Core and content pipeline,
+- [x] Run `dart analyze` and relevant tests for Core and content pipeline,
   editor `dart analyze`/`flutter test`, root Flutter analysis and focused
   Core/Game/Play tests, generator `--dry-run`, backend build/tests, and
   replay-validator analysis and tests. Compile the validator server and run
@@ -537,8 +535,10 @@ comparisons.
   configurations. Validate client and worker replay the same trap-bearing run
   to the same outcome. Check backend trap-dart purchase/learn/equip rejection,
   continued Thunder Bolt availability, and Dart/Functions allowlist parity.
-- [ ] Make one pre-release game-compatibility cutover across client,
-  Functions/board defaults, authored content, and replay validator. Stop old
+- [x] Implement one game-compatibility cutover (`2026.09.4`) across client,
+  Functions/board defaults and replay validator, with generated trap content.
+- [ ] At deployment, switch the reviewed matching authored content and binaries.
+  Stop old
   ticket issuance, cancel outstanding test runs, and let any already-running
   validation/settlement finish before resetting remaining disposable test
   state and switching versions. Use fresh test tickets and boards afterward;

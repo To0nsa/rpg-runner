@@ -1,8 +1,9 @@
 # Trap placement and animation contracts
 
-The Core trap catalog, Chunk-v2 `traps` collection, fixed-tick activation and
-damage and Flame rendering are implemented. The Traps authoring tab remains in
-[the implementation plan](../building/traps/plan.md).
+The Core catalog, Chunk-v2 placements, fixed-tick gameplay, Flame rendering and
+Chunk Creator Traps tab are implemented. See the
+[completed plan](../archive/2026-09-24/building/traps/plan.md) and
+[validation record](../archive/2026-09-24/verification/traps.md).
 
 ## Ownership and source
 
