@@ -706,8 +706,9 @@ confirmation modal. Switching domains, owners, or source revision discards the
 un-applied inline draft and keeps navigation available. Place and move drags
 show a local ghost, then submit one
 normal validated composition command on release; Escape cancels without
-changing source. Grid-enabled placements snap to the chunk tile size, while
-exact placement fields remain integer-pixel overrides in the sidebar creation
+changing source. New placements default to free whole-pixel positioning;
+enabling **Snap to grid** on a placement opts it into the chunk tile size.
+Exact placement fields remain integer-pixel overrides in the sidebar creation
 form and expanded existing-placement row. The Prefabs toolbar also has a
 default-on **Surface snap** chip. Within eight canvas pixels, Place and Move
 may refine only the candidate Y so the transformed lowest horizontal collider

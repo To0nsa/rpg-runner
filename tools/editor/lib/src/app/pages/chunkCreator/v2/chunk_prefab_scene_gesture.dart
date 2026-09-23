@@ -90,6 +90,7 @@ final class ChunkPrefabSceneGesture {
         prefabKey: prefab.prefabKey,
         x: 0,
         y: 0,
+        snapToGrid: defaultNewPrefabPlacementSnapToGrid,
         scale:
             scale ??
             (surfaceSnapEnabled

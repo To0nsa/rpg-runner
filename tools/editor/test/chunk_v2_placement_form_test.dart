@@ -34,10 +34,19 @@ void main() {
     expect(field.controller!.text, '2.0');
     expect(slider.value, 0);
     expect(slider.onChanged, isNull);
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(const ValueKey<String>('chunk_v2_placement_snap_field')),
+          )
+          .value,
+      isFalse,
+    );
     expect(find.textContaining('exact-contact'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey<String>('submit')));
     expect(submitted?.scale, 2.0);
+    expect(submitted?.snapToGrid, isFalse);
   });
 
   testWidgets(
@@ -55,6 +64,7 @@ void main() {
                   prefabKey: 'crate',
                   x: 10,
                   y: 20,
+                  snapToGrid: true,
                   scale: 1,
                 ),
                 submitKey: 'submit',
@@ -75,6 +85,16 @@ void main() {
       expect(field.controller!.text, '1.0');
       expect(slider.value, 0);
       expect(slider.divisions, 1);
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(
+                const ValueKey<String>('chunk_v2_placement_snap_field'),
+              ),
+            )
+            .value,
+        isTrue,
+      );
       expect(find.textContaining('saved scale is retained'), findsNothing);
 
       slider.onChanged!(1);

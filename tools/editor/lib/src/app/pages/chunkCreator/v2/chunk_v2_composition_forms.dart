@@ -199,7 +199,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
     _xController.addListener(_handleFieldChanged);
     _yController.addListener(_handleFieldChanged);
     _zIndexController.addListener(_handleFieldChanged);
-    _snapToGrid = placement?.snapToGrid ?? true;
+    _snapToGrid = placement?.snapToGrid ?? defaultNewPrefabPlacementSnapToGrid;
     _flipX = placement?.flipX ?? false;
     _flipY = placement?.flipY ?? false;
     final requestedScale = placement?.scale ?? defaultPrefabPlacementScale;

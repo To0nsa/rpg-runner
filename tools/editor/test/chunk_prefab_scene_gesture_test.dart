@@ -8,7 +8,7 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
-  test('place preview stays local and finish builds one snapped add', () {
+  test('place preview defaults to free pixels and builds one local add', () {
     final gesture = ChunkPrefabSceneGesture();
     final chunk = _chunk();
 
@@ -21,18 +21,19 @@ void main() {
       ),
       isTrue,
     );
-    expect(gesture.candidate?.x, 16);
-    expect(gesture.candidate?.y, 32);
+    expect(gesture.candidate?.x, 23);
+    expect(gesture.candidate?.y, 39);
+    expect(gesture.candidate?.snapToGrid, isFalse);
     expect(chunk.prefabs, isEmpty);
 
     gesture.update(pointer: 1, worldPoint: const Offset(42, 58));
-    expect(gesture.candidate?.x, 48);
-    expect(gesture.candidate?.y, 64);
+    expect(gesture.candidate?.x, 42);
+    expect(gesture.candidate?.y, 58);
     expect(chunk.prefabs, isEmpty);
 
     final result = gesture.finish(pointer: 1, worldPoint: const Offset(42, 58));
     expect(result?.commit?.after.prefabs.single, result?.candidate);
-    expect(result?.commit?.after.prefabs.single.x, 48);
+    expect(result?.commit?.after.prefabs.single.x, 42);
     expect(gesture.hasActiveOperation, isFalse);
   });
 

@@ -17,6 +17,11 @@ const String defaultChunkAssemblyGroupId = 'default';
 const String markerPlacementGround = 'ground';
 const String markerPlacementHighestSurfaceAtX = 'highestSurfaceAtX';
 const String markerPlacementObstacleTop = 'obstacleTop';
+
+/// New prefab placements start at whole-pixel precision.
+///
+/// Authors can opt into the owning chunk's tile grid per placement.
+const bool defaultNewPrefabPlacementSnapToGrid = false;
 const double defaultPrefabPlacementScale = 1.0;
 const double minPrefabPlacementScale = 0.3;
 const double maxPrefabPlacementScale = 3.0;
