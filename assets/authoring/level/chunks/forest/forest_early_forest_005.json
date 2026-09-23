@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_forest_005",
   "id": "forest_early_forest_005",
-  "revision": 21,
+  "revision": 22,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -106,7 +106,7 @@
     },
     {
       "shapeId": "solid_003",
-      "collisionMode": "solid",
+      "collisionMode": "none",
       "vertices": [
         {
           "x": 363,

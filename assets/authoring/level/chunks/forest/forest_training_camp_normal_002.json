@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_easy_training_camp_002",
-  "id": "forest_easy_training_camp_002",
-  "revision": 30,
+  "chunkKey": "forest_training_camp_normal_002",
+  "id": "forest_training_camp_normal_002",
+  "revision": 31,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,

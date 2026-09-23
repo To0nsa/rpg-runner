@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_training_camp_normal_001",
+  "id": "forest_training_camp_normal_001",
+  "revision": 38,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "trainingcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 336,
+      "y": 96,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 64,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 208,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 480,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.5,
+      "flipX": true
+    },
+    {
+      "prefabId": "tiny_swords_firecamp_01",
+      "prefabKey": "tiny_swords_firecamp_01",
+      "x": 336,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

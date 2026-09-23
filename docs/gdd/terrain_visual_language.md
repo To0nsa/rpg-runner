@@ -3,9 +3,10 @@
 ## Current Player-Facing Baseline
 
 Field and Forest runs render their authored polygon ground with the shared
-`grass_dirt` material. Forest currently contains only `forest_early_flat`: a
-continuous 224px ground line with no raised obstacle, Prefab placement, or
-enemy marker.
+`grass_dirt` material. Forest uses authored chunks across its early forest,
+rocky grove, ruin, training camp, and enchanted forest sections. Prefab
+placements and terrain shapes provide the visible variation within those
+sections.
 
 The material has three visible roles:
 
@@ -86,8 +87,8 @@ collision, support/navigation, placement, and terrain rendering. Placed Prefab
 polygons join collision, support/navigation, and placement without becoming
 terrain fills or material edges. `none` polygons feed only the render snapshot:
 they create no support, blocker, seam, or collision edge.
-Current Forest ground remains flat; slopes, platforms, and visually dressed
-gaps can be introduced as ordinary content.
+Forest's authored chunks may include raised ground, platforms, and visual-only
+dressing while retaining the same material and collision ownership rules.
 
 `none` is not a hazard type. A dark-pit material can communicate a fall, while
 the existing absence of support and level kill-plane rules determine the

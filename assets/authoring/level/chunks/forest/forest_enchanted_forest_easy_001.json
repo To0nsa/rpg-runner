@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_enchanted_forest_easy_001",
+  "id": "forest_enchanted_forest_easy_001",
+  "revision": 106,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "enchanted_forest",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "rune_rocks_menhir_01",
+      "prefabKey": "rune_rocks_menhir_01",
+      "x": 259,
+      "y": 179,
+      "zIndex": -21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_trunk_03",
+      "prefabKey": "green_woods_tree_trunk_03",
+      "x": 517,
+      "y": 146,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_trunk_01",
+      "prefabKey": "green_woods_tree_trunk_01",
+      "x": 115,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_green_crystal_04",
+      "prefabKey": "fantasy_environment_green_crystal_04",
+      "x": 232,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_16",
+      "prefabKey": "rune_rocks_mossy_rock_16",
+      "x": 76,
+      "y": 202,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.7,
+      "flipX": true
+    },
+    {
+      "prefabId": "crystal_world_crystal_world_pink_flower_06",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_06",
+      "x": 509,
+      "y": 207,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "dark_forest_white_flower_01",
+      "prefabKey": "dark_forest_white_flower_01",
+      "x": 458,
+      "y": 211,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_rune_f_01",
+      "prefabKey": "rune_rocks_rune_f_01",
+      "x": 259,
+      "y": 167,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_01",
+      "prefabKey": "green_woods_tree_foliage_01",
+      "x": 510,
+      "y": 122,
+      "zIndex": 2,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_03",
+      "prefabKey": "green_woods_tree_foliage_03",
+      "x": 120,
+      "y": 140,
+      "zIndex": 2,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 326,
+          "y": 224
+        },
+        {
+          "x": 326,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 418,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 418,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "water_1",
+      "x": 326,
+      "y": 224,
+      "width": 92,
+      "height": 46,
+      "materialKey": "biome_water"
+    }
+  ]
+}

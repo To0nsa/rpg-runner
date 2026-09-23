@@ -9161,7 +9161,7 @@
     {
       "prefabKey": "fantasy_environment_green_crystal_04",
       "id": "fantasy_environment_green_crystal_04",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -9170,7 +9170,102 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -22,
+              "y": -23
+            },
+            {
+              "x": 0,
+              "y": -24
+            },
+            {
+              "x": 2,
+              "y": -18
+            },
+            {
+              "x": 4,
+              "y": -17
+            },
+            {
+              "x": 7,
+              "y": -9
+            },
+            {
+              "x": 10,
+              "y": -4
+            },
+            {
+              "x": 13,
+              "y": -6
+            },
+            {
+              "x": 13,
+              "y": -9
+            },
+            {
+              "x": 15,
+              "y": -11
+            },
+            {
+              "x": 29,
+              "y": -10
+            },
+            {
+              "x": 30,
+              "y": 7
+            },
+            {
+              "x": 27,
+              "y": 9
+            },
+            {
+              "x": 24,
+              "y": 20
+            },
+            {
+              "x": 30,
+              "y": 15
+            },
+            {
+              "x": 30,
+              "y": 18
+            },
+            {
+              "x": 28,
+              "y": 21
+            },
+            {
+              "x": 26,
+              "y": 22
+            },
+            {
+              "x": 26,
+              "y": 24
+            },
+            {
+              "x": -5,
+              "y": 24
+            },
+            {
+              "x": -13,
+              "y": 10
+            },
+            {
+              "x": -13,
+              "y": 7
+            },
+            {
+              "x": -21,
+              "y": 1
+            }
+          ]
+        }
+      ],
       "tags": [
         "fantasy_environment",
         "mixed_biomes"
@@ -12362,7 +12457,7 @@
     {
       "prefabKey": "rune_rocks_menhir_01",
       "id": "rune_rocks_menhir_01",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -12371,7 +12466,78 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 48,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -23,
+              "y": -1
+            },
+            {
+              "x": -22,
+              "y": -18
+            },
+            {
+              "x": -20,
+              "y": -20
+            },
+            {
+              "x": -14,
+              "y": -36
+            },
+            {
+              "x": -9,
+              "y": -42
+            },
+            {
+              "x": 4,
+              "y": -42
+            },
+            {
+              "x": 17,
+              "y": -29
+            },
+            {
+              "x": 22,
+              "y": -20
+            },
+            {
+              "x": 24,
+              "y": -14
+            },
+            {
+              "x": 25,
+              "y": 1
+            },
+            {
+              "x": 27,
+              "y": 12
+            },
+            {
+              "x": 27,
+              "y": 30
+            },
+            {
+              "x": 19,
+              "y": 43
+            },
+            {
+              "x": 11,
+              "y": 48
+            },
+            {
+              "x": -21,
+              "y": 48
+            },
+            {
+              "x": -23,
+              "y": 40
+            }
+          ]
+        }
+      ],
       "tags": [
         "props",
         "rune_rocks"
@@ -12434,7 +12600,7 @@
     {
       "prefabKey": "rune_rocks_menhir_05",
       "id": "rune_rocks_menhir_05",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -12443,7 +12609,82 @@
       },
       "anchorXPx": 24,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -21,
+              "y": 4
+            },
+            {
+              "x": -20,
+              "y": -2
+            },
+            {
+              "x": -19,
+              "y": -7
+            },
+            {
+              "x": -17,
+              "y": -12
+            },
+            {
+              "x": -12,
+              "y": -17
+            },
+            {
+              "x": -4,
+              "y": -18
+            },
+            {
+              "x": 10,
+              "y": -12
+            },
+            {
+              "x": 13,
+              "y": -10
+            },
+            {
+              "x": 20,
+              "y": -3
+            },
+            {
+              "x": 22,
+              "y": 0
+            },
+            {
+              "x": 22,
+              "y": 13
+            },
+            {
+              "x": 20,
+              "y": 15
+            },
+            {
+              "x": 18,
+              "y": 21
+            },
+            {
+              "x": 18,
+              "y": 24
+            },
+            {
+              "x": -16,
+              "y": 24
+            },
+            {
+              "x": -20,
+              "y": 17
+            },
+            {
+              "x": -21,
+              "y": 14
+            }
+          ]
+        }
+      ],
       "tags": [
         "props",
         "rune_rocks"
@@ -13040,7 +13281,7 @@
     {
       "prefabKey": "rune_rocks_mossy_rock_16",
       "id": "rune_rocks_mossy_rock_16",
-      "revision": 1,
+      "revision": 8,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -13049,7 +13290,62 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 16,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -28,
+              "y": 13
+            },
+            {
+              "x": -27,
+              "y": 2
+            },
+            {
+              "x": -23,
+              "y": -2
+            },
+            {
+              "x": 9,
+              "y": -11
+            },
+            {
+              "x": 21,
+              "y": -11
+            },
+            {
+              "x": 25,
+              "y": -9
+            },
+            {
+              "x": 29,
+              "y": -4
+            },
+            {
+              "x": 31,
+              "y": -3
+            },
+            {
+              "x": 31,
+              "y": 7
+            },
+            {
+              "x": 25,
+              "y": 15
+            },
+            {
+              "x": 22,
+              "y": 16
+            },
+            {
+              "x": -25,
+              "y": 16
+            }
+          ]
+        }
+      ],
       "tags": [
         "props",
         "rune_rocks"

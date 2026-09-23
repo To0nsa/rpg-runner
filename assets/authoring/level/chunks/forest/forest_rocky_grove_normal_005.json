@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_rocky_grove_normal_005",
+  "id": "forest_rocky_grove_normal_005",
+  "revision": 15,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "assemblyGroupId": "rocky_grove",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "fantasy_environment_tree_01",
+      "prefabKey": "fantasy_environment_tree_01",
+      "x": 113,
+      "y": 71,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "woods_rock_01",
+      "prefabKey": "woods_rock_01",
+      "x": 161,
+      "y": 120,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "dark_forest_ground_platform_06_96x48_platform",
+      "prefabKey": "dark_forest_ground_platform_06_96x48_platform",
+      "x": 324,
+      "y": 205,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 2.0
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 152
+        },
+        {
+          "x": 228,
+          "y": 152
+        },
+        {
+          "x": 286,
+          "y": 191
+        },
+        {
+          "x": 375,
+          "y": 191
+        },
+        {
+          "x": 430,
+          "y": 152
+        },
+        {
+          "x": 600,
+          "y": 152
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

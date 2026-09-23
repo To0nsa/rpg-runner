@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_002",
   "id": "forest_rocky_grove_easy_002",
-  "revision": 101,
+  "revision": 112,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -24,26 +24,18 @@
     {
       "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
       "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
-      "x": 384,
+      "x": 432,
       "y": 80,
       "zIndex": 0,
       "snapToGrid": true
     },
     {
-      "prefabId": "pixel_fantasy_caves_small_rock_01",
-      "prefabKey": "pixel_fantasy_caves_small_rock_01",
-      "x": 275,
-      "y": 102,
+      "prefabId": "pixel_fantasy_caves_small_rock_09",
+      "prefabKey": "pixel_fantasy_caves_small_rock_09",
+      "x": 256,
+      "y": 160,
       "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
-      "x": 179,
-      "y": 127,
-      "zIndex": 0,
-      "snapToGrid": false
+      "snapToGrid": true
     },
     {
       "prefabId": "high_forest_bush_02",
@@ -98,12 +90,12 @@
           "y": 185
         },
         {
-          "x": 219,
-          "y": 170
+          "x": 195,
+          "y": 165
         },
         {
-          "x": 351,
-          "y": 170
+          "x": 343,
+          "y": 164
         },
         {
           "x": 423,

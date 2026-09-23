@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_normal_003",
+  "id": "forest_ruin_normal_003",
+  "revision": 46,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "ancient_forest_flower_01",
+      "prefabKey": "ancient_forest_flower_01",
+      "x": 284,
+      "y": 178,
+      "zIndex": -1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_bush_02",
+      "prefabKey": "fantasy_environment_bush_02",
+      "x": 526,
+      "y": 183,
+      "zIndex": -1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 394,
+      "y": 57,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 232,
+      "y": 103,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_ruin_pillar_01",
+      "prefabKey": "ancient_forest_ruin_pillar_01",
+      "x": 303,
+      "y": 126,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_ruin_wall_01",
+      "prefabKey": "ancient_forest_ruin_wall_01",
+      "x": 172,
+      "y": 130,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "ancient_forest_ruin_pillar_02",
+      "prefabKey": "ancient_forest_ruin_pillar_02",
+      "x": 398,
+      "y": 158,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_16",
+      "prefabKey": "rune_rocks_mossy_rock_16",
+      "x": 49,
+      "y": 169,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "ancient_forest_ruin_wall_02",
+      "prefabKey": "ancient_forest_ruin_wall_02",
+      "x": 495,
+      "y": 173,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "fantasy_environment_bush_03",
+      "prefabKey": "fantasy_environment_bush_03",
+      "x": 270,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_flower_03",
+      "prefabKey": "ancient_forest_flower_03",
+      "x": 531,
+      "y": 177,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_flower_04",
+      "prefabKey": "ancient_forest_flower_04",
+      "x": 258,
+      "y": 176,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 189
+        },
+        {
+          "x": 600,
+          "y": 189
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}
