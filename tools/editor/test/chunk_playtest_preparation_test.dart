@@ -44,6 +44,12 @@ void main() {
       final scenario = result.scenario! as ChunkPlaytestScenario;
       expect(scenario.seed, playtestDefaultSeed);
       expect(scenario.draftPattern.chunkKey, captured.selectedChunkKey);
+      expect(scenario.path.chunkKeys, [captured.selectedChunkKey]);
+      expect(scenario.path.previewChunkKeys(3), [
+        captured.selectedChunkKey,
+        captured.selectedChunkKey,
+        captured.selectedChunkKey,
+      ]);
       expect(
         scenario.levelDefinition.identity,
         AuthoredLevelIdentity('forest'),
@@ -267,6 +273,7 @@ void main() {
     expect(levelResult.issues, isEmpty);
     final focused = chunkResult.scenario! as ChunkPlaytestScenario;
     final full = levelResult.scenario! as LevelPlaytestScenario;
+    expect(focused.path.chunkKeys, ['prototype_first']);
     expect(
       GameCore.chunkPlaytest(scenario: focused).buildSnapshot().levelIdentity,
       AuthoredLevelIdentity('prototype'),

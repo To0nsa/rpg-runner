@@ -49,15 +49,20 @@ It builds authored Level identity and settings, then delegates scheduler/seam
 admission to the appropriate Core scenario. New Levels, first Chunks, themes,
 and materials need no generated enum or catalog entry. Chunk Play projects the
 current owner-catalog search, difficulty, and group filters into a playtest
-pool. When several owners match, it creates deterministic
-Core validates the exact compiled pool, chooses a stable supported opener, and
+pool, including a one-owner result. Core validates the exact compiled pool,
+chooses a stable supported opener, and
 builds a deterministic closed walk through matching physical boundaries that
 covers every filtered active owner. No non-matching owner can enter that
 multi-owner lasso; repeated matching owners may act as connectors. A filtered
 set that cannot be covered and closed fails with a focused connection or seam
 diagnostic instead of silently substituting content. A single matching owner
-retains the established scheduler-aware focused-lasso behavior and may use
-required connector chunks around that owner. The initial enemy-free prefix is
+repeats only itself when its compiled exit matches its entrance; an incompatible
+self seam fails with a diagnostic. For a filtered pool, Core first
+checks the usual player start X, then searches nearby half-pixel X positions
+within each candidate opener for a clear 32-by-64 px landing at the Level's
+normal ground height. The chosen position is captured in the playtest Level
+tuning and reused on restart. A solid normal-height entrance and the existing
+exact connection rules remain required. The initial enemy-free prefix is
 removed. The lasso retains an exactly matching repeating tail; see [chunk
 connections](chunk_connections.md).
 Whole-Level Play retains actual assembly, pacing, distinctness, looping and

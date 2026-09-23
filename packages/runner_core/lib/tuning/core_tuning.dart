@@ -67,4 +67,18 @@ class CoreTuning {
 
   /// Score calculation parameters.
   final ScoreTuning score;
+
+  /// Preserves every simulation tuning value while replacing track settings.
+  CoreTuning copyWith({TrackTuning? track}) => CoreTuning(
+    physics: physics,
+    unocoDemon: unocoDemon,
+    groundEnemy: groundEnemy,
+    navigation: navigation,
+    spatialGrid: spatialGrid,
+    camera: camera,
+    track: track ?? this.track,
+    collectible: collectible,
+    restorationItem: restorationItem,
+    score: score,
+  );
 }

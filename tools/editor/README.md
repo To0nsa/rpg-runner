@@ -105,8 +105,11 @@ and captured Play preserve water. See the
 [example source](../../docs/examples/water_pool_chunk.json).
 
 Level Creator runs the whole selected level through the real Core simulation
-and Flame renderer. Chunk Creator runs a focused loop of the selected chunk,
-including its enemy markers without the Level's enemy-free opening. Use
+and Flame renderer. Chunk Creator runs a focused loop of the filtered chunk
+owners, including their enemy markers without the Level's enemy-free opening.
+Play searches for a clear spawn along the normal ground in a matching opening
+chunk. A single matching owner repeats itself only when its compiled exit and
+entrance join exactly. Use
 **Play** or `F5`; valid visible inputs are accepted before capture. Invalid
 inputs and active gestures must be resolved first. Neither mode writes sources,
 regenerates Dart, creates a replay, or contacts the backend.

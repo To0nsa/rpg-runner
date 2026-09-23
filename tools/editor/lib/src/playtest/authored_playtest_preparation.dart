@@ -623,17 +623,13 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             '${inactiveSelected.join(', ')}.',
       );
     }
-    final usesFilteredPool =
-        selectedChunks != null && selectedChunks.length > 1;
     final focusedLevel = selectedChunks == null
         ? null
-        : usesFilteredPool
-        ? _buildFilteredChunkPlaytestLevel(
+        : _buildFilteredChunkPlaytestLevel(
             level: level,
             chunks: selectedChunks,
             tier: tier,
-          )
-        : level;
+          );
     final PlaytestScenario scenario = selectedChunks == null
         ? LevelPlaytestScenario(
             levelDefinition: level,
@@ -642,8 +638,7 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             playerCharacter: PlayerCharacterRegistry.eloise,
             equippedLoadout: const EquippedLoadoutDef(),
           )
-        : usesFilteredPool
-        ? ChunkPlaytestScenario.filteredPool(
+        : ChunkPlaytestScenario.filteredPool(
             levelDefinition: focusedLevel!,
             terrainChunks: selectedChunks.map((c) => c.stagedTerrain),
             patterns: selectedChunks.map((c) => c.pattern),
@@ -651,18 +646,8 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             seed: input.seed,
             playerCharacter: PlayerCharacterRegistry.eloise,
             equippedLoadout: const EquippedLoadoutDef(),
-          )
-        : ChunkPlaytestScenario(
-            levelDefinition: level,
-            terrainChunks: runtimeChunks.map((c) => c.stagedTerrain),
-            draftPattern: selectedChunks.first.pattern,
-            draftTerrain: selectedChunks.first.stagedTerrain,
-            visualThemeId: sourceLevel.visualThemeId,
-            seed: input.seed,
-            playerCharacter: PlayerCharacterRegistry.eloise,
-            equippedLoadout: const EquippedLoadoutDef(),
           );
-    final appearanceChunks = usesFilteredPool ? selectedChunks : active;
+    final appearanceChunks = selectedChunks ?? active;
     final referencedMaterials = <String>{
       for (final chunk in appearanceChunks)
         for (final water in chunk.stagedTerrain.waterRegions) water.materialKey,

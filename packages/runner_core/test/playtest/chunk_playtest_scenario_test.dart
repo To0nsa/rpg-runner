@@ -175,6 +175,99 @@ void main() {
     );
   });
 
+  test('filtered pool uses its chosen landing in the runtime', () {
+    final level = LevelRegistry.byId(LevelId.forest);
+    final source = level.chunkPatternSource;
+    final base = switch (source) {
+      ChunkPatternListSource value => value,
+      FirstChunkPatternSource value => value.baseSource,
+      AssembledChunkPatternSource value => value.baseSource,
+      _ => throw StateError('Forest must use an authored list source.'),
+    };
+    final patterns = base.easyPatterns
+        .where((pattern) => pattern.assemblyGroupId == 'rocky_grove')
+        .take(3)
+        .toList(growable: false);
+    final keys = patterns.map((pattern) => pattern.chunkKey!).toSet();
+    final scenario = ChunkPlaytestScenario.filteredPool(
+      levelDefinition: level.copyWith(
+        chunkPatternSource: ChunkPatternListSource(easyPatterns: patterns),
+        tuning: level.tuning.copyWith(
+          track: level.tuning.track.copyWith(playerStartX: 10),
+        ),
+        noEnemyChunks: 0,
+        clearFirstChunkKey: true,
+        clearAssembly: true,
+      ),
+      visualThemeId: 'forest_chunk_playtest',
+      seed: 4401,
+      patterns: patterns,
+      terrainChunks: stagedAuthoredTerrain.chunks.where(
+        (chunk) => keys.contains(chunk.chunkKey),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      equippedLoadout: const EquippedLoadoutDef(),
+    );
+    final chosenX = scenario.levelDefinition.tuning.track.playerStartX;
+    expect(chosenX, greaterThanOrEqualTo(16));
+    expect(chosenX, lessThanOrEqualTo(584));
+    expect(
+      GameCore.chunkPlaytest(scenario: scenario)
+          .buildSnapshot()
+          .playerEntity!
+          .pos
+          .x,
+      chosenX,
+    );
+    expect(level.tuning.track.playerStartX, 300);
+  });
+
+  test('one-owner filtered pool repeats only across an exact self seam', () {
+    const key = 'forest_rocky_grove_easy_001';
+    final level = LevelRegistry.byId(LevelId.forest);
+    final source = level.chunkPatternSource;
+    final base = switch (source) {
+      ChunkPatternListSource value => value,
+      FirstChunkPatternSource value => value.baseSource,
+      AssembledChunkPatternSource value => value.baseSource,
+      _ => throw StateError('Forest must use an authored list source.'),
+    };
+    final pattern = base.easyPatterns.singleWhere(
+      (candidate) => candidate.chunkKey == key,
+    );
+    ChunkPlaytestScenario scenario(StagedTerrainChunkData terrain) =>
+        ChunkPlaytestScenario.filteredPool(
+          levelDefinition: level.copyWith(
+            chunkPatternSource: ChunkPatternListSource(easyPatterns: [pattern]),
+            noEnemyChunks: 0,
+            clearFirstChunkKey: true,
+            clearAssembly: true,
+          ),
+          visualThemeId: 'forest_chunk_playtest',
+          seed: 4401,
+          patterns: [pattern],
+          terrainChunks: [terrain],
+          playerCharacter: PlayerCharacterRegistry.eloise,
+          equippedLoadout: const EquippedLoadoutDef(),
+        );
+
+    final terrain = stagedAuthoredTerrain.chunks.singleWhere(
+      (chunk) => chunk.chunkKey == key,
+    );
+    final loop = scenario(terrain);
+    expect(loop.path.previewChunkKeys(3), [key, key, key]);
+    expect(
+      () => scenario(_draftTerrain(chunkKey: key, breakRightBoundary: true)),
+      throwsA(
+        isA<PlaytestScenarioException>().having(
+          (error) => error.code,
+          'code',
+          'chunk_playtest_filtered_pool_not_self_connecting',
+        ),
+      ),
+    );
+  });
+
   test('same scenario and command stream produce identical snapshots', () {
     final scenario = _scenario();
     final first = GameCore.chunkPlaytest(scenario: scenario);
@@ -366,6 +459,7 @@ ChunkPlaytestScenario _scenario({
 );
 
 StagedTerrainChunkData _draftTerrain({
+  String? chunkKey,
   String status = 'active',
   String? levelId,
   int? width,
@@ -373,7 +467,7 @@ StagedTerrainChunkData _draftTerrain({
   bool breakRightBoundary = false,
 }) {
   final admitted = stagedAuthoredTerrain.chunks.singleWhere(
-    (chunk) => chunk.chunkKey == _selectedKey,
+    (chunk) => chunk.chunkKey == (chunkKey ?? _selectedKey),
   );
   final rightBoundaryX = admitted.width * 1024;
   StagedTerrainEdgeData draftEdge(StagedTerrainEdgeData edge) =>

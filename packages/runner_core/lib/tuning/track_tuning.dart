@@ -45,4 +45,16 @@ class TrackTuning {
   /// Set high enough to give visual feedback of falling into the gap
   /// before the death screen appears.
   final double gapKillOffsetY;
+
+  /// Preserves stream behavior while changing the player start X in world pixels.
+  TrackTuning copyWith({double? playerStartX}) => TrackTuning(
+    enabled: enabled,
+    chunkWidth: chunkWidth,
+    spawnAheadMargin: spawnAheadMargin,
+    cullBehindMargin: cullBehindMargin,
+    enemyCullBelowGroundOffsetY: enemyCullBelowGroundOffsetY,
+    gridSnap: gridSnap,
+    playerStartX: playerStartX ?? this.playerStartX,
+    gapKillOffsetY: gapKillOffsetY,
+  );
 }

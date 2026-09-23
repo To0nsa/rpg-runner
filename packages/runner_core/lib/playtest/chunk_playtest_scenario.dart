@@ -294,20 +294,56 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
       playtestTierForDifficulty(terrain.difficulty);
     }
 
-    final connections = <String, TerrainChunkConnection>{
-      for (final key in patternsByKey.keys)
-        key: _buildChunkConnection(
-          chunkKey: key,
-          levelDefinition: levelDefinition,
-          catalog: terrainCatalog,
-        ),
-    };
+    final connections = <String, TerrainChunkConnection>{};
+    final startXByKey = <String, double>{};
+    for (final key in patternsByKey.keys) {
+      final terrain = terrainCatalog.requireChunk(key);
+      final geometry = const StagedTerrainWorldGeometryBuilder().build(
+        bindings: [
+          terrainCatalog.bind(
+            chunkKey: key,
+            chunkIndex: 0,
+            worldOriginXTicks: 0,
+          ),
+        ],
+        geometryVersion: 0,
+      );
+      final usualX = levelDefinition.tuning.track.playerStartX;
+      final connection = buildTerrainChunkConnection(
+        chunkKey: key,
+        chunkWidth: terrain.width,
+        geometry: geometry,
+        groundTopY: levelDefinition.groundTopY,
+        spawnX: usualX,
+      );
+      final startX = connection.canStart
+          ? usualX
+          : findTerrainChunkPlaytestStartX(
+              chunkKey: key,
+              chunkWidth: terrain.width,
+              geometry: geometry,
+              groundTopY: levelDefinition.groundTopY,
+              preferredX: usualX,
+            );
+      if (startX != null) startXByKey[key] = startX;
+      connections[key] = TerrainChunkConnection(
+        entrance: connection.entrance,
+        exit: connection.exit,
+        canStart: startX != null,
+      );
+    }
     final path = _selectFilteredPoolPath(
       levelId: levelId,
       connections: connections,
     );
     _validatePathSeams(path: path, catalog: terrainCatalog);
     final firstKey = path.chunkKeys.first;
+    final startX = startXByKey[firstKey]!;
+    levelDefinition = levelDefinition.copyWith(
+      tuning: levelDefinition.tuning.copyWith(
+        track: levelDefinition.tuning.track.copyWith(playerStartX: startX),
+      ),
+    );
     return ChunkPlaytestScenario._(
       levelDefinition: levelDefinition,
       visualThemeId: visualThemeId,
@@ -453,6 +489,15 @@ ChunkPlaytestScenarioPath _selectFilteredPoolPath({
     throw const PlaytestScenarioException(
       code: 'chunk_playtest_filtered_pool_no_opener',
       message: 'No filtered chunk supports the normal player opener.',
+    );
+  }
+  if (keys.length == 1 &&
+      connections[start]!.exit != connections[start]!.entrance) {
+    throw PlaytestScenarioException(
+      code: 'chunk_playtest_filtered_pool_not_self_connecting',
+      message:
+          'Chunk $start cannot repeat by itself: its right boundary does not '
+          'match its left boundary.',
     );
   }
   List<String>? route(String from, String to) {

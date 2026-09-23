@@ -105,6 +105,14 @@ current characters. A configured `firstChunkKey` must also belong to the
 resolved first pool and satisfy this opening rule. Unsupported or elevated
 openings are rejected rather than translated into place.
 
+Filtered Chunk Play is an isolated tooling exception for horizontal
+spawn placement. It tries the configured X first, then nearby half-pixel X
+positions within the opening chunk. Each candidate still needs the same flat
+solid support and clear 32-by-64 px spawn envelope at the Level's normal ground
+height; the entrance must still begin at that height. The selected X is frozen
+into the playtest scenario and used by Core on every restart. Normal runs,
+whole-Level Play, and repository generation retain the configured X rule.
+
 ## Complete Schedule Admission
 
 `TerrainConnectionSchedule` builds an immutable graph before any seed is used.
@@ -189,10 +197,11 @@ state.
 
 `ConnectedChunkPatternSource` is installed before normal track prewarming, so
 the initial chunks and later streamed chunks use one cursor and one contract.
-Whole-Level Play builds the same source. Focused Chunk Play asks the schedule
-for a witness consisting of a supported opening, a path through the selected
-chunk, and a proven repeating suffix. A valid but unreachable chunk may remain
-saved; it cannot be started in focused Play.
+Whole-Level Play builds the same source. The Core focused-scenario factory can
+ask the schedule for a witness consisting of a supported opening, a path through
+the selected chunk, and a proven repeating suffix. Chunk Creator Play instead
+uses the exact filtered pool, including when only one owner matches; a lone
+owner must have a compatible exit-to-entrance seam to repeat itself.
 
 ## Generation And Failure Semantics
 
