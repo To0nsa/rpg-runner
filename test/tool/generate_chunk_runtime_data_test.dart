@@ -43,7 +43,34 @@ void main() {
   }
 ''');
     expect(probe.exitCode, 0, reason: probe.stderr);
-  });
+    // Compile each authored trap into an isolated Core package, then run the
+    // real worker against matching tickets/replays. No production test hook.
+    for (final id in ['spike', 'swinging_axe', 'poison_darts']) {
+      json['traps'] = [
+        {
+          'trapId': id,
+          'x': id == 'poison_darts' ? 400 : 300,
+          'y': id == 'swinging_axe'
+              ? 140
+              : id == 'spike'
+              ? 220
+              : 202,
+          if (id != 'spike') 'facing': id == 'poison_darts' ? 'left' : 'right',
+          'trigger': {
+            'offsetX': id == 'poison_darts' ? -130 : -40,
+            'offsetY': id == 'swinging_axe' ? 40 : -32,
+            'width': 140,
+            'height': 64,
+          },
+        },
+      ];
+      source.writeAsStringSync(jsonEncode(json));
+      final built = await _runGenerate(workingDirectory: root.path);
+      expect(built.exitCode, 0, reason: built.stderr);
+      final worker = await _runGeneratedTrapWorker(root.path, id);
+      expect(worker.exitCode, 0, reason: '${worker.stdout}\n${worker.stderr}');
+    }
+  }, timeout: const Timeout(Duration(minutes: 5)));
   test(
     'machine reports exact included/excluded source and content freshness',
     () async {
@@ -1416,6 +1443,45 @@ void _writeValidSmokeFixture(String rootPath) {
   "difficulty": "easy"
 }
 ''',
+  );
+}
+
+Future<ProcessResult> _runGeneratedTrapWorker(
+  String rootPath,
+  String id,
+) async {
+  final configFile = File(
+    'services/replay_validator/.dart_tool/package_config.json',
+  ).absolute;
+  final config =
+      jsonDecode(configFile.readAsStringSync()) as Map<String, Object?>;
+  String? testRunner;
+  for (final entry in config['packages'] as List<Object?>) {
+    final package = entry as Map<String, Object?>;
+    final uri = package['name'] == 'runner_core'
+        ? Directory('$rootPath/packages/runner_core').uri
+        : configFile.uri.resolve(package['rootUri'] as String);
+    package['rootUri'] = uri.toString();
+    if (package['name'] == 'test') {
+      testRunner = Directory.fromUri(uri).uri
+          .resolve('bin/test.dart')
+          .toFilePath();
+    }
+  }
+  _writeFile(rootPath, '.dart_tool/package_config.json', jsonEncode(config));
+  return Process.run(
+    _resolveDartExecutable(),
+    [
+      '--packages=$rootPath/.dart_tool/package_config.json',
+      testRunner!,
+      File('services/replay_validator/test/validator_worker_test.dart')
+          .absolute
+          .path,
+      '--plain-name',
+      'compiled content app outcome matches ticket replay worker',
+    ],
+    workingDirectory: rootPath,
+    environment: {'TRAP_REPLAY_FIXTURE': id},
   );
 }
 

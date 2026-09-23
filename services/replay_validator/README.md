@@ -60,20 +60,20 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The current validator build accepts game compatibility `2026.09.3`;
+The current validator build accepts game compatibility `2026.09.4`;
 replay/command format `1`, `rules-v2`, `score-v1`, and `ghost-v1` remain the
-supported ranked tuple. Enemy swimming and the player's 20% water-speed penalty
-change simulated outcomes, so `2026.03.0`, `2026.08.0`, `2026.09.0`,
-`2026.09.1`, and `2026.09.2` are rejected before replay. This build does not
+supported ranked tuple. Traps, accepted-hit status eligibility, terminal DoT
+pulses and swept first-contact projectiles change simulated outcomes. Previous
+compatibility versions, including `2026.09.3`, are rejected before replay. This build does not
 ship a historical selector, camera simulation, or the retired `rules-v1`
 combat simulator.
 
-Use the [connection compatibility drain-and-switch policy](../../docs/tdd/chunk_connections.md#compatibility-release).
-Pause old issuance, keep the old worker serving its existing queue for the ticket
-lifetime plus clock skew, and pass the compatibility-retirement audit before
-switching the matching worker, generated content, Functions and client release.
-Remove stale supported-version environment overrides. Old labels must never be
-accepted against the new Core selector.
+For this non-live release use the [trap cutover procedure](../../docs/tdd/traps.md#pre-live-compatibility-cutover).
+Stop old issuance, cancel disposable test runs, and let running validation and
+settlement finish before resetting their remaining test state. Switch matching
+worker, generated content, Functions and client builds together; use fresh
+boards and tickets. Remove stale supported-version environment overrides.
+There is no historical-run migration or ticket-lifetime retirement wait.
 
 ## Build Container Image
 
@@ -106,8 +106,8 @@ firebase deploy --project rpg-runner-d7add `
 ```
 
 Then run the checked-in service/queue policy from the repository root.
-For the game compatibility cutover, complete the drain above first. Deploy
-the matching `2026.09.3` worker and Functions configuration before enabling new
+For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
+the matching `2026.09.4` worker and Functions configuration before enabling new
 client issuance. This repository implementation does not deploy those services.
 
 ```powershell

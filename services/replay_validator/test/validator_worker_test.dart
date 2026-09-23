@@ -7,6 +7,15 @@ import 'package:run_protocol/replay_digest.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/validated_run.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/game_core.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/src/board_repository.dart';
@@ -20,6 +29,108 @@ import 'package:replay_validator/src/validated_replay_archiver.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
+  test('compiled content app outcome matches ticket replay worker', () async {
+    for (final character in PlayerCharacterRegistry.all) {
+      final replay = ReplayBlobV1.withComputedDigest(
+        runSessionId: 'compiled_${character.id.name}',
+        tickHz: 60,
+        seed: 1234,
+        levelId: 'field',
+        playerCharacterId: character.id.name,
+        loadoutSnapshot: _defaultLoadoutSnapshot(),
+        totalTicks: 370,
+        commandStream: const [],
+      );
+      final bytes = utf8.encode(jsonEncode(replay.toJson()));
+      final app = GameCore(
+        seed: replay.seed,
+        runId: 1,
+        tickHz: replay.tickHz,
+        levelDefinition: LevelRegistry.byId(LevelId.field),
+        playerCharacter: character,
+        equippedLoadoutOverride: const EquippedLoadoutDef(
+          mask: 0,
+          projectileSlotSpellId: ProjectileId.iceBolt,
+        ),
+      );
+      final initialHp = app.buildSnapshot().hud.hp;
+      var sawTrap = false, sawPoison = false;
+      RunEndedEvent? ended;
+      for (var tick = 0; tick < replay.totalTicks && !app.gameOver; tick++) {
+        app.stepOneTick();
+        final snapshot = app.buildSnapshot();
+        sawTrap |= snapshot.traps.any((t) => t.cueVisible);
+        sawPoison |=
+            (snapshot.playerEntity!.statusVisualMask &
+                EntityStatusVisualMask.poison) !=
+            0;
+        for (final event in app.drainEvents()) {
+          if (event is RunEndedEvent) ended = event;
+        }
+      }
+      if (!app.gameOver) {
+        app.giveUp();
+        ended = app.drainEvents().whereType<RunEndedEvent>().last;
+      }
+      final fixtureId = Platform.environment['TRAP_REPLAY_FIXTURE'];
+      if (fixtureId != null) {
+        expect(
+          sawTrap,
+          isTrue,
+          reason: 'Compiled $fixtureId must actually activate.',
+        );
+        if (fixtureId != 'swinging_axe') {
+          expect(app.buildSnapshot().hud.hp, lessThan(initialHp));
+        }
+        if (fixtureId == 'poison_darts') expect(sawPoison, isTrue);
+      }
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: _session(
+            runSessionId: replay.runSessionId,
+            mode: RunMode.practice,
+            seed: replay.seed,
+            digest: replay.canonicalSha256,
+            contentLengthBytes: bytes.length,
+            validationAttempt: 1,
+            playerCharacterId: character.id.name,
+          ),
+        ),
+      );
+      final worker = DeterministicValidatorWorker(
+        replayLoader: _FakeReplayLoader(
+          bytesByRunSession: {replay.runSessionId: bytes},
+        ),
+        boardRepository: const _FakeBoardRepository(),
+        runSessionRepository: repo,
+        metrics: _FakeValidatorMetrics(),
+        clockMs: () => 10000,
+      );
+      final result = await worker.validateRunSession(
+        runSessionId: replay.runSessionId,
+      );
+      expect(result.status, ValidationDispatchStatus.accepted);
+      final actual = repo.acceptedSettlementHandoffs.single;
+      final outcome = ended!;
+      expect(actual.tick, outcome.tick);
+      expect(actual.endedReason, outcome.reason.name);
+      expect(actual.goldEarned, outcome.goldEarned);
+      expect(actual.stats['enemyKillCounts'], outcome.stats.enemyKillCounts);
+      expect(
+        actual.score,
+        buildRunScoreBreakdown(
+          tick: outcome.tick,
+          distanceUnits: outcome.distance,
+          collectibles: outcome.stats.collectibles,
+          collectibleScore: outcome.stats.collectibleScore,
+          enemyKillCounts: outcome.stats.enemyKillCounts,
+          tuning: app.scoreTuning,
+          tickHz: app.tickHz,
+        ).totalPoints,
+      );
+    }
+  });
   for (final missingRecords in <bool>[false, true]) {
     for (final discardFails in <bool>[false, true]) {
       test(
@@ -156,7 +267,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.09.3',
+        gameCompatVersion: '2026.09.4',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -343,6 +454,7 @@ void main() {
       '2026.09.0',
       '2026.09.1',
       '2026.09.2',
+      '2026.09.3',
       '2099.01.0',
     ]) {
       test(
@@ -1401,7 +1513,8 @@ ValidatorRunSession _session({
   int? boardClosesAtMs,
   String? storageGeneration = '123',
   String? ticketRunSessionId,
-  String gameCompatVersion = '2026.09.3',
+  String playerCharacterId = 'eloise',
+  String gameCompatVersion = '2026.09.4',
   String? rulesetVersion,
   String? scoreVersion,
   String? ghostVersion,
@@ -1443,7 +1556,7 @@ ValidatorRunSession _session({
           ? boardClosesAtMs ?? issuedAtMs + 1
           : null,
       levelId: 'field',
-      playerCharacterId: 'eloise',
+      playerCharacterId: playerCharacterId,
       loadoutSnapshot: _defaultLoadoutSnapshot(),
       loadoutDigest:
           loadoutDigest ??

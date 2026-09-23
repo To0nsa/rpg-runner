@@ -612,6 +612,7 @@ _StatusFamily _statusFamily(StatusProfileId id) {
   return switch (id) {
     StatusProfileId.none => _StatusFamily.neutral,
     StatusProfileId.meleeBleed ||
+    StatusProfileId.poisonOnHit ||
     StatusProfileId.burnOnHit => _StatusFamily.dot,
     StatusProfileId.slowOnHit ||
     StatusProfileId.drenchOnHit => _StatusFamily.softControl,

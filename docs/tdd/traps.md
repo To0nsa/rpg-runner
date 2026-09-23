@@ -178,3 +178,20 @@ or swap-removing an entity also removes the parallel provenance entry.
 Snapshots expose a persistent Poison status bit alongside Slow. Flame consumes
 it through the existing status tint path, with distinct Poison pulse color.
 Game-over text uses the value attribution without looking up a live launcher.
+
+## Pre-live compatibility cutover
+
+Client, Functions ticket/board defaults and validator accept game compatibility
+`2026.09.4`. Replay/command format 1 and the ranked rules/score/ghost versions
+are unchanged: no wire fields changed. The coordinated release includes trap
+content, accepted-hit status eligibility, terminal Fire/Poison pulses and swept
+first-contact projectiles, even on trap-free levels. Old versions are rejected.
+
+The game is not live. At deployment, stop old ticket issuance and cancel open
+disposable test runs. Let in-flight validation/settlement finish, then reset any
+remaining disposable run/board state before switching the matching compiled
+content, client, Functions and worker. Remove stale supported-version overrides
+and use fresh tickets/boards for smoke runs. Cancellation/reset replaces an
+old-run migration or a ticket-lifetime wait; it does not bypass lease or
+settlement idempotency. Repository implementation does not deploy services or
+reset remote state.
