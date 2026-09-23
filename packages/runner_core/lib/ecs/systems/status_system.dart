@@ -1,6 +1,7 @@
 import '../../combat/damage.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
+import '../../traps/trap_placement.dart';
 import '../../events/game_event.dart';
 import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
@@ -147,6 +148,7 @@ class StatusSystem {
               amount100: amount100,
               damageType: dot.damageTypes[i][channel],
               sourceKind: DeathSourceKind.statusEffect,
+              sourceTrap: dot.sourceTrap[i][channel],
             ),
           );
         }
@@ -332,6 +334,7 @@ class StatusSystem {
               durationSeconds: app.durationSeconds,
               periodSeconds: app.periodSeconds,
               damageType: dotDamageType,
+              sourceTrap: req.sourceTrap,
             );
           case StatusEffectType.resourceOverTime:
             final resourceType = app.resourceType;
@@ -673,6 +676,7 @@ class StatusSystem {
     required double durationSeconds,
     required double periodSeconds,
     required DamageType damageType,
+    required TrapSourceRef? sourceTrap,
   }) {
     final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
     if (ticksLeft <= 0) return;
@@ -692,6 +696,7 @@ class StatusSystem {
           ticksLeft: ticksLeft,
           periodTicks: periodTicks,
           dps100: dps100,
+          sourceTrap: sourceTrap,
         ),
       );
       return;
@@ -706,6 +711,7 @@ class StatusSystem {
           ticksLeft: ticksLeft,
           periodTicks: periodTicks,
           dps100: dps100,
+          sourceTrap: sourceTrap,
         ),
       );
       return;
@@ -721,6 +727,7 @@ class StatusSystem {
           ticksLeft: ticksLeft,
           periodTicks: periodTicks,
           dps100: dps100,
+          sourceTrap: sourceTrap,
         ),
       );
       return;
@@ -729,6 +736,7 @@ class StatusSystem {
     if (dps100 == currentDps &&
         ticksLeft > dot.ticksLeft[index][channelIndex]) {
       dot.ticksLeft[index][channelIndex] = ticksLeft;
+      dot.sourceTrap[index][channelIndex] = sourceTrap;
     }
   }
 

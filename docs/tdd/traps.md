@@ -4,6 +4,9 @@ The Core trap catalog and optional Chunk-v2 `traps` collection are implemented.
 Runtime activation, damage, renderer integration and the Traps authoring tab
 remain in [the implementation plan](../building/traps/plan.md).
 
+Poison status processing and trap damage attribution are implemented in the
+shared combat pipeline. Trap-specific spawning and attack state remain pending.
+
 ## Ownership and source
 
 `runner_core/traps` owns immutable IDs, placements, geometry and frame maps.
@@ -62,3 +65,29 @@ tick. The catalog gives a one-second cooldown following each sequence.
 `RenderFrameRect` is pure data for explicit sprite extraction. Frame selection
 belongs to fixed-tick Core timing; renderers must not infer hit windows from
 elapsed animation time.
+
+## Damage attribution and Poison
+
+`TrapSourceRef` is an immutable value containing trap ID, chunk key, stream chunk
+index and canonical placement ordinal. `ProjectileStore`, `DamageRequest`,
+`DamageQueueStore`, `LastDamageStore` and `DeathInfo` retain it independently of
+an attacker entity. Direct traps use `DeathSourceKind.trap`; dart impacts use
+projectile kind; subsequent DoT damage uses status-effect kind. No fictional
+attacker receives retaliation or attacker-targeted procs.
+
+The accepted dart hit queues `poisonOnHit`: a 200-fixed-point DPS Poison channel
+and the existing 2500-basis-point Slow, both lasting 300 ticks at 60 Hz. Poison
+uses Acid resistance in both base entity resistance and resolved gear stats.
+Its channel pulses at ticks 60/120/180/240/300 after application; no immediate
+pulse occurs. Existing immunity, cleanse, ward and damage ordering apply.
+
+The channel stores its own optional trap source. Stronger replacement resets
+period phase and attribution. Equal DPS extending remaining duration retains
+period phase but replaces attribution. Weaker or nonextending applications
+retain the previous source; equal same-tick applications therefore keep the
+first source. Generic status requests carry null attribution. Removing channels
+or swap-removing an entity also removes the parallel provenance entry.
+
+Snapshots expose a persistent Poison status bit alongside Slow. Flame consumes
+it through the existing status tint path, with distinct Poison pulse color.
+Game-over text uses the value attribution without looking up a live launcher.

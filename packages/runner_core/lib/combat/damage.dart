@@ -3,6 +3,7 @@ import '../enemies/enemy_id.dart';
 import '../events/game_event.dart';
 import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
+import '../traps/trap_placement.dart';
 import 'damage_type.dart';
 
 /// Represents a request to apply damage to an entity.
@@ -21,6 +22,7 @@ class DamageRequest {
     this.sourceKind = DeathSourceKind.unknown,
     this.sourceEnemyId,
     this.sourceProjectileId,
+    this.sourceTrap,
   });
 
   /// The entity receiving the damage.
@@ -51,4 +53,7 @@ class DamageRequest {
 
   /// If the damage came from a projectile, its static ID.
   final ProjectileId? sourceProjectileId;
+
+  /// Environmental attribution remains valid after its streamed owner retires.
+  final TrapSourceRef? sourceTrap;
 }

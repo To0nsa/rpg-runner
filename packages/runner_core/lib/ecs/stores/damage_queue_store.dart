@@ -4,6 +4,7 @@ import '../../enemies/enemy_id.dart';
 import '../../events/game_event.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../weapons/weapon_proc.dart';
+import '../../traps/trap_placement.dart';
 import '../entity_id.dart';
 
 /// Flags stored alongside queued damage requests.
@@ -25,6 +26,7 @@ class DamageQueueStore {
   final List<EntityId?> sourceEntity = <EntityId?>[];
   final List<EnemyId?> sourceEnemyId = <EnemyId?>[];
   final List<ProjectileId?> sourceProjectileId = <ProjectileId?>[];
+  final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
   final List<int> flags = <int>[];
 
   int get length => target.length;
@@ -45,6 +47,7 @@ class DamageQueueStore {
     sourceEntity.add(request.source);
     sourceEnemyId.add(request.sourceEnemyId);
     sourceProjectileId.add(request.sourceProjectileId);
+    sourceTrap.add(request.sourceTrap);
     flags.add(0);
     return index;
   }
@@ -63,6 +66,7 @@ class DamageQueueStore {
     sourceEntity.clear();
     sourceEnemyId.clear();
     sourceProjectileId.clear();
+    sourceTrap.clear();
     flags.clear();
   }
 }

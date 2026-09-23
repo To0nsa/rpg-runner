@@ -1,4 +1,5 @@
 import '../../ecs/entity_id.dart';
+import '../../traps/trap_placement.dart';
 import '../damage_type.dart';
 
 /// Runtime status effect categories.
@@ -36,6 +37,7 @@ enum StatusProfileId {
   restoreMana,
   restoreStamina,
   focus,
+  poisonOnHit,
 }
 
 /// Stable identifiers for deterministic self-purge profiles.
@@ -304,6 +306,14 @@ class StatusProfileCatalog {
             dotDamageType: DamageType.fire,
           ),
         ]);
+      case StatusProfileId.poisonOnHit:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.onHitDot.build(
+            magnitude: 200,
+            dotDamageType: DamageType.poison,
+          ),
+          StatusApplicationPresets.slowOnHit.baseline,
+        ]);
       case StatusProfileId.arcaneWard:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.arcaneWard.baseline,
@@ -359,6 +369,7 @@ class StatusRequest {
     required this.profileId,
     this.damageType = DamageType.physical,
     this.acceptedHitTick,
+    this.sourceTrap,
   });
 
   final EntityId target;
@@ -370,6 +381,7 @@ class StatusRequest {
   /// Only same-tick requests retain the hit's invulnerability eligibility;
   /// standalone, delayed, and attacker-targeted effects use apply-time gating.
   final int? acceptedHitTick;
+  final TrapSourceRef? sourceTrap;
 }
 
 /// Runtime request for purging status/control effects from a target.

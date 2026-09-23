@@ -2036,6 +2036,7 @@ class GameCore {
 
     return DeathInfo(
       kind: kind,
+      sourceTrap: _world.lastDamage.sourceTrap[li],
       enemyId: _world.lastDamage.hasEnemyId[li]
           ? _world.lastDamage.enemyId[li]
           : null,

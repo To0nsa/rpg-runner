@@ -37,6 +37,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `restoreMana`
 - `restoreStamina`
 - `focus`
+- `poisonOnHit`
 
 `PurgeProfileId` currently includes:
 
@@ -49,6 +50,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 |---|---|
 | `slowOnHit` | slow `25%` for `5.0s` |
 | `burnOnHit` | DoT `3.0 DPS` fire for `5.0s` |
+| `poisonOnHit` | DoT `2.0 DPS` Poison plus `25%` Slow for `5.0s` |
 | `meleeBleed` | DoT `3.0 DPS` physical for `5.0s` |
 | `stunOnHit` | stun `1.0s` |
 | `arcaneWard` | reduce direct-hit damage `40%` and cancel DoT for `5.0s` |
@@ -90,6 +92,18 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - the terminal due pulse runs before expiry: an unrefreshed five-second Fire
   effect pulses at seconds 1, 2, 3, 4, and 5 for 15 base HP total
 - equal-strength refresh preserves the pulse phase; stronger replacement resets it
+
+Poison and Fire occupy separate channels. Unrefreshed Poison deals five pulses
+for 10 base HP total. Poison direct damage and each pulse use the existing Acid
+resistance stat. Ordinary resistance does not reduce the separate 25% Slow;
+the shared positive vulnerability scaling and status immunity rules still apply.
+Poison applies no Vulnerable effect. A persistent yellow-green tint distinguishes
+Poison from Fire, and Slow feedback remains active alongside it.
+
+Trap-origin DoTs retain their launcher identity even after its chunk leaves the
+stream. A stronger replacement or equal-strength duration extension records the
+new launcher. Ignored applications and equal-duration ties retain the first
+source. Death feedback distinguishes direct trap hits from later Poison deaths.
 
 ### Resource over time
 

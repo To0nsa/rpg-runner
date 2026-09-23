@@ -10,4 +10,7 @@ enum DamageType {
   bleed,
   earth,
   holy,
+
+  /// Separate DoT/feedback identity, using the existing Acid resistance stat.
+  poison,
 }

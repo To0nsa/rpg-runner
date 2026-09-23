@@ -118,6 +118,7 @@ class ResolvedCharacterStats {
       case DamageType.thunder:
         return thunderResistanceBp;
       case DamageType.acid:
+      case DamageType.poison:
         return acidResistanceBp;
       case DamageType.dark:
         return darkResistanceBp;

@@ -1,6 +1,7 @@
 import '../../../enemies/enemy_id.dart';
 import '../../../events/game_event.dart';
 import '../../../projectiles/projectile_id.dart';
+import '../../../traps/trap_placement.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
@@ -15,6 +16,7 @@ class LastDamageStore extends SparseSet {
   final List<bool> hasProjectileId = <bool>[];
   final List<ProjectileId> sourceProjectileId = <ProjectileId>[];
   final List<bool> hasSourceProjectileId = <bool>[];
+  final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
 
   /// Fixed-point: 100 = 1.0
   final List<int> amount100 = <int>[];
@@ -33,6 +35,7 @@ class LastDamageStore extends SparseSet {
     hasProjectileId.add(false);
     sourceProjectileId.add(ProjectileId.unknown);
     hasSourceProjectileId.add(false);
+    sourceTrap.add(null);
     amount100.add(0);
     tick.add(-1);
   }
@@ -46,6 +49,7 @@ class LastDamageStore extends SparseSet {
     hasProjectileId[removeIndex] = hasProjectileId[lastIndex];
     sourceProjectileId[removeIndex] = sourceProjectileId[lastIndex];
     hasSourceProjectileId[removeIndex] = hasSourceProjectileId[lastIndex];
+    sourceTrap[removeIndex] = sourceTrap[lastIndex];
     amount100[removeIndex] = amount100[lastIndex];
     tick[removeIndex] = tick[lastIndex];
 
@@ -56,6 +60,7 @@ class LastDamageStore extends SparseSet {
     hasProjectileId.removeLast();
     sourceProjectileId.removeLast();
     hasSourceProjectileId.removeLast();
+    sourceTrap.removeLast();
     amount100.removeLast();
     tick.removeLast();
   }

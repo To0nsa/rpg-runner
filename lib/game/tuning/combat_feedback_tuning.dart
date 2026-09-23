@@ -101,6 +101,7 @@ class CombatFeedbackTuning {
         DamageType.water: Color(0xFF38BDF8),
         DamageType.thunder: Color(0xFFFACC15),
         DamageType.acid: Color(0xFF84CC16),
+        DamageType.poison: Color(0xFFB8E92F),
         DamageType.dark: Color(0xFF8B5CF6),
         DamageType.bleed: Color(0xFFEF4444),
         DamageType.earth: Color(0xFFC08457),
@@ -122,5 +123,6 @@ class CombatFeedbackTuning {
     EntityStatusVisualMask.vulnerable: Color(0xFFF472B6),
     EntityStatusVisualMask.weaken: Color(0xFFF59E0B),
     EntityStatusVisualMask.drench: Color(0xFF60A5FA),
+    EntityStatusVisualMask.poison: Color(0xFFB8E92F),
   };
 }

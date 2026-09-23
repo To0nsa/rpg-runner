@@ -23,6 +23,8 @@ library;
 
 import 'dart:math';
 
+import 'combat/damage_type.dart';
+
 import 'ecs/entity_id.dart';
 import 'ecs/world.dart';
 import 'ecs/world_support_view.dart';
@@ -670,6 +672,13 @@ class SnapshotBuilder {
 
   int _statusVisualMaskForEntity(EntityId entity) {
     var mask = EntityStatusVisualMask.none;
+    final dotIndex = world.dot.tryIndexOf(entity);
+    final poisonChannel = world.dot.channelIndexFor(entity, DamageType.poison);
+    if (dotIndex != null &&
+        poisonChannel != null &&
+        world.dot.ticksLeft[dotIndex][poisonChannel] > 0) {
+      mask |= EntityStatusVisualMask.poison;
+    }
 
     final slowIndex = world.slow.tryIndexOf(entity);
     if (slowIndex != null && world.slow.ticksLeft[slowIndex] > 0) {

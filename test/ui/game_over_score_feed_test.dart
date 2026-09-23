@@ -6,6 +6,8 @@ import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
+import 'package:runner_core/traps/trap_id.dart';
+import 'package:runner_core/traps/trap_placement.dart';
 import 'package:rpg_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:rpg_runner/ui/hud/gameover/leaderboard_panel.dart';
 import 'package:rpg_runner/ui/leaderboard/leaderboard_store.dart';
@@ -73,6 +75,65 @@ RunEndedEvent _buildDerfSpellImpactDeathEvent() {
 }
 
 void main() {
+  for (final (trap, kind, message) in [
+    (TrapId.spike, DeathSourceKind.trap, 'Killed by a Spike trap.'),
+    (
+      TrapId.swingingAxe,
+      DeathSourceKind.trap,
+      'Killed by a Swinging Axe trap.',
+    ),
+    (
+      TrapId.poisonDarts,
+      DeathSourceKind.projectile,
+      'Killed by a Poison Dart.',
+    ),
+    (
+      TrapId.poisonDarts,
+      DeathSourceKind.statusEffect,
+      'You succumbed to Poison from a dart trap.',
+    ),
+  ]) {
+    testWidgets('game over identifies $trap $kind', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameOverOverlay(
+            visible: true,
+            onRestart: () {},
+            onExit: null,
+            showExitButton: false,
+            levelId: LevelId.field,
+            runMode: RunMode.practice,
+            scoreTuning: _tuning,
+            tickHz: _tickHz,
+            leaderboardStore: _FakeLeaderboardStore(),
+            runEndedEvent: RunEndedEvent(
+              runId: 1,
+              tick: 60,
+              distance: 0,
+              reason: RunEndReason.playerDied,
+              goldEarned: 0,
+              stats: const RunEndStats(
+                collectibles: 0,
+                collectibleScore: 0,
+                enemyKillCounts: [0, 0],
+              ),
+              deathInfo: DeathInfo(
+                kind: kind,
+                sourceTrap: TrapSourceRef(
+                  trapId: trap,
+                  chunkKey: 'culled_chunk',
+                  chunkIndex: 3,
+                  placementOrdinal: 0,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.text(message), findsOneWidget);
+    });
+  }
+
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });

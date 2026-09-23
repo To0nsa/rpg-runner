@@ -22,6 +22,7 @@ enum DeathSourceKind {
   statusEffect,
   unknown,
   spellImpact,
+  trap,
 }
 
 /// Detailed context about what killed the player.
@@ -31,6 +32,7 @@ class DeathInfo {
     this.enemyId,
     this.projectileId,
     this.sourceProjectileId,
+    this.sourceTrap,
   });
 
   /// Category of the damage source.
@@ -44,6 +46,7 @@ class DeathInfo {
 
   /// The [ProjectileId] responsible (if applicable).
   final ProjectileId? sourceProjectileId;
+  final TrapSourceRef? sourceTrap;
 }
 
 /// Aggregate statistics collected during a run.

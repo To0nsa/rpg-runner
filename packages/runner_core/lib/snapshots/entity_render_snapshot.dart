@@ -115,6 +115,7 @@ abstract class EntityStatusVisualMask {
   static const int vulnerable = 1 << 3;
   static const int weaken = 1 << 4;
   static const int drench = 1 << 5;
+  static const int poison = 1 << 6;
 }
 
 /// Snapshot contract bitmask flags for gameplay control locks.

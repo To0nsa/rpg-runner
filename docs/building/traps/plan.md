@@ -8,6 +8,8 @@ and the editor authoring interface are not complete.
 Completed commits also provide shared nearest-contact projectile sweeps,
 environmental target filtering and explicit first-hit tick eligibility. Trap
 launchers and their gameplay state will consume these contracts next.
+Poison processing, immutable trap attribution through DoT/death, persistent
+Poison feedback and trap death text are implemented and tested.
 
 Date: September 23, 2026.
 

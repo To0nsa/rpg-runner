@@ -41,6 +41,7 @@ class DamageResistanceDef {
       case DamageType.thunder:
         return thunderBp;
       case DamageType.acid:
+      case DamageType.poison:
         return acidBp;
       case DamageType.dark:
         return darkBp;
@@ -104,6 +105,7 @@ class DamageResistanceStore extends SparseSet {
       case DamageType.thunder:
         return thunderBp[index];
       case DamageType.acid:
+      case DamageType.poison:
         return acidBp[index];
       case DamageType.dark:
         return darkBp[index];

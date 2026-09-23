@@ -19,6 +19,7 @@ import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
 import '../spell_impacts/spell_impact_id.dart';
 import '../util/vec2.dart';
+import '../traps/trap_placement.dart';
 
 part 'run_events.dart';
 part 'enemy_events.dart';

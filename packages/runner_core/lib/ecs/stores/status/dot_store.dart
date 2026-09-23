@@ -1,4 +1,5 @@
 import '../../../combat/damage_type.dart';
+import '../../../traps/trap_placement.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
@@ -8,6 +9,7 @@ class DotDef {
     required this.ticksLeft,
     required this.periodTicks,
     required this.dps100,
+    this.sourceTrap,
   }) : periodTicksLeft = periodTicks;
 
   final DamageType damageType;
@@ -17,6 +19,7 @@ class DotDef {
 
   /// Fixed-point DPS: 100 = 1.0 per second.
   final int dps100;
+  final TrapSourceRef? sourceTrap;
 }
 
 /// Active damage-over-time effects keyed by target entity.
@@ -29,6 +32,7 @@ class DotStore extends SparseSet {
   final List<List<int>> periodTicks = <List<int>>[];
   final List<List<int>> periodTicksLeft = <List<int>>[];
   final List<List<int>> dps100 = <List<int>>[];
+  final List<List<TrapSourceRef?>> sourceTrap = <List<TrapSourceRef?>>[];
 
   void add(EntityId entity, DotDef def) {
     final entityIndex = addEntity(entity);
@@ -87,6 +91,7 @@ class DotStore extends SparseSet {
     periodTicks[entityIndex].add(def.periodTicks);
     periodTicksLeft[entityIndex].add(def.periodTicksLeft);
     dps100[entityIndex].add(def.dps100);
+    sourceTrap[entityIndex].add(def.sourceTrap);
   }
 
   void _setChannel(int entityIndex, int channelIndex, DotDef def) {
@@ -95,6 +100,7 @@ class DotStore extends SparseSet {
     periodTicks[entityIndex][channelIndex] = def.periodTicks;
     periodTicksLeft[entityIndex][channelIndex] = def.periodTicksLeft;
     dps100[entityIndex][channelIndex] = def.dps100;
+    sourceTrap[entityIndex][channelIndex] = def.sourceTrap;
   }
 
   void _removeChannelAt(int entityIndex, int channelIndex) {
@@ -103,6 +109,7 @@ class DotStore extends SparseSet {
     periodTicks[entityIndex].removeAt(channelIndex);
     periodTicksLeft[entityIndex].removeAt(channelIndex);
     dps100[entityIndex].removeAt(channelIndex);
+    sourceTrap[entityIndex].removeAt(channelIndex);
   }
 
   @override
@@ -112,6 +119,7 @@ class DotStore extends SparseSet {
     periodTicks.add(<int>[]);
     periodTicksLeft.add(<int>[]);
     dps100.add(<int>[]);
+    sourceTrap.add(<TrapSourceRef?>[]);
   }
 
   @override
@@ -121,11 +129,13 @@ class DotStore extends SparseSet {
     periodTicks[removeIndex] = periodTicks[lastIndex];
     periodTicksLeft[removeIndex] = periodTicksLeft[lastIndex];
     dps100[removeIndex] = dps100[lastIndex];
+    sourceTrap[removeIndex] = sourceTrap[lastIndex];
 
     damageTypes.removeLast();
     ticksLeft.removeLast();
     periodTicks.removeLast();
     periodTicksLeft.removeLast();
     dps100.removeLast();
+    sourceTrap.removeLast();
   }
 }

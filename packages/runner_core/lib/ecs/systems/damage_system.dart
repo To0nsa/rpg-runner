@@ -160,6 +160,7 @@ class DamageSystem {
           lastDamage.kind[li] = sourceKind;
           lastDamage.amount100[li] = appliedAmount;
           lastDamage.tick[li] = currentTick;
+          lastDamage.sourceTrap[li] = queue.sourceTrap[i];
 
           if (sourceEnemyId != null) {
             lastDamage.enemyId[li] = sourceEnemyId;
@@ -233,6 +234,7 @@ class DamageSystem {
               target: statusTarget,
               profileId: proc.statusProfileId,
               damageType: damageType,
+              sourceTrap: queue.sourceTrap[i],
               acceptedHitTick:
                   proc.hook == ProcHook.onHit || proc.hook == ProcHook.onCrit
                   ? currentTick

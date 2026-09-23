@@ -253,6 +253,7 @@ class ProjectileHitSystem {
         procs: projectiles.procs[projectileStoreIndex],
         source: owner == 0 ? null : owner,
         sourceKind: DeathSourceKind.projectile,
+        sourceTrap: projectiles.sourceTrap[projectileStoreIndex],
         sourceEnemyId: enemyId,
         sourceProjectileId:
             sourceProjectileId ??

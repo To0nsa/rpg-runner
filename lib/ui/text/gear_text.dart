@@ -39,6 +39,7 @@ String damageTypeDisplayName(DamageType type) {
     DamageType.water => 'Water',
     DamageType.thunder => 'Thunder',
     DamageType.acid => 'Acid',
+    DamageType.poison => 'Poison',
     DamageType.dark => 'Dark',
     DamageType.bleed => 'Bleed',
     DamageType.earth => 'Earth',
@@ -219,8 +220,7 @@ const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
       'Cold matchup shield with balanced defense and stamina.',
   WeaponId.ironBastion:
       'Heavy face-tank shield with the strongest soak and lower mobility.',
-  WeaponId.stormAegis:
-      'Thunder counterpick shield with regen and a crit dump.',
+  WeaponId.stormAegis: 'Thunder counterpick shield with regen and a crit dump.',
   WeaponId.nullPrism:
       'Dual dark/holy resist shield that trades mobility for coverage.',
   WeaponId.warbannerGuard:
@@ -285,8 +285,7 @@ _spellBookDescriptionOverrides = <SpellBookId, String>{
       'Kiting spellbook with speed/ stamina and slow-on-hit utility.',
   SpellBookId.nullTestament:
       'Anti-caster spellbook with dark/holy resistance and crit-gated silence.',
-  SpellBookId.crownOfFocus:
-      'High-risk snowball spellbook with strong global offense and low defense.',
+  SpellBookId.crownOfFocus: 'High-risk snowball spellbook with strong global offense and low defense.',
 };
 
 const Map<AccessoryId, String> _accessoryDisplayNameOverrides =
@@ -301,22 +300,19 @@ const Map<AccessoryId, String> _accessoryDisplayNameOverrides =
       AccessoryId.strengthBelt: 'Strength Belt',
     };
 
-const Map<AccessoryId, String> _accessoryDescriptionOverrides =
-    <AccessoryId, String>{
-      AccessoryId.speedBoots:
-          'Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.',
-      AccessoryId.goldenRing:
-          'Clutch sustain ring with health and emergency low-health healing.',
-      AccessoryId.teethNecklace:
-          'Stamina ring with low-health stamina restore, traded against max health.',
-      AccessoryId.diamondRing:
-          'Mana ring with low-health mana restore, traded against max stamina.',
-      AccessoryId.ironBoots:
-          'Defensive boots with physical resistance that tax global power.',
-      AccessoryId.oathBeads:
-          'Caster-tempo beads with cooldown, mana regen, and power at a defense tax.',
-      AccessoryId.resilienceCape:
-          'Elemental counterpick with fire and dark resistance plus defense.',
-      AccessoryId.strengthBelt:
-          'Burst belt with power, crit, and stamina at slower cooldown recovery.',
-    };
+const Map<AccessoryId, String>
+_accessoryDescriptionOverrides = <AccessoryId, String>{
+  AccessoryId.speedBoots: 'Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.',
+  AccessoryId.goldenRing:
+      'Clutch sustain ring with health and emergency low-health healing.',
+  AccessoryId.teethNecklace: 'Stamina ring with low-health stamina restore, traded against max health.',
+  AccessoryId.diamondRing:
+      'Mana ring with low-health mana restore, traded against max stamina.',
+  AccessoryId.ironBoots:
+      'Defensive boots with physical resistance that tax global power.',
+  AccessoryId.oathBeads: 'Caster-tempo beads with cooldown, mana regen, and power at a defense tax.',
+  AccessoryId.resilienceCape:
+      'Elemental counterpick with fire and dark resistance plus defense.',
+  AccessoryId.strengthBelt:
+      'Burst belt with power, crit, and stamina at slower cooldown recovery.',
+};

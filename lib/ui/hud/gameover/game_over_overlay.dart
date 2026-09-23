@@ -7,6 +7,8 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
+import 'package:runner_core/traps/trap_id.dart';
+
 import '../../leaderboard/leaderboard_store.dart';
 import '../../state/ownership/selection_state.dart';
 import 'game_over_header.dart';
@@ -20,6 +22,7 @@ import '../../components/play_button.dart';
 import '../../components/gold_display.dart';
 import '../../state/run/run_submission_status.dart';
 import '../../theme/ui_tokens.dart';
+
 // import '../../../core/spells/spell_id.dart';
 
 const _enableGameOverRewardRow = bool.fromEnvironment(
@@ -560,6 +563,17 @@ String? _buildSubtitleDeathReason(RunEndedEvent? event) {
 
 String _buildDeathSubtitle(DeathInfo? info) {
   if (info == null) return 'You died.';
+  final trap = info.sourceTrap;
+  if (trap != null) {
+    if (info.kind == DeathSourceKind.statusEffect) {
+      return 'You succumbed to Poison from a dart trap.';
+    }
+    return switch (trap.trapId) {
+      TrapId.spike => 'Killed by a Spike trap.',
+      TrapId.swingingAxe => 'Killed by a Swinging Axe trap.',
+      TrapId.poisonDarts => 'Killed by a Poison Dart.',
+    };
+  }
   switch (info.kind) {
     case DeathSourceKind.projectile:
       return _buildProjectileDeath(info);
@@ -571,6 +585,8 @@ String _buildDeathSubtitle(DeathInfo? info) {
       return 'You died.';
     case DeathSourceKind.spellImpact:
       return _buildSpellImpactDeath(info);
+    case DeathSourceKind.trap:
+      return 'Killed by a trap.';
   }
 }
 
