@@ -134,6 +134,14 @@ void main() {
         ).shouldRepaint(painter),
         isTrue,
       );
+      expect(
+        TerrainPolygonScenePainter(
+          projection: painter.projection,
+          transform: transform,
+          pass: TerrainPolygonScenePass.vertices,
+        ).shouldRepaint(painter),
+        isTrue,
+      );
     });
 
     test('one-way preview edge classification matches Core exposure', () {

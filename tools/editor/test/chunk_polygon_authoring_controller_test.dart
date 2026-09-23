@@ -1107,6 +1107,51 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('terrain vertices are composited above scene foreground', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    await tester.pumpWidget(
+      _surfaceApp(
+        controller: harness.authoring,
+        transform: TerrainPolygonViewportTransform(
+          origin: Offset.zero,
+          zoom: 1,
+        ),
+        foreground: const ColoredBox(
+          key: ValueKey<String>('test_scene_foreground'),
+          color: Color(0xFF223344),
+        ),
+      ),
+    );
+
+    final stack = tester.widget<Stack>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('chunk_scene_surface')),
+        matching: find.byType(Stack),
+      ),
+    );
+    final geometryOverlay =
+        (stack.children[1] as IgnorePointer).child! as CustomPaint;
+    final foreground = stack.children[2] as IgnorePointer;
+    final vertexOverlay =
+        (stack.children[3] as IgnorePointer).child! as CustomPaint;
+
+    expect(
+      (geometryOverlay.painter! as TerrainPolygonScenePainter).pass,
+      TerrainPolygonScenePass.geometry,
+    );
+    expect(foreground.child!.key, const ValueKey('test_scene_foreground'));
+    expect(
+      vertexOverlay.key,
+      const ValueKey<String>('chunk_authoring_vertex_overlay'),
+    );
+    expect(
+      (vertexOverlay.painter! as TerrainPolygonScenePainter).pass,
+      TerrainPolygonScenePass.vertices,
+    );
+  });
+
   testWidgets('non-terrain scene input routes through domain callbacks', (
     tester,
   ) async {
@@ -1627,6 +1672,7 @@ Widget _surfaceApp({
   VoidCallback? onClearSelection,
   VoidCallback? onDeleteSelection,
   VoidCallback? onCompleteOperation,
+  Widget foreground = const SizedBox.shrink(),
 }) => MaterialApp(
   home: Scaffold(
     body: Center(
@@ -1643,6 +1689,7 @@ Widget _surfaceApp({
           onDeleteSelection: onDeleteSelection,
           onCompleteOperation: onCompleteOperation,
           background: const ColoredBox(color: Color(0xFF111A22)),
+          foreground: foreground,
         ),
       ),
     ),

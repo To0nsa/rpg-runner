@@ -123,10 +123,31 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
                             widget.controller.state.tool ==
                                 TerrainPolygonTool.select &&
                             widget.controller.state.draft == null,
+                        pass: widget.activeDomain == ChunkSceneDomain.terrain
+                            ? TerrainPolygonScenePass.geometry
+                            : TerrainPolygonScenePass.combined,
                       ),
                     ),
                   ),
                 IgnorePointer(child: widget.foreground),
+                if (widget.showAuthoringOverlay &&
+                    widget.activeDomain == ChunkSceneDomain.terrain)
+                  IgnorePointer(
+                    child: CustomPaint(
+                      key: const ValueKey<String>(
+                        'chunk_authoring_vertex_overlay',
+                      ),
+                      painter: TerrainPolygonScenePainter(
+                        projection: widget.controller.sceneProjection,
+                        transform: widget.transform,
+                        showRectangleResizeHandles:
+                            widget.controller.state.tool ==
+                                TerrainPolygonTool.select &&
+                            widget.controller.state.draft == null,
+                        pass: TerrainPolygonScenePass.vertices,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

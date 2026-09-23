@@ -188,6 +188,18 @@ final class TerrainPolygonSceneStyle {
   );
 }
 
+/// Selects a compositing pass from the shared terrain polygon visualization.
+enum TerrainPolygonScenePass {
+  /// Paints geometry and interactive vertex handles in their normal order.
+  combined,
+
+  /// Paints fills, boundaries, and highlighted edges without vertex handles.
+  geometry,
+
+  /// Paints only vertex and rectangle-resize handles.
+  vertices,
+}
+
 /// Shared painter for polygon fills, boundaries, vertices, and creation drafts.
 ///
 /// It renders source loops only. Compiled collision-edge diagnostics remain a
@@ -200,6 +212,7 @@ final class TerrainPolygonScenePainter extends CustomPainter {
     this.style = const TerrainPolygonSceneStyle(),
     this.showActiveOneWayEdges = false,
     this.showRectangleResizeHandles = false,
+    this.pass = TerrainPolygonScenePass.combined,
   });
 
   final TerrainPolygonSceneProjection projection;
@@ -207,6 +220,10 @@ final class TerrainPolygonScenePainter extends CustomPainter {
   final TerrainPolygonSceneStyle style;
   final bool showActiveOneWayEdges;
   final bool showRectangleResizeHandles;
+
+  /// Selects which visual pass is painted so interactive handles can be
+  /// composited above scene artwork without lifting translucent terrain fills.
+  final TerrainPolygonScenePass pass;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -225,18 +242,6 @@ final class TerrainPolygonScenePainter extends CustomPainter {
         .toList(growable: false);
     final path = _path(points, close: vertices.length >= 3);
     final mode = sceneShape.shape.collisionMode;
-    if (vertices.length >= 3) {
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = switch (mode) {
-            TerrainSourceCollisionMode.solid => style.solidFill,
-            TerrainSourceCollisionMode.oneWay => style.oneWayFill,
-            TerrainSourceCollisionMode.none => style.renderOnlyFill,
-          }
-          ..style = PaintingStyle.fill,
-      );
-    }
     final strokeColor = sceneShape.isGesturePreview
         ? style.previewStroke
         : sceneShape.isSelected
@@ -246,53 +251,68 @@ final class TerrainPolygonScenePainter extends CustomPainter {
             TerrainSourceCollisionMode.oneWay => style.oneWayStroke,
             TerrainSourceCollisionMode.none => style.renderOnlyStroke,
           };
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = strokeColor
-        ..strokeWidth = sceneShape.isSelected
-            ? style.selectedOutlineWidth
-            : style.outlineWidth
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke,
-    );
+    if (pass != TerrainPolygonScenePass.vertices) {
+      if (vertices.length >= 3) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = switch (mode) {
+              TerrainSourceCollisionMode.solid => style.solidFill,
+              TerrainSourceCollisionMode.oneWay => style.oneWayFill,
+              TerrainSourceCollisionMode.none => style.renderOnlyFill,
+            }
+            ..style = PaintingStyle.fill,
+        );
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = strokeColor
+          ..strokeWidth = sceneShape.isSelected
+              ? style.selectedOutlineWidth
+              : style.outlineWidth
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke,
+      );
 
-    if (showActiveOneWayEdges &&
-        mode == TerrainSourceCollisionMode.oneWay &&
-        points.length >= 2) {
-      final activePaint = Paint()
-        ..color = style.activeOneWayStroke
-        ..strokeWidth = style.selectedEdgeWidth
-        ..strokeCap = StrokeCap.round;
-      for (var index = 0; index < vertices.length; index += 1) {
-        final start = vertices[index];
-        final end = vertices[(index + 1) % vertices.length];
-        // For Core's clockwise Y-down loops, a positive horizontal direction
-        // has an outward normal with negative Y and is physically one-way.
-        if (terrainSourceEdgeIsActiveOneWay(start, end)) {
-          canvas.drawLine(
-            points[index],
-            points[(index + 1) % points.length],
-            activePaint,
-          );
+      if (showActiveOneWayEdges &&
+          mode == TerrainSourceCollisionMode.oneWay &&
+          points.length >= 2) {
+        final activePaint = Paint()
+          ..color = style.activeOneWayStroke
+          ..strokeWidth = style.selectedEdgeWidth
+          ..strokeCap = StrokeCap.round;
+        for (var index = 0; index < vertices.length; index += 1) {
+          final start = vertices[index];
+          final end = vertices[(index + 1) % vertices.length];
+          // For Core's clockwise Y-down loops, a positive horizontal direction
+          // has an outward normal with negative Y and is physically one-way.
+          if (terrainSourceEdgeIsActiveOneWay(start, end)) {
+            canvas.drawLine(
+              points[index],
+              points[(index + 1) % points.length],
+              activePaint,
+            );
+          }
         }
+      }
+
+      final selectedEdgeIndex = sceneShape.selectedEdgeIndex;
+      if (selectedEdgeIndex != null &&
+          selectedEdgeIndex >= 0 &&
+          selectedEdgeIndex < points.length) {
+        canvas.drawLine(
+          points[selectedEdgeIndex],
+          points[(selectedEdgeIndex + 1) % points.length],
+          Paint()
+            ..color = style.selectedEdgeStroke
+            ..strokeWidth = style.selectedEdgeWidth
+            ..strokeCap = StrokeCap.round,
+        );
       }
     }
 
-    final selectedEdgeIndex = sceneShape.selectedEdgeIndex;
-    if (selectedEdgeIndex != null &&
-        selectedEdgeIndex >= 0 &&
-        selectedEdgeIndex < points.length) {
-      canvas.drawLine(
-        points[selectedEdgeIndex],
-        points[(selectedEdgeIndex + 1) % points.length],
-        Paint()
-          ..color = style.selectedEdgeStroke
-          ..strokeWidth = style.selectedEdgeWidth
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-
+    if (pass == TerrainPolygonScenePass.geometry) return;
     final resizeHandles =
         showRectangleResizeHandles &&
         sceneShape.isSelected &&
@@ -323,15 +343,18 @@ final class TerrainPolygonScenePainter extends CustomPainter {
     final points = draft.vertices
         .map(transform.sourceVertexToCanvas)
         .toList(growable: false);
-    canvas.drawPath(
-      _path(points, close: draft.isClosed),
-      Paint()
-        ..color = style.draftStroke
-        ..strokeWidth = style.selectedOutlineWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke,
-    );
+    if (pass != TerrainPolygonScenePass.vertices) {
+      canvas.drawPath(
+        _path(points, close: draft.isClosed),
+        Paint()
+          ..color = style.draftStroke
+          ..strokeWidth = style.selectedOutlineWidth
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke,
+      );
+    }
+    if (pass == TerrainPolygonScenePass.geometry) return;
     for (var index = 0; index < points.length; index++) {
       final selected = draft.selectedVertexIndex == index;
       canvas.drawCircle(
@@ -350,7 +373,8 @@ final class TerrainPolygonScenePainter extends CustomPainter {
       oldDelegate.transform != transform ||
       oldDelegate.style != style ||
       oldDelegate.showActiveOneWayEdges != showActiveOneWayEdges ||
-      oldDelegate.showRectangleResizeHandles != showRectangleResizeHandles;
+      oldDelegate.showRectangleResizeHandles != showRectangleResizeHandles ||
+      oldDelegate.pass != pass;
 }
 
 Path _path(List<Offset> points, {required bool close}) {
