@@ -147,6 +147,9 @@ flutter:
     - assets/images/entities/spells/water/bolt/
     - assets/images/entities/spells/water/spike/
     - assets/images/entities/spells/water/splash/
+    - assets/images/entities/traps/poison_darts/
+    - assets/images/entities/traps/spike/
+    - assets/images/entities/traps/swinging_axe/
     - assets/images/icons/
     - assets/images/icons/gear-icons/shields/
     - assets/images/icons/gear-icons/spellbook/
