@@ -87,6 +87,9 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - stronger DPS replaces weaker channel
 - equal DPS refreshes duration to max remaining
 - lower DPS ignored
+- the terminal due pulse runs before expiry: an unrefreshed five-second Fire
+  effect pulses at seconds 1, 2, 3, 4, and 5 for 15 base HP total
+- equal-strength refresh preserves the pulse phase; stronger replacement resets it
 
 ### Resource over time
 
@@ -138,6 +141,10 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `scaleByDamageType` scales magnitude up only when combined typed modifier is positive.
 - Apply-time gating skips status when target is dead or missing health.
 - Invulnerability gating applies only to harmful statuses (`dot`, `slow`, `stun`, `vulnerable`, `weaken`, `drench`, `silence`).
+- An accepted hit's same-tick on-hit/on-crit statuses retain its eligibility
+  through newly granted post-hit invulnerability. Pre-existing invulnerability
+  blocks the hit and its effects; immunity and target-liveness checks still run.
+- Standalone or delayed status requests use apply-time invulnerability gating.
 - Beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`, `offenseBuff`) still apply during invulnerability.
 
 ## Derived Runtime Effects

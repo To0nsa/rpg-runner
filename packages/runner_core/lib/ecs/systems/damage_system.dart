@@ -13,13 +13,12 @@ import '../entity_id.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
 
-typedef DamageAppliedCallback =
-    void Function({
-      required int target,
-      required int appliedAmount100,
-      required DeathSourceKind sourceKind,
-      required DamageType damageType,
-    });
+typedef DamageAppliedCallback = void Function({
+  required int target,
+  required int appliedAmount100,
+  required DeathSourceKind sourceKind,
+  required DamageType damageType,
+});
 
 /// Central system for validating and applying damage to entities.
 ///
@@ -81,7 +80,9 @@ class DamageSystem {
       // Use tryIndexOf (returns int?) to combine "has check" and "get index"
       // into a single lookup for performance.
       final hi = health.tryIndexOf(target);
-      if (hi == null) continue;
+      if (hi == null || health.hp[hi] <= 0 || world.deathState.has(target)) {
+        continue;
+      }
 
       // 2. Resolve Invulnerability component (optional).
       final ii = invuln.tryIndexOf(target);
@@ -232,6 +233,10 @@ class DamageSystem {
               target: statusTarget,
               profileId: proc.statusProfileId,
               damageType: damageType,
+              acceptedHitTick:
+                  proc.hook == ProcHook.onHit || proc.hook == ProcHook.onCrit
+                  ? currentTick
+                  : null,
             ),
           );
         }

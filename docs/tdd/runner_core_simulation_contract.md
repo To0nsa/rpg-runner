@@ -74,6 +74,14 @@ the facing-aware quantized capsule once and derives the spatial-grid AABB from
 those exact endpoints and radius. Missing capsule state is an invalid world
 composition and fails rather than falling back to a rectangle.
 
+Damage grants post-hit invulnerability immediately, protecting against later
+queued damage in the same tick. Victim-targeted on-hit/on-crit status requests
+carry `acceptedHitTick`; only requests applied on that tick reuse the hit's
+eligibility instead of testing the new invulnerability again. Status immunity
+and live-health checks still apply. Standalone and delayed requests retain
+apply-time invulnerability gating. DoT channels enqueue a due terminal pulse
+before expiry, so five-second/one-second-period effects pulse five times.
+
 During phase 7, melee/area hitboxes, projectiles, and mobility impacts query
 that AABB grid only for candidates. `HitResolver` preserves stable entity-ID
 ordering and owner/faction filters, then confirms attack capsule versus target

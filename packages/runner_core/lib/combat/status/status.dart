@@ -358,11 +358,18 @@ class StatusRequest {
     required this.target,
     required this.profileId,
     this.damageType = DamageType.physical,
+    this.acceptedHitTick,
   });
 
   final EntityId target;
   final StatusProfileId profileId;
   final DamageType damageType;
+
+  /// DamageSystem's acceptance tick for on-hit/on-crit effects on the victim.
+  ///
+  /// Only same-tick requests retain the hit's invulnerability eligibility;
+  /// standalone, delayed, and attacker-targeted effects use apply-time gating.
+  final int? acceptedHitTick;
 }
 
 /// Runtime request for purging status/control effects from a target.

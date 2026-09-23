@@ -22,12 +22,11 @@ import '../../combat/control_lock.dart';
 import 'ability_interrupt.dart';
 import '../world.dart';
 
-typedef ResourcePulseCallback =
-    void Function({
-      required EntityId target,
-      required StatusResourceType resourceType,
-      required int restoredAmount100,
-    });
+typedef ResourcePulseCallback = void Function({
+  required EntityId target,
+  required StatusResourceType resourceType,
+  required int restoredAmount100,
+});
 
 /// Applies status effects and ticks active statuses.
 class StatusSystem {
@@ -131,7 +130,6 @@ class StatusSystem {
 
       var channel = dot.damageTypes[i].length - 1;
       while (channel >= 0) {
-        dot.ticksLeft[i][channel] -= 1;
         if (dot.ticksLeft[i][channel] <= 0) {
           dot.removeChannelAtEntityIndex(i, channel);
           channel -= 1;
@@ -151,6 +149,11 @@ class StatusSystem {
               sourceKind: DeathSourceKind.statusEffect,
             ),
           );
+        }
+        // A pulse due on the last live tick belongs to the effect's duration.
+        dot.ticksLeft[i][channel] -= 1;
+        if (dot.ticksLeft[i][channel] <= 0) {
+          dot.removeChannelAtEntityIndex(i, channel);
         }
         channel -= 1;
       }
@@ -271,7 +274,8 @@ class StatusSystem {
 
     for (final req in _pending) {
       if (world.deathState.has(req.target)) continue;
-      if (!world.health.has(req.target)) continue;
+      final healthIndex = world.health.tryIndexOf(req.target);
+      if (healthIndex == null || world.health.hp[healthIndex] <= 0) continue;
 
       final ii = invuln.tryIndexOf(req.target);
       final hasInvulnerability = ii != null && invuln.ticksLeft[ii] > 0;
@@ -280,7 +284,9 @@ class StatusSystem {
       if (profile.applications.isEmpty) continue;
 
       for (final app in profile.applications) {
-        if (hasInvulnerability && _isBlockedByInvulnerability(app.type)) {
+        if (hasInvulnerability &&
+            req.acceptedHitTick != _currentTick &&
+            _isBlockedByInvulnerability(app.type)) {
           continue;
         }
         if (immunity.isImmune(req.target, app.type)) continue;
