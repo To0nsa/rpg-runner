@@ -3,10 +3,11 @@
 Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 `AiTargetPolicy` preferences. They are independent of player input and enemy
 score IDs. Core contracts, shared AI targeting and the warrior encounter
-lifecycle are delivered slices of the
-[rescue implementation plan](../building/npc_rescue_encounters.md). JSON/editor
-authoring, the other two archetypes, rendering and score presentation remain
-in progress. These mechanics are currently exercised through typed fixtures.
+lifecycle, shared authored compilation and editor source preservation are delivered
+slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
+The encounter editing UI, other two archetypes, rendering and score presentation
+remain in progress. Gameplay currently runs through typed and captured-source
+fixtures; production rescue content is not yet authored.
 
 An encounter owns separate NPC and enemy placement lists. Member IDs are unique
 across both lists and local to the encounter. Coordinates use world units, with
@@ -85,7 +86,56 @@ shares the enemy cleanup pass and records the member's removal before teardown.
 Core activation runs after world publication and before motion preparation,
 using the preceding player collider-center sweep. A real warrior/player rescue,
 repeated chunk instances, suppression, atomic failure and run exit are covered by
-streamed Core fixtures. Production JSON authoring remains M3 work.
+streamed Core fixtures and captured authored Play.
+
+## Authored source and readiness
+
+Chunk-v2 accepts an optional `encounters` array. Absence means empty; explicit
+null fails decoding. Empty arrays are omitted on editor export so existing chunk
+source does not acquire an empty field. No schema migration or marker conversion
+is implicit. [The source example](../examples/rescue_encounter_chunk.json) shows
+one complete warrior/Hashash group on ordinary ground.
+
+Each encounter requires `id`, `name`, `trigger`, `targetPolicy`, `npcs`, and
+`enemies`. The optional `pointsPerNpc` override remains absent in default mode;
+zero and an explicitly entered 250 retain their meaning. Members require `id`,
+the typed `npcId` or `enemyId`, whole-pixel `x`, `facing`, and `placement`. Only
+enemy members may override `targetPolicy`. IDs are sorted independently in each
+collection, with uniqueness across the two member roles. Trigger coordinates are
+whole pixels and its complete rectangle must fit the chunk. Unknown fields,
+null overrides, invalid enums, fractional values, bounds and capacity errors
+fail strict shared decoding. Export canonicalizes copies without mutating author
+order or discarding explicit overrides.
+
+`resolveEncounterPlacement` owns the pure complete-roster preflight. Runtime,
+shared content materialization and typed Play admission call it against their
+actual terrain publication. The authored boundary supplies the owning Level's
+ground height, rather than inventing fallback spawn support. Grounded members
+use their catalog capsule and terrain policy; flying placement uses the same
+hover reference as the default runtime tuning. One invalid member prevents a
+runtime product. Readiness diagnostics carry an encounter `elementId` and a
+participant placement `fieldKey`, separate from polygon lineage fields.
+
+Structurally valid empty roles and unplaceable groups can be saved. Editor
+validation blocks Play/Build for these readiness findings, without blocking
+Save. Generation requires readiness for active chunks in included levels;
+excluded/deprecated content still receives strict source/geometry validation.
+Captured Chunk Play checks its selected active pool and Level Play checks all
+active chunks in the captured level. An unfinished unselected or deprecated
+group cannot prevent playing an unrelated valid selection.
+
+Editor immutable source, composition snapshots, semantic equality, stale-command
+guards, metadata/copy operations, canonical pending diffs and source fingerprints
+all retain encounters. Typed Play snapshots freeze the collection and revalidate
+complete rosters before admitting Core. Whole-chunk copies retain local IDs;
+runtime occurrence identity still includes the new streamed chunk index.
+
+Generation emits immutable typed encounter lists and uses validated non-const
+constructors. Encounter-free pools retain the existing constant output. Encounter
+data does not change terrain signatures, while generated patterns and captured
+source fingerprints include it. Generated display names escape Dart interpolation
+and line breaks. Tests execute the emitted registry in an isolated Core package
+and compare source semantics across captured Chunk and Level Play.
 
 ## Actor movement bounds
 

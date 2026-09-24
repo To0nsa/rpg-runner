@@ -7,6 +7,7 @@ import 'polygon_terrain_compilation.dart';
 import 'polygon_terrain_render.dart';
 import 'polygon_terrain_source.dart';
 import 'polygon_tile_source.dart';
+import 'encounter_readiness.dart';
 
 const int _gridSnap = 16;
 
@@ -48,6 +49,8 @@ PolygonTerrainRuntimeChunkResult compilePolygonTerrainRuntimeChunkSource({
   required String tileContents,
   required String chunkSourcePath,
   required String chunkContents,
+  double? groundTopY,
+  bool requireEncounterReadiness = true,
 }) {
   prefabSourcePath = canonicalPolygonTerrainSourcePath(prefabSourcePath);
   tileSourcePath = canonicalPolygonTerrainSourcePath(tileSourcePath);
@@ -95,6 +98,8 @@ PolygonTerrainRuntimeChunkResult compilePolygonTerrainRuntimeChunkSource({
     compiled: compiled,
     prefabSources: prefabSources,
     tileSources: tileSources,
+    groundTopY: groundTopY,
+    requireEncounterReadiness: requireEncounterReadiness,
   );
 }
 
@@ -105,9 +110,23 @@ PolygonTerrainRuntimeChunkResult materializePolygonTerrainRuntimeChunk({
   required PolygonTerrainCompiledChunk compiled,
   required PolygonTerrainPrefabSourceSet prefabSources,
   required PolygonTileSourceSet tileSources,
+  double? groundTopY,
+  bool requireEncounterReadiness = true,
 }) {
   sourcePath = canonicalPolygonTerrainSourcePath(sourcePath);
   final issues = <PolygonTerrainGenerationIssue>[];
+  if (requireEncounterReadiness) {
+    issues.addAll(
+      validateEncounterReadiness(
+        encounters: compiled.chunk.encounters,
+        geometry: compiled.geometry,
+        chunkWidth: compiled.chunk.width.toDouble(),
+        groundTopY: groundTopY,
+        sourcePath: sourcePath,
+        chunkKey: compiled.chunk.chunkKey,
+      ),
+    );
+  }
   final slicesById = <String, PolygonTerrainSliceSource>{
     for (final slice in prefabSources.slices) slice.id: slice,
     for (final slice in tileSources.slices) slice.id: slice,
@@ -189,6 +208,7 @@ PolygonTerrainRuntimeChunkResult materializePolygonTerrainRuntimeChunk({
         assemblyGroupId: compiled.chunk.assemblyGroupId,
         visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(sprites),
         spawnMarkers: List<SpawnMarker>.unmodifiable(markers),
+        encounters: compiled.chunk.encounters,
         traps: List.unmodifiable([
           for (final trap in compiled.chunk.traps)
             trap.copyWith(

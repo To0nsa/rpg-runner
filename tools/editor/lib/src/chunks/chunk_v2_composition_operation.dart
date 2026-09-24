@@ -125,6 +125,7 @@ final class ChunkV2CompositionOperation {
     final next = _apply(before.tileLayers, candidate);
     return _build(
       ChunkV2CompositionSnapshot(
+        encounters: before.encounters,
         tileLayers: canonicalizeChunkTileLayers(next),
         traps: before.traps,
         prefabs: before.prefabs,
@@ -138,6 +139,7 @@ final class ChunkV2CompositionOperation {
     final next = _apply(before.prefabs, candidate);
     return _build(
       ChunkV2CompositionSnapshot(
+        encounters: before.encounters,
         tileLayers: before.tileLayers,
         prefabs: canonicalizeChunkPrefabs(next),
         traps: before.traps,
@@ -151,6 +153,7 @@ final class ChunkV2CompositionOperation {
     final next = _apply(before.markers, candidate);
     return _build(
       ChunkV2CompositionSnapshot(
+        encounters: before.encounters,
         tileLayers: before.tileLayers,
         prefabs: before.prefabs,
         markers: canonicalizeChunkMarkers(next),
@@ -164,6 +167,7 @@ final class ChunkV2CompositionOperation {
     final next = _apply(before.traps, candidate)..sort(compareTrapPlacements);
     return _build(
       ChunkV2CompositionSnapshot(
+        encounters: before.encounters,
         tileLayers: before.tileLayers,
         prefabs: before.prefabs,
         markers: before.markers,

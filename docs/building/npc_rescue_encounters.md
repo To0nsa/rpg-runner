@@ -1,6 +1,6 @@
 # NPC rescue encounters
 
-Status: In progress; M0–M2 Core contracts, targeting and warrior encounter lifecycle delivered. M3 authored compilation next.
+Status: In progress; M0–M3 Core contracts, targeting, warrior encounter lifecycle and authored compilation delivered. M4 archetypes/rendering next.
 
 Created: September 24, 2026.
 
@@ -688,7 +688,7 @@ that milestone's changes; do not include unrelated navigation/content work.
   rescue/failure/abandonment, unchanged ordinary DoT/kill behavior, no premature
   culling or rescued-NPC trap activation, no NPC escape, no enemy reset and no
   partial group spawn or repeated outcome.
-- [ ] **M3 — Complete authored compilation and streaming.** Implement shared
+- [x] **M3 — Complete authored compilation and streaming.** Implement shared
   strict decode/materialization, editor source models, generator output and
   scenario validation, including all new data in composition copies. Carry
   owning chunk instance identity and reuse its published bounds. Regenerate

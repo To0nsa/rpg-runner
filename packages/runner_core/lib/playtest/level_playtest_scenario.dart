@@ -69,6 +69,7 @@ final class LevelPlaytestScenario implements PlaytestScenario {
           );
         }
         validatePlaytestTraps(pattern, terrain);
+        validatePlaytestEncounters(pattern, terrain, level);
         if (terrain.levelId != level.identity.value ||
             terrain.status != 'active' ||
             terrain.width.toDouble() != level.tuning.track.chunkWidth ||

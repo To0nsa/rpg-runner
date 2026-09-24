@@ -28,7 +28,7 @@ The package owns:
 - typed `StagedTerrainChunkData` and `StagedTerrainArtifactData`
   materialization
 - deterministic staged-terrain Dart rendering
-- typed `ChunkPattern` visual sprites and spawn markers
+- typed `ChunkPattern` visual sprites, spawn markers, traps and encounters
 - semantic comparison of staged artifacts with a fresh accepted compile
 
 The root `tool/` layer retains:
@@ -39,7 +39,7 @@ The root `tool/` layer retains:
 - fixed generated target paths, drift inspection, coordinated writes, logging,
   arguments, and process exit codes
 
-`tools/editor` will own draft/session selection and presentation. It may call
+`tools/editor` owns draft/session selection and presentation. It calls
 the package with in-memory source snapshots, but the package never imports
 editor or Flutter code.
 
@@ -55,6 +55,15 @@ successful result contains one `PolygonTerrainRuntimeChunk` with:
 
 Any parse, compilation, missing visual reference, or unknown marker blocker
 returns canonical issues and no partial runtime chunk.
+
+Encounter-bearing chunks additionally require an explicit owning `groundTopY`
+and complete catalog-valid participant placement. Shared `decodeEncounterDefinitions`
+and `validateEncounterReadiness` separate strict source admission from runtime
+readiness. Callers capturing structurally valid drafts may disable the immediate
+readiness check, then validate the exact active/selected runtime pool before
+publishing a scenario. The repository generator uses this distinction for
+excluded/deprecated chunks. See [encounter contracts](npc_encounter_contracts.md)
+for schema, immutable copies, diagnostics and placement ownership.
 
 Repository generation uses `buildPolygonTerrainRepository` for the complete
 source set. It takes package-owned scheduler-level records rather than root

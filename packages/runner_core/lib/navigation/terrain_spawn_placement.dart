@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import '../collision/terrain/terrain_edge.dart';
 import '../collision/terrain/terrain_edge_id.dart';
+import '../collision/terrain/terrain_edge_index.dart';
+import '../collision/terrain/terrain_geometry.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import '../collision/terrain/terrain_query_buffer.dart';
@@ -14,6 +16,8 @@ import '../npcs/npc_catalog.dart';
 import '../npcs/npc_id.dart';
 import '../snapshots/enums.dart';
 import 'terrain_placement_query.dart';
+import 'terrain_surface_extractor.dart';
+import 'terrain_surface_spatial_index.dart';
 import 'types/terrain_navigation_surface.dart';
 
 /// Authored support intent retained until polygon-terrain placement resolves.
@@ -397,6 +401,18 @@ const int derfMinimumSupportSpanTicks = 32 * terrainPhysicsTicksPerWorldUnit;
 /// Selection happens before profile filtering, so an invalid intended or
 /// highest surface is terminal and never redirects a spawn to lower terrain.
 final class TerrainSpawnPlacementResolver {
+  /// Builds only the indices needed for placement against local authored terrain.
+  factory TerrainSpawnPlacementResolver.forGeometry(TerrainGeometry geometry) =>
+      TerrainSpawnPlacementResolver(
+        placementQuery: TerrainPlacementQuery(
+          geometry: geometry,
+          terrainIndex: TerrainEdgeIndex(edges: geometry.edges),
+          surfaceIndex: TerrainSurfaceSpatialIndex(
+            surfaceSet: const TerrainSurfaceExtractor().extract(geometry),
+          ),
+        ),
+      );
+
   /// Creates a resolver over one immutable geometry/surface publication.
   TerrainSpawnPlacementResolver({required TerrainPlacementQuery placementQuery})
     : _placementQuery = placementQuery,

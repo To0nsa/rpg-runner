@@ -1,7 +1,11 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
-    show decodeTrapPlacements;
+    show
+        decodeTrapPlacements,
+        decodeEncounterDefinitions,
+        encounterDefinitionsToJson;
 
 import '../domain/authoring_types.dart';
 import '../domain/strict_authoring_json.dart';
@@ -23,10 +27,12 @@ final class ChunkV2CompositionSnapshot {
     required Iterable<PlacedPrefabDef> prefabs,
     required Iterable<PlacedMarkerDef> markers,
     Iterable<TrapPlacement> traps = const [],
+    Iterable<EncounterDefinition> encounters = const [],
   }) : tileLayers = List<TileLayerDef>.unmodifiable(tileLayers),
        prefabs = List<PlacedPrefabDef>.unmodifiable(prefabs),
        markers = List<PlacedMarkerDef>.unmodifiable(markers),
-       traps = List<TrapPlacement>.unmodifiable(traps);
+       traps = List<TrapPlacement>.unmodifiable(traps),
+       encounters = List.unmodifiable(encounters);
 
   factory ChunkV2CompositionSnapshot.fromChunk(ChunkV2FileData chunk) =>
       ChunkV2CompositionSnapshot(
@@ -34,12 +40,14 @@ final class ChunkV2CompositionSnapshot {
         prefabs: chunk.prefabs,
         markers: chunk.markers,
         traps: chunk.traps,
+        encounters: chunk.encounters,
       );
 
   final List<TileLayerDef> tileLayers;
   final List<PlacedPrefabDef> prefabs;
   final List<PlacedMarkerDef> markers;
   final List<TrapPlacement> traps;
+  final List<EncounterDefinition> encounters;
 }
 
 /// One optimistic-concurrency composition edit for an existing chunk owner.
@@ -122,6 +130,7 @@ final class ChunkV2CompositionCommitPolicy {
       prefabs: commit.after.prefabs,
       markers: commit.after.markers,
       traps: commit.after.traps,
+      encounters: commit.after.encounters,
     );
     final chunks = document.chunks.toList(growable: false);
     chunks[chunkIndex] = nextChunk;
@@ -149,6 +158,12 @@ ValidationIssue? _strictStructureIssue({
   required String sourcePath,
 }) {
   try {
+    decodeEncounterDefinitions(
+      encounterDefinitionsToJson(snapshot.encounters),
+      sourcePath: '$sourcePath.encounters',
+      chunkWidth: chunk.width,
+      chunkHeight: chunk.height,
+    );
     decodeTrapPlacements(
       snapshot.traps.map((trap) => trap.toJson()).toList(),
       sourcePath: '$sourcePath.traps',
@@ -203,7 +218,8 @@ ValidationIssue? _strictStructureIssue({
         throw FormatException('$sourcePath.markers[$index] is not canonical.');
       }
     }
-  } on FormatException catch (error) {
+  } on Object catch (error) {
+    if (error is! FormatException && error is! ArgumentError) rethrow;
     return ValidationIssue(
       severity: ValidationSeverity.error,
       code: 'chunk_v2_composition_noncanonical',
@@ -259,4 +275,38 @@ bool chunkCompositionSnapshotsEqual(
       right.markers,
       chunkMarkersEqual,
     ) &&
-    chunkCompositionListsEqual(left.traps, right.traps, (a, b) => a == b);
+    chunkCompositionListsEqual(left.traps, right.traps, (a, b) => a == b) &&
+    chunkCompositionListsEqual(
+      left.encounters,
+      right.encounters,
+      _encountersEqual,
+    );
+
+bool _encountersEqual(EncounterDefinition a, EncounterDefinition b) =>
+    a.id == b.id &&
+    a.name == b.name &&
+    a.targetPolicy == b.targetPolicy &&
+    a.pointsPerNpc == b.pointsPerNpc &&
+    a.trigger.x == b.trigger.x &&
+    a.trigger.y == b.trigger.y &&
+    a.trigger.width == b.trigger.width &&
+    a.trigger.height == b.trigger.height &&
+    chunkCompositionListsEqual(
+      a.npcs,
+      b.npcs,
+      (a, b) => _membersEqual(a, b) && a.npcId == b.npcId,
+    ) &&
+    chunkCompositionListsEqual(
+      a.enemies,
+      b.enemies,
+      (a, b) =>
+          _membersEqual(a, b) &&
+          a.enemyId == b.enemyId &&
+          a.targetPolicy == b.targetPolicy,
+    );
+
+bool _membersEqual(EncounterParticipant a, EncounterParticipant b) =>
+    a.id == b.id &&
+    a.x == b.x &&
+    a.facing == b.facing &&
+    a.placement == b.placement;

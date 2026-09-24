@@ -4,6 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/encounters/encounter_instance.dart';
+import 'package:runner_core/encounters/encounter_definition.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show encounterDefinitionsToJson;
 import 'package:runner_core/levels/level_identity.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/traps/trap_geometry.dart';
@@ -65,6 +70,96 @@ void main() {
   );
 
   test(
+    'accepted encounters survive capture and both explicit Play scopes',
+    () async {
+      final example = ChunkV2FileCodec.decode(
+        File(p.join(workspaceRoot, 'docs/examples/rescue_encounter_chunk.json'))
+            .readAsStringSync(),
+      );
+      final chunk = repositoryDocument.chunks
+          .singleWhere((c) => c.chunkKey == captured.selectedChunkKey)
+          .copyWith(
+            prefabs: [],
+            markers: [],
+            collisionShapes: [_flatGround(224)],
+            encounters: example.encounters,
+          );
+      final document = repositoryDocument.copyWith(
+        chunks: [
+          for (final c in repositoryDocument.chunks)
+            if (c.chunkKey == chunk.chunkKey) chunk else c,
+        ],
+        changedChunkKeys: [chunk.chunkKey],
+      );
+      final input = await captureChunkPlaytestPreparationInput(
+        document: document,
+        selectedChunkKey: chunk.chunkKey,
+        workspaceRoot: workspaceRoot,
+      );
+      expect(input.fingerprint, isNot(captured.fingerprint));
+      final level = input.level.copyWith(
+        clearAssembly: true,
+        clearFirstChunkKey: true,
+      );
+      final focusedInput = _copy(
+        input,
+        level: level,
+        chunks: {
+          'assets/authoring/level/chunks/forest/${chunk.chunkKey}.json':
+              ChunkV2FileCodec.encode(chunk),
+        },
+      );
+      final focused = preparePlaytest(focusedInput);
+      final whole = preparePlaytest(_copy(focusedInput, wholeLevel: true));
+      for (final result in [focused, whole]) {
+        expect(
+          result.issues,
+          isEmpty,
+          reason: result.issues
+              .map((i) => '${i.code}: ${i.message}')
+              .join('\n'),
+        );
+      }
+      final scenario = focused.scenario! as ChunkPlaytestScenario;
+      expect(
+        encounterDefinitionsToJson(scenario.draftPattern.encounters),
+        encounterDefinitionsToJson(chunk.encounters),
+      );
+      final wholeScenario = whole.scenario! as LevelPlaytestScenario;
+      final repeated = wholeScenario.levelDefinition.chunkPatternSource
+          .patternFor(chunkIndex: 0, seed: 1, tier: ChunkPatternTier.easy);
+      expect(
+        encounterDefinitionsToJson(repeated.encounters),
+        encounterDefinitionsToJson(chunk.encounters),
+      );
+      final core = GameCore.chunkPlaytest(scenario: scenario);
+      core.setPlayerPosXYUnsafeForTest(100, 180);
+      core.stepOneTick();
+      expect(
+        core.buildSnapshot().entities.where((e) => e.enemyId != null),
+        hasLength(1),
+      );
+      final second = 600.0 + 100;
+      core.setPlayerPosXYUnsafeForTest(second, 180);
+      core.stepOneTick();
+      expect(
+        core.buildSnapshot().entities.where((e) => e.enemyId != null),
+        hasLength(2),
+      );
+      core.giveUp();
+      final outcomes = core
+          .drainEvents()
+          .whereType<EncounterResolvedEvent>()
+          .map((e) => e.outcome);
+      for (final index in [0, 1]) {
+        final outcome = outcomes.singleWhere((e) => e.key.chunkIndex == index);
+        expect(outcome.reason, EncounterEndReason.runEnded);
+        expect(outcome.points, 0);
+      }
+    },
+  );
+
+  test(
     'filtered owner pool becomes the complete repeating Chunk path',
     () async {
       final keys = <String>[
@@ -96,6 +191,61 @@ void main() {
       );
     },
   );
+
+  test('encounter readiness follows selected Chunk and active Level pools', () {
+    final example = ChunkV2FileCodec.decode(
+      File(p.join(workspaceRoot, 'docs/examples/rescue_encounter_chunk.json'))
+          .readAsStringSync(),
+    );
+    final selected = example.copyWith(levelId: 'forest');
+    final e = selected.encounters.single;
+    final incomplete = selected.copyWith(
+      chunkKey: 'unfinished',
+      id: 'unfinished',
+      encounters: [
+        EncounterDefinition(
+          id: e.id,
+          name: e.name,
+          trigger: e.trigger,
+          npcs: e.npcs,
+        ),
+      ],
+    );
+    PlaytestPreparationInput input({
+      required bool wholeLevel,
+      bool inactive = false,
+    }) => _copy(
+      captured,
+      selectedChunkKey: selected.chunkKey,
+      wholeLevel: wholeLevel,
+      level: captured.level.copyWith(
+        clearAssembly: true,
+        clearFirstChunkKey: true,
+      ),
+      chunks: {
+        'selected.json': ChunkV2FileCodec.encode(selected),
+        'unfinished.json': ChunkV2FileCodec.encode(
+          inactive ? incomplete.copyWith(status: 'deprecated') : incomplete,
+        ),
+      },
+    );
+    final focused = preparePlaytest(input(wholeLevel: false));
+    expect(
+      focused.issues,
+      isEmpty,
+      reason: focused.issues.map((i) => '${i.code}: ${i.message}').join('\n'),
+    );
+    expect(
+      preparePlaytest(input(wholeLevel: true)).issues.single.code,
+      'encounter_incomplete',
+    );
+    final inactive = preparePlaytest(input(wholeLevel: true, inactive: true));
+    expect(
+      inactive.issues,
+      isEmpty,
+      reason: inactive.issues.map((i) => '${i.code}: ${i.message}').join('\n'),
+    );
+  });
 
   test('unfiltered owner catalog remains a bounded exact Chunk pool', () async {
     final keys =

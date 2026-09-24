@@ -21,6 +21,8 @@ final class TerrainAuthoringIssue implements Comparable<TerrainAuthoringIssue> {
     required this.placementKey,
     required this.shapeId,
     required this.elementIndex,
+    this.elementId,
+    this.fieldKey,
   }) {
     _requireNonEmpty(code, 'code');
     _requireNonEmpty(message, 'message');
@@ -28,6 +30,8 @@ final class TerrainAuthoringIssue implements Comparable<TerrainAuthoringIssue> {
     _requireNonEmpty(ownerKey, 'ownerKey');
     _requireOptionalNonEmpty(placementKey, 'placementKey');
     _requireOptionalNonEmpty(shapeId, 'shapeId');
+    _requireOptionalNonEmpty(elementId, 'elementId');
+    _requireOptionalNonEmpty(fieldKey, 'fieldKey');
     if (elementIndex != null && elementIndex! < 0) {
       throw ArgumentError.value(
         elementIndex,
@@ -64,6 +68,10 @@ final class TerrainAuthoringIssue implements Comparable<TerrainAuthoringIssue> {
   final String? shapeId;
   final int? elementIndex;
 
+  /// Stable owner-local content identity when the issue is not polygon lineage.
+  final String? elementId;
+  final String? fieldKey;
+
   bool get isBlocking => severity == TerrainAuthoringIssueSeverity.error;
 
   @override
@@ -79,6 +87,10 @@ final class TerrainAuthoringIssue implements Comparable<TerrainAuthoringIssue> {
     order = _compareNullableInt(elementIndex, other.elementIndex);
     if (order != 0) return order;
     order = code.compareTo(other.code);
+    if (order != 0) return order;
+    order = _compareNullable(elementId, other.elementId);
+    if (order != 0) return order;
+    order = _compareNullable(fieldKey, other.fieldKey);
     return order != 0 ? order : severity.index.compareTo(other.severity.index);
   }
 }

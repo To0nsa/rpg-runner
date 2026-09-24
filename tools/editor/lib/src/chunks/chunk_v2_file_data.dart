@@ -1,4 +1,7 @@
 import 'package:meta/meta.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show encounterDefinitionsToJson;
+import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
@@ -35,7 +38,9 @@ final class ChunkV2FileData {
     required Iterable<TerrainSourceShapeDef> collisionShapes,
     Iterable<WaterRegionData> waterRegions = const [],
     Iterable<TrapPlacement> traps = const [],
-  }) : traps = List<TrapPlacement>.unmodifiable(traps),
+    Iterable<EncounterDefinition> encounters = const [],
+  }) : encounters = List.unmodifiable(encounters),
+       traps = List<TrapPlacement>.unmodifiable(traps),
        waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
        tags = List<String>.unmodifiable(tags),
        tileLayers = List<TileLayerDef>.unmodifiable(tileLayers),
@@ -75,6 +80,9 @@ final class ChunkV2FileData {
   /// Separate activation placements; timing and damage stay in the Core catalog.
   final List<TrapPlacement> traps;
 
+  /// Complete chunk-owned rescue groups, independent of ambient markers.
+  final List<EncounterDefinition> encounters;
+
   ChunkV2FileData copyWith({
     String? chunkKey,
     String? id,
@@ -94,6 +102,7 @@ final class ChunkV2FileData {
     Iterable<TerrainSourceShapeDef>? collisionShapes,
     Iterable<WaterRegionData>? waterRegions,
     Iterable<TrapPlacement>? traps,
+    Iterable<EncounterDefinition>? encounters,
   }) => ChunkV2FileData(
     chunkKey: chunkKey ?? this.chunkKey,
     id: id ?? this.id,
@@ -113,6 +122,7 @@ final class ChunkV2FileData {
     collisionShapes: collisionShapes ?? this.collisionShapes,
     waterRegions: waterRegions ?? this.waterRegions,
     traps: traps ?? this.traps,
+    encounters: encounters ?? this.encounters,
   );
 
   Map<String, Object> toJson() => <String, Object>{
@@ -138,5 +148,7 @@ final class ChunkV2FileData {
     if (waterRegions.isNotEmpty)
       'waterRegions': waterRegions.map((water) => water.toJson()).toList(),
     if (traps.isNotEmpty) 'traps': traps.map((trap) => trap.toJson()).toList(),
+    if (encounters.isNotEmpty)
+      'encounters': encounterDefinitionsToJson(encounters),
   };
 }

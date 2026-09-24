@@ -20,6 +20,12 @@ Optional Chunk-v2 water rectangles compile into separate Core volume records.
 Preserve water signatures and bindings without adding solid edges or navigation
 support. Missing water arrays mean dry chunks; explicit null is invalid.
 
+Optional Chunk-v2 encounters use shared strict decoding and Core's complete
+roster placement preflight. Preserve absent versus explicit points overrides.
+Incomplete roles are saveable source; validate readiness for the exact runtime
+pool before publishing playable content. Do not duplicate placement rules in
+the editor or generator, or encode encounter identities as polygon lineage.
+
 Repository generation validates all source schemas, identities and individual
 geometry even for excluded levels. The separate runtime batch contains only
 active chunks of included levels and must pass scheduler/seam readiness. Keep

@@ -1,5 +1,10 @@
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
-    show decodeWaterRegions, decodeTrapPlacements;
+    show
+        decodeWaterRegions,
+        decodeTrapPlacements,
+        decodeEncounterDefinitions,
+        encounterDefinitionsToJson,
+        validateEncounterReadiness;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -170,6 +175,25 @@ List<ValidationIssue> validateChunkV2Document(ChunkV2Document document) {
     final chunk = chunks[chunkIndex];
     final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
     final baseline = document.baselineContentsByChunkKey[chunk.chunkKey];
+    try {
+      decodeEncounterDefinitions(
+        encounterDefinitionsToJson(chunk.encounters),
+        sourcePath: '${sourcePath ?? chunk.chunkKey}.encounters',
+        chunkWidth: chunk.width,
+        chunkHeight: chunk.height,
+      );
+    } on Object catch (error) {
+      if (error is! FormatException && error is! ArgumentError) rethrow;
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_encounters_invalid',
+          message: error.toString(),
+          sourcePath: sourcePath,
+          ownerKey: chunk.chunkKey,
+        ),
+      );
+    }
     try {
       decodeTrapPlacements(
         chunk.traps.map((trap) => trap.toJson()).toList(),
@@ -342,6 +366,32 @@ List<ValidationIssue> validateChunkV2Document(ChunkV2Document document) {
     );
     collisionExpansions[chunk.chunkKey] = expansion;
     issues.addAll(expansion.issues);
+    if (expansion.expansion case final accepted?) {
+      issues.addAll(
+        validateEncounterReadiness(
+          encounters: chunk.encounters,
+          geometry: accepted.geometry,
+          chunkWidth: chunk.width.toDouble(),
+          groundTopY: document.groundTopYByLevelId[chunk.levelId],
+          sourcePath: sourcePath ?? chunk.chunkKey,
+          chunkKey: chunk.chunkKey,
+        ).map(
+          (issue) => ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: issue.code,
+            message: issue.message,
+            sourcePath: issue.sourcePath,
+            ownerKey: issue.ownerKey,
+            elementId: issue.elementId,
+            fieldKey: issue.fieldKey,
+            blockingOperations: const {
+              AuthoringOperation.play,
+              AuthoringOperation.build,
+            },
+          ),
+        ),
+      );
+    }
   }
 
   issues.addAll(

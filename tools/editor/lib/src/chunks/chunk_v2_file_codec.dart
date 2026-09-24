@@ -1,5 +1,9 @@
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
-    show decodeWaterRegions, decodeTrapPlacements;
+    show
+        decodeWaterRegions,
+        decodeTrapPlacements,
+        decodeEncounterDefinitions,
+        encounterDefinitionsToJson;
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
@@ -45,6 +49,7 @@ abstract final class ChunkV2FileCodec {
         'collisionShapes',
         'waterRegions',
         'traps',
+        'encounters',
       },
       required: const <String>{
         'schemaVersion',
@@ -171,6 +176,12 @@ abstract final class ChunkV2FileCodec {
             )
           : 0,
       collisionShapes: collisionShapes,
+      encounters: decodeEncounterDefinitions(
+        root.containsKey('encounters') ? root['encounters'] : const [],
+        sourcePath: '$sourcePath.encounters',
+        chunkWidth: root['width'] as int,
+        chunkHeight: root['height'] as int,
+      ),
       waterRegions: decodeWaterRegions(
         root.containsKey('waterRegions') ? root['waterRegions'] : const [],
         sourcePath: '$sourcePath.waterRegions',
@@ -206,6 +217,12 @@ abstract final class ChunkV2FileCodec {
       waterRegions: List<WaterRegionData>.of(data.waterRegions)
         ..sort((a, b) => a.id.compareTo(b.id)),
       traps: List<TrapPlacement>.of(data.traps)..sort(compareTrapPlacements),
+      encounters: decodeEncounterDefinitions(
+        encounterDefinitionsToJson(data.encounters, canonical: true),
+        sourcePath: '${data.chunkKey}.encounters',
+        chunkWidth: data.width,
+        chunkHeight: data.height,
+      ),
     );
     final encoded = StrictAuthoringJson.encode(canonical.toJson());
     decode(encoded);

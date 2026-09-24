@@ -9,6 +9,84 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/level_definition_generation.dart' as level_source;
 
 void main() {
+  test('encounter source generates complete immutable rosters and exact reward overrides', () async {
+    final root = await Directory.systemTemp.createTemp('encounter_generator_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    _writeValidSmokeFixture(root.path);
+    final source = File(
+      '${root.path}/assets/authoring/level/chunks/field/chunk_ok.json',
+    );
+    final json = jsonDecode(source.readAsStringSync()) as Map<String, dynamic>;
+    json['collisionShapes'][0]['surfaceKind'] = 'ground';
+    source.writeAsStringSync(jsonEncode(json));
+    expect((await _runGenerate(workingDirectory: root.path)).exitCode, 0);
+    final terrain = File(
+      '${root.path}/packages/runner_core/lib/track/staged_authored_terrain.dart',
+    );
+    final terrainBefore = terrain.readAsStringSync();
+    final example = jsonDecode(
+      File('docs/examples/rescue_encounter_chunk.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final encounter =
+        (example['encounters'] as List).single as Map<String, dynamic>;
+    encounter['name'] = "Scout's \$5\nrescue";
+    json['encounters'] = [
+      {...encounter, 'id': 'default_reward'},
+      {...encounter, 'id': 'explicit_reward', 'pointsPerNpc': 250},
+      {...encounter, 'id': 'zero_reward', 'pointsPerNpc': 0},
+    ];
+    source.writeAsStringSync(jsonEncode(json));
+    final generated = await _runGenerate(workingDirectory: root.path);
+    expect(
+      generated.exitCode,
+      0,
+      reason: '${generated.stdout}\n${generated.stderr}',
+    );
+    expect(terrain.readAsStringSync(), terrainBefore);
+    final probe = await _runCompiledRegistryProbe(root.path, r'''
+  final level = LevelRegistry.byId(LevelId.field);
+  final pattern = level.chunkPatternSource.patternFor(chunkIndex: 0, seed: 1, tier: ChunkPatternTier.easy);
+  final groups = pattern.encounters;
+  if (groups.length != 3 || groups[0].pointsPerNpc != null || groups[1].pointsPerNpc != 250 || groups[2].pointsPerNpc != 0 ||
+      groups[0].npcs.single.npcId.name != 'warrior' || groups[0].enemies.single.enemyId.name != 'hashash' ||
+      groups[0].enemies.single.x != 416 || groups[0].enemies.single.targetPolicy != null ||
+      groups[0].targetPolicy.name != 'preferEncounterNpcs') throw StateError('Generated encounter differs from source.');
+  if (groups[0].name != "Scout's \$5\nrescue") throw StateError('Encounter name was not escaped.');
+  var rejected = false;
+  try { groups.clear(); } on UnsupportedError { rejected = true; }
+  if (!rejected) throw StateError('Encounter collection is mutable.');
+''');
+    expect(probe.exitCode, 0, reason: '${probe.stdout}\n${probe.stderr}');
+    json['encounters'][0]['enemies'] = [];
+    source.writeAsStringSync(jsonEncode(json));
+    final incomplete = await _runGenerate(workingDirectory: root.path);
+    expect(incomplete.exitCode, isNot(0));
+    expect(
+      '${incomplete.stdout}\n${incomplete.stderr}',
+      contains('encounter_incomplete'),
+    );
+    _writeCurrentChunkFixture(
+      root.path,
+      'assets/authoring/level/chunks/forest/forest_ok.json',
+      '{"chunkKey":"forest_ok","id":"forest_ok","levelId":"forest","difficulty":"easy"}',
+    );
+    _updateLevelSource(root.path, (data) {
+      data['includeInBuild'] = data['levelId'] == 'forest';
+    });
+    final excluded = await _runGenerate(workingDirectory: root.path);
+    expect(
+      excluded.exitCode,
+      0,
+      reason: '${excluded.stdout}\n${excluded.stderr}',
+    );
+    json['encounters'][0]['pointsPerNpc'] = null;
+    source.writeAsStringSync(jsonEncode(json));
+    expect(
+      (await _runGenerate(workingDirectory: root.path)).exitCode,
+      isNot(0),
+      reason: 'Excluded source still needs structural validation.',
+    );
+  });
   test('trap source generates compilable typed placements without terrain drift', () async {
     final root = await Directory.systemTemp.createTemp('trap_generator_');
     addTearDown(() => root.deleteSync(recursive: true));

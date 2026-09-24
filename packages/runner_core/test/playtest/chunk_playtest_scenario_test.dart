@@ -1,6 +1,8 @@
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/encounters/encounter_definition.dart';
+import 'package:runner_core/npcs/npc_id.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_definition.dart';
@@ -21,6 +23,36 @@ const _draftMaterial = 'chunk_playtest_draft_material';
 const _draftAsset = 'playtest/draft-only.png';
 
 void main() {
+  test(
+    'typed scenario rejects incomplete encounter before Core activation',
+    () {
+      expect(
+        () => _scenario(
+          encounters: [
+            EncounterDefinition(
+              id: 'unfinished',
+              name: 'Unfinished',
+              trigger: EncounterTrigger(x: 0, y: 0, width: 100, height: 200),
+              npcs: [
+                EncounterNpcPlacement(
+                  id: 'warrior',
+                  npcId: NpcId.warrior,
+                  x: 300,
+                ),
+              ],
+            ),
+          ],
+        ),
+        throwsA(
+          isA<PlaytestScenarioException>().having(
+            (e) => e.code,
+            'code',
+            'playtest_encounters_invalid',
+          ),
+        ),
+      );
+    },
+  );
   test(
     'builds an early canonical path with a deterministic streaming loop',
     () {
@@ -420,6 +452,7 @@ void main() {
 ChunkPlaytestScenario _scenario({
   LevelDefinition? levelDefinition,
   StagedTerrainChunkData? draftTerrain,
+  List<EncounterDefinition> encounters = const [],
 }) => ChunkPlaytestScenario(
   terrainChunks: stagedAuthoredTerrain.chunks.where(
     (chunk) => chunk.levelId == 'forest',
@@ -428,6 +461,7 @@ ChunkPlaytestScenario _scenario({
   visualThemeId: 'forest_chunk_playtest',
   seed: 4401,
   draftPattern: ChunkPattern(
+    encounters: encounters,
     name: 'forest_early_flat_draft',
     chunkKey: _selectedKey,
     assemblyGroupId: 'default',

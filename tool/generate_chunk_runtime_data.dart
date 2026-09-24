@@ -238,11 +238,19 @@ Future<void> main(List<String> args) async {
           issues: issues,
         );
         if (runtimePrefabs == null || runtimeTiles == null) continue;
+        final ownerLevels = levelResult.levels.where(
+          (level) => level.levelId == chunk.source.levelId,
+        );
+        final ownerLevel = ownerLevels.length == 1 ? ownerLevels.single : null;
         final materialized = materializePolygonTerrainRuntimeChunk(
           sourcePath: chunk.sourcePath,
           compiled: chunk.compiled,
           prefabSources: runtimePrefabs,
           tileSources: runtimeTiles,
+          groundTopY: ownerLevel?.groundTopY,
+          requireEncounterReadiness:
+              (ownerLevel?.includeInBuild ?? true) &&
+              isRuntimeEligibleChunkStatus(chunk.source.status),
         );
         issues.addAll(
           materialized.issues.map(
@@ -657,6 +665,9 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
   }
 
   final levelIds = chunksByLevel.keys.toList()..sort();
+  final hasEncounters = chunks.any(
+    (chunk) => chunk.pattern.encounters.isNotEmpty,
+  );
   final hasAnySpawnMarkers = chunks.any(
     (chunk) => chunk.spawnMarkers.isNotEmpty,
   );
@@ -669,8 +680,17 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
     ..writeln('/// - assets/authoring/level/tile_defs.json')
     ..writeln('library;')
     ..writeln();
-  if (hasAnySpawnMarkers) {
+  if (hasAnySpawnMarkers || hasEncounters) {
     buffer.writeln("import '../enemies/enemy_id.dart';");
+  }
+  if (hasEncounters) {
+    buffer
+      ..writeln("import '../combat/ai_target_policy.dart';")
+      ..writeln("import '../encounters/encounter_definition.dart';")
+      ..writeln("import '../npcs/npc_id.dart';");
+    if (!chunks.any((chunk) => chunk.pattern.traps.isNotEmpty)) {
+      buffer.writeln("import '../snapshots/enums.dart';");
+    }
   }
   if (chunks.any((chunk) => chunk.pattern.traps.isNotEmpty)) {
     buffer
@@ -698,7 +718,7 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
   }
 
   buffer.writeln(
-    'const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <String, ChunkPatternListSource>{',
+    '${hasEncounters ? 'final' : 'const'} Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = ${hasEncounters ? 'Map.unmodifiable(' : ''}<String, ChunkPatternListSource>{',
   );
   for (final levelId in levelIds) {
     buffer
@@ -714,7 +734,7 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
       ..writeln('  ),');
   }
   buffer
-    ..writeln('};')
+    ..writeln(hasEncounters ? '});' : '};')
     ..writeln()
     ..writeln('ChunkPatternListSource authoredChunkPatternSourceForLevel(')
     ..writeln('  String levelId,')
@@ -736,7 +756,12 @@ void _writePatternList(
   String variableName,
   List<_ChunkExportData> chunks,
 ) {
-  buffer.writeln('const List<ChunkPattern> $variableName = <ChunkPattern>[');
+  final hasEncounters = chunks.any(
+    (chunk) => chunk.pattern.encounters.isNotEmpty,
+  );
+  buffer.writeln(
+    '${hasEncounters ? 'final' : 'const'} List<ChunkPattern> $variableName = ${hasEncounters ? 'List.unmodifiable(' : ''}<ChunkPattern>[',
+  );
   for (final chunk in chunks) {
     buffer
       ..writeln('  ChunkPattern(')
@@ -744,7 +769,9 @@ void _writePatternList(
       ..writeln("    chunkKey: '${_escape(chunk.chunkKey)}',")
       ..writeln("    assemblyGroupId: '${_escape(chunk.assemblyGroupId)}',");
 
-    buffer.writeln('    visualSprites: <ChunkVisualSpriteRel>[');
+    buffer.writeln(
+      '    visualSprites: ${hasEncounters ? 'const ' : ''}<ChunkVisualSpriteRel>[',
+    );
     for (final sprite in chunk.visualSprites) {
       buffer
         ..writeln('      ChunkVisualSpriteRel(')
@@ -768,7 +795,9 @@ void _writePatternList(
     }
     buffer.writeln('    ],');
 
-    buffer.writeln('    spawnMarkers: <SpawnMarker>[');
+    buffer.writeln(
+      '    spawnMarkers: ${hasEncounters ? 'const ' : ''}<SpawnMarker>[',
+    );
     for (final marker in chunk.spawnMarkers) {
       buffer.writeln(
         '      SpawnMarker(enemyId: ${_enemyEnum(marker.enemyId)}, x: ${marker.x}, chancePercent: ${marker.chancePercent}, salt: ${marker.salt}, placement: ${_placementEnum(marker.placement)}),',
@@ -776,7 +805,9 @@ void _writePatternList(
     }
     buffer.writeln('    ],');
     if (chunk.pattern.traps.isNotEmpty) {
-      buffer.writeln('    traps: <TrapPlacement>[');
+      buffer.writeln(
+        '    traps: ${hasEncounters ? 'const ' : ''}<TrapPlacement>[',
+      );
       for (final trap in chunk.pattern.traps) {
         final rect = trap.trigger;
         buffer
@@ -796,9 +827,50 @@ void _writePatternList(
       }
       buffer.writeln('    ],');
     }
+    if (chunk.pattern.encounters.isNotEmpty) {
+      buffer.writeln(
+        '    encounters: List.unmodifiable(<EncounterDefinition>[',
+      );
+      for (final encounter in chunk.pattern.encounters) {
+        final trigger = encounter.trigger;
+        buffer
+          ..writeln('      EncounterDefinition(')
+          ..writeln(
+            "        id: '${_escape(encounter.id)}', name: '${_escape(encounter.name)}',",
+          )
+          ..writeln(
+            '        trigger: EncounterTrigger(x: ${trigger.x}, y: ${trigger.y}, width: ${trigger.width}, height: ${trigger.height}),',
+          )
+          ..writeln(
+            '        targetPolicy: AiTargetPolicy.${encounter.targetPolicy.name},',
+          );
+        if (encounter.pointsPerNpc != null) {
+          buffer.writeln('        pointsPerNpc: ${encounter.pointsPerNpc},');
+        }
+        buffer.writeln('        npcs: <EncounterNpcPlacement>[');
+        for (final member in encounter.npcs) {
+          buffer.writeln(
+            "          EncounterNpcPlacement(id: '${_escape(member.id)}', npcId: NpcId.${member.npcId.name}, x: ${member.x}, facing: Facing.${member.facing.name}, placement: SpawnPlacementMode.${member.placement.name}),",
+          );
+        }
+        buffer.writeln('        ],');
+        buffer.writeln('        enemies: <EncounterEnemyPlacement>[');
+        for (final member in encounter.enemies) {
+          final policy = member.targetPolicy == null
+              ? ''
+              : ', targetPolicy: AiTargetPolicy.${member.targetPolicy!.name}';
+          buffer.writeln(
+            "          EncounterEnemyPlacement(id: '${_escape(member.id)}', enemyId: EnemyId.${member.enemyId.name}, x: ${member.x}, facing: Facing.${member.facing.name}, placement: SpawnPlacementMode.${member.placement.name}$policy),",
+          );
+        }
+        buffer.writeln('        ],');
+        buffer.writeln('      ),');
+      }
+      buffer.writeln('    ]),');
+    }
     buffer.writeln('  ),');
   }
-  buffer.writeln('];');
+  buffer.writeln(hasEncounters ? ']);' : '];');
 }
 
 String _enemyEnum(EnemyId enemyId) => 'EnemyId.${enemyId.name}';
@@ -842,7 +914,13 @@ String _toUpperCamelIdentifier(String raw) {
 }
 
 String _escape(String raw) {
-  return raw.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+  return raw
+      .replaceAll('\\', '\\\\')
+      .replaceAll("'", "\\'")
+      .replaceAll(r'$', r'\$')
+      .replaceAll('\n', r'\n')
+      .replaceAll('\r', r'\r')
+      .replaceAll('\t', r'\t');
 }
 
 void _collectDuplicateIdentityIssues(

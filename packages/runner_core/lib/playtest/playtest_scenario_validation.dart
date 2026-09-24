@@ -5,6 +5,9 @@ import '../collision/terrain/terrain_authoring_scheduler.dart';
 import '../collision/terrain/terrain_boundary_signature.dart';
 import '../levels/level_assembly.dart';
 import '../levels/level_definition.dart';
+import '../encounters/encounter_limits.dart';
+import '../encounters/encounter_placement.dart';
+import '../navigation/terrain_spawn_placement.dart';
 import '../track/chunk_pattern.dart';
 import '../track/chunk_pattern_source.dart';
 import '../track/staged_terrain_catalog.dart';
@@ -62,7 +65,64 @@ ChunkPattern immutablePlaytestPattern(ChunkPattern source) => ChunkPattern(
   spawnMarkers: List<SpawnMarker>.unmodifiable(source.spawnMarkers),
   visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(source.visualSprites),
   traps: List<TrapPlacement>.unmodifiable(source.traps),
+  encounters: List.unmodifiable(source.encounters),
 );
+
+/// Typed tooling inputs must pass the same complete-roster placement as runtime.
+void validatePlaytestEncounters(
+  ChunkPattern pattern,
+  StagedTerrainChunkData terrain,
+  LevelDefinition level,
+) {
+  if (pattern.encounters.isEmpty) return;
+  try {
+    if (pattern.encounters.length > EncounterLimits.maxEncountersPerChunk ||
+        pattern.encounters.map((e) => e.id).toSet().length !=
+            pattern.encounters.length) {
+      throw ArgumentError(
+        'Encounter IDs must be unique and within chunk capacity.',
+      );
+    }
+    final catalog = StagedTerrainChunkCatalog(chunks: [terrain]);
+    final geometry = const StagedTerrainWorldGeometryBuilder().build(
+      bindings: [
+        catalog.bind(
+          chunkKey: terrain.chunkKey,
+          chunkIndex: 0,
+          worldOriginXTicks: 0,
+        ),
+      ],
+      geometryVersion: 0,
+    );
+    final resolver = TerrainSpawnPlacementResolver.forGeometry(geometry);
+    for (final encounter in pattern.encounters) {
+      if (encounter.trigger.y < 0 ||
+          encounter.trigger.y + encounter.trigger.height > terrain.height) {
+        throw ArgumentError(
+          'Encounter ${encounter.id} trigger must fit its chunk height.',
+        );
+      }
+      final result = resolveEncounterPlacement(
+        definition: encounter,
+        startX: 0,
+        chunkWidth: terrain.width.toDouble(),
+        groundTopY: level.groundTopY,
+        flyingHoverOffsetY: level.tuning.unocoDemon.unocoDemonHoverOffsetY,
+        resolve: resolver.resolve,
+      );
+      if (!result.accepted) {
+        throw ArgumentError(
+          'Encounter ${encounter.id} / ${result.memberId ?? "roster"}: ${result.diagnostic}',
+        );
+      }
+    }
+  } on ArgumentError catch (error) {
+    throw PlaytestScenarioException(
+      code: 'playtest_encounters_invalid',
+      message: 'Chunk ${terrain.chunkKey}: ${error.message}',
+    );
+  }
+}
 
 /// Applies the same trap admission to typed tooling inputs as source decoding.
 void validatePlaytestTraps(

@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
+import 'package:runner_core/encounters/encounter_definition.dart';
+
+import 'encounter_source.dart';
 
 import 'trap_placement_source.dart';
 
@@ -212,7 +215,9 @@ final class PolygonTerrainChunkSource {
     required Iterable<PolygonTerrainShapeSource> collisionShapes,
     Iterable<WaterRegionData> waterRegions = const [],
     Iterable<TrapPlacement> traps = const [],
-  }) : traps = List<TrapPlacement>.unmodifiable(traps),
+    Iterable<EncounterDefinition> encounters = const [],
+  }) : encounters = List<EncounterDefinition>.unmodifiable(encounters),
+       traps = List<TrapPlacement>.unmodifiable(traps),
        waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
        placements = List<PolygonTerrainPlacementSource>.unmodifiable(
          placements,
@@ -240,6 +245,7 @@ final class PolygonTerrainChunkSource {
   final List<PolygonTerrainShapeSource> collisionShapes;
   final List<WaterRegionData> waterRegions;
   final List<TrapPlacement> traps;
+  final List<EncounterDefinition> encounters;
 
   List<PolygonTerrainPlacementSelection> placementSelections() {
     final counts = <String, int>{};
@@ -488,6 +494,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       'collisionShapes',
       'waterRegions',
       'traps',
+      'encounters',
     },
     required: const {
       'schemaVersion',
@@ -655,6 +662,12 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
   }
 
   return PolygonTerrainChunkSource(
+    encounters: decodeEncounterDefinitions(
+      root.containsKey('encounters') ? root['encounters'] : const [],
+      sourcePath: '$sourcePath.encounters',
+      chunkWidth: _positiveInt(root['width'], '$sourcePath.width'),
+      chunkHeight: _positiveInt(root['height'], '$sourcePath.height'),
+    ),
     traps: decodeTrapPlacements(
       root.containsKey('traps') ? root['traps'] : const [],
       sourcePath: '$sourcePath.traps',

@@ -522,6 +522,10 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
         tileContents: input.tileContents,
         chunkSourcePath: entry.key,
         chunkContents: entry.value,
+        groundTopY: input.level.groundTopY,
+        // Capture validates every source; runtime readiness applies only to the
+        // active pool that this specific Play request can actually instantiate.
+        requireEncounterReadiness: false,
       );
       if (result.chunk == null) {
         return PlaytestPreparationResult.failure(
@@ -543,6 +547,32 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
     final active = runtimeChunks
         .where((c) => isRuntimeEligibleChunkStatus(c.stagedTerrain.status))
         .toList();
+    for (final chunk in active) {
+      if (input.selectedChunkKeys != null &&
+          !input.selectedChunkKeys!.contains(chunk.pattern.chunkKey)) {
+        continue;
+      }
+      final encounterIssues = validateEncounterReadiness(
+        encounters: chunk.pattern.encounters,
+        geometry: chunk.compiled.geometry,
+        chunkWidth: chunk.stagedTerrain.width.toDouble(),
+        groundTopY: input.level.groundTopY,
+        sourcePath: chunk.sourcePath,
+        chunkKey: chunk.stagedTerrain.chunkKey,
+      );
+      if (encounterIssues.isNotEmpty) {
+        return PlaytestPreparationResult.failure(
+          encounterIssues.map(
+            (issue) => PlaytestPreparationIssue(
+              code: issue.code,
+              message: issue.message,
+              sourcePath: issue.sourcePath,
+              ownerKey: issue.ownerKey,
+            ),
+          ),
+        );
+      }
+    }
     List<ChunkPattern> tier(
       Iterable<PolygonTerrainRuntimeChunk> chunks,
       String name,

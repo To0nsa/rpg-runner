@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "rescue_example",
+  "id": "rescue_example",
+  "revision": 1,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "surfaceKind": "ground",
+      "vertices": [
+        {"x": 0, "y": 224},
+        {"x": 600, "y": 224},
+        {"x": 600, "y": 270},
+        {"x": 0, "y": 270}
+      ]
+    }
+  ],
+  "encounters": [
+    {
+      "id": "roadside_rescue",
+      "name": "Roadside rescue",
+      "trigger": {"x": 64, "y": 0, "width": 160, "height": 224},
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {"id": "warrior", "npcId": "warrior", "x": 256, "facing": "right", "placement": "ground"}
+      ],
+      "enemies": [
+        {"id": "ambusher", "enemyId": "hashash", "x": 416, "facing": "left", "placement": "ground"}
+      ]
+    }
+  ]
+}
