@@ -6,6 +6,10 @@
 /// - assets/authoring/level/tile_defs.json
 library;
 
+import '../enemies/enemy_id.dart';
+import '../combat/ai_target_policy.dart';
+import '../encounters/encounter_definition.dart';
+import '../npcs/npc_id.dart';
 import '../snapshots/enums.dart';
 import '../traps/trap_id.dart';
 import '../traps/trap_geometry.dart';
@@ -19,17 +23,42 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
 const List<ChunkPattern> fieldEasyPatterns = <ChunkPattern>[
 ];
 
-const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
+final List<ChunkPattern> fieldNormalPatterns = List.unmodifiable(<ChunkPattern>[
   ChunkPattern(
     name: 'field_flat',
     chunkKey: 'field_flat',
     assemblyGroupId: 'default',
-    visualSprites: <ChunkVisualSpriteRel>[
+    visualSprites: const <ChunkVisualSpriteRel>[
     ],
-    spawnMarkers: <SpawnMarker>[
+    spawnMarkers: const <SpawnMarker>[
     ],
   ),
-];
+  ChunkPattern(
+    name: 'field_roadside_rescue',
+    chunkKey: 'field_roadside_rescue',
+    assemblyGroupId: 'default',
+    visualSprites: const <ChunkVisualSpriteRel>[
+    ],
+    spawnMarkers: const <SpawnMarker>[
+    ],
+    encounters: List.unmodifiable(<EncounterDefinition>[
+      EncounterDefinition(
+        id: 'roadside_rescue', name: 'Roadside rescue',
+        trigger: EncounterTrigger(x: 160.0, y: 0.0, width: 224.0, height: 222.0),
+        targetPolicy: AiTargetPolicy.preferEncounterNpcs,
+        npcs: <EncounterNpcPlacement>[
+          EncounterNpcPlacement(id: 'archer', npcId: NpcId.huntress2, x: 224.0, facing: Facing.right, placement: SpawnPlacementMode.ground),
+          EncounterNpcPlacement(id: 'huntress', npcId: NpcId.huntress, x: 272.0, facing: Facing.right, placement: SpawnPlacementMode.ground),
+          EncounterNpcPlacement(id: 'warrior', npcId: NpcId.warrior, x: 352.0, facing: Facing.right, placement: SpawnPlacementMode.ground),
+        ],
+        enemies: <EncounterEnemyPlacement>[
+          EncounterEnemyPlacement(id: 'ambusher', enemyId: EnemyId.hashash, x: 528.0, facing: Facing.left, placement: SpawnPlacementMode.ground),
+          EncounterEnemyPlacement(id: 'raider', enemyId: EnemyId.grojib, x: 432.0, facing: Facing.left, placement: SpawnPlacementMode.ground),
+        ],
+      ),
+    ]),
+  ),
+]);
 
 const List<ChunkPattern> fieldHardPatterns = <ChunkPattern>[
 ];
@@ -3905,7 +3934,7 @@ const List<ChunkPattern> newLevelNormalPatterns = <ChunkPattern>[
 const List<ChunkPattern> newLevelHardPatterns = <ChunkPattern>[
 ];
 
-const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <String, ChunkPatternListSource>{
+final Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = Map.unmodifiable(<String, ChunkPatternListSource>{
   'field': ChunkPatternListSource(
     earlyPatterns: fieldEarlyPatterns,
     easyPatterns: fieldEasyPatterns,
@@ -3924,7 +3953,7 @@ const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <
     normalPatterns: newLevelNormalPatterns,
     hardPatterns: newLevelHardPatterns,
   ),
-};
+});
 
 ChunkPatternListSource authoredChunkPatternSourceForLevel(
   String levelId,

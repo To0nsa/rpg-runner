@@ -837,6 +837,17 @@ score and gold claims are ignored at 30 Hz. Defaults now agree on gameplay
 `2026.09.8`/`score-v2`; retired versions reject before replay. Deployment remains
 tracked separately in [release operations](rescue_release_operations.md).
 
+M7 content evidence: `field_roadside_rescue` includes all three allies against
+Grojib/Hashash with default rewards and clear, connected ground. Seeds 7, 42 and
+2026 rescue all three before ordinary auto-scroll catches the player; the 2026
+case also passes at 30 Hz. Tests record actual inputs and replay through the
+worker, checking every NPC's full horizontal body bounds and authoritative
+750-point totals despite forged summaries. All 694 Core tests (including the
+ordinary-combat digest and traversal matrix) and 152 worker tests pass in an
+isolated checkout. Generated rescue-only changes are staged from the committed
+authoring baseline; concurrent user Forest/navigation edits remain separate.
+Full editor/app checks and compiled performance evidence are still in progress.
+
 | Area | Required evidence |
 | --- | --- |
 | Ordinary gameplay | No-encounter traces preserve enemy targets, navigation, attacks, death/kill behavior and existing score contributions across ground, flying and special enemies. |

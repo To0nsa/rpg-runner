@@ -5,8 +5,10 @@ Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 score IDs. Core contracts, shared AI targeting, all three NPC archetypes, encounter
 lifecycle, shared authored compilation and Chunk Creator authoring are delivered
 slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
-Rescue statistics and score presentation are implemented. Gameplay currently runs
-through typed and captured-source fixtures; production rescue content is not yet authored.
+Rescue statistics and score presentation are implemented. The generated Field
+pool includes `field_roadside_rescue`, authored with all three NPCs and required
+Grojib/Hashash participants. Normal Core and the replay worker use that same
+source-generated content; editor Play uses the shared captured-source pipeline.
 
 An encounter owns separate NPC and enemy placement lists. Member IDs are unique
 across both lists and local to the encounter. Coordinates use world units, with
@@ -309,6 +311,15 @@ evidence requires grounded resolved supports with movement/navigation unlocked;
 water-entry fallback is considered first. It expires on support/profile changes,
 target movement or terrain publication, without ranking candidates by all-pairs
 path searches. Blocked evidence is local to each attacker.
+
+Terrain navigation distinguishes a direct supported walk chain from a jump/drop
+plan through `canWalkDirectlyToTarget`. Ground melee enemies on that chain stop
+their pursuit velocity while engaged within melee X range and one attacker
+collider half-height vertically, continuing to face the selected opponent. This
+hold applies between attacks too; leaving range resumes pursuit. It does not
+interrupt airborne motion, swimming or committed terrain transitions. The flag
+is refreshed with navigation and cleared on target loss or water pursuit.
+Hashash's explicit evade/ambush teleport retains its normal repositioning.
 
 `EcsWorld.destroyEntity` removes inbound roster, selection and navigation-target
 references before recycling entity IDs. Removing an encounter's target component

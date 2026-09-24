@@ -5,6 +5,11 @@ inside the chunk where the encounter was placed; detached arrows and spears
 keep their normal range. The trigger starts the fight and does not define their
 movement boundary. Repeated placements of a chunk create independent groups.
 
+Ground melee enemies stop and face their opponent once they reach fighting
+range on reachable ground, holding position between attacks instead of running
+through the NPC. They chase again when the opponent moves out of range. Hashash
+can still change sides with its evade-and-ambush teleport.
+
 | NPC | Health | Attack | Damage | Attack range |
 | --- | ---: | --- | ---: | ---: |
 | Warrior | 35 | Sword slash | 4 | 52 |
@@ -37,6 +42,11 @@ Core resolves a default award of 250 points per survivor, with a per-encounter
 override including zero. Chunk Creator exposes this value and targeting policy
 on each rescue group; incomplete groups can be saved while being authored.
 The end screen lists credited survivors and their combined rescue points in a
-separate row, including zero-point rescues. Production encounter content remains tracked in the
-[implementation plan](../building/npc_rescue_encounters.md). See the
+separate row, including zero-point rescues. Field's `field_roadside_rescue` chunk
+places all three allies against a Grojib and a Hashash on a clear, flat route.
+Its trigger starts at X 160; the group inherits the 250-point default, for up to
+750 points. It enters the normal pool and obeys the first-three-chunks enemy
+suppression. Repeated placements remain independent. Three seeded runs and a
+30 Hz replay clear it with ordinary player movement/attacks and the normal camera.
+See the
 [technical contract](../tdd/npc_encounter_contracts.md) for ownership and ordering.
