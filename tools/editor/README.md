@@ -32,10 +32,12 @@ flutter run -d windows
 
 Chunk Creator's **Traps** tab places Spike, Swinging Axe and Poison Darts.
 Expand **Create trap**, choose a type, set **Damage on hit (HP)** and **Seconds
-before damage** beneath its preview, and press **Place in scene** before
+before damage**, and set **Z-index** beneath its preview. Press **Place in scene** before
 clicking or dragging its anchor. Selecting a type alone does not arm placement;
 Cancel or Escape leaves placement mode. Select an **Existing traps** row to edit
-damage, delay, anchor coordinates, facing and trigger dimensions inline with
+damage, delay, anchor coordinates, facing, trigger dimensions and **Z-index**
+(default **-21**). Higher Z-index draws in front, using the same scale as prefabs;
+idle and animated frames retain that value. Use
 **Save edit** or **Cancel changes**. Unsaved input is protected when switching selection, tabs or
 owners, or collapsing the inspector; Save and Play accept valid input first.
 Drag the sprite to move it with its trigger, use **Move trigger** or **Draw

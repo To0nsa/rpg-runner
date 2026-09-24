@@ -3,6 +3,8 @@ import 'chunk_trap_gesture.dart';
 import 'chunk_trap_panel.dart';
 import 'chunk_trap_inline_inspector.dart';
 import 'chunk_trap_tuning_fields.dart';
+import 'chunk_trap_depth_field.dart';
+import 'chunk_scene_placement_layers.dart';
 import '../../../../chunks/chunk_trap_tuning_input.dart';
 
 import 'chunk_trap_visual_source.dart';
@@ -189,6 +191,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     text: formatTrapWindupMs(TrapCatalog.get(_trapGesture.catalogId).windupMs),
   );
   final _trapEditController = TerrainPolygonExactEditController();
+  final _trapZIndex = TextEditingController(
+    text: '${TrapPlacement.defaultZIndex}',
+  );
   ChunkV2FileData? _trapEditorChunk;
   bool _trapCreationExpanded = false;
   bool _trapExistingExpanded = true;
@@ -578,6 +583,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void dispose() {
     _trapDamage.dispose();
     _trapWindup.dispose();
+    _trapZIndex.dispose();
     _trapImages.dispose();
     _trapEditController
       ..removeListener(_handleExactEditChanged)
@@ -944,13 +950,25 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       snapControls: snapControls(creation: true),
       damage100: parseTrapDamage100(_trapDamage.text),
       windupMs: parseTrapWindupMs(_trapWindup.text),
-      tuningControls: ChunkTrapTuningFields(
-        keyPrefix: 'chunk_trap_create',
-        damage: _trapDamage,
-        windup: _trapWindup,
-        enabled: enabled && _trapGesture.tool != ChunkTrapTool.place,
-        onChanged: () => setState(() {}),
-        onReset: () => setState(_resetTrapCreationTuning),
+      depthValid: int.tryParse(_trapZIndex.text.trim()) != null,
+      tuningControls: Column(
+        children: [
+          ChunkTrapTuningFields(
+            keyPrefix: 'chunk_trap_create',
+            damage: _trapDamage,
+            windup: _trapWindup,
+            enabled: enabled && _trapGesture.tool != ChunkTrapTool.place,
+            onChanged: () => setState(() {}),
+            onReset: () => setState(_resetTrapCreationTuning),
+          ),
+          ChunkTrapDepthField(
+            key: const ValueKey('chunk_trap_create_z_index'),
+            controller: _trapZIndex,
+            enabled: enabled && _trapGesture.tool != ChunkTrapTool.place,
+            onChanged: () => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+        ],
       ),
       error: _trapGesture.error,
       onCatalog: (id) => setState(() {
@@ -1016,9 +1034,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (tool == ChunkTrapTool.place) {
       final damage = parseTrapDamage100(_trapDamage.text);
       final windup = parseTrapWindupMs(_trapWindup.text);
-      if (damage == null || windup == null) return;
+      final zIndex = int.tryParse(_trapZIndex.text.trim());
+      if (damage == null || windup == null || zIndex == null) return;
       _trapGesture.damage100 = damage;
       _trapGesture.windupMs = windup;
+      _trapGesture.zIndex = zIndex;
     }
     setState(() => _trapGesture.tool = tool);
   }
@@ -2220,26 +2240,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             paintFill: false,
                           ),
                         ),
-                      if (belowTerrainVisuals.isNotEmpty)
-                        ChunkSceneVisualSource(
-                          key: const ValueKey<String>(
-                            'chunk_polygon_visual_below_terrain',
-                          ),
-                          workspaceRootPath: widget.controller.workspacePath,
-                          placements: belowTerrainVisuals.where(
-                            (p) => p.zIndex < chunk.groundBandZIndex - 1,
-                          ),
-                          transform: transform,
+                      ChunkScenePlacementLayers(
+                        key: const ValueKey<String>(
+                          'chunk_polygon_visual_below_terrain',
                         ),
-                      trapVisual(ChunkTrapVisualPass.idle),
-                      if (belowTerrainVisuals.isNotEmpty)
-                        ChunkSceneVisualSource(
-                          workspaceRootPath: widget.controller.workspacePath,
-                          placements: belowTerrainVisuals.where(
-                            (p) => p.zIndex >= chunk.groundBandZIndex - 1,
-                          ),
-                          transform: transform,
-                        ),
+                        workspaceRootPath: widget.controller.workspacePath,
+                        images: _trapImages,
+                        prefabs: belowTerrainVisuals,
+                        traps: trapPreview
+                            .where((t) => t.zIndex < chunk.groundBandZIndex)
+                            .toList(),
+                        selectedTrap:
+                            _trapGesture.candidate ??
+                            _sceneCoordinator.selectedTrap,
+                        previewFrame: _trapGesture.previewFrame,
+                        transform: transform,
+                      ),
                       ListenableBuilder(
                         listenable: authoring,
                         builder: (context, _) => ChunkPolygonLevelVisualSource(
@@ -2313,26 +2329,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             ),
                           ),
 
-                      if (atOrAboveTerrainVisuals.isNotEmpty)
-                        ChunkSceneVisualSource(
-                          key: const ValueKey<String>(
-                            'chunk_polygon_visual_at_or_above_terrain',
-                          ),
-                          workspaceRootPath: widget.controller.workspacePath,
-                          placements: atOrAboveTerrainVisuals.where(
-                            (p) => p.zIndex < chunk.groundBandZIndex + 1,
-                          ),
-                          transform: transform,
+                      ChunkScenePlacementLayers(
+                        key: const ValueKey<String>(
+                          'chunk_polygon_visual_at_or_above_terrain',
                         ),
-                      trapVisual(ChunkTrapVisualPass.active),
-                      if (atOrAboveTerrainVisuals.isNotEmpty)
-                        ChunkSceneVisualSource(
-                          workspaceRootPath: widget.controller.workspacePath,
-                          placements: atOrAboveTerrainVisuals.where(
-                            (p) => p.zIndex >= chunk.groundBandZIndex + 1,
-                          ),
-                          transform: transform,
-                        ),
+                        workspaceRootPath: widget.controller.workspacePath,
+                        images: _trapImages,
+                        prefabs: atOrAboveTerrainVisuals,
+                        traps: trapPreview
+                            .where((t) => t.zIndex >= chunk.groundBandZIndex)
+                            .toList(),
+                        selectedTrap:
+                            _trapGesture.candidate ??
+                            _sceneCoordinator.selectedTrap,
+                        previewFrame: _trapGesture.previewFrame,
+                        transform: transform,
+                      ),
                       if (!_visualPreview &&
                           _sceneCoordinator.sourceDomain ==
                               ChunkSceneDomain.water)

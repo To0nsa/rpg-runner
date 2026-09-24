@@ -35,6 +35,7 @@ class ChunkTrapPanel extends StatelessWidget {
     required this.tuningControls,
     required this.damage100,
     required this.windupMs,
+    required this.depthValid,
     required this.selectedEditor,
     required this.onCatalog,
     required this.onSelect,
@@ -53,6 +54,7 @@ class ChunkTrapPanel extends StatelessWidget {
   final Widget snapControls;
   final Widget tuningControls;
   final int? damage100, windupMs;
+  final bool depthValid;
   final Widget? selectedEditor;
   final ValueChanged<TrapId> onCatalog;
   final ValueChanged<TrapPlacement> onSelect;
@@ -135,7 +137,8 @@ class ChunkTrapPanel extends StatelessWidget {
                             !placing &&
                             traps.length < 8 &&
                             damage100 != null &&
-                            windupMs != null
+                            windupMs != null &&
+                            depthValid
                         ? onPlace
                         : null,
                     icon: const Icon(Icons.add_location_alt_outlined),
@@ -182,7 +185,7 @@ class ChunkTrapPanel extends StatelessWidget {
                       '${trapDisplayName(trap.trapId)} · ${trap.x}, ${trap.y}',
                     ),
                     subtitle: Text(
-                      'Trigger ${trap.trigger.width} × ${trap.trigger.height} · ${trap.facing.name}',
+                      'z=${trap.zIndex} · Trigger ${trap.trigger.width} × ${trap.trigger.height} · ${trap.facing.name}',
                     ),
                   ),
                 ),

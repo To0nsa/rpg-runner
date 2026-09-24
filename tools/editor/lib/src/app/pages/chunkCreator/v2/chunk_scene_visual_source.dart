@@ -109,11 +109,15 @@ class ChunkSceneVisualSource extends StatefulWidget {
     required this.workspaceRootPath,
     required this.placements,
     required this.transform,
+    this.imageCache,
   });
 
   final String workspaceRootPath;
   final Iterable<ChunkScenePlacedVisual> placements;
   final TerrainPolygonViewportTransform transform;
+
+  /// Borrowed cache for depth partitions; its owner retains disposal authority.
+  final EditorUiImageCache? imageCache;
 
   @override
   State<ChunkSceneVisualSource> createState() => _ChunkSceneVisualSourceState();
@@ -125,23 +129,24 @@ class _ChunkSceneVisualSourceState extends State<ChunkSceneVisualSource> {
   @override
   void initState() {
     super.initState();
-    _imageCache = EditorUiImageCache();
+    _imageCache = widget.imageCache ?? EditorUiImageCache();
     _ensureImagesLoaded();
   }
 
   @override
   void didUpdateWidget(covariant ChunkSceneVisualSource oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
-      _imageCache.dispose();
-      _imageCache = EditorUiImageCache();
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
+        oldWidget.imageCache != widget.imageCache) {
+      if (oldWidget.imageCache == null) _imageCache.dispose();
+      _imageCache = widget.imageCache ?? EditorUiImageCache();
     }
     _ensureImagesLoaded();
   }
 
   @override
   void dispose() {
-    _imageCache.dispose();
+    if (widget.imageCache == null) _imageCache.dispose();
     super.dispose();
   }
 
@@ -182,8 +187,11 @@ class _ChunkSceneVisualSourceState extends State<ChunkSceneVisualSource> {
     }
     for (final sourcePath in sourcePaths) {
       () async {
-        final image = await _imageCache.ensureLoaded(_absolutePath(sourcePath));
-        if (mounted && image != null) setState(() {});
+        final cache = _imageCache;
+        final image = await cache.ensureLoaded(_absolutePath(sourcePath));
+        if (mounted && identical(cache, _imageCache) && image != null) {
+          setState(() {});
+        }
       }();
     }
   }

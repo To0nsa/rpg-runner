@@ -239,6 +239,7 @@ void main() {
           trigger: TrapRect(-80, -40, 120, 48),
           damage100: 275,
           windupMs: 125,
+          zIndex: -17,
         ),
       ];
       final chunk = repositoryDocument.chunks

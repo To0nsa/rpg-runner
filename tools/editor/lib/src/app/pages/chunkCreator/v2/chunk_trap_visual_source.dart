@@ -13,7 +13,7 @@ import '../../shared/scene_rectangle_gesture.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import 'chunk_trap_gesture.dart';
 
-enum ChunkTrapVisualPass { idle, active, overlay }
+enum ChunkTrapVisualPass { sprites, overlay }
 
 /// Catalog art partitioned around terrain, with authoring-only geometry guides.
 class ChunkTrapVisualSource extends StatefulWidget {
@@ -135,7 +135,6 @@ class _TrapPainter extends CustomPainter {
       final index = trap == selected && frame >= 0
           ? frame.clamp(0, def.frames.length - 1)
           : def.idleFrameIndex;
-      final active = trap == selected && frame >= 0;
       if (pass == ChunkTrapVisualPass.overlay) {
         if (authoring) {
           final bounds = trapTriggerBounds(trap);
@@ -184,7 +183,6 @@ class _TrapPainter extends CustomPainter {
         }
         continue;
       }
-      if ((pass == ChunkTrapVisualPass.active) != active) continue;
       final source = def.frames[index].source;
       final image = images[trap.trapId];
       canvas.save();

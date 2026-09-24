@@ -40,12 +40,19 @@ TrapPlacement? hitTestChunkTrap(
   List<TrapPlacement> traps,
   Offset point, {
   bool trigger = false,
-}) => traps.reversed
-    .where(
-      (trap) => (trigger ? trapTriggerBounds(trap) : trapSpriteBounds(trap))
-          .contains(point),
-    )
-    .firstOrNull;
+}) {
+  final ordered = [...traps]
+    ..sort((a, b) {
+      final depth = a.zIndex.compareTo(b.zIndex);
+      return depth != 0 ? depth : compareTrapPlacements(a, b);
+    });
+  return ordered.reversed
+      .where(
+        (trap) => (trigger ? trapTriggerBounds(trap) : trapSpriteBounds(trap))
+            .contains(point),
+      )
+      .firstOrNull;
+}
 
 String? validateChunkTrapCandidate(
   ChunkV2FileData chunk,
@@ -81,6 +88,7 @@ final class ChunkTrapGesture {
   ChunkTrapTool tool = ChunkTrapTool.select;
   TrapId catalogId = TrapId.spike;
   int? damage100, windupMs;
+  int zIndex = TrapPlacement.defaultZIndex;
   int previewFrame = 0;
   ChunkV2FileData? _chunk;
   ChunkV2CompositionOperation? _operation;
@@ -116,6 +124,7 @@ final class ChunkTrapGesture {
             trigger: TrapCatalog.get(catalogId).defaultTrigger,
             damage100: damage100,
             windupMs: windupMs,
+            zIndex: zIndex,
           )
         : selected!;
     final corner = !adding && tool == ChunkTrapTool.select

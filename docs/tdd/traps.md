@@ -6,6 +6,8 @@ Chunk Creator Traps tab are implemented. See the
 [validation record](../archive/2026-09-24/verification/traps.md).
 Per-placement tuning has its own
 [verification record](../archive/2026-09-24/verification/trap-placement-tuning.md).
+Fixed authored depth is covered by the
+[depth verification record](../archive/2026-09-24/verification/trap-depth.md).
 
 ## Ownership and source
 

@@ -11,6 +11,7 @@ import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
 import 'chunk_trap_panel.dart';
 import 'chunk_trap_tuning_fields.dart';
+import 'chunk_trap_depth_field.dart';
 
 /// Keeps numeric input local until one revision-guarded composition edit succeeds.
 /// The workspace supplies a new key when selection or its source revision changes.
@@ -53,6 +54,7 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
     text: formatTrapWindupMs(widget.source.windupMs),
   );
   late Facing _facing = widget.source.facing;
+  late final _zIndex = TextEditingController(text: '${widget.source.zIndex}');
   final _rectangle = TerrainPolygonExactEditController();
   String? _error;
   bool _saved = false;
@@ -64,6 +66,7 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
           _facing != widget.source.facing ||
           parseTrapDamage100(_damage.text) != widget.source.damage100 ||
           parseTrapWindupMs(_windup.text) != widget.source.windupMs ||
+          int.tryParse(_zIndex.text.trim()) != widget.source.zIndex ||
           _rectangle.hasChanges);
 
   @override
@@ -90,6 +93,7 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
       _y.text = '${widget.source.y}';
       _damage.text = formatTrapDamage100(widget.source.damage100);
       _windup.text = formatTrapWindupMs(widget.source.windupMs);
+      _zIndex.text = '${widget.source.zIndex}';
       _facing = widget.source.facing;
       _error = null;
       _saved = false;
@@ -107,6 +111,7 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
     _y.dispose();
     _damage.dispose();
     _windup.dispose();
+    _zIndex.dispose();
     super.dispose();
   }
 
@@ -194,6 +199,16 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
             ),
           ],
           const SizedBox(height: 12),
+          ChunkTrapDepthField(
+            key: const ValueKey('chunk_trap_edit_z_index'),
+            controller: _zIndex,
+            enabled: widget.enabled,
+            onChanged: () {
+              setState(() {});
+              _changed();
+            },
+          ),
+          const SizedBox(height: 12),
           widget.snapControls,
           const SizedBox(height: 12),
           const Text(
@@ -230,13 +245,17 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
                   }
                   final damage = parseTrapDamage100(_damage.text);
                   final windup = parseTrapWindupMs(_windup.text);
-                  if (damage == null || windup == null) return false;
+                  final zIndex = int.tryParse(_zIndex.text.trim());
+                  if (damage == null || windup == null || zIndex == null) {
+                    return false;
+                  }
                   final candidate = widget.source.copyWith(
                     x: x,
                     y: y,
                     facing: _facing,
                     damage100: damage,
                     windupMs: windup,
+                    zIndex: zIndex,
                     trigger: TrapRect(
                       xHalfPixels ~/ 2,
                       (bottomYHalfPixels - heightHalfPixels) ~/ 2,
