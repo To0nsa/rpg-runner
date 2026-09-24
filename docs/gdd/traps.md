@@ -18,6 +18,11 @@ delay accepts 0–30 seconds in 0.001-second increments. Reset to defaults resto
 that type's values for the current creation/edit buffer. Editing one placement
 does not change other traps or the catalog defaults.
 
+Each trap also has a **Z-index**, defaulting to **-21**, in both creation and
+editing. It uses the same depth scale as prefabs: higher values draw in front.
+The chosen depth stays fixed while idle, winding up, attacking and recovering;
+previewing animation frames does not raise or lower the trap.
+
 The delay changes animation wind-up, keeping the first harmful pose synchronized
 with damage. Attack/recovery animation and the one-second cooldown retain their
 duration. Zero starts at the first harmful pose. For Poison Darts, this is the
@@ -43,8 +48,8 @@ requires an empty trigger before another activation. A dart launcher also waits
 for its previous dart to disappear. Continuous overlap never auto-repeats.
 
 The trap animation provides its wind-up and attack feedback. Gameplay has no
-yellow/red warning zones or exclamation markers. Idle machinery sits behind
-terrain; active art sits above terrain and behind actors. Exact trigger and
+yellow/red warning zones or exclamation markers. Authored Z-index controls trap
+art in every phase. Exact trigger and
 damage geometry is available only in authoring and optional hitbox debugging.
 
 Traps are indestructible. Enemy trap deaths use normal enemy kill scoring but

@@ -21,6 +21,7 @@ void main() {
     final result = decode([trap()]);
     expect(result.single.trapId, TrapId.spike);
     expect(result.single.toJson(), trap());
+    expect(result.single.zIndex, -21);
     expect(() => result.clear(), throwsUnsupportedError);
     expect(decode([]), isEmpty);
   });
@@ -28,15 +29,18 @@ void main() {
   test(
     'optional tuning round trips and explicit defaults canonicalize away',
     () {
-      final tuned = {...trap(), 'damage100': 125, 'windupMs': 0};
+      final tuned = {...trap(), 'damage100': 125, 'windupMs': 0, 'zIndex': 7};
       expect(decode([tuned]).single.toJson(), tuned);
       expect(
         decode([
-          {...trap(), 'damage100': 500, 'windupMs': 700},
+          {...trap(), 'damage100': 500, 'windupMs': 700, 'zIndex': -21},
         ]).single.toJson(),
         trap(),
       );
       for (final fields in [
+        {'zIndex': null},
+        {'zIndex': 1.5},
+        {'zIndex': '2'},
         {'damage100': null},
         {'damage100': 1.0},
         {'damage100': '100'},

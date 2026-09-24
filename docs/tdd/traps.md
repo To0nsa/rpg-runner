@@ -17,7 +17,7 @@ their captured terrain dimensions. Traps do not alter terrain signatures or
 connection seams.
 
 Source order is lexicographic by x, y, trap enum ordinal, facing enum ordinal,
-trigger offsetX, offsetY, width, height, effective damage100 and windupMs.
+trigger offsetX, offsetY, width, height, effective damage100, windupMs and zIndex.
 Exact duplicates and more than eight placements per chunk are rejected.
 Positions and rectangle coordinates must be integers. The full sprite rectangle,
 anchor, trigger and all damage envelopes
@@ -34,6 +34,13 @@ canonical ordering and editor selection use effective values. Strict decoding
 rejects null, non-integer and out-of-range overrides. These fields flow through
 the shared codec, materializer, generated constructors and captured Play; no
 separate tuning document or migration path exists.
+
+`zIndex` is optional integer presentation metadata, defaulting to `-21`. Source
+uses the same authored depth scale as prefabs. Runtime materialization subtracts
+`groundBandZIndex`, putting terrain at zero, and snapshots retain that fixed
+value through every phase. Non-default values serialize explicitly; null or
+non-integer values fail decoding. Changing only depth leaves gameplay outcomes
+unchanged and does not require another game-compatibility cutover.
 
 Editor composition snapshots and operations include traps. Existing layer,
 prefab and marker edits retain them, and trap operations use the same optimistic
@@ -130,8 +137,11 @@ frame. No elapsed renderer time controls attacks.
 `TrapRenderRegistry` loads the catalog's explicit source rectangles through the
 shared animation loader. `TrapRenderSystem` selects the snapshot frame directly,
 mirrors around the catalog anchor and uses the existing camera-space pixel snap.
-Idle/cooldown machinery has priority -6; warning/active art has priority -4.
-Terrain remains -5 and darts retain projectile priority -1.
+Trap priority is `priorityStaticPrefabs + snapshot.zIndex` in every phase.
+Terrain remains -5 and separately flying darts retain projectile priority -1.
+Static prefab views mount before traps to keep equal-depth insertion consistent
+for initial and newly streamed placements. Animation frame selection never
+changes depth.
 
 Gameplay renders the trap animation and projectiles without colored zones or
 exclamation markers. `TrapHitboxOverlay`, under `lib/game/debug`, draws only
@@ -153,20 +163,23 @@ placement; the explicit Place in scene action does. Scene tools live above the
 canvas and snapping controls stay with creation or editing. Facing mirrors the
 catalog art/damage preview while retaining the saved trigger. A frame slider
 projects exact catalog poses, damage capsules and dart muzzle/path; blue
-rectangles are authoring-only activation triggers. Idle/active art is partitioned
-around terrain and prefab layers. Geometry guides render after the complete
+rectangles are authoring-only activation triggers. Trap and prefab art share
+sorted Z-index partitions on either side of terrain; prefabs draw first at an
+equal depth. Those partitions share a borrowed image cache rather than decoding
+the same atlas for each depth. Picking overlapping traps prefers the highest
+depth, then reverse canonical source order. Geometry guides render after the complete
 editor scene only while authoring; Visual preview and Play show trap art without
 colored zones or exclamation markers. The catalog's seconds-before-damage label
 describes the animation wind-up, not a separate visual warning. Damage and delay
 fields sit beneath the creation preview and in the selected placement's inline
-editor. Creation values seed the next placement; selecting a different type
+editor, alongside a whole-number Z-index field. Creation values seed the next placement; selecting a different type
 restores its catalog defaults. Reset to defaults changes only that local buffer.
 For darts, delay is to launch; impact also depends on travel.
 
 Water and traps share `SceneRectangleGesture` for pointer ownership, whole-pixel
 or tile-grid snapping, neighbor snapping, movement, resize and chunk bounds.
 Each domain retains its own validation and commit policy. Trap previews remain
-local until pointer release or Save edit. Damage, delay, anchor, facing and
+local until pointer release or Save edit. Z-index, damage, delay, anchor, facing and
 trigger fields form one local buffer through the shared exact-edit controller
 and rectangle editor.
 Selection, domain, owner and inspector-collapse changes resolve that buffer with

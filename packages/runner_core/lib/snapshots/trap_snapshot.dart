@@ -12,6 +12,7 @@ final class TrapSnapshot {
     required this.facing,
     required this.phase,
     required this.frameIndex,
+    required this.zIndex,
   });
   final TrapSourceRef source;
   final double x;
@@ -19,4 +20,7 @@ final class TrapSnapshot {
   final Facing facing;
   final TrapPhase phase;
   final int frameIndex;
+
+  /// Immutable terrain-relative visual order, independent of attack phase.
+  final int zIndex;
 }

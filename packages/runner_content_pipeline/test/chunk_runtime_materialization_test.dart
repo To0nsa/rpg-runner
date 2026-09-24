@@ -7,8 +7,12 @@ import 'package:test/test.dart';
 
 void main() {
   test('traps materialize without changing terrain signatures', () {
-    PolygonTerrainRuntimeChunk compile({required bool withTraps}) {
+    PolygonTerrainRuntimeChunk compile({
+      required bool withTraps,
+      int groundZ = 0,
+    }) {
       final source = jsonDecode(_chunk) as Map<String, dynamic>;
+      source['groundBandZIndex'] = groundZ;
       if (withTraps) {
         source['traps'] = [
           {
@@ -38,6 +42,9 @@ void main() {
     expect(empty.pattern.traps, isEmpty);
     expect(added.pattern.traps.single.x, 200);
     expect(added.pattern.traps, added.compiled.chunk.traps);
+    final shifted = compile(withTraps: true, groundZ: 4);
+    expect(shifted.compiled.chunk.traps.single.zIndex, -21);
+    expect(shifted.pattern.traps.single.zIndex, -25);
     expect(
       added.stagedTerrain.sourceSignature,
       empty.stagedTerrain.sourceSignature,
@@ -47,6 +54,7 @@ void main() {
       empty.stagedTerrain.triangleSignature,
     );
     expect(() => added.pattern.traps.clear(), throwsUnsupportedError);
+    expect(() => shifted.pattern.traps.clear(), throwsUnsupportedError);
   });
   test('single source boundary returns typed staged terrain and pattern', () {
     final result = compilePolygonTerrainRuntimeChunkSource(

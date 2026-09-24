@@ -100,6 +100,7 @@ final class TrapStore {
         facing: state.placement.facing,
         phase: state.phase,
         frameIndex: state.frameIndex,
+        zIndex: state.placement.zIndex,
       ),
   ]);
 }

@@ -16,7 +16,10 @@ import 'package:runner_core/tuning/core_tuning.dart';
 
 /// Uses the real compiled flat terrain in both app and captured Level Play.
 /// The explicit matching pattern is test content, never an alternate run option.
-LevelDefinition trapRunLevel(TrapId id) => LevelDefinition(
+LevelDefinition trapRunLevel(
+  TrapId id, {
+  int zIndex = TrapPlacement.defaultZIndex,
+}) => LevelDefinition(
   id: LevelId.field,
   groundTopY: 222,
   noEnemyChunks: 9999,
@@ -34,6 +37,7 @@ LevelDefinition trapRunLevel(TrapId id) => LevelDefinition(
         traps: [
           TrapPlacement(
             trapId: id,
+            zIndex: zIndex,
             x: id == TrapId.poisonDarts ? 400 : 300,
             y: switch (id) {
               TrapId.spike => 220,
@@ -60,8 +64,9 @@ GameCore trapRunCore(
   PlayerCharacterDefinition character,
   TrapId id, {
   bool editor = false,
+  int zIndex = TrapPlacement.defaultZIndex,
 }) {
-  final level = trapRunLevel(id);
+  final level = trapRunLevel(id, zIndex: zIndex);
   if (editor) {
     return GameCore.levelPlaytest(
       scenario: LevelPlaytestScenario(

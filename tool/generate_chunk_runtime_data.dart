@@ -788,7 +788,7 @@ void _writePatternList(
           ..writeln(
             '        trigger: TrapRect(${rect.offsetX}, ${rect.offsetY}, ${rect.width}, ${rect.height}),',
           );
-        for (final key in ['damage100', 'windupMs']) {
+        for (final key in ['damage100', 'windupMs', 'zIndex']) {
           final value = trap.toJson()[key];
           if (value != null) buffer.writeln('        $key: $value,');
         }

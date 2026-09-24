@@ -27,6 +27,7 @@ List<TrapPlacement> decodeTrapPlacements(
       'trigger',
       if (json.containsKey('damage100')) 'damage100',
       if (json.containsKey('windupMs')) 'windupMs',
+      if (json.containsKey('zIndex')) 'zIndex',
       if (id != TrapId.spike) 'facing',
     };
     _keys(json, fields, path);
@@ -48,6 +49,9 @@ List<TrapPlacement> decodeTrapPlacements(
         x: _int(json, 'x', path),
         y: _int(json, 'y', path),
         facing: facing,
+        zIndex: json.containsKey('zIndex')
+            ? _int(json, 'zIndex', path)
+            : TrapPlacement.defaultZIndex,
         damage100: json.containsKey('damage100')
             ? _int(json, 'damage100', path)
             : null,

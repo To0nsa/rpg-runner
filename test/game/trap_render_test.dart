@@ -77,7 +77,10 @@ void main() {
         chunkIndex: 0,
         placementOrdinal: 0,
       );
-      for (final phase in TrapPhase.values) {
+      for (final (zIndex, phase) in [
+        for (final z in [-21, -1, 3])
+          for (final phase in TrapPhase.values) (z, phase),
+      ]) {
         final frame = phase == TrapPhase.active ? 8 : 0;
         final traps = [
           TrapSnapshot(
@@ -87,6 +90,7 @@ void main() {
             facing: Facing.right,
             phase: phase,
             frameIndex: frame,
+            zIndex: zIndex,
           ),
         ];
         views.sync(traps, cameraCenter: Vector2(300, 135));
@@ -95,10 +99,7 @@ void main() {
         await tester.pump();
         game.update(0);
         final view = game.world.children.whereType<SpriteComponent>().single;
-        expect(view.priority, switch (phase) {
-          TrapPhase.warning || TrapPhase.active => -4,
-          _ => -6,
-        });
+        expect(view.priority, -5 + zIndex, reason: '$phase must retain depth');
         expect(view.sprite, same(registry.frame(TrapId.spike, frame)));
         final recorder = ui.PictureRecorder();
         game.camera.renderTree(ui.Canvas(recorder));
@@ -126,6 +127,7 @@ void main() {
           facing: Facing.right,
           phase: TrapPhase.active,
           frameIndex: 8,
+          zIndex: -21,
         ),
       ];
       for (final enabled in [true, false]) {

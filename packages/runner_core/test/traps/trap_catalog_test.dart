@@ -91,6 +91,12 @@ void main() {
     expect(explicit, base);
     expect(explicit.hashCode, base.hashCode);
     expect(explicit.toJson(), base.toJson());
+    expect(base.zIndex, -21);
+    final raised = base.copyWith(zIndex: 7);
+    expect(raised, isNot(base));
+    expect(raised.copyWith(x: 320).zIndex, 7);
+    expect(raised.toJson()['zIndex'], 7);
+    expect(raised.copyWith(zIndex: -21).toJson(), base.toJson());
     final changed = base.copyWith(damage100: 125, windupMs: 125);
     expect(changed, isNot(base));
     expect(changed.copyWith(x: 320).damage100, 125);

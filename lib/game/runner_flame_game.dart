@@ -213,6 +213,9 @@ class RunnerFlameGame extends FlameGame {
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
 
     await _liveWorldSync.mountPlayer(playerAnimations);
+    await _liveWorldSync.mountStaticPrefabSprites(
+      controller.snapshot.staticPrefabSprites,
+    );
     _trapViews.sync(
       controller.snapshot.traps,
       cameraCenter: camera.viewfinder.position,
@@ -244,9 +247,6 @@ class RunnerFlameGame extends FlameGame {
       )..priority = priorityMeleeAimRay,
     );
 
-    await _liveWorldSync.mountStaticPrefabSprites(
-      controller.snapshot.staticPrefabSprites,
-    );
     _setLoadState(RunLoadPhase.worldReady, 1.0);
   }
 
@@ -289,11 +289,11 @@ class RunnerFlameGame extends FlameGame {
       _cameraBaseCenterScratch.y + _cameraShakeOffsetScratch.y,
     );
     camera.viewfinder.position = _cameraCenterScratch;
+    _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
     _trapViews.sync(currSnapshot.traps, cameraCenter: _cameraCenterScratch);
     _trapHitboxes.traps = currSnapshot.traps;
     _trapHitboxes.cameraCenter.setFrom(_cameraCenterScratch);
 
-    _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
     _liveWorldSync.snapStaticPrefabSprites(
       currSnapshot.staticPrefabSprites,
       cameraCenter: _cameraCenterScratch,

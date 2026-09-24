@@ -12,12 +12,14 @@ final class TrapPlacement {
     required this.y,
     required this.trigger,
     this.facing = Facing.right,
+    this.zIndex = defaultZIndex,
     int? damage100,
     int? windupMs,
   }) : _damage100 = damage100,
        _windupMs = windupMs;
 
   static const maxDamage100 = 100000;
+  static const defaultZIndex = -21;
   static const maxWindupMs = 30000;
   final int? _damage100, _windupMs;
 
@@ -33,6 +35,10 @@ final class TrapPlacement {
   final Facing facing;
   final TrapRect trigger;
 
+  /// Fixed visual order on the prefab scale. Source uses the chunk's authored
+  /// scale; compiled runtime data subtracts groundBandZIndex so terrain is zero.
+  final int zIndex;
+
   TrapPlacement copyWith({
     int? x,
     int? y,
@@ -40,6 +46,7 @@ final class TrapPlacement {
     TrapRect? trigger,
     int? damage100,
     int? windupMs,
+    int? zIndex,
   }) => TrapPlacement(
     trapId: trapId,
     x: x ?? this.x,
@@ -48,6 +55,7 @@ final class TrapPlacement {
     trigger: trigger ?? this.trigger,
     damage100: damage100 ?? this.damage100,
     windupMs: windupMs ?? this.windupMs,
+    zIndex: zIndex ?? this.zIndex,
   );
 
   Map<String, Object> toJson() => {
@@ -58,6 +66,7 @@ final class TrapPlacement {
     'trigger': trigger.toJson(),
     if (damage100 != TrapCatalog.get(trapId).damage100) 'damage100': damage100,
     if (windupMs != TrapCatalog.get(trapId).windupMs) 'windupMs': windupMs,
+    if (zIndex != defaultZIndex) 'zIndex': zIndex,
   };
 
   @override
@@ -65,10 +74,10 @@ final class TrapPlacement {
       other is TrapPlacement && compareTrapPlacements(this, other) == 0;
   @override
   int get hashCode =>
-      Object.hash(trapId, x, y, facing, trigger, damage100, windupMs);
+      Object.hash(trapId, x, y, facing, trigger, damage100, windupMs, zIndex);
 }
 
-/// Lexicographic source order: position, type, facing, trigger, then combat tuning.
+/// Lexicographic source order: position, type, facing, trigger, tuning, then depth.
 int compareTrapPlacements(TrapPlacement a, TrapPlacement b) {
   final pairs = [
     (a.x, b.x),
@@ -81,6 +90,7 @@ int compareTrapPlacements(TrapPlacement a, TrapPlacement b) {
     (a.trigger.height, b.trigger.height),
     (a.damage100, b.damage100),
     (a.windupMs, b.windupMs),
+    (a.zIndex, b.zIndex),
   ];
   for (final (left, right) in pairs) {
     final order = left.compareTo(right);

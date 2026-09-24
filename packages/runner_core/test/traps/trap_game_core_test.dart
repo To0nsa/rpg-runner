@@ -16,6 +16,25 @@ import 'package:test/test.dart';
 import '../test_support/trap_run_fixture.dart';
 
 void main() {
+  for (final id in TrapId.values) {
+    test('$id depth changes snapshots without changing gameplay', () {
+      final low = trapRunCore(PlayerCharacterRegistry.eloise, id);
+      final high = trapRunCore(PlayerCharacterRegistry.eloise, id, zIndex: 4);
+      for (var tick = 0; tick < 370; tick++) {
+        low.stepOneTick();
+        high.stepOneTick();
+        expect(trapRunState(low), trapRunState(high), reason: 'tick $tick');
+        expect(
+          low.buildSnapshot().traps.map((t) => t.zIndex),
+          everyElement(-21),
+        );
+        expect(
+          high.buildSnapshot().traps.map((t) => t.zIndex),
+          everyElement(4),
+        );
+      }
+    });
+  }
   test('eight concurrent spikes kill enemies and count each death once', () {
     final level = trapRunLevel(TrapId.spike).copyWith(
       noEnemyChunks: 0,
@@ -32,6 +51,7 @@ void main() {
                   trapId: TrapId.spike,
                   x: 296 + i,
                   y: 220,
+                  zIndex: -21 + i,
                   trigger: const TrapRect(-60, -70, 120, 90),
                 ),
             ],
@@ -56,6 +76,9 @@ void main() {
     );
     for (var tick = 0; tick < 160; tick++) {
       core.stepOneTick();
+      for (final trap in core.buildSnapshot().traps) {
+        expect(trap.zIndex, -21 + trap.source.placementOrdinal);
+      }
     }
     core.giveUp();
     final ended = core.drainEvents().whereType<RunEndedEvent>().last;
