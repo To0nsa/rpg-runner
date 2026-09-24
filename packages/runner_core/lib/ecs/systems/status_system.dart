@@ -1,5 +1,7 @@
 import '../../combat/damage.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/damage_credit.dart';
+import '../combat_eligibility.dart';
 import '../../combat/status/status.dart';
 import '../../traps/trap_placement.dart';
 import '../../events/game_event.dart';
@@ -124,7 +126,7 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < dot.denseEntities.length; i += 1) {
       final target = dot.denseEntities[i];
-      if (world.deathState.has(target)) {
+      if (world.deathState.has(target) || isCombatProtected(world, target)) {
         _removeScratch.add(target);
         continue;
       }
@@ -149,6 +151,7 @@ class StatusSystem {
               damageType: dot.damageTypes[i][channel],
               sourceKind: DeathSourceKind.statusEffect,
               sourceTrap: dot.sourceTrap[i][channel],
+              credit: dot.credit[i][channel],
             ),
           );
         }
@@ -286,6 +289,10 @@ class StatusSystem {
       if (profile.applications.isEmpty) continue;
 
       for (final app in profile.applications) {
+        if (isCombatProtected(world, req.target) &&
+            _isBlockedByInvulnerability(app.type)) {
+          continue;
+        }
         if (hasInvulnerability &&
             req.acceptedHitTick != _currentTick &&
             _isBlockedByInvulnerability(app.type)) {
@@ -335,6 +342,7 @@ class StatusSystem {
               periodSeconds: app.periodSeconds,
               damageType: dotDamageType,
               sourceTrap: req.sourceTrap,
+              credit: req.credit,
             );
           case StatusEffectType.resourceOverTime:
             final resourceType = app.resourceType;
@@ -677,6 +685,7 @@ class StatusSystem {
     required double periodSeconds,
     required DamageType damageType,
     required TrapSourceRef? sourceTrap,
+    required DamageCredit credit,
   }) {
     final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
     if (ticksLeft <= 0) return;
@@ -697,6 +706,7 @@ class StatusSystem {
           periodTicks: periodTicks,
           dps100: dps100,
           sourceTrap: sourceTrap,
+          credit: credit,
         ),
       );
       return;
@@ -712,6 +722,7 @@ class StatusSystem {
           periodTicks: periodTicks,
           dps100: dps100,
           sourceTrap: sourceTrap,
+          credit: credit,
         ),
       );
       return;
@@ -728,6 +739,7 @@ class StatusSystem {
           periodTicks: periodTicks,
           dps100: dps100,
           sourceTrap: sourceTrap,
+          credit: credit,
         ),
       );
       return;
@@ -737,6 +749,7 @@ class StatusSystem {
         ticksLeft > dot.ticksLeft[index][channelIndex]) {
       dot.ticksLeft[index][channelIndex] = ticksLeft;
       dot.sourceTrap[index][channelIndex] = sourceTrap;
+      dot.credit[index][channelIndex] = credit;
     }
   }
 

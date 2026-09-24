@@ -1,4 +1,5 @@
 import '../../ecs/entity_id.dart';
+import '../damage_credit.dart';
 import '../../traps/trap_placement.dart';
 import '../damage_type.dart';
 
@@ -370,6 +371,7 @@ class StatusRequest {
     this.damageType = DamageType.physical,
     this.acceptedHitTick,
     this.sourceTrap,
+    this.credit = DamageCredit.none,
   });
 
   final EntityId target;
@@ -382,6 +384,7 @@ class StatusRequest {
   /// standalone, delayed, and attacker-targeted effects use apply-time gating.
   final int? acceptedHitTick;
   final TrapSourceRef? sourceTrap;
+  final DamageCredit credit;
 }
 
 /// Runtime request for purging status/control effects from a target.

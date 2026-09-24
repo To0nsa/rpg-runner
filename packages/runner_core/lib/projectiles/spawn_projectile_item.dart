@@ -6,6 +6,7 @@ import 'dart:math';
 import '../combat/damage_type.dart';
 import '../combat/faction.dart';
 import '../ecs/entity_id.dart';
+import '../ecs/combat_eligibility.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/lifetime_store.dart';
@@ -96,6 +97,7 @@ EntityId spawnProjectileFromCaster(
       projectileId: projectileId,
       faction: faction,
       owner: owner,
+      credit: damageCreditFor(world, owner),
       dirX: dir.x,
       dirY: dir.y,
       speedUnitsPerSecond: speedUnitsPerSecond,

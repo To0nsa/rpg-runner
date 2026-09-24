@@ -1,5 +1,7 @@
 import '../../accessories/accessory_catalog.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/damage_credit.dart';
+import '../combat_eligibility.dart';
 import '../../combat/status/status.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/fixed_math.dart';
@@ -21,10 +23,9 @@ class ReactiveProcSystem {
     required WeaponCatalog weapons,
     AccessoryCatalog accessories = const AccessoryCatalog(),
     required int rngSeed,
-  })
-    : _weapons = weapons,
-      _accessories = accessories,
-      _rngState = seedFrom(rngSeed, 0x5f17c8d9);
+  }) : _weapons = weapons,
+       _accessories = accessories,
+       _rngState = seedFrom(rngSeed, 0x5f17c8d9);
 
   final WeaponCatalog _weapons;
   final AccessoryCatalog _accessories;
@@ -62,6 +63,7 @@ class ReactiveProcSystem {
         if (weapon != null && weapon.reactiveProcs.isNotEmpty) {
           _resolveReactiveProcs(
             procs: weapon.reactiveProcs,
+            credit: damageCreditFor(world, owner),
             owner: owner,
             source: source,
             prevHp100: prevHp100,
@@ -82,6 +84,7 @@ class ReactiveProcSystem {
       if (accessory.reactiveProcs.isEmpty) continue;
       _resolveReactiveProcs(
         procs: accessory.reactiveProcs,
+        credit: damageCreditFor(world, owner),
         owner: owner,
         source: source,
         prevHp100: prevHp100,
@@ -138,6 +141,7 @@ class ReactiveProcSystem {
 
   void _resolveReactiveProcs({
     required List<ReactiveProc> procs,
+    required DamageCredit credit,
     required EntityId owner,
     required EntityId? source,
     required int prevHp100,
@@ -185,6 +189,7 @@ class ReactiveProcSystem {
         StatusRequest(
           target: statusTarget,
           profileId: proc.statusProfileId,
+          credit: credit,
           damageType: damageType,
         ),
       );

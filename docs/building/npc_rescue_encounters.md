@@ -1,6 +1,6 @@
 # NPC rescue encounters
 
-Status: In progress; M0 contracts and M1 shared targeting delivered. M2 lifecycle next.
+Status: In progress; M0 contracts and M1 shared targeting delivered. M2 lifecycle underway.
 
 Created: September 24, 2026.
 
@@ -753,6 +753,14 @@ and profile. Ordinary combat retains the M0 trace. Core analysis is clean, the
 full package suite passed 608 tests and Flutter Core passed 366. A final set of
 26 focused tests covers the added ground-melee, flying and Hashash target cases
 as well as retention, policies, removal, release and committed-cast preservation.
+
+M2 combat foundation (September 24): stable player damage credit now survives
+projectile and status lifetimes without changing live-source damage modifiers.
+NPC protection gates target selection, trap occupancy, projectiles, queued damage
+and harmful statuses; terminal cleanup retains detached effects. Forty focused
+Core tests and 31 existing Flutter combat tests pass, including the unchanged
+ordinary-combat trace. Encounter orchestration, spawning and movement remain
+within the unfinished M2 milestone.
 
 ## 7. Acceptance and regression matrix
 

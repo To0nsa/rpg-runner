@@ -1,4 +1,6 @@
 import 'package:runner_core/combat/faction.dart';
+import 'package:runner_core/npcs/npc_id.dart';
+import 'package:runner_core/ecs/systems/npc_combat_lifecycle.dart';
 import 'package:runner_core/ecs/hit/capsule_pose_sweep.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
@@ -27,6 +29,18 @@ import 'package:runner_core/traps/trap_placement.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('safe NPCs cannot activate traps while active NPCs can', () {
+    final f = _Fixture(TrapId.spike);
+    final npc = f.actor(200, 128);
+    f.world.npc.add(npc, id: NpcId.warrior, chunkStartX: 0, chunkEndX: 600);
+    protectNpc(f.world, npc);
+    f.step(0);
+    expect(f.state.phase, TrapPhase.idle);
+    final active = f.actor(200, 128);
+    f.world.npc.add(active, id: NpcId.warrior, chunkStartX: 0, chunkEndX: 600);
+    f.step(1);
+    expect(f.state.phase, TrapPhase.warning);
+  });
   for (final id in TrapId.values) {
     for (final windup in [0, 125, 1500]) {
       test('$id uses per-placement damage and $windup ms wind-up', () {

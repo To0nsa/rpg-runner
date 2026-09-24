@@ -1,5 +1,6 @@
 import 'entity_id.dart';
 import 'stores/ai_target_store.dart';
+import 'stores/npc_store.dart';
 import 'sparse_set.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
@@ -96,6 +97,7 @@ class EcsWorld {
   final int seed;
   final TrapStore traps = TrapStore();
   late final AiTargetStore aiTarget = _register(AiTargetStore());
+  late final NpcStore npc = _register(NpcStore());
 
   /// Counter for generating new unique Entity IDs.
   EntityId _nextEntityId = 1;

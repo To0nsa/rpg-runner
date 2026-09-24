@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/damage_credit.dart';
 import '../../combat/faction.dart';
 import '../../events/game_event.dart';
 import '../../weapons/weapon_proc.dart';
@@ -26,6 +27,7 @@ class HitboxDef {
     this.hitPolicy = HitPolicy.oncePerTarget,
     this.sourceKind = DeathSourceKind.meleeHitbox,
     this.attachment = HitboxAttachment.followOwner,
+    this.credit = DamageCredit.none,
     required this.halfX,
     required this.halfY,
     required this.offsetX,
@@ -48,6 +50,7 @@ class HitboxDef {
   final HitPolicy hitPolicy;
   final DeathSourceKind sourceKind;
   final HitboxAttachment attachment;
+  final DamageCredit credit;
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -73,6 +76,7 @@ class HitboxStore extends SparseSet {
   final List<HitPolicy> hitPolicy = <HitPolicy>[];
   final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
   final List<HitboxAttachment> attachment = <HitboxAttachment>[];
+  final List<DamageCredit> credit = [];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
@@ -92,6 +96,7 @@ class HitboxStore extends SparseSet {
     hitPolicy[i] = def.hitPolicy;
     sourceKind[i] = def.sourceKind;
     attachment[i] = def.attachment;
+    credit[i] = def.credit;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
@@ -112,6 +117,7 @@ class HitboxStore extends SparseSet {
     hitPolicy.add(HitPolicy.oncePerTarget);
     sourceKind.add(DeathSourceKind.meleeHitbox);
     attachment.add(HitboxAttachment.followOwner);
+    credit.add(DamageCredit.none);
     halfX.add(0);
     halfY.add(0);
     offsetX.add(0);
@@ -132,6 +138,7 @@ class HitboxStore extends SparseSet {
     hitPolicy[removeIndex] = hitPolicy[lastIndex];
     sourceKind[removeIndex] = sourceKind[lastIndex];
     attachment[removeIndex] = attachment[lastIndex];
+    credit[removeIndex] = credit[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
@@ -149,6 +156,7 @@ class HitboxStore extends SparseSet {
     hitPolicy.removeLast();
     sourceKind.removeLast();
     attachment.removeLast();
+    credit.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     offsetX.removeLast();

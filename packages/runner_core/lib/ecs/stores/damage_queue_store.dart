@@ -1,4 +1,5 @@
 import '../../combat/damage.dart';
+import '../../combat/damage_credit.dart';
 import '../../combat/damage_type.dart';
 import '../../enemies/enemy_id.dart';
 import '../../events/game_event.dart';
@@ -28,6 +29,7 @@ class DamageQueueStore {
   final List<ProjectileId?> sourceProjectileId = <ProjectileId?>[];
   final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
   final List<int> flags = <int>[];
+  final List<DamageCredit> credit = [];
 
   int get length => target.length;
 
@@ -49,6 +51,7 @@ class DamageQueueStore {
     sourceProjectileId.add(request.sourceProjectileId);
     sourceTrap.add(request.sourceTrap);
     flags.add(0);
+    credit.add(request.credit);
     return index;
   }
 
@@ -68,5 +71,6 @@ class DamageQueueStore {
     sourceProjectileId.clear();
     sourceTrap.clear();
     flags.clear();
+    credit.clear();
   }
 }

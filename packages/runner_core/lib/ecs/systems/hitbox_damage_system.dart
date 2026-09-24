@@ -137,6 +137,7 @@ class HitboxDamageSystem {
             damageType: hitboxes.damageType[hi],
             procs: hitboxes.procs[hi],
             source: owner,
+            credit: hitboxes.credit[hi],
             sourceKind: hitboxes.sourceKind[hi],
             sourceEnemyId: enemyId,
           ),

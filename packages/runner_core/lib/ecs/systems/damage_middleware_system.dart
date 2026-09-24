@@ -1,5 +1,6 @@
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
+import '../combat_eligibility.dart';
 
 /// Applies combat rules to queued damage before it reaches [DamageSystem].
 ///
@@ -20,6 +21,10 @@ class DamageMiddlewareSystem {
     if (initialCount == 0) return;
 
     for (var i = 0; i < initialCount; i += 1) {
+      if (isCombatProtected(world, queue.target[i])) {
+        queue.cancel(i);
+        continue;
+      }
       if ((queue.flags[i] & DamageQueueFlags.canceled) != 0) continue;
       for (final middleware in _middlewares) {
         middleware.apply(world, queue, i, currentTick);
@@ -33,5 +38,10 @@ class DamageMiddlewareSystem {
 
 /// Middleware hook for editing queued damage requests.
 abstract class DamageMiddleware {
-  void apply(EcsWorld world, DamageQueueStore queue, int index, int currentTick);
+  void apply(
+    EcsWorld world,
+    DamageQueueStore queue,
+    int index,
+    int currentTick,
+  );
 }

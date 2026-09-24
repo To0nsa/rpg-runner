@@ -39,6 +39,28 @@ animation, projectiles, resources and terminal state. Derf placement/casting is
 covered separately; it does not appear in this trace. The contract probe is also
 compiled and executed to verify admission errors survive AOT assertion removal.
 
+## Combat ownership and survivor safety
+
+`DamageCredit` is captured when attacks are created and carried through hitboxes,
+projectiles, queued damage, accepted status applications and each DoT channel.
+It identifies player participation independently of faction and live entity IDs.
+NPC allies never inherit player credit. The damage system exposes actual positive
+HP loss through a separate participation callback; existing feedback amounts and
+enemy kill counting remain unchanged.
+
+DoT ownership changes only when the incoming application replaces a weaker
+channel or extends an equal-strength channel. Ignored applications retain the
+current owner. Equal-strength extensions preserve pulse phase. DoT requests keep
+their previous null live source, so ownership does not introduce outgoing weaken
+modifiers or attacker-targeted procs.
+
+The NPC store retains identity, facing, owning chunk bounds and protection state.
+`protectNpc` ends attached attacks and pending abilities, clears harmful effects
+and target references, and leaves detached effects and physical bodies intact.
+Protected NPCs are excluded from combat broadphase (including trap occupancy),
+AI selection, queued damage and harmful status applications. Terrain movement
+and encounter-driven invocation are integrated in the subsequent M2 steps.
+
 ## Shared AI target selection
 
 `AiTargetStore` holds an explicit bounded opponent roster, policy, perception

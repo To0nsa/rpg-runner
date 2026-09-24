@@ -1,6 +1,7 @@
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
+import '../combat_eligibility.dart';
 
 /// Processes requests to perform melee strikes.
 ///
@@ -76,6 +77,7 @@ class MeleeStrikeSystem {
         hitbox,
         HitboxDef(
           owner: strikeer,
+          credit: damageCreditFor(world, strikeer),
           abilityId: intents.abilityId[ii],
           faction: faction,
           damage100: intents.damage100[ii],

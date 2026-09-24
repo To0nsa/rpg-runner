@@ -8,6 +8,7 @@ import '../collider_aabb_utils.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
+import '../combat_eligibility.dart';
 
 /// Applies authored mobility contact impacts while mobility abilities are active.
 ///
@@ -112,6 +113,7 @@ class MobilityImpactSystem {
               damageType: impact.damageType,
               procs: impact.procs,
               source: source,
+              credit: damageCreditFor(world, source),
               sourceKind: DeathSourceKind.meleeHitbox,
               sourceEnemyId: sourceEnemyId,
             ),
@@ -123,6 +125,7 @@ class MobilityImpactSystem {
             StatusRequest(
               target: target,
               profileId: impact.statusProfileId,
+              credit: damageCreditFor(world, source),
               damageType: impact.damageType,
             ),
           );

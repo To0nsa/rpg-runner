@@ -1,6 +1,8 @@
 import '../../abilities/ability_def.dart';
 import '../../abilities/forced_interrupt_policy.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/damage_credit.dart';
+import '../combat_eligibility.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
 import '../../stats/character_stats_resolver.dart';
@@ -18,6 +20,13 @@ typedef DamageAppliedCallback = void Function({
   required int appliedAmount100,
   required DeathSourceKind sourceKind,
   required DamageType damageType,
+});
+
+/// Positive HP reduction after all defenses, capped by the target's remaining HP.
+typedef ParticipationDamageCallback = void Function({
+  required EntityId target,
+  required int hpLost100,
+  required DamageCredit credit,
 });
 
 /// Central system for validating and applying damage to entities.
@@ -52,6 +61,7 @@ class DamageSystem {
     required int currentTick,
     void Function(StatusRequest request)? queueStatus,
     DamageAppliedCallback? onDamageApplied,
+    ParticipationDamageCallback? onParticipationDamage,
   }) {
     final queue = world.damageQueue;
     if (queue.length == 0) return;
@@ -67,6 +77,7 @@ class DamageSystem {
       if ((queue.flags[i] & DamageQueueFlags.canceled) != 0) continue;
 
       final target = queue.target[i];
+      if (isCombatProtected(world, target)) continue;
       final amount100 = queue.amount100[i];
       final critChanceBp = queue.critChanceBp[i];
       final damageType = queue.damageType[i];
@@ -153,6 +164,11 @@ class DamageSystem {
       // 7. Record Last Damage details (if store exists).
       // Only useful if damage was actually taken.
       if (nextHp < prevHp) {
+        onParticipationDamage?.call(
+          target: target,
+          hpLost100: prevHp - nextHp,
+          credit: queue.credit[i],
+        );
         _interruptOnDamageTaken(world, target);
 
         final li = lastDamage.tryIndexOf(target);
@@ -235,6 +251,7 @@ class DamageSystem {
               profileId: proc.statusProfileId,
               damageType: damageType,
               sourceTrap: queue.sourceTrap[i],
+              credit: queue.credit[i],
               acceptedHitTick:
                   proc.hook == ProcHook.onHit || proc.hook == ProcHook.onCrit
                   ? currentTick

@@ -252,6 +252,7 @@ class ProjectileHitSystem {
         damageType: projectiles.damageType[projectileStoreIndex],
         procs: projectiles.procs[projectileStoreIndex],
         source: owner == 0 ? null : owner,
+        credit: projectiles.credit[projectileStoreIndex],
         sourceKind: DeathSourceKind.projectile,
         sourceTrap: projectiles.sourceTrap[projectileStoreIndex],
         sourceEnemyId: enemyId,

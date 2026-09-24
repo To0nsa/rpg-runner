@@ -2,6 +2,7 @@ import '../../combat/faction.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
+import '../combat_eligibility.dart';
 import '../world.dart';
 
 /// Shared helpers for hit resolution math + filtering.
@@ -78,7 +79,11 @@ class DamageableTargetCache {
     for (var i = 0; i < health.denseEntities.length; i += 1) {
       final e = health.denseEntities[i];
 
-      if (health.hp[i] <= 0 || world.deathState.has(e)) continue;
+      if (health.hp[i] <= 0 ||
+          world.deathState.has(e) ||
+          isCombatProtected(world, e)) {
+        continue;
+      }
 
       // 3. Filter: Must have Faction, Transform, and Collider.
       // (Using tryIndexOf avoids exception overhead for missing components)

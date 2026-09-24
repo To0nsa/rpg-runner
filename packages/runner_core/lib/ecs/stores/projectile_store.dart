@@ -1,4 +1,5 @@
 import '../../combat/damage_type.dart';
+import '../../combat/damage_credit.dart';
 import '../../combat/faction.dart';
 import '../../combat/hit_target_policy.dart';
 import '../../projectiles/projectile_id.dart';
@@ -24,6 +25,7 @@ class ProjectileEntityDef {
     this.usePhysics = false,
     this.firstHitTick = 0,
     this.targetPolicy = HitTargetPolicy.hostile,
+    this.credit = DamageCredit.none,
     this.sourceTrap,
   }) : assert(maxPierceHits > 0, 'maxPierceHits must be > 0');
 
@@ -51,6 +53,7 @@ class ProjectileEntityDef {
   /// Environmental launches defer collision until their first moved tick.
   final int firstHitTick;
   final HitTargetPolicy targetPolicy;
+  final DamageCredit credit;
   final TrapSourceRef? sourceTrap;
 }
 
@@ -76,6 +79,7 @@ class ProjectileStore extends SparseSet {
   final List<bool> usePhysics = <bool>[];
   final List<int> firstHitTick = <int>[];
   final List<HitTargetPolicy> targetPolicy = <HitTargetPolicy>[];
+  final List<DamageCredit> credit = [];
   final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
 
   /// Start-of-step transform position, null until the first motion capture.
@@ -100,6 +104,7 @@ class ProjectileStore extends SparseSet {
     usePhysics[i] = def.usePhysics;
     firstHitTick[i] = def.firstHitTick;
     targetPolicy[i] = def.targetPolicy;
+    credit[i] = def.credit;
     sourceTrap[i] = def.sourceTrap;
     previousX[i] = null;
     previousY[i] = null;
@@ -122,6 +127,7 @@ class ProjectileStore extends SparseSet {
     usePhysics.add(false);
     firstHitTick.add(0);
     targetPolicy.add(HitTargetPolicy.hostile);
+    credit.add(DamageCredit.none);
     sourceTrap.add(null);
     previousX.add(null);
     previousY.add(null);
@@ -144,6 +150,7 @@ class ProjectileStore extends SparseSet {
     usePhysics[removeIndex] = usePhysics[lastIndex];
     firstHitTick[removeIndex] = firstHitTick[lastIndex];
     targetPolicy[removeIndex] = targetPolicy[lastIndex];
+    credit[removeIndex] = credit[lastIndex];
     sourceTrap[removeIndex] = sourceTrap[lastIndex];
     previousX[removeIndex] = previousX[lastIndex];
     previousY[removeIndex] = previousY[lastIndex];
@@ -163,6 +170,7 @@ class ProjectileStore extends SparseSet {
     usePhysics.removeLast();
     firstHitTick.removeLast();
     targetPolicy.removeLast();
+    credit.removeLast();
     sourceTrap.removeLast();
     previousX.removeLast();
     previousY.removeLast();

@@ -5,6 +5,7 @@ import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
 import '../traps/trap_placement.dart';
 import 'damage_type.dart';
+import 'damage_credit.dart';
 
 /// Represents a request to apply damage to an entity.
 ///
@@ -23,6 +24,7 @@ class DamageRequest {
     this.sourceEnemyId,
     this.sourceProjectileId,
     this.sourceTrap,
+    this.credit = DamageCredit.none,
   });
 
   /// The entity receiving the damage.
@@ -56,4 +58,5 @@ class DamageRequest {
 
   /// Environmental attribution remains valid after its streamed owner retires.
   final TrapSourceRef? sourceTrap;
+  final DamageCredit credit;
 }

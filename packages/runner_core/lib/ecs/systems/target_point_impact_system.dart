@@ -8,6 +8,7 @@ import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../stores/target_point_intent_store.dart';
 import '../world.dart';
+import '../combat_eligibility.dart';
 
 /// Executes [TargetPointIntentStore] intents by spawning world-anchored hitboxes.
 class TargetPointImpactSystem {
@@ -43,6 +44,7 @@ class TargetPointImpactSystem {
         hitbox,
         HitboxDef(
           owner: caster,
+          credit: damageCreditFor(world, caster),
           abilityId: intents.abilityId[ii],
           faction: factions.faction[fi],
           damage100: intents.damage100[ii],
@@ -75,7 +77,9 @@ class TargetPointImpactSystem {
             tick: currentTick,
             impactId: intents.impactEffectId[ii],
             pos: Vec2(intents.targetX[ii], intents.targetY[ii]),
-            sourceEnemyId: enemyIndex == null ? null : world.enemy.enemyId[enemyIndex],
+            sourceEnemyId: enemyIndex == null
+                ? null
+                : world.enemy.enemyId[enemyIndex],
             abilityId: intents.abilityId[ii],
           ),
         );
