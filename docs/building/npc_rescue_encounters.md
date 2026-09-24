@@ -1,12 +1,12 @@
 # NPC rescue encounters
 
-Status: Planned; implementation has not started.
+Status: In progress; M0 contracts and baseline delivered. M1 shared targeting next.
 
 Created: September 24, 2026.
 
 Plan audited against the working tree: September 24, 2026. The gaps recorded
-below are addressed in this plan; runtime implementation and verification remain
-the unchecked milestones in section 6.
+below are addressed in this plan; runtime implementation and verification are
+tracked in section 6.
 
 This is the implementation plan for allied NPCs who fight enemies, can die,
 remain within their encounter's chunk, and award rescue points. It covers
@@ -660,7 +660,7 @@ This is the single progress checklist for the workstream. Each milestone must
 leave a coherent, validated change and its relevant documentation. Commit only
 that milestone's changes; do not include unrelated navigation/content work.
 
-- [ ] **M0 — Establish limits, fixtures and the baseline.** Implement against
+- [x] **M0 — Establish limits, fixtures and the baseline.** Implement against
   D1–D7, enemy-victory behavior and the audited rules in sections 2–5. Use 250
   points as the initial default candidate. Record shared source/runtime limits
   for encounters per chunk, members per encounter, live retained actors and
@@ -734,6 +734,17 @@ M0 precedes schema-dependent work. M1 precedes production NPC combat. M3 and M4
 must be complete before declaring M5's Play journey delivered. M6 precedes
 publishing score-bearing production content. Intermediate fixtures may use typed
 test definitions, but the delivered authoring path must use repository sources.
+
+M0 evidence (September 24): immutable Core contracts and constructor guards,
+four encounters/chunk, four NPCs/eight enemies per encounter, sixteen live
+encounters/192 participants, 0–100,000 points/NPC and checked exact-integer
+accumulation. See [implemented contracts](../tdd/npc_encounter_contracts.md).
+The pre-change Core suite passed 596 tests; five new contract/baseline tests pass
+and the validation probe passes as an AOT executable. The fixed ordinary-combat
+trace covers 785 ticks and all three moving enemy types; stationary Derf retains
+separate existing coverage. Generator freshness reports pre-existing drift in
+two outputs from unrelated Woodcamp edits; no generated files were rewritten
+for this milestone. No encounter runtime or editor UI is enabled by M0.
 
 ## 7. Acceptance and regression matrix
 

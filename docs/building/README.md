@@ -4,13 +4,13 @@
   navigation and five chunk adjustments validated at unchanged movement limits;
   compatibility `2026.09.6` awaits deployment.
 
-- [NPC rescue encounters](npc_rescue_encounters.md): plan audited September 24;
-  implementation has not started. NPCs are confined to their encounter's chunk.
+- [NPC rescue encounters](npc_rescue_encounters.md): implementation in progress;
+  M0 contracts, capacity limits and combat baseline delivered. NPCs are confined
+  to their encounter's chunk in the planned gameplay.
   D1–D7 are confirmed, including one-chunk off-screen
   abandonment and editable rescue points. Enemy victors resume normal AI.
   Activation, terminal priority, damage credit, actor integration and authoring
-  gaps are addressed in the plan. Next: establish capacity/score limits and
-  baseline fixtures before shared-targeting implementation.
+  gaps are addressed in the plan. Next: M1 shared-targeting implementation.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md). Remote deployment
