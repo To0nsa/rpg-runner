@@ -191,7 +191,11 @@ seam, or source boundary.
 Runtime foothold and grounded-spawn support are separate contracts.
 `TerrainSupportRequirement.groundedEnemyRuntime()` retains the legacy one-third
 capsule-diameter fraction as the exact rational `1/3`; custom graph profiles may
-carry another explicit rational. The minimum tick width rounds upward. A
+carry another explicit rational. The minimum tick width rounds upward. Runtime
+navigation counts directly connected, profile-eligible facets toward that
+width, stopping at a ledge or an ineligible neighbor. Placement and clamping
+still stay on the selected finite edge. This prevents short rock facets from
+stranding an actor already supported by the continuous terrain. A
 grounded spawn uses `TerrainSupportRequirement.groundedSpawn()` and requires
 the full horizontal capsule diameter on one source edge.
 
@@ -263,7 +267,9 @@ Jump takeoff points use the same finite-edge standable interval and
 normal-aware placement authority as walk edges. The legacy sample topology is
 preserved after integer quantization: a narrow interval contributes its two
 endpoints and midpoint; a wider interval is sampled from its minimum at no more
-than 64 world units per step and always includes its maximum. Duplicate physics
+than 16 world units per step and always includes its maximum. This resolves
+narrow takeoff areas between authored props without extending jump reach.
+Duplicate physics
 ticks are removed. Partial-support intervals are bounded to the finite authored
 segment because `yAtXTicks` deliberately has no extrapolation authority beyond
 a ledge.
@@ -374,7 +380,19 @@ preferred-direction A* followed by the unrestricted retry.
 Approach accepts being at or beyond takeoff in commit direction, preventing
 overshoot reversal. Once active, jump/drop direction remains committed and the
 edge completes only when grounded prior support equals its exact destination
-ID; an unrelated landing does not advance the cursor.
+ID. After an airborne attempt lands on a different support, the old edge is
+discarded and navigation replans from the actual foothold in the same update.
+A drop still approaching its ledge is not mistaken for a failed landing.
+
+Graph profiles normalize catalog capsule offsets against the enemy's authored
+art-facing direction before resolving left/right traversal. Planned placement
+therefore uses the same collision offset as runtime movement and spawning.
+
+Terrain publication still invalidates graph indices and paths. A launched
+jump's world-coordinate takeoff, landing, direction and timing survive while
+airborne, so publishing the next chunk cannot change horizontal velocity in
+mid-jump. Landing, swimming and explicit body teleport clear this physical
+commitment. Current terrain collision remains authoritative throughout.
 
 When no plan exists, the desired body X is clamped to the shared query's exact
 standable interval on current or last-known eligible support. It is an intent,

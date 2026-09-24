@@ -332,8 +332,7 @@ class GroundEnemyLocomotionSystem {
     final currentVelX = terrainGrounded
         ? _surfaceSpeedAlongWorldX(world, enemy, enemyTi)
         : currentWorldVelX;
-    final lockAirborneJumpVelX =
-        hasPlan && !grounded && activeJumpTraversal != null;
+    final lockAirborneJumpVelX = !grounded && activeJumpTraversal != null;
     final activeJumpEdgeDirX = _resolveEdgeCommitDirX(
       activeJumpTraversal,
       referenceX: ex,

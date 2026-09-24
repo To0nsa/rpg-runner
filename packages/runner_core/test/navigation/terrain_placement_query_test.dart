@@ -269,28 +269,43 @@ void main() {
       expect(result.supportPoint, TerrainPoint.fromWorld(256, 100));
     });
 
-    test('rejects a narrow peak below the runtime support fraction', () {
-      final fixture = _fixture(<TerrainPolygonInput>[
-        _polygon('narrow_peak', const <(double, double)>[
-          (0, 100),
-          (6, 94),
-          (12, 100),
-        ]),
-      ]);
-      final support = fixture.surfaces.surfaces.first;
-      final midpoint = (support.xMinTicks + support.xMaxTicks) >> 1;
-      final small = _placeAtMidpoint(fixture, support, fortyFiveProfile);
-      final large = _place(
-        fixture,
-        support,
-        xTicks: midpoint,
-        profile: fortyFiveProfile,
-        capsule: _capsule(radiusWorld: 10, spineWorld: 2),
-      );
+    test(
+      'counts connected facets but rejects an insufficient total foothold',
+      () {
+        final fixture = _fixture(<TerrainPolygonInput>[
+          _polygon('narrow_peak', const <(double, double)>[
+            (0, 100),
+            (6, 94),
+            (12, 100),
+          ]),
+        ]);
+        final support = fixture.surfaces.surfaces.first;
+        final midpoint = (support.xMinTicks + support.xMaxTicks) >> 1;
+        final small = _placeAtMidpoint(fixture, support, fortyFiveProfile);
+        final connected = _place(
+          fixture,
+          support,
+          xTicks: midpoint,
+          profile: fortyFiveProfile,
+          capsule: _capsule(radiusWorld: 10, spineWorld: 2),
+        );
 
-      expect(small.validity, TerrainPlacementValidity.valid);
-      expect(large.validity, TerrainPlacementValidity.insufficientSupportWidth);
-    });
+        final large = _place(
+          fixture,
+          support,
+          xTicks: midpoint,
+          profile: fortyFiveProfile,
+          capsule: _capsule(radiusWorld: 20, spineWorld: 2),
+        );
+
+        expect(small.validity, TerrainPlacementValidity.valid);
+        expect(connected.validity, TerrainPlacementValidity.valid);
+        expect(
+          large.validity,
+          TerrainPlacementValidity.insufficientSupportWidth,
+        );
+      },
+    );
 
     test('same-support clamp remains on the exact source edge', () {
       final fixture = _fixture(<TerrainPolygonInput>[

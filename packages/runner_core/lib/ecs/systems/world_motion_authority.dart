@@ -722,6 +722,10 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       world.terrainContact.clearForTeleport(entity);
     }
     _clearNavigation(world, entity);
+    final intentIndex = world.navIntent.tryIndexOf(entity);
+    if (intentIndex != null) {
+      world.navIntent.clearActiveJumpTraversalAt(intentIndex);
+    }
     if (world.collision.has(entity)) world.collision.resetTick(entity);
     if (world.resolvedMotion.has(entity)) {
       world.resolvedMotion.setResolved(

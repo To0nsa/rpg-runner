@@ -448,6 +448,15 @@ void main() {
       harness.world.surfaceNav.activeEdgeIndex[navIndex] = 7;
       harness.world.surfaceNav.pathCursor[navIndex] = 1;
       harness.world.surfaceNav.pathEdges[navIndex].addAll(<int>[7, 8]);
+      harness.world.navIntent.add(hashash);
+      final intentIndex = harness.world.navIntent.indexOf(hashash);
+      harness.world.navIntent.setActiveJumpTraversalAt(
+        intentIndex,
+        takeoffX: 180,
+        landingX: 350,
+        commitDirectionX: 1,
+        travelTicks: 50,
+      );
 
       harness.authority.queueTerrainGeometryReplacement(
         _terrainGeometry(version: 2),
@@ -465,6 +474,15 @@ void main() {
       expect(harness.world.surfaceNav.activeEdgeIndex[navIndex], -1);
       expect(harness.world.surfaceNav.pathCursor[navIndex], 0);
       expect(harness.world.surfaceNav.pathEdges[navIndex], isEmpty);
+      expect(
+        harness.world.navIntent.hasActiveJumpTraversal[intentIndex],
+        isTrue,
+      );
+      harness.authority.beginBodyTeleport(harness.world, hashash);
+      expect(
+        harness.world.navIntent.hasActiveJumpTraversal[intentIndex],
+        isFalse,
+      );
     });
 
     test(

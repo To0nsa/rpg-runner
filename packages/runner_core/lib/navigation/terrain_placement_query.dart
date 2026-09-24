@@ -379,7 +379,8 @@ class TerrainPlacementQuery {
   ///
   /// This is the same profile eligibility and rational support-width rule used
   /// by [resolveGrounded]. A `null` result means the surface is ineligible or
-  /// too narrow; it never silently clamps to a neighboring surface.
+  /// too narrow, including connected eligible facets for runtime navigation;
+  /// it never silently clamps to a neighboring surface.
   TerrainStandableCenterRange? standableCenterRange({
     required TerrainNavigationSurface surface,
     required TerrainPlacementCapsule capsule,
@@ -399,6 +400,10 @@ class TerrainPlacementQuery {
       surface,
       capsule.radiusTicks,
       requiredWidth,
+      traversalProfile: traversalProfile,
+      includeAdjacentSupport:
+          supportRequirement.kind ==
+          TerrainSupportRequirementKind.runtimeNavigation,
     );
     return range == null
         ? null
@@ -496,6 +501,10 @@ class TerrainPlacementQuery {
       support,
       request.capsule.radiusTicks,
       footholdWidth,
+      traversalProfile: request.traversalProfile,
+      includeAdjacentSupport:
+          request.supportRequirement.kind ==
+          TerrainSupportRequirementKind.runtimeNavigation,
       minimumSupportSpanTicks: request.minimumSupportSpanTicks,
     );
     if (standable == null) {
@@ -671,9 +680,34 @@ class TerrainPlacementQuery {
     TerrainNavigationSurface support,
     int radiusTicks,
     int footholdWidthTicks, {
+    required TerrainTraversalProfile traversalProfile,
+    required bool includeAdjacentSupport,
     int minimumSupportSpanTicks = 0,
   }) {
-    if (support.dxTicks < footholdWidthTicks ||
+    var minimumX = support.xMinTicks;
+    var maximumX = support.xMaxTicks;
+    // Runtime contact may name a short facet on a continuous walkable rock.
+    // Count its connected support, while keeping placement on this exact edge.
+    // Spawn and teleport placement still require the full authored segment.
+    if (includeAdjacentSupport) {
+      var previous = support.previousId;
+      while (previous != null &&
+          support.xMinTicks - minimumX < footholdWidthTicks) {
+        final neighbor = surfaceIndex.surfaceSet.surfaceById(previous)!;
+        if (!neighbor.isEligibleFor(traversalProfile)) break;
+        minimumX = neighbor.xMinTicks;
+        previous = neighbor.previousId;
+      }
+      var next = support.nextId;
+      while (next != null &&
+          maximumX - support.xMaxTicks < footholdWidthTicks) {
+        final neighbor = surfaceIndex.surfaceSet.surfaceById(next)!;
+        if (!neighbor.isEligibleFor(traversalProfile)) break;
+        maximumX = neighbor.xMaxTicks;
+        next = neighbor.nextId;
+      }
+    }
+    if (maximumX - minimumX < footholdWidthTicks ||
         support.dxTicks < minimumSupportSpanTicks) {
       return null;
     }
@@ -681,11 +715,11 @@ class TerrainPlacementQuery {
     return (
       _maxInt(
         support.xMinTicks + minimumSpanInset,
-        support.xMinTicks + footholdWidthTicks - radiusTicks,
+        minimumX + footholdWidthTicks - radiusTicks,
       ),
       _minInt(
         support.xMaxTicks - minimumSpanInset,
-        support.xMaxTicks - footholdWidthTicks + radiusTicks,
+        maximumX - footholdWidthTicks + radiusTicks,
       ),
     );
   }

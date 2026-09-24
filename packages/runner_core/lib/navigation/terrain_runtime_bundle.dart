@@ -5,6 +5,7 @@ import '../collision/terrain/terrain_geometry.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../enemies/enemy_catalog.dart';
 import '../enemies/enemy_id.dart';
+import '../snapshots/enums.dart';
 import '../tuning/ground_enemy_tuning.dart';
 import '../tuning/physics_tuning.dart';
 import 'terrain_placement_query.dart';
@@ -251,7 +252,11 @@ TerrainSurfaceGraphBuildProfile _buildGroundEnemyProfile({
     traversalProfile: terrain.traversal,
     radiusTicks: capsule.radiusTicks,
     verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
-    authoredOffsetXTicks: capsule.offsetXTicks,
+    // Catalog offsets follow the sprite's authored facing; graph profiles
+    // resolve directions from a right-facing baseline, like runtime collision.
+    authoredOffsetXTicks:
+        capsule.offsetXTicks *
+        (enemyCatalog.get(enemyId).artFacingDir == Facing.right ? 1 : -1),
     offsetYTicks: capsule.offsetYTicks,
     supportRequirement: const TerrainSupportRequirement.groundedEnemyRuntime(),
     locomotionSpeedTicksPerSecond: locomotionSpeedTicksPerSecond,

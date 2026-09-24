@@ -956,7 +956,8 @@ class _TrajectoryContact {
 
 List<int> _takeoffSamples(int minimumX, int maximumX, int maxDxTicks) {
   if (maximumX <= minimumX) return <int>[minimumX];
-  final maxStep = 64 * terrainPhysicsTicksPerWorldUnit;
+  // Authored props can leave only one tile of clearance for a takeoff.
+  final maxStep = 16 * terrainPhysicsTicksPerWorldUnit;
   final step = _minInt(maxDxTicks, maxStep);
   if (step <= 0 || maximumX - minimumX <= step) {
     return _dedupeInts(<int>[

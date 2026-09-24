@@ -146,6 +146,7 @@ final class TerrainEnemyNavigationSystem {
         graph: graph,
         target: target,
         intent: intent,
+        grounded: actor.grounded,
       );
       if (!intent.hasPlan &&
           actor.grounded &&
@@ -359,6 +360,7 @@ final class TerrainEnemyNavigationSystem {
     required TerrainSurfaceGraph graph,
     required TerrainSurfaceNavigationActorSnapshot target,
     required TerrainSurfaceNavIntent intent,
+    required bool grounded,
   }) {
     final intents = world.navIntent;
     intents.navTargetX[intentIndex] =
@@ -376,7 +378,10 @@ final class TerrainEnemyNavigationSystem {
 
     final edgeIndex = world.surfaceNav.terrainState[navIndex].activeEdgeIndex;
     if (edgeIndex < 0 || edgeIndex >= graph.edges.length) {
-      intents.clearActiveJumpTraversalAt(intentIndex);
+      // Terrain publication invalidates graph indices, not an already launched
+      // body's ballistic commitment. Keep its scalar launch data until landing;
+      // locomotion still resolves every tick through current terrain collision.
+      if (grounded) intents.clearActiveJumpTraversalAt(intentIndex);
       return;
     }
     final edge = graph.edges[edgeIndex];

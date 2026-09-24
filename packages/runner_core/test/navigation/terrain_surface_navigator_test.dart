@@ -356,7 +356,7 @@ void main() {
       TerrainSurfaceEdgeKind.jump,
       TerrainSurfaceEdgeKind.drop,
     ]) {
-      test('$kind overshoot commits in flight and needs the right landing', () {
+      test('$kind replans from actual support after a missed landing', () {
         final fixture = _transitionFixture();
         final profile = _profile();
         final graph = _customGraph(fixture, profile, <_EdgeSpec>[
@@ -366,6 +366,14 @@ void main() {
             kind,
             1,
             takeoffBodyXTicks: _ticks(100),
+            landingBodyXTicks: _ticks(220),
+          ),
+          _EdgeSpec(
+            'wrong',
+            'destination',
+            kind,
+            1,
+            takeoffBodyXTicks: _ticks(160),
             landingBodyXTicks: _ticks(220),
           ),
         ]);
@@ -414,7 +422,7 @@ void main() {
         expect(inFlight.commitDirectionX, 1);
         expect(state.activeEdgeIndex, activeEdge);
 
-        navigator.update(
+        final recovery = navigator.update(
           state: state,
           graph: graph,
           placementQuery: fixture.query,
@@ -422,9 +430,23 @@ void main() {
           entity: _actorOn(fixture, profile, wrong, _ticks(155)),
           target: target,
         );
-        expect(state.activeEdgeIndex, activeEdge);
+        expect(state.activeEdgeIndex, -1);
+        expect(recovery.desiredBodyXTicks, _ticks(160));
+        expect(recovery.hasPlan, isTrue);
+        expect(recovery.jumpNow, isFalse);
+        expect(state.pathEdges, isNot(contains(activeEdge)));
         expect(state.pathCursor, 0);
 
+        navigator.update(
+          state: state,
+          graph: graph,
+          placementQuery: fixture.query,
+          bundleVersion: 4,
+          entity: _actorOn(fixture, profile, wrong, _ticks(160)),
+          target: target,
+        );
+        expect(state.activeEdgeIndex, isNonNegative);
+        expect(state.activeEdgeIndex, isNot(activeEdge));
         navigator.update(
           state: state,
           graph: graph,

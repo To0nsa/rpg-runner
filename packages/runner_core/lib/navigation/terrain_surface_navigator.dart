@@ -82,6 +82,9 @@ class TerrainSurfaceNavigatorState {
   /// Committed global edge index, or `-1` before takeoff/after landing.
   int activeEdgeIndex = -1;
 
+  /// Distinguishes a completed airborne attempt from a drop still on its ledge.
+  bool activeEdgeWasAirborne = false;
+
   /// Clears every support and graph-index cache before a new bundle is read.
   void invalidateForBundle(int nextBundleVersion) {
     if (nextBundleVersion < 0) {
@@ -102,6 +105,7 @@ class TerrainSurfaceNavigatorState {
     pathEdges.clear();
     pathCursor = 0;
     activeEdgeIndex = -1;
+    activeEdgeWasAirborne = false;
   }
 }
 
@@ -355,6 +359,7 @@ class TerrainSurfaceNavigator {
     }
     if (entity.grounded && _reachedTakeoff(entity.bodyCenter.xTicks, edge)) {
       state.activeEdgeIndex = edgeIndex;
+      state.activeEdgeWasAirborne = false;
       return _applyMovementLock(
         TerrainSurfaceNavIntent(
           desiredBodyXTicks: edge.kind == TerrainSurfaceEdgeKind.drop
@@ -477,15 +482,25 @@ class TerrainSurfaceNavigator {
       return null;
     }
     final edge = graph.edges[activeEdgeIndex];
+    if (!entity.grounded) state.activeEdgeWasAirborne = true;
     final destinationId = graph.surfaces[edge.to].id;
     if (entity.grounded && state.currentSurfaceId == destinationId) {
       state.activeEdgeIndex = -1;
+      state.activeEdgeWasAirborne = false;
       state.pathCursor += 1;
       return TerrainSurfaceNavIntent(
         desiredBodyXTicks: targetBodyXTicks,
         jumpNow: false,
         hasPlan: true,
       );
+    }
+
+    if (entity.grounded && state.activeEdgeWasAirborne) {
+      // A collision can land the body on a different support than the graph's
+      // prediction. Replan from that real foothold instead of retaining a
+      // direction lock toward a landing that has already been missed.
+      _clearPath(state);
+      return null;
     }
 
     return TerrainSurfaceNavIntent(
@@ -665,6 +680,7 @@ class TerrainSurfaceNavigator {
     state.pathEdges.clear();
     state.pathCursor = 0;
     state.activeEdgeIndex = -1;
+    state.activeEdgeWasAirborne = false;
     state.repathTicksLeft = 0;
   }
 

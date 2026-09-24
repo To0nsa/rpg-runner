@@ -2,12 +2,38 @@ import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/navigation/terrain_spawn_placement.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
 import 'package:runner_core/navigation/types/terrain_navigation_surface.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('TerrainRuntimeBundle', () {
+    test('graph capsules match catalog collision for both enemy facings', () {
+      const catalog = EnemyCatalog();
+      for (final profile in buildDefaultGroundEnemyTerrainGraphProfiles()) {
+        final enemy = EnemyId.values.byName(profile.profileKey);
+        for (final facing in Facing.values) {
+          final runtime = TerrainEnemySpawnPlacementProfile.fromCatalog(
+            catalog: catalog,
+            enemyId: enemy,
+            facing: facing,
+          ).capsule;
+          final planned = profile.capsuleForDirection(
+            facing == Facing.right ? 1 : -1,
+          );
+          expect(planned.resolvedOffsetXTicks, runtime.resolvedOffsetXTicks);
+          expect(planned.radiusTicks, runtime.radiusTicks);
+          expect(
+            planned.verticalHalfSegmentTicks,
+            runtime.verticalHalfSegmentTicks,
+          );
+          expect(planned.offsetYTicks, runtime.offsetYTicks);
+        }
+      }
+    });
     test(
       'version rebinding shares admitted records and rejects substituted nodes',
       () {

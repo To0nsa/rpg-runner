@@ -83,7 +83,7 @@ void main() {
     );
 
     test('publishes jump timing for terrain-backed locomotion', () {
-      final bundle = _bundle(_jumpGeometry());
+      var bundle = _bundle(_jumpGeometry());
       final graph = bundle.grojibGraph;
       final jumpEdgeIndex = graph.edges.indexWhere(
         (edge) => edge.kind == TerrainSurfaceEdgeKind.jump,
@@ -142,6 +142,44 @@ void main() {
             .indexOf(fixture.enemy)],
         isFalse,
       );
+
+      final launchedVelocity = fixture.world.transform.velX[transformIndex];
+      bundle = bundle.withGeometryVersion(bundle.version + 1);
+      system.step(fixture.world, player: fixture.player, currentTick: 2);
+      expect(fixture.world.navIntent.hasPlan[intentIndex], isFalse);
+      expect(
+        fixture.world.navIntent.hasActiveJumpTraversal[intentIndex],
+        isTrue,
+      );
+      expect(
+        fixture
+            .world
+            .surfaceNav
+            .terrainState[fixture.world.surfaceNav.indexOf(fixture.enemy)]
+            .activeEdgeIndex,
+        -1,
+      );
+      locomotion.step(
+        fixture.world,
+        player: fixture.player,
+        dtSeconds: movement.dtSeconds,
+        currentTick: 2,
+      );
+      expect(fixture.world.transform.velX[transformIndex], launchedVelocity);
+
+      _setSupport(
+        fixture.world,
+        entity: fixture.enemy,
+        bundle: bundle,
+        graph: bundle.grojibGraph,
+        surface: bundle.surfaceSet.surfaceById(graph.surfaces[edge.to].id)!,
+        desiredBodyXTicks: edge.landingPoint.xTicks,
+      );
+      system.step(fixture.world, player: fixture.player, currentTick: 3);
+      expect(
+        fixture.world.navIntent.hasActiveJumpTraversal[intentIndex],
+        isFalse,
+      );
     });
   });
 }
@@ -181,6 +219,7 @@ TerrainEnemyNavigationSystem _system(TerrainRuntimeBundle Function() bundle) =>
     velX: 0,
     velY: 0,
     facing: Facing.right,
+    artFacing: archetype.artFacingDir,
     body: archetype.body,
     collider: archetype.collider,
     health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0),

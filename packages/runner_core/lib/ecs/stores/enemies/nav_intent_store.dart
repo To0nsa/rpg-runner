@@ -23,7 +23,9 @@ class NavIntentStore extends SparseSet {
   final List<double> safeSurfaceMaxX = <double>[];
   final List<bool> hasSafeSurface = <bool>[];
 
-  /// Active planned jump data shared with locomotion by either navigator.
+  /// Launched jump commitment in world coordinates, without graph indices.
+  /// Survives a terrain publication while airborne; landing, swimming, or a
+  /// teleport clears it even when the old graph plan no longer exists.
   final List<bool> hasActiveJumpTraversal = <bool>[];
   final List<double> activeJumpTakeoffX = <double>[];
   final List<double> activeJumpLandingX = <double>[];
