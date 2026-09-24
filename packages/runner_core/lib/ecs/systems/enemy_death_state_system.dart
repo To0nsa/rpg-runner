@@ -1,12 +1,10 @@
-import '../../enemies/death_behavior.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../util/tick_math.dart';
-import '../stores/death_state_store.dart';
 import '../world.dart';
-import '../world_support_view.dart';
+import 'actor_death_lifecycle.dart';
 
 /// Tracks enemy death phases and schedules despawn timing.
 class EnemyDeathStateSystem {
@@ -50,78 +48,19 @@ class EnemyDeathStateSystem {
     final enemies = world.enemy;
     if (enemies.denseEntities.isEmpty) return;
 
-    final health = world.health;
-    final deathState = world.deathState;
-    final transform = world.transform;
-    final supportView = WorldSupportView(world);
-
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
-      final di = deathState.tryIndexOf(e);
-      if (di != null) {
-        final phase = deathState.phase[di];
-        if (phase != DeathPhase.fallingUntilGround) continue;
-
-        final grounded = supportView.isGrounded(e);
-        final maxFallTick = deathState.maxFallDespawnTick[di];
-        final shouldStartDeathAnim =
-            grounded || (maxFallTick >= 0 && currentTick >= maxFallTick);
-
-        if (!shouldStartDeathAnim) continue;
-
-        final deathTicks = _deathAnimTicksById[enemies.enemyId[ei]] ?? 0;
-        deathState.phase[di] = DeathPhase.deathAnim;
-        deathState.deathStartTick[di] = currentTick;
-        deathState.despawnTick[di] = currentTick + deathTicks;
-
-        final ti = transform.tryIndexOf(e);
-        if (ti != null) {
-          transform.velX[ti] = 0.0;
-          transform.velY[ti] = 0.0;
-        }
-        continue;
-      }
-
-      final hi = health.tryIndexOf(e);
-      if (hi == null) continue;
-      if (health.hp[hi] > 0) continue;
-
       final archetype = _enemyCatalog.get(enemies.enemyId[ei]);
       final deathTicks = _deathAnimTicksById[enemies.enemyId[ei]] ?? 0;
-
-      if (outEnemiesKilled != null) {
-        outEnemiesKilled.add(enemies.enemyId[ei]);
-      }
-
-      final grounded = supportView.isGrounded(e);
-
-      if (archetype.deathBehavior == DeathBehavior.groundImpactThenDeath &&
-          !grounded) {
-        deathState.add(
-          e,
-          DeathStateDef(
-            phase: DeathPhase.fallingUntilGround,
-            deathStartTick: -1,
-            despawnTick: -1,
-            maxFallDespawnTick: currentTick + _maxFallTicks,
-          ),
-        );
-        continue;
-      }
-
-      deathState.add(
+      if (advanceActorDeath(
+        world,
         e,
-        DeathStateDef(
-          phase: DeathPhase.deathAnim,
-          deathStartTick: currentTick,
-          despawnTick: currentTick + deathTicks,
-        ),
-      );
-
-      final ti = transform.tryIndexOf(e);
-      if (ti != null) {
-        transform.velX[ti] = 0.0;
-        transform.velY[ti] = 0.0;
+        currentTick: currentTick,
+        behavior: archetype.deathBehavior,
+        deathAnimTicks: deathTicks,
+        maxFallTicks: _maxFallTicks,
+      )) {
+        outEnemiesKilled?.add(enemies.enemyId[ei]);
       }
     }
   }

@@ -8,13 +8,7 @@ void protectNpc(EcsWorld world, EntityId entity) {
   final i = world.npc.tryIndexOf(entity);
   if (i == null || world.npc.protected[i]) return;
   world.npc.protected[i] = true;
-  world.aiTarget.removeEntity(entity);
-  world.aiTarget.forget(entity);
-  AbilityInterrupt.clearActiveAndTransient(
-    world,
-    entity: entity,
-    startDeferredCooldown: false,
-  );
+  stopNpcCombat(world, entity);
   world.dot.removeEntity(entity);
   world.slow.removeEntity(entity);
   world.weaken.removeEntity(entity);
@@ -23,6 +17,17 @@ void protectNpc(EcsWorld world, EntityId entity) {
   world.controlLock.removeEntity(entity);
   final modifier = world.statModifier.tryIndexOf(entity);
   if (modifier != null) world.statModifier.moveSpeedMul[modifier] = 1;
+}
+
+/// Stops autonomous combat on death or resolution without touching detached effects.
+void stopNpcCombat(EcsWorld world, EntityId entity) {
+  world.aiTarget.removeEntity(entity);
+  world.aiTarget.forget(entity);
+  AbilityInterrupt.clearActiveAndTransient(
+    world,
+    entity: entity,
+    startDeferredCooldown: false,
+  );
   final ti = world.transform.tryIndexOf(entity);
   if (ti != null) world.transform.velX[ti] = 0;
   // Detached effects keep their faction, credit and normal lifetime.

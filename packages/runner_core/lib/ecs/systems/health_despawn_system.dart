@@ -18,10 +18,7 @@ class HealthDespawnSystem {
 
   /// Runs the system logic.
   ///
-  void step(
-    EcsWorld world, {
-    required EntityId player,
-  }) {
+  void step(EcsWorld world, {required EntityId player}) {
     final health = world.health;
     // Optimization: If no entities have health components, there's nothing to check.
     if (health.denseEntities.isEmpty) return;
@@ -33,12 +30,12 @@ class HealthDespawnSystem {
     // Iterate over all entities participating in the health system.
     for (var i = 0; i < health.denseEntities.length; i += 1) {
       final e = health.denseEntities[i];
-      
+
       // Safety check: The player should never be despawned by this system.
       if (e == player) continue;
-      
-      // Enemies are handled by the enemy death state pipeline.
-      if (world.enemy.has(e)) continue;
+
+      // Actors with animation lifecycles use the shared death-state cleanup.
+      if (world.enemy.has(e) || world.npc.has(e)) continue;
 
       // If health is depleted, mark for destruction.
       if (health.hp[i] <= 0) {

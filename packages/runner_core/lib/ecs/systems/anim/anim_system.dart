@@ -7,6 +7,7 @@ import '../../../enemies/death_behavior.dart';
 import '../../../enemies/enemy_catalog.dart';
 import '../../../enemies/enemy_id.dart';
 import '../../../enemies/enemy_terrain_profile.dart';
+import '../../../npcs/npc_catalog.dart';
 import '../../../players/player_tuning.dart';
 import '../../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../../util/tick_math.dart';
@@ -123,6 +124,23 @@ class AnimSystem {
       spawnStartTick: playerSpawnStartTick,
     );
     _stepEnemies(world, currentTick: currentTick);
+    for (var i = 0; i < world.npc.denseEntities.length; i++) {
+      final archetype = const NpcCatalog().get(world.npc.npcId[i]);
+      _stepAutonomousActor(
+        world,
+        entity: world.npc.denseEntities[i],
+        currentTick: currentTick,
+        profile: archetype.animProfile,
+        hitAnimTicks: anim_utils.ticksForKey(
+          key: AnimKey.hit,
+          frameCounts: archetype.renderAnim.frameCountsByKey,
+          stepTimeSecondsByKey: archetype.renderAnim.stepTimeSecondsByKey,
+          tickHz: _tickHz,
+        ),
+        configuredSpawnAnimTicks: 0,
+        usesSurfaceDistance: true,
+      );
+    }
   }
 
   void _stepPlayer(
@@ -184,82 +202,96 @@ class AnimSystem {
 
   void _stepEnemies(EcsWorld world, {required int currentTick}) {
     final enemies = world.enemy;
-    final animStore = world.animState;
-
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
-      if (!animStore.has(e)) continue;
-      final ai = animStore.indexOf(e);
       final enemyId = enemies.enemyId[ei];
-      final profile = enemyCatalog.get(enemyId).animProfile;
-      final common = _readCommonSignals(
+      _stepAutonomousActor(
         world,
         entity: e,
         currentTick: currentTick,
+        profile: enemyCatalog.get(enemyId).animProfile,
+        hitAnimTicks: _hitAnimTicksById[enemyId] ?? 0,
+        configuredSpawnAnimTicks: _spawnAnimTicksById[enemyId] ?? 0,
+        usesSurfaceDistance:
+            enemyCatalog.terrainContactProfile(enemyId).locomotionKind ==
+            EnemyTerrainLocomotionKind.constantSurfaceDistance,
       );
-
-      final di = world.deathState.tryIndexOf(e);
-      final deathPhase = di == null
-          ? DeathPhase.none
-          : world.deathState.phase[di];
-      final deathStartTick = di == null
-          ? -1
-          : world.deathState.deathStartTick[di];
-
-      final hitAnimTicks = _hitAnimTicksById[enemyId] ?? 0;
-      final configuredSpawnAnimTicks = _spawnAnimTicksById[enemyId] ?? 0;
-      final spawnIndex = world.spawnState.tryIndexOf(e);
-      final spawnStartTick = spawnIndex == null
-          ? -1
-          : world.spawnState.startTick[spawnIndex];
-      final spawnAnimTicks = spawnIndex == null
-          ? configuredSpawnAnimTicks
-          : world.spawnState.animTicks[spawnIndex];
-
-      // Phase 6: Active Action Layer (Enemies)
-      final activeAction = _resolveActiveAction(
-        world,
-        entity: e,
-        currentTick: currentTick,
-        stunned: common.stunLocked,
-        hp: common.hp,
-        deathPhase: deathPhase,
-      );
-
-      final signals = AnimSignals.enemy(
-        tick: currentTick,
-        hp: common.hp,
-        deathPhase: deathPhase,
-        deathStartTick: deathStartTick,
-        grounded: common.grounded,
-        velX: common.velX,
-        velY: common.velY,
-        lastDamageTick: common.lastDamageTick,
-        hitAnimTicks: hitAnimTicks,
-        spawnStartTick: spawnStartTick,
-        spawnAnimTicks: spawnAnimTicks,
-        stunLocked: common.stunLocked,
-        stunStartTick: common.stunStartTick,
-        activeActionAnim: activeAction.anim,
-        activeActionFrame: activeAction.frame,
-      );
-
-      final result = AnimResolver.resolve(profile, signals);
-      animStore.anim[ai] = result.anim;
-      final terrainLocomotionKind = enemyCatalog
-          .terrainContactProfile(enemyId)
-          .locomotionKind;
-      animStore.animFrame[ai] =
-          terrainLocomotionKind ==
-              EnemyTerrainLocomotionKind.constantSurfaceDistance
-          ? _terrainLocomotionAnimFrame(
-              world,
-              entity: e,
-              animStateIndex: ai,
-              resolved: result,
-            )
-          : result.animFrame;
     }
+  }
+
+  void _stepAutonomousActor(
+    EcsWorld world, {
+    required EntityId entity,
+    required int currentTick,
+    required AnimProfile profile,
+    required int hitAnimTicks,
+    required int configuredSpawnAnimTicks,
+    required bool usesSurfaceDistance,
+  }) {
+    final e = entity;
+    final animStore = world.animState;
+    if (!animStore.has(e)) return;
+    final ai = animStore.indexOf(e);
+    final common = _readCommonSignals(
+      world,
+      entity: e,
+      currentTick: currentTick,
+    );
+
+    final di = world.deathState.tryIndexOf(e);
+    final deathPhase = di == null
+        ? DeathPhase.none
+        : world.deathState.phase[di];
+    final deathStartTick = di == null
+        ? -1
+        : world.deathState.deathStartTick[di];
+
+    final spawnIndex = world.spawnState.tryIndexOf(e);
+    final spawnStartTick = spawnIndex == null
+        ? -1
+        : world.spawnState.startTick[spawnIndex];
+    final spawnAnimTicks = spawnIndex == null
+        ? configuredSpawnAnimTicks
+        : world.spawnState.animTicks[spawnIndex];
+
+    // Phase 6: Active Action Layer (Enemies)
+    final activeAction = _resolveActiveAction(
+      world,
+      entity: e,
+      currentTick: currentTick,
+      stunned: common.stunLocked,
+      hp: common.hp,
+      deathPhase: deathPhase,
+    );
+
+    final signals = AnimSignals.enemy(
+      tick: currentTick,
+      hp: common.hp,
+      deathPhase: deathPhase,
+      deathStartTick: deathStartTick,
+      grounded: common.grounded,
+      velX: common.velX,
+      velY: common.velY,
+      lastDamageTick: common.lastDamageTick,
+      hitAnimTicks: hitAnimTicks,
+      spawnStartTick: spawnStartTick,
+      spawnAnimTicks: spawnAnimTicks,
+      stunLocked: common.stunLocked,
+      stunStartTick: common.stunStartTick,
+      activeActionAnim: activeAction.anim,
+      activeActionFrame: activeAction.frame,
+    );
+
+    final result = AnimResolver.resolve(profile, signals);
+    animStore.anim[ai] = result.anim;
+    animStore.animFrame[ai] = usesSurfaceDistance
+        ? _terrainLocomotionAnimFrame(
+            world,
+            entity: e,
+            animStateIndex: ai,
+            resolved: result,
+          )
+        : result.animFrame;
   }
 
   /// Reads shared state used by both player and enemy animation signals.

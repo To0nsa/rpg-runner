@@ -12,6 +12,8 @@ import '../../collision/terrain/terrain_traversal_profile.dart';
 import '../../collision/terrain/terrain_traversal_cache.dart';
 import '../../collision/terrain/upright_capsule.dart';
 import '../../enemies/enemy_catalog.dart';
+import '../../npcs/npc_catalog.dart';
+import '../../npcs/npc_id.dart';
 import '../../players/player_archetype.dart';
 import '../../players/player_tuning.dart';
 import '../../enemies/enemy_id.dart';
@@ -27,6 +29,7 @@ import '../../snapshots/staged_terrain_render_snapshot.dart';
 import '../../track/staged_terrain_stream_candidate.dart';
 import '../../terrain/water_region.dart';
 import '../entity_id.dart';
+import '../actor_facing.dart';
 import '../stores/world_contact_capsule_store.dart';
 import '../world.dart';
 import 'terrain_ballistic_projectile_system.dart';
@@ -184,6 +187,7 @@ final class FlyingClearanceSteeringOutput {
 enum TerrainBodyDisposition {
   terrainPlayer,
   terrainGroundedEnemy,
+  terrainGroundedNpc,
   terrainFlyingEnemy,
   kinematicPlacementEnemy,
   terrainBallisticProjectile,
@@ -246,6 +250,7 @@ TerrainBodyDisposition terrainBodyDisposition(
     return TerrainBodyDisposition.terrainBallisticProjectile;
   }
   final enemyIndex = world.enemy.tryIndexOf(entity);
+  if (world.npc.has(entity)) return TerrainBodyDisposition.terrainGroundedNpc;
   if (enemyIndex != null) {
     switch (world.enemy.enemyId[enemyIndex]) {
       case EnemyId.grojib:
@@ -600,7 +605,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     // Direct authority users may still prepare without a separate streaming
     // phase. GameCore publishes explicitly before placing streamed entities.
     _publishPendingTerrainBundle();
-    _initializePendingEnemyStores(world);
+    _initializePendingActorStores(world);
 
     for (final entity in _orderedBodies) {
       final scratch = _dynamicScratchFor(world, entity, player: player);
@@ -755,6 +760,18 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       );
     }
     final facingSign = _facingOffsetSignFor(world, entity, facing);
+    final npcIndex = world.npc.tryIndexOf(entity);
+    if (npcIndex != null) {
+      final bounds = world.npc.movementBounds[npcIndex];
+      final centerX =
+          physicsCoordinateToTicks(bodyX) +
+          world.worldContactCapsule.offsetXTicks[capsuleIndex] * facingSign;
+      final radius = world.worldContactCapsule.radiusTicks[capsuleIndex];
+      if (centerX - radius < bounds.minXTicks ||
+          centerX + radius > bounds.maxXTicks) {
+        return false;
+      }
+    }
     final capsule = TerrainPlacementCapsule(
       radiusTicks: world.worldContactCapsule.radiusTicks[capsuleIndex],
       verticalHalfSegmentTicks:
@@ -1179,6 +1196,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final hasLastValid =
         world.terrainContact.hasLastValidBodyPosition[contactIndex];
     final result = scratch.result;
+    final npcIndex = world.npc.tryIndexOf(entity);
     scratch.controller.moveAtValues(
       centerXTicks: startCapsuleCenterX,
       centerYTicks: startCapsuleCenterY,
@@ -1190,6 +1208,9 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       gravityYTicks: gravityDisplacementY,
       surfaceDirectionSign: surfaceDirectionSign,
       mode: mode,
+      horizontalBounds: npcIndex == null
+          ? null
+          : world.npc.movementBounds[npcIndex],
       beganGrounded: beganGrounded,
       priorSupportEdgeId: scratch.canGround
           ? world.terrainContact.supportEdgeId[contactIndex]
@@ -1227,6 +1248,10 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       currentTick: currentTick,
       scratch: scratch,
     );
+    if (result.hitHorizontalBound) {
+      world.transform.velX[transformIndex] = 0;
+      if (result.grounded) world.transform.velY[transformIndex] = 0;
+    }
     world.resolvedMotion.setResolved(
       entity,
       displacementXTicks: finalBodyX - bodyStartX,
@@ -1478,10 +1503,9 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         continue;
       }
 
-      final enemyIndex = world.enemy.tryIndexOf(entity);
-      if (enemyIndex != null) {
+      final profile = _actorTerrainProfile(world, entity);
+      if (profile != null) {
         _requireActorBaseStores(world, entity);
-        final profile = _enemyProfile(world.enemy.enemyId[enemyIndex]);
         final bodyIndex = world.body.indexOf(entity);
         if (profile.motionKind == EnemyTerrainMotionKind.kinematicPlacement) {
           if (!world.body.isKinematic[bodyIndex]) {
@@ -1639,11 +1663,10 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     }
   }
 
-  void _initializePendingEnemyStores(EcsWorld world) {
+  void _initializePendingActorStores(EcsWorld world) {
     for (final entity in _orderedBodies) {
-      final enemyIndex = world.enemy.tryIndexOf(entity);
-      if (enemyIndex == null || world.worldContactCapsule.has(entity)) continue;
-      final profile = _enemyProfile(world.enemy.enemyId[enemyIndex]);
+      final profile = _actorTerrainProfile(world, entity);
+      if (profile == null || world.worldContactCapsule.has(entity)) continue;
       world.worldContactCapsule.add(entity, profile.capsule);
       world.terrainTraversalProfile.add(entity, profile.traversal);
       if (profile.motionKind != EnemyTerrainMotionKind.kinematicPlacement) {
@@ -1660,12 +1683,26 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     EnemyId.derf => _derfProfile,
   };
 
+  EnemyTerrainContactProfile? _actorTerrainProfile(
+    EcsWorld world,
+    EntityId entity,
+  ) {
+    final npc = world.npc.tryIndexOf(entity);
+    if (npc != null) {
+      return const NpcCatalog().terrainContactProfile(world.npc.npcId[npc]);
+    }
+    final enemy = world.enemy.tryIndexOf(entity);
+    return enemy == null ? null : _enemyProfile(world.enemy.enemyId[enemy]);
+  }
+
   _TerrainMotionScratch? _dynamicScratchFor(
     EcsWorld world,
     EntityId entity, {
     required EntityId player,
   }) {
     if (entity == player) return _playerScratch;
+    final npc = world.npc.tryIndexOf(entity);
+    if (npc != null) return _publication.npcScratch[world.npc.npcId[npc]];
     final enemyIndex = world.enemy.tryIndexOf(entity);
     if (enemyIndex == null) return null;
     return switch (world.enemy.enemyId[enemyIndex]) {
@@ -1876,6 +1913,13 @@ final class _TerrainAuthorityPublication {
         hashashProfile.motionKind,
       ),
       unocoScratch: scratchFor(unocoProfile.traversal, unocoProfile.motionKind),
+      npcScratch: Map.unmodifiable({
+        for (final id in NpcCatalog.supportedIds)
+          id: scratchFor(
+            const NpcCatalog().terrainContactProfile(id).traversal,
+            const NpcCatalog().terrainContactProfile(id).motionKind,
+          ),
+      }),
     );
   }
 
@@ -1893,6 +1937,7 @@ final class _TerrainAuthorityPublication {
     required this.grojibScratch,
     required this.hashashScratch,
     required this.unocoScratch,
+    required this.npcScratch,
   });
 
   final TerrainRuntimeBundle bundle;
@@ -1908,6 +1953,7 @@ final class _TerrainAuthorityPublication {
   final _TerrainMotionScratch grojibScratch;
   final _TerrainMotionScratch hashashScratch;
   final _TerrainMotionScratch unocoScratch;
+  final Map<NpcId, _TerrainMotionScratch> npcScratch;
 }
 
 final class _TerrainMotionScratch {
@@ -1937,16 +1983,10 @@ WorldBodyPlacementOrigin _currentPlacementOrigin(
   EntityId entity,
 ) {
   final transformIndex = world.transform.indexOf(entity);
-  final movementIndex = world.movement.tryIndexOf(entity);
-  final enemyIndex = world.enemy.tryIndexOf(entity);
   return WorldBodyPlacementOrigin(
     bodyX: world.transform.posX[transformIndex],
     bodyY: world.transform.posY[transformIndex],
-    facing: movementIndex != null
-        ? world.movement.facing[movementIndex]
-        : enemyIndex != null
-        ? world.enemy.facing[enemyIndex]
-        : Facing.right,
+    facing: actorFacing(world, entity),
   );
 }
 
@@ -1960,56 +2000,23 @@ void _writeBodyPlacement(
   final transformIndex = world.transform.indexOf(entity);
   world.transform.posX[transformIndex] = bodyX;
   world.transform.posY[transformIndex] = bodyY;
-  final movementIndex = world.movement.tryIndexOf(entity);
-  if (movementIndex != null) world.movement.facing[movementIndex] = facing;
-  final enemyIndex = world.enemy.tryIndexOf(entity);
-  if (enemyIndex != null) world.enemy.facing[enemyIndex] = facing;
+  setActorFacing(world, entity, facing);
 }
 
 int _facingOffsetSignFor(EcsWorld world, EntityId entity, Facing facing) {
-  final movementIndex = world.movement.tryIndexOf(entity);
-  if (movementIndex != null) {
-    return facing == world.movement.artFacing[movementIndex] ? 1 : -1;
-  }
-  final enemyIndex = world.enemy.tryIndexOf(entity);
-  if (enemyIndex != null) {
-    return facing == world.enemy.artFacing[enemyIndex] ? 1 : -1;
-  }
-  return 1;
+  return facing == actorArtFacing(world, entity) ? 1 : -1;
 }
 
 Facing _facingForOffsetSign(EcsWorld world, EntityId entity, int sign) {
-  final movementIndex = world.movement.tryIndexOf(entity);
-  if (movementIndex != null) {
-    final artFacing = world.movement.artFacing[movementIndex];
-    return sign == 1 ? artFacing : _oppositeFacing(artFacing);
-  }
-  final enemyIndex = world.enemy.tryIndexOf(entity);
-  if (enemyIndex != null) {
-    final artFacing = world.enemy.artFacing[enemyIndex];
-    return sign == 1 ? artFacing : _oppositeFacing(artFacing);
-  }
-  return Facing.right;
+  final artFacing = actorArtFacing(world, entity);
+  return sign == 1 ? artFacing : _oppositeFacing(artFacing);
 }
 
 Facing _oppositeFacing(Facing facing) =>
     facing == Facing.right ? Facing.left : Facing.right;
 
 int _facingOffsetSign(EcsWorld world, EntityId entity) {
-  final movementIndex = world.movement.tryIndexOf(entity);
-  if (movementIndex != null) {
-    return world.movement.facing[movementIndex] ==
-            world.movement.artFacing[movementIndex]
-        ? 1
-        : -1;
-  }
-  final enemyIndex = world.enemy.tryIndexOf(entity);
-  if (enemyIndex != null) {
-    return world.enemy.facing[enemyIndex] == world.enemy.artFacing[enemyIndex]
-        ? 1
-        : -1;
-  }
-  return 1;
+  return _facingOffsetSignFor(world, entity, actorFacing(world, entity));
 }
 
 int _roundedDivide(int numerator, int denominator) {

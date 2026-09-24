@@ -66,8 +66,8 @@ before death cleanup. Unresolved member enemies bypass ordinary behind-camera
 culling; falling out of the world still removes them. Run exit finalizes groups
 before statistics or player-death freeze. The controller's terrain-retention and
 retirement APIs enforce expiry before cleanup and retain only a monotonic retired
-chunk index. Stream registration and real NPC spawn/motion are the remaining M2
-integration work; authored production content is not enabled by these hooks.
+chunk index. Stream registration, spawn placement and NPC decision integration
+remain M2 work; authored production content is not enabled by these hooks.
 
 ## Actor movement bounds
 
@@ -83,8 +83,25 @@ Recovery also obeys the interval. At a sloped boundary, a vertical correction ca
 satisfy the same separating projection without moving through the boundary. A
 blocked or over-budget recovery restores the last valid in-bounds pose. The
 controller reports boundary contact separately from terrain wall contacts and
-clears optional constraints before processing an unrestricted actor. NPC catalog
-and motion-authority wiring supply these bounds in the remaining M2 actor work.
+clears optional constraints before processing an unrestricted actor. NPC stores
+supply immutable quantized bounds to the motion authority. Teleport placement
+checks the complete mirrored capsule against the same interval.
+
+## NPC actor lifecycle
+
+`EntityFactory.createNpc` shares autonomous combatant component assembly with
+enemies while retaining a separate `NpcId`, allied faction, facing and bounds.
+It adds neither player input nor an enemy score identity. The initial warrior
+catalog defines its reviewed sprite anchor, torso capsule, terrain profile,
+resources and sword timing. The other imported archetypes remain M4 work.
+
+Motion preparation installs the catalog's capsule/traversal profile and support
+state. NPCs use the normal terrain solver, gravity and status stores. Animation
+uses the same actor signals and active-ability timing as enemies. Shared actor
+death progression waits for ground impact or its finite fall deadline, plays
+the death animation, and then uses normal death cleanup. NPC death cancels
+pending/attached combat and never reports an enemy kill. Generic health cleanup
+leaves NPC bodies to that lifecycle.
 
 ## Combat ownership and survivor safety
 
@@ -106,7 +123,8 @@ The NPC store retains identity, facing, owning chunk bounds and protection state
 and target references, and leaves detached effects and physical bodies intact.
 Protected NPCs are excluded from combat broadphase (including trap occupancy),
 AI selection, queued damage and harmful status applications. Terrain movement
-and encounter-driven invocation are integrated in the subsequent M2 steps.
+is supplied through the motion authority; encounter spawn/AI integration remains
+in the subsequent M2 steps.
 
 ## Shared AI target selection
 

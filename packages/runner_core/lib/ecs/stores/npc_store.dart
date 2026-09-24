@@ -1,4 +1,6 @@
 import '../../npcs/npc_id.dart';
+import '../../collision/terrain/terrain_motion_request.dart';
+import '../../collision/terrain/terrain_numeric.dart';
 import '../../snapshots/enums.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -11,6 +13,11 @@ class NpcStore extends SparseSet {
   final List<double> minX = [];
   final List<double> maxX = [];
   final List<bool> protected = [];
+  final List<TerrainHorizontalBounds> movementBounds = [];
+  static final _emptyBounds = TerrainHorizontalBounds(
+    minXTicks: 0,
+    maxXTicks: 1,
+  );
 
   void add(
     EntityId entity, {
@@ -25,7 +32,12 @@ class NpcStore extends SparseSet {
         chunkStartX >= chunkEndX) {
       throw ArgumentError('NPC movement bounds must be finite and ordered.');
     }
+    final bounds = TerrainHorizontalBounds(
+      minXTicks: physicsCoordinateToTicks(chunkStartX),
+      maxXTicks: physicsCoordinateToTicks(chunkEndX),
+    );
     final i = addEntity(entity);
+    movementBounds[i] = bounds;
     npcId[i] = id;
     facing[i] = initialFacing;
     artFacing[i] = sourceFacing;
@@ -47,6 +59,7 @@ class NpcStore extends SparseSet {
     minX.add(0);
     maxX.add(0);
     protected.add(false);
+    movementBounds.add(_emptyBounds);
   }
 
   @override
@@ -57,11 +70,13 @@ class NpcStore extends SparseSet {
     minX[removeIndex] = minX[lastIndex];
     maxX[removeIndex] = maxX[lastIndex];
     protected[removeIndex] = protected[lastIndex];
+    movementBounds[removeIndex] = movementBounds[lastIndex];
     npcId.removeLast();
     facing.removeLast();
     artFacing.removeLast();
     minX.removeLast();
     maxX.removeLast();
     protected.removeLast();
+    movementBounds.removeLast();
   }
 }

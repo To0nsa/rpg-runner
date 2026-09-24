@@ -1,4 +1,7 @@
 import '../combat/faction.dart';
+import '../combat/creature_tag.dart';
+import '../npcs/npc_catalog.dart';
+import '../npcs/npc_id.dart';
 import '../enemies/enemy_id.dart';
 import '../snapshots/enums.dart';
 import '../util/deterministic_rng.dart';
@@ -163,24 +166,22 @@ class EntityFactory {
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
   }) {
-    final id = world.createEntity();
-    world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
-    world.body.add(id, body);
-    world.colliderAabb.add(id, collider);
-    world.collision.add(id);
-    world.cooldown.add(id);
-    world.projectileIntent.add(id);
-    world.targetPointIntent.add(id);
-    world.creatureTag.add(id, tags);
-    world.faction.add(id, const FactionDef(faction: Faction.enemy));
-    world.health.add(id, health);
-    world.lastDamage.add(id);
-    world.damageResistance.add(id, resistance);
-    world.mana.add(id, mana);
-    world.meleeIntent.add(id);
+    final id = _createAutonomousCombatant(
+      posX: posX,
+      posY: posY,
+      velX: velX,
+      velY: velY,
+      faction: Faction.enemy,
+      body: body,
+      collider: collider,
+      health: health,
+      mana: mana,
+      stamina: stamina,
+      tags: tags,
+      resistance: resistance,
+      statusImmunity: statusImmunity,
+    );
     world.meleeEngagement.add(id);
-    world.statModifier.add(id);
-    world.stamina.add(id, stamina);
     world.enemy.add(
       id,
       EnemyDef(
@@ -189,11 +190,7 @@ class EntityFactory {
         artFacing: artFacing ?? facing,
       ),
     );
-    world.activeAbility.add(id);
-    world.abilityCharge.add(id);
-    world.animState.add(id);
     world.spawnState.add(id);
-    world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {
       world.flyingEnemySteering.add(
         id,
@@ -223,6 +220,83 @@ class EntityFactory {
         ),
       );
     }
+    return id;
+  }
+
+  /// Creates an allied actor without player input or an enemy score identity.
+  EntityId createNpc({
+    required NpcId npcId,
+    required double posX,
+    required double posY,
+    required double chunkStartX,
+    required double chunkEndX,
+    Facing facing = Facing.right,
+    NpcCatalog catalog = const NpcCatalog(),
+  }) {
+    final archetype = catalog.get(npcId);
+    final id = _createAutonomousCombatant(
+      posX: posX,
+      posY: posY,
+      velX: 0,
+      velY: 0,
+      faction: Faction.player,
+      body: archetype.body,
+      collider: archetype.collider,
+      health: archetype.health,
+      mana: archetype.mana,
+      stamina: archetype.stamina,
+      tags: const CreatureTagDef(mask: CreatureTagMask.humanoid),
+    );
+    world.npc.add(
+      id,
+      id: npcId,
+      chunkStartX: chunkStartX,
+      chunkEndX: chunkEndX,
+      initialFacing: facing,
+      sourceFacing: archetype.artFacing,
+    );
+    world.surfaceNav.add(id);
+    world.navIntent.add(id);
+    world.swimState.add(id);
+    return id;
+  }
+
+  EntityId _createAutonomousCombatant({
+    required double posX,
+    required double posY,
+    required double velX,
+    required double velY,
+    required Faction faction,
+    required BodyDef body,
+    required ColliderAabbDef collider,
+    required HealthDef health,
+    required ManaDef mana,
+    required StaminaDef stamina,
+    CreatureTagDef tags = const CreatureTagDef(),
+    DamageResistanceDef resistance = const DamageResistanceDef(),
+    StatusImmunityDef statusImmunity = const StatusImmunityDef(),
+  }) {
+    final id = world.createEntity();
+    world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
+    world.body.add(id, body);
+    world.colliderAabb.add(id, collider);
+    world.collision.add(id);
+    world.cooldown.add(id);
+    world.projectileIntent.add(id);
+    world.targetPointIntent.add(id);
+    world.creatureTag.add(id, tags);
+    world.faction.add(id, FactionDef(faction: faction));
+    world.health.add(id, health);
+    world.lastDamage.add(id);
+    world.damageResistance.add(id, resistance);
+    world.mana.add(id, mana);
+    world.meleeIntent.add(id);
+    world.statModifier.add(id);
+    world.stamina.add(id, stamina);
+    world.activeAbility.add(id);
+    world.abilityCharge.add(id);
+    world.animState.add(id);
+    world.statusImmunity.add(id, statusImmunity);
     return id;
   }
 }

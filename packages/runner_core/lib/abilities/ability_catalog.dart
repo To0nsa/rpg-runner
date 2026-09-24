@@ -3,6 +3,7 @@ import 'catalog/eloise_ability_defs.dart';
 import 'catalog/grojib_ability_defs.dart';
 import 'catalog/hashash_ability_defs.dart';
 import 'catalog/unoco_ability_defs.dart';
+import 'catalog/npc_ability_defs.dart';
 import 'ability_def.dart';
 
 /// Read-only ability definition lookup contract.
@@ -35,6 +36,7 @@ class AbilityCatalog implements AbilityResolver {
         ...grojibAbilityDefs,
         ...hashashAbilityDefs,
         ...eloiseAbilityDefs,
+        ...npcAbilityDefs,
       });
 
   static final bool _integrityChecked = _validateIntegrity();

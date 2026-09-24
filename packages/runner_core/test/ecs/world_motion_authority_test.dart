@@ -6,6 +6,10 @@ import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/actor_facing.dart';
+import 'package:runner_core/ecs/collider_aabb_utils.dart';
+import 'package:runner_core/ecs/systems/npc_combat_lifecycle.dart';
+import 'package:runner_core/npcs/npc_id.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/enemies/enemy_store.dart';
@@ -30,6 +34,121 @@ import 'package:test/test.dart';
 
 void main() {
   group('world motion authority', () {
+    test('NPC capsules remain bounded through walking, jumps, facing and protection', () {
+      final h = _terrainHarness();
+      final npc = EntityFactory(h.world).createNpc(
+        npcId: NpcId.warrior,
+        posX: 100,
+        posY: 70,
+        chunkStartX: 20,
+        chunkEndX: 180,
+      );
+      expect(h.world.enemy.has(npc), isFalse);
+      expect(h.world.playerInput.has(npc), isFalse);
+      expect(
+        terrainBodyDisposition(h.world, entity: npc, terrainPlayer: h.player),
+        TerrainBodyDisposition.terrainGroundedNpc,
+      );
+      final ti = h.world.transform.indexOf(npc);
+      for (var tick = 1; tick <= 120; tick++) {
+        h.authority.prepareTick(h.world, player: h.player, currentTick: tick);
+        setActorFacing(h.world, npc, tick <= 60 ? Facing.right : Facing.left);
+        h.world.transform.velX[ti] = tick <= 60 ? 8000 : -8000;
+        if (tick == 50) {
+          h.authority.beforeExternalBodyVelocity(h.world, npc, velocityY: -300);
+          h.world.transform.velY[ti] = -300;
+        }
+        if (tick == 90) protectNpc(h.world, npc);
+        GravitySystem().step(
+          h.world,
+          h.movement,
+          physics: const PhysicsTuning(),
+        );
+        _stepAuthority(h, currentTick: tick);
+        final ci = h.world.worldContactCapsule.indexOf(npc);
+        final centerX =
+            h.world.transform.posX[ti] +
+            h.world.worldContactCapsule.offsetXTicks[ci] *
+                colliderFacingSign(h.world, npc) /
+                1024;
+        final radius = h.world.worldContactCapsule.radiusTicks[ci] / 1024;
+        expect(centerX - radius, greaterThanOrEqualTo(20));
+        expect(centerX + radius, lessThanOrEqualTo(180));
+      }
+      expect(h.authority.lastIntegratedBodyCount, 2);
+      expect(h.world.npc.isProtected(npc), isTrue);
+      expect(
+        h.world.terrainContact.grounded[h.world.terrainContact.indexOf(npc)],
+        isTrue,
+      );
+      expect(h.world.transform.velX[ti], 0);
+    });
+
+    test('NPC teleport placement validates the full mirrored capsule against its chunk', () {
+      final h = _terrainHarness();
+      final npc = EntityFactory(h.world).createNpc(
+        npcId: NpcId.warrior,
+        posX: 100,
+        posY: 50,
+        chunkStartX: 20,
+        chunkEndX: 180,
+      );
+      h.authority.prepareTick(h.world, player: h.player, currentTick: 1);
+      _stepAuthority(h, currentTick: 1);
+      final origin = h.authority.beginBodyTeleport(h.world, npc);
+      expect(
+        h.authority.tryCommitBodyTeleport(
+          h.world,
+          npc,
+          bodyX: 175,
+          bodyY: 50,
+          facing: Facing.left,
+        ),
+        isFalse,
+      );
+      expect(
+        h.world.transform.posX[h.world.transform.indexOf(npc)],
+        origin.bodyX,
+      );
+      expect(
+        h.authority.tryCommitBodyTeleport(
+          h.world,
+          npc,
+          bodyX: 50,
+          bodyY: 50,
+          facing: Facing.left,
+        ),
+        isTrue,
+      );
+      expect(actorFacing(h.world, npc), Facing.left);
+      expect(colliderFacingSign(h.world, npc), -1);
+      h.authority.prepareTick(h.world, player: h.player, currentTick: 2);
+      _stepAuthority(h, currentTick: 2);
+    });
+
+    test('NPC chunk bounds never constrain nearby enemies', () {
+      final h = _terrainHarness();
+      EntityFactory(h.world).createNpc(
+        npcId: NpcId.warrior,
+        posX: 100,
+        posY: 50,
+        chunkStartX: 20,
+        chunkEndX: 180,
+      );
+      final enemy = _spawnEnemy(
+        h.world,
+        EnemyId.grojib,
+        x: 100,
+        bodyY: 30,
+        velocityX: 9000,
+      );
+      h.authority.prepareTick(h.world, player: h.player, currentTick: 1);
+      _stepAuthority(h, currentTick: 1);
+      expect(
+        h.world.transform.posX[h.world.transform.indexOf(enemy)],
+        greaterThan(180),
+      );
+    });
     test('terrain authority rejects an unknown enabled dynamic body', () {
       final harness = _terrainHarness();
       final unsupported = harness.world.createEntity();

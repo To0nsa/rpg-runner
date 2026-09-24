@@ -41,6 +41,7 @@ import 'ecs/systems/ability_charge_tracking_system.dart';
 import 'ecs/systems/death_despawn_system.dart';
 import 'ecs/systems/enemy_cast_system.dart';
 import 'ecs/systems/enemy_death_state_system.dart';
+import 'ecs/systems/npc_death_state_system.dart';
 import 'ecs/systems/enemy_engagement_system.dart';
 import 'ecs/systems/flying_enemy_combat_mode_system.dart';
 import 'ecs/systems/flying_enemy_locomotion_system.dart';
@@ -935,6 +936,9 @@ class GameCore {
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageMiddlewareSystem _damageMiddlewareSystem;
   late final DamageSystem _damageSystem;
+  late final NpcDeathStateSystem _npcDeathStateSystem = NpcDeathStateSystem(
+    tickHz: _movement.tickHz,
+  );
   final EncounterSystem _encounters = EncounterSystem();
   late final ReactiveProcSystem _reactiveProcSystem;
   late final StatusSystem _statusSystem;
@@ -1789,6 +1793,7 @@ class GameCore {
       currentTick: tick,
       outEnemiesKilled: _killedEnemiesScratch,
     );
+    _npcDeathStateSystem.step(_world, currentTick: tick);
     _deathDespawnSystem.step(_world, currentTick: tick);
     _healthDespawnSystem.step(_world, player: _player);
     if (_killedEnemiesScratch.isNotEmpty) {

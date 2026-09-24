@@ -1,4 +1,5 @@
 import 'entity_id.dart';
+import 'actor_facing.dart';
 import 'world.dart';
 
 /// Returns collider X offset mirrored by the entity's authored art-facing.
@@ -50,16 +51,5 @@ double colliderCenterY(
 }
 
 bool _isFacingMirrored(EcsWorld world, EntityId entity) {
-  final enemyIndex = world.enemy.tryIndexOf(entity);
-  if (enemyIndex != null) {
-    return world.enemy.facing[enemyIndex] != world.enemy.artFacing[enemyIndex];
-  }
-
-  final movementIndex = world.movement.tryIndexOf(entity);
-  if (movementIndex != null) {
-    return world.movement.facing[movementIndex] !=
-        world.movement.artFacing[movementIndex];
-  }
-
-  return false;
+  return actorFacing(world, entity) != actorArtFacing(world, entity);
 }
