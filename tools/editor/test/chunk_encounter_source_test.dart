@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
+import 'package:runner_core/combat/ai_target_policy.dart';
+import 'package:runner_core/encounters/encounter_limits.dart';
+import 'package:runner_editor/src/chunks/chunk_encounter_edit.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_composition_commit.dart';
@@ -49,6 +52,139 @@ ChunkV2Document _document(ChunkV2FileData chunk) => ChunkV2Document(
 );
 
 void main() {
+  test(
+    'group and member edits preserve identity and explicit override intent',
+    () {
+      final original = _chunk().encounters.single;
+      final member = original.enemies.single;
+      final edited = replaceEncounterMember(
+        original,
+        editEncounterEnemy(
+          member,
+          x: 450,
+          targetPolicy: AiTargetPolicy.playerOnly,
+        ),
+      );
+      expect(edited.id, original.id);
+      expect(edited.enemies.single.id, member.id);
+      expect(edited.enemies.single.targetPolicy, AiTargetPolicy.playerOnly);
+      final inherited = replaceEncounterMember(
+        edited,
+        editEncounterEnemy(edited.enemies.single, useEncounterPolicy: true),
+      );
+      expect(inherited.enemies.single.targetPolicy, isNull);
+      final overridden = editEncounter(
+        inherited,
+        name: 'Renamed',
+        pointsPerNpc: EncounterLimits.defaultPointsPerNpc,
+      );
+      expect(overridden.pointsPerNpc, EncounterLimits.defaultPointsPerNpc);
+      expect(editEncounter(overridden, pointsPerNpc: 0).pointsPerNpc, 0);
+      expect(
+        editEncounter(overridden, useDefaultPoints: true).pointsPerNpc,
+        isNull,
+      );
+      expect(overridden.id, original.id);
+      expect(original.enemies.single.x, isNot(450));
+    },
+  );
+
+  test('duplicate groups and members allocate separate local identities', () {
+    final chunk = _chunk();
+    final original = chunk.encounters.single;
+    final copy = duplicateChunkEncounter(original, chunk.encounters);
+    expect(copy.id, isNot(original.id));
+    expect(copy.npcs.single.id, original.npcs.single.id);
+    final duplicate = duplicateEncounterMember(original, original.npcs.single);
+    final group = addEncounterMember(original, duplicate);
+    expect(group.npcs.map((e) => e.id).toSet(), hasLength(2));
+    final commit = ChunkV2CompositionOperation.add(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.encounters,
+    ).buildEncounter(candidate: copy)!;
+    final result = const ChunkV2CompositionCommitPolicy().apply(
+      document: _document(chunk),
+      chunkIndex: 0,
+      commit: commit,
+    );
+    expect(result.accepted, isTrue);
+    expect(result.chunk.revision, chunk.revision + 1);
+    expect(
+      ChunkV2FileCodec.decode(ChunkV2FileCodec.encode(result.chunk)).encounters,
+      hasLength(2),
+    );
+    final long = List.filled(64, 'a').join();
+    final fresh = nextEncounterSourceId(long, [long]);
+    expect(fresh.length, 64);
+    expect(fresh.endsWith('_2'), isTrue);
+  });
+
+  test(
+    'delete group is atomic, no-op is history-neutral, stale rename rejects',
+    () {
+      final chunk = _chunk();
+      final group = chunk.encounters.single;
+      final replace = ChunkV2CompositionOperation.replace(
+        chunk: chunk,
+        target: ChunkV2CompositionTarget.encounters,
+        sourceIndex: 0,
+      );
+      expect(replace.buildEncounter(candidate: editEncounter(group)), isNull);
+      final rename = replace.buildEncounter(
+        candidate: editEncounter(group, name: 'Rescue'),
+      )!;
+      final result = const ChunkV2CompositionCommitPolicy().apply(
+        document: _document(chunk.copyWith(revision: chunk.revision + 1)),
+        chunkIndex: 0,
+        commit: rename,
+      );
+      expect(result.accepted, isFalse);
+      final deletion = ChunkV2CompositionOperation.delete(
+        chunk: chunk,
+        target: ChunkV2CompositionTarget.encounters,
+        sourceIndex: 0,
+      ).buildEncounter()!;
+      expect(deletion.before.encounters.single.npcs, isNotEmpty);
+      expect(deletion.after.encounters, isEmpty);
+      expect(deletion.after.markers, chunk.markers);
+      expect(deletion.after.prefabs, chunk.prefabs);
+    },
+  );
+
+  test(
+    'removing the last required member is a saveable incomplete command',
+    () {
+      final chunk = _chunk();
+      final group = chunk.encounters.single;
+      final commit =
+          ChunkV2CompositionOperation.replace(
+            chunk: chunk,
+            target: ChunkV2CompositionTarget.encounters,
+            sourceIndex: 0,
+          ).buildEncounter(
+            candidate: removeEncounterMember(group, group.enemies.single.id),
+          )!;
+      final result = const ChunkV2CompositionCommitPolicy().apply(
+        document: _document(chunk),
+        chunkIndex: 0,
+        commit: commit,
+      );
+      expect(result.accepted, isTrue);
+      expect(
+        result.issues.where((e) => e.blocks(AuthoringOperation.save)),
+        isEmpty,
+      );
+      expect(
+        result.issues.where((e) => e.code == 'encounter_incomplete'),
+        hasLength(1),
+      );
+      expect(
+        () => removeEncounterMember(group, 'missing'),
+        throwsArgumentError,
+      );
+    },
+  );
+
   test('editor export and shared materialization preserve the same encounter facts', () {
     final original = _chunk();
     final source = ChunkV2FileCodec.encode(original);

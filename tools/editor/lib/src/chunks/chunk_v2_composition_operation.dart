@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
 import 'chunk_domain_models.dart';
@@ -7,7 +8,13 @@ import 'chunk_v2_composition_semantics.dart';
 import 'chunk_v2_file_data.dart';
 
 /// The one canonical composition list targeted by a local operation.
-enum ChunkV2CompositionTarget { tileLayers, prefabs, markers, traps }
+enum ChunkV2CompositionTarget {
+  tileLayers,
+  prefabs,
+  markers,
+  traps,
+  encounters,
+}
 
 /// The structural change applied to the captured target list.
 enum ChunkV2CompositionOperationKind { add, replace, delete }
@@ -97,6 +104,7 @@ final class ChunkV2CompositionOperation {
       ChunkV2CompositionTarget.prefabs => chunk.prefabs.length,
       ChunkV2CompositionTarget.markers => chunk.markers.length,
       ChunkV2CompositionTarget.traps => chunk.traps.length,
+      ChunkV2CompositionTarget.encounters => chunk.encounters.length,
     };
     RangeError.checkValidIndex(sourceIndex, List<Object?>.filled(length, null));
     return ChunkV2CompositionOperation._(
@@ -172,6 +180,22 @@ final class ChunkV2CompositionOperation {
         prefabs: before.prefabs,
         markers: before.markers,
         traps: next,
+      ),
+    );
+  }
+
+  /// A group and all its owned participants are one revision-guarded edit.
+  ChunkV2CompositionCommit? buildEncounter({EncounterDefinition? candidate}) {
+    _requireTarget(ChunkV2CompositionTarget.encounters, candidate);
+    final next = _apply(before.encounters, candidate)
+      ..sort((a, b) => a.id.compareTo(b.id));
+    return _build(
+      ChunkV2CompositionSnapshot(
+        tileLayers: before.tileLayers,
+        prefabs: before.prefabs,
+        markers: before.markers,
+        traps: before.traps,
+        encounters: next,
       ),
     );
   }

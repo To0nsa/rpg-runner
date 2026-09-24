@@ -130,6 +130,13 @@ all retain encounters. Typed Play snapshots freeze the collection and revalidate
 complete rosters before admitting Core. Whole-chunk copies retain local IDs;
 runtime occurrence identity still includes the new streamed chunk index.
 
+Encounter edit helpers preserve group/member identity through moves and renames,
+allocate fresh IDs for local duplication, and retain nullable policy/reward
+inheritance explicitly. A composition operation replaces or deletes one complete
+owned group under the existing owner/revision/before-snapshot guard. Removing its
+last required member remains a saveable incomplete draft. Scene controls are
+still the next authoring milestone.
+
 Generation emits immutable typed encounter lists and uses validated non-const
 constructors. Encounter-free pools retain the existing constant output. Encounter
 data does not change terrain signatures, while generated patterns and captured
