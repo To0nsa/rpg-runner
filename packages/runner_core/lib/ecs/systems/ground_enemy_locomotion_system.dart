@@ -9,6 +9,7 @@ import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../combat_target.dart';
+import '../actor_facing.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 
@@ -33,6 +34,7 @@ class GroundEnemyLocomotionSystem {
     final navIntent = world.navIntent;
     for (var i = 0; i < navIntent.denseEntities.length; i += 1) {
       final enemy = navIntent.denseEntities[i];
+      if (world.npc.has(enemy)) continue;
       if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
@@ -99,11 +101,10 @@ class GroundEnemyLocomotionSystem {
           meleeState == MeleeEngagementState.recover;
 
       if (world.swimState.isSwimming(enemy)) {
-        _swim(
+        swimToward(
           world,
           enemy: enemy,
           enemyTi: enemyTi,
-          enemyIndex: enemyIndex,
           engagementIndex: engagementIndex,
           target: target,
           targetTi: targetTi,
@@ -129,11 +130,12 @@ class GroundEnemyLocomotionSystem {
     }
   }
 
-  void _swim(
+  /// Shared buoyancy-aware pursuit for an autonomous grounded actor.
+  void swimToward(
     EcsWorld world, {
     required EntityId enemy,
     required int enemyTi,
-    required int enemyIndex,
+    double? speedX,
     required int engagementIndex,
     required EntityId target,
     required int targetTi,
@@ -159,7 +161,7 @@ class GroundEnemyLocomotionSystem {
     final desired = dx.abs() <= tuning.stopDistanceX
         ? 0.0
         : dx.sign *
-              tuning.speedX *
+              (speedX ?? tuning.speedX) *
               SwimmingTuning.maxSpeedMultiplier *
               speedMultiplier *
               intents.speedScale[engagementIndex] *
@@ -176,9 +178,7 @@ class GroundEnemyLocomotionSystem {
     final targetDx =
         world.transform.posX[targetTi] - world.transform.posX[enemyTi];
     if (targetDx != 0) {
-      world.enemy.facing[enemyIndex] = targetDx > 0
-          ? Facing.right
-          : Facing.left;
+      setActorFacing(world, enemy, targetDx > 0 ? Facing.right : Facing.left);
     }
 
     final swimIndex = world.swimState.indexOf(enemy);
@@ -268,9 +268,9 @@ class GroundEnemyLocomotionSystem {
         ? 1.0
         : engagementIntent.stateSpeedMul[engagementIndex];
 
-    _applyGroundEnemyPhysics(
+    applyGroundMotion(
       world,
-      enemyIndex: enemyIndex,
+      actor: world.enemy.denseEntities[enemyIndex],
       enemyTi: enemyTi,
       navIntentIndex: navIntentIndex,
       ex: ex,
@@ -291,9 +291,12 @@ class GroundEnemyLocomotionSystem {
     );
   }
 
-  void _applyGroundEnemyPhysics(
+  /// Applies the shared grounded/airborne traversal contract for an AI actor.
+  void applyGroundMotion(
     EcsWorld world, {
-    required int enemyIndex,
+    required EntityId actor,
+    double? speedX,
+    double? jumpSpeed,
     required int enemyTi,
     required int navIntentIndex,
     required double ex,
@@ -313,7 +316,7 @@ class GroundEnemyLocomotionSystem {
     required double targetX,
   }) {
     final tuning = groundEnemyTuning;
-    final enemy = world.enemy.denseEntities[enemyIndex];
+    final enemy = actor;
     final terrainGrounded = grounded && world.terrainContact.has(enemy);
     final activeJumpTraversal = _activeJumpTraversal(
       world,
@@ -329,7 +332,7 @@ class GroundEnemyLocomotionSystem {
       arrivalScale = clampDouble(dx.abs() / arrivalSlowRadiusX, 0.0, 1.0);
     }
     final baseSpeed =
-        tuning.locomotion.speedX *
+        (speedX ?? tuning.locomotion.speedX) *
         effectiveSpeedScale *
         stateSpeedMul *
         moveSpeedMul;
@@ -350,7 +353,7 @@ class GroundEnemyLocomotionSystem {
     double desiredVelX = 0.0;
     int desiredDirX = 0;
     double? forcedAirborneVelX;
-    final facingDirX = world.enemy.facing[enemyIndex] == Facing.right ? 1 : -1;
+    final facingDirX = actorFacing(world, actor) == Facing.right ? 1 : -1;
     final jumpDirX = _resolveJumpForwardDirX(
       commitMoveDirX: commitMoveDirX,
       jumpNow: jumpNow,
@@ -445,7 +448,8 @@ class GroundEnemyLocomotionSystem {
       // Jump edges retain their existing world-X snap/commit velocity and use
       // a world-up launch. Terrain projection resumes only after landing.
       world.transform.velX[enemyTi] = resolvedVelX;
-      world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
+      world.transform.velY[enemyTi] =
+          -(jumpSpeed ?? tuning.locomotion.jumpSpeed);
     } else if (terrainGrounded) {
       _writeSurfaceVelocity(world, enemy, enemyTi, resolvedVelX);
     } else {
@@ -453,21 +457,25 @@ class GroundEnemyLocomotionSystem {
     }
 
     if (commitMoveDirX != 0) {
-      world.enemy.facing[enemyIndex] = commitMoveDirX > 0
-          ? Facing.right
-          : Facing.left;
+      setActorFacing(
+        world,
+        actor,
+        commitMoveDirX > 0 ? Facing.right : Facing.left,
+      );
     } else {
       if (grounded) {
         if (desiredDirX != 0) {
-          world.enemy.facing[enemyIndex] = desiredDirX > 0
-              ? Facing.right
-              : Facing.left;
+          setActorFacing(
+            world,
+            actor,
+            desiredDirX > 0 ? Facing.right : Facing.left,
+          );
         }
       } else {
         const airFacingVelDeadzone = 1.0;
         final vx = world.transform.velX[enemyTi];
         if (vx.abs() > airFacingVelDeadzone) {
-          world.enemy.facing[enemyIndex] = vx > 0 ? Facing.right : Facing.left;
+          setActorFacing(world, actor, vx > 0 ? Facing.right : Facing.left);
         }
       }
     }
@@ -485,9 +493,11 @@ class GroundEnemyLocomotionSystem {
     if (lockFacingToTarget) {
       final dxToTarget = targetX - ex;
       if (dxToTarget.abs() > 1e-6) {
-        world.enemy.facing[enemyIndex] = dxToTarget >= 0
-            ? Facing.right
-            : Facing.left;
+        setActorFacing(
+          world,
+          actor,
+          dxToTarget >= 0 ? Facing.right : Facing.left,
+        );
       }
     }
   }

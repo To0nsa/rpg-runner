@@ -257,6 +257,7 @@ class EntityFactory {
     );
     world.surfaceNav.add(id);
     world.navIntent.add(id);
+    world.engagementIntent.add(id);
     world.swimState.add(id);
     return id;
   }

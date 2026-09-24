@@ -7,6 +7,8 @@ final Map<AbilityKey, AbilityDef> npcAbilityDefs = {
   'npc_warrior.slash': AbilityDef(
     id: 'npc_warrior.slash',
     category: AbilityCategory.melee,
+    allowedSlots: {AbilitySlot.primary},
+    defaultCost: const AbilityResourceCost(staminaCost100: 400),
     hitDelivery: MeleeHitDelivery(
       sizeX: 48,
       sizeY: 38,

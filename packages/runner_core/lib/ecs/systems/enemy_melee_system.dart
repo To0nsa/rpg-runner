@@ -9,6 +9,8 @@ import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../entity_id.dart';
+import '../actor_facing.dart';
+import 'ai_ability_commit.dart';
 import '../combat_target.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../stores/melee_intent_store.dart';
@@ -25,6 +27,10 @@ class EnemyMeleeSystem {
   final GroundEnemyTuningDerived groundEnemyTuning;
   final EnemyCatalog enemyCatalog;
   final AbilityResolver abilities;
+  late final _committer = AiMeleeCommitter(
+    tickHz: groundEnemyTuning.tickHz,
+    abilities: abilities,
+  );
 
   /// Evaluates melee strikes for all enemies and writes melee intents.
   void step(
@@ -86,87 +92,16 @@ class EnemyMeleeSystem {
 
       final abilityId =
           meleeEngagement.strikeAbilityId[i] ?? primaryMeleeAbilityId;
-      final ability = abilities.resolve(abilityId);
-      if (ability == null) continue;
-      final hitDelivery = ability.hitDelivery;
-      if (hitDelivery is! MeleeHitDelivery) continue;
-
-      final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
-      final abilityTiming = _resolveMeleeTiming(ability, actionSpeedBp);
-      if (abilityTiming == null) continue;
-
-      final commitTick = meleeEngagement.strikeStartTick[i];
-      final windupTicks = plannedHitTick > commitTick
-          ? plannedHitTick - commitTick
-          : abilityTiming.windupTicks;
-      final activeTicks = abilityTiming.activeTicks;
-      final recoveryTicks = max(
-        0,
-        abilityTiming.totalTicks - windupTicks - activeTicks,
+      final animationTicks = _committer.commit(
+        world,
+        actor: enemy,
+        abilityId: abilityId,
+        targetX: targetX,
+        currentTick: currentTick,
+        plannedHitTick: plannedHitTick,
       );
-      final cooldownTicks = _scaleTicksForActionSpeed(
-        _scaleAbilityTicks(ability.cooldownTicks),
-        actionSpeedBp,
-      );
-      final cooldownGroupId = ability.effectiveCooldownGroup(
-        AbilitySlot.primary,
-      );
-
-      final ex = world.transform.posX[ti];
-      final facing = targetX >= ex ? Facing.right : Facing.left;
-      world.enemy.facing[enemyIndex] = facing;
-      final dirX = facing == Facing.right ? 1.0 : -1.0;
-
-      final halfX = hitDelivery.sizeX * 0.5;
-      final halfY = hitDelivery.sizeY * 0.5;
-      final colliderIndex = world.colliderAabb.indexOf(enemy);
-      final ownerHalfX = world.colliderAabb.halfX[colliderIndex];
-      final ownerHalfY = world.colliderAabb.halfY[colliderIndex];
-      final maxHalfExtent = max(ownerHalfX, ownerHalfY);
-      final forward =
-          maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
-      final offsetX = dirX * forward;
-      final offsetY = hitDelivery.offsetY;
-
-      world.meleeIntent.set(
-        enemy,
-        MeleeIntentDef(
-          abilityId: abilityId,
-          slot: AbilitySlot.primary,
-          damage100: ability.baseDamage,
-          damageType: ability.baseDamageType,
-          procs: ability.procs,
-          halfX: halfX,
-          halfY: halfY,
-          offsetX: offsetX,
-          offsetY: offsetY,
-          dirX: dirX,
-          dirY: 0.0,
-          commitTick: commitTick,
-          windupTicks: windupTicks,
-          activeTicks: activeTicks,
-          recoveryTicks: recoveryTicks,
-          cooldownTicks: cooldownTicks,
-          staminaCost100: 0,
-          cooldownGroupId: cooldownGroupId,
-          tick: plannedHitTick,
-        ),
-      );
-
-      // Commit side effects (Cooldown + ActiveAbility) must be applied manually
-      // since enemies don't use AbilityActivationSystem.
-      world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
-
-      world.activeAbility.set(
-        enemy,
-        id: abilityId,
-        slot: AbilitySlot.primary,
-        commitTick: commitTick,
-        windupTicks: windupTicks,
-        activeTicks: activeTicks,
-        recoveryTicks: recoveryTicks,
-        facingDir: facing,
-      );
+      if (animationTicks == null) continue;
+      final facing = world.enemy.facing[enemyIndex];
 
       if (abilityId == archetype.comboMeleeAbilityId) {
         final comboIndex = world.meleeCombo.tryIndexOf(enemy);
@@ -177,8 +112,125 @@ class EnemyMeleeSystem {
 
       world.enemy.lastMeleeTick[enemyIndex] = currentTick;
       world.enemy.lastMeleeFacing[enemyIndex] = facing;
-      world.enemy.lastMeleeAnimTicks[enemyIndex] = abilityTiming.totalTicks;
+      world.enemy.lastMeleeAnimTicks[enemyIndex] = animationTicks;
     }
+  }
+}
+
+/// Shared autonomous melee commit; decision systems choose when and whom to attack.
+class AiMeleeCommitter {
+  const AiMeleeCommitter({
+    required this.tickHz,
+    this.abilities = AbilityCatalog.shared,
+  });
+  final int tickHz;
+  final AbilityResolver abilities;
+
+  int? commit(
+    EcsWorld world, {
+    required EntityId actor,
+    required AbilityKey abilityId,
+    required double targetX,
+    required int currentTick,
+    int? plannedHitTick,
+  }) {
+    final ti = world.transform.tryIndexOf(actor);
+    if (ti == null ||
+        !world.meleeIntent.has(actor) ||
+        !world.colliderAabb.has(actor)) {
+      return null;
+    }
+    final ability = abilities.resolve(abilityId);
+    if (ability == null) return null;
+    final hitDelivery = ability.hitDelivery;
+    if (hitDelivery is! MeleeHitDelivery) return null;
+
+    final actionSpeedBp = _actionSpeedBpForEntity(world, actor);
+    final abilityTiming = _resolveMeleeTiming(ability, actionSpeedBp);
+    if (abilityTiming == null) return null;
+
+    final commitTick = currentTick;
+    final windupTicks = plannedHitTick != null && plannedHitTick > commitTick
+        ? plannedHitTick - commitTick
+        : abilityTiming.windupTicks;
+    final activeTicks = abilityTiming.activeTicks;
+    final recoveryTicks = max(
+      0,
+      abilityTiming.totalTicks - windupTicks - activeTicks,
+    );
+    final cooldownTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.cooldownTicks),
+      actionSpeedBp,
+    );
+    final cooldownGroupId = ability.effectiveCooldownGroup(AbilitySlot.primary);
+
+    final cost = ability.resolveCostForWeaponType(null);
+    if (!canCommitAiAbility(
+      world,
+      actor,
+      currentTick: currentTick,
+      lock: LockFlag.strike,
+      cooldownGroupId: cooldownGroupId,
+      cost: cost,
+    )) {
+      return null;
+    }
+    final ex = world.transform.posX[ti];
+    final facing = targetX >= ex ? Facing.right : Facing.left;
+    setActorFacing(world, actor, facing);
+    final dirX = facing == Facing.right ? 1.0 : -1.0;
+
+    final halfX = hitDelivery.sizeX * 0.5;
+    final halfY = hitDelivery.sizeY * 0.5;
+    final colliderIndex = world.colliderAabb.indexOf(actor);
+    final ownerHalfX = world.colliderAabb.halfX[colliderIndex];
+    final ownerHalfY = world.colliderAabb.halfY[colliderIndex];
+    final maxHalfExtent = max(ownerHalfX, ownerHalfY);
+    final forward =
+        maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
+    final offsetX = dirX * forward;
+    final offsetY = hitDelivery.offsetY;
+
+    world.meleeIntent.set(
+      actor,
+      MeleeIntentDef(
+        abilityId: abilityId,
+        slot: AbilitySlot.primary,
+        damage100: ability.baseDamage,
+        damageType: ability.baseDamageType,
+        procs: ability.procs,
+        halfX: halfX,
+        halfY: halfY,
+        offsetX: offsetX,
+        offsetY: offsetY,
+        dirX: dirX,
+        dirY: 0.0,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        cooldownTicks: cooldownTicks,
+        staminaCost100: cost.staminaCost100,
+        cooldownGroupId: cooldownGroupId,
+        tick: plannedHitTick ?? commitTick + windupTicks,
+      ),
+    );
+
+    spendAiAbilityCost(world, actor, cost);
+    world.cooldown.startCooldown(actor, cooldownGroupId, cooldownTicks);
+
+    world.activeAbility.set(
+      actor,
+      id: abilityId,
+      slot: AbilitySlot.primary,
+      commitTick: commitTick,
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
+      facingDir: facing,
+    );
+
+    return abilityTiming.totalTicks;
   }
 
   _MeleeTiming? _resolveMeleeTiming(AbilityDef ability, int actionSpeedBp) {
@@ -217,9 +269,9 @@ class EnemyMeleeSystem {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (groundEnemyTuning.tickHz == abilityAuthoringTickHz) return ticks;
+    if (tickHz == abilityAuthoringTickHz) return ticks;
     final seconds = ticks / abilityAuthoringTickHz;
-    return (seconds * groundEnemyTuning.tickHz).ceil();
+    return (seconds * tickHz).ceil();
   }
 }
 

@@ -25,8 +25,88 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/tuning/ground_enemy_tuning.dart';
 import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:test/test.dart';
+import 'package:runner_core/npcs/npc_navigation_profiles.dart';
+import 'package:runner_core/npcs/npc_catalog.dart';
+import 'package:runner_core/npcs/npc_id.dart';
+import 'package:runner_core/navigation/bounded_terrain_graph.dart';
+import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 
 void main() {
+  test('bounded graph removes jumps whose landing leaves the owning chunk', () {
+    final graph = _bundle(_jumpGeometry()).grojibGraph;
+    expect(
+      graph.edges.any((e) => e.kind == TerrainSurfaceEdgeKind.jump),
+      isTrue,
+    );
+    final bounded = restrictTerrainGraph(
+      graph,
+      TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 250 * 1024),
+    );
+    expect(identical(bounded.surfaceSet, graph.surfaceSet), isTrue);
+    expect(
+      bounded.edges.any((e) => e.kind == TerrainSurfaceEdgeKind.jump),
+      isFalse,
+    );
+    expect(bounded.eligibility.where((e) => e), hasLength(1));
+  });
+  test(
+    'NPC pursuit clamps goals to its chunk with its actual terrain profile',
+    () {
+      final bundle = TerrainRuntimeBundle.build(
+        geometry: _floorGeometry(version: 1),
+        groundEnemyProfiles: [
+          ...buildDefaultGroundEnemyTerrainGraphProfiles(),
+          ...buildNpcNavigationProfiles(
+            tickHz: 60,
+            physics: const PhysicsTuning(),
+          ),
+        ],
+      );
+      final fixture = _worldOnGraph(
+        bundle,
+        enemyBodyX: 550 * 1024,
+        playerBodyX: 50 * 1024,
+      );
+      final world = fixture.world;
+      final npc = EntityFactory(world).createNpc(
+        npcId: NpcId.warrior,
+        posX: 150,
+        posY: 50,
+        chunkStartX: 100,
+        chunkEndX: 300,
+      );
+      final contact = const NpcCatalog().terrainContactProfile(NpcId.warrior);
+      world.worldContactCapsule.add(npc, contact.capsule);
+      world.terrainTraversalProfile.add(npc, contact.traversal);
+      world.terrainContact.add(npc);
+      final graph =
+          bundle.graphPublication[npcNavigationProfileKey(NpcId.warrior)];
+      _setSupport(
+        world,
+        entity: npc,
+        bundle: bundle,
+        graph: graph,
+        surface: bundle.surfaceSet.surfaces.single,
+        desiredBodyXTicks: 150 * 1024,
+      );
+      world.aiTarget.configure(
+        npc,
+        targetPolicy: AiTargetPolicy.nearestOpponent,
+        candidates: [fixture.enemy],
+        playerFallback: false,
+      );
+      AiTargetSystem().step(world, player: fixture.player);
+      final system = _system(() => bundle);
+      system.step(world, player: fixture.player, currentTick: 1);
+      final nav = world.navIntent.indexOf(npc);
+      expect(world.navIntent.hasPlan[nav], isTrue);
+      expect(world.navIntent.desiredX[nav], 285);
+      expect(graph.buildProfile.radiusTicks, contact.capsule.radiusTicks);
+      world.transform.posX[world.transform.indexOf(fixture.enemy)] = 20;
+      system.step(world, player: fixture.player, currentTick: 2);
+      expect(world.navIntent.desiredX[nav], 115);
+    },
+  );
   test('different selected actors keep independent paths and release cleanly', () {
     final bundle = _bundle(_floorGeometry(version: 1));
     final a = _worldOnGraph(

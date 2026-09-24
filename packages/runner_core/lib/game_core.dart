@@ -6,6 +6,9 @@
 /// contract lives in `docs/tdd/runner_core_simulation_contract.md`.
 library;
 
+import 'npcs/npc_navigation_profiles.dart';
+import 'ecs/systems/npc_ai_system.dart';
+
 import 'dart:async';
 import 'dart:math';
 
@@ -362,15 +365,18 @@ class GameCore {
       EnemyId.grojib: _buildGroundEnemyJumpTemplate(EnemyId.grojib),
       EnemyId.hashash: _buildGroundEnemyJumpTemplate(EnemyId.hashash),
     };
-    _groundEnemyTerrainGraphProfiles = buildGroundEnemyTerrainGraphProfiles(
-      enemyCatalog: _enemyCatalog,
-      jumpTemplatesById: _groundEnemyJumpTemplatesById,
-      locomotionSpeedTicksPerSecond: physicsCoordinateToTicks(
-        _groundEnemyTuning.locomotion.speedX,
-        name: 'groundEnemyLocomotionSpeed',
+    _groundEnemyTerrainGraphProfiles = [
+      ...buildGroundEnemyTerrainGraphProfiles(
+        enemyCatalog: _enemyCatalog,
+        jumpTemplatesById: _groundEnemyJumpTemplatesById,
+        locomotionSpeedTicksPerSecond: physicsCoordinateToTicks(
+          _groundEnemyTuning.locomotion.speedX,
+          name: 'groundEnemyLocomotionSpeed',
+        ),
+        simulationTicksPerSecond: tickHz,
       ),
-      simulationTicksPerSecond: tickHz,
-    );
+      ...buildNpcNavigationProfiles(tickHz: tickHz, physics: _physicsTuning),
+    ];
 
     // The scheduler's initial selection is pure track state. Resolve it before
     // spawning ECS entities so the complete terrain candidate is available to
@@ -953,6 +959,10 @@ class GameCore {
   late EnemyEngagementSystem _enemyEngagementSystem;
   late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
+  late final _npcAiSystem = NpcAiSystem(
+    tickHz: tickHz,
+    locomotion: _groundEnemyLocomotionSystem,
+  );
   late FlyingEnemyCombatModeSystem _flyingEnemyCombatModeSystem;
   late FlyingEnemyLocomotionSystem _flyingEnemyLocomotionSystem;
   late EnemyCastSystem _enemyCastSystem;
@@ -1550,6 +1560,11 @@ class GameCore {
     );
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);
+    _npcAiSystem.step(
+      _world,
+      currentTick: tick,
+      dtSeconds: _movement.dtSeconds,
+    );
     _groundEnemyLocomotionSystem.step(
       _world,
       player: _player,

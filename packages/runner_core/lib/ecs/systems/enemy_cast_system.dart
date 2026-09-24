@@ -23,6 +23,7 @@ import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
 import '../stores/target_point_intent_store.dart';
 import '../world.dart';
+import 'ai_ability_commit.dart';
 
 /// Handles enemy cast decisions and writes execution intents.
 class EnemyCastSystem {
@@ -96,13 +97,20 @@ class EnemyCastSystem {
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
       final castCost = _resolveCastCost(castAbility);
-      if (!_canAffordCost(world, enemy: enemy, cost: castCost)) continue;
+      if (!canAffordAiAbility(world, enemy, castCost)) continue;
 
       final cooldownGroupId = castAbility.effectiveCooldownGroup(
         AbilitySlot.projectile,
       );
       if (world.cooldown.isOnCooldown(enemy, cooldownGroupId)) continue;
-      if (world.controlLock.isLocked(enemy, LockFlag.cast, currentTick)) {
+      if (!canCommitAiAbility(
+        world,
+        enemy,
+        currentTick: currentTick,
+        lock: LockFlag.cast,
+        cooldownGroupId: cooldownGroupId,
+        cost: castCost,
+      )) {
         continue;
       }
 
@@ -212,7 +220,7 @@ class EnemyCastSystem {
         continue;
       }
 
-      _applyCommitResourceCosts(world, enemy: enemy, cost: castCost);
+      spendAiAbilityCost(world, enemy, castCost);
       world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
       world.activeAbility.set(
         enemy,
@@ -455,88 +463,6 @@ class EnemyCastSystem {
     return castAbility.resolveCostForWeaponType(null);
   }
 
-  bool _canAffordCost(
-    EcsWorld world, {
-    required EntityId enemy,
-    required AbilityResourceCost cost,
-  }) {
-    if (cost.manaCost100 > 0) {
-      final manaIndex = world.mana.tryIndexOf(enemy);
-      if (manaIndex == null) return false;
-      if (world.mana.mana[manaIndex] < cost.manaCost100) return false;
-    }
-    if (cost.staminaCost100 > 0) {
-      final staminaIndex = world.stamina.tryIndexOf(enemy);
-      if (staminaIndex == null) return false;
-      if (world.stamina.stamina[staminaIndex] < cost.staminaCost100) {
-        return false;
-      }
-    }
-    if (cost.healthCost100 > 0) {
-      final healthIndex = world.health.tryIndexOf(enemy);
-      if (healthIndex == null) return false;
-      if (world.health.hp[healthIndex] - cost.healthCost100 < _minCommitHp100) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  void _applyCommitResourceCosts(
-    EcsWorld world, {
-    required EntityId enemy,
-    required AbilityResourceCost cost,
-  }) {
-    if (cost.manaCost100 > 0) {
-      final manaIndex = world.mana.tryIndexOf(enemy);
-      assert(
-        manaIndex != null,
-        'Missing ManaStore on $enemy for manaCost=${cost.manaCost100}',
-      );
-      if (manaIndex != null) {
-        final current = world.mana.mana[manaIndex];
-        final max = world.mana.manaMax[manaIndex];
-        world.mana.mana[manaIndex] = clampInt(
-          current - cost.manaCost100,
-          0,
-          max,
-        );
-      }
-    }
-    if (cost.staminaCost100 > 0) {
-      final staminaIndex = world.stamina.tryIndexOf(enemy);
-      assert(
-        staminaIndex != null,
-        'Missing StaminaStore on $enemy for staminaCost=${cost.staminaCost100}',
-      );
-      if (staminaIndex != null) {
-        final current = world.stamina.stamina[staminaIndex];
-        final max = world.stamina.staminaMax[staminaIndex];
-        world.stamina.stamina[staminaIndex] = clampInt(
-          current - cost.staminaCost100,
-          0,
-          max,
-        );
-      }
-    }
-    if (cost.healthCost100 > 0) {
-      final healthIndex = world.health.tryIndexOf(enemy);
-      assert(
-        healthIndex != null,
-        'Missing HealthStore on $enemy for healthCost=${cost.healthCost100}',
-      );
-      if (healthIndex != null) {
-        final current = world.health.hp[healthIndex];
-        final max = world.health.hpMax[healthIndex];
-        world.health.hp[healthIndex] = clampInt(
-          current - cost.healthCost100,
-          _minCommitHp100,
-          max,
-        );
-      }
-    }
-  }
-
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
     if (unocoDemonTuning.tickHz <= 0) return ticks;
@@ -561,6 +487,4 @@ class EnemyCastSystem {
     if (clampedSpeedBp == bpScale) return ticks;
     return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
-
-  static const int _minCommitHp100 = 1;
 }

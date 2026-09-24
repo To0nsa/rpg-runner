@@ -103,6 +103,23 @@ the death animation, and then uses normal death cleanup. NPC death cancels
 pending/attached combat and never reports an enemy kill. Generic health cleanup
 leaves NPC bodies to that lifecycle.
 
+## NPC decisions and shared execution
+
+`NpcAiSystem` consumes the encounter-selected target and terrain navigation
+intent. The terrain publication includes allied graph profiles derived from
+each registered NPC's actual capsule, speed, jump and gravity. Bounded graph
+views retain the shared surface identities and remove traversals whose takeoff
+or landing falls outside the chunk's full-body range. Goals and safe fallback
+ranges are clipped to that range; motion authority remains the final constraint.
+
+Allied and enemy ground movement share surface-speed projection, jump commitment
+and swimming. NPC decisions stop while protected, dead, stunned or without a
+selected opponent. Movement locks stop pursuit without forbidding valid attacks.
+The shared melee committer enforces living/targetable state, control locks,
+cooldowns, active phases and resources before publishing a timed intent. Shared
+resource helpers also serve enemy casts. Costs are paid once at commit; existing
+melee execution, hit detection and damage ownership handle the resulting strike.
+
 ## Combat ownership and survivor safety
 
 `DamageCredit` is captured when attacks are created and carried through hitboxes,

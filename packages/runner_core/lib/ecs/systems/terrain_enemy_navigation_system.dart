@@ -3,6 +3,8 @@ import '../../collision/terrain/terrain_numeric.dart';
 import '../../collision/terrain/terrain_traversal_profile.dart';
 import '../../enemies/enemy_id.dart';
 import '../../navigation/terrain_placement_query.dart';
+import '../../navigation/bounded_terrain_graph.dart';
+import '../../npcs/npc_navigation_profiles.dart';
 import '../../navigation/terrain_runtime_bundle.dart';
 import '../../navigation/terrain_surface_navigator.dart';
 import '../../navigation/terrain_trajectory_predictor.dart';
@@ -51,6 +53,7 @@ final class TerrainEnemyNavigationSystem {
   final Map<TerrainTraversalProfile, TerrainTrajectoryPredictor> _predictors =
       {};
   final Map<EntityId, TerrainSurfaceNavigationActorSnapshot> _tickTargets = {};
+  final Map<(String, int, int), TerrainSurfaceGraph> _boundedGraphs = {};
 
   /// Ground-enemy intents written by the latest tick.
   int lastNavigatedEnemyCount = 0;
@@ -81,8 +84,13 @@ final class TerrainEnemyNavigationSystem {
     ) {
       final enemy = navStore.denseEntities[navIndex];
       final enemyIndex = world.enemy.tryIndexOf(enemy);
+      final npcIndex = world.npc.tryIndexOf(enemy);
+      if (npcIndex != null &&
+          (!world.aiTarget.has(enemy) || world.npc.protected[npcIndex])) {
+        continue;
+      }
       final intentIndex = world.navIntent.tryIndexOf(enemy);
-      if (enemyIndex == null ||
+      if ((enemyIndex == null && npcIndex == null) ||
           intentIndex == null ||
           world.deathState.has(enemy) ||
           !world.transform.has(enemy) ||
@@ -91,13 +99,28 @@ final class TerrainEnemyNavigationSystem {
           !world.terrainContact.has(enemy)) {
         continue;
       }
-      final enemyId = world.enemy.enemyId[enemyIndex];
-      final graph = switch (enemyId) {
+      final enemyId = enemyIndex == null
+          ? null
+          : world.enemy.enemyId[enemyIndex];
+      var graph = switch (enemyId) {
         EnemyId.grojib => bundle.grojibGraph,
         EnemyId.hashash => bundle.hashashGraph,
         EnemyId.unocoDemon || EnemyId.derf => null,
+        null =>
+          bundle.graphPublication[npcNavigationProfileKey(
+            world.npc.npcId[npcIndex!],
+          )],
       };
       if (graph == null) continue;
+      if (npcIndex != null) {
+        final original = graph;
+        final bounds = world.npc.movementBounds[npcIndex];
+        graph = _boundedGraphs.putIfAbsent((
+          graph.profileKey,
+          bounds.minXTicks,
+          bounds.maxXTicks,
+        ), () => restrictTerrainGraph(original, bounds));
+      }
 
       final targetId = combatTarget(world, enemy, player);
       if (targetId == null ||
@@ -207,6 +230,27 @@ final class TerrainEnemyNavigationSystem {
         world.aiTarget.unreachable[selectionIndex][targetId] =
             targetNavigationEvidence(world, enemy, targetId);
       }
+      if (npcIndex != null) {
+        final margin =
+            (graph.buildProfile.radiusTicks +
+                graph.buildProfile.authoredOffsetXTicks.abs()) /
+            terrainPhysicsTicksPerWorldUnit;
+        final minX = world.npc.minX[npcIndex] + margin;
+        final maxX = world.npc.maxX[npcIndex] - margin;
+        final intents = world.navIntent;
+        intents.desiredX[intentIndex] = intents.desiredX[intentIndex].clamp(
+          minX,
+          maxX,
+        );
+        if (intents.hasSafeSurface[intentIndex]) {
+          intents.safeSurfaceMinX[intentIndex] = intents
+              .safeSurfaceMinX[intentIndex]
+              .clamp(minX, maxX);
+          intents.safeSurfaceMaxX[intentIndex] = intents
+              .safeSurfaceMaxX[intentIndex]
+              .clamp(minX, maxX);
+        }
+      }
       lastNavigatedEnemyCount += 1;
     }
   }
@@ -269,6 +313,7 @@ final class TerrainEnemyNavigationSystem {
     );
     _placementQuery = placementQuery;
     _predictors.clear();
+    _boundedGraphs.clear();
     _boundBundleVersion = bundle.version;
   }
 

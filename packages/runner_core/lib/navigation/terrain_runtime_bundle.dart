@@ -40,11 +40,9 @@ final class TerrainRuntimeBundle {
     }
     final grojibProfile = byKey[EnemyId.grojib.name];
     final hashashProfile = byKey[EnemyId.hashash.name];
-    if (profiles.length != 2 ||
-        grojibProfile == null ||
-        hashashProfile == null) {
+    if (grojibProfile == null || hashashProfile == null) {
       throw ArgumentError(
-        'Terrain runtime publication requires exactly Grojib and Hashash '
+        'Terrain runtime publication requires Grojib and Hashash '
         'graph profiles.',
       );
     }
@@ -62,8 +60,7 @@ final class TerrainRuntimeBundle {
     );
     final graphPublication = TerrainSurfaceGraphPublication(
       <TerrainSurfaceGraph>[
-        graphBuilder.build(grojibProfile),
-        graphBuilder.build(hashashProfile),
+        for (final profile in profiles) graphBuilder.build(profile),
       ],
     );
 
@@ -85,7 +82,7 @@ final class TerrainRuntimeBundle {
       surfaceIndex: surfaceIndex,
       graphPublication: graphPublication,
       graphProfiles: UnmodifiableListView<TerrainSurfaceGraphBuildProfile>(
-        <TerrainSurfaceGraphBuildProfile>[grojibProfile, hashashProfile]
+        profiles
           ..sort((left, right) => left.profileKey.compareTo(right.profileKey)),
       ),
     );
