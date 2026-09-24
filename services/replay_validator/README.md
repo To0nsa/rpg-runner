@@ -60,11 +60,12 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The current validator build accepts game compatibility `2026.09.4`;
+The current validator build accepts game compatibility `2026.09.5`;
 replay/command format `1`, `rules-v2`, `score-v1`, and `ghost-v1` remain the
-supported ranked tuple. Traps, accepted-hit status eligibility, terminal DoT
-pulses and swept first-contact projectiles change simulated outcomes. Previous
-compatibility versions, including `2026.09.3`, are rejected before replay. This build does not
+supported ranked tuple. Per-placement trap damage and wind-up are now compiled
+into authored content and replayed by the same Core schedule. Default placements
+keep their prior behavior. Previous compatibility versions, including
+`2026.09.4`, are rejected before replay. This build does not
 ship a historical selector, camera simulation, or the retired `rules-v1`
 combat simulator.
 
@@ -107,7 +108,7 @@ firebase deploy --project rpg-runner-d7add `
 
 Then run the checked-in service/queue policy from the repository root.
 For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
-the matching `2026.09.4` worker and Functions configuration before enabling new
+the matching `2026.09.5` worker and Functions configuration before enabling new
 client issuance. This repository implementation does not deploy those services.
 
 ```powershell

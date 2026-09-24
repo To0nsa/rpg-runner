@@ -41,6 +41,77 @@ void main() {
     );
   });
 
+  test(
+    'placement tuning retimes wind-up and preserves attack/recovery poses',
+    () {
+      for (final id in TrapId.values) {
+        final def = TrapCatalog.get(id);
+        for (final hz in [30, 60, 120]) {
+          for (final windup in [0, 125, 1000, 30000]) {
+            final first = (windup * hz + 999) ~/ 1000;
+            expect(def.firstHarmfulTick(hz, windupMs: windup), first);
+            if (first > 0) {
+              expect(
+                def.frameAtTick(first - 1, hz, windupMs: windup),
+                lessThan(def.firstHarmfulFrame),
+              );
+            }
+            expect(
+              def.frameAtTick(first, hz, windupMs: windup),
+              def.firstHarmfulFrame,
+            );
+            var elapsedMs = 0;
+            for (var i = 0; i < def.frames.length; i++) {
+              if (i >= def.firstHarmfulFrame) {
+                expect(
+                  def.frameStartTick(i, hz, windupMs: windup),
+                  ((windup + elapsedMs - def.windupMs) * hz + 999) ~/ 1000,
+                );
+              }
+              elapsedMs += def.frames[i].durationMs;
+            }
+            expect(
+              def.durationTicks(hz, windupMs: windup),
+              ((windup + def.durationMs - def.windupMs) * hz + 999) ~/ 1000,
+            );
+          }
+        }
+      }
+    },
+  );
+
+  test('default tuning is canonical and overrides participate in identity', () {
+    const base = TrapPlacement(
+      trapId: TrapId.spike,
+      x: 300,
+      y: 160,
+      trigger: TrapRect(-40, -20, 80, 40),
+    );
+    final explicit = base.copyWith(damage100: 500, windupMs: 700);
+    expect(explicit, base);
+    expect(explicit.hashCode, base.hashCode);
+    expect(explicit.toJson(), base.toJson());
+    final changed = base.copyWith(damage100: 125, windupMs: 125);
+    expect(changed, isNot(base));
+    expect(changed.copyWith(x: 320).damage100, 125);
+    expect(changed.toJson()['windupMs'], 125);
+    for (final candidate in [
+      base.copyWith(damage100: 0),
+      base.copyWith(damage100: TrapPlacement.maxDamage100 + 1),
+      base.copyWith(windupMs: -1),
+      base.copyWith(windupMs: TrapPlacement.maxWindupMs + 1),
+    ]) {
+      expect(
+        () => validateTrapPlacements(
+          [candidate],
+          chunkWidth: 960,
+          chunkHeight: 320,
+        ),
+        throwsArgumentError,
+      );
+    }
+  });
+
   test('bounds cover mirrored art, trigger and full damage envelopes', () {
     for (final id in TrapId.values) {
       for (final facing

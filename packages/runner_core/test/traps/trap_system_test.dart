@@ -28,6 +28,37 @@ import 'package:test/test.dart';
 
 void main() {
   for (final id in TrapId.values) {
+    for (final windup in [0, 125, 1500]) {
+      test('$id uses per-placement damage and $windup ms wind-up', () {
+        final f = _Fixture(id, damage100: 123, windupMs: windup);
+        final def = TrapCatalog.get(id);
+        final firstHit = def.frames[def.firstHarmfulFrame].hitbox;
+        f.actor(200, 128);
+        if (firstHit != null) f.actor(200 + firstHit.ax, 128 + firstHit.ay);
+        final first = (windup * f.hz + 999) ~/ 1000;
+        for (var tick = 0; tick < first; tick++) {
+          f.step(tick);
+          expect(f.world.damageQueue.length, 0);
+          expect(f.world.projectile.denseEntities, isEmpty);
+        }
+        f.step(first);
+        expect(f.state.phase, TrapPhase.active);
+        if (id == TrapId.poisonDarts) {
+          expect(f.world.projectile.damage100.single, 123);
+          expect(f.world.projectile.firstHitTick.single, first + 1);
+        } else {
+          expect(f.world.damageQueue.length, greaterThan(0));
+          expect(f.world.damageQueue.amount100, everyElement(123));
+        }
+        final before = f.world.projectile.denseEntities.length;
+        f.step(first + 1);
+        if (id == TrapId.poisonDarts) {
+          expect(f.world.projectile.denseEntities.length, before);
+        }
+      });
+    }
+  }
+  for (final id in TrapId.values) {
     for (final hz in [30, 60, 120]) {
       test('$id has a full warning and exact harmful tick at $hz Hz', () {
         final f = _Fixture(id, hz: hz);
@@ -296,7 +327,13 @@ void main() {
 }
 
 class _Fixture {
-  _Fixture(TrapId id, {this.hz = 60, Facing facing = Facing.right}) {
+  _Fixture(
+    TrapId id, {
+    this.hz = 60,
+    Facing facing = Facing.right,
+    int? damage100,
+    int? windupMs,
+  }) {
     state = TrapState(
       source: TrapSourceRef(
         trapId: id,
@@ -310,6 +347,8 @@ class _Fixture {
         x: 200,
         y: 128,
         facing: facing,
+        damage100: damage100,
+        windupMs: windupMs,
         trigger: const TrapRect(-50, -60, 100, 120),
       ),
     );

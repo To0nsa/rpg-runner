@@ -360,8 +360,9 @@ this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
 
-Trap gameplay and shared combat corrections ship as game compatibility
-`2026.09.4`. After terrain admission and the actor broadphase, Core resolves
+Per-placement trap damage and animation wind-up ship as game compatibility
+`2026.09.5`; catalog-default placements keep their previous behavior. After
+terrain admission and the actor broadphase, Core resolves
 camera-gated traps before queued damage/status processing. Accepted-hit statuses
 survive that hit's new invulnerability, DoTs receive a due terminal pulse, and
 nonpiercing projectiles choose first swept contact. See [traps](traps.md) for

@@ -17,6 +17,12 @@ void validateTrapPlacements(
   }
   for (var i = 0; i < placements.length; i++) {
     final p = placements[i];
+    if (p.damage100 < 1 || p.damage100 > TrapPlacement.maxDamage100) {
+      throw ArgumentError('Trap damage must be between 0.01 and 1000 HP.');
+    }
+    if (p.windupMs < 0 || p.windupMs > TrapPlacement.maxWindupMs) {
+      throw ArgumentError('Trap wind-up must be between 0 and 30 seconds.');
+    }
     if (i > 0 && compareTrapPlacements(placements[i - 1], p) >= 0) {
       throw ArgumentError(
         'Trap placements must be canonical without exact duplicates.',

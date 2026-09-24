@@ -22,6 +22,8 @@ String chunkTrapSelectionKey(TrapPlacement trap) => [
   trap.trigger.offsetY,
   trap.trigger.width,
   trap.trigger.height,
+  trap.damage100,
+  trap.windupMs,
 ].join('|');
 
 /// Immutable identity and source snapshot captured before a composition UI

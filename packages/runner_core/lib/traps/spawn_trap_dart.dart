@@ -22,6 +22,7 @@ EntityId spawnTrapDart(
   required double directionX,
   required int tick,
   required int tickHz,
+  int damage100 = TrapCatalog.dartDamage100,
 }) {
   final entity = world.createEntity();
   world.transform.add(
@@ -43,7 +44,7 @@ EntityId spawnTrapDart(
       dirX: directionX,
       dirY: 0,
       speedUnitsPerSecond: TrapCatalog.dartSpeed,
-      damage100: TrapCatalog.dartDamage100,
+      damage100: damage100,
       damageType: DamageType.poison,
       procs: const [
         WeaponProc(

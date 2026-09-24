@@ -51,28 +51,44 @@ final class TrapDefinition {
   /// One second after the complete sequence, followed by empty-trigger rearming.
   int cooldownTicks(int tickHz) => tickHz;
   int get durationMs => frames.fold(0, (sum, frame) => sum + frame.durationMs);
-  int durationTicks(int tickHz) => (durationMs * tickHz + 999) ~/ 1000;
+  late final int firstHarmfulFrame = frames.indexWhere(
+    (f) => f.hitbox != null || f.firesDart,
+  );
+  late final int windupMs = _frameStartMs(firstHarmfulFrame);
 
-  int frameStartTick(int frameIndex, int tickHz) {
-    var elapsedMs = 0;
-    for (var i = 0; i < frameIndex; i++) {
-      elapsedMs += frames[i].durationMs;
+  int _frameStartMs(int frameIndex) =>
+      frames.take(frameIndex).fold(0, (sum, frame) => sum + frame.durationMs);
+
+  /// Retimes only pre-attack poses. Harmful/recovery durations remain authored.
+  /// Rational integer boundaries avoid intermediate millisecond rounding and
+  /// keep simulation and editor frame previews on the same fixed-tick schedule.
+  int _tickAtMs(int sourceMs, int tickHz, int? requestedWindupMs) {
+    final originalWindup = windupMs;
+    final requested = requestedWindupMs ?? originalWindup;
+    if (sourceMs < originalWindup) {
+      final denominator = originalWindup * 1000;
+      return (sourceMs * requested * tickHz + denominator - 1) ~/ denominator;
     }
-    return (elapsedMs * tickHz + 999) ~/ 1000;
+    return ((requested + sourceMs - originalWindup) * tickHz + 999) ~/ 1000;
   }
 
-  int frameAtTick(int elapsedTicks, int tickHz) {
+  int durationTicks(int tickHz, {int? windupMs}) =>
+      _tickAtMs(durationMs, tickHz, windupMs);
+
+  int frameStartTick(int frameIndex, int tickHz, {int? windupMs}) =>
+      _tickAtMs(_frameStartMs(frameIndex), tickHz, windupMs);
+
+  int frameAtTick(int elapsedTicks, int tickHz, {int? windupMs}) {
     var elapsedMs = 0;
     for (var i = 0; i < frames.length; i++) {
       elapsedMs += frames[i].durationMs;
-      if (elapsedTicks < (elapsedMs * tickHz + 999) ~/ 1000) return i;
+      if (elapsedTicks < _tickAtMs(elapsedMs, tickHz, windupMs)) return i;
     }
     return frames.length - 1;
   }
 
-  int get firstHarmfulFrame =>
-      frames.indexWhere((f) => f.hitbox != null || f.firesDart);
-  int firstHarmfulTick(int tickHz) => frameStartTick(firstHarmfulFrame, tickHz);
+  int firstHarmfulTick(int tickHz, {int? windupMs}) =>
+      frameStartTick(firstHarmfulFrame, tickHz, windupMs: windupMs);
 
   TrapRect get spriteBounds => TrapRect(
     -anchor.x.toInt(),

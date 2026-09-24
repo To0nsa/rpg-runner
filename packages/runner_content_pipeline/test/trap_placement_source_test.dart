@@ -25,6 +25,39 @@ void main() {
     expect(decode([]), isEmpty);
   });
 
+  test(
+    'optional tuning round trips and explicit defaults canonicalize away',
+    () {
+      final tuned = {...trap(), 'damage100': 125, 'windupMs': 0};
+      expect(decode([tuned]).single.toJson(), tuned);
+      expect(
+        decode([
+          {...trap(), 'damage100': 500, 'windupMs': 700},
+        ]).single.toJson(),
+        trap(),
+      );
+      for (final fields in [
+        {'damage100': null},
+        {'damage100': 1.0},
+        {'damage100': '100'},
+        {'damage100': 0},
+        {'damage100': 100001},
+        {'windupMs': null},
+        {'windupMs': 0.5},
+        {'windupMs': '100'},
+        {'windupMs': -1},
+        {'windupMs': 30001},
+      ]) {
+        expect(
+          () => decode([
+            {...trap(), ...fields},
+          ]),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+
   test('invalid, coerced, unordered and unknown source fails closed', () {
     for (final source in [
       null,

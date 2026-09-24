@@ -25,6 +25,8 @@ List<TrapPlacement> decodeTrapPlacements(
       'x',
       'y',
       'trigger',
+      if (json.containsKey('damage100')) 'damage100',
+      if (json.containsKey('windupMs')) 'windupMs',
       if (id != TrapId.spike) 'facing',
     };
     _keys(json, fields, path);
@@ -46,6 +48,12 @@ List<TrapPlacement> decodeTrapPlacements(
         x: _int(json, 'x', path),
         y: _int(json, 'y', path),
         facing: facing,
+        damage100: json.containsKey('damage100')
+            ? _int(json, 'damage100', path)
+            : null,
+        windupMs: json.containsKey('windupMs')
+            ? _int(json, 'windupMs', path)
+            : null,
         trigger: TrapRect(
           _int(trigger, 'offsetX', path),
           _int(trigger, 'offsetY', path),
@@ -76,7 +84,7 @@ void _keys(Map<String, dynamic> json, Set<String> fields, String path) {
 int _int(Map<String, dynamic> json, String key, String path) {
   final value = json[key];
   if (value is! int) {
-    throw FormatException('$path.$key must be a whole pixel integer.');
+    throw FormatException('$path.$key must be an integer.');
   }
   return value;
 }

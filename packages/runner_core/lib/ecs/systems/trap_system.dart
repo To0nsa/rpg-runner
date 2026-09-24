@@ -98,11 +98,22 @@ final class TrapSystem {
         continue;
       }
       final elapsed = currentTick - state.activationTick;
-      final completed = elapsed >= definition.durationTicks(tickHz);
+      final completed =
+          elapsed >=
+          definition.durationTicks(tickHz, windupMs: state.placement.windupMs);
       final previousFrame = state.frameIndex;
-      final frame = definition.frameAtTick(elapsed, tickHz);
+      final frame = definition.frameAtTick(
+        elapsed,
+        tickHz,
+        windupMs: state.placement.windupMs,
+      );
       state.frameIndex = frame;
-      state.phase = elapsed < definition.firstHarmfulTick(tickHz)
+      state.phase =
+          elapsed <
+              definition.firstHarmfulTick(
+                tickHz,
+                windupMs: state.placement.windupMs,
+              )
           ? TrapPhase.warning
           : TrapPhase.active;
       // Include crossed poses at lower tick rates; fire exactly once even when
@@ -118,6 +129,7 @@ final class TrapSystem {
           state.dart = spawnTrapDart(
             world,
             source: state.source,
+            damage100: state.placement.damage100,
             x: state.x + definition.muzzle.x * sign,
             y: state.y + definition.muzzle.y,
             directionX: sign,
@@ -137,7 +149,7 @@ final class TrapSystem {
           hit,
           previous,
           sign,
-          definition.damage100,
+          state.placement.damage100,
         );
       }
       if (completed) cooldown();

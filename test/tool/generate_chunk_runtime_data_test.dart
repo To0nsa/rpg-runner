@@ -28,6 +28,8 @@ void main() {
         'trapId': 'spike',
         'x': 200,
         'y': 128,
+        'damage100': 225,
+        'windupMs': 125,
         'trigger': {'offsetX': -20, 'offsetY': -20, 'width': 40, 'height': 40},
       },
     ];
@@ -38,7 +40,7 @@ void main() {
     final probe = await _runCompiledRegistryProbe(root.path, '''
   final level = LevelRegistry.byId(LevelId.field);
   final pattern = level.chunkPatternSource.patternFor(chunkIndex: 0, seed: 1, tier: ChunkPatternTier.easy);
-  if (pattern.traps.single.x != 200 || pattern.traps.single.trigger.width != 40) {
+  if (pattern.traps.single.x != 200 || pattern.traps.single.trigger.width != 40 || pattern.traps.single.damage100 != 225 || pattern.traps.single.windupMs != 125) {
     throw StateError('Generated trap placement differs from source.');
   }
 ''');
@@ -49,6 +51,8 @@ void main() {
       json['traps'] = [
         {
           'trapId': id,
+          'damage100': 225,
+          'windupMs': 125,
           'x': id == 'poison_darts' ? 400 : 300,
           'y': id == 'swinging_axe'
               ? 140
