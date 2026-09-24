@@ -83,8 +83,8 @@ class PickupRenderRegistry {
 
   final PickupRenderCatalog _catalog;
 
-  // Render at native pixel size; Core owns collider dimensions.
-  static final Vector2 _collectibleScale = Vector2.all(1.0);
+  // Half-size coins keep the sprite compact; Core owns collider dimensions.
+  static final Vector2 _collectibleScale = Vector2.all(0.5);
   static final Vector2 _restorationScale = Vector2.all(1.0);
 
   final Map<int, PickupRenderEntry> _entries = <int, PickupRenderEntry>{
