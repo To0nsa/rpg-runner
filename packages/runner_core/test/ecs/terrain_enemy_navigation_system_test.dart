@@ -3,6 +3,8 @@ import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/combat/ai_target_policy.dart';
+import 'package:runner_core/ecs/systems/ai_target_system.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
@@ -25,6 +27,56 @@ import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('different selected actors keep independent paths and release cleanly', () {
+    final bundle = _bundle(_floorGeometry(version: 1));
+    final a = _worldOnGraph(
+      bundle,
+      enemyBodyX: 300 * terrainPhysicsTicksPerWorldUnit,
+      playerBodyX: 50 * terrainPhysicsTicksPerWorldUnit,
+    );
+    final b = _worldOnGraph(
+      bundle,
+      ecsWorld: a.world,
+      enemyBodyX: 300 * terrainPhysicsTicksPerWorldUnit,
+      playerBodyX: 550 * terrainPhysicsTicksPerWorldUnit,
+    );
+    final world = a.world;
+    final player = world.createEntity();
+    world.transform.add(player, posX: 400, posY: 0, velX: 0, velY: 0);
+    for (final fixture in [a, b]) {
+      world.aiTarget.configure(
+        fixture.enemy,
+        targetPolicy: AiTargetPolicy.nearestOpponent,
+        candidates: [fixture.player],
+        playerFallback: false,
+      );
+    }
+    AiTargetSystem().step(world, player: player);
+    final system = _system(() => bundle);
+    system.step(world, player: player, currentTick: 1);
+    expect(world.navIntent.navTargetX[world.navIntent.indexOf(a.enemy)], 50);
+    expect(world.navIntent.navTargetX[world.navIntent.indexOf(b.enemy)], 550);
+    world.aiTarget.removeEntity(a.enemy);
+    // Ordinary pursuit of b.player must replace the previous encounter target.
+    system.step(world, player: b.player, currentTick: 2);
+    expect(world.navIntent.navTargetX[world.navIntent.indexOf(a.enemy)], 550);
+    expect(
+      world.surfaceNav.targetEntity[world.surfaceNav.indexOf(a.enemy)],
+      b.player,
+    );
+    world.aiTarget.configure(
+      b.enemy,
+      targetPolicy: AiTargetPolicy.nearestOpponent,
+      candidates: [],
+      playerFallback: false,
+    );
+    system.step(world, player: b.player, currentTick: 3);
+    expect(world.navIntent.hasPlan[world.navIntent.indexOf(b.enemy)], isFalse);
+    expect(
+      world.surfaceNav.targetEntity[world.surfaceNav.indexOf(b.enemy)],
+      isNull,
+    );
+  });
   group('terrain enemy navigation system', () {
     test(
       'routes same-chain pursuit and invalidates state by bundle version',
@@ -196,12 +248,13 @@ TerrainEnemyNavigationSystem _system(TerrainRuntimeBundle Function() bundle) =>
 
 ({EcsWorld world, int player, int enemy}) _worldOnGraph(
   TerrainRuntimeBundle bundle, {
+  EcsWorld? ecsWorld,
   TerrainNavigationSurface? enemySurface,
   TerrainNavigationSurface? playerSurface,
   required int enemyBodyX,
   required int playerBodyX,
 }) {
-  final world = EcsWorld(seed: 7);
+  final world = ecsWorld ?? EcsWorld(seed: 7);
   const catalog = EnemyCatalog();
   final contact = catalog.terrainContactProfile(EnemyId.grojib);
   final archetype = catalog.get(EnemyId.grojib);

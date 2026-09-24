@@ -8,6 +8,8 @@ import '../../sparse_set.dart';
 /// Tracks the current surface segment, the target segment, and the calculated path edges.
 /// Used by `SurfaceNavigationSystem` to move ground enemies.
 class SurfaceNavStateStore extends SparseSet {
+  /// Identity owning the retained target support, including ordinary pursuit.
+  final List<EntityId?> targetEntity = [];
   final List<int> graphVersion = <int>[];
   final List<int> repathTicksLeft = <int>[];
   final List<int> currentSurfaceId = <int>[];
@@ -25,8 +27,15 @@ class SurfaceNavStateStore extends SparseSet {
     addEntity(entity);
   }
 
+  void forgetTarget(EntityId entity) {
+    for (var i = 0; i < targetEntity.length; i++) {
+      if (targetEntity[i] == entity) targetEntity[i] = null;
+    }
+  }
+
   @override
   void onDenseAdded(int denseIndex) {
+    targetEntity.add(null);
     graphVersion.add(-1);
     repathTicksLeft.add(0);
     currentSurfaceId.add(surfaceIdUnknown);
@@ -40,6 +49,8 @@ class SurfaceNavStateStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
+    targetEntity[removeIndex] = targetEntity[lastIndex];
+    targetEntity.removeLast();
     graphVersion[removeIndex] = graphVersion[lastIndex];
     repathTicksLeft[removeIndex] = repathTicksLeft[lastIndex];
     currentSurfaceId[removeIndex] = currentSurfaceId[lastIndex];

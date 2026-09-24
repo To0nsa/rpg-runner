@@ -60,7 +60,7 @@ order; the contract below records the dependencies that must survive changes.
 | --- | --- | --- |
 | 1 | Stream/cull track, obtain the complete staged candidate, publish any queued terrain bundle, place the captured enemy/item batch, and prepare motion | An exact prepared selection may replace synchronous construction; no consumer may observe a partial candidate or mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
-| 3 | Resolve AI, ability activation, jump, movement, mobility, gravity, and collision | Intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
+| 3 | Select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
 | 5 | Collect pickups, rebuild broadphase, and move existing projectiles | Hit detection requires current spatial data; newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, then position hitboxes | Self abilities resolve before downstream combat so their effects apply deterministically. |

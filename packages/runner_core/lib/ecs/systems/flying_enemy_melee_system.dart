@@ -10,6 +10,7 @@ import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
+import '../combat_target.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -32,26 +33,22 @@ class FlyingEnemyMeleeSystem {
     required EntityId player,
     required int currentTick,
   }) {
-    if (!world.transform.has(player)) return;
-
-    var playerCenterX = 0.0;
-    final playerTi = world.transform.tryIndexOf(player);
-    if (playerTi != null) {
-      playerCenterX = world.transform.posX[playerTi];
-      if (world.colliderAabb.has(player)) {
-        final ai = world.colliderAabb.indexOf(player);
-        playerCenterX = colliderCenterX(
-          world,
-          entity: player,
-          transformIndex: playerTi,
-          colliderIndex: ai,
-        );
-      }
-    }
-
     final combatMode = world.flyingEnemyCombatMode;
     for (var i = 0; i < combatMode.denseEntities.length; i += 1) {
       final enemy = combatMode.denseEntities[i];
+      final target = combatTarget(world, enemy, player);
+      if (target == null) continue;
+      final targetTi = world.transform.indexOf(target);
+      var targetCenterX = world.transform.posX[targetTi];
+      if (world.colliderAabb.has(target)) {
+        final ai = world.colliderAabb.indexOf(target);
+        targetCenterX = colliderCenterX(
+          world,
+          entity: target,
+          transformIndex: targetTi,
+          colliderIndex: ai,
+        );
+      }
       if (combatMode.mode[i] != FlyingEnemyCombatMode.meleeFallback) continue;
       if (world.deathState.has(enemy)) continue;
 
@@ -72,7 +69,7 @@ class FlyingEnemyMeleeSystem {
         continue;
       }
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
-      if (!_isInContactWithPlayer(world, enemy: enemy, player: player)) {
+      if (!_isInContactWithTarget(world, enemy: enemy, target: target)) {
         continue;
       }
 
@@ -133,7 +130,7 @@ class FlyingEnemyMeleeSystem {
         actionSpeedBp,
       );
 
-      final facing = playerCenterX >= enemyCenterX ? Facing.right : Facing.left;
+      final facing = targetCenterX >= enemyCenterX ? Facing.right : Facing.left;
       world.enemy.facing[enemyIndex] = facing;
       final dirX = facing == Facing.right ? 1.0 : -1.0;
 
@@ -220,14 +217,14 @@ class FlyingEnemyMeleeSystem {
     return true;
   }
 
-  bool _isInContactWithPlayer(
+  bool _isInContactWithTarget(
     EcsWorld world, {
     required EntityId enemy,
-    required EntityId player,
+    required EntityId target,
   }) {
     final enemyTransformIndex = world.transform.tryIndexOf(enemy);
-    final playerTransformIndex = world.transform.tryIndexOf(player);
-    if (enemyTransformIndex == null || playerTransformIndex == null) {
+    final targetTransformIndex = world.transform.tryIndexOf(target);
+    if (enemyTransformIndex == null || targetTransformIndex == null) {
       return false;
     }
 
@@ -248,27 +245,27 @@ class FlyingEnemyMeleeSystem {
       enemyHalfY = world.colliderAabb.halfY[colliderIndex];
     }
 
-    var playerCenterX = world.transform.posX[playerTransformIndex];
-    var playerCenterY = world.transform.posY[playerTransformIndex];
-    var playerHalfX = 0.0;
-    var playerHalfY = 0.0;
-    if (world.colliderAabb.has(player)) {
-      final colliderIndex = world.colliderAabb.indexOf(player);
-      playerCenterX = colliderCenterX(
+    var targetCenterX = world.transform.posX[targetTransformIndex];
+    var targetCenterY = world.transform.posY[targetTransformIndex];
+    var targetHalfX = 0.0;
+    var targetHalfY = 0.0;
+    if (world.colliderAabb.has(target)) {
+      final colliderIndex = world.colliderAabb.indexOf(target);
+      targetCenterX = colliderCenterX(
         world,
-        entity: player,
-        transformIndex: playerTransformIndex,
+        entity: target,
+        transformIndex: targetTransformIndex,
         colliderIndex: colliderIndex,
       );
-      playerCenterY += world.colliderAabb.offsetY[colliderIndex];
-      playerHalfX = world.colliderAabb.halfX[colliderIndex];
-      playerHalfY = world.colliderAabb.halfY[colliderIndex];
+      targetCenterY += world.colliderAabb.offsetY[colliderIndex];
+      targetHalfX = world.colliderAabb.halfX[colliderIndex];
+      targetHalfY = world.colliderAabb.halfY[colliderIndex];
     }
 
     final overlapX =
-        (enemyCenterX - playerCenterX).abs() <= (enemyHalfX + playerHalfX);
+        (enemyCenterX - targetCenterX).abs() <= (enemyHalfX + targetHalfX);
     final overlapY =
-        (enemyCenterY - playerCenterY).abs() <= (enemyHalfY + playerHalfY);
+        (enemyCenterY - targetCenterY).abs() <= (enemyHalfY + targetHalfY);
     return overlapX && overlapY;
   }
 

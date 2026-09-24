@@ -7,6 +7,7 @@ import '../../snapshots/enums.dart';
 import '../../util/ability_timing.dart';
 import '../../util/target_prediction.dart';
 import '../entity_id.dart';
+import '../combat_target.dart';
 import '../stores/enemies/hashash_teleport_state_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -40,14 +41,6 @@ class HashashTeleportAmbushSystem {
     required EntityId player,
     required int currentTick,
   }) {
-    if (!world.transform.has(player)) return;
-
-    final playerTransformIndex = world.transform.indexOf(player);
-    final playerX = world.transform.posX[playerTransformIndex];
-    final playerY = world.transform.posY[playerTransformIndex];
-    final playerVelX = world.transform.velX[playerTransformIndex];
-    final playerVelY = world.transform.velY[playerTransformIndex];
-
     final teleport = world.hashashTeleport;
     for (var i = 0; i < teleport.denseEntities.length; i += 1) {
       final enemy = teleport.denseEntities[i];
@@ -67,7 +60,7 @@ class HashashTeleportAmbushSystem {
       // Keep teleporting Hashash stationary during teleport-out.
       //
       // During ambush we keep horizontal stillness but let gravity affect velY
-      // so he can visually "drop in" from above the player.
+      // so he can visually "drop in" from above the target.
       world.transform.velX[transformIndex] = 0.0;
       if (phase == HashashTeleportPhase.evadeOut) {
         world.transform.velY[transformIndex] = 0.0;
@@ -75,6 +68,18 @@ class HashashTeleportAmbushSystem {
 
       if (phase == HashashTeleportPhase.evadeOut) {
         if (currentTick < teleport.phaseEndTick[i]) continue;
+
+        final target = combatTarget(world, enemy, player);
+        if (target == null) {
+          teleport.phase[i] = HashashTeleportPhase.idle;
+          teleport.phaseEndTick[i] = -1;
+          continue;
+        }
+        final targetTransformIndex = world.transform.indexOf(target);
+        final targetX = world.transform.posX[targetTransformIndex];
+        final targetY = world.transform.posY[targetTransformIndex];
+        final targetVelX = world.transform.velX[targetTransformIndex];
+        final targetVelY = world.transform.velY[targetTransformIndex];
 
         final ambushAbility = abilityResolver.resolve(ambushAbilityId);
         if (ambushAbility == null) {
@@ -89,18 +94,18 @@ class HashashTeleportAmbushSystem {
         final totalTicks = max(1, windupTicks + activeTicks + recoveryTicks);
         final cooldownTicks = _scaleAbilityTicks(ambushAbility.cooldownTicks);
         final leadSeconds = windupTicks / tickHz;
-        final predictedPlayer = predictLinearTargetPosition(
-          targetX: playerX,
-          targetY: playerY,
-          targetVelX: playerVelX,
-          targetVelY: playerVelY,
+        final predictedTarget = predictLinearTargetPosition(
+          targetX: targetX,
+          targetY: targetY,
+          targetVelX: targetVelX,
+          targetVelY: targetVelY,
           leadSeconds: leadSeconds,
         );
 
-        final ambushY = predictedPlayer.$2 - ambushDropHeightY;
+        final ambushY = predictedTarget.$2 - ambushDropHeightY;
         final origin = _worldMotionAuthority.beginBodyTeleport(world, enemy);
-        final primaryX = predictedPlayer.$1 + ambushRightOffsetX;
-        var facing = _facingToward(predictedPlayer.$1, primaryX);
+        final primaryX = predictedTarget.$1 + ambushRightOffsetX;
+        var facing = _facingToward(predictedTarget.$1, primaryX);
         var placed = _worldMotionAuthority.tryCommitBodyTeleport(
           world,
           enemy,
@@ -109,8 +114,8 @@ class HashashTeleportAmbushSystem {
           facing: facing,
         );
         if (!placed) {
-          final mirroredX = predictedPlayer.$1 - ambushRightOffsetX;
-          facing = _facingToward(predictedPlayer.$1, mirroredX);
+          final mirroredX = predictedTarget.$1 - ambushRightOffsetX;
+          facing = _facingToward(predictedTarget.$1, mirroredX);
           placed = _worldMotionAuthority.tryCommitBodyTeleport(
             world,
             enemy,

@@ -1,5 +1,6 @@
 import '../../combat/control_lock.dart';
 import '../../collision/terrain/terrain_numeric.dart';
+import '../../collision/terrain/terrain_traversal_profile.dart';
 import '../../enemies/enemy_id.dart';
 import '../../navigation/terrain_placement_query.dart';
 import '../../navigation/terrain_runtime_bundle.dart';
@@ -10,6 +11,8 @@ import '../../tuning/physics_tuning.dart';
 import '../../terrain/swimming_tuning.dart';
 import '../../terrain/water_region.dart';
 import '../entity_id.dart';
+import '../collider_aabb_utils.dart';
+import '../combat_target.dart';
 import '../world.dart';
 
 /// Routes polygon-terrain graphs into the existing ground-enemy intent store.
@@ -45,7 +48,9 @@ final class TerrainEnemyNavigationSystem {
 
   int _boundBundleVersion = -1;
   TerrainPlacementQuery? _placementQuery;
-  TerrainTrajectoryPredictor? _playerTrajectoryPredictor;
+  final Map<TerrainTraversalProfile, TerrainTrajectoryPredictor> _predictors =
+      {};
+  final Map<EntityId, TerrainSurfaceNavigationActorSnapshot> _tickTargets = {};
 
   /// Ground-enemy intents written by the latest tick.
   int lastNavigatedEnemyCount = 0;
@@ -63,18 +68,10 @@ final class TerrainEnemyNavigationSystem {
   }) {
     lastNavigatedEnemyCount = 0;
     lastPredictedPlayerLanding = false;
-    if (!world.transform.has(player) ||
-        !world.worldContactCapsule.has(player) ||
-        !world.terrainTraversalProfile.has(player) ||
-        !world.terrainContact.has(player) ||
-        !world.body.has(player)) {
-      return;
-    }
-
     final bundle = _runtimeBundle();
-    _bindBundle(bundle, world, player);
+    _bindBundle(bundle);
     final placementQuery = _placementQuery!;
-    final target = _targetSnapshot(world, player: player, bundle: bundle);
+    _tickTargets.clear();
 
     final navStore = world.surfaceNav;
     for (
@@ -102,6 +99,37 @@ final class TerrainEnemyNavigationSystem {
       };
       if (graph == null) continue;
 
+      final targetId = combatTarget(world, enemy, player);
+      if (targetId == null ||
+          !world.worldContactCapsule.has(targetId) ||
+          !world.terrainTraversalProfile.has(targetId) ||
+          !world.terrainContact.has(targetId) ||
+          !world.body.has(targetId)) {
+        navStore.targetEntity[navIndex] = null;
+        navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
+        final intents = world.navIntent;
+        intents.hasPlan[intentIndex] = false;
+        intents.jumpNow[intentIndex] = false;
+        intents.commitMoveDirX[intentIndex] = 0;
+        intents.desiredX[intentIndex] =
+            world.transform.posX[world.transform.indexOf(enemy)];
+        continue;
+      }
+      final selectionIndex = world.aiTarget.tryIndexOf(enemy);
+      if (navStore.targetEntity[navIndex] != targetId) {
+        navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
+        navStore.targetEntity[navIndex] = targetId;
+      }
+      final target = _tickTargets.putIfAbsent(
+        targetId,
+        () => _targetSnapshot(
+          world,
+          targetEntity: targetId,
+          bundle: bundle,
+          isPlayer: targetId == player,
+        ),
+      );
+
       final actor = _actorSnapshot(
         world,
         entity: enemy,
@@ -115,7 +143,7 @@ final class TerrainEnemyNavigationSystem {
         _writeWaterIntent(
           world,
           intentIndex,
-          world.transform.posX[world.transform.indexOf(player)],
+          world.transform.posX[world.transform.indexOf(targetId)],
         );
         lastNavigatedEnemyCount += 1;
         continue;
@@ -166,6 +194,18 @@ final class TerrainEnemyNavigationSystem {
           intentIndex,
           target.bodyCenter.xTicks / terrainPhysicsTicksPerWorldUnit,
         );
+      } else if (selectionIndex != null &&
+          targetId != player &&
+          !intent.hasPlan &&
+          actor.grounded &&
+          target.grounded &&
+          navStore.terrainState[navIndex].currentSurfaceIndex >= 0 &&
+          navStore.terrainState[navIndex].targetSurfaceIndex >= 0 &&
+          !world.controlLock.isLocked(enemy, LockFlag.nav, currentTick) &&
+          !world.controlLock.isLocked(enemy, LockFlag.move, currentTick) &&
+          !world.controlLock.isStunned(enemy, currentTick)) {
+        world.aiTarget.unreachable[selectionIndex][targetId] =
+            targetNavigationEvidence(world, enemy, targetId);
       }
       lastNavigatedEnemyCount += 1;
     }
@@ -220,47 +260,49 @@ final class TerrainEnemyNavigationSystem {
     return false;
   }
 
-  void _bindBundle(
-    TerrainRuntimeBundle bundle,
-    EcsWorld world,
-    EntityId player,
-  ) {
+  void _bindBundle(TerrainRuntimeBundle bundle) {
     if (_boundBundleVersion == bundle.version) return;
     final placementQuery = TerrainPlacementQuery(
       geometry: bundle.geometry,
       terrainIndex: bundle.edgeIndex,
       surfaceIndex: bundle.surfaceIndex,
     );
-    final profileIndex = world.terrainTraversalProfile.indexOf(player);
     _placementQuery = placementQuery;
-    _playerTrajectoryPredictor = TerrainTrajectoryPredictor(
-      placementQuery: placementQuery,
-      traversalProfile: world.terrainTraversalProfile.profile[profileIndex],
-      supportRequirement:
-          const TerrainSupportRequirement.groundedEnemyRuntime(),
-      dtSeconds: _dtSeconds,
-      maxTicks: predictionMaxTicks,
-    );
+    _predictors.clear();
     _boundBundleVersion = bundle.version;
   }
 
   TerrainSurfaceNavigationActorSnapshot _targetSnapshot(
     EcsWorld world, {
-    required EntityId player,
+    required EntityId targetEntity,
     required TerrainRuntimeBundle bundle,
+    required bool isPlayer,
   }) {
     final current = _worldActorSnapshot(
       world,
-      entity: player,
+      entity: targetEntity,
       supportRequirement:
           const TerrainSupportRequirement.groundedEnemyRuntime(),
       bundleVersion: bundle.version,
     );
-    if (current.grounded || !_canPredictPlayer(world, player)) return current;
+    if (current.grounded || !_canPredictTarget(world, targetEntity)) {
+      return current;
+    }
 
-    final transformIndex = world.transform.indexOf(player);
-    final bodyIndex = world.body.indexOf(player);
-    final predicted = _playerTrajectoryPredictor!.predictLanding(
+    final transformIndex = world.transform.indexOf(targetEntity);
+    final bodyIndex = world.body.indexOf(targetEntity);
+    final predictor = _predictors.putIfAbsent(
+      current.traversalProfile,
+      () => TerrainTrajectoryPredictor(
+        placementQuery: _placementQuery!,
+        traversalProfile: current.traversalProfile,
+        supportRequirement:
+            const TerrainSupportRequirement.groundedEnemyRuntime(),
+        dtSeconds: _dtSeconds,
+        maxTicks: predictionMaxTicks,
+      ),
+    );
+    final predicted = predictor.predictLanding(
       startBodyCenter: current.bodyCenter,
       capsule: current.capsule,
       velocityX: world.transform.velX[transformIndex],
@@ -271,7 +313,7 @@ final class TerrainEnemyNavigationSystem {
       maximumFallSpeed: world.body.maxVelY[bodyIndex],
       out: _landingPrediction,
     );
-    lastPredictedPlayerLanding = predicted;
+    if (isPlayer) lastPredictedPlayerLanding = predicted;
     if (!predicted || _landingPrediction.supportEdgeId == null) return current;
     return TerrainSurfaceNavigationActorSnapshot(
       bodyCenter: TerrainPoint(
@@ -287,9 +329,9 @@ final class TerrainEnemyNavigationSystem {
     );
   }
 
-  bool _canPredictPlayer(EcsWorld world, EntityId player) {
-    if (world.swimState.isSwimming(player)) return false;
-    final gravityIndex = world.gravityControl.tryIndexOf(player);
+  bool _canPredictTarget(EcsWorld world, EntityId targetEntity) {
+    if (world.swimState.isSwimming(targetEntity)) return false;
+    final gravityIndex = world.gravityControl.tryIndexOf(targetEntity);
     return gravityIndex == null ||
         world.gravityControl.suppressGravityTicksLeft[gravityIndex] <= 0;
   }
@@ -338,7 +380,7 @@ final class TerrainEnemyNavigationSystem {
             world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex],
         resolvedOffsetXTicks:
             world.worldContactCapsule.offsetXTicks[capsuleIndex] *
-            _facingOffsetSign(world, entity),
+            colliderFacingSign(world, entity),
         offsetYTicks: world.worldContactCapsule.offsetYTicks[capsuleIndex],
       ),
       traversalProfile: world.terrainTraversalProfile.profile[profileIndex],
@@ -397,21 +439,4 @@ final class TerrainEnemyNavigationSystem {
       travelTicks: edge.travelTicks,
     );
   }
-}
-
-int _facingOffsetSign(EcsWorld world, EntityId entity) {
-  final movementIndex = world.movement.tryIndexOf(entity);
-  if (movementIndex != null) {
-    return world.movement.facing[movementIndex] ==
-            world.movement.artFacing[movementIndex]
-        ? 1
-        : -1;
-  }
-  final enemyIndex = world.enemy.tryIndexOf(entity);
-  if (enemyIndex != null) {
-    return world.enemy.facing[enemyIndex] == world.enemy.artFacing[enemyIndex]
-        ? 1
-        : -1;
-  }
-  return 1;
 }

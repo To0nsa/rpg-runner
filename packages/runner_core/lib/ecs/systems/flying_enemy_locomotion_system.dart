@@ -6,6 +6,7 @@ import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
 import '../collider_aabb_utils.dart';
+import '../combat_target.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../world.dart';
 import 'world_motion_authority.dart';
@@ -31,28 +32,31 @@ class FlyingEnemyLocomotionSystem {
     required int currentTick,
   }) {
     if (dtSeconds <= 0.0) return;
-    if (!world.transform.has(player)) return;
-
-    final playerTi = world.transform.indexOf(player);
-    var playerCenterX = world.transform.posX[playerTi];
-    var playerCenterY = world.transform.posY[playerTi];
-    if (world.colliderAabb.has(player)) {
-      final playerAi = world.colliderAabb.indexOf(player);
-      playerCenterX = colliderCenterX(
-        world,
-        entity: player,
-        transformIndex: playerTi,
-        colliderIndex: playerAi,
-      );
-      playerCenterY += world.colliderAabb.offsetY[playerAi];
-    }
-
     final steering = world.flyingEnemySteering;
     for (var i = 0; i < steering.denseEntities.length; i += 1) {
       final enemy = steering.denseEntities[i];
       if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
+      final target = combatTarget(world, enemy, player);
+      if (target == null) {
+        world.transform.velX[enemyTi] = 0;
+        world.transform.velY[enemyTi] = 0;
+        continue;
+      }
+      final targetTi = world.transform.indexOf(target);
+      var targetCenterX = world.transform.posX[targetTi];
+      var targetCenterY = world.transform.posY[targetTi];
+      if (world.colliderAabb.has(target)) {
+        final targetAi = world.colliderAabb.indexOf(target);
+        targetCenterX = colliderCenterX(
+          world,
+          entity: target,
+          transformIndex: targetTi,
+          colliderIndex: targetAi,
+        );
+        targetCenterY += world.colliderAabb.offsetY[targetAi];
+      }
 
       if (world.controlLock.isStunned(enemy, currentTick)) {
         // Option B: Freeze in place.
@@ -78,8 +82,8 @@ class FlyingEnemyLocomotionSystem {
         enemy: enemy,
         enemyTi: enemyTi,
         steeringIndex: i,
-        playerCenterX: playerCenterX,
-        playerCenterY: playerCenterY,
+        targetCenterX: targetCenterX,
+        targetCenterY: targetCenterY,
         ex: ex,
         ey: ey,
         groundTopY: groundTopY,
@@ -94,8 +98,8 @@ class FlyingEnemyLocomotionSystem {
     required EntityId enemy,
     required int enemyTi,
     required int steeringIndex,
-    required double playerCenterX,
-    required double playerCenterY,
+    required double targetCenterX,
+    required double targetCenterY,
     required double ex,
     required double ey,
     required double groundTopY,
@@ -166,13 +170,13 @@ class FlyingEnemyLocomotionSystem {
         ? _FlyingLocomotionMode.approachStrike
         : _FlyingLocomotionMode.hover;
 
-    final dx = playerCenterX - ex;
+    final dx = targetCenterX - ex;
     final distX = dx.abs();
     var targetX = ex;
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
-      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
-      targetX = playerCenterX - dirToPlayerX * desiredRange;
+      final dirToTargetX = dx >= 0 ? 1.0 : -1.0;
+      targetX = targetCenterX - dirToTargetX * desiredRange;
     }
 
     final slack = locomotionMode == _FlyingLocomotionMode.approachStrike
@@ -180,7 +184,7 @@ class FlyingEnemyLocomotionSystem {
         : tuning.base.unocoDemonHoldSlack;
     var desiredVelX = 0.0;
     if (distX > 1e-6) {
-      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
+      final dirToTargetX = dx >= 0 ? 1.0 : -1.0;
       final error = distX - desiredRange;
 
       if (error.abs() > slack) {
@@ -192,7 +196,7 @@ class FlyingEnemyLocomotionSystem {
             ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
             : 1.0;
         final speed = t * tuning.base.unocoDemonMaxSpeedX;
-        desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
+        desiredVelX = (error > 0.0 ? dirToTargetX : -dirToTargetX) * speed;
       }
     }
 
@@ -225,7 +229,7 @@ class FlyingEnemyLocomotionSystem {
       }
       targetY = flightReferenceY - flightTargetAboveGround;
     } else {
-      targetY = playerCenterY;
+      targetY = targetCenterY;
     }
     final deltaY = targetY - ey;
     var desiredVelY = clampDouble(

@@ -18,6 +18,7 @@ import '../../util/target_prediction.dart';
 import '../../weapons/weapon_proc.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
+import '../combat_target.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
 import '../stores/target_point_intent_store.dart';
@@ -43,23 +44,20 @@ class EnemyCastSystem {
     required EntityId player,
     required int currentTick,
   }) {
-    final playerTi = world.transform.tryIndexOf(player);
-    if (playerTi == null) return;
-
-    final playerX = world.transform.posX[playerTi];
-    final playerY = world.transform.posY[playerTi];
-    final playerVelX = world.transform.velX[playerTi];
-    final playerVelY = world.transform.velY[playerTi];
-    final playerCenter = _entityCenter(
-      world,
-      player,
-      fallbackX: playerX,
-      fallbackY: playerY,
-    );
-
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      final target = combatTarget(world, enemy, player);
+      if (target == null) continue;
+      final targetTi = world.transform.indexOf(target);
+      final targetVelX = world.transform.velX[targetTi];
+      final targetVelY = world.transform.velY[targetTi];
+      final targetCenter = _entityCenter(
+        world,
+        target,
+        fallbackX: world.transform.posX[targetTi],
+        fallbackY: world.transform.posY[targetTi],
+      );
       if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
@@ -91,7 +89,7 @@ class EnemyCastSystem {
         _faceEnemyTowardX(
           world,
           enemyIndex: ei,
-          targetX: playerCenter.$1,
+          targetX: targetCenter.$1,
           sourceX: enemyCenter.$1,
         );
       }
@@ -131,10 +129,10 @@ class EnemyCastSystem {
         castTargetPolicy: archetype.castTargetPolicy,
         sourceX: enemyCenter.$1,
         sourceY: enemyCenter.$2,
-        targetX: playerCenter.$1,
-        targetY: playerCenter.$2,
-        targetVelX: playerVelX,
-        targetVelY: playerVelY,
+        targetX: targetCenter.$1,
+        targetY: targetCenter.$2,
+        targetVelX: targetVelX,
+        targetVelY: targetVelY,
         windupTicks: windupTicks,
       );
       final aimX = resolvedAim.$1;

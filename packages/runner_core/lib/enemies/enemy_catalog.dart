@@ -475,10 +475,10 @@ const AnimProfile _derfAnimProfile = AnimProfile(
 /// This data is "static" (read-only) configuration used to initialize
 /// the ECS components effectively when an enemy spawns.
 enum EnemyCastTargetPolicy {
-  /// Casts directly at the player's current center position.
+  /// Casts directly at the selected combat target's current center position.
   playerCenter,
 
-  /// Predicts player center using deterministic lead.
+  /// Predicts the selected combat target's center using deterministic lead.
   predictedPlayerCenter,
 }
 
@@ -486,7 +486,7 @@ enum EnemyFacingPolicy {
   /// Facing is derived from movement/commits.
   movementDriven,
 
-  /// Facing updates continuously toward the player.
+  /// Facing updates continuously toward the selected combat target.
   facePlayerAlways,
 }
 

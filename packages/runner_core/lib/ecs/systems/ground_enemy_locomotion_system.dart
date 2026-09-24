@@ -8,6 +8,7 @@ import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
 import '../stores/enemies/melee_engagement_store.dart';
+import '../combat_target.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 
@@ -27,10 +28,6 @@ class GroundEnemyLocomotionSystem {
     required int currentTick,
   }) {
     if (dtSeconds <= 0.0) return;
-    if (!world.transform.has(player)) return;
-
-    final playerTi = world.transform.indexOf(player);
-    final playerX = world.transform.posX[playerTi];
     final supportView = WorldSupportView(world);
 
     final navIntent = world.navIntent;
@@ -41,6 +38,14 @@ class GroundEnemyLocomotionSystem {
       if (enemyTi == null) continue;
 
       final grounded = supportView.isGrounded(enemy);
+      final target = combatTarget(world, enemy, player);
+      if (target == null) {
+        if (grounded) world.transform.velX[enemyTi] = 0;
+        _writeLocomotionReferenceSpeed(world, enemy, 0);
+        continue;
+      }
+      final targetTi = world.transform.indexOf(target);
+      final targetX = world.transform.posX[targetTi];
       if (world.controlLock.isStunned(enemy, currentTick) ||
           world.controlLock.isLocked(enemy, LockFlag.move, currentTick)) {
         world.transform.velX[enemyTi] = 0.0;
@@ -88,7 +93,7 @@ class GroundEnemyLocomotionSystem {
         continue;
       }
       final meleeState = world.meleeEngagement.state[meleeIndex];
-      final lockFacingToPlayer =
+      final lockFacingToTarget =
           meleeState == MeleeEngagementState.engage ||
           meleeState == MeleeEngagementState.strike ||
           meleeState == MeleeEngagementState.recover;
@@ -100,8 +105,8 @@ class GroundEnemyLocomotionSystem {
           enemyTi: enemyTi,
           enemyIndex: enemyIndex,
           engagementIndex: engagementIndex,
-          player: player,
-          playerTi: playerTi,
+          target: target,
+          targetTi: targetTi,
           currentTick: currentTick,
           dtSeconds: dtSeconds,
         );
@@ -115,10 +120,10 @@ class GroundEnemyLocomotionSystem {
         enemyTi: enemyTi,
         navIntentIndex: i,
         engagementIndex: engagementIndex,
-        lockFacingToPlayer: lockFacingToPlayer,
+        lockFacingToTarget: lockFacingToTarget,
         grounded: grounded,
         ex: ex,
-        playerX: playerX,
+        targetX: targetX,
         dtSeconds: dtSeconds,
       );
     }
@@ -130,8 +135,8 @@ class GroundEnemyLocomotionSystem {
     required int enemyTi,
     required int enemyIndex,
     required int engagementIndex,
-    required EntityId player,
-    required int playerTi,
+    required EntityId target,
+    required int targetTi,
     required int currentTick,
     required double dtSeconds,
   }) {
@@ -168,10 +173,10 @@ class GroundEnemyLocomotionSystem {
       decelPerSecond: tuning.decelX * SwimmingTuning.decelerationMultiplier,
     );
     _writeLocomotionReferenceSpeed(world, enemy, desired.abs());
-    final playerDx =
-        world.transform.posX[playerTi] - world.transform.posX[enemyTi];
-    if (playerDx != 0) {
-      world.enemy.facing[enemyIndex] = playerDx > 0
+    final targetDx =
+        world.transform.posX[targetTi] - world.transform.posX[enemyTi];
+    if (targetDx != 0) {
+      world.enemy.facing[enemyIndex] = targetDx > 0
           ? Facing.right
           : Facing.left;
     }
@@ -184,13 +189,13 @@ class GroundEnemyLocomotionSystem {
         capsule.offsetYTicks[capsuleIndex] / terrainPhysicsTicksPerWorldUnit;
     final surfaceY = world.swimState.surfaceYTicks[swimIndex];
     if (surfaceY == null) return;
-    final playerCapsule = capsule.tryIndexOf(player);
-    final playerSwimming = world.swimState.isSwimming(player);
-    final targetY = playerSwimming
-        ? world.transform.posY[playerTi] +
-              (playerCapsule == null
+    final targetCapsule = capsule.tryIndexOf(target);
+    final targetSwimming = world.swimState.isSwimming(target);
+    final targetY = targetSwimming
+        ? world.transform.posY[targetTi] +
+              (targetCapsule == null
                   ? 0
-                  : capsule.offsetYTicks[playerCapsule] /
+                  : capsule.offsetYTicks[targetCapsule] /
                         terrainPhysicsTicksPerWorldUnit)
         : (surfaceY -
                   capsule.radiusTicks[capsuleIndex] -
@@ -198,7 +203,7 @@ class GroundEnemyLocomotionSystem {
               terrainPhysicsTicksPerWorldUnit;
     // A submerged target may be below us: stop rising and let buoyancy-controlled
     // sinking close the gap. A land target instead requests a bank-clearing stroke.
-    if (playerSwimming &&
+    if (targetSwimming &&
         centerY <= targetY &&
         world.transform.velY[enemyTi] < 0) {
       world.transform.velY[enemyTi] = 0;
@@ -228,10 +233,10 @@ class GroundEnemyLocomotionSystem {
     required int enemyTi,
     required int navIntentIndex,
     required int engagementIndex,
-    required bool lockFacingToPlayer,
+    required bool lockFacingToTarget,
     required bool grounded,
     required double ex,
-    required double playerX,
+    required double targetX,
     required double dtSeconds,
   }) {
     final navIntent = world.navIntent;
@@ -279,10 +284,10 @@ class GroundEnemyLocomotionSystem {
       effectiveSpeedScale: effectiveSpeedScale,
       arrivalSlowRadiusX: arrivalSlowRadiusX,
       stateSpeedMul: stateSpeedMul,
-      lockFacingToPlayer: lockFacingToPlayer,
+      lockFacingToTarget: lockFacingToTarget,
       grounded: grounded,
       dtSeconds: dtSeconds,
-      playerX: playerX,
+      targetX: targetX,
     );
   }
 
@@ -302,10 +307,10 @@ class GroundEnemyLocomotionSystem {
     required double effectiveSpeedScale,
     required double arrivalSlowRadiusX,
     required double stateSpeedMul,
-    required bool lockFacingToPlayer,
+    required bool lockFacingToTarget,
     required bool grounded,
     required double dtSeconds,
-    required double playerX,
+    required double targetX,
   }) {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
@@ -477,10 +482,10 @@ class GroundEnemyLocomotionSystem {
       }
     }
 
-    if (lockFacingToPlayer) {
-      final dxToPlayer = playerX - ex;
-      if (dxToPlayer.abs() > 1e-6) {
-        world.enemy.facing[enemyIndex] = dxToPlayer >= 0
+    if (lockFacingToTarget) {
+      final dxToTarget = targetX - ex;
+      if (dxToTarget.abs() > 1e-6) {
+        world.enemy.facing[enemyIndex] = dxToTarget >= 0
             ? Facing.right
             : Facing.left;
       }

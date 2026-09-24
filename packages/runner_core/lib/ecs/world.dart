@@ -1,4 +1,5 @@
 import 'entity_id.dart';
+import 'stores/ai_target_store.dart';
 import 'sparse_set.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
@@ -94,6 +95,7 @@ class EcsWorld {
   /// Seed used for deterministic RNG in the core, passed to components that need it.
   final int seed;
   final TrapStore traps = TrapStore();
+  late final AiTargetStore aiTarget = _register(AiTargetStore());
 
   /// Counter for generating new unique Entity IDs.
   EntityId _nextEntityId = 1;
@@ -409,6 +411,8 @@ class EcsWorld {
     if (_freeIdsSet.contains(entity)) {
       return;
     }
+    aiTarget.forget(entity);
+    surfaceNav.forgetTarget(entity);
     for (final store in _stores) {
       store.removeEntity(entity);
     }

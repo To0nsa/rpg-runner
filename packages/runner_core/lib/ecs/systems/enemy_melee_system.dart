@@ -9,6 +9,7 @@ import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../entity_id.dart';
+import '../combat_target.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -31,14 +32,12 @@ class EnemyMeleeSystem {
     required EntityId player,
     required int currentTick,
   }) {
-    if (!world.transform.has(player)) return;
-
-    final playerTi = world.transform.indexOf(player);
-    final playerX = world.transform.posX[playerTi];
-
     final meleeEngagement = world.meleeEngagement;
     for (var i = 0; i < meleeEngagement.denseEntities.length; i += 1) {
       final enemy = meleeEngagement.denseEntities[i];
+      final target = combatTarget(world, enemy, player);
+      if (target == null) continue;
+      final targetX = world.transform.posX[world.transform.indexOf(target)];
       if (world.deathState.has(enemy)) continue;
       final enemyIndex = world.enemy.tryIndexOf(enemy);
       if (enemyIndex == null) {
@@ -114,7 +113,7 @@ class EnemyMeleeSystem {
       );
 
       final ex = world.transform.posX[ti];
-      final facing = playerX >= ex ? Facing.right : Facing.left;
+      final facing = targetX >= ex ? Facing.right : Facing.left;
       world.enemy.facing[enemyIndex] = facing;
       final dirX = facing == Facing.right ? 1.0 : -1.0;
 

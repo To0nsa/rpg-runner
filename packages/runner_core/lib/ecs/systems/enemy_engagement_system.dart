@@ -10,6 +10,7 @@ import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/fixed_math.dart';
 import '../entity_id.dart';
+import '../combat_target.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../world.dart';
 
@@ -31,14 +32,12 @@ class EnemyEngagementSystem {
     required EntityId player,
     required int currentTick,
   }) {
-    if (!world.transform.has(player)) return;
-
-    final playerTi = world.transform.indexOf(player);
-    final playerX = world.transform.posX[playerTi];
-
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      final target = combatTarget(world, enemy, player);
+      if (target == null) continue;
+      final targetX = world.transform.posX[world.transform.indexOf(target)];
       final archetype = enemyCatalog.get(enemies.enemyId[ei]);
       final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
 
@@ -132,9 +131,9 @@ class EnemyEngagementSystem {
       }
 
       final ex = world.transform.posX[ti];
-      final dxToPlayer = playerX - ex;
-      final distToPlayerX = dxToPlayer.abs();
-      final sideNow = dxToPlayer >= 0 ? -1 : 1;
+      final dxToTarget = targetX - ex;
+      final distToTargetX = dxToTarget.abs();
+      final sideNow = dxToTarget >= 0 ? -1 : 1;
       final collapseDistX =
           groundEnemyTuning.combat.meleeRangeX +
           groundEnemyTuning.locomotion.stopDistanceX;
@@ -159,7 +158,7 @@ class EnemyEngagementSystem {
 
       switch (state) {
         case MeleeEngagementState.approach:
-          if (distToPlayerX <= engageEnterDist) {
+          if (distToTargetX <= engageEnterDist) {
             state = MeleeEngagementState.engage;
             ticksLeft = 0;
             strikeStartTick = -1;
@@ -168,7 +167,7 @@ class EnemyEngagementSystem {
           }
           break;
         case MeleeEngagementState.engage:
-          if (distToPlayerX > engageExitDist) {
+          if (distToTargetX > engageExitDist) {
             state = MeleeEngagementState.approach;
             ticksLeft = 0;
             strikeStartTick = -1;
@@ -195,7 +194,7 @@ class EnemyEngagementSystem {
                 cooldownGroupId,
               );
               final inMeleeRange =
-                  distToPlayerX <= groundEnemyTuning.combat.meleeRangeX;
+                  distToTargetX <= groundEnemyTuning.combat.meleeRangeX;
               if (cooldownReady && inMeleeRange) {
                 state = MeleeEngagementState.strike;
                 ticksLeft = selectedTiming.totalTicks;
@@ -233,7 +232,7 @@ class EnemyEngagementSystem {
       var speedScale = 1.0;
 
       if (state == MeleeEngagementState.approach) {
-        desiredTargetX = distToPlayerX <= collapseDistX
+        desiredTargetX = distToTargetX <= collapseDistX
             ? navTargetX + meleeOffsetX
             : navTargetX + chaseOffsetX;
         speedScale = chaseSpeedScale;

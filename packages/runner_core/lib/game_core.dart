@@ -78,6 +78,7 @@ import 'ecs/systems/anim/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
+import 'ecs/systems/ai_target_system.dart';
 import 'ecs/systems/trap_system.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/death_behavior.dart';
@@ -896,6 +897,7 @@ class GameCore {
 
   /// The ECS world containing all component stores.
   late final EcsWorld _world;
+  final AiTargetSystem _aiTargetSystem = AiTargetSystem();
 
   /// Factory for creating complex entities (player, enemies).
   late final EntityFactory _entityFactory;
@@ -1522,6 +1524,8 @@ class GameCore {
     );
 
     // ─── Phase 3: AI, input, and movement ───
+    // Every AI consumer shares this identity; movement may update its position.
+    _aiTargetSystem.step(_world, player: _player);
     _hashashTeleportAmbushSystem.step(
       _world,
       player: _player,

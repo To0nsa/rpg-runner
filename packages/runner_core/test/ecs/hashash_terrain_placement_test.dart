@@ -1,4 +1,6 @@
 import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/combat/ai_target_policy.dart';
+import 'package:runner_core/ecs/systems/ai_target_system.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -21,6 +23,29 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Hashash ambush uses its selected encounter actor', () {
+    final harness = _TeleportHarness.create(
+      geometry: _compile([_rectangle('floor', 0, 500, 1000, 600)]),
+    );
+    final npc = harness.world.createEntity();
+    harness.world.transform.add(
+      npc,
+      posX: 500,
+      posY: harness.playerY,
+      velX: 0,
+      velY: 0,
+    );
+    harness.world.aiTarget.configure(
+      harness.hashash,
+      targetPolicy: AiTargetPolicy.preferEncounterNpcs,
+      candidates: [npc],
+    );
+    AiTargetSystem().step(harness.world, player: harness.player);
+    harness.resolveTeleport();
+    expect(harness.phase, HashashTeleportPhase.ambush);
+    expect(harness.hashashX, closeTo(536, 1 / 1024));
+    expect(harness.hashashY, closeTo(harness.playerY - 36, 1 / 1024));
+  });
   group('Hashash terrain-authoritative teleport', () {
     test('commits the primary right-side point as unsupported airborne', () {
       final harness = _TeleportHarness.create(

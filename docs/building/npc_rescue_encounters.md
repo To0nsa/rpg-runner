@@ -1,6 +1,6 @@
 # NPC rescue encounters
 
-Status: In progress; M0 contracts and baseline delivered. M1 shared targeting next.
+Status: In progress; M0 contracts and M1 shared targeting delivered. M2 lifecycle next.
 
 Created: September 24, 2026.
 
@@ -671,7 +671,7 @@ that milestone's changes; do not include unrelated navigation/content work.
   roster. Build on the navigation repair and capture ordinary combat/replay
   traces before refactoring. Acceptance: executable baselines and a documented
   capacity/score budget; no unresolved schema-driving or lifecycle decision.
-- [ ] **M1 — Introduce shared AI targeting.** Add typed target/policy state,
+- [x] **M1 — Introduce shared AI targeting.** Add typed target/policy state,
   deterministic selection and lifecycle invalidation; migrate every affected
   enemy decision consumer, including Hashash and flying behavior. Preserve
   committed attack semantics and fix target-dependent cache ownership.
@@ -745,6 +745,14 @@ trace covers 785 ticks and all three moving enemy types; stationary Derf retains
 separate existing coverage. Generator freshness reports pre-existing drift in
 two outputs from unrelated Woodcamp edits; no generated files were rewritten
 for this milestone. No encounter runtime or editor UI is enabled by M0.
+
+M1 evidence (September 24): one explicit target store/selector and every ground,
+flying, cast and Hashash consumer migrated. Entity destruction invalidates roster
+and target references before ID reuse; navigation caches include target identity
+and profile. Ordinary combat retains the M0 trace. Core analysis is clean, the
+full package suite passed 608 tests and Flutter Core passed 366. A final set of
+26 focused tests covers the added ground-melee, flying and Hashash target cases
+as well as retention, policies, removal, release and committed-cast preservation.
 
 ## 7. Acceptance and regression matrix
 

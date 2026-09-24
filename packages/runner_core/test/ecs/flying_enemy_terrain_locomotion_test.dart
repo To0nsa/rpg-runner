@@ -3,6 +3,8 @@ import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/combat/ai_target_policy.dart';
+import 'package:runner_core/ecs/systems/ai_target_system.dart';
 import 'package:runner_core/ecs/systems/flying_enemy_locomotion_system.dart';
 import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
@@ -16,6 +18,28 @@ import 'package:runner_core/tuning/flying_enemy_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Unoco steers toward its selected actor and releases to the player', () {
+    final harness = _Harness.create(
+      geometry: _flatTerrain,
+      enemyX: 500,
+      enemyY: 350,
+      playerX: 200,
+    )..configureHover(height: 100, desiredRange: 50);
+    final npc = harness.world.createEntity();
+    harness.world.transform.add(npc, posX: 700, posY: 100, velX: 0, velY: 0);
+    harness.world.aiTarget.configure(
+      harness.enemy,
+      targetPolicy: AiTargetPolicy.preferEncounterNpcs,
+      candidates: [npc],
+    );
+    AiTargetSystem().step(harness.world, player: harness.player);
+    harness.stepLocomotion();
+    final enemyIndex = harness.world.enemy.indexOf(harness.enemy);
+    expect(harness.world.enemy.facing[enemyIndex], Facing.right);
+    harness.world.aiTarget.removeEntity(harness.enemy);
+    harness.stepLocomotion();
+    expect(harness.world.enemy.facing[enemyIndex], Facing.left);
+  });
   group('Unoco terrain-relative hover', () {
     test('uses the highest local solid below flat and sloped footprints', () {
       final flat = _Harness.create(
