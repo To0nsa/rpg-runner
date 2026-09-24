@@ -52,6 +52,27 @@ void main() {
       ]);
       generated.writeAsBytesSync([2]);
       await snapshot.verifyCurrent();
+      final npc = source('assets/images/entities/npc/huntress/idle.png', [
+        1,
+        2,
+      ]);
+      await expectLater(
+        snapshot.verifyCurrent(),
+        throwsA(isA<ContentBuildInterruption>()),
+      );
+      final withNpc = await ContentBuildSnapshot.capture(
+        workspaceRoot: root.path,
+      );
+      npc.writeAsBytesSync([3, 4]);
+      expect(
+        withNpc.readBytes('assets/images/entities/npc/huntress/idle.png'),
+        [1, 2],
+      );
+      await expectLater(
+        withNpc.verifyCurrent(),
+        throwsA(isA<ContentBuildInterruption>()),
+      );
+      npc.deleteSync();
       trap.writeAsBytesSync([4, 5, 6]);
       await expectLater(
         snapshot.verifyCurrent(),

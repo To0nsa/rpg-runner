@@ -6,6 +6,7 @@ library;
 
 import '../combat/control_lock.dart';
 import '../enemies/enemy_id.dart';
+import '../npcs/npc_id.dart';
 import '../util/vec2.dart';
 import '../projectiles/projectile_id.dart';
 import 'enums.dart';
@@ -26,6 +27,8 @@ class EntityRenderSnapshot {
     this.vel,
     this.size,
     this.enemyId,
+    this.npcId,
+    this.npcHealth,
     this.projectileId,
     this.pickupVariant,
     this.z,
@@ -56,6 +59,10 @@ class EntityRenderSnapshot {
 
   /// Optional enemy archetype id (set when [kind] is [EntityKind.enemy]).
   final EnemyId? enemyId;
+
+  /// Allied archetype and objective health, present only for NPC actors.
+  final NpcId? npcId;
+  final NpcHealthSnapshot? npcHealth;
 
   /// Optional projectile archetype id (set when [kind] is [EntityKind.projectile]).
   final ProjectileId? projectileId;
@@ -104,6 +111,18 @@ class EntityRenderSnapshot {
   /// Uses [EntityControlLockMask] contract bits.
   /// This is gameplay lock state only; render should not infer tint from it.
   final int controlLockMask;
+}
+
+/// Read-only allied health and safety; no renderer can resolve a rescue.
+class NpcHealthSnapshot {
+  const NpcHealthSnapshot({
+    required this.hp100,
+    required this.maxHp100,
+    required this.protected,
+  });
+  final int hp100;
+  final int maxHp100;
+  final bool protected;
 }
 
 /// Bitmask flags for persistent status visuals.

@@ -5,79 +5,81 @@
 // contracts here because export later depends on those captured ranges.
 part of '../entity_source_parser.dart';
 
-List<EntityEntry> _parseEnemies(
+List<EntityEntry> _parseAutonomousActors(
   EditorWorkspace workspace,
-  List<ValidationIssue> issues,
-) {
-  final source = _readSource(
-    workspace,
-    EntitySourceParser.enemyCatalogPath,
-    issues,
-  );
-  if (source == null) {
-    return const <EntityEntry>[];
-  }
-
-  final unit = _parseUnit(source, EntitySourceParser.enemyCatalogPath, issues);
+  List<ValidationIssue> issues, {
+  required String sourcePath,
+  required String catalogClass,
+  required EntityType entityType,
+  required EntityArtFacingDirection defaultFacing,
+}) {
+  final source = _readSource(workspace, sourcePath, issues);
+  if (source == null) return const [];
+  final unit = _parseUnit(source, sourcePath, issues);
   final resolver = _ConstValueResolver(
     unit: unit,
-    sourcePath: EntitySourceParser.enemyCatalogPath,
+    sourcePath: sourcePath,
     sourceContent: source,
   );
-  final getMethod = _findEnemyCatalogGetMethod(unit);
-  if (getMethod == null) {
+  final method = _findActorCatalogGetMethod(unit, catalogClass);
+  final rows = <(String, Expression)>[];
+  final body = method?.body;
+  if (body is ExpressionFunctionBody && body.expression is SwitchExpression) {
+    for (final member in (body.expression as SwitchExpression).cases) {
+      final pattern = member.guardedPattern.pattern;
+      final name = pattern is ConstantPattern
+          ? _enumCaseName(pattern.expression)
+          : null;
+      if (name != null) rows.add((name, member.expression));
+    }
+  } else if (body != null) {
+    final switchStatement = _findFirstSwitch(body);
+    if (switchStatement != null) {
+      for (final member in switchStatement.members) {
+        final name = _switchMemberCaseName(member);
+        final value = _findReturnedExpression(member.statements);
+        if (name != null && value != null) rows.add((name, value));
+      }
+    }
+  }
+  if (rows.isEmpty) {
     issues.add(
-      const ValidationIssue(
+      ValidationIssue(
         severity: ValidationSeverity.error,
-        code: 'enemy_get_missing',
-        message: 'Could not locate EnemyCatalog.get(EnemyId) method.',
-        sourcePath: EntitySourceParser.enemyCatalogPath,
+        code: 'actor_catalog_shape',
+        message: 'Cannot resolve $catalogClass.get archetypes.',
+        sourcePath: sourcePath,
       ),
     );
-    return const <EntityEntry>[];
   }
-
-  final switchStmt = _findFirstSwitch(getMethod.body);
-  if (switchStmt == null) {
-    issues.add(
-      const ValidationIssue(
-        severity: ValidationSeverity.error,
-        code: 'enemy_switch_missing',
-        message: 'EnemyCatalog.get(EnemyId) does not contain a switch block.',
-        sourcePath: EntitySourceParser.enemyCatalogPath,
-      ),
-    );
-    return const <EntityEntry>[];
-  }
-
   final entries = <EntityEntry>[];
-  for (final member in switchStmt.members) {
-    if (member is! SwitchPatternCase && member is! SwitchCase) {
+  for (final (actorName, expression) in rows) {
+    final resolved = resolver._resolveExpression(expression, <String>{});
+    final NodeList<Argument>? args = resolved is InstanceCreationExpression
+        ? resolved.argumentList.arguments
+        : resolved is MethodInvocation
+        ? resolved.argumentList.arguments
+        : null;
+    if (args == null) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'actor_archetype_shape',
+          message: 'Cannot resolve $actorName catalog source.',
+          sourcePath: sourcePath,
+        ),
+      );
       continue;
     }
-
-    final enemyName = _switchMemberCaseName(member);
-    if (enemyName == null) {
-      continue;
-    }
-
-    final returnExpr = _findReturnedInstance(member.statements);
-    if (returnExpr == null) {
-      continue;
-    }
-
-    final colliderExpr = _namedArgumentExpression(
-      returnExpr.argumentList.arguments,
-      'collider',
-    );
+    final colliderExpr = _namedArgumentExpression(args, 'collider');
     final resolvedCollider = _resolveColliderAabbExpression(unit, colliderExpr);
     if (resolvedCollider == null) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.warning,
           code: 'enemy_collider_missing',
-          message: 'Enemy $enemyName has no writable ColliderAabbDef collider.',
-          sourcePath: EntitySourceParser.enemyCatalogPath,
+          message: 'Enemy $actorName has no writable ColliderAabbDef collider.',
+          sourcePath: sourcePath,
         ),
       );
       continue;
@@ -103,8 +105,8 @@ List<EntityEntry> _parseEnemies(
           severity: ValidationSeverity.error,
           code: 'enemy_half_extents_missing',
           message:
-              'Enemy $enemyName collider is missing halfX/halfY numeric values.',
-          sourcePath: EntitySourceParser.enemyCatalogPath,
+              'Enemy $actorName collider is missing halfX/halfY numeric values.',
+          sourcePath: sourcePath,
         ),
       );
       continue;
@@ -116,71 +118,55 @@ List<EntityEntry> _parseEnemies(
         ? 0.0
         : _doubleFromExpression(offsetYArg.argumentExpression) ?? 0.0;
     final artFacingDirection =
-        _facingFromExpression(
-          _namedArgumentExpression(
-            returnExpr.argumentList.arguments,
-            'artFacingDir',
-          ),
-        ) ??
-        EntityArtFacingDirection.left;
-    final castOriginOffsetArg = _namedArgument(
-      returnExpr.argumentList.arguments,
-      'castOriginOffset',
-    );
+        _facingFromExpression(_namedArgumentExpression(args, 'artFacingDir')) ??
+        defaultFacing;
+    final castOriginOffsetArg = _namedArgument(args, 'castOriginOffset');
     final castOriginOffset = castOriginOffsetArg == null
         ? null
         : _doubleFromExpression(castOriginOffsetArg.argumentExpression);
+    final launchHeight = _namedArgumentExpression(args, 'castOriginOffsetY');
     final castOriginOffsetBinding = _scalarBindingFromNamedArg(
-      sourcePath: EntitySourceParser.enemyCatalogPath,
+      sourcePath: sourcePath,
       source: source,
       kind: EntitySourceBindingKind.castOriginOffsetScalar,
       namedArg: castOriginOffsetArg,
     );
     final isCaster =
-        _hasNonNullNamedArgument(
-          returnExpr.argumentList.arguments,
-          'primaryCastAbilityId',
-        ) ||
+        _hasNonNullNamedArgument(args, 'primaryCastAbilityId') ||
         castOriginOffset != null;
 
     final colliderBindings = EntityColliderSourceBindings(
       halfX: _requiredColliderScalarBinding(
-        sourcePath: EntitySourceParser.enemyCatalogPath,
+        sourcePath: sourcePath,
         source: source,
         namedArg: halfXArg,
       ),
       halfY: _requiredColliderScalarBinding(
-        sourcePath: EntitySourceParser.enemyCatalogPath,
+        sourcePath: sourcePath,
         source: source,
         namedArg: halfYArg,
       ),
       offsetX: _colliderScalarBindingFromNamedArg(
-        sourcePath: EntitySourceParser.enemyCatalogPath,
+        sourcePath: sourcePath,
         source: source,
         namedArg: offsetXArg,
       ),
       offsetY: _colliderScalarBindingFromNamedArg(
-        sourcePath: EntitySourceParser.enemyCatalogPath,
+        sourcePath: sourcePath,
         source: source,
         namedArg: offsetYArg,
       ),
     );
-    final renderAnimExpression = _namedArgumentExpression(
-      returnExpr.argumentList.arguments,
-      'renderAnim',
-    );
+    final renderAnimExpression = _namedArgumentExpression(args, 'renderAnim');
     final parsedReferenceVisual = renderAnimExpression == null
         ? null
         : resolver.resolveRenderVisual(renderAnimExpression);
-    final renderScaleArg = _namedArgument(
-      returnExpr.argumentList.arguments,
-      'renderScale',
-    );
+    final renderScaleArg = _namedArgument(args, 'renderScale');
     final renderScaleValue = renderScaleArg == null
         ? null
         : _doubleFromExpression(renderScaleArg.argumentExpression);
     final renderScaleBinding = _scalarBindingFromNamedArg(
-      sourcePath: EntitySourceParser.enemyCatalogPath,
+      sourcePath: sourcePath,
       source: source,
       kind: EntitySourceBindingKind.referenceRenderScaleScalar,
       namedArg: renderScaleArg,
@@ -196,19 +182,23 @@ List<EntityEntry> _parseEnemies(
     );
     entries.add(
       EntityEntry(
-        id: 'enemy.$enemyName',
-        label: 'Enemy: ${_titleCaseCamel(enemyName)}',
-        entityType: EntityType.enemy,
+        id: '${entityType.name}.$actorName',
+        label:
+            '${entityType == EntityType.npc ? 'NPC' : 'Enemy'}: ${_titleCaseCamel(actorName)}',
+        entityType: entityType,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
-        sourcePath: EntitySourceParser.enemyCatalogPath,
+        sourcePath: sourcePath,
         colliderBindings: colliderBindings,
         referenceVisual: referenceVisual,
         artFacingDirection: artFacingDirection,
         isCaster: isCaster,
         castOriginOffset: castOriginOffset,
+        castOriginOffsetY: launchHeight == null
+            ? 0
+            : _doubleFromExpression(launchHeight) ?? double.nan,
         castOriginOffsetBinding: castOriginOffsetBinding,
       ),
     );

@@ -64,6 +64,18 @@ void writeEntityColliderFixture(
   bool includeSecondPlayerCatalog = false,
   bool useTopLevelEnemyCollider = false,
 }) {
+  final npcFile = File(
+    p.join(rootPath, 'packages/runner_core/lib/npcs/npc_catalog.dart'),
+  );
+  npcFile.parent.createSync(recursive: true);
+  npcFile.writeAsStringSync(
+    File(
+      p.join(
+        resolveEntitiesWorkspacePath(),
+        'packages/runner_core/lib/npcs/npc_catalog.dart',
+      ),
+    ).readAsStringSync(),
+  );
   final enemyPath = p.join(
     rootPath,
     'packages/runner_core/lib/enemies/enemy_catalog.dart',

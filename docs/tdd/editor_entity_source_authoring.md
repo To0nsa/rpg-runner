@@ -5,7 +5,7 @@ Status: Implemented current collider-editor contract
 
 ## Scope
 
-The Entities route is a bounded editor for existing player, enemy, and
+The Entities route is a bounded editor for existing player, enemy, NPC, and
 projectile collider values plus the already-supported anchor, render-scale,
 and cast-origin fields. It is not a general entity creator and does not own
 gameplay catalogs, identity creation, behavior scripting, or asset generation.
@@ -21,6 +21,7 @@ authoring phases are implemented.
 The parser reads the current supported shapes from:
 
 - `packages/runner_core/lib/enemies/enemy_catalog.dart`;
+- `packages/runner_core/lib/npcs/npc_catalog.dart`;
 - every Dart file under
   `packages/runner_core/lib/players/characters/`;
 - `packages/runner_core/lib/projectiles/projectile_catalog.dart`;
@@ -31,6 +32,13 @@ Enemy uniform render scale lives beside `renderAnim` in each
 `EnemyArchetype`, so the parser captures both the value and writable scalar
 binding from `enemy_catalog.dart`. The Flame registry consumes that same field;
 there is no separate enemy-scale binding in the render registry.
+
+NPCs use the same guarded collider, anchor, scale and radial cast-origin edits.
+The shared autonomous-actor parser resolves both block switches and expression
+switches with top-level constant archetypes, without duplicating the export path.
+NPC art faces right. The launch preview includes the catalog-owned vertical
+offset, shown read-only; editing the radial offset does not reset that height.
+The NPC filter uses the existing route selection, draft and Save machinery.
 
 The parser records ordinary unsupported or missing source shapes as validation
 issues. A loaded document may remain inspectable, but any error-severity issue

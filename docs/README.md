@@ -11,6 +11,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.
 - [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): implemented gameplay, rendering and Chunk Creator authoring; poison-launcher emergence/retraction compatibility `2026.09.7` awaits deployment and includes the Forest repairs.
 - [Technical design documents](tdd/): implemented architecture and contracts.
+- [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): current encounter Core, rendering and Entities source editing; remaining authoring and score delivery is tracked in the active plan.
 - [Game design documents](gdd/): implemented mechanics and content rules.
 - [Documentation rules](rules/code-documentation-policy.md).
 

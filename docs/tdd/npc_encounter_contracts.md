@@ -5,7 +5,7 @@ Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 score IDs. Core contracts, shared AI targeting and the warrior encounter
 lifecycle, shared authored compilation and editor source preservation are delivered
 slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
-The encounter editing UI, rendering and score presentation
+The encounter editing UI and score presentation
 remain in progress. Gameplay currently runs through typed and captured-source
 fixtures; production rescue content is not yet authored.
 
@@ -163,7 +163,20 @@ It adds neither player input nor an enemy score identity. All three catalogs
 define reviewed sprite anchors, torso capsules, terrain profiles and resources.
 The warrior uses its four-frame sword attack; Huntress uses the seven-frame
 spear throw and Huntress 2 the six-frame bow attack. At 60 Hz, their release
-ticks are respectively 12, 36 and 12. Render integration remains M4 work.
+ticks are respectively 12, 36 and 12.
+
+`SnapshotBuilder` emits `EntityKind.npc`, a separate `NpcId`, and immutable
+health/protection metadata alongside the shared actor animation, facing, status
+and motion fields. No NPC receives an enemy identity. Enemy and NPC registries
+share `ActorRenderRegistry` and `DeterministicAnimView`; live and ghost pools
+accept both identities and apply the same deterministic frame/anchor handling.
+Live NPCs show allied health bars and a check when protected. Ghost NPCs retain
+the existing ghost style, without live health or reward feedback.
+
+All NPC animation and projectile images are in UI warmup, render preload and
+immutable Play asset capture, including content beyond the starting chunk.
+Build source fingerprints include NPC PNGs. Entities exposes all three packs
+through its existing guarded source parser and transactional export path.
 
 Motion preparation installs the catalog's capsule/traversal profile and support
 state. NPCs use the normal terrain solver, gravity and status stores. Animation

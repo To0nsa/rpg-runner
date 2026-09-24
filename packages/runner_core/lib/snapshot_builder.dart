@@ -449,7 +449,7 @@ class SnapshotBuilder {
     _addHitboxes(entities, tick: tick);
     _addCollectibles(entities, tick: tick);
     _addRestorationItems(entities, tick: tick);
-    _addEnemies(entities, tick: tick);
+    _addActors(entities, tick: tick);
 
     // ─── Assemble final snapshot ───
     return GameStateSnapshot(
@@ -895,19 +895,18 @@ class SnapshotBuilder {
     }
   }
 
-  /// Appends enemy entity snapshots to [entities].
-  ///
-  /// Enemies have position, velocity, facing direction, and grounded state.
-  /// Animation is read from [AnimStateStore], pre-computed by [AnimSystem].
-  void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
+  /// Publishes autonomous actors using the same motion and animation contract.
+  void _addActors(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
+    final npcs = world.npc;
     final animStore = world.animState;
 
-    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      final e = enemies.denseEntities[ei];
+    for (final e in [...enemies.denseEntities, ...npcs.denseEntities]) {
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
-      final enemyId = enemies.enemyId[ei];
+      final ei = enemies.tryIndexOf(e);
+      final ni = npcs.tryIndexOf(e);
+      final hi = world.health.tryIndexOf(e);
 
       Vec2? size;
       if (world.colliderAabb.has(e)) {
@@ -936,7 +935,7 @@ class SnapshotBuilder {
       entities.add(
         EntityRenderSnapshot(
           id: e,
-          kind: EntityKind.enemy,
+          kind: ni == null ? EntityKind.enemy : EntityKind.npc,
           isSwimming: world.swimState.isSwimming(e),
           waterImmersion1000: world.swimState.has(e)
               ? world.swimState.immersion1000[world.swimState.indexOf(e)]
@@ -944,9 +943,19 @@ class SnapshotBuilder {
           pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
           vel: Vec2(world.transform.velX[ti], world.transform.velY[ti]),
           size: size,
-          enemyId: enemyId,
-          facing: enemies.facing[ei],
-          artFacingDir: enemies.artFacing[ei],
+          enemyId: ei == null ? null : enemies.enemyId[ei],
+          npcId: ni == null ? null : npcs.npcId[ni],
+          npcHealth: ni == null || hi == null
+              ? null
+              : NpcHealthSnapshot(
+                  hp100: world.health.hp[hi],
+                  maxHp100: world.health.hpMax[hi],
+                  protected: npcs.protected[ni],
+                ),
+          facing: ei == null ? npcs.facing[ni!] : enemies.facing[ei],
+          artFacingDir: ei == null
+              ? npcs.artFacing[ni!]
+              : enemies.artFacing[ei],
           anim: anim,
           grounded: grounded,
           animFrame: animFrame,

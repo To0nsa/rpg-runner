@@ -1,3 +1,4 @@
+import 'package:runner_core/npcs/npc_catalog.dart';
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
@@ -313,6 +314,10 @@ class UiAssetLifecycle {
     const enemyCatalog = EnemyCatalog();
     for (final enemyId in EnemyId.values) {
       addFromRenderAnim(enemyCatalog.get(enemyId).renderAnim);
+    }
+
+    for (final id in NpcCatalog.supportedIds) {
+      addFromRenderAnim(const NpcCatalog().get(id).renderAnim);
     }
 
     const projectileCatalog = ProjectileRenderCatalog();

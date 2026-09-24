@@ -325,7 +325,10 @@ class _EntityBoundsPainter extends CustomPainter {
     final transformOrigin = _ViewportGeometry.canvasCenter(size);
     final castOrigin = Offset(
       transformOrigin.dx + math.cos(castOriginAngleRadians) * offset * scale,
-      transformOrigin.dy + math.sin(castOriginAngleRadians) * offset * scale,
+      transformOrigin.dy +
+          (entry.castOriginOffsetY +
+                  math.sin(castOriginAngleRadians) * offset) *
+              scale,
     );
     const cueColor = Color(0xFFFFB341);
     const outlineColor = Color(0xFF2A1C08);
@@ -347,6 +350,7 @@ class _EntityBoundsPainter extends CustomPainter {
         oldDelegate.entry.offsetY != entry.offsetY ||
         oldDelegate.entry.isCaster != entry.isCaster ||
         oldDelegate.entry.castOriginOffset != entry.castOriginOffset ||
+        oldDelegate.entry.castOriginOffsetY != entry.castOriginOffsetY ||
         oldDelegate.scale != scale ||
         oldDelegate.castOriginAngleRadians != castOriginAngleRadians ||
         oldDelegate.overlayFrontLayer != overlayFrontLayer ||

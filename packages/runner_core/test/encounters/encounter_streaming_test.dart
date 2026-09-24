@@ -1,3 +1,5 @@
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/npcs/npc_catalog.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/encounters/encounter_instance.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -15,6 +17,26 @@ import 'package:test/test.dart';
 import 'package:runner_core/commands/command.dart';
 
 void main() {
+  for (final id in NpcId.values) {
+    test(
+      '${id.name} publishes typed health, motion and animation snapshots',
+      () {
+        final core = _core(npcId: id);
+        core.stepOneTick();
+        final actor = core.buildSnapshot().entities.singleWhere(
+          (e) => e.npcId == id,
+        );
+        expect(actor.kind, EntityKind.npc);
+        expect(actor.enemyId, isNull);
+        expect(actor.artFacingDir, Facing.right);
+        expect(actor.npcHealth!.hp100, const NpcCatalog().get(id).health.hp);
+        expect(actor.npcHealth!.protected, isFalse);
+        expect(actor.size!.y, 54);
+        expect(actor.animFrame, isNotNull);
+      },
+    );
+  }
+
   test('real player and warrior damage resolve a streamed rescue once', () {
     final core = _core(enemyId: EnemyId.grojib);
     core.stepOneTick();
@@ -141,6 +163,7 @@ void main() {
 }
 
 ChunkPatternSource _source({
+  NpcId npcId = NpcId.warrior,
   double npcX = 430,
   EnemyId enemyId = EnemyId.hashash,
 }) => ChunkPatternListSource(
@@ -154,9 +177,7 @@ ChunkPatternSource _source({
           id: 'rescue',
           name: 'Rescue',
           trigger: EncounterTrigger(x: 0, y: -1000, width: 600, height: 2000),
-          npcs: [
-            EncounterNpcPlacement(id: 'warrior', npcId: NpcId.warrior, x: npcX),
-          ],
+          npcs: [EncounterNpcPlacement(id: 'warrior', npcId: npcId, x: npcX)],
           enemies: [
             EncounterEnemyPlacement(id: 'foe', enemyId: enemyId, x: 480),
           ],
@@ -168,6 +189,7 @@ ChunkPatternSource _source({
 
 GameCore _core({
   int noEnemyChunks = 0,
+  NpcId npcId = NpcId.warrior,
   double npcX = 430,
   EnemyId enemyId = EnemyId.hashash,
 }) => GameCore(
@@ -178,6 +200,6 @@ GameCore _core({
     earlyPatternChunks: 0,
     clearAssembly: true,
     clearFirstChunkKey: true,
-    chunkPatternSource: _source(npcX: npcX, enemyId: enemyId),
+    chunkPatternSource: _source(npcId: npcId, npcX: npcX, enemyId: enemyId),
   ),
 );

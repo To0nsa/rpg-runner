@@ -1,135 +1,16 @@
-/// Enemy render registry and loaders (render layer only).
-library;
-
-import 'package:flame/cache.dart';
-import 'package:flame/components.dart';
-
-import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
-import 'package:runner_core/snapshots/enums.dart';
 
-import '../sprite_anim/deterministic_anim_view.dart';
-import '../sprite_anim/sprite_anim_set.dart';
-import '../sprite_anim/strip_animation_loader.dart';
+import '../sprite_anim/actor_render_registry.dart';
 
-typedef EnemyAnimLoader = Future<SpriteAnimSet> Function(
-  Images images, {
-  required RenderAnimSetDefinition renderAnim,
-  required Set<AnimKey> oneShotKeys,
-});
-
-typedef EnemyViewFactory = DeterministicAnimView Function(
-  SpriteAnimSet animSet,
-  Vector2 renderScale,
-);
-
-enum EnemyDeathAnimPolicy { spawn, none }
-
-const Set<AnimKey> _defaultEnemyOneShotKeys = <AnimKey>{
-  AnimKey.strike,
-  AnimKey.cast,
-  AnimKey.backStrike,
-  AnimKey.strike2,
-  AnimKey.teleportOut,
-  AnimKey.ambush,
-  AnimKey.hit,
-  AnimKey.death,
-};
-
-DeterministicAnimView _defaultEnemyViewFactory(
-  SpriteAnimSet animSet,
-  Vector2 renderScale,
-) {
-  return DeterministicAnimView(
-    animSet: animSet,
-    renderSize: Vector2(animSet.frameSize.x, animSet.frameSize.y),
-    renderScale: renderScale,
-  );
-}
-
-class EnemyRenderEntry {
-  EnemyRenderEntry({
-    required this.id,
-    required this.renderScale,
-    this.deathAnimPolicy = EnemyDeathAnimPolicy.spawn,
-    this.oneShotKeys = _defaultEnemyOneShotKeys,
-    this.loader = loadAnimSetFromDefinition,
-    this.viewFactory = _defaultEnemyViewFactory,
-  });
-
-  final EnemyId id;
-  final Vector2 renderScale;
-  final EnemyDeathAnimPolicy deathAnimPolicy;
-  final Set<AnimKey> oneShotKeys;
-  final EnemyAnimLoader loader;
-  final EnemyViewFactory viewFactory;
-
-  SpriteAnimSet? _animSet;
-  bool _hasAssets = true;
-
-  bool get hasAssets => _hasAssets;
-
-  bool get isLoaded => _animSet != null;
-
-  bool get isRenderable => _hasAssets && _animSet != null;
-
-  SpriteAnimSet get animSet {
-    final value = _animSet;
-    if (value == null) {
-      throw StateError('EnemyRenderEntry($id) has not been loaded yet.');
-    }
-    return value;
-  }
-
-  Future<void> load(
-    Images images, {
-    required RenderAnimSetDefinition renderAnim,
-  }) async {
-    final idlePath = renderAnim.sourcesByKey[AnimKey.idle];
-    if (idlePath == null || idlePath.trim().isEmpty) {
-      _hasAssets = false;
-      _animSet = null;
-      return;
-    }
-    _animSet = await loader(
-      images,
-      renderAnim: renderAnim,
-      oneShotKeys: oneShotKeys,
-    );
-  }
-}
-
-/// Render registry for enemies (EnemyId -> render wiring).
-class EnemyRenderRegistry {
+/// Enemy catalog metadata wired to the shared actor sprite loader.
+class EnemyRenderRegistry extends ActorRenderRegistry<EnemyId> {
   EnemyRenderRegistry({EnemyCatalog enemyCatalog = const EnemyCatalog()})
-    : _enemyCatalog = enemyCatalog,
-      _entries = <EnemyId, EnemyRenderEntry>{
+    : super({
         for (final id in EnemyId.values)
-          id: EnemyRenderEntry(
-            id: id,
-            renderScale: Vector2.all(enemyCatalog.get(id).renderScale),
+          id: ActorRenderEntry(
+            renderAnim: enemyCatalog.get(id).renderAnim,
+            scale: enemyCatalog.get(id).renderScale,
           ),
-      };
-
-  final EnemyCatalog _enemyCatalog;
-  final Map<EnemyId, EnemyRenderEntry> _entries;
-
-  EnemyRenderEntry? entryFor(EnemyId id) {
-    final entry = _entries[id];
-    if (entry == null || !entry.isRenderable) return null;
-    return entry;
-  }
-
-  /// Exact image sources preloaded by this registry.
-  Iterable<String> get assetPaths => _entries.values.expand(
-    (entry) => _enemyCatalog.get(entry.id).renderAnim.sourcesByKey.values,
-  );
-
-  Future<void> load(Images images) async {
-    for (final entry in _entries.values) {
-      final renderAnim = _enemyCatalog.get(entry.id).renderAnim;
-      await entry.load(images, renderAnim: renderAnim);
-    }
-  }
+      });
 }

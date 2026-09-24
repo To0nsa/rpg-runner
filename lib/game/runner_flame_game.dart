@@ -21,6 +21,10 @@ import 'components/player/player_animations.dart';
 import 'components/staged_terrain.dart';
 import 'components/sprite_anim/sprite_anim_set.dart';
 import 'components/enemies/enemy_render_registry.dart';
+import 'components/npcs/npc_render_registry.dart';
+
+import 'package:runner_core/npcs/npc_catalog.dart';
+
 import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/spell_impacts/spell_impact_render_registry.dart';
@@ -82,6 +86,7 @@ class RunnerFlameGame extends FlameGame {
       world: world,
       playerCharacter: playerCharacter,
       enemyRenderRegistry: _enemyRenderRegistry,
+      npcRenderRegistry: _npcRenderRegistry,
       projectileRenderRegistry: _projectileRenderRegistry,
       pickupRenderRegistry: _pickupRenderRegistry,
       combatFeedbackTuning: _combatFeedbackTuning,
@@ -98,6 +103,7 @@ class RunnerFlameGame extends FlameGame {
       world: world,
       images: images,
       enemyRenderRegistry: _enemyRenderRegistry,
+      npcRenderRegistry: _npcRenderRegistry,
       projectileRenderRegistry: _projectileRenderRegistry,
       spellImpactRenderRegistry: _spellImpactRenderRegistry,
       combatFeedbackTuning: _combatFeedbackTuning,
@@ -136,6 +142,7 @@ class RunnerFlameGame extends FlameGame {
   );
 
   final EnemyRenderRegistry _enemyRenderRegistry;
+  final NpcRenderRegistry _npcRenderRegistry = NpcRenderRegistry();
   final ProjectileRenderRegistry _projectileRenderRegistry;
   final SpellImpactRenderRegistry _spellImpactRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
@@ -200,6 +207,7 @@ class RunnerFlameGame extends FlameGame {
     await Future.wait<void>(<Future<void>>[
       controller.prepareTerrainAhead(),
       _enemyRenderRegistry.load(images),
+      _npcRenderRegistry.load(images),
       _projectileRenderRegistry.load(images),
       _spellImpactRenderRegistry.load(images),
       _pickupRenderRegistry.load(images),
@@ -309,7 +317,7 @@ class RunnerFlameGame extends FlameGame {
       cameraCenter: _cameraCenterScratch,
     );
 
-    _liveWorldSync.syncEnemies(
+    _liveWorldSync.syncActors(
       currSnapshot.entities,
       prevById: _prevEntitiesById,
       alpha: alpha,
@@ -318,7 +326,7 @@ class RunnerFlameGame extends FlameGame {
     _eventFeedback.flushEntityVisualCueEvents(
       playerEntityId: player?.id,
       playerView: _liveWorldSync.playerView,
-      enemyViews: _liveWorldSync.enemyViews,
+      actorViews: _liveWorldSync.actorViews,
     );
 
     _liveWorldSync.syncProjectiles(
@@ -371,7 +379,9 @@ class RunnerFlameGame extends FlameGame {
       priority: priorityActorHitboxes,
       paint: _liveWorldSync.actorHitboxPaint,
       include: (entity) =>
-          entity.kind == EntityKind.player || entity.kind == EntityKind.enemy,
+          entity.kind == EntityKind.player ||
+          entity.kind == EntityKind.enemy ||
+          entity.kind == EntityKind.npc,
       prevById: _prevEntitiesById,
       offsetXFor: (entity) {
         switch (entity.kind) {
@@ -394,6 +404,13 @@ class RunnerFlameGame extends FlameGame {
             return entity.facing == artFacing
                 ? authoredOffsetX
                 : -authoredOffsetX;
+          case EntityKind.npc:
+            final id = entity.npcId;
+            if (id == null) return 0.0;
+            final npc = const NpcCatalog().get(id);
+            return entity.facing == npc.artFacing
+                ? npc.collider.offsetX
+                : -npc.collider.offsetX;
           default:
             return 0.0;
         }
@@ -408,6 +425,11 @@ class RunnerFlameGame extends FlameGame {
               return 0.0;
             }
             return controller.enemyCatalog.get(enemyId).collider.offsetY;
+          case EntityKind.npc:
+            final id = entity.npcId;
+            return id == null
+                ? 0.0
+                : const NpcCatalog().get(id).collider.offsetY;
           default:
             return 0.0;
         }
@@ -459,6 +481,8 @@ class RunnerFlameGame extends FlameGame {
 
   @visibleForTesting
   int get debugGhostEnemyCount => _ghostLayer.debugGhostEnemyCount;
+  @visibleForTesting
+  int get debugGhostNpcCount => _ghostLayer.debugGhostNpcCount;
 
   @visibleForTesting
   int get debugGhostProjectileCount => _ghostLayer.debugGhostProjectileCount;

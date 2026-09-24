@@ -9,6 +9,8 @@ import 'package:runner_core/snapshots/static_prefab_sprite_snapshot.dart';
 import '../components/static_prefab_sprite_component.dart';
 import '../components/player/player_view.dart';
 import '../components/enemies/enemy_render_registry.dart';
+import '../components/npcs/npc_render_registry.dart';
+import '../components/npcs/npc_health_indicator.dart';
 import '../components/pickups/pickup_render_registry.dart';
 import '../components/projectiles/projectile_render_registry.dart';
 import '../components/sprite_anim/deterministic_anim_view.dart';
@@ -26,10 +28,12 @@ class LiveWorldSyncSystem {
     required this.world,
     required this.playerCharacter,
     required EnemyRenderRegistry enemyRenderRegistry,
+    required NpcRenderRegistry npcRenderRegistry,
     required ProjectileRenderRegistry projectileRenderRegistry,
     required PickupRenderRegistry pickupRenderRegistry,
     required CombatFeedbackTuning combatFeedbackTuning,
   }) : _enemyRenderRegistry = enemyRenderRegistry,
+       _npcRenderRegistry = npcRenderRegistry,
        _projectileRenderRegistry = projectileRenderRegistry,
        _pickupRenderRegistry = pickupRenderRegistry,
        _combatFeedbackTuning = combatFeedbackTuning;
@@ -39,6 +43,7 @@ class LiveWorldSyncSystem {
   final PlayerCharacterDefinition playerCharacter;
 
   final EnemyRenderRegistry _enemyRenderRegistry;
+  final NpcRenderRegistry _npcRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
   final CombatFeedbackTuning _combatFeedbackTuning;
@@ -55,9 +60,10 @@ class LiveWorldSyncSystem {
       <int, DeterministicAnimView>{};
   final Map<int, DeterministicAnimView> _pickupAnimViews =
       <int, DeterministicAnimView>{};
-  final Map<int, DeterministicAnimView> _enemies =
+  final Map<int, DeterministicAnimView> _actors =
       <int, DeterministicAnimView>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
+  final Map<int, NpcHealthIndicator> _npcHealth = {};
   final Map<int, RectangleComponent> _actorHitboxes =
       <int, RectangleComponent>{};
   final Map<int, int> _projectileSpawnTicks = <int, int>{};
@@ -73,7 +79,7 @@ class LiveWorldSyncSystem {
 
   PlayerView get playerView => _player;
 
-  Map<int, DeterministicAnimView> get enemyViews => _enemies;
+  Map<int, DeterministicAnimView> get actorViews => _actors;
 
   Map<int, RectangleComponent> get actorHitboxes => _actorHitboxes;
 
@@ -196,7 +202,7 @@ class LiveWorldSyncSystem {
     _player.setStatusVisualMask(player.statusVisualMask);
   }
 
-  void syncEnemies(
+  void syncActors(
     List<EntityRenderSnapshot> entities, {
     required Map<int, EntityRenderSnapshot> prevById,
     required double alpha,
@@ -205,26 +211,30 @@ class LiveWorldSyncSystem {
     final seen = _seenIdsScratch..clear();
 
     for (final entity in entities) {
-      if (entity.kind != EntityKind.enemy) {
+      if (entity.kind != EntityKind.enemy && entity.kind != EntityKind.npc) {
         continue;
       }
 
-      final entry = entity.enemyId == null
-          ? null
-          : _enemyRenderRegistry.entryFor(entity.enemyId!);
+      final entry = entity.kind == EntityKind.npc
+          ? (entity.npcId == null
+                ? null
+                : _npcRenderRegistry.entryFor(entity.npcId!))
+          : (entity.enemyId == null
+                ? null
+                : _enemyRenderRegistry.entryFor(entity.enemyId!));
       if (entry == null) {
-        _enemies.remove(entity.id)?.removeFromParent();
+        _actors.remove(entity.id)?.removeFromParent();
         continue;
       }
 
       seen.add(entity.id);
 
-      var view = _enemies[entity.id];
+      var view = _actors[entity.id];
       if (view == null) {
-        view = entry.viewFactory(entry.animSet, entry.renderScale)
+        view = entry.createView()
           ..priority = priorityEnemies
           ..setFeedbackTuning(_combatFeedbackTuning);
-        _enemies[entity.id] = view;
+        _actors[entity.id] = view;
         world.add(view);
       }
 
@@ -237,19 +247,32 @@ class LiveWorldSyncSystem {
       );
       view.applySnapshot(entity, tickHz: controller.tickHz, pos: _snapScratch);
       view.setStatusVisualMask(entity.statusVisualMask);
+      if (entity.kind == EntityKind.npc) {
+        final indicator = _npcHealth.putIfAbsent(entity.id, () {
+          final value = NpcHealthIndicator()..priority = priorityEnemies + 1;
+          world.add(value);
+          return value;
+        });
+        indicator.health = entity.npcHealth;
+        indicator.position.setValues(
+          _snapScratch.x,
+          _snapScratch.y - (entity.size?.y ?? 54) / 2 - 12,
+        );
+      }
     }
 
-    if (_enemies.isEmpty) {
+    if (_actors.isEmpty) {
       return;
     }
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _enemies.keys) {
+    for (final id in _actors.keys) {
       if (!seen.contains(id)) {
         toRemove.add(id);
       }
     }
     for (final id in toRemove) {
-      _enemies.remove(id)?.removeFromParent();
+      _actors.remove(id)?.removeFromParent();
+      _npcHealth.remove(id)?.removeFromParent();
     }
   }
 

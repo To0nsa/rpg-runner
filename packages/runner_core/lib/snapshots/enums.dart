@@ -37,7 +37,16 @@ enum AnimKey {
 /// Broad entity classification for rendering and (future) networking.
 ///
 /// Used to select visual style, collision layer, and render order.
-enum EntityKind { player, enemy, projectile, obstacle, pickup, hazard, trigger }
+enum EntityKind {
+  player,
+  enemy,
+  projectile,
+  obstacle,
+  pickup,
+  hazard,
+  trigger,
+  npc,
+}
 
 /// Horizontal facing direction for sprites and directional abilities.
 enum Facing { left, right }

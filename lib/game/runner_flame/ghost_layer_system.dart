@@ -17,6 +17,7 @@ import '../components/camera_space_snapped_sprite_animation.dart';
 import '../components/player/player_animations.dart';
 import '../components/player/player_view.dart';
 import '../components/enemies/enemy_render_registry.dart';
+import '../components/npcs/npc_render_registry.dart';
 import '../components/projectiles/projectile_render_registry.dart';
 import '../components/spell_impacts/spell_impact_render_registry.dart';
 import '../components/sprite_anim/deterministic_anim_view.dart';
@@ -33,6 +34,7 @@ class GhostLayerSystem {
     required this.world,
     required this.images,
     required EnemyRenderRegistry enemyRenderRegistry,
+    required NpcRenderRegistry npcRenderRegistry,
     required ProjectileRenderRegistry projectileRenderRegistry,
     required SpellImpactRenderRegistry spellImpactRenderRegistry,
     required this.combatFeedbackTuning,
@@ -40,6 +42,7 @@ class GhostLayerSystem {
     required this.ghostEventsListenable,
     required this.ghostReplayBlobListenable,
   }) : _enemyRenderRegistry = enemyRenderRegistry,
+       _npcRenderRegistry = npcRenderRegistry,
        _projectileRenderRegistry = projectileRenderRegistry,
        _spellImpactRenderRegistry = spellImpactRenderRegistry;
 
@@ -52,10 +55,11 @@ class GhostLayerSystem {
   final ValueListenable<ReplayBlobV1?>? ghostReplayBlobListenable;
 
   final EnemyRenderRegistry _enemyRenderRegistry;
+  final NpcRenderRegistry _npcRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
   final SpellImpactRenderRegistry _spellImpactRenderRegistry;
 
-  final Map<int, DeterministicAnimView> _ghostEnemies =
+  final Map<int, DeterministicAnimView> _ghostActors =
       <int, DeterministicAnimView>{};
   final Map<int, DeterministicAnimView> _ghostProjectiles =
       <int, DeterministicAnimView>{};
@@ -185,10 +189,10 @@ class GhostLayerSystem {
     _ghostPlayerEntityId = null;
     _ghostPlayer?.removeFromParent();
     _ghostPlayer = null;
-    for (final view in _ghostEnemies.values) {
+    for (final view in _ghostActors.values) {
       view.removeFromParent();
     }
-    _ghostEnemies.clear();
+    _ghostActors.clear();
     for (final view in _ghostProjectiles.values) {
       view.removeFromParent();
     }
@@ -228,7 +232,7 @@ class GhostLayerSystem {
       cameraCenter: cameraCenter,
       playerAnimSet: playerAnimSet,
     );
-    _syncGhostEnemies(
+    _syncGhostActors(
       entities: snapshot.entities,
       prevById: _prevGhostEntitiesById,
       alpha: alpha,
@@ -295,7 +299,7 @@ class GhostLayerSystem {
     _ghostPlayerEntityId = playerEntity.id;
   }
 
-  void _syncGhostEnemies({
+  void _syncGhostActors({
     required List<EntityRenderSnapshot> entities,
     required Map<int, EntityRenderSnapshot> prevById,
     required double alpha,
@@ -303,25 +307,29 @@ class GhostLayerSystem {
   }) {
     final seen = _seenIdsScratch..clear();
     for (final entity in entities) {
-      if (entity.kind != EntityKind.enemy) {
+      if (entity.kind != EntityKind.enemy && entity.kind != EntityKind.npc) {
         continue;
       }
-      final entry = entity.enemyId == null
-          ? null
-          : _enemyRenderRegistry.entryFor(entity.enemyId!);
+      final entry = entity.kind == EntityKind.npc
+          ? (entity.npcId == null
+                ? null
+                : _npcRenderRegistry.entryFor(entity.npcId!))
+          : (entity.enemyId == null
+                ? null
+                : _enemyRenderRegistry.entryFor(entity.enemyId!));
       if (entry == null) {
-        _ghostEnemies.remove(entity.id)?.removeFromParent();
+        _ghostActors.remove(entity.id)?.removeFromParent();
         continue;
       }
 
       seen.add(entity.id);
-      var view = _ghostEnemies[entity.id];
+      var view = _ghostActors[entity.id];
       if (view == null) {
-        view = entry.viewFactory(entry.animSet, entry.renderScale)
+        view = entry.createView()
           ..priority = priorityGhostEntities
           ..setFeedbackTuning(combatFeedbackTuning)
           ..setVisualStyle(RenderVisualStyle.ghost);
-        _ghostEnemies[entity.id] = view;
+        _ghostActors[entity.id] = view;
         world.add(view);
       }
 
@@ -336,17 +344,17 @@ class GhostLayerSystem {
       view.setStatusVisualMask(entity.statusVisualMask);
     }
 
-    if (_ghostEnemies.isEmpty) {
+    if (_ghostActors.isEmpty) {
       return;
     }
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _ghostEnemies.keys) {
+    for (final id in _ghostActors.keys) {
       if (!seen.contains(id)) {
         toRemove.add(id);
       }
     }
     for (final id in toRemove) {
-      _ghostEnemies.remove(id)?.removeFromParent();
+      _ghostActors.remove(id)?.removeFromParent();
     }
   }
 
@@ -450,7 +458,7 @@ class GhostLayerSystem {
         view = _ghostPlayer;
       } else {
         view =
-            _ghostEnemies[event.entityId] ?? _ghostProjectiles[event.entityId];
+            _ghostActors[event.entityId] ?? _ghostProjectiles[event.entityId];
       }
       if (view == null) {
         continue;
@@ -552,7 +560,20 @@ class GhostLayerSystem {
 
   int? get debugGhostPlayerEntityId => _ghostPlayerEntityId;
 
-  int get debugGhostEnemyCount => _ghostEnemies.length;
+  int get debugGhostEnemyCount =>
+      _ghostSnapshot?.entities
+          .where(
+            (e) => e.kind == EntityKind.enemy && _ghostActors.containsKey(e.id),
+          )
+          .length ??
+      0;
+  int get debugGhostNpcCount =>
+      _ghostSnapshot?.entities
+          .where(
+            (e) => e.kind == EntityKind.npc && _ghostActors.containsKey(e.id),
+          )
+          .length ??
+      0;
 
   int get debugGhostProjectileCount => _ghostProjectiles.length;
 

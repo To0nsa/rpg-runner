@@ -88,11 +88,14 @@ CompilationUnit _parseUnit(
   return result.unit;
 }
 
-MethodDeclaration? _findEnemyCatalogGetMethod(CompilationUnit unit) {
+MethodDeclaration? _findActorCatalogGetMethod(
+  CompilationUnit unit,
+  String catalogClass,
+) {
   final enemyCatalogClass = unit.declarations
       .whereType<ClassDeclaration>()
       .where(
-        (declaration) => declaration.namePart.typeName.lexeme == 'EnemyCatalog',
+        (declaration) => declaration.namePart.typeName.lexeme == catalogClass,
       )
       .firstOrNull;
   if (enemyCatalogClass == null) {
@@ -173,16 +176,6 @@ String? _enumCaseName(Expression expression) {
   return null;
 }
 
-InstanceCreationExpression? _findReturnedInstance(List<Statement> statements) {
-  for (final statement in statements) {
-    if (statement is ReturnStatement &&
-        statement.expression is InstanceCreationExpression) {
-      return statement.expression as InstanceCreationExpression;
-    }
-  }
-  return null;
-}
-
 Expression? _findReturnedExpression(List<Statement> statements) {
   for (final statement in statements) {
     if (statement is ReturnStatement) {
@@ -190,6 +183,11 @@ Expression? _findReturnedExpression(List<Statement> statements) {
     }
   }
   return null;
+}
+
+InstanceCreationExpression? _findReturnedInstance(List<Statement> statements) {
+  final expression = _findReturnedExpression(statements);
+  return expression is InstanceCreationExpression ? expression : null;
 }
 
 NamedArgument? _namedArgument(NodeList<Argument> arguments, String name) {

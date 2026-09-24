@@ -1,3 +1,5 @@
+import 'package:runner_core/npcs/npc_catalog.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/systems/anim/anim_system.dart';
@@ -30,59 +32,72 @@ void main() {
     expect(world.health.denseEntities, isEmpty);
     expect(world.createEntity(), EcsWorld().createEntity());
   });
-  test('NPC death cancels combat, animates before cleanup, and never awards a kill', () {
-    final world = EcsWorld();
-    final npc = EntityFactory(world).createNpc(
-      npcId: NpcId.warrior,
-      posX: 100,
-      posY: 50,
-      chunkStartX: 0,
-      chunkEndX: 500,
+  for (final id in NpcId.values) {
+    test(
+      '${id.name} death cancels combat, animates before cleanup, and never awards a kill',
+      () {
+        final world = EcsWorld();
+        final npc = EntityFactory(world).createNpc(
+          npcId: id,
+          posX: 100,
+          posY: 50,
+          chunkStartX: 0,
+          chunkEndX: 500,
+        );
+        world.collision.grounded[world.collision.indexOf(npc)] = true;
+        world.activeAbility.set(
+          npc,
+          id: const NpcCatalog().get(id).attackAbilityId,
+          slot: AbilitySlot.primary,
+          commitTick: 1,
+          windupTicks: 12,
+          activeTicks: 6,
+          recoveryTicks: 6,
+          facingDir: Facing.right,
+        );
+        final anim = AnimSystem(
+          tickHz: 60,
+          enemyCatalog: const EnemyCatalog(),
+          playerMovement: MovementTuningDerived.from(
+            PlayerCharacterRegistry.eloise.tuning.movement,
+            tickHz: 60,
+          ),
+          playerAnimTuning: AnimTuningDerived.from(
+            PlayerCharacterRegistry.eloise.tuning.anim,
+            tickHz: 60,
+          ),
+        );
+        anim.step(world, player: -1, currentTick: 1);
+        expect(
+          world.animState.anim[world.animState.indexOf(npc)],
+          AbilityCatalog.shared
+              .resolve(const NpcCatalog().get(id).attackAbilityId)!
+              .animKey,
+        );
+        world.health.hp[world.health.indexOf(npc)] = 0;
+        HealthDespawnSystem().step(world, player: -1);
+        expect(world.npc.has(npc), isTrue);
+        final kills = <EnemyId>[];
+        EnemyDeathStateSystem(tickHz: 60)
+            .step(world, currentTick: 2, outEnemiesKilled: kills);
+        NpcDeathStateSystem(tickHz: 60).step(world, currentTick: 2);
+        expect(kills, isEmpty);
+        expect(world.activeAbility.hasActiveAbility(npc), isFalse);
+        anim.step(world, player: -1, currentTick: 2);
+        expect(
+          world.animState.anim[world.animState.indexOf(npc)],
+          AnimKey.death,
+        );
+        final endTick =
+            world.deathState.despawnTick[world.deathState.indexOf(npc)];
+        expect(endTick, greaterThan(2));
+        DeathDespawnSystem().step(world, currentTick: endTick - 1);
+        expect(world.npc.has(npc), isTrue);
+        DeathDespawnSystem().step(world, currentTick: endTick);
+        expect(world.npc.has(npc), isFalse);
+      },
     );
-    world.collision.grounded[world.collision.indexOf(npc)] = true;
-    world.activeAbility.set(
-      npc,
-      id: 'npc_warrior.slash',
-      slot: AbilitySlot.primary,
-      commitTick: 1,
-      windupTicks: 12,
-      activeTicks: 6,
-      recoveryTicks: 6,
-      facingDir: Facing.right,
-    );
-    final anim = AnimSystem(
-      tickHz: 60,
-      enemyCatalog: const EnemyCatalog(),
-      playerMovement: MovementTuningDerived.from(
-        PlayerCharacterRegistry.eloise.tuning.movement,
-        tickHz: 60,
-      ),
-      playerAnimTuning: AnimTuningDerived.from(
-        PlayerCharacterRegistry.eloise.tuning.anim,
-        tickHz: 60,
-      ),
-    );
-    anim.step(world, player: -1, currentTick: 1);
-    expect(world.animState.anim[world.animState.indexOf(npc)], AnimKey.strike);
-    world.health.hp[world.health.indexOf(npc)] = 0;
-    HealthDespawnSystem().step(world, player: -1);
-    expect(world.npc.has(npc), isTrue);
-    final kills = <EnemyId>[];
-    EnemyDeathStateSystem(tickHz: 60)
-        .step(world, currentTick: 2, outEnemiesKilled: kills);
-    NpcDeathStateSystem(tickHz: 60).step(world, currentTick: 2);
-    expect(kills, isEmpty);
-    expect(world.activeAbility.hasActiveAbility(npc), isFalse);
-    anim.step(world, player: -1, currentTick: 2);
-    expect(world.animState.anim[world.animState.indexOf(npc)], AnimKey.death);
-    final endTick = world.deathState.despawnTick[world.deathState.indexOf(npc)];
-    expect(endTick, greaterThan(2));
-    DeathDespawnSystem().step(world, currentTick: endTick - 1);
-    expect(world.npc.has(npc), isTrue);
-    DeathDespawnSystem().step(world, currentTick: endTick);
-    expect(world.npc.has(npc), isFalse);
-  });
-
+  }
   test(
     'airborne NPC death retains gravity until impact or bounded deadline',
     () {

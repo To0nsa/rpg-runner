@@ -1,6 +1,6 @@
 # NPC rescue encounters
 
-Status: In progress; M0–M3 Core contracts, targeting, warrior encounter lifecycle and authored compilation delivered. M4 archetypes/rendering next.
+Status: In progress; M0–M4 Core encounters, authored compilation, all three NPC archetypes, rendering and Entities source editing delivered. M5 encounter authoring UX next.
 
 Created: September 24, 2026.
 
@@ -698,7 +698,7 @@ that milestone's changes; do not include unrelated navigation/content work.
   Acceptance: generator and authored Play compile identical encounter facts;
   empty legacy content retains its behavior and invalid required spawns fail
   readiness instead of producing a free rescue.
-- [ ] **M4 — Deliver all NPC archetypes and rendering.** Review and register all
+- [x] **M4 — Deliver all NPC archetypes and rendering.** Review and register all
   three packs, their source/collider bounds, abilities, projectiles, traversal,
   facing and animation timings. Add typed render/HUD output, shared sprite
   loading, actor animation/snapshot dispatch, live/ghost rendering, preload,
@@ -787,8 +787,28 @@ preflight. Required Hashash retains authored placement and intro; all four enemy
 types are covered. Stream retention and occurrence retirement follow the exact
 abandonment contract. Tests include a real player/warrior rescue, repeated chunks,
 opening suppression and no partial spawn. The ordinary combat digest is unchanged.
-M3–M7 still own source authoring, all archetypes/rendering, editor UX and scoring
-presentation/compatibility release.
+M3 completed: shared strict source decoding, complete-roster placement readiness,
+editor source preservation and generated/captured runtime materialization are
+implemented. All 81 pipeline tests, 26 generator regressions, 68 Core
+encounter/Play checks and 40 editor source/Play checks passed. Generator freshness
+was checked against the user's current authored tree; its unrelated generated
+changes were excluded from these commits.
+
+M4 completed: both Huntresses share enemy cast execution and use reviewed
+physical projectile metadata. All three NPCs publish typed identity, health,
+motion and animation snapshots, use shared actor sprite loading, and appear in
+live/ghost pools. Live health/safety indicators, complete preload/captured assets,
+Build image fingerprints and guarded Entities source edits are implemented.
+The visual review covers both facings, idle, attack release, hit and final death
+poses against capsule/support guides (`.tmp/npc_render_review.png`, reproducible
+with `NPC_RENDER_REVIEW=1` and `test/game/npc_render_test.dart`).
+All 71 Core encounter tests, 28 existing cast/projectile/attack tests, five
+sprite/live/ghost checks, seven Play host checks, 50 Entities checks and image
+capture/warmup checks pass. Core/game analysis is clean; full editor analysis
+had one test-only redundant null assertion, removed and rechecked. The Play host
+fixture now derives its image bounds from current explicit trap atlas regions.
+M5–M7 still own encounter authoring controls, score presentation/contracts,
+production content and compatibility/release validation.
 
 | Area | Required evidence |
 | --- | --- |

@@ -86,6 +86,7 @@ final _warriorTerrain = createGroundedEnemyTerrainProfile(
   minimumSupportUpComponent: 724,
 );
 const _warrior = NpcArchetype(
+  renderScale: 1.5,
   collider: _warriorCollider,
   attackAbilityId: 'npc_warrior.slash',
   renderAnim: RenderAnimSetDefinition(
@@ -150,6 +151,7 @@ final _huntress2Terrain = createGroundedEnemyTerrainProfile(
   minimumSupportUpComponent: 724,
 );
 const _huntress = NpcArchetype(
+  renderScale: 1.5,
   collider: _huntressCollider,
   health: HealthDef(hp: 2800, hpMax: 2800, regenPerSecond100: 0),
   speedX: 90,
@@ -194,6 +196,7 @@ const _huntress = NpcArchetype(
   ),
 );
 const _huntress2 = NpcArchetype(
+  renderScale: 1.5,
   collider: _huntress2Collider,
   health: HealthDef(hp: 2400, hpMax: 2400, regenPerSecond100: 0),
   speedX: 110,

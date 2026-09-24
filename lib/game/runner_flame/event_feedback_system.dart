@@ -60,7 +60,7 @@ class RunEventFeedbackSystem {
   void flushEntityVisualCueEvents({
     required int? playerEntityId,
     required PlayerView playerView,
-    required Map<int, DeterministicAnimView> enemyViews,
+    required Map<int, DeterministicAnimView> actorViews,
   }) {
     if (_pendingEntityVisualCueEvents.isEmpty) {
       return;
@@ -76,7 +76,7 @@ class RunEventFeedbackSystem {
       if (playerEntityId != null && event.entityId == playerEntityId) {
         view = playerView;
       } else {
-        view = enemyViews[event.entityId];
+        view = actorViews[event.entityId];
       }
       if (view == null) {
         continue;

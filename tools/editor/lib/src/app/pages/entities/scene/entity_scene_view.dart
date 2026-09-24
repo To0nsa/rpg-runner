@@ -304,7 +304,10 @@ extension _EntitySceneView on _EntitiesEditorPageState {
         castOriginOffset.isFinite) {
       final castOriginExtent = castOriginOffset.abs() * scale;
       halfSpanX = math.max(halfSpanX, castOriginExtent);
-      halfSpanY = math.max(halfSpanY, castOriginExtent);
+      halfSpanY = math.max(
+        halfSpanY,
+        castOriginExtent + selectedEntry.castOriginOffsetY.abs() * scale,
+      );
     }
 
     if (reference != null) {
@@ -350,7 +353,8 @@ extension _EntitySceneView on _EntitiesEditorPageState {
     }
     final normalizedAngleDegrees = angleDegrees.round() % 360;
     return 'Cast origin cue: ${offset.toStringAsFixed(3)} world units '
-        'at $normalizedAngleDegrees degrees from the entity transform.';
+        'at $normalizedAngleDegrees degrees from the entity transform'
+        '${entry.castOriginOffsetY == 0 ? '' : ', vertical offset ${entry.castOriginOffsetY}'}.';
   }
 
   Widget _buildSceneOverlayFrontLayerControls() {

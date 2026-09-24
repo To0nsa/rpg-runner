@@ -179,6 +179,10 @@ class EntityInspectorPanel extends StatelessWidget {
                   ],
                 ),
                 if (selected.castOriginOffset?.isFinite == true) ...[
+                  if (selected.castOriginOffsetY != 0)
+                    Text(
+                      'Launch height: ${selected.castOriginOffsetY} world units (catalog)',
+                    ),
                   const SizedBox(height: 8),
                   _InspectorLabeledFieldRow(
                     subtitle: 'Cast preview angle',
@@ -257,6 +261,7 @@ class EntityInspectorPanel extends StatelessWidget {
 
   String _resolvedShapeType(EntityEntry entry) {
     switch (entry.entityType) {
+      case EntityType.npc:
       case EntityType.enemy:
       case EntityType.player:
         return 'upright capsule + enclosing AABB';

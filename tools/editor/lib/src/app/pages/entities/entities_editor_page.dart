@@ -426,6 +426,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
               _typeFilterChip(label: 'All', type: null),
               _typeFilterChip(label: 'Players', type: EntityType.player),
               _typeFilterChip(label: 'Enemies', type: EntityType.enemy),
+              _typeFilterChip(label: 'NPCs', type: EntityType.npc),
               _typeFilterChip(
                 label: 'Projectiles',
                 type: EntityType.projectile,

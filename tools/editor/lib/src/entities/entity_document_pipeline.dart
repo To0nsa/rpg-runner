@@ -74,7 +74,8 @@ class EntityDocumentPipeline {
       }
 
       final castOriginOffset = entry.castOriginOffset;
-      if (castOriginOffset != null && !castOriginOffset.isFinite) {
+      if ((castOriginOffset != null && !castOriginOffset.isFinite) ||
+          !entry.castOriginOffsetY.isFinite) {
         issues.add(
           ValidationIssue(
             severity: ValidationSeverity.error,

@@ -1,12 +1,14 @@
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
+import 'package:flame/cache.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/npcs/npc_id.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
@@ -17,12 +19,104 @@ import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/input/aim_preview.dart';
 import 'package:rpg_runner/game/input/runner_input_router.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
+import 'package:rpg_runner/game/runner_flame/ghost_layer_system.dart';
+import 'package:rpg_runner/game/runner_flame/live_world_sync_system.dart';
+import 'package:rpg_runner/game/components/enemies/enemy_render_registry.dart';
+import 'package:rpg_runner/game/components/npcs/npc_render_registry.dart';
+import 'package:rpg_runner/game/components/pickups/pickup_render_registry.dart';
+import 'package:rpg_runner/game/components/projectiles/projectile_render_registry.dart';
+import 'package:rpg_runner/game/components/spell_impacts/spell_impact_render_registry.dart';
+import 'package:rpg_runner/game/tuning/combat_feedback_tuning.dart';
 
 import '../support/test_level.dart';
 import '../test_tunings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'all NPC identities synchronize in live and ghost pools and retire cleanly',
+    () async {
+      final harness = _buildHarness();
+      addTearDown(harness.dispose);
+      final images = Images();
+      addTearDown(images.clearCache);
+      final npcs = NpcRenderRegistry();
+      await npcs.load(images);
+      final enemies = EnemyRenderRegistry();
+      final projectiles = ProjectileRenderRegistry();
+      final live = LiveWorldSyncSystem(
+        controller: harness.controller,
+        world: Component(),
+        playerCharacter: testPlayerCharacter,
+        enemyRenderRegistry: enemies,
+        npcRenderRegistry: npcs,
+        projectileRenderRegistry: projectiles,
+        pickupRenderRegistry: PickupRenderRegistry(),
+        combatFeedbackTuning: const CombatFeedbackTuning(),
+      );
+      final ghost = GhostLayerSystem(
+        controller: harness.controller,
+        world: Component(),
+        images: images,
+        enemyRenderRegistry: enemies,
+        npcRenderRegistry: npcs,
+        projectileRenderRegistry: projectiles,
+        spellImpactRenderRegistry: SpellImpactRenderRegistry(),
+        combatFeedbackTuning: const CombatFeedbackTuning(),
+        ghostSnapshotListenable: null,
+        ghostEventsListenable: null,
+        ghostReplayBlobListenable: null,
+      );
+      final actors = [
+        for (final id in NpcId.values)
+          EntityRenderSnapshot(
+            id: 300 + id.index,
+            kind: EntityKind.npc,
+            npcId: id,
+            pos: Vec2(100.0 + id.index * 100, 100),
+            facing: Facing.left,
+            anim: AnimKey.death,
+            grounded: true,
+            animFrame: 7,
+            npcHealth: const NpcHealthSnapshot(
+              hp100: 0,
+              maxHp100: 3500,
+              protected: false,
+            ),
+          ),
+      ];
+      live.syncActors(
+        actors,
+        prevById: {},
+        alpha: 1,
+        cameraCenter: Vector2.zero(),
+      );
+      expect(live.actorViews, hasLength(3));
+      expect(
+        live.actorViews.values.every(
+          (v) => v.current == AnimKey.death && v.scale.x < 0,
+        ),
+        isTrue,
+      );
+      ghost.debugSetGhostRenderStateForTest(
+        snapshot: _copySnapshot(
+          harness.controller.snapshot,
+          tick: 1,
+          entities: actors,
+        ),
+        replayBlob: _ghostReplayBlob(levelId: LevelId.field),
+        playerAnimSet: npcs.entryFor(NpcId.warrior)!.animSet,
+      );
+      ghost.syncLayer(alpha: 1, cameraCenter: Vector2.zero());
+      expect(ghost.debugGhostNpcCount, 3);
+      expect(ghost.debugGhostEnemyCount, 0);
+      live.syncActors([], prevById: {}, alpha: 1, cameraCenter: Vector2.zero());
+      ghost.clearViews();
+      expect(live.actorViews, isEmpty);
+      expect(ghost.debugGhostNpcCount, 0);
+    },
+  );
 
   test('ghost sync creates and clears player view across lifecycle', () async {
     final harness = _buildHarness();

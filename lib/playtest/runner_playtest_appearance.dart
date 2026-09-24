@@ -2,6 +2,7 @@ import 'package:runner_core/playtest/playtest_scenario.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 
 import '../game/components/enemies/enemy_render_registry.dart';
+import '../game/components/npcs/npc_render_registry.dart';
 import '../game/components/projectiles/projectile_render_registry.dart';
 import '../game/components/pickups/pickup_render_registry.dart';
 import '../game/components/spell_impacts/spell_impact_render_registry.dart';
@@ -42,6 +43,7 @@ final class RunnerPlaytestAppearance {
     for (final path in <String>[
       ...scenario.playerCharacter.renderAnim.sourcesByKey.values,
       ...EnemyRenderRegistry().assetPaths,
+      ...NpcRenderRegistry().assetPaths,
       ...ProjectileRenderRegistry().assetPaths,
       ...PickupRenderRegistry().assetPaths,
       ...SpellImpactRenderRegistry().assetPaths,

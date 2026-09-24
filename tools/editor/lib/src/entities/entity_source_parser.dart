@@ -44,6 +44,8 @@ class EntityParseResult {
 /// also captures exact source bindings so later export can reject drift rather
 /// than guessing how to rewrite files.
 class EntitySourceParser {
+  static const String npcCatalogPath =
+      'packages/runner_core/lib/npcs/npc_catalog.dart';
   static const String enemyCatalogPath =
       'packages/runner_core/lib/enemies/enemy_catalog.dart';
   static const String playerCharactersDir =
@@ -77,7 +79,26 @@ class EntitySourceParser {
       issues,
     );
 
-    entries.addAll(_parseEnemies(workspace, issues));
+    entries.addAll(
+      _parseAutonomousActors(
+        workspace,
+        issues,
+        sourcePath: enemyCatalogPath,
+        catalogClass: 'EnemyCatalog',
+        entityType: EntityType.enemy,
+        defaultFacing: EntityArtFacingDirection.left,
+      ),
+    );
+    entries.addAll(
+      _parseAutonomousActors(
+        workspace,
+        issues,
+        sourcePath: npcCatalogPath,
+        catalogClass: 'NpcCatalog',
+        entityType: EntityType.npc,
+        defaultFacing: EntityArtFacingDirection.right,
+      ),
+    );
     entries.addAll(
       _parsePlayers(
         workspace,

@@ -18,7 +18,7 @@ import '../domain/authoring_types.dart';
 ///   back and source-drift detection possible
 
 /// Broad entity bucket used by the editor for grouping and route UI.
-enum EntityType { player, enemy, projectile }
+enum EntityType { player, enemy, projectile, npc }
 
 /// Runtime-facing art direction metadata surfaced for editor preview only.
 enum EntityArtFacingDirection { left, right }
@@ -223,6 +223,7 @@ class EntityEntry {
     this.artFacingDirection,
     this.isCaster = false,
     this.castOriginOffset,
+    this.castOriginOffsetY = 0,
     this.castOriginOffsetBinding,
   });
 
@@ -239,6 +240,9 @@ class EntityEntry {
   final EntityArtFacingDirection? artFacingDirection;
   final bool isCaster;
   final double? castOriginOffset;
+
+  /// Catalog-owned launch height, shown read-only alongside the radial offset.
+  final double castOriginOffsetY;
   final EntitySourceBinding? castOriginOffsetBinding;
 
   /// Returns a new entry preserving identity/source ownership while replacing
@@ -268,6 +272,7 @@ class EntityEntry {
       artFacingDirection: artFacingDirection ?? this.artFacingDirection,
       isCaster: isCaster ?? this.isCaster,
       castOriginOffset: castOriginOffset ?? this.castOriginOffset,
+      castOriginOffsetY: castOriginOffsetY,
       castOriginOffsetBinding:
           castOriginOffsetBinding ?? this.castOriginOffsetBinding,
     );
