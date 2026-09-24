@@ -82,6 +82,7 @@ import 'ecs/systems/ai_target_system.dart';
 import 'ecs/systems/trap_system.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/death_behavior.dart';
+import 'encounters/encounter_system.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'events/entity_visual_cue_coalescer.dart';
@@ -934,6 +935,7 @@ class GameCore {
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageMiddlewareSystem _damageMiddlewareSystem;
   late final DamageSystem _damageSystem;
+  final EncounterSystem _encounters = EncounterSystem();
   late final ReactiveProcSystem _reactiveProcSystem;
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
@@ -1486,6 +1488,7 @@ class GameCore {
     final effectiveGroundTopY = _levelDefinition.groundTopY;
 
     // ─── Phase 1: World generation ───
+    _encounters.expire(_world, cameraLeft: _camera.left(), tick: tick);
     final pendingTrackSpawns = _stepTrackManager();
     _worldMotionAuthority.publishPendingWorld();
     _spawnTrackEntities(
@@ -1601,6 +1604,7 @@ class GameCore {
       _endRun(RunEndReason.fellBehindCamera);
       return;
     }
+    _encounters.expire(_world, cameraLeft: cameraLeft, tick: tick);
 
     // ─── Phase 6: Pickup collection ───
     _collectibleSystem.step(
@@ -1702,6 +1706,15 @@ class GameCore {
       _world,
       currentTick: tick,
       queueStatus: _statusSystem.queue,
+      onParticipationDamage:
+          ({required target, required hpLost100, required credit}) {
+            _encounters.recordDamage(
+              _world,
+              target: target,
+              hpLost100: hpLost100,
+              credit: credit,
+            );
+          },
       onDamageApplied:
           ({
             required EntityId target,
@@ -1763,6 +1776,13 @@ class GameCore {
       cameraLeft: cameraLeft,
       groundTopY: effectiveGroundTopY,
       tuning: _trackTuning,
+      retainForEncounter: (entity) => _encounters.retainsActor(_world, entity),
+    );
+    _encounters.resolve(
+      _world,
+      tick: tick,
+      cameraLeft: cameraLeft,
+      runEnded: _isPlayerDead(),
     );
     _enemyDeathStateSystem.step(
       _world,
@@ -1992,6 +2012,7 @@ class GameCore {
   ///
   /// After this call, [gameOver] is true and [stepOneTick] will no-op.
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
+    _encounters.endRun(_world, tick: tick);
     gameOver = true;
     paused = true;
     final goldEarned = computeGoldEarned(collectiblesCollected: collectibles);

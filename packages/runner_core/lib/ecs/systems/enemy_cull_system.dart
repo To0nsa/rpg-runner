@@ -10,17 +10,20 @@ import '../world.dart';
 /// - Below:  enemy bottomY > groundTopY + tuning.enemyCullBelowGroundOffsetY
 class EnemyCullSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
+  final Set<EntityId> _fatalLosses = {};
 
   void step(
     EcsWorld world, {
     required double cameraLeft,
     required double groundTopY,
     required TrackTuning tuning,
+    bool Function(EntityId entity)? retainForEncounter,
   }) {
     final enemies = world.enemy;
     if (enemies.denseEntities.isEmpty) return;
 
     _toDespawn.clear();
+    _fatalLosses.clear();
 
     final despawnX = cameraLeft - tuning.cullBehindMargin;
     final despawnY = groundTopY + tuning.enemyCullBelowGroundOffsetY;
@@ -55,8 +58,11 @@ class EnemyCullSystem {
         bottomY = cy + world.colliderAabb.halfY[ci];
       }
 
-      if (maxX < despawnX || bottomY > despawnY) {
+      final fatalLoss = bottomY > despawnY;
+      if (fatalLoss ||
+          (maxX < despawnX && !(retainForEncounter?.call(e) ?? false))) {
         _toDespawn.add(e);
+        if (fatalLoss) _fatalLosses.add(e);
       }
     }
 
@@ -64,7 +70,7 @@ class EnemyCullSystem {
 
     // 2. destroy
     for (final e in _toDespawn) {
-      world.destroyEntity(e);
+      world.destroyEntity(e, fatalWorldLoss: _fatalLosses.contains(e));
     }
   }
 }

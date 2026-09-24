@@ -1,6 +1,7 @@
 import 'entity_id.dart';
 import 'stores/ai_target_store.dart';
 import 'stores/npc_store.dart';
+import 'stores/encounter_member_store.dart';
 import 'sparse_set.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
@@ -98,6 +99,9 @@ class EcsWorld {
   final TrapStore traps = TrapStore();
   late final AiTargetStore aiTarget = _register(AiTargetStore());
   late final NpcStore npc = _register(NpcStore());
+  late final EncounterMemberStore encounterMember = _register(
+    EncounterMemberStore(),
+  );
 
   /// Counter for generating new unique Entity IDs.
   EntityId _nextEntityId = 1;
@@ -391,6 +395,10 @@ class EcsWorld {
   /// Combo state for melee enemies (armed follow-up strike).
   late final MeleeComboStore meleeCombo = _register(MeleeComboStore());
 
+  /// Whether an ID is currently allocated, even before any components are added.
+  bool isEntityAlive(EntityId entity) =>
+      entity > 0 && entity < _nextEntityId && !_freeIdsSet.contains(entity);
+
   /// Allocates a new [EntityId].
   ///
   /// Prefers reusing ID from the free pool if available; otherwise increments the counter.
@@ -409,10 +417,16 @@ class EcsWorld {
   ///
   /// The ID is returned to the free pool for future reuse.
   /// Does nothing if the entity is already destroyed/free.
-  void destroyEntity(EntityId entity) {
+  void destroyEntity(EntityId entity, {bool fatalWorldLoss = false}) {
     if (_freeIdsSet.contains(entity)) {
       return;
     }
+    final hi = health.tryIndexOf(entity);
+    encounterMember.recordRemoval(
+      entity,
+      defeated: deathState.has(entity) || (hi != null && health.hp[hi] <= 0),
+      fatalWorldLoss: fatalWorldLoss,
+    );
     aiTarget.forget(entity);
     surfaceNav.forgetTarget(entity);
     for (final store in _stores) {

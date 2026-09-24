@@ -67,6 +67,13 @@ order; the contract below records the dependencies that must survive changes.
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
 | 8 | Apply queued statuses and visual cues, process deaths, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
 
+Encounter lifecycle hooks check camera expiry before streaming and after camera
+motion, record only positive applied player HP damage, and resolve after fatal
+enemy culls but before death cleanup. Run termination has precedence over
+same-tick rescue and finalizes unresolved groups before death freeze or final
+stats. See [encounter contracts](npc_encounter_contracts.md) for the delivered
+controller and the remaining actor/stream integration boundary.
+
 Combat spatial lookup has a two-stage deterministic contract. During phase 5,
 `DamageableTargetCache` requires every live damageable actor to have faction,
 transform, authored collider, and `WorldContactCapsuleStore` state. It resolves

@@ -39,6 +39,36 @@ animation, projectiles, resources and terminal state. Derf placement/casting is
 covered separately; it does not appear in this trace. The contract probe is also
 compiled and executed to verify admission errors survive AOT assertion removal.
 
+## Occurrence lifecycle
+
+`EncounterSystem` owns a bounded run-local state table keyed by streamed chunk
+index and authored encounter ID. `EncounterOccurrence` freezes sorted participant
+publication order and the actual chunk bounds. A dormant group creates no actors;
+the activation API tests the inclusive sweep between player-center samples and
+requires a complete, typed spawn result. A rejected/partial roster fails without
+an award. Opening suppression skips the entire group.
+
+Membership is separate from actor type. The ECS captures removal evidence before
+component teardown and ID recycling. Health defeat counts toward the objective;
+unexpected disappearance fails it. Fatal world loss counts as an NPC death but
+invalidates a required enemy rather than treating a terrain cull as a combat win.
+
+Resolution priority is run termination, camera expiry, invalid membership, all
+NPCs dead, then required-enemy completion. Completion rescues living NPCs only
+after recorded player HP damage; otherwise survivors become safe without points.
+Terminal outcomes are immutable. Enemies lose only their encounter target policy,
+retaining resources, statuses and committed attacks. Awards accumulate once from
+each occurrence's resolved points override, including explicit zero.
+
+The coordinator checks expiry before streaming and after the camera update,
+records participation during damage, and resolves after fatal enemy culling but
+before death cleanup. Unresolved member enemies bypass ordinary behind-camera
+culling; falling out of the world still removes them. Run exit finalizes groups
+before statistics or player-death freeze. The controller's terrain-retention and
+retirement APIs enforce expiry before cleanup and retain only a monotonic retired
+chunk index. Stream registration and real NPC spawn/motion are the remaining M2
+integration work; authored production content is not enabled by these hooks.
+
 ## Combat ownership and survivor safety
 
 `DamageCredit` is captured when attacks are created and carried through hitboxes,

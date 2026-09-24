@@ -762,6 +762,14 @@ Core tests and 31 existing Flutter combat tests pass, including the unchanged
 ordinary-combat trace. Encounter orchestration, spawning and movement remain
 within the unfinished M2 milestone.
 
+M2 lifecycle controller (September 24): occurrence identity, swept activation,
+complete-roster admission, removal evidence, terminal precedence, exact expiry,
+enemy release and once-only awards are implemented and covered by sixteen
+controller scenarios. Core's 634-test suite and Flutter's 366 Core integration
+tests pass; analysis is clean. Coordinator damage/run-exit hooks and enemy cull retention
+are wired; real NPC actor spawning, terrain retention and bounded motion remain
+before M2 can be checked complete.
+
 ## 7. Acceptance and regression matrix
 
 | Area | Required evidence |
