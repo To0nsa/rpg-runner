@@ -55,6 +55,8 @@ class RunEndStats {
     required this.collectibles,
     required this.collectibleScore,
     required this.enemyKillCounts,
+    this.rescuedNpcs = 0,
+    this.rescuePoints = 0,
   });
 
   /// Total count of collectibles picked up.
@@ -62,6 +64,12 @@ class RunEndStats {
 
   /// Total score value of collectibles.
   final int collectibleScore;
+
+  /// Survivors credited by successful, player-assisted encounters.
+  final int rescuedNpcs;
+
+  /// Sum of resolved encounter awards; values may differ between encounters.
+  final int rescuePoints;
 
   /// Kill counts per enemy type.
   ///

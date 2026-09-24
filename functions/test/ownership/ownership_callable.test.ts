@@ -386,7 +386,7 @@ test("legacy weekly migration updates weekly progression hooks", async () => {
       levelId: "field",
       windowId: "2026-W11",
       rulesetVersion: "rules-v1",
-      scoreVersion: "score-v1",
+      scoreVersion: "score-v2",
     },
     createdAtMs: 1700000000123,
   });
@@ -429,7 +429,7 @@ test("legacy weekly migration preserves progression rollover", async () => {
       levelId: "field",
       windowId: "2026-W11",
       rulesetVersion: "rules-v1",
-      scoreVersion: "score-v1",
+      scoreVersion: "score-v2",
     },
     createdAtMs: 1700000001000,
   });
@@ -446,7 +446,7 @@ test("legacy weekly migration preserves progression rollover", async () => {
       levelId: "field",
       windowId: "2026-W12",
       rulesetVersion: "rules-v1",
-      scoreVersion: "score-v1",
+      scoreVersion: "score-v2",
     },
     createdAtMs: 1700000002000,
   });

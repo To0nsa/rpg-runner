@@ -5,8 +5,8 @@ Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 score IDs. Core contracts, shared AI targeting, all three NPC archetypes, encounter
 lifecycle, shared authored compilation and Chunk Creator authoring are delivered
 slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
-Score presentation remains in progress. Gameplay currently runs through typed and captured-source
-fixtures; production rescue content is not yet authored.
+Rescue statistics and score presentation are implemented. Gameplay currently runs
+through typed and captured-source fixtures; production rescue content is not yet authored.
 
 An encounter owns separate NPC and enemy placement lists. Member IDs are unique
 across both lists and local to the encounter. Coordinates use world units, with
@@ -33,6 +33,21 @@ ceiling for JavaScript score consumers. Even a deliberately loose six-hour,
 33,177,600,000,000 rescue points, below that ceiling. Checked accumulation remains
 mandatory for other tick rates/durations and for combining other score rows;
 overflow must fail before mutation, never wrap or silently clamp.
+
+`RunEndStats` publishes `rescuedNpcs` and accumulated `rescuePoints` after unresolved
+encounters are finalized. The shared `buildRunScoreBreakdown` checks rescue counts,
+per-survivor limits and total addition, appending one rescue row only when credited
+survivors exist. Zero-point rescues retain that row. UI feed, local `RunResult`, and
+validator use this same calculation with the actual simulation tick rate. Older
+local result JSON defaults missing rescue fields to zero.
+
+The replay's optional `clientSummary` includes the two fields only as provisional
+display evidence. The validator ignores these claims and writes both statistics
+from replayed Core to `ValidatedRun.stats`; gold and settlement idempotency remain
+unchanged. Existing open JSON maps support these additive keys without changing
+replay/command format 1. Gameplay compatibility is `2026.09.8`, ranked scoring is
+`score-v2`, and rules/ghost remain `rules-v2`/`ghost-v1`. The worker accepts only the
+new gameplay/score pair. See the [pre-live release checklist](../building/rescue_release_operations.md).
 
 The ordinary-combat regression uses an explicit marker roster on the generated
 `field_flat` terrain, with no encounter definitions. Its pre-refactor trace covers

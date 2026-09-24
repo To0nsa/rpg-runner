@@ -57,8 +57,12 @@ void main() {
     expect(rescued.survivors, 1);
     expect(rescued.points, 250);
     core.giveUp();
+    final endedEvents = core.drainEvents();
+    final stats = endedEvents.whereType<RunEndedEvent>().single.stats;
+    expect(stats.rescuedNpcs, 1);
+    expect(stats.rescuePoints, 250);
     expect(
-      core.drainEvents().whereType<EncounterResolvedEvent>().where(
+      endedEvents.whereType<EncounterResolvedEvent>().where(
         (e) => e.outcome.key.chunkIndex == 0,
       ),
       isEmpty,

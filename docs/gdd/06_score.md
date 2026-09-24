@@ -48,6 +48,7 @@ Implemented in Core as `RunScoreRowKind`:
 - **Time survived**
 - **Collectibles**
 - **Enemy kills** (one row per enemy type with ≥1 kill)
+- **NPCs rescued** (one row when at least one NPC earned rescue credit, including zero-point awards)
 
 ### 3.2 Current formula
 
@@ -66,13 +67,14 @@ distancePoints = m * ScoreTuning.distanceScorePerMeter
 timePoints     = s * ScoreTuning.timeScorePerSecond
 collectPoints  = cScore
 killPoints     = Σe (kills[e] * enemyKillScore(e))
+rescuePoints   = Σencounter (creditedSurvivors * resolvedPointsPerNpc)
 
-totalScore = distancePoints + timePoints + collectPoints + killPoints
+totalScore = distancePoints + timePoints + collectPoints + killPoints + rescuePoints
 ```
 
 Enemy kill values (current):
 
-- `Grojib` → `ScoreTuning.groundEnemyKillScore` (default 100)
+- `Grojib`, `Hashash`, `Derf` → `ScoreTuning.groundEnemyKillScore` (default 100)
 - `UnocoDemon`  → `ScoreTuning.unocoDemonKillScore` (default 150)
 
 ### 3.3 Quantization (important gameplay implication)
@@ -86,7 +88,8 @@ Enemy kill values (current):
 
 ### 4.1 Authoritative computation
 
-On run end, Core builds a `RunScoreBreakdown` via:
+On run end, Core emits `RunEndStats`. The UI and replay validator independently
+build the same `RunScoreBreakdown` from their Core's terminal statistics via:
 
 - `buildRunScoreBreakdown(...)` in `packages/runner_core/lib/scoring/run_score_breakdown.dart`
 
@@ -97,6 +100,7 @@ Inputs include:
 - `collectibles`
 - `collectibleScore`
 - `enemyKillCounts[]`
+- `rescuedNpcs` and the already resolved aggregate `rescuePoints`
 - `tuning.score` (from `CoreTuning.score`)
 - `tickHz`
 
@@ -109,7 +113,7 @@ Output:
 
 UI uses the breakdown to render:
 
-- End-of-run score breakdown rows (distance/time/collectibles/enemy-kills)
+- End-of-run score breakdown rows (distance/time/collectibles/enemy-kills/rescues)
 - Total score
 - Scoreboard/leaderboard entry summary (score + distance + duration)
 
@@ -166,6 +170,24 @@ Design note: keeping `collectibleScore` as an explicit stat is future-proof for:
 - Current values are per-enemy-type and live in `ScoreTuning`.
 - Breakdown shows one row per enemy type that was actually killed.
 
+### 6.4 Rescues
+
+Rescues reward surviving allies after all required encounter enemies are defeated
+and the player has applied damage to a required enemy. Each survivor defaults to
+250 points. Chunk Creator can override that value per group from 0 to 100,000;
+explicit zero and explicit 250 survive Save/Undo. Mixed groups sum their actual
+awards, rather than multiplying all survivors by the current default.
+
+No credited survivors means no rescue row. A credited zero-point survivor still
+appears in the row. NPC deaths do not count as enemy kills; existing defeated-enemy
+counting remains unchanged, including enemies released after an encounter fails.
+See [rescue mechanics](npc_rescue.md) for failure, participation and safety rules.
+
+Counts, awards and the combined total must remain non-negative exact integers
+no larger than 9,007,199,254,740,991; invalid or overflowing awards are rejected.
+Rescue points affect score only, not gold. Local saved results retain both stats;
+older local records without them decode as zero.
+
 ---
 
 ## 7. Ranking rules (tie-breakers)
@@ -214,6 +236,9 @@ Current local scoreboard store uses:
 
 - `packages/runner_core/lib/tuning/collectible_tuning.dart`
   - `valuePerCollectible`
+
+- `packages/runner_core/lib/encounters/encounter_limits.dart`
+  - `defaultPointsPerNpc`, overridden per encounter in Chunk Creator
 
 ---
 

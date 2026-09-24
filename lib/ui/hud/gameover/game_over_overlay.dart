@@ -104,6 +104,8 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       collectibles: event.stats.collectibles,
       collectibleScore: event.stats.collectibleScore,
       enemyKillCounts: event.stats.enemyKillCounts,
+      rescuedNpcs: event.stats.rescuedNpcs,
+      rescuePoints: event.stats.rescuePoints,
       tuning: widget.scoreTuning,
       tickHz: widget.tickHz,
     );

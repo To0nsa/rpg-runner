@@ -36,6 +36,7 @@ and complete death animations.
 Core resolves a default award of 250 points per survivor, with a per-encounter
 override including zero. Chunk Creator exposes this value and targeting policy
 on each rescue group; incomplete groups can be saved while being authored.
-End-screen score integration and production encounter content remain tracked in the
+The end screen lists credited survivors and their combined rescue points in a
+separate row, including zero-point rescues. Production encounter content remains tracked in the
 [implementation plan](../building/npc_rescue_encounters.md). See the
 [technical contract](../tdd/npc_encounter_contracts.md) for ownership and ordering.

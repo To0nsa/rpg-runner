@@ -5,6 +5,59 @@ import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 
 void main() {
+  test(
+    'rescue row uses resolved mixed awards, including zero-point survivors',
+    () {
+      for (final points in [0, 327]) {
+        final result = buildRunScoreBreakdown(
+          tick: 60,
+          distanceUnits: 0,
+          collectibles: 0,
+          collectibleScore: 0,
+          enemyKillCounts: const [],
+          tuning: const ScoreTuning(),
+          tickHz: 30,
+          rescuedNpcs: 3,
+          rescuePoints: points,
+        );
+        final row = result.rows.singleWhere(
+          (r) => r.kind == RunScoreRowKind.rescue,
+        );
+        expect(row.count, 3);
+        expect(row.points, points);
+        expect(
+          result.totalPoints,
+          points + 2 * const ScoreTuning().timeScorePerSecond,
+        );
+      }
+    },
+  );
+
+  test('rescue inputs and total reject negative, inconsistent and overflowing values', () {
+    for (final (count, points, collectibles) in [
+      (-1, 0, 0),
+      (0, 1, 0),
+      (1, -1, 0),
+      (1, 100001, 0),
+      (1, 1, 9007199254740991),
+      (9007199254740992, 0, 0),
+    ]) {
+      expect(
+        () => buildRunScoreBreakdown(
+          tick: 0,
+          distanceUnits: 0,
+          collectibles: 0,
+          collectibleScore: collectibles,
+          enemyKillCounts: const [],
+          tuning: const ScoreTuning(),
+          tickHz: 60,
+          rescuedNpcs: count,
+          rescuePoints: points,
+        ),
+        throwsArgumentError,
+      );
+    }
+  });
   test('run score breakdown includes distance/time/collectibles/kills', () {
     const distanceUnits = 500.0;
     const tick = 120;
@@ -18,12 +71,14 @@ void main() {
 
     // Compute expected values dynamically.
     final expectedMeters = (distanceUnits / kWorldUnitsPerMeter).floor();
-    final expectedDistancePoints = expectedMeters * tuning.distanceScorePerMeter;
+    final expectedDistancePoints =
+        expectedMeters * tuning.distanceScorePerMeter;
     const expectedTimeSeconds = tick ~/ tickHz;
     const expectedTimePoints = expectedTimeSeconds * 10;
     const expectedCollectiblePoints = 100;
     const expectedKillPoints = 150;
-    final expectedTotal = expectedDistancePoints +
+    final expectedTotal =
+        expectedDistancePoints +
         expectedTimePoints +
         expectedCollectiblePoints +
         expectedKillPoints;

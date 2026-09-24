@@ -9,9 +9,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.
-- [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): implemented gameplay, rendering and Chunk Creator authoring; poison-launcher emergence/retraction compatibility `2026.09.7` awaits deployment and includes the Forest repairs.
+- [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): implemented gameplay, rendering and Chunk Creator authoring; included with Forest repairs in the pending `2026.09.8` [release](building/rescue_release_operations.md).
 - [Technical design documents](tdd/): implemented architecture and contracts.
-- [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities source editing and Chunk Creator authoring; score and production-content delivery remains tracked in the active plan.
+- [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities source editing, Chunk Creator authoring and shared rescue scoring; production-content delivery remains tracked in the active plan.
 - [Game design documents](gdd/): implemented mechanics and content rules.
 - [Documentation rules](rules/code-documentation-policy.md).
 

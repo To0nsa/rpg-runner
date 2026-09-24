@@ -2141,6 +2141,8 @@ class GameCore {
     collectibles: collectibles,
     collectibleScore: collectibleScore,
     enemyKillCounts: List<int>.unmodifiable(_enemyKillCounts),
+    rescuedNpcs: _encounters.rescuedNpcs,
+    rescuePoints: _encounters.rescuePoints,
   );
 
   /// Checks if the player's HP has reached zero.

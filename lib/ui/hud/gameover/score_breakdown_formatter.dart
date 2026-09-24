@@ -16,6 +16,8 @@ String formatScoreRow(
     case RunScoreRowKind.enemyKill:
       final name = row.enemyId == null ? 'Enemy' : enemyName(row.enemyId!);
       return '$name x${row.count} -> $remainingPoints';
+    case RunScoreRowKind.rescue:
+      return 'NPCs rescued: ${row.count} -> $remainingPoints';
   }
 }
 

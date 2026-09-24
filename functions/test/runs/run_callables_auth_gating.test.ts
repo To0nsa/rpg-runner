@@ -142,9 +142,9 @@ test("handleRunBoardsLoadActive rejects unsupported game compatibility", async (
       levelId: "field",
       windowId: window.windowId,
       rulesetVersion: "rules-v1",
-      scoreVersion: "score-v1",
+      scoreVersion: "score-v2",
     },
-    gameCompatVersion: "2026.09.7",
+    gameCompatVersion: "2026.09.8",
     ghostVersion: "ghost-v1",
     tickHz: 60,
     seed: 1111,
@@ -265,7 +265,7 @@ function validRunSessionPayload(
     clientRequestId: "run_request_1",
     mode: "practice",
     levelId: "field",
-    gameCompatVersion: "2026.09.7",
+    gameCompatVersion: "2026.09.8",
     ...overrides,
   };
 }
@@ -278,7 +278,7 @@ function validBoardLoadPayload(
     sessionId: "session_1",
     mode: "competitive",
     levelId: "field",
-    gameCompatVersion: "2026.09.7",
+    gameCompatVersion: "2026.09.8",
     ...overrides,
   };
 }

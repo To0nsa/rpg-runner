@@ -34,9 +34,9 @@ const db = getFirestore(app);
 const config: BoardProvisioningConfig = {
   competitiveLevelIds: ["field", "forest"],
   weeklyLevelId: "field",
-  gameCompatVersion: "2026.09.7",
+  gameCompatVersion: "2026.09.8",
   rulesetVersion: "rules-v2",
-  scoreVersion: "score-v1",
+  scoreVersion: "score-v2",
   ghostVersion: "ghost-v1",
   tickHz: 60,
   seedNamespace: "tests-board-seed",
@@ -53,6 +53,7 @@ after(async () => {
 
 test("default provisioning config issues the capsule-combat ruleset", () => {
   assert.equal(resolveBoardProvisioningConfig({}).rulesetVersion, "rules-v2");
+  assert.equal(resolveBoardProvisioningConfig({}).scoreVersion, "score-v2");
 });
 
 test("ensureManagedLeaderboardBoards provisions competitive all-levels and weekly featured-level", async () => {
@@ -239,7 +240,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    "board_competitive_2026_03_field_rules_v2_score_v1_2026_09_7_ghost_v1",
+    "board_competitive_2026_03_field_rules_v2_score_v2_2026_09_8_ghost_v1",
   );
 
   const boards = await db.collection("leaderboard_boards").get();
@@ -308,7 +309,7 @@ async function assertBoardExists(args: {
   const doc = snapshot.docs[0]!;
   assert.equal(doc.get("status"), "active");
   assert.equal(doc.get("tickHz"), 60);
-  assert.equal(doc.get("gameCompatVersion"), "2026.09.7");
+  assert.equal(doc.get("gameCompatVersion"), "2026.09.8");
   assert.equal(doc.get("boardKey.mode"), args.mode);
   assert.equal(doc.get("boardKey.levelId"), args.levelId);
   assert.equal(doc.get("boardKey.windowId"), args.windowId);

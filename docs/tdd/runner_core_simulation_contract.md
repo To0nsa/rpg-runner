@@ -367,6 +367,15 @@ this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
 
+Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
+Core owns occurrence activation, target selection, participant damage credit,
+chunk containment, terminal priority and checked rescue awards. Shared UI/worker
+scoring consumes terminal rescue statistics; replay/command encoding stays at 1.
+The [encounter contract](npc_encounter_contracts.md) defines ordering and ownership.
+The matching client, Functions and worker follow the
+[pre-live release checklist](../building/rescue_release_operations.md), which also
+includes the earlier trap/navigation changes below.
+
 Poison Darts emergence and retraction ship as game compatibility `2026.09.7`.
 The catalog selects lowered idle art, plays emergence within the configured
 wind-up and adds 600 ms of lowering before cooldown. The lowered resting-camera

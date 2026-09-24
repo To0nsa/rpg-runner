@@ -120,6 +120,8 @@ void main() {
       expect(actual.endedReason, outcome.reason.name);
       expect(actual.goldEarned, outcome.goldEarned);
       expect(actual.stats['enemyKillCounts'], outcome.stats.enemyKillCounts);
+      expect(actual.stats['rescuedNpcs'], outcome.stats.rescuedNpcs);
+      expect(actual.stats['rescuePoints'], outcome.stats.rescuePoints);
       expect(
         actual.score,
         buildRunScoreBreakdown(
@@ -128,6 +130,8 @@ void main() {
           collectibles: outcome.stats.collectibles,
           collectibleScore: outcome.stats.collectibleScore,
           enemyKillCounts: outcome.stats.enemyKillCounts,
+          rescuedNpcs: outcome.stats.rescuedNpcs,
+          rescuePoints: outcome.stats.rescuePoints,
           tuning: app.scoreTuning,
           tickHz: app.tickHz,
         ).totalPoints,
@@ -260,6 +264,12 @@ void main() {
         loadoutSnapshot: _defaultLoadoutSnapshot(),
         totalTicks: 0,
         commandStream: const <ReplayCommandFrameV1>[],
+        clientSummary: const {
+          'score': 900000,
+          'rescuedNpcs': 100,
+          'rescuePoints': 900000,
+          'goldEarned': 99999,
+        },
       );
       final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
       final session = _session(
@@ -270,7 +280,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.09.7',
+        gameCompatVersion: '2026.09.8',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -312,6 +322,10 @@ void main() {
         '456',
       );
       expect(archiver.runSessionIds, <String>[replayBlob.runSessionId]);
+      expect(repo.acceptedSettlementHandoffs.single.stats['rescuedNpcs'], 0);
+      expect(repo.acceptedSettlementHandoffs.single.stats['rescuePoints'], 0);
+      expect(repo.acceptedSettlementHandoffs.single.score, 0);
+      expect(repo.acceptedSettlementHandoffs.single.goldEarned, 0);
       expect(settlementDispatcher.runSessionIds, <String>[
         replayBlob.runSessionId,
       ]);
@@ -329,7 +343,7 @@ void main() {
         levelId: 'field',
         windowId: '2026-07',
         rulesetVersion: 'rules-v2',
-        scoreVersion: 'score-v1',
+        scoreVersion: 'score-v2',
       );
       final replayBlob = ReplayBlobV1.withComputedDigest(
         runSessionId: 'run_ranked_board_deleted',
@@ -460,6 +474,7 @@ void main() {
       '2026.09.3',
       '2026.09.5',
       '2026.09.6',
+      '2026.09.7',
       '2099.01.0',
     ]) {
       test(
@@ -525,6 +540,12 @@ void main() {
             name: 'score',
             rulesetVersion: null,
             scoreVersion: 'score-v999',
+            ghostVersion: null,
+          ),
+          (
+            name: 'retired_score',
+            rulesetVersion: null,
+            scoreVersion: 'score-v1',
             ghostVersion: null,
           ),
           (
@@ -1519,7 +1540,7 @@ ValidatorRunSession _session({
   String? storageGeneration = '123',
   String? ticketRunSessionId,
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.09.7',
+  String gameCompatVersion = '2026.09.8',
   String? rulesetVersion,
   String? scoreVersion,
   String? ghostVersion,
@@ -1536,7 +1557,7 @@ ValidatorRunSession _session({
           levelId: 'field',
           windowId: '2026-07',
           rulesetVersion: rulesetVersion ?? 'rules-v2',
-          scoreVersion: scoreVersion ?? 'score-v1',
+          scoreVersion: scoreVersion ?? 'score-v2',
         )
       : null;
   return ValidatorRunSession(
@@ -1552,7 +1573,7 @@ ValidatorRunSession _session({
       tickHz: tickHz,
       gameCompatVersion: gameCompatVersion,
       rulesetVersion: mode.requiresBoard ? rulesetVersion ?? 'rules-v2' : null,
-      scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v1' : null,
+      scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v2' : null,
       ghostVersion: mode.requiresBoard ? ghostVersion ?? 'ghost-v1' : null,
       boardOpensAtMs: mode.requiresBoard
           ? boardOpensAtMs ?? issuedAtMs - 1

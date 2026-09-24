@@ -533,6 +533,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       'collectibles': event.stats.collectibles,
       'collectibleScore': event.stats.collectibleScore,
       'enemyKillCounts': event.stats.enemyKillCounts,
+      'rescuedNpcs': event.stats.rescuedNpcs,
+      'rescuePoints': event.stats.rescuePoints,
     };
   }
 

@@ -1,4 +1,5 @@
 import '../enemies/enemy_id.dart';
+import '../encounters/encounter_limits.dart';
 import '../tuning/score_tuning.dart';
 
 /// Categories of score contributions shown in the end-of-run breakdown.
@@ -14,6 +15,9 @@ enum RunScoreRowKind {
 
   /// Points earned from killing enemies (one row per enemy type).
   enemyKill,
+
+  /// Actual points awarded for rescued encounter survivors.
+  rescue,
 }
 
 /// A single line item in the score breakdown UI.
@@ -68,8 +72,25 @@ RunScoreBreakdown buildRunScoreBreakdown({
   required List<int> enemyKillCounts,
   required ScoreTuning tuning,
   required int tickHz,
+  int rescuedNpcs = 0,
+  int rescuePoints = 0,
   int unitsPerMeter = kWorldUnitsPerMeter,
 }) {
+  if (rescuedNpcs < 0 ||
+      rescuedNpcs > EncounterLimits.maxExactScore ||
+      rescuePoints < 0 ||
+      rescuePoints > EncounterLimits.maxExactScore ||
+      (rescuedNpcs == 0 && rescuePoints != 0)) {
+    throw ArgumentError(
+      'Rescue counts and awards must be non-negative exact integers with credited survivors.',
+    );
+  }
+  final minimumSurvivors =
+      rescuePoints ~/ EncounterLimits.maxPointsPerNpc +
+      (rescuePoints % EncounterLimits.maxPointsPerNpc == 0 ? 0 : 1);
+  if (rescuedNpcs < minimumSurvivors) {
+    throw ArgumentError('Rescue points exceed the per-survivor award limit.');
+  }
   // Convert internal units to player-facing values.
   final meters = unitsPerMeter <= 0
       ? 0
@@ -109,9 +130,26 @@ RunScoreBreakdown buildRunScoreBreakdown({
     );
   }
 
-  // Sum all rows for total.
+  if (rescuedNpcs > 0) {
+    rows.add(
+      RunScoreRow(
+        kind: RunScoreRowKind.rescue,
+        count: rescuedNpcs,
+        points: rescuePoints,
+      ),
+    );
+  }
+
+  // Check before addition so web and native totals remain the same exact integer.
   var totalPoints = 0;
   for (final row in rows) {
+    if (row.points < 0 ||
+        row.points > EncounterLimits.maxExactScore ||
+        totalPoints > EncounterLimits.maxExactScore - row.points) {
+      throw ArgumentError(
+        'Score exceeds the exact non-negative shared integer range.',
+      );
+    }
     totalPoints += row.points;
   }
 

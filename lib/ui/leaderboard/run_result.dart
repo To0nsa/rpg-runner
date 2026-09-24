@@ -13,6 +13,8 @@ class RunResult {
     required this.durationSeconds,
     required this.tick,
     this.displayName,
+    this.rescuedNpcs = 0,
+    this.rescuePoints = 0,
   });
 
   final int runId;
@@ -23,6 +25,8 @@ class RunResult {
   final int durationSeconds;
   final int tick;
   final String? displayName;
+  final int rescuedNpcs;
+  final int rescuePoints;
 
   RunResult copyWith({int? runId, int? endedAtMs, String? displayName}) {
     return RunResult(
@@ -34,6 +38,8 @@ class RunResult {
       durationSeconds: durationSeconds,
       tick: tick,
       displayName: displayName ?? this.displayName,
+      rescuedNpcs: rescuedNpcs,
+      rescuePoints: rescuePoints,
     );
   }
 
@@ -46,6 +52,8 @@ class RunResult {
     'durationSeconds': durationSeconds,
     'tick': tick,
     'displayName': displayName,
+    'rescuedNpcs': rescuedNpcs,
+    'rescuePoints': rescuePoints,
   };
 
   static RunResult fromJson(Map<String, dynamic> json) {
@@ -60,6 +68,8 @@ class RunResult {
       durationSeconds: json['durationSeconds'] as int? ?? 0,
       tick: json['tick'] as int? ?? 0,
       displayName: json['displayName'] as String?,
+      rescuedNpcs: json['rescuedNpcs'] as int? ?? 0,
+      rescuePoints: json['rescuePoints'] as int? ?? 0,
     );
   }
 
@@ -84,6 +94,8 @@ RunResult buildRunResult({
     collectibles: event.stats.collectibles,
     collectibleScore: event.stats.collectibleScore,
     enemyKillCounts: event.stats.enemyKillCounts,
+    rescuedNpcs: event.stats.rescuedNpcs,
+    rescuePoints: event.stats.rescuePoints,
     tuning: scoreTuning,
     tickHz: tickHz,
   );
@@ -102,5 +114,7 @@ RunResult buildRunResult({
     distanceMeters: distanceMeters,
     durationSeconds: durationSeconds,
     tick: event.tick,
+    rescuedNpcs: event.stats.rescuedNpcs,
+    rescuePoints: event.stats.rescuePoints,
   );
 }

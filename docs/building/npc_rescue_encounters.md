@@ -713,7 +713,7 @@ that milestone's changes; do not include unrelated navigation/content work.
   Acceptance: existing scene controls, dirty-draft guards, responsive state and
   pending diff behavior remain consistent; no duplicated domain logic or write
   path is introduced.
-- [ ] **M6 — Integrate rescue score and replay contracts.** Add aggregate rescue
+- [x] **M6 — Integrate rescue score and replay contracts.** Add aggregate rescue
   stats, shared defaults and per-encounter resolved awards, shared score
   calculation, end-screen formatting/feed and result summaries. Update
   validator-produced stats and affected wire consumers;
@@ -825,6 +825,17 @@ only corrected brace lints; scoped rechecks are clean. The opt-in
 `NPC_EDITOR_REVIEW=1` authoring test captures the reviewed scene with real catalog
 sprites/fonts (`.tmp/npc_editor_review.png`). M6–M7 still own score presentation/
 contracts, production content and compatibility/release validation.
+
+M6 evidence (September 25): terminal Core rescue counts/awards flow through the
+shared score breakdown, end-screen feed, local result serialization, provisional
+summary and authoritative worker stats. Zero-rescue runs retain their existing
+rows; zero-point rescues stay visible, mixed awards sum once, and overflow fails
+before addition. Forty client scoring/ticket tests, seven Core streaming tests,
+69 worker tests, 44 protocol tests and all 212 Functions emulator tests pass.
+Functions build and changed-source Dart analysis are clean. Forged client rescue,
+score and gold claims are ignored at 30 Hz. Defaults now agree on gameplay
+`2026.09.8`/`score-v2`; retired versions reject before replay. Deployment remains
+tracked separately in [release operations](rescue_release_operations.md).
 
 | Area | Required evidence |
 | --- | --- |

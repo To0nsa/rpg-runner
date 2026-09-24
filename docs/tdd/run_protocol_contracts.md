@@ -90,11 +90,11 @@ claims.
 Connection-aware terrain selection was introduced in game compatibility
 `2026.09.0`. The 128-world-unit camera fall-behind grace distance is issued as
 `2026.09.1`, and difficulty-paced camera targets are issued as `2026.09.2`.
-The default Functions allowlist and worker accept only that current release.
-Old tickets must drain on the old worker before switching because compatibility
-labels do not select historical Core implementations. Replay and command
-encoding remain version 1. See the
-[drain-and-switch policy](chunk_connections.md#compatibility-release).
+Current Functions defaults and the worker accept only `2026.09.8` with ranked
+`rules-v2`/`score-v2`/`ghost-v1`. The rescue release includes prior navigation and
+trap changes; compatibility labels do not select historical Core implementations.
+Replay and command encoding remain version 1. Follow the current
+[pre-live cancellation/reset procedure](../building/rescue_release_operations.md).
 Practice and ranked creation reject versions outside the backend allowlist before
 a run-session document is issued.
 
@@ -107,6 +107,12 @@ that versioned `boardId`, so historical projections are not merged across the
 cutover.
 
 ## Compatibility and testing
+
+Rescue release summaries add `rescuedNpcs` and `rescuePoints` to the existing
+immutable JSON maps in `ReplayBlobV1.clientSummary` and `ValidatedRun.stats`.
+The former is untrusted; the worker derives the latter from terminal Core stats
+and shared scoring. No command fields, ordinals, canonicalization or settlement
+contracts change. New boards partition `score-v2` results from previous scoring.
 
 Do not rename existing wire keys or change replay canonicalization without an
 explicit migration: replay digests, stored submissions, and ghost artifacts

@@ -5,13 +5,16 @@
   compatibility `2026.09.6` awaits deployment.
 
 - [NPC rescue encounters](npc_rescue_encounters.md): implementation in progress;
-  M0–M4 contracts, shared targeting, encounter lifecycle, authored compilation,
-  all NPC archetypes, rendering and Entities source editing delivered.
+  M0–M6 contracts, shared targeting, encounter lifecycle, authored compilation,
+  all NPC archetypes, rendering, Entities/Chunk Creator editing and scoring delivered.
   NPCs are confined to their encounter's chunk.
   D1–D7 are confirmed, including one-chunk off-screen
   abandonment and editable rescue points. Enemy victors resume normal AI.
   Activation, terminal priority, damage credit, actor integration and authoring
-  gaps are addressed in the plan. Next: M5 encounter authoring controls.
+  gaps are addressed in the plan. Next: playable content and integrated validation.
+
+- [Rescue release operations](rescue_release_operations.md): pending matching
+  `2026.09.8`/`score-v2` deployment, container benchmark and disposable-state cutover.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md). Remote deployment

@@ -75,6 +75,60 @@ RunEndedEvent _buildDerfSpellImpactDeathEvent() {
 }
 
 void main() {
+  testWidgets(
+    'mixed rescue points feed once and survive result serialization',
+    (tester) async {
+      const event = RunEndedEvent(
+        runId: 9,
+        tick: 60,
+        distance: 0,
+        reason: RunEndReason.gaveUp,
+        goldEarned: 0,
+        stats: RunEndStats(
+          collectibles: 0,
+          collectibleScore: 0,
+          enemyKillCounts: [],
+          rescuedNpcs: 3,
+          rescuePoints: 327,
+        ),
+      );
+      final result = buildRunResult(
+        event: event,
+        scoreTuning: _tuning,
+        tickHz: 30,
+        endedAtMs: 1,
+      );
+      expect(result.score, 347);
+      expect(result.durationSeconds, 2);
+      final saved = RunResult.fromJson(result.copyWith(runId: 77).toJson());
+      expect(saved.rescuedNpcs, 3);
+      expect(saved.rescuePoints, 327);
+      expect(RunResult.fromJson({'score': 10}).rescuePoints, 0);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameOverOverlay(
+            visible: true,
+            onRestart: () {},
+            onExit: null,
+            showExitButton: false,
+            levelId: LevelId.field,
+            runMode: RunMode.practice,
+            runEndedEvent: event,
+            scoreTuning: _tuning,
+            tickHz: 30,
+            leaderboardStore: _FakeLeaderboardStore(),
+          ),
+        ),
+      );
+      expect(find.text('NPCs rescued: 3 -> 327'), findsOneWidget);
+      await tester.tap(find.text('Collect Score'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(find.text('NPCs rescued: 3 -> 0'), findsOneWidget);
+      expect(find.text('Score: 347'), findsOneWidget);
+    },
+  );
   for (final (trap, kind, message) in [
     (TrapId.spike, DeathSourceKind.trap, 'Killed by a Spike trap.'),
     (

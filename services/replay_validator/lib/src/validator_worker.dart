@@ -116,9 +116,9 @@ class DeterministicValidatorWorker implements ValidatorWorker {
 
   static const Duration _ticketValidity = Duration(hours: 24);
   static const Duration _allowedAuthorityClockSkew = Duration(minutes: 5);
-  static const Set<String> _supportedGameCompatVersions = <String>{'2026.09.7'};
+  static const Set<String> _supportedGameCompatVersions = <String>{'2026.09.8'};
   static const Set<String> _supportedRulesetVersions = <String>{'rules-v2'};
-  static const Set<String> _supportedScoreVersions = <String>{'score-v1'};
+  static const Set<String> _supportedScoreVersions = <String>{'score-v2'};
   static const Set<String> _supportedGhostVersions = <String>{'ghost-v1'};
 
   @override
@@ -1040,6 +1040,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       collectibles: runEnded.stats.collectibles,
       collectibleScore: runEnded.stats.collectibleScore,
       enemyKillCounts: runEnded.stats.enemyKillCounts,
+      rescuedNpcs: runEnded.stats.rescuedNpcs,
+      rescuePoints: runEnded.stats.rescuePoints,
       tuning: core.scoreTuning,
       tickHz: core.tickHz,
     );
@@ -1063,6 +1065,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         'collectibles': runEnded.stats.collectibles,
         'collectibleScore': runEnded.stats.collectibleScore,
         'enemyKillCounts': runEnded.stats.enemyKillCounts,
+        'rescuedNpcs': runEnded.stats.rescuedNpcs,
+        'rescuePoints': runEnded.stats.rescuePoints,
       },
       replayDigest: replayBlob.canonicalSha256,
       replayStorageRef: session.uploadedReplay.objectPath,
