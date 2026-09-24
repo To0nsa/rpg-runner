@@ -1,3 +1,6 @@
+import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/snapshots/enums.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
@@ -5,13 +8,13 @@ import 'package:path/path.dart' as p;
 
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 
-/// Runtime-faithful first-idle-frame geometry for one marker enemy.
+/// Runtime-faithful first-idle-frame geometry shared by authored combat actors.
 ///
 /// Source rectangles are sheet pixels. Runtime destinations align the Core
 /// animation anchor to an already transformed body point and apply both the
 /// catalog render scale and the scene zoom.
-final class ChunkEnemyIdleFrame {
-  ChunkEnemyIdleFrame._({
+final class ChunkActorIdleFrame {
+  ChunkActorIdleFrame._({
     required this.absoluteSourcePath,
     required this.sourceRect,
     required this.frameSize,
@@ -22,36 +25,56 @@ final class ChunkEnemyIdleFrame {
   /// Resolves an enemy's first idle frame under the repository image root.
   ///
   /// Returns null when Core has no usable idle source path.
-  static ChunkEnemyIdleFrame? fromEnemy({
+  static ChunkActorIdleFrame? fromEnemy({
     required ChunkMarkerEnemyCatalogEntry enemy,
     required String workspaceRootPath,
   }) {
-    final sourcePath = enemy.previewSourcePath?.trim();
+    return fromDefinition(
+      renderAnim: enemy.renderAnim,
+      renderScale: enemy.renderScale,
+      workspaceRootPath: workspaceRootPath,
+    );
+  }
+
+  static ChunkActorIdleFrame? fromDefinition({
+    required RenderAnimSetDefinition renderAnim,
+    required double renderScale,
+    required String workspaceRootPath,
+  }) {
+    final sourcePath = renderAnim.sourcesByKey[AnimKey.idle]?.trim();
     if (sourcePath == null || sourcePath.isEmpty) return null;
-    final columns = enemy.previewGridColumns;
-    final startFrame = enemy.previewStartFrame;
+    final columns = renderAnim.gridColumnsByKey[AnimKey.idle];
+    final startFrame = (renderAnim.frameStartByKey[AnimKey.idle] ?? 0);
     final column = columns == null ? startFrame : startFrame % columns;
     final rowOffset = columns == null ? 0 : startFrame ~/ columns;
     final frameSize = Size(
-      enemy.renderAnim.frameWidth.toDouble(),
-      enemy.renderAnim.frameHeight.toDouble(),
+      renderAnim.frameWidth.toDouble(),
+      renderAnim.frameHeight.toDouble(),
     );
-    return ChunkEnemyIdleFrame._(
+    final explicit = renderAnim.sourceFramesByKey[AnimKey.idle]?.firstOrNull;
+    final anchor =
+        renderAnim.anchorPointByKey[AnimKey.idle] ?? renderAnim.anchorPoint;
+    return ChunkActorIdleFrame._(
       absoluteSourcePath: p.normalize(
         p.join(workspaceRootPath, 'assets', 'images', sourcePath),
       ),
-      sourceRect: Rect.fromLTWH(
-        column * frameSize.width,
-        (enemy.previewRow + rowOffset) * frameSize.height,
-        frameSize.width,
-        frameSize.height,
-      ),
+      sourceRect: explicit != null
+          ? Rect.fromLTWH(
+              explicit.x.toDouble(),
+              explicit.y.toDouble(),
+              explicit.width.toDouble(),
+              explicit.height.toDouble(),
+            )
+          : Rect.fromLTWH(
+              column * frameSize.width,
+              ((renderAnim.rowByKey[AnimKey.idle] ?? 0) + rowOffset) *
+                  frameSize.height,
+              frameSize.width,
+              frameSize.height,
+            ),
       frameSize: frameSize,
-      anchorPoint: Offset(
-        enemy.renderAnim.anchorPoint.x,
-        enemy.renderAnim.anchorPoint.y,
-      ),
-      renderScale: enemy.renderScale,
+      anchorPoint: Offset(anchor.x, anchor.y),
+      renderScale: renderScale,
     );
   }
 

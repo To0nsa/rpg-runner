@@ -45,51 +45,23 @@ EncounterPlacementResult resolveEncounterPlacement({
     ...definition.enemies,
   ]..sort((a, b) => a.id.compareTo(b.id));
   for (final member in members) {
-    final TerrainActorSpawnPlacementProfile profile;
-    final double initialY;
-    switch (member) {
-      case EncounterNpcPlacement():
-        if (!NpcCatalog.supportedIds.contains(member.npcId)) {
-          return EncounterPlacementResult.rejected(
-            'Unregistered NPC ${member.npcId.name}.',
-            memberId: member.id,
-          );
-        }
-        final actor = npcs.get(member.npcId);
-        profile = TerrainNpcSpawnPlacementProfile.fromCatalog(
-          catalog: npcs,
-          npcId: member.npcId,
-          facing: member.facing,
-        );
-        initialY = groundTopY - actor.collider.halfY - actor.collider.offsetY;
-      case EncounterEnemyPlacement():
-        final actor = enemies.get(member.enemyId);
-        profile = TerrainEnemySpawnPlacementProfile.fromCatalog(
-          catalog: enemies,
-          enemyId: member.enemyId,
-          facing: member.facing,
-        );
-        initialY = member.enemyId == EnemyId.unocoDemon
-            ? groundTopY - flyingHoverOffsetY
-            : groundTopY - actor.collider.halfY - actor.collider.offsetY;
+    if (member is EncounterNpcPlacement &&
+        !NpcCatalog.supportedIds.contains(member.npcId)) {
+      return EncounterPlacementResult.rejected(
+        'Unregistered NPC ${member.npcId.name}.',
+        memberId: member.id,
+      );
     }
-    final placement = resolve(
-      TerrainSpawnPlacementRequest(
-        profile: profile,
-        desiredBodyCenter: TerrainPoint(
-          physicsCoordinateToTicks(startX + member.x),
-          physicsCoordinateToTicks(initialY),
-        ),
-        supportSelection: switch (member.placement) {
-          SpawnPlacementMode.ground => TerrainSpawnSupportSelection.ground,
-          SpawnPlacementMode.highestSurfaceAtX =>
-            TerrainSpawnSupportSelection.highestSurfaceAtX,
-          SpawnPlacementMode.obstacleTop =>
-            TerrainSpawnSupportSelection.obstacleTop,
-        },
-        allowSameSupportClamp: false,
-      ),
+    final request = createEncounterSpawnRequest(
+      member: member,
+      startX: startX,
+      groundTopY: groundTopY,
+      flyingHoverOffsetY: flyingHoverOffsetY,
+      enemies: enemies,
+      npcs: npcs,
     );
+    final profile = request.profile as TerrainActorSpawnPlacementProfile;
+    final placement = resolve(request);
     if (!placement.accepted) {
       return EncounterPlacementResult.rejected(
         placement.diagnostic,
@@ -112,4 +84,56 @@ EncounterPlacementResult resolveEncounterPlacement({
     placements[member.id] = placement;
   }
   return EncounterPlacementResult.accepted(placements);
+}
+
+/// Builds the identical terrain request for runtime admission and editor evidence.
+/// This never admits a partial roster or changes authored source coordinates.
+TerrainSpawnPlacementRequest createEncounterSpawnRequest({
+  required EncounterParticipant member,
+  required double startX,
+  required double groundTopY,
+  required double flyingHoverOffsetY,
+  EnemyCatalog enemies = const EnemyCatalog(),
+  NpcCatalog npcs = const NpcCatalog(),
+}) {
+  final TerrainActorSpawnPlacementProfile profile;
+  final double initialY;
+  switch (member) {
+    case EncounterNpcPlacement():
+      if (!NpcCatalog.supportedIds.contains(member.npcId)) {
+        throw ArgumentError('Unregistered NPC ${member.npcId.name}.');
+      }
+      final actor = npcs.get(member.npcId);
+      profile = TerrainNpcSpawnPlacementProfile.fromCatalog(
+        catalog: npcs,
+        npcId: member.npcId,
+        facing: member.facing,
+      );
+      initialY = groundTopY - actor.collider.halfY - actor.collider.offsetY;
+    case EncounterEnemyPlacement():
+      final actor = enemies.get(member.enemyId);
+      profile = TerrainEnemySpawnPlacementProfile.fromCatalog(
+        catalog: enemies,
+        enemyId: member.enemyId,
+        facing: member.facing,
+      );
+      initialY = member.enemyId == EnemyId.unocoDemon
+          ? groundTopY - flyingHoverOffsetY
+          : groundTopY - actor.collider.halfY - actor.collider.offsetY;
+  }
+  return TerrainSpawnPlacementRequest(
+    profile: profile,
+    desiredBodyCenter: TerrainPoint(
+      physicsCoordinateToTicks(startX + member.x),
+      physicsCoordinateToTicks(initialY),
+    ),
+    supportSelection: switch (member.placement) {
+      SpawnPlacementMode.ground => TerrainSpawnSupportSelection.ground,
+      SpawnPlacementMode.highestSurfaceAtX =>
+        TerrainSpawnSupportSelection.highestSurfaceAtX,
+      SpawnPlacementMode.obstacleTop =>
+        TerrainSpawnSupportSelection.obstacleTop,
+    },
+    allowSameSupportClamp: false,
+  );
 }

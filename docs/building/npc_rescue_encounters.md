@@ -1,6 +1,6 @@
 # NPC rescue encounters
 
-Status: In progress; M0–M4 Core encounters, authored compilation, all three NPC archetypes, rendering and Entities source editing delivered. M5 encounter authoring UX next.
+Status: In progress; M0–M5 delivered: Core encounters, authored compilation, all three NPC archetypes, rendering, Entities source editing and Chunk Creator encounter authoring. Score integration and production/release validation remain.
 
 Created: September 24, 2026.
 
@@ -705,7 +705,7 @@ that milestone's changes; do not include unrelated navigation/content work.
   complete captured assets and needed Entities support. Acceptance: all three
   NPCs attack, take damage, die and render correctly in runtime and captured
   Play; no invented timing or collider assumptions remain unverified.
-- [ ] **M5 — Deliver encounter authoring and Play UX.** Implement the Encounters
+- [x] **M5 — Deliver encounter authoring and Play UX.** Implement the Encounters
   domain, catalog placement, inline inspectors, policy inheritance, overlays,
   points override/default controls, operations, diagnostics and read-only
   chunk-boundary guidance. Exercise the complete create, edit, move, duplicate,
@@ -807,8 +807,24 @@ sprite/live/ghost checks, seven Play host checks, 50 Entities checks and image
 capture/warmup checks pass. Core/game analysis is clean; full editor analysis
 had one test-only redundant null assertion, removed and rechecked. The Play host
 fixture now derives its image bounds from current explicit trap atlas regions.
-M5–M7 still own encounter authoring controls, score presentation/contracts,
-production content and compatibility/release validation.
+M5 evidence (September 25): Encounters uses the existing scene/domain controls,
+visual catalog/list cards, shared rectangle gestures, revision-guarded composition
+commands and inspector Save/Discard/Cancel gates. Actor previews share Core
+placement requests, and selection uses stable group/member identities through
+duplication, deletion and Undo. Ambient-marker conversion transfers the exact
+source record and required participant atomically. Per-member readiness messages,
+effective targeting, inherited/explicit reward values and separate activation/
+movement bounds are visible in the editor.
+
+The combined focused editor checks cover 82 cases across new authoring/preview
+tests, existing terrain/water/trap controls, source/history and captured Play.
+The preparation time budget passes in isolation; an initial concurrent run
+exceeded five seconds and was rerun without competing suites. Ten Core placement,
+streaming and ordinary-combat regression tests pass. Full editor analysis found
+only corrected brace lints; scoped rechecks are clean. The opt-in
+`NPC_EDITOR_REVIEW=1` authoring test captures the reviewed scene with real catalog
+sprites/fonts (`.tmp/npc_editor_review.png`). M6–M7 still own score presentation/
+contracts, production content and compatibility/release validation.
 
 | Area | Required evidence |
 | --- | --- |

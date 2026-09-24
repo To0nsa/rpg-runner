@@ -10,7 +10,7 @@ import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
-import 'chunk_enemy_idle_frame.dart';
+import 'chunk_actor_idle_frame.dart';
 
 /// Loads and paints runtime-faithful enemy sprites behind marker evidence.
 ///
@@ -97,13 +97,13 @@ class _ChunkMarkerPlacementOverlayState
     );
   }
 
-  Iterable<ChunkEnemyIdleFrame> _requiredFrames() sync* {
+  Iterable<ChunkActorIdleFrame> _requiredFrames() sync* {
     final seenPaths = <String>{};
     for (final outcome in widget.projection.outcomes) {
       if (outcome.enemyId == null) continue;
       final enemy = chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name);
       if (enemy == null) continue;
-      final frame = ChunkEnemyIdleFrame.fromEnemy(
+      final frame = ChunkActorIdleFrame.fromEnemy(
         enemy: enemy,
         workspaceRootPath: widget.workspaceRootPath,
       );
@@ -195,7 +195,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
 
   ({
     ui.Image image,
-    ChunkEnemyIdleFrame frame,
+    ChunkActorIdleFrame frame,
     Offset bodyPoint,
     double opacity,
   })?
@@ -203,7 +203,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     if (outcome.enemyId == null) return null;
     final enemy = chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name);
     if (enemy == null) return null;
-    final frame = ChunkEnemyIdleFrame.fromEnemy(
+    final frame = ChunkActorIdleFrame.fromEnemy(
       enemy: enemy,
       workspaceRootPath: workspaceRootPath,
     );

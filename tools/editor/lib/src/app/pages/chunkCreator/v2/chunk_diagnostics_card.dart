@@ -81,6 +81,8 @@ String? _diagnosticContext(ValidationIssue issue) {
       'placement $placementKey',
     if (shapeId != null && shapeId.isNotEmpty) 'shape $shapeId',
     if (issue.elementIndex case final elementIndex?) 'element $elementIndex',
+    if (issue.elementId case final elementId?) 'element $elementId',
+    if (issue.fieldKey case final fieldKey?) 'field $fieldKey',
   ];
   return parts.isEmpty ? null : parts.join(' · ');
 }

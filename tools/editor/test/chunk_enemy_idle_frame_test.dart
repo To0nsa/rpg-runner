@@ -3,14 +3,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_enemy_idle_frame.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_idle_frame.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/chunks/chunk_marker_authoring_catalog.dart';
 
 void main() {
   test('runtime destination aligns the scaled idle anchor to the body', () {
     final enemy = chunkMarkerEnemyCatalogEntryFor('grojib')!;
-    final frame = ChunkEnemyIdleFrame.fromEnemy(
+    final frame = ChunkActorIdleFrame.fromEnemy(
       enemy: enemy,
       workspaceRootPath: r'C:\workspace',
     )!;
@@ -31,7 +31,7 @@ void main() {
 
   test('thumbnail and scene projections share the Core idle frame crop', () {
     final enemy = chunkMarkerEnemyCatalogEntryFor('unocoDemon')!;
-    final frame = ChunkEnemyIdleFrame.fromEnemy(
+    final frame = ChunkActorIdleFrame.fromEnemy(
       enemy: enemy,
       workspaceRootPath: r'C:\workspace',
     )!;

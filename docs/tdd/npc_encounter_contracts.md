@@ -2,11 +2,10 @@
 
 Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 `AiTargetPolicy` preferences. They are independent of player input and enemy
-score IDs. Core contracts, shared AI targeting and the warrior encounter
-lifecycle, shared authored compilation and editor source preservation are delivered
+score IDs. Core contracts, shared AI targeting, all three NPC archetypes, encounter
+lifecycle, shared authored compilation and Chunk Creator authoring are delivered
 slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
-The encounter editing UI and score presentation
-remain in progress. Gameplay currently runs through typed and captured-source
+Score presentation remains in progress. Gameplay currently runs through typed and captured-source
 fixtures; production rescue content is not yet authored.
 
 An encounter owns separate NPC and enemy placement lists. Member IDs are unique
@@ -134,8 +133,32 @@ Encounter edit helpers preserve group/member identity through moves and renames,
 allocate fresh IDs for local duplication, and retain nullable policy/reward
 inheritance explicitly. A composition operation replaces or deletes one complete
 owned group under the existing owner/revision/before-snapshot guard. Removing its
-last required member remains a saveable incomplete draft. Scene controls are
-still the next authoring milestone.
+last required member remains a saveable incomplete draft.
+
+Chunk Creator exposes Encounters in its existing scene selector. The contextual
+sidebar reuses section/list cards and visual catalogs. Group inspectors own
+display name, activation rectangle, enemy policy and point inheritance; member
+inspectors own catalog identity, X, facing, terrain support and enemy policy
+overrides. Relevant shared readiness diagnostics appear beside the selected
+group/member. The movement boundary is the whole chunk and is shown separately
+from the blue activation rectangle.
+
+`ChunkEncounterGesture` wraps the shared rectangle/snapping interaction. Actor
+drags change only X and resolve Y through Core's `createEncounterSpawnRequest`
+and terrain placement resolver. Catalog choice does not create history. Release
+emits one guarded composition command; wrong-pointer events and cancellation do
+not publish source. Converting an ambient enemy removes that exact marker and
+adds a required encounter member in one command, preserving X/support and
+initializing catalog facing. Encounter activation replaces its ambient chance
+and scheduler; no alias or ambient-marker reference remains.
+
+Inspector buffers use the shared exact-edit controller and Save/Discard/Cancel
+guard. Save and Play finalize valid visible fields before session export/capture.
+Undo first cancels a gesture or unaccepted form edit. Composite selection IDs
+survive canonical sorting and are retained as tombstones across deletion, so
+Undo restores the selected participant. Owner changes clear selection, while
+navigation snapshots retain group/member IDs for the same owner. All source
+writes continue through the Chunk plugin's revision and before-snapshot guard.
 
 Generation emits immutable typed encounter lists and uses validated non-const
 constructors. Encounter-free pools retain the existing constant output. Encounter
@@ -276,4 +299,4 @@ path searches. Blocked evidence is local to each attacker.
 references before recycling entity IDs. Removing an encounter's target component
 restores ordinary player pursuit without resetting the actor's combat state.
 The shared target seam is exercised with fixture allies and complete streamed
-warrior encounters. Authored JSON/editor delivery remains in the active plan.
+encounters. Authored source, editor capture and normal runtime use the same rules.

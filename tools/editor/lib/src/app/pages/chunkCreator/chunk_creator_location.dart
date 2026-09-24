@@ -25,6 +25,8 @@ class ChunkCreatorLocation extends EditorPageLocation {
     this.markerSelectionKey,
     this.waterId,
     this.trapSelectionKey,
+    this.encounterId,
+    this.encounterMemberId,
     this.showGrid = false,
     this.showShapeEdges = false,
     this.showElevationGuides = false,
@@ -47,6 +49,7 @@ class ChunkCreatorLocation extends EditorPageLocation {
   final String? markerSelectionKey;
   final String? waterId;
   final String? trapSelectionKey;
+  final String? encounterId, encounterMemberId;
   final bool showGrid;
   final bool showShapeEdges;
   final bool showElevationGuides;

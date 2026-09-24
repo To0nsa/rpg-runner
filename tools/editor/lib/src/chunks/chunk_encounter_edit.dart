@@ -1,9 +1,79 @@
 import 'package:runner_core/combat/ai_target_policy.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/npcs/npc_id.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
+
+import 'chunk_v2_file_data.dart';
+import 'chunk_v2_composition_commit.dart';
+import 'chunk_v2_composition_operation.dart';
+import 'chunk_v2_composition_semantics.dart';
+
+/// Transfers an ambient enemy into an owned roster in one history transaction.
+/// X/support are retained; encounter activation replaces the ambient scheduler.
+({ChunkV2CompositionCommit commit, ChunkEncounterSelection selection})
+convertChunkMarkerToEncounter({
+  required ChunkV2FileData chunk,
+  required String encounterId,
+  required String markerSelectionKey,
+}) {
+  final selected = resolveChunkMarkerSelection(
+    chunk.markers,
+    markerSelectionKey,
+  );
+  final group = findChunkEncounter(chunk.encounters, encounterId);
+  if (selected == null || group == null) {
+    throw ArgumentError('Select a current encounter and enemy marker.');
+  }
+  final marker = selected.marker;
+  // Scene ordinals index a canonical projection, not necessarily the captured
+  // source list. Resolve the actual record before removing the ambient spawn.
+  final sourceIndex = chunk.markers.indexOf(marker);
+  final enemyId = EnemyId.values
+      .where((id) => id.name == marker.markerId)
+      .firstOrNull;
+  if (enemyId == null) {
+    throw ArgumentError(
+      'Only enemy markers can become encounter participants.',
+    );
+  }
+  final id = nextEncounterSourceId(
+    'enemy',
+    [...group.npcs, ...group.enemies].map((e) => e.id),
+  );
+  final member = EncounterEnemyPlacement(
+    id: id,
+    enemyId: enemyId,
+    x: marker.x.toDouble(),
+    facing: const EnemyCatalog().get(enemyId).artFacingDir,
+    placement: SpawnPlacementMode.values.byName(marker.placement),
+  );
+  final edit = ChunkV2CompositionOperation.replace(
+    chunk: chunk,
+    target: ChunkV2CompositionTarget.encounters,
+    sourceIndex: chunk.encounters.indexOf(group),
+  ).buildEncounter(candidate: addEncounterMember(group, member))!;
+  return (
+    selection: ChunkEncounterSelection(group.id, memberId: id),
+    commit: ChunkV2CompositionCommit(
+      expectedChunkKey: edit.expectedChunkKey,
+      expectedRevision: edit.expectedRevision,
+      before: edit.before,
+      after: ChunkV2CompositionSnapshot(
+        tileLayers: edit.after.tileLayers,
+        prefabs: edit.after.prefabs,
+        traps: edit.after.traps,
+        encounters: edit.after.encounters,
+        markers: canonicalizeChunkMarkers([
+          for (final (index, value) in chunk.markers.indexed)
+            if (index != sourceIndex) value,
+        ]),
+      ),
+    ),
+  );
+}
 
 /// Stable scene identity independent of canonical sort order and actor type.
 final class ChunkEncounterSelection {

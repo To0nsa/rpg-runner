@@ -267,9 +267,14 @@ maintainability concerns.
 
 ### Chunk Domain
 
+- encounter participants are owned by a group in one chunk; edit them through
+  the existing composition command and stable group/member IDs. Shared pipeline
+  decoding/readiness owns validation, and Core owns terrain placement evidence.
+  Incomplete groups are saveable but block Play/Build. Marker conversion removes
+  the ambient record and creates its required member in one transaction.
 - trap placements and editable triggers use the existing chunk composition
   command, revision guard and Save path; Core owns the catalog and damage rules
-- water/trap rectangle interaction shares `pages/shared/scene_rectangle_gesture.dart`;
+- water/trap/encounter rectangle interaction shares `pages/shared/scene_rectangle_gesture.dart`;
   keep validation and commit policy in each domain
 
 - owner: `tools/editor/lib/src/chunks/**` and

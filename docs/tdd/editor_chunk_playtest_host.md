@@ -27,6 +27,14 @@ runtime priority and camera-transform contract.
 
 ## Editor snapshot preparation
 
+Chunk Creator's Encounters domain uses the same `finalizeLocalEdits` gate as
+terrain and traps. Valid visible participant/policy/reward edits enter the
+session before capture; active gestures and invalid fields block Play. Shared
+pipeline readiness rejects incomplete or unplaceable groups. Captured source
+retains explicit reward/policy inheritance, and each repeated chunk occurrence
+creates its own Core encounter. NPC animation and projectile images are included
+in the captured appearance. See [encounter contracts](npc_encounter_contracts.md).
+
 `tools/editor/lib/src/playtest/authored_playtest_preparation.dart` captures
 accepted source through `captureChunkPlaytestPreparationInput` or
 `captureLevelPlaytestPreparationInput`. Both include the selected authored Level

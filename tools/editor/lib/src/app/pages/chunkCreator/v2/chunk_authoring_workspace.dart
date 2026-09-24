@@ -1,5 +1,16 @@
 import '../../../../chunks/chunk_v2_composition_commit.dart';
 import 'chunk_trap_gesture.dart';
+import 'chunk_encounter_gesture.dart';
+import 'chunk_encounter_inspector.dart';
+import 'chunk_encounter_panel.dart';
+import 'chunk_encounter_projection.dart';
+import 'chunk_encounter_visual_source.dart';
+import '../../../../chunks/chunk_encounter_edit.dart';
+
+import 'package:runner_core/encounters/encounter_definition.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/track/chunk_pattern.dart' show SpawnPlacementMode;
+
 import 'chunk_trap_panel.dart';
 import 'chunk_trap_inline_inspector.dart';
 import 'chunk_trap_tuning_fields.dart';
@@ -181,6 +192,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final ChunkPrefabSceneGesture _prefabGesture = ChunkPrefabSceneGesture();
   final ChunkMarkerSceneGesture _markerGesture = ChunkMarkerSceneGesture();
   final ChunkWaterDrawing _waterDrawing = ChunkWaterDrawing();
+  final _encounterGesture = ChunkEncounterGesture();
+  final _encounterEditController = TerrainPolygonExactEditController();
+  final _encounterName = TextEditingController(text: 'Rescue encounter');
+  final _encounterImages = EditorUiImageCache();
+  ChunkV2FileData? _encounterEditorChunk;
+  int _encounterEditorGeneration = 0;
+  String? _encounterError;
+  ChunkV2FileData? _encounterProjectionChunk;
+  ChunkV2CollisionExpansion? _encounterProjectionExpansion;
+  double? _encounterProjectionGroundY;
+  List<ChunkEncounterActorProjection> _encounterProjection = const [];
   final ChunkTrapGesture _trapGesture = ChunkTrapGesture()..previewFrame = -1;
   late final _trapDamage = TextEditingController(
     text: formatTrapDamage100(
@@ -231,7 +253,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _prefabTransformDraft != null ||
       _markerGesture.hasActiveOperation ||
       _waterDrawing.hasActiveOperation ||
-      _trapGesture.hasActiveOperation;
+      _trapGesture.hasActiveOperation ||
+      _encounterGesture.hasActiveOperation;
 
   bool get hasActiveOperation => _hasActiveOperation;
 
@@ -263,6 +286,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     prefabSelectionKey: _sceneCoordinator.selectedPrefabKey,
     markerSelectionKey: _sceneCoordinator.selectedMarkerKey,
     waterId: _sceneCoordinator.selectedWaterId,
+    encounterId: _sceneCoordinator.selectedEncounter?.encounterId,
+    encounterMemberId: _sceneCoordinator.selectedEncounter?.memberId,
     trapSelectionKey: _sceneCoordinator.selectedTrap == null
         ? null
         : chunkTrapSelectionKey(_sceneCoordinator.selectedTrap!),
@@ -375,6 +400,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
+      _hasPendingEncounterEdit ||
+      _encounterGesture.hasActiveOperation ||
       _ownerEditDirty ||
       _ownerCreateDirty ||
       _hasPendingTrapEdit ||
@@ -388,6 +415,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           (_authoring?.canUndo ?? widget.controller.canUndo));
 
   bool get canRedo =>
+      !_hasPendingEncounterEdit &&
+      !_encounterGesture.hasActiveOperation &&
       !_ownerEditDirty &&
       !_ownerCreateDirty &&
       !_hasPendingTrapEdit &&
@@ -419,6 +448,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _trapEditController.hasChanges;
 
   bool get _hasPendingSelectedSceneEdit {
+    if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.encounters) {
+      return _hasPendingEncounterEdit;
+    }
     if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.traps) {
       return _hasPendingTrapEdit;
     }
@@ -434,6 +466,15 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool handleUndoShortcut() {
+    if (_encounterGesture.hasActiveOperation) {
+      setState(_encounterGesture.cancel);
+      widget.onDraftStateChanged?.call();
+      return true;
+    }
+    if (_hasPendingEncounterEdit) {
+      _discardEncounterEdit();
+      return true;
+    }
     if (_trapGesture.hasActiveOperation) {
       setState(_trapGesture.cancel);
       return true;
@@ -481,6 +522,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool handleRedoShortcut() {
+    if (_hasPendingEncounterEdit || _encounterGesture.hasActiveOperation) {
+      return false;
+    }
     if (_ownerEditDirty ||
         _ownerCreateDirty ||
         _hasPendingTrapEdit ||
@@ -512,6 +556,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _ownerGroupFilter = initialLocation?.ownerGroupFilter ?? '';
     _exactEditController.addListener(_handleExactEditChanged);
     _trapEditController.addListener(_handleExactEditChanged);
+    _encounterEditController.addListener(_handleExactEditChanged);
     _reloadMaterialCatalog();
     _selectInitialOwner();
     _restoreLocation();
@@ -544,6 +589,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       markerKey == null
           ? null
           : resolveChunkMarkerSelection(chunk.markers, markerKey),
+    );
+    _bindEncounterSelection(
+      location.encounterId == null
+          ? null
+          : ChunkEncounterSelection(
+              location.encounterId!,
+              memberId: location.encounterMemberId,
+            ),
     );
     _bindWaterSelection(location.waterId);
     _bindTrapSelection(
@@ -585,6 +638,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _trapWindup.dispose();
     _trapZIndex.dispose();
     _trapImages.dispose();
+    _encounterImages.dispose();
+    _encounterName.dispose();
+    _encounterEditController
+      ..removeListener(_handleExactEditChanged)
+      ..dispose();
     _trapEditController
       ..removeListener(_handleExactEditChanged)
       ..dispose();
@@ -685,7 +743,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     if (!mounted) return false;
     final authoring = _authoring;
     final shapeId = authoring?.state.selection?.shapeId;
-    if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.traps) {
+    if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.encounters) {
+      if (_hasPendingEncounterEdit && !_encounterEditController.save()) {
+        return false;
+      }
+    } else if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.traps) {
       if (_hasPendingTrapEdit && !_trapEditController.save()) return false;
     } else if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.water) {
       if (_hasPendingWaterEdit && !_exactEditController.save()) return false;
@@ -848,6 +910,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               )
             : _buildShapePanel(authoring),
       ),
+      ChunkSceneDomain.encounters =>
+        authoring == null
+            ? const SizedBox.shrink()
+            : _buildEncounterPanel(authoring.chunk),
       ChunkSceneDomain.traps =>
         authoring == null
             ? const Text('Select or create a chunk owner first.')
@@ -903,6 +969,336 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _waterNewNameInput.trim().isEmpty
       ? nextChunkWaterId(chunk.waterRegions)
       : _waterNewNameInput.trim();
+
+  bool get _hasPendingEncounterEdit =>
+      _sceneCoordinator.sourceDomain == ChunkSceneDomain.encounters &&
+      _encounterEditController.hasChanges;
+
+  List<ChunkEncounterActorProjection> _encounterActors(ChunkV2FileData chunk) {
+    final expansion = _expansionFor(chunk.chunkKey)?.expansion;
+    final groundY = _sceneOrNull?.groundTopYByLevelId[chunk.levelId];
+    if (identical(chunk, _encounterProjectionChunk) &&
+        identical(expansion, _encounterProjectionExpansion) &&
+        groundY == _encounterProjectionGroundY) {
+      return _encounterProjection;
+    }
+    _encounterProjectionChunk = chunk;
+    _encounterProjectionExpansion = expansion;
+    _encounterProjectionGroundY = groundY;
+    return _encounterProjection = projectChunkEncounterActors(
+      chunk: chunk,
+      expansion: expansion,
+      groundTopY: groundY,
+      workspaceRootPath: widget.controller.workspacePath,
+    );
+  }
+
+  Widget _buildEncounterPanel(ChunkV2FileData chunk) {
+    final selected = _sceneCoordinator.selectedEncounter;
+    final captured = _encounterEditorChunk ?? chunk;
+    final group = selected == null
+        ? null
+        : findChunkEncounter(captured.encounters, selected.encounterId);
+    final member = group == null || selected?.memberId == null
+        ? null
+        : findEncounterMember(group, selected!.memberId!);
+    final enabled = !_hasActiveOperation && !_visualPreview;
+    return ChunkEncounterPanel(
+      groups: chunk.encounters,
+      selected: selected,
+      workspaceRootPath: widget.controller.workspacePath,
+      nameController: _encounterName,
+      enabled: enabled,
+      gesture: _encounterGesture,
+      onCreate: _createEncounter,
+      onSelect: _selectEncounter,
+      onTool: _setEncounterTool,
+      onNpc: (id) => setState(() => _encounterGesture.npcId = id),
+      onEnemy: (id) => setState(() {
+        _encounterGesture.enemyId = id;
+        _encounterGesture.placement = id == EnemyId.derf
+            ? SpawnPlacementMode.obstacleTop
+            : SpawnPlacementMode.ground;
+      }),
+      onFacing: (v) => setState(() => _encounterGesture.facing = v),
+      onPlacement: (v) => setState(() => _encounterGesture.placement = v),
+      snapControls: Column(
+        children: [
+          _buildTerrainSnapSwitch(
+            _authoring!,
+            forCreation: true,
+            keyName: 'chunk_encounter_create_snap',
+          ),
+          _buildTerrainSnapSwitch(
+            _authoring!,
+            forCreation: false,
+            keyName: 'chunk_encounter_edit_snap',
+          ),
+          _buildTerrainNeighborVertexSnapSwitch(
+            _authoring!,
+            keyName: 'chunk_encounter_neighbor_snap',
+          ),
+        ],
+      ),
+      ambientEnemies: buildChunkPlacedMarkerSelections(chunk.markers)
+          .where(
+            (m) => EnemyId.values.any((id) => id.name == m.marker.markerId),
+          )
+          .toList(),
+      onConvert: _convertEncounterMarker,
+      editor: group == null || (selected!.memberId != null && member == null)
+          ? null
+          : ChunkEncounterInspector(
+              key: ValueKey((
+                'encounter_inspector',
+                selected,
+                captured.revision,
+                _encounterEditorGeneration,
+              )),
+              group: group,
+              member: member,
+              issues: widget.controller.issues
+                  .where(
+                    (issue) =>
+                        issue.ownerKey == chunk.chunkKey &&
+                        issue.elementId == group.id &&
+                        (member == null ||
+                            issue.fieldKey == 'members.${member.id}.placement'),
+                  )
+                  .toList(),
+              editController: _encounterEditController,
+              enabled: enabled,
+              onApply: (candidate) =>
+                  _applyEncounterEdit(captured, group, candidate),
+              onCancel: _discardEncounterEdit,
+              onDuplicate: _duplicateSelectedEncounter,
+              onDelete: _deleteSelectedEncounter,
+            ),
+      error: _encounterError ?? _encounterGesture.error,
+    );
+  }
+
+  void _bindEncounterSelection(ChunkEncounterSelection? selection) {
+    _sceneCoordinator.selectEncounter(selection);
+    _encounterEditorChunk = _authoring?.chunk;
+    _encounterEditorGeneration++;
+    _encounterError = null;
+  }
+
+  Future<void> _convertEncounterMarker(String key) async {
+    if (_hasActiveOperation || !await _resolveEncounterEdit() || !mounted) {
+      return;
+    }
+    final chunk = _authoring?.chunk;
+    final selected = _sceneCoordinator.selectedEncounter;
+    if (chunk == null || selected == null) return;
+    try {
+      final result = convertChunkMarkerToEncounter(
+        chunk: chunk,
+        encounterId: selected.encounterId,
+        markerSelectionKey: key,
+      );
+      final accepted = _applySceneCompositionCommit(result.commit);
+      setState(() {
+        if (accepted) {
+          _bindEncounterSelection(result.selection);
+        } else {
+          _encounterError =
+              'Marker conversion rejected. Review diagnostics and retry.';
+        }
+      });
+      widget.onDraftStateChanged?.call();
+    } on ArgumentError catch (e) {
+      setState(() => _encounterError = e.message.toString());
+    }
+  }
+
+  Future<void> _selectEncounter(ChunkEncounterSelection? selection) async {
+    if (_hasActiveOperation || !await _resolveEncounterEdit() || !mounted) {
+      return;
+    }
+    setState(() {
+      _bindEncounterSelection(selection);
+      _encounterGesture.tool = ChunkEncounterTool.select;
+    });
+    widget.onDraftStateChanged?.call();
+  }
+
+  Future<void> _setEncounterTool(ChunkEncounterTool tool) async {
+    if (_hasActiveOperation || !await _resolveEncounterEdit() || !mounted) {
+      return;
+    }
+    setState(() => _encounterGesture.tool = tool);
+  }
+
+  Future<bool> _resolveEncounterEdit() async {
+    if (!_hasPendingEncounterEdit) return true;
+    final generation = _encounterEditorGeneration;
+    final choice = await showEditorPendingChangesDialog(
+      context: context,
+      dialogKey: const ValueKey('chunk_encounter_unsaved_edit_dialog'),
+      title: 'Save encounter changes?',
+      content: const Text(
+        'Save the pending encounter changes before continuing?',
+      ),
+      cancelKey: const ValueKey('chunk_encounter_unsaved_edit_cancel'),
+      discardKey: const ValueKey('chunk_encounter_unsaved_edit_discard'),
+      saveKey: const ValueKey('chunk_encounter_unsaved_edit_save'),
+    );
+    if (!mounted || generation != _encounterEditorGeneration) return false;
+    switch (choice) {
+      case EditorPendingChangesAction.save:
+        return _encounterEditController.save();
+      case EditorPendingChangesAction.discard:
+        _discardEncounterEdit();
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _discardEncounterEdit() {
+    _encounterEditController.discard();
+    setState(
+      () => _bindEncounterSelection(_sceneCoordinator.selectedEncounter),
+    );
+    widget.onDraftStateChanged?.call();
+  }
+
+  String? _applyEncounterEdit(
+    ChunkV2FileData captured,
+    EncounterDefinition? source,
+    EncounterDefinition? candidate, {
+    ChunkEncounterSelection? selectAfter,
+  }) {
+    try {
+      final index = source == null ? -1 : captured.encounters.indexOf(source);
+      if (source != null && index < 0) {
+        return 'Encounter no longer exists. Discard changes and select it again.';
+      }
+      candidate?.validateForChunk(
+        captured.width.toDouble(),
+        requireComplete: false,
+      );
+      final operation = source == null
+          ? ChunkV2CompositionOperation.add(
+              chunk: captured,
+              target: ChunkV2CompositionTarget.encounters,
+            )
+          : candidate == null
+          ? ChunkV2CompositionOperation.delete(
+              chunk: captured,
+              target: ChunkV2CompositionTarget.encounters,
+              sourceIndex: index,
+            )
+          : ChunkV2CompositionOperation.replace(
+              chunk: captured,
+              target: ChunkV2CompositionTarget.encounters,
+              sourceIndex: index,
+            );
+      final commit = operation.buildEncounter(candidate: candidate);
+      if (commit != null && !_applySceneCompositionCommit(commit)) {
+        return 'Encounter edit was rejected. Review diagnostics or discard stale changes and retry.';
+      }
+      setState(
+        () => _bindEncounterSelection(
+          selectAfter ?? _sceneCoordinator.selectedEncounter,
+        ),
+      );
+      widget.onDraftStateChanged?.call();
+      return null;
+    } on ArgumentError catch (e) {
+      return e.message.toString();
+    }
+  }
+
+  Future<void> _createEncounter() async {
+    if (_hasActiveOperation || !await _resolveEncounterEdit() || !mounted) {
+      return;
+    }
+    final chunk = _authoring?.chunk;
+    if (chunk == null) return;
+    try {
+      final id = nextEncounterSourceId(
+        'encounter',
+        chunk.encounters.map((e) => e.id),
+      );
+      final group = EncounterDefinition(
+        id: id,
+        name: _encounterName.text.trim(),
+        trigger: EncounterTrigger(
+          x: 0,
+          y: 0,
+          width: chunk.width.clamp(1, 128).toDouble(),
+          height: chunk.height.toDouble(),
+        ),
+      );
+      final error = _applyEncounterEdit(
+        chunk,
+        null,
+        group,
+        selectAfter: ChunkEncounterSelection(id),
+      );
+      setState(() => _encounterError = error);
+    } on ArgumentError catch (e) {
+      setState(() => _encounterError = e.message.toString());
+    }
+  }
+
+  Future<void> _duplicateSelectedEncounter() async {
+    if (_hasActiveOperation || !await _resolveEncounterEdit() || !mounted) {
+      return;
+    }
+    final chunk = _authoring?.chunk;
+    final selected = _sceneCoordinator.selectedEncounter;
+    if (chunk == null || selected == null) return;
+    final group = findChunkEncounter(chunk.encounters, selected.encounterId);
+    if (group == null) return;
+    try {
+      final member = selected.memberId == null
+          ? null
+          : findEncounterMember(group, selected.memberId!);
+      if (selected.memberId != null && member == null) return;
+      final copy = member == null
+          ? null
+          : duplicateEncounterMember(group, member);
+      final candidate = copy == null
+          ? duplicateChunkEncounter(group, chunk.encounters)
+          : addEncounterMember(group, copy);
+      final error = _applyEncounterEdit(
+        chunk,
+        copy == null ? null : group,
+        candidate,
+        selectAfter: ChunkEncounterSelection(candidate.id, memberId: copy?.id),
+      );
+      setState(() => _encounterError = error);
+    } on ArgumentError catch (e) {
+      setState(() => _encounterError = e.message.toString());
+    }
+  }
+
+  Future<void> _deleteSelectedEncounter() async {
+    if (_hasActiveOperation || !await _resolveEncounterEdit() || !mounted) {
+      return;
+    }
+    final chunk = _authoring?.chunk;
+    final selected = _sceneCoordinator.selectedEncounter;
+    if (chunk == null || selected == null) return;
+    final group = findChunkEncounter(chunk.encounters, selected.encounterId);
+    if (group == null) return;
+    if (selected.memberId != null &&
+        findEncounterMember(group, selected.memberId!) == null) {
+      return;
+    }
+    final error = _applyEncounterEdit(
+      chunk,
+      group,
+      selected.memberId == null
+          ? null
+          : removeEncounterMember(group, selected.memberId!),
+    );
+    setState(() => _encounterError = error);
+  }
 
   Widget _buildTrapPanel(ChunkV2FileData chunk) {
     final source = _sceneCoordinator.selectedTrap;
@@ -1911,6 +2307,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 label: Text('Traps'),
               ),
               ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.encounters,
+                label: Text('Encounters'),
+              ),
+              ButtonSegment<ChunkSceneDomain>(
                 value: ChunkSceneDomain.layers,
                 label: Text('Layers'),
               ),
@@ -1980,6 +2380,29 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                                 _waterMoveArmed = true;
                               }),
                       ),
+                    ] else if (_sceneCoordinator.sourceDomain ==
+                        ChunkSceneDomain.encounters) ...[
+                      for (final tool in [
+                        ChunkEncounterTool.select,
+                        ChunkEncounterTool.moveTrigger,
+                        ChunkEncounterTool.drawTrigger,
+                      ])
+                        ChoiceChip(
+                          key: ValueKey('chunk_encounter_tool_${tool.name}'),
+                          label: Text(switch (tool) {
+                            ChunkEncounterTool.select => 'Select / move',
+                            ChunkEncounterTool.moveTrigger => 'Move trigger',
+                            _ => 'Draw trigger',
+                          }),
+                          selected: _encounterGesture.tool == tool,
+                          onSelected:
+                              _hasActiveOperation ||
+                                  (tool != ChunkEncounterTool.select &&
+                                      _sceneCoordinator.selectedEncounter ==
+                                          null)
+                              ? null
+                              : (_) => _setEncounterTool(tool),
+                        ),
                     ] else if (_sceneCoordinator.sourceDomain ==
                         ChunkSceneDomain.traps) ...[
                       for (final tool in [
@@ -2091,6 +2514,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               ? 'Visual preview shows runtime-facing chunk art only. Exit it '
                     'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
                     'zooms.'
+              : _sceneCoordinator.sourceDomain == ChunkSceneDomain.encounters
+              ? 'Place participants in their encounter; drag to move along X. Blue handles resize activation; green bounds show the owning chunk. Ctrl+drag pans; Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.traps
               ? 'Place or move trap art; blue handles resize the independent trigger. Preview frames show read-only damage geometry. Ctrl+drag pans; Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.water
@@ -2190,6 +2615,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                   if (index != _trapGesture.hiddenSourceIndex) trap,
                 ?_trapGesture.candidate,
               ];
+              final encounterCandidate = _encounterGesture.candidate;
+              final encounterChunk = encounterCandidate == null
+                  ? chunk
+                  : chunk.copyWith(
+                      encounters: [
+                        for (final group in chunk.encounters)
+                          group.id == encounterCandidate.id
+                              ? encounterCandidate
+                              : group,
+                      ],
+                    );
               Widget trapVisual(
                 ChunkTrapVisualPass pass,
               ) => ChunkTrapVisualSource(
@@ -2454,6 +2890,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                                 _sceneCoordinator.selectedCompiledEdgeId,
                           ),
                         ),
+                      ChunkEncounterVisualSource(
+                        key: const ValueKey('chunk_encounter_visuals'),
+                        actors: _encounterActors(encounterChunk),
+                        groups: encounterChunk.encounters,
+                        selected:
+                            _encounterGesture.selection ??
+                            _sceneCoordinator.selectedEncounter,
+                        transform: transform,
+                        chunkSize: Size(
+                          chunk.width.toDouble(),
+                          chunk.height.toDouble(),
+                        ),
+                        authoring:
+                            !_visualPreview &&
+                            _sceneCoordinator.sourceDomain ==
+                                ChunkSceneDomain.encounters,
+                        images: _encounterImages,
+                      ),
                       trapVisual(ChunkTrapVisualPass.overlay),
                     ],
                   ),
@@ -3400,6 +3854,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   Future<bool> _resolvePendingSceneEdit(
     ChunkPolygonAuthoringController authoring,
   ) async {
+    if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.encounters) {
+      return _resolveEncounterEdit();
+    }
     if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.traps) {
       return _resolveTrapEdit();
     }
@@ -3937,6 +4394,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _disposeAuthoring() {
+    _encounterProjectionChunk = null;
+    _encounterProjectionExpansion = null;
+    _encounterProjection = const [];
+    _encounterEditorChunk = null;
+    _encounterGesture.cancel();
+    _encounterGesture.tool = ChunkEncounterTool.select;
+    _encounterError = null;
     _trapEditorChunk = null;
     _trapGesture.cancel();
     _trapGesture.tool = ChunkTrapTool.select;
@@ -3977,6 +4441,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         _draftVertexEditorIndex = draftVertexCount - 1;
       }
       final hadPendingTrapEdit = _hasPendingTrapEdit;
+      if (!_hasPendingEncounterEdit &&
+          _encounterEditorChunk != authoring.chunk) {
+        _encounterEditorChunk = authoring.chunk;
+        _encounterEditorGeneration++;
+      }
       final selectedTrap = _sceneCoordinator.selectedTrap;
       final hadPendingWaterEdit = _hasPendingWaterEdit;
       _sceneCoordinator.reconcileComposition(authoring.chunk);
@@ -4102,6 +4571,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _waterDrawArmed = false;
       _trapGesture.tool = ChunkTrapTool.select;
       _sceneCoordinator.setSourceDomain(domain);
+      _encounterGesture.tool = ChunkEncounterTool.select;
       if (domain == ChunkSceneDomain.terrain) {
         _sceneCoordinator.selectTerrain(_authoring?.state.selection);
       } else if (domain == ChunkSceneDomain.markers) {
@@ -4116,6 +4586,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     Offset worldPoint,
   ) {
     switch (_sceneCoordinator.domain) {
+      case ChunkSceneDomain.encounters:
+        _selectEncounter(
+          hitTestChunkEncounter(
+            chunk: chunk,
+            actors: _encounterActors(chunk),
+            point: worldPoint,
+          ),
+        );
       case ChunkSceneDomain.prefabs:
         final hit = visualProjection.hitTestPrefab(worldPoint);
         final selection = hit == null
@@ -4149,6 +4627,57 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }) {
     if (_hasActiveOperation) return false;
     switch (_sceneCoordinator.domain) {
+      case ChunkSceneDomain.encounters:
+        if (_hasPendingEncounterEdit) {
+          _resolveEncounterEdit();
+          return false;
+        }
+        var selected = _sceneCoordinator.selectedEncounter;
+        if (_encounterGesture.tool == ChunkEncounterTool.select) {
+          final group = selected == null
+              ? null
+              : findChunkEncounter(chunk.encounters, selected.encounterId);
+          final corner = group != null && selected!.memberId == null
+              ? hitTestSceneRectangleCorner(
+                  bounds: encounterTriggerBounds(group),
+                  worldPoint: worldPoint,
+                  zoom: _zoom,
+                )
+              : null;
+          if (corner == null) {
+            selected = hitTestChunkEncounter(
+              chunk: chunk,
+              actors: _encounterActors(chunk),
+              point: worldPoint,
+            );
+          }
+        }
+        if (selected == null) {
+          setState(() => _bindEncounterSelection(null));
+          return false;
+        }
+        var began = false;
+        setState(() {
+          if (selected != _sceneCoordinator.selectedEncounter) {
+            _bindEncounterSelection(selected);
+          }
+          began = _encounterGesture.begin(
+            chunk: chunk,
+            selected: selected!,
+            pointer: pointer,
+            point: worldPoint,
+            zoom: _zoom,
+            snapToGrid:
+                _encounterGesture.tool == ChunkEncounterTool.placeNpc ||
+                    _encounterGesture.tool == ChunkEncounterTool.placeEnemy
+                ? _terrainCreationSnapToGrid
+                : _terrainEditSnapToGrid,
+            snapToNeighbors: _terrainCreationSnapToNeighborVertices,
+            expansion: _expansionFor(chunk.chunkKey)?.expansion,
+          );
+        });
+        widget.onDraftStateChanged?.call();
+        return began;
       case ChunkSceneDomain.traps:
         if (_hasPendingTrapEdit) {
           _resolveTrapEdit();
@@ -4388,6 +4917,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _updateDomainGesture(int pointer, Offset worldPoint) {
+    if (_encounterGesture.hasActiveOperation) {
+      setState(
+        () => _encounterGesture.update(
+          pointer: pointer,
+          point: worldPoint,
+          zoom: _zoom,
+        ),
+      );
+      return;
+    }
     if (_trapGesture.hasActiveOperation) {
       setState(
         () => _trapGesture.update(
@@ -4418,6 +4957,30 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _endDomainGesture(int pointer, Offset worldPoint) {
+    if (_encounterGesture.hasActiveOperation) {
+      final result = _encounterGesture.finish(
+        pointer: pointer,
+        point: worldPoint,
+        zoom: _zoom,
+      );
+      if (result != null) {
+        var error = result.error;
+        if (error == null &&
+            result.commit != null &&
+            !_applySceneCompositionCommit(result.commit!)) {
+          error = 'Encounter placement rejected. Review diagnostics and retry from the current chunk.';
+        }
+        setState(() {
+          if (error == null) {
+            _bindEncounterSelection(result.selection);
+            _encounterGesture.tool = ChunkEncounterTool.select;
+          }
+          _encounterError = error;
+        });
+      }
+      widget.onDraftStateChanged?.call();
+      return;
+    }
     if (_trapGesture.hasActiveOperation) {
       final result = _trapGesture.finish(
         pointer: pointer,
@@ -4463,6 +5026,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _cancelDomainGesture(int pointer) {
+    if (_encounterGesture.hasActiveOperation) {
+      setState(_encounterGesture.cancel);
+      widget.onDraftStateChanged?.call();
+      return;
+    }
     if (_trapGesture.hasActiveOperation) {
       setState(_trapGesture.cancel);
       widget.onDraftStateChanged?.call();
@@ -4483,6 +5051,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _cancelGestureOrClearSelection() {
+    if (_sceneCoordinator.domain == ChunkSceneDomain.encounters) {
+      if (_encounterGesture.hasActiveOperation ||
+          _encounterGesture.tool != ChunkEncounterTool.select) {
+        setState(() {
+          _encounterGesture.cancel();
+          _encounterGesture.tool = ChunkEncounterTool.select;
+        });
+        widget.onDraftStateChanged?.call();
+      } else {
+        _selectEncounter(null);
+      }
+      return;
+    }
     if (_sceneCoordinator.domain == ChunkSceneDomain.traps) {
       if (_trapGesture.hasActiveOperation ||
           _trapGesture.tool == ChunkTrapTool.place) {
@@ -4564,6 +5145,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         );
       case ChunkSceneDomain.traps:
         _deleteSelectedTrap();
+      case ChunkSceneDomain.encounters:
+        _deleteSelectedEncounter();
       case ChunkSceneDomain.water:
         _deleteSelectedWater();
       case ChunkSceneDomain.terrain ||

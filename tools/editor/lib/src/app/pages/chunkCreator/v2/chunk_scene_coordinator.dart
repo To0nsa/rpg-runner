@@ -3,6 +3,7 @@ import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../../../chunks/chunk_encounter_edit.dart';
 import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
@@ -20,11 +21,18 @@ enum ChunkSceneDomain {
   layers,
   compiledEdgeInspection,
   traps,
+  encounters,
 }
 
 /// Typed route-local selection for the shared Chunk scene.
 sealed class ChunkSceneSelection {
   const ChunkSceneSelection();
+}
+
+@immutable
+final class ChunkEncounterSceneSelection extends ChunkSceneSelection {
+  const ChunkEncounterSceneSelection(this.selection);
+  final ChunkEncounterSelection selection;
 }
 
 @immutable
@@ -82,6 +90,20 @@ final class ChunkSceneCoordinator {
       ? _sourceDomainBeforeInspection
       : _domain;
   ChunkSceneSelection? get selection => _selections[_domain];
+
+  ChunkEncounterSelection? get selectedEncounter =>
+      switch (_selections[ChunkSceneDomain.encounters]) {
+        ChunkEncounterSceneSelection(:final selection) => selection,
+        _ => null,
+      };
+  void selectEncounter(ChunkEncounterSelection? selection) {
+    _domain = ChunkSceneDomain.encounters;
+    _sourceDomainBeforeInspection = _domain;
+    _setSelection(
+      _domain,
+      selection == null ? null : ChunkEncounterSceneSelection(selection),
+    );
+  }
 
   TrapPlacement? get selectedTrap =>
       switch (_selections[ChunkSceneDomain.traps]) {
@@ -194,6 +216,8 @@ final class ChunkSceneCoordinator {
   void clearSelection() => _selections.remove(_domain);
 
   void reconcileComposition(ChunkV2FileData chunk) {
+    // Encounter identities remain as tombstones after deletion, so Undo restores
+    // selection even when canonical source sorting changes their list positions.
     if (selectedTrap != null && !chunk.traps.contains(selectedTrap)) {
       _selections.remove(ChunkSceneDomain.traps);
     }
@@ -212,7 +236,8 @@ final class ChunkSceneCoordinator {
           ChunkSceneDomain.prefabs,
           resolved == null ? null : ChunkPrefabSceneSelection(resolved),
         );
-      case ChunkTrapSceneSelection() ||
+      case ChunkEncounterSceneSelection() ||
+          ChunkTrapSceneSelection() ||
           ChunkWaterSceneSelection() ||
           ChunkTerrainSceneSelection() ||
           ChunkMarkerSceneSelection() ||
@@ -230,7 +255,8 @@ final class ChunkSceneCoordinator {
           ChunkSceneDomain.markers,
           resolved == null ? null : ChunkMarkerSceneSelection(resolved),
         );
-      case ChunkTrapSceneSelection() ||
+      case ChunkEncounterSceneSelection() ||
+          ChunkTrapSceneSelection() ||
           ChunkWaterSceneSelection() ||
           ChunkTerrainSceneSelection() ||
           ChunkPrefabSceneSelection() ||

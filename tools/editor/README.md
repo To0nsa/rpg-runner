@@ -30,6 +30,18 @@ flutter run -d windows
 
 ## Current Capabilities
 
+Chunk Creator's **Encounters** tab authors rescue groups in the current chunk.
+Create a named group, position its activation rectangle, then place Warrior,
+Huntress or Huntress II allies and required enemies from the catalog cards.
+NPC movement bounds always follow the owning chunk. Inline inspectors expose
+facing, terrain support, enemy targeting inheritance, and points per survivor
+(default 250, with explicit overrides including zero). Existing enemy markers
+can be converted into required participants in one undoable transaction.
+Incomplete groups remain saveable; shared readiness diagnostics identify what
+must be fixed before Build or Play. Save, Undo/Redo and captured Chunk/Level Play
+use the existing editor workflow. See the
+[encounter contract](../../docs/tdd/npc_encounter_contracts.md).
+
 Chunk Creator's **Traps** tab places Spike, Swinging Axe and Poison Darts.
 Expand **Create trap**, choose a type, set **Damage on hit (HP)** and **Seconds
 before damage**, and set **Z-index** beneath its preview. Press **Place in scene** before

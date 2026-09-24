@@ -174,7 +174,8 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       case ChunkSceneDomain.compiledEdgeInspection:
         widget.onInspectWorldPoint?.call(worldPoint);
         return;
-      case ChunkSceneDomain.traps ||
+      case ChunkSceneDomain.encounters ||
+          ChunkSceneDomain.traps ||
           ChunkSceneDomain.water ||
           ChunkSceneDomain.prefabs ||
           ChunkSceneDomain.markers:
