@@ -770,6 +770,14 @@ tests pass; analysis is clean. Coordinator damage/run-exit hooks and enemy cull 
 are wired; real NPC actor spawning, terrain retention and bounded motion remain
 before M2 can be checked complete.
 
+M2 motion foundation: the capsule controller now accepts actor-specific full-body
+horizontal limits, including supported travel, airborne displacement, steps,
+convex support transitions and overlap recovery. Downhill boundary recovery
+preserves support by resolving its separation vertically within the same budget.
+All 185 terrain collision tests pass, analysis is clean and the ordinary-combat
+trace remains unchanged. NPC authority/catalog integration
+is still required before these limits apply to real streamed actors.
+
 ## 7. Acceptance and regression matrix
 
 | Area | Required evidence |

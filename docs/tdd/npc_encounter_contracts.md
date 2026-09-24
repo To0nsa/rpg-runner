@@ -69,6 +69,23 @@ retirement APIs enforce expiry before cleanup and retain only a monotonic retire
 chunk index. Stream registration and real NPC spawn/motion are the remaining M2
 integration work; authored production content is not enabled by these hooks.
 
+## Actor movement bounds
+
+The terrain controller accepts optional `TerrainHorizontalBounds` on its motion
+request. These are actor-specific full-body X limits in physics ticks. It insets
+the interval by capsule radius, rejects an invalid initial pose, and constrains
+requested movement and terrain-contact continuation before solving each segment.
+Steps cannot preview outside the interval. Airborne motion retains vertical
+movement; supported motion stops along its support path. Final terrain contacts
+are resolved normally, with no post-motion transform clamp.
+
+Recovery also obeys the interval. At a sloped boundary, a vertical correction can
+satisfy the same separating projection without moving through the boundary. A
+blocked or over-budget recovery restores the last valid in-bounds pose. The
+controller reports boundary contact separately from terrain wall contacts and
+clears optional constraints before processing an unrestricted actor. NPC catalog
+and motion-authority wiring supply these bounds in the remaining M2 actor work.
+
 ## Combat ownership and survivor safety
 
 `DamageCredit` is captured when attacks are created and carried through hitboxes,

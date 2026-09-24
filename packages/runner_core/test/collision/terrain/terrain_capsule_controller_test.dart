@@ -14,6 +14,265 @@ import 'package:test/test.dart';
 
 void main() {
   group('terrain capsule controller', () {
+    for (final slope in [0.0, -80.0, 80.0]) {
+      test('actor bounds preserve full-body support on slope $slope', () {
+        final harness = _Harness([
+          _polygon('floor', [
+            (0, 100),
+            (300, 100 + slope),
+            (300, 300),
+            (0, 300),
+          ]),
+        ]);
+        final edge = harness.geometry.edges.firstWhere(
+          (e) => e.outwardNormal.yTicks < 0,
+        );
+        var capsule = _supportedCircleAtCenterX(edge, centerXWorld: 60);
+        final bounds = TerrainHorizontalBounds(
+          minXTicks: 30 * 1024,
+          maxXTicks: 150 * 1024,
+        );
+        final result = TerrainCapsuleMotionResult();
+        var support = edge.id;
+        for (var tick = 0; tick < 80; tick++) {
+          harness.controller.move(
+            capsule: capsule,
+            request: TerrainMotionRequest(
+              displacementXTicks: 5 * 1024,
+              displacementYTicks: 0,
+              gravityYTicks: 1024,
+              mode: TerrainMotionMode.groundedSurface,
+              horizontalBounds: bounds,
+            ),
+            beganGrounded: true,
+            priorSupportEdgeId: support,
+            priorSupportGeometryVersion: harness.geometry.version,
+            out: result,
+          );
+          expect(
+            result.finalCenterXTicks + capsule.radiusTicks,
+            lessThanOrEqualTo(bounds.maxXTicks),
+          );
+          expect(
+            result.finalCenterXTicks - capsule.radiusTicks,
+            greaterThanOrEqualTo(bounds.minXTicks),
+          );
+          expect(
+            result.grounded,
+            isTrue,
+            reason:
+                'tick $tick at ${result.finalCenterXTicks},${result.finalCenterYTicks}; ${result.diagnostic}; recovery ${result.recoveryCorrectionXTicks},${result.recoveryCorrectionYTicks}',
+          );
+          expect(
+            result.diagnostic,
+            isNot(TerrainControllerDiagnostic.recoveryFailed),
+          );
+          support = result.supportEdgeId!;
+          capsule = UprightCapsule(
+            center: TerrainPoint(
+              result.finalCenterXTicks,
+              result.finalCenterYTicks,
+            ),
+            radiusTicks: capsule.radiusTicks,
+            verticalHalfSegmentTicks: 0,
+          );
+        }
+        expect(result.finalCenterXTicks, 140 * 1024);
+        expect(result.hitHorizontalBound, isTrue);
+        expect(result.supportedTravelTicks, 0);
+      });
+    }
+
+    test('airborne bounds keep gravity and do not constrain the next unbounded actor', () {
+      final harness = _Harness([
+        _polygon('floor', const [
+          (-100, 100),
+          (800, 100),
+          (800, 200),
+          (-100, 200),
+        ]),
+      ]);
+      final bounds = TerrainHorizontalBounds(
+        minXTicks: 0,
+        maxXTicks: 200 * 1024,
+      );
+      final result = TerrainCapsuleMotionResult();
+      for (final sign in [-1, 1]) {
+        harness.controller.move(
+          capsule: _circle(100, -100),
+          request: TerrainMotionRequest(
+            displacementXTicks: sign * 500 * 1024,
+            displacementYTicks: -20 * 1024,
+            gravityYTicks: 5 * 1024,
+            mode: TerrainMotionMode.worldSpace,
+            horizontalBounds: bounds,
+          ),
+          beganGrounded: false,
+          out: result,
+        );
+        expect(result.finalCenterXTicks, (sign < 0 ? 10 : 190) * 1024);
+        expect(result.finalCenterYTicks, -115 * 1024);
+        expect(result.hitHorizontalBound, isTrue);
+      }
+      harness.controller.move(
+        capsule: _circle(100, -100),
+        request: TerrainMotionRequest(
+          displacementXTicks: 500 * 1024,
+          displacementYTicks: 0,
+          mode: TerrainMotionMode.worldSpace,
+        ),
+        beganGrounded: false,
+        out: result,
+      );
+      expect(result.finalCenterXTicks, 600 * 1024);
+      expect(result.hitHorizontalBound, isFalse);
+    });
+
+    for (final mode in [
+      TerrainMotionMode.groundedHorizontal,
+      TerrainMotionMode.groundedSurface,
+    ]) {
+      test(
+        'actor boundary inside a convex support transition retains contact: $mode',
+        () {
+          final harness = _Harness([
+            _polygon('ridge', const [
+              (0, 100),
+              (100, 100),
+              (200, 150),
+              (200, 250),
+              (0, 250),
+            ]),
+          ]);
+          final edge = harness.upwardEdges.firstWhere(
+            (e) => e.start.yTicks == e.end.yTicks,
+          );
+          var capsule = _supportedCircleAtCenterX(edge, centerXWorld: 80);
+          var support = edge.id;
+          final bounds = TerrainHorizontalBounds(
+            minXTicks: 0,
+            maxXTicks: 112 * 1024,
+          );
+          final result = TerrainCapsuleMotionResult();
+          for (var tick = 0; tick < 20; tick++) {
+            harness.controller.move(
+              capsule: capsule,
+              request: TerrainMotionRequest(
+                displacementXTicks: 4 * 1024,
+                displacementYTicks: 0,
+                mode: mode,
+                horizontalBounds: bounds,
+              ),
+              beganGrounded: true,
+              priorSupportEdgeId: support,
+              priorSupportGeometryVersion: harness.geometry.version,
+              out: result,
+            );
+            expect(result.finalCenterXTicks, lessThanOrEqualTo(102 * 1024));
+            expect(
+              result.grounded,
+              isTrue,
+              reason: 'tick $tick: ${result.diagnostic}',
+            );
+            support = result.supportEdgeId!;
+            capsule = UprightCapsule(
+              center: TerrainPoint(
+                result.finalCenterXTicks,
+                result.finalCenterYTicks,
+              ),
+              radiusTicks: 10 * 1024,
+              verticalHalfSegmentTicks: 0,
+            );
+          }
+          expect(result.hitHorizontalBound, isTrue);
+        },
+      );
+    }
+
+    test('step preview cannot carry a body past its actor boundary', () {
+      final harness = _stepHarness(stepHeight: 3);
+      final edge = harness.upwardEdges.firstWhere(
+        (e) => e.start.yTicks == 103 * 1024,
+      );
+      final capsule = _supportedCircleAtCenterX(edge, centerXWorld: 85);
+      final result = TerrainCapsuleMotionResult();
+      harness.controller.move(
+        capsule: capsule,
+        request: TerrainMotionRequest(
+          displacementXTicks: 40 * 1024,
+          displacementYTicks: 0,
+          mode: TerrainMotionMode.groundedHorizontal,
+          horizontalBounds: TerrainHorizontalBounds(
+            minXTicks: 0,
+            maxXTicks: 100 * 1024,
+          ),
+        ),
+        beganGrounded: true,
+        priorSupportEdgeId: edge.id,
+        priorSupportGeometryVersion: harness.geometry.version,
+        out: result,
+      );
+      expect(
+        result.finalCenterXTicks + capsule.radiusTicks,
+        lessThanOrEqualTo(100 * 1024),
+      );
+      expect(result.grounded, isTrue);
+      expect(result.usedStep, isFalse);
+    });
+
+    test('bounds reject an invalid initial body instead of teleporting it', () {
+      final harness = _Harness([]);
+      final bounds = TerrainHorizontalBounds(
+        minXTicks: 0,
+        maxXTicks: 100 * 1024,
+      );
+      final result = TerrainCapsuleMotionResult();
+      expect(
+        () => harness.controller.move(
+          capsule: _circle(5, 0),
+          request: TerrainMotionRequest(
+            displacementXTicks: 0,
+            displacementYTicks: 0,
+            mode: TerrainMotionMode.worldSpace,
+            horizontalBounds: bounds,
+          ),
+          beganGrounded: false,
+          out: result,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test(
+      'recovery that would escape bounds returns to the valid in-bounds pose',
+      () {
+        final harness = _Harness([
+          _polygon('wall', const [(0, 0), (100, 0), (100, 100), (0, 100)]),
+        ]);
+        final result = TerrainCapsuleMotionResult();
+        harness.controller.move(
+          capsule: _circle(109, 50),
+          request: TerrainMotionRequest(
+            displacementXTicks: 0,
+            displacementYTicks: 0,
+            mode: TerrainMotionMode.worldSpace,
+            horizontalBounds: TerrainHorizontalBounds(
+              minXTicks: 0,
+              maxXTicks: 119 * 1024,
+            ),
+          ),
+          beganGrounded: false,
+          lastValidCapsuleCenterXTicks: 50 * 1024,
+          lastValidCapsuleCenterYTicks: -20 * 1024,
+          out: result,
+        );
+        expect(result.diagnostic, TerrainControllerDiagnostic.recoveryFailed);
+        expect(result.finalCenterXTicks, 50 * 1024);
+        expect(result.finalCenterYTicks, -20 * 1024);
+        expect(result.grounded, isFalse);
+      },
+    );
+
     for (final terrainBase in [false, true]) {
       test(
         'overlap matches one outline during landing and travel (terrain: $terrainBase)',

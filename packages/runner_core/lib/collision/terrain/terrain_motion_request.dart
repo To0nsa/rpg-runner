@@ -12,6 +12,20 @@ enum TerrainMotionMode {
   worldSpace,
 }
 
+/// Per-actor horizontal containment. These limits are not global terrain walls;
+/// the controller insets them by the capsule radius before solving motion.
+final class TerrainHorizontalBounds {
+  TerrainHorizontalBounds({required this.minXTicks, required this.maxXTicks}) {
+    _validateTicks(minXTicks, 'minXTicks');
+    _validateTicks(maxXTicks, 'maxXTicks');
+    if (minXTicks >= maxXTicks) {
+      throw ArgumentError('Horizontal movement bounds must be ordered.');
+    }
+  }
+  final int minXTicks;
+  final int maxXTicks;
+}
+
 /// Immutable quantized displacement request consumed by terrain motion.
 ///
 /// Gravity remains separate so retained support can consume it as contact bias
@@ -26,6 +40,7 @@ class TerrainMotionRequest {
     int gravityYTicks = 0,
     int surfaceDirectionSign = 1,
     required TerrainMotionMode mode,
+    TerrainHorizontalBounds? horizontalBounds,
   }) {
     _validateTicks(displacementXTicks, 'displacementXTicks');
     _validateTicks(displacementYTicks, 'displacementYTicks');
@@ -45,6 +60,7 @@ class TerrainMotionRequest {
       gravityYTicks: gravityYTicks,
       surfaceDirectionSign: surfaceDirectionSign,
       mode: mode,
+      horizontalBounds: horizontalBounds,
     );
   }
 
@@ -55,6 +71,7 @@ class TerrainMotionRequest {
     required this.gravityYTicks,
     required this.surfaceDirectionSign,
     required this.mode,
+    required this.horizontalBounds,
   });
 
   /// Authored/control displacement in physics ticks.
@@ -70,6 +87,7 @@ class TerrainMotionRequest {
 
   /// Constraint semantics used if support or blockers are encountered.
   final TerrainMotionMode mode;
+  final TerrainHorizontalBounds? horizontalBounds;
 
   /// Full world-space X displacement before support handling.
   int get composedXTicks => displacementXTicks + gravityXTicks;

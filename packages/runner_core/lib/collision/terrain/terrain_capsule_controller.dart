@@ -68,6 +68,7 @@ class TerrainCapsuleMotionResult {
   bool usedStep = false;
   bool usedSnap = false;
   bool usedRecovery = false;
+  bool hitHorizontalBound = false;
   int contactCount = 0;
   int contactIterations = 0;
   int recoveryIterations = 0;
@@ -115,6 +116,7 @@ class TerrainCapsuleMotionResult {
     usedStep = false;
     usedSnap = false;
     usedRecovery = false;
+    hitHorizontalBound = false;
     contactCount = 0;
     contactIterations = 0;
     recoveryIterations = 0;
@@ -212,6 +214,8 @@ class TerrainCapsuleController {
   var _verticalHalfSegmentTicks = 0;
   var _centerX = 0;
   var _centerY = 0;
+  int? _minimumCenterX;
+  int? _maximumCenterX;
   var _beganGrounded = false;
   var _supportedPathTravelTicks = 0;
   var _supportedPathDirectionSign = 1;
@@ -243,6 +247,8 @@ class TerrainCapsuleController {
         'Must be non-negative.',
       );
     }
+    _minimumCenterX = null;
+    _maximumCenterX = null;
     _out = out;
     _tickStartCenterX = capsule.center.xTicks;
     _tickStartCenterY = capsule.center.yTicks;
@@ -339,6 +345,7 @@ class TerrainCapsuleController {
       gravityYTicks: request.gravityYTicks,
       surfaceDirectionSign: request.surfaceDirectionSign,
       mode: request.mode,
+      horizontalBounds: request.horizontalBounds,
       beganGrounded: beganGrounded,
       priorSupportEdgeId: priorSupportEdgeId,
       priorSupportGeometryVersion: priorSupportGeometryVersion,
@@ -360,6 +367,7 @@ class TerrainCapsuleController {
     int gravityYTicks = 0,
     int surfaceDirectionSign = 1,
     required TerrainMotionMode mode,
+    TerrainHorizontalBounds? horizontalBounds,
     required bool beganGrounded,
     TerrainEdgeId? priorSupportEdgeId,
     int priorSupportGeometryVersion = -1,
@@ -389,6 +397,21 @@ class TerrainCapsuleController {
         'Must be -1 or 1.',
       );
     }
+    final minimum = horizontalBounds == null
+        ? null
+        : horizontalBounds.minXTicks + radiusTicks;
+    final maximum = horizontalBounds == null
+        ? null
+        : horizontalBounds.maxXTicks - radiusTicks;
+    if (minimum != null &&
+        maximum != null &&
+        (minimum > maximum ||
+            centerXTicks < minimum ||
+            centerXTicks > maximum)) {
+      throw ArgumentError('The initial capsule must fit its movement bounds.');
+    }
+    _minimumCenterX = minimum;
+    _maximumCenterX = maximum;
     _out = out;
     _tickStartCenterX = centerXTicks;
     _tickStartCenterY = centerYTicks;
@@ -484,7 +507,7 @@ class TerrainCapsuleController {
   }) {
     if (requestedXTicks == 0) return;
     _supportedPathDirectionSign = requestedXTicks.sign;
-    final targetX = _centerX + requestedXTicks;
+    final targetX = _centerX + _boundedDisplacementX(requestedXTicks);
     final direction = requestedXTicks.sign;
     var currentSupport = support;
     var transitions = 0;
@@ -920,6 +943,15 @@ class TerrainCapsuleController {
     var remainingX = requestedX;
     var remainingY = requestedY;
     while (_out.contactIterations < terrainMaxBlockingContacts) {
+      final boundedX = _boundedDisplacementX(remainingX);
+      if (boundedX != remainingX) {
+        // Supported movement follows its terrain segment up to the boundary.
+        // Airborne motion retains vertical displacement, including gravity.
+        if (mode != TerrainMotionMode.worldSpace && remainingX != 0) {
+          remainingY = _roundedDivide(remainingY * boundedX, remainingX);
+        }
+        remainingX = boundedX;
+      }
       if (remainingX == 0 && remainingY == 0) return;
       outContactIteration:
       {
@@ -1245,6 +1277,7 @@ class TerrainCapsuleController {
   }
 
   bool _pathBlocked(int displacementX, int displacementY) {
+    if (!_withinHorizontalBounds(_centerX + displacementX)) return true;
     if (displacementX == 0 && displacementY == 0) return false;
     _querySweptCapsule(
       centerX: _centerX,
@@ -1626,17 +1659,46 @@ class TerrainCapsuleController {
         _restoreAfterRecoveryFailure(lastValidCenterX, lastValidCenterY);
         return false;
       }
-      final correctionX = _roundedDivide(
+      var correctionX = _roundedDivide(
         _recoveryCorrectionTicks * _recoveryNormalXTicks,
         terrainDirectionScale,
       );
-      final correctionY = _roundedDivide(
+      var correctionY = _roundedDivide(
         _recoveryCorrectionTicks * _recoveryNormalYTicks,
         terrainDirectionScale,
       );
       if (correctionX == 0 && correctionY == 0) {
         _restoreAfterRecoveryFailure(lastValidCenterX, lastValidCenterY);
         return false;
+      }
+      if (!_withinHorizontalBounds(_centerX + correctionX)) {
+        // A sloped floor may require a tiny normal correction at the bound.
+        // Resolve the same separating projection vertically when possible;
+        // rejecting it would repeatedly lose support at downhill boundaries.
+        if (_recoveryNormalYTicks == 0) {
+          _restoreAfterRecoveryFailure(lastValidCenterX, lastValidCenterY);
+          return false;
+        }
+        correctionX = _boundedDisplacementX(correctionX);
+        final verticalProjection =
+            _recoveryCorrectionTicks * terrainDirectionScale -
+            correctionX * _recoveryNormalXTicks;
+        correctionY =
+            _ceilingDivide(verticalProjection, _recoveryNormalYTicks.abs()) *
+            _recoveryNormalYTicks.sign;
+        final correctionLength =
+            _integerSqrt(
+              correctionX * correctionX + correctionY * correctionY,
+            ) +
+            1;
+        if (totalCorrection + correctionLength > _radiusTicks) {
+          _restoreAfterRecoveryFailure(lastValidCenterX, lastValidCenterY);
+          return false;
+        }
+        totalCorrection += math.max(
+          0,
+          correctionLength - _recoveryCorrectionTicks,
+        );
       }
       _centerX += correctionX;
       _centerY += correctionY;
@@ -1767,7 +1829,9 @@ class TerrainCapsuleController {
   }
 
   void _restoreAfterRecoveryFailure(int? lastValidX, int? lastValidY) {
-    if (lastValidX != null && lastValidY != null) {
+    if (lastValidX != null &&
+        lastValidY != null &&
+        _withinHorizontalBounds(lastValidX)) {
       _centerX = lastValidX;
       _centerY = lastValidY;
     } else {
@@ -1805,6 +1869,20 @@ class TerrainCapsuleController {
         _out.diagnostic = TerrainControllerDiagnostic.unsupported;
       }
     }
+  }
+
+  bool _withinHorizontalBounds(int x) =>
+      (_minimumCenterX == null || x >= _minimumCenterX!) &&
+      (_maximumCenterX == null || x <= _maximumCenterX!);
+
+  int _boundedDisplacementX(int displacement) {
+    final minimum = _minimumCenterX;
+    final maximum = _maximumCenterX;
+    if (minimum == null || maximum == null) return displacement;
+    final destination = (_centerX + displacement).clamp(minimum, maximum);
+    final bounded = destination - _centerX;
+    if (bounded != displacement) _out.hitHorizontalBound = true;
+    return bounded;
   }
 }
 
