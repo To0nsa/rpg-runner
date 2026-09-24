@@ -1,6 +1,12 @@
 # Current Implementation Plans
 
-No active implementation plans.
+- [NPC rescue encounters](npc_rescue_encounters.md): plan audited September 24;
+  implementation has not started. NPCs are confined to their encounter's chunk.
+  D1–D7 are confirmed, including one-chunk off-screen
+  abandonment and editable rescue points. Enemy victors resume normal AI.
+  Activation, terminal priority, damage credit, actor integration and authoring
+  gaps are addressed in the plan. Next: establish capacity/score limits and
+  baseline fixtures before shared-targeting implementation.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md). Remote deployment
