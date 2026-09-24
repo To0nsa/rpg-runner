@@ -15,6 +15,9 @@ class NavIntentStore extends SparseSet {
   /// Whether a valid navigation plan exists.
   final List<bool> hasPlan = <bool>[];
 
+  /// A supported walk chain reaches the target without a jump/drop commitment.
+  final List<bool> canWalkDirectlyToTarget = <bool>[];
+
   /// Committed move direction for plan execution (-1, 0, 1).
   final List<int> commitMoveDirX = <int>[];
 
@@ -38,6 +41,7 @@ class NavIntentStore extends SparseSet {
     desiredX[i] = 0.0;
     jumpNow[i] = false;
     hasPlan[i] = false;
+    canWalkDirectlyToTarget[i] = false;
     commitMoveDirX[i] = 0;
     safeSurfaceMinX[i] = 0.0;
     safeSurfaceMaxX[i] = 0.0;
@@ -73,6 +77,7 @@ class NavIntentStore extends SparseSet {
     desiredX.add(0.0);
     jumpNow.add(false);
     hasPlan.add(false);
+    canWalkDirectlyToTarget.add(false);
     commitMoveDirX.add(0);
     safeSurfaceMinX.add(0.0);
     safeSurfaceMaxX.add(0.0);
@@ -90,6 +95,7 @@ class NavIntentStore extends SparseSet {
     desiredX[removeIndex] = desiredX[lastIndex];
     jumpNow[removeIndex] = jumpNow[lastIndex];
     hasPlan[removeIndex] = hasPlan[lastIndex];
+    canWalkDirectlyToTarget[removeIndex] = canWalkDirectlyToTarget[lastIndex];
     commitMoveDirX[removeIndex] = commitMoveDirX[lastIndex];
     safeSurfaceMinX[removeIndex] = safeSurfaceMinX[lastIndex];
     safeSurfaceMaxX[removeIndex] = safeSurfaceMaxX[lastIndex];
@@ -104,6 +110,7 @@ class NavIntentStore extends SparseSet {
     desiredX.removeLast();
     jumpNow.removeLast();
     hasPlan.removeLast();
+    canWalkDirectlyToTarget.removeLast();
     commitMoveDirX.removeLast();
     safeSurfaceMinX.removeLast();
     safeSurfaceMaxX.removeLast();

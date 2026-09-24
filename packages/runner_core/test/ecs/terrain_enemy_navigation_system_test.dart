@@ -9,6 +9,8 @@ import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
+import 'package:runner_core/ecs/systems/enemy_engagement_system.dart';
+import 'package:runner_core/ecs/stores/enemies/melee_engagement_store.dart';
 import 'package:runner_core/ecs/systems/terrain_enemy_navigation_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
@@ -32,6 +34,51 @@ import 'package:runner_core/navigation/bounded_terrain_graph.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 
 void main() {
+  test(
+    'direct melee pursuit stops momentum and resumes when the target leaves',
+    () {
+      final bundle = _bundle(_floorGeometry(version: 1));
+      final fixture = _worldOnGraph(
+        bundle,
+        enemyBodyX: 200 * 1024,
+        playerBodyX: 230 * 1024,
+      );
+      final world = fixture.world;
+      final tuning = GroundEnemyTuningDerived.from(
+        const GroundEnemyTuning(),
+        tickHz: 60,
+      );
+      final navigation = _system(() => bundle);
+      final engagement = EnemyEngagementSystem(groundEnemyTuning: tuning);
+      final locomotion = GroundEnemyLocomotionSystem(groundEnemyTuning: tuning);
+      final transform = world.transform.indexOf(fixture.enemy);
+      world.transform.velX[transform] = tuning.locomotion.speedX;
+      void step(int tick) {
+        navigation.step(world, player: fixture.player, currentTick: tick);
+        engagement.step(world, player: fixture.player, currentTick: tick);
+        locomotion.step(
+          world,
+          player: fixture.player,
+          currentTick: tick,
+          dtSeconds: 1 / 60,
+        );
+      }
+
+      step(1);
+      expect(world.transform.velX[transform], 0);
+      expect(world.transform.velY[transform], 0);
+      _setSupport(
+        world,
+        entity: fixture.player,
+        bundle: bundle,
+        graph: bundle.grojibGraph,
+        surface: bundle.surfaceSet.surfaces.single,
+        desiredBodyXTicks: 500 * 1024,
+      );
+      step(2);
+      expect(world.transform.velX[transform], greaterThan(0));
+    },
+  );
   test('bounded graph removes jumps whose landing leaves the owning chunk', () {
     final graph = _bundle(_jumpGeometry()).grojibGraph;
     expect(
@@ -153,6 +200,10 @@ void main() {
     system.step(world, player: b.player, currentTick: 3);
     expect(world.navIntent.hasPlan[world.navIntent.indexOf(b.enemy)], isFalse);
     expect(
+      world.navIntent.canWalkDirectlyToTarget[world.navIntent.indexOf(b.enemy)],
+      isFalse,
+    );
+    expect(
       world.surfaceNav.targetEntity[world.surfaceNav.indexOf(b.enemy)],
       isNull,
     );
@@ -174,6 +225,10 @@ void main() {
         final intentIndex = fixture.world.navIntent.indexOf(fixture.enemy);
         final navIndex = fixture.world.surfaceNav.indexOf(fixture.enemy);
         expect(fixture.world.navIntent.hasPlan[intentIndex], isTrue);
+        expect(
+          fixture.world.navIntent.canWalkDirectlyToTarget[intentIndex],
+          isTrue,
+        );
         expect(
           fixture.world.navIntent.desiredX[intentIndex],
           closeTo(400, 1e-9),
@@ -238,6 +293,10 @@ void main() {
       expect(fixture.world.navIntent.jumpNow[intentIndex], isTrue);
       expect(fixture.world.navIntent.hasPlan[intentIndex], isTrue);
       expect(
+        fixture.world.navIntent.canWalkDirectlyToTarget[intentIndex],
+        isFalse,
+      );
+      expect(
         fixture.world.navIntent.hasActiveJumpTraversal[intentIndex],
         isTrue,
       );
@@ -256,6 +315,10 @@ void main() {
           tickHz: 60,
         ),
       );
+      fixture.world.meleeEngagement.state[fixture.world.meleeEngagement.indexOf(
+            fixture.enemy,
+          )] =
+          MeleeEngagementState.strike;
       locomotion.step(
         fixture.world,
         player: fixture.player,

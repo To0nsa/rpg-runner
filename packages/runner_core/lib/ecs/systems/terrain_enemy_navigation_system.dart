@@ -132,6 +132,7 @@ final class TerrainEnemyNavigationSystem {
         navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
         final intents = world.navIntent;
         intents.hasPlan[intentIndex] = false;
+        intents.canWalkDirectlyToTarget[intentIndex] = false;
         intents.jumpNow[intentIndex] = false;
         intents.commitMoveDirX[intentIndex] = 0;
         intents.desiredX[intentIndex] =
@@ -260,6 +261,7 @@ final class TerrainEnemyNavigationSystem {
     intents.navTargetX[index] = targetX;
     intents.desiredX[index] = targetX;
     intents.hasPlan[index] = false;
+    intents.canWalkDirectlyToTarget[index] = false;
     intents.jumpNow[index] = false;
     intents.commitMoveDirX[index] = 0;
     intents.hasSafeSurface[index] = false;
@@ -456,6 +458,8 @@ final class TerrainEnemyNavigationSystem {
         intent.desiredBodyXTicks / terrainPhysicsTicksPerWorldUnit;
     intents.jumpNow[intentIndex] = intent.jumpNow;
     intents.hasPlan[intentIndex] = intent.hasPlan;
+    intents.canWalkDirectlyToTarget[intentIndex] =
+        intent.canWalkDirectlyToTarget;
     intents.commitMoveDirX[intentIndex] = intent.commitDirectionX;
     intents.hasSafeSurface[intentIndex] = intent.hasSafeBodyRange;
     intents.safeSurfaceMinX[intentIndex] =

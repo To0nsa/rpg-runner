@@ -12,7 +12,7 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('ordinary field combat preserves the pre-encounter tick trace', () {
+  test('ordinary field combat preserves the reviewed combat-hold tick trace', () {
     final core = GameCore(
       seed: 42,
       levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
@@ -107,7 +107,7 @@ void main() {
     expect(seenEnemies, containsAll(['grojib', 'hashash', 'unocoDemon']));
     expect(
       digest,
-      '25f15e32c8a6b31d045971119c8b0ea446e182e6519f57f6323af88b6edd651e',
+      'ec0c409c2a88e46ff36af3adbf56777b1827610dfd745c599c60394a54533701',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

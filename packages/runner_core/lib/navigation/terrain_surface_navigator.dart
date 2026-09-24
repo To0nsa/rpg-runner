@@ -115,6 +115,7 @@ class TerrainSurfaceNavIntent {
     required this.desiredBodyXTicks,
     required this.jumpNow,
     required this.hasPlan,
+    this.canWalkDirectlyToTarget = false,
     this.commitDirectionX = 0,
     this.hasSafeBodyRange = false,
     this.safeMinimumBodyXTicks = 0,
@@ -131,6 +132,10 @@ class TerrainSurfaceNavIntent {
 
   /// Whether a direct walk chain or graph path currently exists.
   final bool hasPlan;
+
+  /// A supported walk chain reaches the target without a jump or drop.
+  /// Combat may stop along this route without interrupting a traversal edge.
+  final bool canWalkDirectlyToTarget;
 
   /// Stable horizontal commitment while approaching or traversing an edge.
   final int commitDirectionX;
@@ -297,6 +302,7 @@ class TerrainSurfaceNavigator {
           desiredBodyXTicks: navigableTargetBodyX,
           jumpNow: false,
           hasPlan: true,
+          canWalkDirectlyToTarget: true,
         ),
         entity.bodyCenter.xTicks,
         movementLocked,
@@ -693,6 +699,7 @@ class TerrainSurfaceNavigator {
           desiredBodyXTicks: currentBodyXTicks,
           jumpNow: false,
           hasPlan: intent.hasPlan,
+          canWalkDirectlyToTarget: intent.canWalkDirectlyToTarget,
         )
       : intent;
 }

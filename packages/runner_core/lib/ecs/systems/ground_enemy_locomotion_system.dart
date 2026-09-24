@@ -115,6 +115,27 @@ class GroundEnemyLocomotionSystem {
       }
 
       final ex = world.transform.posX[enemyTi];
+      // A direct walk is reachable combat ground, not a traversal commitment.
+      // Cancel pursuit momentum in range so it cannot carry an attacker through
+      // its opponent between strikes. Jump/drop execution keeps priority.
+      if (grounded &&
+          lockFacingToTarget &&
+          navIntent.canWalkDirectlyToTarget[i] &&
+          !navIntent.hasActiveJumpTraversal[i] &&
+          (world.transform.posY[targetTi] - world.transform.posY[enemyTi])
+                  .abs() <=
+              world.colliderAabb.halfY[world.colliderAabb.indexOf(enemy)] &&
+          (targetX - ex).abs() <= groundEnemyTuning.combat.meleeRangeX) {
+        _stopLocomotion(world, enemy, enemyTi, world.terrainContact.has(enemy));
+        if (targetX != ex) {
+          setActorFacing(
+            world,
+            enemy,
+            targetX > ex ? Facing.right : Facing.left,
+          );
+        }
+        continue;
+      }
       _applyGroundEnemyLocomotion(
         world,
         enemyIndex: enemyIndex,

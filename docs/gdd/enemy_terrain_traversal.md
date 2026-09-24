@@ -172,7 +172,12 @@ Their death animation begins when the final terrain solve reports eligible
 support, or when the existing deterministic maximum-fall timeout expires.
 Culling rules are unchanged.
 
-## Unchanged Combat Behavior
+## Combat positioning
+
+On reachable ground, Grojib and Hashash stop and face their selected opponent
+within melee range, including between attacks. They resume pursuit when the
+opponent leaves range. This applies to the player and encounter NPCs; terrain
+jumps, drops and Hashash's deliberate ambush teleport keep their normal behavior.
 
 Slope locomotion does not retune attacks. Grojib and Hashash retain their
 existing engage/strike/recover timing, face-player behavior during melee,

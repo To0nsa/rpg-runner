@@ -703,6 +703,14 @@ Only the final grounded velocity interpretation changes:
 4. keep gravity as the authority's separate displacement contribution
 5. solve one `groundedSurface` request through the actor's catalog profile
 
+Before pursuit steering, an engaged ground melee actor holds zero surface
+velocity when the navigator reports a direct walk chain and the selected target
+is within melee X range and one attacker collider half-height vertically. This
+prevents pursuit momentum crossing the opponent between attacks. Jump/drop
+plans, active airborne commitments and swimming retain their movement rules;
+leaving combat range resumes pursuit. The same rule serves player and NPC
+targets (see [encounter targeting](npc_encounter_contracts.md)).
+
 Consequently, authored speed is distance per second along the surface for both
 actors. Grojib receives no incline multiplier through `45°`; Hashash receives
 none through `60°`. Their profiles retain the accepted 4-pixel step and snap
