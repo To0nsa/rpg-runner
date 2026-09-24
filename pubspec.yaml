@@ -116,6 +116,10 @@ flutter:
     - assets/images/entities/enemies/run_like_hell/voldo/
     - assets/images/entities/enemies/skeleton_seeker/
     - assets/images/entities/enemies/unoco/
+    - assets/images/entities/npc/huntress/
+    - assets/images/entities/npc/huntress_2/arrow/
+    - assets/images/entities/npc/huntress_2/character/
+    - assets/images/entities/npc/medieval_warrior_pack_3/
     - assets/images/entities/player/
     - assets/images/entities/regenerationItems/
     - assets/images/entities/spells/
