@@ -645,6 +645,10 @@ String _projectileName(ProjectileId id) {
       return 'Unknown Projectile';
     case ProjectileId.poisonDart:
       return 'Poison Dart';
+    case ProjectileId.npcSpear:
+      return 'Spear';
+    case ProjectileId.npcArrow:
+      return 'Arrow';
     case ProjectileId.iceBolt:
       return 'Ice Bolt';
     case ProjectileId.thunderBolt:

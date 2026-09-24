@@ -50,7 +50,7 @@ class ProjectileLaunchSystem {
         faction: factions.faction[fi],
         owner: caster,
         casterX: transforms.posX[ti],
-        casterY: transforms.posY[ti],
+        casterY: transforms.posY[ti] + intents.sourceOffsetY[ii],
         originOffset: intents.originOffset[ii],
         dirX: intents.dirX[ii],
         dirY: intents.dirY[ii],

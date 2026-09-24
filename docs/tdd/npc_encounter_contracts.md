@@ -5,7 +5,7 @@ Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 score IDs. Core contracts, shared AI targeting and the warrior encounter
 lifecycle, shared authored compilation and editor source preservation are delivered
 slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
-The encounter editing UI, other two archetypes, rendering and score presentation
+The encounter editing UI, rendering and score presentation
 remain in progress. Gameplay currently runs through typed and captured-source
 fixtures; production rescue content is not yet authored.
 
@@ -159,9 +159,11 @@ checks the complete mirrored capsule against the same interval.
 
 `EntityFactory.createNpc` shares autonomous combatant component assembly with
 enemies while retaining a separate `NpcId`, allied faction, facing and bounds.
-It adds neither player input nor an enemy score identity. The initial warrior
-catalog defines its reviewed sprite anchor, torso capsule, terrain profile,
-resources and sword timing. The other imported archetypes remain M4 work.
+It adds neither player input nor an enemy score identity. All three catalogs
+define reviewed sprite anchors, torso capsules, terrain profiles and resources.
+The warrior uses its four-frame sword attack; Huntress uses the seven-frame
+spear throw and Huntress 2 the six-frame bow attack. At 60 Hz, their release
+ticks are respectively 12, 36 and 12. Render integration remains M4 work.
 
 Motion preparation installs the catalog's capsule/traversal profile and support
 state. NPCs use the normal terrain solver, gravity and status stores. Animation
@@ -187,6 +189,15 @@ The shared melee committer enforces living/targetable state, control locks,
 cooldowns, active phases and resources before publishing a timed intent. Shared
 resource helpers also serve enemy casts. Costs are paid once at commit; existing
 melee execution, hit detection and damage ownership handle the resulting strike.
+
+`AiCastCommitter` shares enemy and NPC cast timing, predictive aim, resource and
+control gates, cooldowns and intent creation. Huntress spear and Huntress 2 arrow
+projectiles use the existing launch/hit systems with physical damage and allied
+faction, without player participation credit. They are separate catalog IDs,
+excluded from the explicit player-equippable list. A committed vertical origin
+offset places each launch at its reviewed release height; ordinary casts retain
+their zero-offset behavior. Rescue cancels an unreleased intent, while detached
+projectiles retain ordinary collision and lifetime behavior.
 
 ## Combat ownership and survivor safety
 

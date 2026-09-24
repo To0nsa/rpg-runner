@@ -32,6 +32,10 @@ enum ProjectileId {
 
   /// Environmental trap projectile; never an equippable spell.
   poisonDart,
+
+  /// Allied Huntress projectiles; excluded from the player item catalog below.
+  npcSpear,
+  npcArrow,
 }
 
 /// Explicit player spell catalog. Rendering may support additional projectiles.

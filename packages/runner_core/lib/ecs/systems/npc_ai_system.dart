@@ -1,9 +1,14 @@
 import '../../combat/control_lock.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
+import '../../combat/ai_cast_aim_policy.dart';
 import '../../npcs/npc_catalog.dart';
+import '../../projectiles/projectile_catalog.dart';
 import '../combat_target.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 import 'enemy_melee_system.dart';
+import 'enemy_cast_system.dart';
 import 'ground_enemy_locomotion_system.dart';
 
 /// Encounter allies consume selected targets and shared terrain navigation.
@@ -12,10 +17,15 @@ final class NpcAiSystem {
     required int tickHz,
     required this.locomotion,
     this.catalog = const NpcCatalog(),
-  }) : melee = AiMeleeCommitter(tickHz: tickHz);
+  }) : melee = AiMeleeCommitter(tickHz: tickHz),
+       casts = AiCastCommitter(
+         tickHz: tickHz,
+         projectiles: const ProjectileCatalog(),
+       );
   final GroundEnemyLocomotionSystem locomotion;
   final NpcCatalog catalog;
   final AiMeleeCommitter melee;
+  final AiCastCommitter casts;
 
   void step(
     EcsWorld world, {
@@ -42,18 +52,54 @@ final class NpcAiSystem {
       final targetTi = world.transform.indexOf(target);
       final targetX = world.transform.posX[targetTi];
       final x = world.transform.posX[ti];
-      final inRange =
-          (targetX - x).abs() <= archetype.attackRange &&
-          (world.transform.posY[targetTi] - world.transform.posY[ti]).abs() <=
-              archetype.collider.halfY;
+      final ability = AbilityCatalog.shared.resolve(archetype.attackAbilityId)!;
+      final ranged = ability.hitDelivery is ProjectileHitDelivery;
+      final targetCenter = aiActorCenter(
+        world,
+        target,
+        fallbackX: targetX,
+        fallbackY: world.transform.posY[targetTi],
+      );
+      final sourceCenter = aiActorCenter(
+        world,
+        actor,
+        fallbackX: x,
+        fallbackY: world.transform.posY[ti],
+      );
+      final dx = targetCenter.$1 - sourceCenter.$1;
+      final dy = targetCenter.$2 - sourceCenter.$2;
+      final inRange = ranged
+          ? dx * dx + dy * dy <= archetype.attackRange * archetype.attackRange
+          : (targetX - x).abs() <= archetype.attackRange &&
+                (world.transform.posY[targetTi] - world.transform.posY[ti])
+                        .abs() <=
+                    archetype.collider.halfY;
       if (inRange) {
-        melee.commit(
-          world,
-          actor: actor,
-          abilityId: archetype.attackAbilityId,
-          targetX: targetX,
-          currentTick: currentTick,
-        );
+        if (ranged) {
+          casts.commit(
+            world,
+            actor: actor,
+            castAbility: ability,
+            sourceX: sourceCenter.$1,
+            sourceY: sourceCenter.$2,
+            targetX: targetCenter.$1,
+            targetY: targetCenter.$2,
+            targetVelX: world.transform.velX[targetTi],
+            targetVelY: world.transform.velY[targetTi],
+            aimPolicy: AiCastAimPolicy.predictedTargetCenter,
+            casterOriginOffset: archetype.castOriginOffset,
+            casterOriginOffsetY: archetype.castOriginOffsetY,
+            currentTick: currentTick,
+          );
+        } else {
+          melee.commit(
+            world,
+            actor: actor,
+            abilityId: archetype.attackAbilityId,
+            targetX: targetX,
+            currentTick: currentTick,
+          );
+        }
       }
       if (world.activeAbility.hasActiveAbility(actor) ||
           inRange ||

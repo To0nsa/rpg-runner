@@ -28,6 +28,7 @@ class ProjectileIntentDef {
     required this.fallbackDirX,
     required this.fallbackDirY,
     required this.originOffset,
+    this.sourceOffsetY = 0,
     required this.commitTick,
     required this.windupTicks,
     required this.activeTicks,
@@ -57,6 +58,9 @@ class ProjectileIntentDef {
   final double fallbackDirX;
   final double fallbackDirY;
   final double originOffset;
+
+  /// Body-relative vertical launch origin; zero preserves ordinary casters.
+  final double sourceOffsetY;
   final int commitTick;
   final int windupTicks;
   final int activeTicks;
@@ -88,6 +92,7 @@ class ProjectileIntentStore extends SparseSet {
   final List<double> fallbackDirX = <double>[];
   final List<double> fallbackDirY = <double>[];
   final List<double> originOffset = <double>[];
+  final List<double> sourceOffsetY = <double>[];
   final List<int> commitTick = <int>[];
   final List<int> windupTicks = <int>[];
   final List<int> activeTicks = <int>[];
@@ -125,6 +130,7 @@ class ProjectileIntentStore extends SparseSet {
     fallbackDirX[i] = def.fallbackDirX;
     fallbackDirY[i] = def.fallbackDirY;
     originOffset[i] = def.originOffset;
+    sourceOffsetY[i] = def.sourceOffsetY;
     commitTick[i] = def.commitTick;
     windupTicks[i] = def.windupTicks;
     activeTicks[i] = def.activeTicks;
@@ -155,6 +161,7 @@ class ProjectileIntentStore extends SparseSet {
     fallbackDirX.add(1.0);
     fallbackDirY.add(0.0);
     originOffset.add(0.0);
+    sourceOffsetY.add(0.0);
     commitTick.add(-1);
     windupTicks.add(0);
     activeTicks.add(0);
@@ -185,6 +192,7 @@ class ProjectileIntentStore extends SparseSet {
     fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
     fallbackDirY[removeIndex] = fallbackDirY[lastIndex];
     originOffset[removeIndex] = originOffset[lastIndex];
+    sourceOffsetY[removeIndex] = sourceOffsetY[lastIndex];
     commitTick[removeIndex] = commitTick[lastIndex];
     windupTicks[removeIndex] = windupTicks[lastIndex];
     activeTicks[removeIndex] = activeTicks[lastIndex];
@@ -212,6 +220,7 @@ class ProjectileIntentStore extends SparseSet {
     fallbackDirX.removeLast();
     fallbackDirY.removeLast();
     originOffset.removeLast();
+    sourceOffsetY.removeLast();
     commitTick.removeLast();
     windupTicks.removeLast();
     activeTicks.removeLast();

@@ -5,7 +5,7 @@ import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
 import 'projectile_item_def.dart';
 
-/// Lookup table for projectile slot items (spells + throwing weapons).
+/// Projectile physics and payloads; player membership uses the explicit ID list.
 class ProjectileCatalog {
   const ProjectileCatalog();
 
@@ -20,6 +20,25 @@ class ProjectileCatalog {
         );
 
       // Spells
+      case ProjectileId.npcSpear:
+        return const ProjectileItemDef(
+          id: ProjectileId.npcSpear,
+          weaponType: WeaponType.spear,
+          speedUnitsPerSecond: 420,
+          lifetimeSeconds: 1.4,
+          colliderSizeX: 55.5,
+          colliderSizeY: 7.5,
+        );
+      case ProjectileId.npcArrow:
+        return const ProjectileItemDef(
+          id: ProjectileId.npcArrow,
+          weaponType: WeaponType.bow,
+          speedUnitsPerSecond: 550,
+          lifetimeSeconds: 1.2,
+          colliderSizeX: 28.5,
+          colliderSizeY: 4.5,
+        );
+
       case ProjectileId.iceBolt:
         return const ProjectileItemDef(
           id: ProjectileId.iceBolt,

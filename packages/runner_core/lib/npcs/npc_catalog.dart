@@ -22,6 +22,8 @@ final class NpcArchetype {
     this.speedX = 100,
     this.jumpSpeed = 360,
     this.attackRange = 52,
+    this.castOriginOffset,
+    this.castOriginOffsetY = 0,
   });
   final ColliderAabbDef collider;
   final HealthDef health;
@@ -31,6 +33,8 @@ final class NpcArchetype {
   final double speedX;
   final double jumpSpeed;
   final double attackRange;
+  final double? castOriginOffset;
+  final double castOriginOffsetY;
   Facing get artFacing => Facing.right;
   BodyDef get body => const BodyDef(
     useGravity: true,
@@ -45,32 +49,26 @@ final class NpcArchetype {
     supportsWalk: false,
     supportsJumpFall: true,
     supportsStun: true,
+    supportsCast: true,
     strikeAnimKey: AnimKey.strike,
   );
 }
 
-/// The warrior is the first integration fixture. Other imported archetypes are
-/// admitted only after their authored attack/render contracts are registered.
+/// Imported allies share actor mechanics while retaining catalog-owned shapes.
 class NpcCatalog {
   const NpcCatalog();
-  static const supportedIds = [NpcId.warrior];
+  static const supportedIds = NpcId.values;
 
   NpcArchetype get(NpcId id) => switch (id) {
     NpcId.warrior => _warrior,
-    _ => throw ArgumentError.value(
-      id,
-      'npcId',
-      'NPC archetype is not registered.',
-    ),
+    NpcId.huntress => _huntress,
+    NpcId.huntress2 => _huntress2,
   };
 
   EnemyTerrainContactProfile terrainContactProfile(NpcId id) => switch (id) {
     NpcId.warrior => _warriorTerrain,
-    _ => throw ArgumentError.value(
-      id,
-      'npcId',
-      'NPC terrain profile is not registered.',
-    ),
+    NpcId.huntress => _huntressTerrain,
+    NpcId.huntress2 => _huntress2Terrain,
   };
 }
 
@@ -121,6 +119,119 @@ const _warrior = NpcArchetype(
       AnimKey.jump: .12,
       AnimKey.fall: .12,
       AnimKey.strike: .1,
+      AnimKey.hit: .1,
+      AnimKey.death: .12,
+    },
+  ),
+);
+
+// Feet end at source y=97/67. Anchors keep each standing capsule on that line;
+// spear, bow, hair and transient attack arcs are excluded from the body capsule.
+const _huntressCollider = ColliderAabbDef(
+  halfX: 13.5,
+  halfY: 27,
+  offsetX: 3,
+  offsetY: 0,
+);
+const _huntress2Collider = ColliderAabbDef(
+  halfX: 12,
+  halfY: 27,
+  offsetX: 0,
+  offsetY: 0,
+);
+final _huntressTerrain = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_huntressCollider),
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
+final _huntress2Terrain = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_huntress2Collider),
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
+const _huntress = NpcArchetype(
+  collider: _huntressCollider,
+  health: HealthDef(hp: 2800, hpMax: 2800, regenPerSecond100: 0),
+  speedX: 90,
+  attackRange: 260,
+  attackAbilityId: 'npc_huntress.throw_spear',
+  castOriginOffset: 18,
+  castOriginOffsetY: -31.5,
+  renderAnim: RenderAnimSetDefinition(
+    frameWidth: 150,
+    frameHeight: 150,
+    anchorPoint: Vec2(75, 79),
+    sourcesByKey: {
+      AnimKey.idle: 'entities/npc/huntress/idle.png',
+      AnimKey.stun: 'entities/npc/huntress/idle.png',
+      AnimKey.run: 'entities/npc/huntress/run.png',
+      AnimKey.jump: 'entities/npc/huntress/jump.png',
+      AnimKey.fall: 'entities/npc/huntress/fall.png',
+      AnimKey.cast: 'entities/npc/huntress/attack3.png',
+      AnimKey.hit: 'entities/npc/huntress/take_hit.png',
+      AnimKey.death: 'entities/npc/huntress/death.png',
+    },
+    frameCountsByKey: {
+      AnimKey.idle: 8,
+      AnimKey.stun: 8,
+      AnimKey.run: 8,
+      AnimKey.jump: 2,
+      AnimKey.fall: 2,
+      AnimKey.cast: 7,
+      AnimKey.hit: 3,
+      AnimKey.death: 8,
+    },
+    stepTimeSecondsByKey: {
+      AnimKey.idle: .12,
+      AnimKey.stun: .12,
+      AnimKey.run: .1,
+      AnimKey.jump: .12,
+      AnimKey.fall: .12,
+      AnimKey.cast: .1,
+      AnimKey.hit: .1,
+      AnimKey.death: .12,
+    },
+  ),
+);
+const _huntress2 = NpcArchetype(
+  collider: _huntress2Collider,
+  health: HealthDef(hp: 2400, hpMax: 2400, regenPerSecond100: 0),
+  speedX: 110,
+  attackRange: 320,
+  attackAbilityId: 'npc_huntress2.shoot_arrow',
+  castOriginOffset: 30,
+  castOriginOffsetY: -10.5,
+  renderAnim: RenderAnimSetDefinition(
+    frameWidth: 100,
+    frameHeight: 100,
+    anchorPoint: Vec2(50, 49),
+    sourcesByKey: {
+      AnimKey.idle: 'entities/npc/huntress_2/character/idle.png',
+      AnimKey.stun: 'entities/npc/huntress_2/character/idle.png',
+      AnimKey.run: 'entities/npc/huntress_2/character/run.png',
+      AnimKey.jump: 'entities/npc/huntress_2/character/jump.png',
+      AnimKey.fall: 'entities/npc/huntress_2/character/fall.png',
+      AnimKey.cast: 'entities/npc/huntress_2/character/attack.png',
+      AnimKey.hit: 'entities/npc/huntress_2/character/get_hit.png',
+      AnimKey.death: 'entities/npc/huntress_2/character/death.png',
+    },
+    frameCountsByKey: {
+      AnimKey.idle: 10,
+      AnimKey.stun: 10,
+      AnimKey.run: 8,
+      AnimKey.jump: 2,
+      AnimKey.fall: 2,
+      AnimKey.cast: 6,
+      AnimKey.hit: 3,
+      AnimKey.death: 10,
+    },
+    stepTimeSecondsByKey: {
+      AnimKey.idle: .12,
+      AnimKey.stun: .12,
+      AnimKey.run: .1,
+      AnimKey.jump: .12,
+      AnimKey.fall: .12,
+      AnimKey.cast: .1,
       AnimKey.hit: .1,
       AnimKey.death: .12,
     },

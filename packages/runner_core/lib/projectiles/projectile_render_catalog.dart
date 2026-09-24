@@ -398,6 +398,23 @@ const RenderAnimSetDefinition _waterBoltRenderAnim = RenderAnimSetDefinition(
 class ProjectileRenderCatalog {
   const ProjectileRenderCatalog();
 
+  static const _npcSpear = RenderAnimSetDefinition(
+    frameWidth: 60,
+    frameHeight: 20,
+    anchorPoint: Vec2(31, 10.5),
+    sourcesByKey: {AnimKey.idle: 'entities/npc/huntress/spear_move.png'},
+    frameCountsByKey: {AnimKey.idle: 4},
+    stepTimeSecondsByKey: {AnimKey.idle: .08},
+  );
+  static const _npcArrow = RenderAnimSetDefinition(
+    frameWidth: 24,
+    frameHeight: 5,
+    anchorPoint: Vec2(12, 2.5),
+    sourcesByKey: {AnimKey.idle: 'entities/npc/huntress_2/arrow/move.png'},
+    frameCountsByKey: {AnimKey.idle: 2},
+    stepTimeSecondsByKey: {AnimKey.idle: .08},
+  );
+
   static final _poisonDart = RenderAnimSetDefinition(
     frameWidth: 128,
     frameHeight: 128,
@@ -441,6 +458,10 @@ class ProjectileRenderCatalog {
         return _waterBoltRenderAnim;
       case ProjectileId.poisonDart:
         return _poisonDart;
+      case ProjectileId.npcSpear:
+        return _npcSpear;
+      case ProjectileId.npcArrow:
+        return _npcArrow;
     }
   }
 }

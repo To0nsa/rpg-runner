@@ -1,3 +1,4 @@
+import '../combat/ai_cast_aim_policy.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
@@ -470,18 +471,7 @@ const AnimProfile _derfAnimProfile = AnimProfile(
   supportsStun: false,
 );
 
-/// Defines the base stats and physics properties for an enemy type.
-///
-/// This data is "static" (read-only) configuration used to initialize
-/// the ECS components effectively when an enemy spawns.
-enum EnemyCastTargetPolicy {
-  /// Casts directly at the selected combat target's current center position.
-  playerCenter,
-
-  /// Predicts the selected combat target's center using deterministic lead.
-  predictedPlayerCenter,
-}
-
+/// When enemy decisions update their facing toward the selected combat target.
 enum EnemyFacingPolicy {
   /// Facing is derived from movement/commits.
   movementDriven,
@@ -506,7 +496,7 @@ class EnemyArchetype {
     this.deathBehavior = DeathBehavior.instant,
     this.primaryCastAbilityId,
     this.castOriginOffset,
-    this.castTargetPolicy = EnemyCastTargetPolicy.predictedPlayerCenter,
+    this.castTargetPolicy = AiCastAimPolicy.predictedTargetCenter,
     this.facingPolicy = EnemyFacingPolicy.movementDriven,
     this.primaryMeleeAbilityId,
     this.comboMeleeAbilityId,
@@ -560,7 +550,7 @@ class EnemyArchetype {
   final double? castOriginOffset;
 
   /// Target selection policy used by enemy cast systems.
-  final EnemyCastTargetPolicy castTargetPolicy;
+  final AiCastAimPolicy castTargetPolicy;
 
   /// Facing update policy for this archetype.
   final EnemyFacingPolicy facingPolicy;
@@ -625,7 +615,7 @@ class EnemyCatalog {
           deathBehavior: DeathBehavior.instant,
           primaryCastAbilityId: 'unoco.fire_bolt_cast',
           castOriginOffset: 20.0,
-          castTargetPolicy: EnemyCastTargetPolicy.predictedPlayerCenter,
+          castTargetPolicy: AiCastAimPolicy.predictedTargetCenter,
           primaryMeleeAbilityId: 'unoco.strike',
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
@@ -699,7 +689,7 @@ class EnemyCatalog {
           deathAnimSeconds: _derfDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
           primaryCastAbilityId: 'derf.fire_explosion',
-          castTargetPolicy: EnemyCastTargetPolicy.predictedPlayerCenter,
+          castTargetPolicy: AiCastAimPolicy.predictedTargetCenter,
           facingPolicy: EnemyFacingPolicy.facePlayerAlways,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),

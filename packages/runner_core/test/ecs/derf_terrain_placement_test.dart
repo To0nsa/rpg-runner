@@ -1,3 +1,4 @@
+import 'package:runner_core/combat/ai_cast_aim_policy.dart';
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
@@ -219,10 +220,7 @@ void main() {
       expect(slope.activeFacing, flat.activeFacing);
       final archetype = const EnemyCatalog().get(EnemyId.derf);
       expect(archetype.deathBehavior, DeathBehavior.instant);
-      expect(
-        archetype.castTargetPolicy,
-        EnemyCastTargetPolicy.predictedPlayerCenter,
-      );
+      expect(archetype.castTargetPolicy, AiCastAimPolicy.predictedTargetCenter);
       expect(archetype.facingPolicy, EnemyFacingPolicy.facePlayerAlways);
     },
   );

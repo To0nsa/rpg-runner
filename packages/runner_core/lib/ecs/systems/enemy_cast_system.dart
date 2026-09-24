@@ -1,6 +1,7 @@
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
+import '../../combat/ai_cast_aim_policy.dart';
 import '../../combat/cast_origin_offset.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/hit_payload.dart';
@@ -18,6 +19,7 @@ import '../../util/target_prediction.dart';
 import '../../weapons/weapon_proc.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
+import '../actor_facing.dart';
 import '../combat_target.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
@@ -32,8 +34,16 @@ class EnemyCastSystem {
     required this.enemyCatalog,
     required this.projectiles,
     this.abilities = AbilityCatalog.shared,
-  });
+  }) : committer = AiCastCommitter(
+         tickHz: unocoDemonTuning.tickHz,
+         projectiles: projectiles,
+         minTravelLeadSeconds:
+             unocoDemonTuning.base.unocoDemonAimLeadMinSeconds,
+         maxTravelLeadSeconds:
+             unocoDemonTuning.base.unocoDemonAimLeadMaxSeconds,
+       );
 
+  final AiCastCommitter committer;
   final UnocoDemonTuningDerived unocoDemonTuning;
   final EnemyCatalog enemyCatalog;
   final ProjectileCatalog projectiles;
@@ -53,7 +63,7 @@ class EnemyCastSystem {
       final targetTi = world.transform.indexOf(target);
       final targetVelX = world.transform.velX[targetTi];
       final targetVelY = world.transform.velY[targetTi];
-      final targetCenter = _entityCenter(
+      final targetCenter = aiActorCenter(
         world,
         target,
         fallbackX: world.transform.posX[targetTi],
@@ -80,164 +90,207 @@ class EnemyCastSystem {
       final castAbility = abilities.resolve(castAbilityId);
       if (castAbility == null) continue;
 
-      final enemyCenter = _entityCenter(
+      final enemyCenter = aiActorCenter(
         world,
         enemy,
         fallbackX: world.transform.posX[enemyTi],
         fallbackY: world.transform.posY[enemyTi],
       );
       if (archetype.facingPolicy == EnemyFacingPolicy.facePlayerAlways) {
-        _faceEnemyTowardX(
+        _faceActorTowardX(
           world,
-          enemyIndex: ei,
+          actor: enemy,
           targetX: targetCenter.$1,
           sourceX: enemyCenter.$1,
         );
       }
-      if (world.activeAbility.hasActiveAbility(enemy)) continue;
-
-      final castCost = _resolveCastCost(castAbility);
-      if (!canAffordAiAbility(world, enemy, castCost)) continue;
-
-      final cooldownGroupId = castAbility.effectiveCooldownGroup(
-        AbilitySlot.projectile,
-      );
-      if (world.cooldown.isOnCooldown(enemy, cooldownGroupId)) continue;
-      if (!canCommitAiAbility(
+      committer.commit(
         world,
-        enemy,
-        currentTick: currentTick,
-        lock: LockFlag.cast,
-        cooldownGroupId: cooldownGroupId,
-        cost: castCost,
-      )) {
-        continue;
-      }
-
-      final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
-      final windupTicks = _scaleTicksForActionSpeed(
-        _scaleAbilityTicks(castAbility.windupTicks),
-        actionSpeedBp,
-      );
-      final activeTicks = _scaleAbilityTicks(castAbility.activeTicks);
-      final recoveryTicks = _scaleTicksForActionSpeed(
-        _scaleAbilityTicks(castAbility.recoveryTicks),
-        actionSpeedBp,
-      );
-      final commitTick = currentTick;
-      final executeTick = commitTick + windupTicks;
-      final baseCooldownTicks = _scaleAbilityTicks(castAbility.cooldownTicks);
-      final cooldownTicks = _scaleTicksForActionSpeed(
-        baseCooldownTicks,
-        actionSpeedBp,
-      );
-
-      final resolvedAim = _resolveAimPoint(
+        actor: enemy,
         castAbility: castAbility,
-        castTargetPolicy: archetype.castTargetPolicy,
         sourceX: enemyCenter.$1,
         sourceY: enemyCenter.$2,
         targetX: targetCenter.$1,
         targetY: targetCenter.$2,
         targetVelX: targetVelX,
         targetVelY: targetVelY,
-        windupTicks: windupTicks,
+        aimPolicy: archetype.castTargetPolicy,
+        casterOriginOffset: archetype.castOriginOffset,
+        currentTick: currentTick,
       );
-      final aimX = resolvedAim.$1;
-      final aimY = resolvedAim.$2;
-      _faceEnemyTowardX(
-        world,
-        enemyIndex: ei,
-        targetX: aimX,
-        sourceX: enemyCenter.$1,
-      );
+    }
+  }
+}
 
-      final payload = _buildPayload(
-        world,
-        source: enemy,
-        ability: castAbility,
-        weaponDamageType: resolvedAim.$3,
-        weaponProcs: resolvedAim.$4,
-      );
+/// Shares autonomous cast gates, timing, payloads and intents across actor roles.
+class AiCastCommitter {
+  const AiCastCommitter({
+    required this.tickHz,
+    required this.projectiles,
+    this.minTravelLeadSeconds = .08,
+    this.maxTravelLeadSeconds = .4,
+  });
+  final int tickHz;
+  final ProjectileCatalog projectiles;
+  final double minTravelLeadSeconds;
+  final double maxTravelLeadSeconds;
 
-      final hitDelivery = castAbility.hitDelivery;
-      if (hitDelivery is ProjectileHitDelivery) {
-        if (!world.projectileIntent.has(enemy)) {
-          assert(
-            false,
-            'EnemyCastSystem requires ProjectileIntentStore on enemies; add it at spawn time.',
-          );
-          continue;
-        }
-        final projectile = projectiles.get(hitDelivery.projectileId);
-        _writeProjectileIntent(
-          world,
-          enemy: enemy,
-          ability: castAbility,
-          casterOriginOffset: archetype.castOriginOffset,
-          payload: payload,
-          commitCost: castCost,
-          targetX: aimX,
-          targetY: aimY,
-          sourceX: enemyCenter.$1,
-          sourceY: enemyCenter.$2,
-          commitTick: commitTick,
-          executeTick: executeTick,
-          windupTicks: windupTicks,
-          activeTicks: activeTicks,
-          recoveryTicks: recoveryTicks,
-          cooldownTicks: cooldownTicks,
-          cooldownGroupId: cooldownGroupId,
-          projectileId: hitDelivery.projectileId,
-          projectile: projectile,
+  bool commit(
+    EcsWorld world, {
+    required EntityId actor,
+    required AbilityDef castAbility,
+    required double sourceX,
+    required double sourceY,
+    required double targetX,
+    required double targetY,
+    required double targetVelX,
+    required double targetVelY,
+    required AiCastAimPolicy aimPolicy,
+    double? casterOriginOffset,
+    double casterOriginOffsetY = 0,
+    required int currentTick,
+  }) {
+    if (!world.transform.has(actor) || !world.cooldown.has(actor)) return false;
+    if (world.activeAbility.hasActiveAbility(actor)) return false;
+
+    final castCost = _resolveCastCost(castAbility);
+    if (!canAffordAiAbility(world, actor, castCost)) return false;
+
+    final cooldownGroupId = castAbility.effectiveCooldownGroup(
+      AbilitySlot.projectile,
+    );
+    if (world.cooldown.isOnCooldown(actor, cooldownGroupId)) return false;
+    if (!canCommitAiAbility(
+      world,
+      actor,
+      currentTick: currentTick,
+      lock: LockFlag.cast,
+      cooldownGroupId: cooldownGroupId,
+      cost: castCost,
+    )) {
+      return false;
+    }
+
+    final actionSpeedBp = _actionSpeedBpForEntity(world, actor);
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(castAbility.windupTicks),
+      actionSpeedBp,
+    );
+    final activeTicks = _scaleAbilityTicks(castAbility.activeTicks);
+    final recoveryTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(castAbility.recoveryTicks),
+      actionSpeedBp,
+    );
+    final commitTick = currentTick;
+    final executeTick = commitTick + windupTicks;
+    final baseCooldownTicks = _scaleAbilityTicks(castAbility.cooldownTicks);
+    final cooldownTicks = _scaleTicksForActionSpeed(
+      baseCooldownTicks,
+      actionSpeedBp,
+    );
+
+    final resolvedAim = _resolveAimPoint(
+      castAbility: castAbility,
+      castTargetPolicy: aimPolicy,
+      sourceX: sourceX,
+      sourceY: sourceY + casterOriginOffsetY,
+      targetX: targetX,
+      targetY: targetY,
+      targetVelX: targetVelX,
+      targetVelY: targetVelY,
+      windupTicks: windupTicks,
+    );
+    final aimX = resolvedAim.$1;
+    final aimY = resolvedAim.$2;
+    _faceActorTowardX(world, actor: actor, targetX: aimX, sourceX: sourceX);
+
+    final payload = _buildPayload(
+      world,
+      source: actor,
+      ability: castAbility,
+      weaponDamageType: resolvedAim.$3,
+      weaponProcs: resolvedAim.$4,
+    );
+
+    final hitDelivery = castAbility.hitDelivery;
+    if (hitDelivery is ProjectileHitDelivery) {
+      if (!world.projectileIntent.has(actor)) {
+        assert(
+          false,
+          'AiCastCommitter requires ProjectileIntentStore on its actor.',
         );
-      } else if (hitDelivery is TargetPointHitDelivery) {
-        if (!world.targetPointIntent.has(enemy)) {
-          assert(
-            false,
-            'EnemyCastSystem requires TargetPointIntentStore on enemies; add the component at spawn time.',
-          );
-          continue;
-        }
-        _writeTargetPointIntent(
-          world,
-          enemy: enemy,
-          ability: castAbility,
-          hitDelivery: hitDelivery,
-          payload: payload,
-          commitCost: castCost,
-          targetX: aimX,
-          targetY: aimY,
-          commitTick: commitTick,
-          executeTick: executeTick,
-          windupTicks: windupTicks,
-          activeTicks: activeTicks,
-          recoveryTicks: recoveryTicks,
-          cooldownTicks: cooldownTicks,
-          cooldownGroupId: cooldownGroupId,
-        );
-      } else {
-        continue;
+        return false;
       }
-
-      spendAiAbilityCost(world, enemy, castCost);
-      world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
-      world.activeAbility.set(
-        enemy,
-        id: castAbility.id,
-        slot: AbilitySlot.projectile,
+      final projectile = projectiles.get(hitDelivery.projectileId);
+      _writeProjectileIntent(
+        world,
+        actor: actor,
+        ability: castAbility,
+        casterOriginOffset: casterOriginOffset,
+        casterOriginOffsetY: casterOriginOffsetY,
+        payload: payload,
+        commitCost: castCost,
+        targetX: aimX,
+        targetY: aimY,
+        sourceX: sourceX,
+        sourceY: sourceY + casterOriginOffsetY,
         commitTick: commitTick,
+        executeTick: executeTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
-        facingDir: world.enemy.facing[ei],
+        cooldownTicks: cooldownTicks,
+        cooldownGroupId: cooldownGroupId,
+        projectileId: hitDelivery.projectileId,
+        projectile: projectile,
       );
+    } else if (hitDelivery is TargetPointHitDelivery) {
+      if (!world.targetPointIntent.has(actor)) {
+        assert(
+          false,
+          'AiCastCommitter requires TargetPointIntentStore on its actor.',
+        );
+        return false;
+      }
+      _writeTargetPointIntent(
+        world,
+        actor: actor,
+        ability: castAbility,
+        hitDelivery: hitDelivery,
+        payload: payload,
+        commitCost: castCost,
+        targetX: aimX,
+        targetY: aimY,
+        commitTick: commitTick,
+        executeTick: executeTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        cooldownTicks: cooldownTicks,
+        cooldownGroupId: cooldownGroupId,
+      );
+    } else {
+      return false;
     }
+
+    spendAiAbilityCost(world, actor, castCost);
+    world.cooldown.startCooldown(actor, cooldownGroupId, cooldownTicks);
+    world.activeAbility.set(
+      actor,
+      id: castAbility.id,
+      slot: AbilitySlot.projectile,
+      commitTick: commitTick,
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
+      facingDir: actorFacing(world, actor),
+    );
+    return true;
   }
 
   (double, double, DamageType?, List<WeaponProc>) _resolveAimPoint({
     required AbilityDef castAbility,
-    required EnemyCastTargetPolicy castTargetPolicy,
+    required AiCastAimPolicy castTargetPolicy,
     required double sourceX,
     required double sourceY,
     required double targetX,
@@ -261,7 +314,7 @@ class EnemyCastSystem {
     }
 
     var leadSeconds = 0.0;
-    if (castTargetPolicy == EnemyCastTargetPolicy.predictedPlayerCenter) {
+    if (castTargetPolicy == AiCastAimPolicy.predictedTargetCenter) {
       leadSeconds = computeCastLeadSeconds(
         windupSeconds: _ticksToSeconds(windupTicks),
         includeTravelLead: includeTravelLead,
@@ -270,8 +323,8 @@ class EnemyCastSystem {
         targetX: targetX,
         targetY: targetY,
         travelSpeedUnitsPerSecond: travelSpeedUnitsPerSecond,
-        minTravelLeadSeconds: unocoDemonTuning.base.unocoDemonAimLeadMinSeconds,
-        maxTravelLeadSeconds: unocoDemonTuning.base.unocoDemonAimLeadMaxSeconds,
+        minTravelLeadSeconds: minTravelLeadSeconds,
+        maxTravelLeadSeconds: maxTravelLeadSeconds,
       );
     }
 
@@ -287,9 +340,10 @@ class EnemyCastSystem {
 
   void _writeProjectileIntent(
     EcsWorld world, {
-    required EntityId enemy,
+    required EntityId actor,
     required AbilityDef ability,
     required double? casterOriginOffset,
+    required double casterOriginOffsetY,
     required HitPayload payload,
     required AbilityResourceCost commitCost,
     required double targetX,
@@ -308,11 +362,11 @@ class EnemyCastSystem {
   }) {
     final originOffset = resolveCasterProjectileOriginOffset(
       world,
-      enemy,
+      actor,
       authoredCasterOffset: casterOriginOffset,
     );
     world.projectileIntent.set(
-      enemy,
+      actor,
       ProjectileIntentDef(
         projectileId: projectileId,
         abilityId: ability.id,
@@ -333,6 +387,7 @@ class EnemyCastSystem {
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
         originOffset: originOffset,
+        sourceOffsetY: casterOriginOffsetY,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -345,7 +400,7 @@ class EnemyCastSystem {
 
   void _writeTargetPointIntent(
     EcsWorld world, {
-    required EntityId enemy,
+    required EntityId actor,
     required AbilityDef ability,
     required TargetPointHitDelivery hitDelivery,
     required HitPayload payload,
@@ -361,7 +416,7 @@ class EnemyCastSystem {
     required int cooldownGroupId,
   }) {
     world.targetPointIntent.set(
-      enemy,
+      actor,
       TargetPointIntentDef(
         abilityId: ability.id,
         slot: AbilitySlot.projectile,
@@ -387,43 +442,6 @@ class EnemyCastSystem {
         tick: executeTick,
       ),
     );
-  }
-
-  (double, double) _entityCenter(
-    EcsWorld world,
-    EntityId entity, {
-    required double fallbackX,
-    required double fallbackY,
-  }) {
-    var x = fallbackX;
-    var y = fallbackY;
-    if (world.colliderAabb.has(entity)) {
-      final ai = world.colliderAabb.indexOf(entity);
-      final ti = world.transform.tryIndexOf(entity);
-      if (ti != null) {
-        x = colliderCenterX(
-          world,
-          entity: entity,
-          transformIndex: ti,
-          colliderIndex: ai,
-        );
-      } else {
-        x += colliderEffectiveOffsetX(world, entity: entity, colliderIndex: ai);
-      }
-      y += world.colliderAabb.offsetY[ai];
-    }
-    return (x, y);
-  }
-
-  void _faceEnemyTowardX(
-    EcsWorld world, {
-    required int enemyIndex,
-    required double targetX,
-    required double sourceX,
-  }) {
-    final dirX = targetX - sourceX;
-    if (dirX.abs() <= 1e-6) return;
-    world.enemy.facing[enemyIndex] = dirX >= 0 ? Facing.right : Facing.left;
   }
 
   HitPayload _buildPayload(
@@ -465,14 +483,14 @@ class EnemyCastSystem {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (unocoDemonTuning.tickHz <= 0) return ticks;
+    if (tickHz <= 0) return ticks;
     final seconds = ticks / abilityAuthoringTickHz;
-    return (seconds * unocoDemonTuning.tickHz).ceil();
+    return (seconds * tickHz).ceil();
   }
 
   double _ticksToSeconds(int ticks) {
-    if (ticks <= 0 || unocoDemonTuning.tickHz <= 0) return 0.0;
-    return ticks / unocoDemonTuning.tickHz;
+    if (ticks <= 0 || tickHz <= 0) return 0.0;
+    return ticks / tickHz;
   }
 
   int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {
@@ -487,4 +505,42 @@ class EnemyCastSystem {
     if (clampedSpeedBp == bpScale) return ticks;
     return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
+}
+
+/// Collider center shared by autonomous aim decisions.
+(double, double) aiActorCenter(
+  EcsWorld world,
+  EntityId entity, {
+  required double fallbackX,
+  required double fallbackY,
+}) {
+  var x = fallbackX;
+  var y = fallbackY;
+  if (world.colliderAabb.has(entity)) {
+    final ai = world.colliderAabb.indexOf(entity);
+    final ti = world.transform.tryIndexOf(entity);
+    if (ti != null) {
+      x = colliderCenterX(
+        world,
+        entity: entity,
+        transformIndex: ti,
+        colliderIndex: ai,
+      );
+    } else {
+      x += colliderEffectiveOffsetX(world, entity: entity, colliderIndex: ai);
+    }
+    y += world.colliderAabb.offsetY[ai];
+  }
+  return (x, y);
+}
+
+void _faceActorTowardX(
+  EcsWorld world, {
+  required EntityId actor,
+  required double targetX,
+  required double sourceX,
+}) {
+  final dirX = targetX - sourceX;
+  if (dirX.abs() <= 1e-6) return;
+  setActorFacing(world, actor, dirX >= 0 ? Facing.right : Facing.left);
 }
