@@ -2033,7 +2033,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
                     'zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.traps
-              ? 'Place or move trap art; blue handles resize the independent trigger. Preview frames show damage and warning cues. Ctrl+drag pans; Ctrl+scroll zooms.'
+              ? 'Place or move trap art; blue handles resize the independent trigger. Preview frames show read-only damage geometry. Ctrl+drag pans; Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.water
               ? (_waterDrawArmed ||
                         (_waterDrawing.hasActiveOperation &&

@@ -52,19 +52,22 @@ void main() {
       });
     }
 
-    test('$id cancels before harm when sprite or cue leaves the camera', () {
-      for (final cameraRight in [178.0, 148.0]) {
-        final f = _Fixture(id);
-        f.actor(200, 128);
-        f.step(0);
-        f.step(1, cameraRight: cameraRight);
-        expect(f.state.phase, TrapPhase.cooldown);
-        f.step(1000);
-        expect(f.state.phase, TrapPhase.waitingForClear);
-        expect(f.world.damageQueue.length, 0);
-        expect(f.world.projectile.denseEntities, isEmpty);
-      }
-    });
+    test(
+      '$id cancels before harm when resting art or activation bounds leave the camera',
+      () {
+        for (final cameraRight in [178.0, 148.0]) {
+          final f = _Fixture(id);
+          f.actor(200, 128);
+          f.step(0);
+          f.step(1, cameraRight: cameraRight);
+          expect(f.state.phase, TrapPhase.cooldown);
+          f.step(1000);
+          expect(f.state.phase, TrapPhase.waitingForClear);
+          expect(f.world.damageQueue.length, 0);
+          expect(f.world.projectile.denseEntities, isEmpty);
+        }
+      },
+    );
   }
 
   test('already occupied trigger starts on first positive camera overlap', () {
@@ -111,26 +114,23 @@ void main() {
     expect(f.world.damageQueue.length, 0);
   });
 
-  test(
-    'active cue remains visible for late entrants; visibility loss stops hits',
-    () {
-      final f = _Fixture(TrapId.spike);
-      final activator = f.actor(170, 128, faction: Faction.enemy);
-      f.step(0);
-      f.move(activator, 50, 50);
-      f.step(42);
-      expect(f.world.damageQueue.length, 0);
-      final late = f.actor(200, 120);
-      f.step(43);
-      expect(f.world.damageQueue.target, [late]);
-      expect(f.world.traps.buildSnapshots().single.cueVisible, isTrue);
-      f.world.damageQueue.clear();
-      f.actor(200, 120);
-      f.step(44, cameraRight: 178);
-      expect(f.state.phase, TrapPhase.cooldown);
-      expect(f.world.damageQueue.length, 0);
-    },
-  );
+  test('late entrants can be hit during the active phase; visibility loss stops hits', () {
+    final f = _Fixture(TrapId.spike);
+    final activator = f.actor(170, 128, faction: Faction.enemy);
+    f.step(0);
+    f.move(activator, 50, 50);
+    f.step(42);
+    expect(f.world.damageQueue.length, 0);
+    final late = f.actor(200, 120);
+    f.step(43);
+    expect(f.world.damageQueue.target, [late]);
+    expect(f.world.traps.buildSnapshots().single.phase, TrapPhase.active);
+    f.world.damageQueue.clear();
+    f.actor(200, 120);
+    f.step(44, cameraRight: 178);
+    expect(f.state.phase, TrapPhase.cooldown);
+    expect(f.world.damageQueue.length, 0);
+  });
 
   test('cycle, cooldown and an empty trigger are all required to rearm', () {
     final f = _Fixture(TrapId.spike);

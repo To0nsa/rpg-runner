@@ -26,7 +26,7 @@ final class TrapDefinition {
     required this.assetPath,
     required this.anchor,
     required this.restingBounds,
-    required this.warningCue,
+    required this.activationVisibilityBounds,
     required this.defaultTrigger,
     required this.damage100,
     required Iterable<TrapFrame> frames,
@@ -38,7 +38,10 @@ final class TrapDefinition {
   final String assetPath;
   final Vec2 anchor;
   final TrapRect restingBounds;
-  final TrapRect warningCue;
+
+  /// Anchor-relative area that must overlap the camera, alongside resting art,
+  /// before activation or further contact hits. This is not rendered geometry.
+  final TrapRect activationVisibilityBounds;
   final TrapRect defaultTrigger;
   final int damage100;
   final Vec2 muzzle;

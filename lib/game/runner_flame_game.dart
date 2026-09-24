@@ -13,7 +13,7 @@ import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'components/aim_ray.dart';
-import 'components/traps/trap_cue_overlay.dart';
+import 'debug/trap_hitbox_overlay.dart';
 import 'components/traps/trap_render_registry.dart';
 import 'components/traps/trap_render_system.dart';
 import 'components/pixel_parallax_backdrop.dart';
@@ -140,7 +140,7 @@ class RunnerFlameGame extends FlameGame {
   final SpellImpactRenderRegistry _spellImpactRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
   final TrapRenderRegistry _trapRenderRegistry = TrapRenderRegistry();
-  final TrapCueOverlay _trapCues = TrapCueOverlay();
+  final TrapHitboxOverlay _trapHitboxes = TrapHitboxOverlay();
   late final TrapRenderSystem _trapViews = TrapRenderSystem(
     world: world,
     registry: _trapRenderRegistry,
@@ -204,7 +204,8 @@ class RunnerFlameGame extends FlameGame {
       _spellImpactRenderRegistry.load(images),
       _pickupRenderRegistry.load(images),
       _trapRenderRegistry.load(images),
-      Future<void>.value(camera.viewfinder.add(_trapCues)),
+      if (RenderDebugFlags.canUseRenderDebug)
+        Future<void>.value(camera.viewfinder.add(_trapHitboxes)),
       terrainLoad,
       waterForegroundLoad,
       parallaxLoad,
@@ -216,8 +217,8 @@ class RunnerFlameGame extends FlameGame {
       controller.snapshot.traps,
       cameraCenter: camera.viewfinder.position,
     );
-    _trapCues.traps = controller.snapshot.traps;
-    _trapCues.cameraCenter.setFrom(camera.viewfinder.position);
+    _trapHitboxes.traps = controller.snapshot.traps;
+    _trapHitboxes.cameraCenter.setFrom(camera.viewfinder.position);
 
     world.add(
       AimRay(
@@ -289,11 +290,8 @@ class RunnerFlameGame extends FlameGame {
     );
     camera.viewfinder.position = _cameraCenterScratch;
     _trapViews.sync(currSnapshot.traps, cameraCenter: _cameraCenterScratch);
-    _trapCues.traps = currSnapshot.traps;
-    _trapCues.cameraCenter.setFrom(_cameraCenterScratch);
-    _trapCues.drawDamagePoses =
-        RenderDebugFlags.canUseRenderDebug &&
-        RenderDebugFlags.drawActorHitboxes;
+    _trapHitboxes.traps = currSnapshot.traps;
+    _trapHitboxes.cameraCenter.setFrom(_cameraCenterScratch);
 
     _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
     _liveWorldSync.snapStaticPrefabSprites(

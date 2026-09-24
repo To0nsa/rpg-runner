@@ -70,7 +70,7 @@ abstract final class TrapCatalog {
       assetPath: 'entities/traps/spike/trap_spike.png',
       anchor: const Vec2(64, 96),
       restingBounds: const TrapRect(-22, -4, 43, 36),
-      warningCue: const TrapRect(-26, -44, 52, 48),
+      activationVisibilityBounds: const TrapRect(-26, -44, 52, 48),
       defaultTrigger: const TrapRect(-160, -44, 210, 64),
       damage100: 500,
       frames: [
@@ -145,7 +145,7 @@ abstract final class TrapCatalog {
       assetPath: 'entities/traps/swinging_axe/trap_axe_ambient.png',
       anchor: const Vec2(64, 26),
       restingBounds: const TrapRect(-15, -16, 62, 29),
-      warningCue: const TrapRect(-54, 12, 104, 48),
+      activationVisibilityBounds: const TrapRect(-54, 12, 104, 48),
       defaultTrigger: const TrapRect(-224, 16, 280, 68),
       damage100: 800,
       frames: [
@@ -191,7 +191,7 @@ abstract final class TrapCatalog {
     assetPath: 'entities/traps/poison_darts/spritesheet.png',
     anchor: const Vec2(32, 24),
     restingBounds: const TrapRect(-22, -9, 40, 34),
-    warningCue: const TrapRect(16, -16, 36, 32),
+    activationVisibilityBounds: const TrapRect(16, -16, 36, 32),
     defaultTrigger: const TrapRect(40, -32, 180, 64),
     damage100: dartDamage100,
     muzzle: const Vec2(22, -2),

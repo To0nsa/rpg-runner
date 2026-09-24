@@ -41,10 +41,12 @@ Drag the sprite to move it with its trigger, use **Move trigger** or **Draw
 trigger** above the scene to position the activation area independently, or drag
 a selected trigger corner to resize it. Snap controls live inside creation and
 editing sections. **Duplicate** adds a copy one tile to the right when valid.
-The frame slider shows
-the attack pose and read-only damage shape or dart muzzle. Blue rectangles are
-activation areas; red shapes are damage. Trap edits use normal Undo/Redo, Save,
-Build and captured Play. Timing, damage and cooldowns remain Core-owned.
+The frame slider shows the attack pose and read-only damage shape or dart muzzle.
+Blue rectangles are activation areas; red shapes are damage. These geometry
+guides are authoring-only; Visual preview and Play render trap art without colored
+warning zones or markers. The catalog shows seconds before damage (the animation
+wind-up). Trap edits use normal Undo/Redo, Save, Build and captured Play. Timing,
+damage and cooldowns remain Core-owned.
 
 Implemented authoring domains:
 

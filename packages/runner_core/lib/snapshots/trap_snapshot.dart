@@ -19,6 +19,4 @@ final class TrapSnapshot {
   final Facing facing;
   final TrapPhase phase;
   final int frameIndex;
-  bool get cueVisible =>
-      phase == TrapPhase.warning || phase == TrapPhase.active;
 }

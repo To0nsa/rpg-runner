@@ -68,7 +68,8 @@ final class TrapSystem {
       }
 
       final inView =
-          visible(definition.restingBounds) && visible(definition.warningCue);
+          visible(definition.restingBounds) &&
+          visible(definition.activationVisibilityBounds);
       if (state.phase == TrapPhase.cooldown) {
         if (currentTick < state.cooldownUntilTick) continue;
         state.phase = TrapPhase.waitingForClear;

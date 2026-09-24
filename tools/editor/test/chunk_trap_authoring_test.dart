@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -12,6 +13,8 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_trap_gesture.d
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_trap_visual_source.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
+import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_composition_operation.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
@@ -221,6 +224,82 @@ void main() {
       expect(ChunkV2FileCodec.decode(file.readAsStringSync()).traps, [trap]);
       await session.loadWorkspace();
       expect(current().traps, [trap]);
+    },
+  );
+
+  testWidgets(
+    'trap overlays are authoring-only in idle, wind-up and attack poses',
+    (tester) async {
+      final images = EditorUiImageCache();
+      final workspacePath = Directory('../..').absolute.path;
+      await tester.runAsync(() async {
+        for (final id in TrapId.values) {
+          await images.ensureLoaded(
+            '$workspacePath/assets/images/${TrapCatalog.get(id).assetPath}',
+          );
+        }
+      });
+      for (final id in TrapId.values) {
+        final def = TrapCatalog.get(id);
+        final source = TrapPlacement(
+          trapId: id,
+          x: 300,
+          y: 160,
+          trigger: def.defaultTrigger,
+        );
+        for (final frame in [-1, 0, def.firstHarmfulFrame]) {
+          for (final authoring in [true, false]) {
+            await tester.pumpWidget(
+              MaterialApp(
+                home: ChunkTrapVisualSource(
+                  workspaceRootPath: workspacePath,
+                  images: images,
+                  traps: [source],
+                  selected: source,
+                  previewFrame: frame,
+                  transform: TerrainPolygonViewportTransform(
+                    origin: Offset.zero,
+                    zoom: 1,
+                  ),
+                  pass: ChunkTrapVisualPass.overlay,
+                  authoring: authoring,
+                ),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final paint = tester.widget<CustomPaint>(
+              find.descendant(
+                of: find.byType(ChunkTrapVisualSource),
+                matching: find.byType(CustomPaint),
+              ),
+            );
+            final recorder = ui.PictureRecorder();
+            paint.painter!.paint(ui.Canvas(recorder), const Size(600, 320));
+            final picture = recorder.endRecording();
+            final painted = await tester.runAsync(() async {
+              final image = await picture.toImage(600, 320);
+              final pixels = (await image.toByteData())!;
+              var visible = false;
+              for (var i = 3; i < pixels.lengthInBytes; i += 4) {
+                if (pixels.getUint8(i) != 0) {
+                  visible = true;
+                  break;
+                }
+              }
+              image.dispose();
+              return visible;
+            });
+            picture.dispose();
+            expect(
+              painted,
+              authoring,
+              reason: '${id.name}, frame $frame: geometry is authoring-only.',
+            );
+          }
+        }
+      }
+      await tester.pumpWidget(const SizedBox());
+      images.dispose();
     },
   );
 

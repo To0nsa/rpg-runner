@@ -78,8 +78,10 @@ Traps are separate state, not attackable entities.
 
 `TrapSystem` queries the shared living-target cache after movement and self
 defenses, before damage middleware. A trigger overlaps actor capsules; it never
-deals damage itself. Both resting art and the cue must positively overlap Core's
-camera bounds. Losing either during warning or attack cancels the cycle into
+deals damage itself. Both resting art and the catalog's
+`activationVisibilityBounds` must positively overlap Core's camera bounds. These
+bounds are simulation-only; they are never drawn. Losing either during the
+non-damaging wind-up (`TrapPhase.warning`) or attack cancels the cycle into
 cooldown. A finished cycle requires one second of cooldown, an empty trigger,
 and no live dart before it can activate again. Pause and player-death freeze
 skip the gameplay system with the rest of Core.
@@ -109,13 +111,13 @@ mirrors around the catalog anchor and uses the existing camera-space pixel snap.
 Idle/cooldown machinery has priority -6; warning/active art has priority -4.
 Terrain remains -5 and darts retain projectile priority -1.
 
-`TrapCueOverlay` is mounted on `CameraComponent.viewfinder`. Flame renders that
-pass after the entire world using its current camera transform, before viewport
-HUD content. This preserves arbitrary authored prefab priorities. A pixel test
-places an opaque world component at priority 1,000,000 and verifies warning and
-active cues above it and the HUD above both. Cues are amber for warning and red
-for active, and include an exclamation marker. The same pure Canvas painter is
-available to Chunk Creator. Debug damage poses use the catalog's current frame.
+Gameplay renders the trap animation and projectiles without colored zones or
+exclamation markers. `TrapHitboxOverlay`, under `lib/game/debug`, draws only
+exact frame hitboxes when the existing non-release hitbox debug flag is enabled;
+it is not mounted in release builds. Its Canvas painter is also used by Chunk
+Creator's authoring guides. The default renderer produces no trap overlays in
+any phase, verified by pixel tests; sprite frames and layer priorities remain
+snapshot-driven.
 
 All three trap sheets join run-start warmup and the game's awaited registry load.
 
@@ -128,9 +130,12 @@ and saved-item cards as the other Chunk domains. Catalog selection does not arm
 placement; the explicit Place in scene action does. Scene tools live above the
 canvas and snapping controls stay with creation or editing. Facing mirrors the
 catalog art/damage preview while retaining the saved trigger. A frame slider
-projects exact catalog poses, damage capsules and dart muzzle/path; blue authoring rectangles are activation triggers, not damage.
-Idle/active art is partitioned around terrain and prefab layers. The common
-warning/active painter runs after the complete editor scene.
+projects exact catalog poses, damage capsules and dart muzzle/path; blue
+rectangles are authoring-only activation triggers. Idle/active art is partitioned
+around terrain and prefab layers. Geometry guides render after the complete
+editor scene only while authoring; Visual preview and Play show trap art without
+colored zones or exclamation markers. The catalog's seconds-before-damage label
+describes the animation wind-up, not a separate visual warning.
 
 Water and traps share `SceneRectangleGesture` for pointer ownership, whole-pixel
 or tile-grid snapping, neighbor snapping, movement, resize and chunk bounds.

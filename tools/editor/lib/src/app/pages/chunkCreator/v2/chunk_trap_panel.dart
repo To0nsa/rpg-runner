@@ -103,7 +103,9 @@ class ChunkTrapPanel extends StatelessWidget {
                   ),
                 ),
                 title: Text('${def.damage100 / 100} HP on hit'),
-                subtitle: Text('${def.firstHarmfulTick(60) / 60}s warning'),
+                subtitle: Text(
+                  '${def.firstHarmfulTick(60) / 60} s before damage',
+                ),
               ),
               snapControls,
               const SizedBox(height: 8),

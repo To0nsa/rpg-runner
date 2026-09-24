@@ -5,7 +5,7 @@ playtest tuning. Authors place a trap and an independent rectangular activation
 trigger. A living player or enemy can activate it. Trigger geometry never causes
 damage; the visible weapon or separate dart does.
 
-| Trap | Warning | Base damage | Attack animation |
+| Trap | Time before damage | Base damage | Attack animation |
 | --- | --- | --- | --- |
 | Spike | 0.7 seconds | 5 HP physical | 2.52 seconds |
 | Swinging Axe | 0.8 seconds | 8 HP physical | 9.38 seconds |
@@ -22,16 +22,17 @@ damage, while Slow follows status immunity and vulnerability rules. Poison
 does not apply Vulnerable. Fire and Poison can coexist. See
 [statuses](combat/status/status_system_design.md).
 
-Activation requires the trap's resting art and warning cue to overlap the game
-camera. Leaving view cancels an unfired cycle or stops new contact hits; a fired
-dart continues independently. After its animation, a trap waits one second and
+Activation requires the trap's resting art and attack visibility region to
+overlap the game camera. That region is an internal visibility check, not a
+visible zone. Leaving view cancels an unfired cycle or stops new contact hits;
+a fired dart continues independently. After its animation, a trap waits one second and
 requires an empty trigger before another activation. A dart launcher also waits
 for its previous dart to disappear. Continuous overlap never auto-repeats.
 
-Warning cues are amber and turn red during the active cycle. Their border and
-exclamation mark remain above scenery and actors, even when scenery hides the
-trap's machinery. Idle machinery sits behind terrain; active art sits above
-terrain and behind actors.
+The trap animation provides its wind-up and attack feedback. Gameplay has no
+yellow/red warning zones or exclamation markers. Idle machinery sits behind
+terrain; active art sits above terrain and behind actors. Exact trigger and
+damage geometry is available only in authoring and optional hitbox debugging.
 
 Traps are indestructible. Enemy trap deaths use normal enemy kill scoring but
 have no attacker gear procs. The Poison dart is environmental and cannot be

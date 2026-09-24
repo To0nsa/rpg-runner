@@ -7,7 +7,7 @@ library;
 import 'package:flutter/foundation.dart';
 
 abstract class RenderDebugFlags {
-  /// Draws collision AABB overlays for "actor" entities (player + enemies).
+  /// Draws actor collision bounds and attack hitboxes, including trap poses.
   ///
   /// Default is `false` even in debug builds; toggle locally when needed.
   static bool drawActorHitboxes = false;

@@ -16,6 +16,7 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/trap_snapshot.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/src/board_repository.dart';
@@ -59,7 +60,9 @@ void main() {
       for (var tick = 0; tick < replay.totalTicks && !app.gameOver; tick++) {
         app.stepOneTick();
         final snapshot = app.buildSnapshot();
-        sawTrap |= snapshot.traps.any((t) => t.cueVisible);
+        sawTrap |= snapshot.traps.any(
+          (t) => t.phase == TrapPhase.warning || t.phase == TrapPhase.active,
+        );
         sawPoison |=
             (snapshot.playerEntity!.statusVisualMask &
                 EntityStatusVisualMask.poison) !=

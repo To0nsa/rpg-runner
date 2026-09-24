@@ -3,11 +3,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/snapshots/trap_snapshot.dart';
 import 'package:runner_core/traps/trap_catalog.dart';
 import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
-import 'package:rpg_runner/game/components/traps/trap_cue_painter.dart';
+import 'package:rpg_runner/game/debug/trap_damage_painter.dart';
 
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/scene_rectangle_gesture.dart';
@@ -16,7 +15,7 @@ import 'chunk_trap_gesture.dart';
 
 enum ChunkTrapVisualPass { idle, active, overlay }
 
-/// Same reviewed art and cue painter as the game, partitioned around terrain.
+/// Catalog art partitioned around terrain, with authoring-only geometry guides.
 class ChunkTrapVisualSource extends StatefulWidget {
   const ChunkTrapVisualSource({
     super.key,
@@ -136,12 +135,7 @@ class _TrapPainter extends CustomPainter {
       final index = trap == selected && frame >= 0
           ? frame.clamp(0, def.frames.length - 1)
           : def.idleFrameIndex;
-      final phase = trap != selected || frame < 0
-          ? TrapPhase.idle
-          : index < def.firstHarmfulFrame
-          ? TrapPhase.warning
-          : TrapPhase.active;
-      final active = phase != TrapPhase.idle;
+      final active = trap == selected && frame >= 0;
       if (pass == ChunkTrapVisualPass.overlay) {
         if (authoring) {
           final bounds = trapTriggerBounds(trap);
@@ -188,14 +182,6 @@ class _TrapPainter extends CustomPainter {
             }
           }
         }
-        paintTrapCue(
-          canvas,
-          definition: def,
-          x: trap.x.toDouble(),
-          y: trap.y.toDouble(),
-          facing: trap.facing,
-          phase: phase,
-        );
         continue;
       }
       if ((pass == ChunkTrapVisualPass.active) != active) continue;

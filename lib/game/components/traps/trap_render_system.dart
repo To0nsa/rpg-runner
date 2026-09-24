@@ -33,7 +33,10 @@ final class TrapRenderSystem {
         return component;
       });
       view.sprite = sprite;
-      view.priority = trap.cueVisible ? priorityActiveTraps : priorityIdleTraps;
+      view.priority = switch (trap.phase) {
+        TrapPhase.warning || TrapPhase.active => priorityActiveTraps,
+        _ => priorityIdleTraps,
+      };
       view.scale.x = trap.facing == Facing.left ? -1 : 1;
       view.position.setValues(
         math.snapWorldToPixelsInCameraSpace1d(trap.x, cameraCenter.x),
