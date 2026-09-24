@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed Forest enemy navigation repair](../archive/2026-09-24/building/forest_enemy_navigation.md):
+  navigation and five chunk adjustments validated at unchanged movement limits;
+  compatibility `2026.09.6` awaits deployment.
+
 - [NPC rescue encounters](npc_rescue_encounters.md): plan audited September 24;
   implementation has not started. NPCs are confined to their encounter's chunk.
   D1–D7 are confirmed, including one-chunk off-screen

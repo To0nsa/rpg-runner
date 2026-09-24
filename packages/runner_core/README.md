@@ -68,18 +68,28 @@ The package-local tests protect portable Core behavior. The root `test/core/**`
 suite covers broader Core integrations; it is the right target when gameplay,
 snapshots, content, or determinism changes.
 
+For seeded level traversal, run from this package:
+
+```powershell
+dart test test/navigation/level_enemy_traversal_test.dart test/navigation/level_enemy_traversal_harness_test.dart --reporter expanded
+```
+
+The [level traversal workflow](../../.agent/workflows/test-level-traversal.md)
+documents the shared real-motion harness, level/seed matrix, finite route
+horizons, failure diagnostics, and adaptations for new levels or movement
+families. Check generated-source freshness from the repository root first.
+
 ## Staged terrain APIs
 
 `lib/collision/terrain/**` contains the deterministic polygon compiler, edge
 index, capsule/segment kernel, actor-neutral traversal profile, capsule
-controller, and future ground-target query.
+controller, and ground-target query.
 
 `GameCore.terrainMotionHarness(...)` exercises those APIs through the real
 player systems for tests and benchmarks. It is deliberately not exported as a
-level/replay option and is not the motion authority used by normal
-repository-backed runs. The normal `GameCore(...)` constructor continues to
-use legacy rectangle collision until the slopes plan reaches its direct
-cutover.
+level/replay option. Normal `GameCore(...)` runs use generated polygon terrain
+through the shared multi-body motion authority; the level traversal tests use
+that authority and the production enemy systems directly.
 
 Run the focused slope benchmarks from this package:
 

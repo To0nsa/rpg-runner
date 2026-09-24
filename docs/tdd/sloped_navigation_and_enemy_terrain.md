@@ -979,3 +979,33 @@ Derf placement tests cover flat, exact-`15°`, just-over-limit, exact-32-pixel,
 just-under-width, blocked headroom, adjacent wall, both-direction same-support
 clamp, terminal absent/fallback rejection, stable diagnostics, streamed spawn
 accept/skip behavior, upright art, and unchanged cast target/timing/facing.
+
+`packages/runner_core/test/navigation/level_enemy_traversal_test.dart` checks
+continuous mobile-enemy pursuit through three complete seeded Forest assemblies,
+before the final section starts repeating, and explicit 32-chunk prefixes of
+Field and `new_level`. The matrix covers each compiled level. Shared support in
+`test/test_support/level_enemy_traversal.dart` inside the Core package takes a
+level definition, seed, terrain catalog and finite route, deriving graph and
+motion tuning from that level rather than a global Forest configuration.
+It uses production connected chunk
+selection, generated terrain, level-derived graph profiles, a bounded publishing
+window, navigation, engagement, locomotion, swimming, gravity, and collision.
+Only the clearance-checked chase target is repositioned; enemies retain their
+state across seams. Combat, spawn-marker placement, camera culling, and Hashash
+teleporting are excluded. The test asserts completion rather than accepting known
+stalls. Flat and negative harness controls protect successful seam crossing and
+stall, kill-plane and budget failure reporting. Completion requires the enemy's
+body center to cross `testedChunkCount * chunkWidth`, with grounded/swimming
+support for ground enemies; waypoint arrival tolerance cannot shorten it.
+The final chase target uses one continuation chunk beyond that boundary.
+Scheduled routes capture the next production selection; explicit sequences
+must name their continuation chunk. This extra terrain is published normally,
+without replacing the last chunk, and is excluded from the tested horizon.
+Paired clear/blocked finish fixtures guard against accepting an impassable wall
+in the last part of the route, including after streaming and with a larger
+waypoint tolerance. New levels must declare route
+coverage; endless/looping routes require an explicit chunk count. See the
+[level testing workflow](../../.agent/workflows/test-level-traversal.md) for
+commands, target/spawn assumptions, movement limits, and adaptation rules, and
+the [forest traversal audit](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md)
+for resolved failures, content adjustments, validation and test boundaries.

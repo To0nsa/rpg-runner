@@ -146,6 +146,32 @@ Run the smallest relevant checks for the slice you touched:
 
 If you cannot run a relevant check, state that clearly in the final handoff.
 
+### Level traversal checks
+
+For level/chunk geometry, assembly, enemy movement, or terrain navigation work,
+use [.agent/workflows/test-level-traversal.md](.agent/workflows/test-level-traversal.md).
+The reusable matrix lives in
+`packages/runner_core/test/navigation/level_enemy_traversal_test.dart`; shared
+simulation support lives in `test/test_support/level_enemy_traversal.dart`
+inside that package. Run it with `dart test` from `packages/runner_core`.
+
+- Check generated-content freshness before treating a pass as evidence about
+  current authored sources.
+- Add explicit level, seed, enemy and finite-route coverage; retain failing
+  seeds as regressions. Endless/looping routes require a declared chunk limit.
+- Require crossing the actual tested route boundary. Chase-target arrival
+  tolerance must not shorten it; preserve clear and blocked finish controls.
+  Continuation terrain supports the final target without extending the horizon.
+- Adapt target/spawn policy or budgets when level design requires it, and
+  document why. Preserve actual catalog movement/collision limits and continuous
+  enemy state; do not make failures pass by teleporting, skipping chunks or
+  silently widening capabilities/tolerances.
+- Diagnose chunk composition, navigation and movement execution separately.
+  Keep production capability changes consistent with graph planning and replay
+  compatibility, and update the relevant TDD/GDD.
+- Report tested horizons and exclusions. These pursuit tests do not replace
+  spawn, combat, player, camera, performance or full-run integration checks.
+
 ## Commit Hygiene
 
 For multi-step implementation work, make small, coherent commits after each

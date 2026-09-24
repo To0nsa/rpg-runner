@@ -86,6 +86,10 @@ Do not hand-edit generated runtime files.
 6. Verify determinism and runtime behavior.
 
    Run targeted generator/core/UI tests first, then broaden if contracts changed.
+   Add an explicit scenario to the reusable enemy traversal matrix and follow
+   [Test Level Traversal](test-level-traversal.md). Declare seeds, mobile enemies
+   and a finite horizon for endless/looping layouts; adapt checkpoint/spawn
+   policy to the level's intended routes and actual movement limits.
 
 ## Suggested Validation
 

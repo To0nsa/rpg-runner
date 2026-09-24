@@ -76,6 +76,31 @@ Run integration benchmark test:
 flutter drive --driver=test_driver/integration_test.dart --target=test/integration_test/core-fixed-point/core_fixed_point_benchmark_test.dart -d <deviceId> --profile
 ```
 
+## Test Level Traversal
+
+Run the reusable enemy traversal suite from the repository root:
+
+```powershell
+dart run tool/generate_chunk_runtime_data.dart --dry-run
+Push-Location packages/runner_core
+dart test test/navigation/level_enemy_traversal_test.dart test/navigation/level_enemy_traversal_harness_test.dart --reporter expanded
+Pop-Location
+```
+
+It exercises actual navigation, movement and collision for Grojib, Hashash and
+Unoco on seeds `7`, `42`, `2026`: Forest's complete authored assembly and the
+first 32 chunks of Field and `new_level`. Derf is stationary. Failures report
+the chunk sequence, movement limits and motion trace. Passing requires crossing
+the actual route boundary; an extra continuation chunk supports the chase
+target beyond it. This isolates traversal;
+combat, spawn markers, camera pressure and player playthroughs need separate
+checks.
+
+The [level testing workflow](.agent/workflows/test-level-traversal.md) explains
+single-case commands, adding levels/seeds, adapting targets and budgets, and
+distinguishing chunk, navigation and movement failures. New compiled levels
+must declare a scenario in the matrix.
+
 ## Author Content
 
 Run `flutter run -d windows` from `tools/editor`. Level Creator connects Contents,
@@ -115,7 +140,7 @@ planning documents are retained in a dated archive after the September 15,
 Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
-the selector's 2026.09.0 compatibility rollout. The current gameplay
-compatibility is 2026.09.3, which adds ground-enemy swimming and a shared 20%
-water-speed penalty. It retains difficulty-paced camera targets and the
-fall-behind grace distance.
+the selector's 2026.09.0 compatibility rollout. The repository's gameplay
+compatibility is 2026.09.6, including the enemy terrain-navigation repairs.
+The [documentation index](docs/README.md) distinguishes pending compatibility
+work from the latest verified production release.

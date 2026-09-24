@@ -53,3 +53,8 @@ flutter test test/core
 
 Run affected Game/UI/editor tests and replay validation coverage when the
 content changes streamed gameplay or run outcomes.
+
+For collision geometry or assembly changes, run the reusable matrix described
+in [Test Level Traversal](test-level-traversal.md). Add failing seeds or exact
+chunk sequences as regressions and diagnose clearance, movement capability and
+navigation before changing terrain or actor tuning.

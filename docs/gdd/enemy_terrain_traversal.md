@@ -58,6 +58,25 @@ commit and recovery rules remain in force while airborne; ground snap cannot
 pull the enemy back onto the takeoff slope. A drop likewise keeps its committed
 horizontal direction until landing or deterministic fallback.
 
+If an enemy lands on a different rock or platform than planned, it replans from
+that foothold. Streaming the next chunk preserves a jump already in flight.
+Short connected rock facets contribute to the normal one-third-width runtime
+foothold; full-width spawn placement remains stricter.
+
+The Forest traversal repair keeps ground speed at 300, jump speed at 500 and
+the slope limits above. Chunk entries, exits and overhead clearances must fit
+those capabilities, including Grojib's larger capsule. The
+[archived investigation](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md)
+records the geometry adjustments tested on its captured authored build.
+
+The deterministic traversal regression covers Grojib, Hashash and Unoco on
+Forest seeds 7, 42 and 2026 through the first complete authored sequence,
+requiring the enemy to cross the actual boundary after its last chunk. A chase
+target on continuation terrain beyond that boundary accommodates enemy
+stand-off without accepting an unfinished route. It
+isolates movement from combat, damage, despawning and Hashash teleporting.
+Derf remains stationary and is excluded from traversal expectations.
+
 Grojib and Hashash also use [swimming pursuit](swimming.md#enemies-in-water)
 inside authored pools, including the 20% speed penalty and bank-exit strokes.
 Swimming suspends their land graph commitments until they return to terrain.

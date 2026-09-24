@@ -80,6 +80,22 @@ Use `flutter test test/core` for gameplay, content, snapshot, or determinism
 changes. Add the relevant Game, UI, protocol, validator, or editor checks for
 cross-layer work.
 
+For level geometry/assembly or enemy navigation/movement changes, also run:
+
+```powershell
+Push-Location packages/runner_core
+dart test test/navigation/level_enemy_traversal_test.dart test/navigation/level_enemy_traversal_harness_test.dart --reporter expanded
+Pop-Location
+```
+
+Use `test/test_support/level_enemy_traversal.dart` to extend the shared harness;
+declare new level/seed/route coverage in the matrix instead of copying its
+simulation loop. Follow
+[the level traversal workflow](../../.agent/workflows/test-level-traversal.md)
+for generated freshness, capability limits, focused reproductions and cases
+that need an adapted target/spawn policy. Keep harness control tests passing
+when adapting it. Stationary enemies need placement tests, not traversal goals.
+
 ## Documentation and workflows
 
 - Package orientation: `packages/runner_core/README.md`
