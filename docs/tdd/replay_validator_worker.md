@@ -103,7 +103,7 @@ replay was finalized before expiry.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
 - The current hard-cutover compatibility tuple is:
-  - current game compatibility: `2026.09.5`
+  - current game compatibility: `2026.09.6`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v2`
   - score: `score-v1`

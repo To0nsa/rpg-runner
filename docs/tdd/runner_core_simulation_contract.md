@@ -360,6 +360,17 @@ this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
 
+Forest traversal repairs ship as game compatibility `2026.09.6`. Navigation
+replans after an unexpected landing, preserves airborne jump motion across
+terrain publication, matches authored-facing collision offsets, samples
+takeoffs at 16-pixel intervals, and counts connected eligible rock facets for
+runtime footholds. Five Forest chunks receive bounded clearance adjustments.
+Speed, jump impulse, slope limits, tick ordering and wire formats are unchanged.
+Client issuance, Functions and worker versions must switch together under the
+existing [pre-live cutover](traps.md#pre-live-compatibility-cutover); the new
+worker rejects previous gameplay versions rather than replaying old tickets
+with changed navigation or terrain.
+
 Per-placement trap damage and animation wind-up ship as game compatibility
 `2026.09.5`; catalog-default placements keep their previous behavior. After
 terrain admission and the actor broadphase, Core resolves
