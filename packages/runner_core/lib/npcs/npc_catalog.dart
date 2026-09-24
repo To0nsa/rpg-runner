@@ -17,7 +17,7 @@ final class NpcArchetype {
     required this.collider,
     required this.renderAnim,
     required this.attackAbilityId,
-    this.health = const HealthDef(hp: 3500, hpMax: 3500, regenPerSecond100: 0),
+    this.health = const HealthDef(hp: 3200, hpMax: 3200, regenPerSecond100: 0),
     this.renderScale = 1.5,
     this.speedX = 100,
     this.jumpSpeed = 360,
@@ -153,7 +153,7 @@ final _huntress2Terrain = createGroundedEnemyTerrainProfile(
 const _huntress = NpcArchetype(
   renderScale: 1.5,
   collider: _huntressCollider,
-  health: HealthDef(hp: 2800, hpMax: 2800, regenPerSecond100: 0),
+  health: HealthDef(hp: 2500, hpMax: 2500, regenPerSecond100: 0),
   speedX: 90,
   attackRange: 260,
   attackAbilityId: 'npc_huntress.throw_spear',
@@ -198,7 +198,7 @@ const _huntress = NpcArchetype(
 const _huntress2 = NpcArchetype(
   renderScale: 1.5,
   collider: _huntress2Collider,
-  health: HealthDef(hp: 2400, hpMax: 2400, regenPerSecond100: 0),
+  health: HealthDef(hp: 2100, hpMax: 2100, regenPerSecond100: 0),
   speedX: 110,
   attackRange: 320,
   attackAbilityId: 'npc_huntress2.shoot_arrow',

@@ -12,12 +12,12 @@ can still change sides with its evade-and-ambush teleport.
 
 | NPC | Health | Attack | Damage | Attack range |
 | --- | ---: | --- | ---: | ---: |
-| Warrior | 35 | Sword slash | 4 | 52 |
-| Huntress | 28 | Thrown spear | 4.5 | 260 |
-| Huntress 2 | 24 | Bow | 3 | 320 |
+| Warrior | 32 | Sword slash | 4 | 52 |
+| Huntress | 25 | Thrown spear | 4.5 | 260 |
+| Huntress 2 | 21 | Bow | 3 | 320 |
 
 Health and damage above are display units; distances are world pixels. These
-are initial catalog values. NPC attacks use stamina, cooldowns and the same
+are current catalog values. NPC attacks use stamina, cooldowns and the same
 damage/status rules as other combat actors. NPC damage is allied damage and
 does not count as player participation. NPC death does not add an enemy kill.
 

@@ -6,7 +6,8 @@ not change remote services or disposable test state. The game is not live.
 The matching release is gameplay `2026.09.8`, rules `rules-v2`, score `score-v2`,
 ghost `ghost-v1`, replay/command format 1. It includes the earlier Forest
 navigation and Poison Darts changes, plus grounded melee combat holding on
-direct walk routes. This combat fix changes replay outcomes and is included in
+direct walk routes and a 3 HP reduction for each allied NPC (32/25/21 HP).
+These combat changes affect replay outcomes and are included in
 the still-unpublished `2026.09.8` build; client and worker must use the same Core.
 Client issuance, generated content,
 Functions board/ticket defaults and replay worker must agree. The new worker
