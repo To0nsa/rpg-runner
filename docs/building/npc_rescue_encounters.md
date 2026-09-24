@@ -1,6 +1,6 @@
 # NPC rescue encounters
 
-Status: In progress; M0 contracts and M1 shared targeting delivered. M2 lifecycle underway.
+Status: In progress; M0–M2 Core contracts, targeting and warrior encounter lifecycle delivered. M3 authored compilation next.
 
 Created: September 24, 2026.
 
@@ -677,7 +677,7 @@ that milestone's changes; do not include unrelated navigation/content work.
   committed attack semantics and fix target-dependent cache ownership.
   Acceptance: ordinary player-only combat matches the baseline; fixture NPC
   targets can be selected without adding a second attack/navigation pipeline.
-- [ ] **M2 — Add Core encounters and NPC lifecycle.** Add immutable definitions,
+- [x] **M2 — Add Core encounters and NPC lifecycle.** Add immutable definitions,
   occurrence/participant identity, explicit spawn outcomes, activation, terminal
   state, body-safe movement bounds, and one warrior integration fixture. Wire
   terrain/contact roles, shared commit gates, combat eligibility, fatal-removal
@@ -779,6 +779,16 @@ trace remains unchanged. NPC authority/catalog integration
 is still required before these limits apply to real streamed actors.
 
 ## 7. Acceptance and regression matrix
+
+M2 completed (September 25): warrior actors now use shared setup, melee commit
+gates, terrain navigation/motion, swimming, animation, death and cleanup. Typed
+chunk encounters activate after terrain publication with atomic full-roster
+preflight. Required Hashash retains authored placement and intro; all four enemy
+types are covered. Stream retention and occurrence retirement follow the exact
+abandonment contract. Tests include a real player/warrior rescue, repeated chunks,
+opening suppression and no partial spawn. The ordinary combat digest is unchanged.
+M3–M7 still own source authoring, all archetypes/rendering, editor UX and scoring
+presentation/compatibility release.
 
 | Area | Required evidence |
 | --- | --- |

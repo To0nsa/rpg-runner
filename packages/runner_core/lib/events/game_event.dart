@@ -15,6 +15,7 @@ import '../abilities/ability_def.dart';
 import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import '../enemies/enemy_id.dart';
+import '../encounters/encounter_instance.dart';
 import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
 import '../spell_impacts/spell_impact_id.dart';
@@ -27,6 +28,7 @@ part 'projectile_events.dart';
 part 'spell_impact_events.dart';
 part 'ability_events.dart';
 part 'feedback_events.dart';
+part 'encounter_events.dart';
 
 /// Base sealed class for all simulation events.
 sealed class GameEvent {

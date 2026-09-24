@@ -58,7 +58,7 @@ order; the contract below records the dependencies that must survive changes.
 
 | Order | Contractual phase | Dependency |
 | --- | --- | --- |
-| 1 | Stream/cull track, obtain the complete staged candidate, publish any queued terrain bundle, place the captured enemy/item batch, and prepare motion | An exact prepared selection may replace synchronous construction; no consumer may observe a partial candidate or mixed terrain/index/surface/graph versions. AI receives validated prior support. |
+| 1 | Stream/cull track, obtain the complete staged candidate, publish terrain, place captured ambient actors/items, activate swept encounter triggers, and prepare motion | Encounter rosters preflight completely before actor creation. An exact prepared selection may replace synchronous construction; consumers never observe mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
 | 3 | Select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
@@ -72,7 +72,7 @@ motion, record only positive applied player HP damage, and resolve after fatal
 enemy culls but before death cleanup. Run termination has precedence over
 same-tick rescue and finalizes unresolved groups before death freeze or final
 stats. See [encounter contracts](npc_encounter_contracts.md) for the delivered
-controller and the remaining actor/stream integration boundary.
+controller, actor integration and streaming-retention contract.
 
 Combat spatial lookup has a two-stage deterministic contract. During phase 5,
 `DamageableTargetCache` requires every live damageable actor to have faction,

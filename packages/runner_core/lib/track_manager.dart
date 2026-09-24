@@ -137,6 +137,7 @@ class TrackManager {
     required double cameraLeft,
     required double cameraRight,
     required SpawnEnemyCallback spawnEnemy,
+    bool Function(int chunkIndex)? retainChunk,
   }) {
     final streamer = _trackStreamer;
     if (streamer == null) {
@@ -147,6 +148,7 @@ class TrackManager {
       cameraLeft: cameraLeft,
       cameraRight: cameraRight,
       spawnEnemy: spawnEnemy,
+      retainChunk: retainChunk,
     );
     if (!result.changed) {
       return const TrackStepResult(selectionChanged: false);

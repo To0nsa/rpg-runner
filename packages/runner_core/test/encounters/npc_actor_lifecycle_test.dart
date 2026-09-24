@@ -15,6 +15,21 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('invalid NPC placement rejects before allocating any components', () {
+    final world = EcsWorld();
+    expect(
+      () => EntityFactory(world).createNpc(
+        npcId: NpcId.warrior,
+        posX: 1,
+        posY: 50,
+        chunkStartX: 0,
+        chunkEndX: 500,
+      ),
+      throwsArgumentError,
+    );
+    expect(world.health.denseEntities, isEmpty);
+    expect(world.createEntity(), EcsWorld().createEntity());
+  });
   test('NPC death cancels combat, animates before cleanup, and never awards a kill', () {
     final world = EcsWorld();
     final npc = EntityFactory(world).createNpc(

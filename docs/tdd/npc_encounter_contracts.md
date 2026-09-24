@@ -2,9 +2,11 @@
 
 Core owns immutable `EncounterDefinition` records, stable `NpcId` identities and
 `AiTargetPolicy` preferences. They are independent of player input and enemy
-score IDs. Contracts and shared AI targeting are the delivered slices of the
-[rescue implementation plan](../building/npc_rescue_encounters.md); runtime
-encounters, NPC actors, authoring and rescue awards are not integrated yet.
+score IDs. Core contracts, shared AI targeting and the warrior encounter
+lifecycle are delivered slices of the
+[rescue implementation plan](../building/npc_rescue_encounters.md). JSON/editor
+authoring, the other two archetypes, rendering and score presentation remain
+in progress. These mechanics are currently exercised through typed fixtures.
 
 An encounter owns separate NPC and enemy placement lists. Member IDs are unique
 across both lists and local to the encounter. Coordinates use world units, with
@@ -66,8 +68,24 @@ before death cleanup. Unresolved member enemies bypass ordinary behind-camera
 culling; falling out of the world still removes them. Run exit finalizes groups
 before statistics or player-death freeze. The controller's terrain-retention and
 retirement APIs enforce expiry before cleanup and retain only a monotonic retired
-chunk index. Stream registration, spawn placement and NPC decision integration
-remain M2 work; authored production content is not enabled by these hooks.
+chunk index. Streamed chunk snapshots carry typed encounter definitions. Each new
+index registers once after terrain publication, opening suppression skips the
+complete roster, and the streamer retains unresolved owning chunks. Retirement
+releases membership metadata before removed terrain is observed. Terminal
+outcomes drain into `EncounterResolvedEvent`; consumers cannot issue awards.
+
+`EncounterSpawnAdapter` resolves every member against the current terrain before
+allocating any entity. It shares actor placement with ordinary enemies and checks
+NPC full-body containment for both facings. Hashash uses its authored placement
+and normal intro/teleport state, bypassing the ambient edge scheduler. Required
+Grojib, Hashash, Unoco and Derf placements retain their catalog-specific support
+rules. One rejected placement fails the complete group. NPC camera/fatal culling
+shares the enemy cleanup pass and records the member's removal before teardown.
+
+Core activation runs after world publication and before motion preparation,
+using the preceding player collider-center sweep. A real warrior/player rescue,
+repeated chunk instances, suppression, atomic failure and run exit are covered by
+streamed Core fixtures. Production JSON authoring remains M3 work.
 
 ## Actor movement bounds
 
@@ -140,8 +158,7 @@ The NPC store retains identity, facing, owning chunk bounds and protection state
 and target references, and leaves detached effects and physical bodies intact.
 Protected NPCs are excluded from combat broadphase (including trap occupancy),
 AI selection, queued damage and harmful status applications. Terrain movement
-is supplied through the motion authority; encounter spawn/AI integration remains
-in the subsequent M2 steps.
+is supplied through the motion authority and bounded encounter navigation.
 
 ## Shared AI target selection
 
@@ -177,5 +194,5 @@ path searches. Blocked evidence is local to each attacker.
 `EcsWorld.destroyEntity` removes inbound roster, selection and navigation-target
 references before recycling entity IDs. Removing an encounter's target component
 restores ordinary player pursuit without resetting the actor's combat state.
-The shared target seam is exercised with fixture allies; production encounter
-membership and NPC lifecycle are the next implementation milestone.
+The shared target seam is exercised with fixture allies and complete streamed
+warrior encounters. Authored JSON/editor delivery remains in the active plan.

@@ -1,5 +1,7 @@
 import '../combat/faction.dart';
 import '../combat/creature_tag.dart';
+import '../collision/terrain/terrain_motion_request.dart';
+import '../collision/terrain/terrain_numeric.dart';
 import '../npcs/npc_catalog.dart';
 import '../npcs/npc_id.dart';
 import '../enemies/enemy_id.dart';
@@ -234,6 +236,18 @@ class EntityFactory {
     NpcCatalog catalog = const NpcCatalog(),
   }) {
     final archetype = catalog.get(npcId);
+    final bounds = TerrainHorizontalBounds(
+      minXTicks: physicsCoordinateToTicks(chunkStartX),
+      maxXTicks: physicsCoordinateToTicks(chunkEndX),
+    );
+    final bodyX = physicsCoordinateToTicks(posX);
+    physicsCoordinateToTicks(posY);
+    final capsule = catalog.terrainContactProfile(npcId).capsule;
+    final margin = capsule.radiusTicks + capsule.offsetXTicks.abs();
+    if (bodyX - margin < bounds.minXTicks ||
+        bodyX + margin > bounds.maxXTicks) {
+      throw ArgumentError('NPC spawn must fit its chunk in both facings.');
+    }
     final id = _createAutonomousCombatant(
       posX: posX,
       posY: posY,

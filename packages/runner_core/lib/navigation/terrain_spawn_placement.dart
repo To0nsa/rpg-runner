@@ -10,6 +10,8 @@ import '../collision/terrain/terrain_traversal_profile.dart';
 import '../enemies/enemy_catalog.dart';
 import '../enemies/enemy_id.dart';
 import '../enemies/enemy_terrain_profile.dart';
+import '../npcs/npc_catalog.dart';
+import '../npcs/npc_id.dart';
 import '../snapshots/enums.dart';
 import 'terrain_placement_query.dart';
 import 'types/terrain_navigation_surface.dart';
@@ -49,9 +51,47 @@ sealed class TerrainSpawnPlacementProfile {
   String get diagnosticKey;
 }
 
+/// Shared actor shape and terrain policy, independent of combat identity.
+sealed class TerrainActorSpawnPlacementProfile
+    extends TerrainSpawnPlacementProfile {
+  const TerrainActorSpawnPlacementProfile();
+  EnemyTerrainMotionKind get motionKind;
+  TerrainPlacementCapsule get capsule;
+  TerrainTraversalProfile get traversalProfile;
+}
+
+final class TerrainNpcSpawnPlacementProfile
+    extends TerrainActorSpawnPlacementProfile {
+  TerrainNpcSpawnPlacementProfile.fromCatalog({
+    required NpcCatalog catalog,
+    required this.npcId,
+    required Facing facing,
+  }) {
+    final contact = catalog.terrainContactProfile(npcId);
+    final sign = facing == catalog.get(npcId).artFacing ? 1 : -1;
+    capsule = TerrainPlacementCapsule(
+      radiusTicks: contact.capsule.radiusTicks,
+      verticalHalfSegmentTicks: contact.capsule.verticalHalfSegmentTicks,
+      resolvedOffsetXTicks: contact.capsule.offsetXTicks * sign,
+      offsetYTicks: contact.capsule.offsetYTicks,
+    );
+    traversalProfile = contact.traversal;
+  }
+  final NpcId npcId;
+  @override
+  EnemyTerrainMotionKind get motionKind =>
+      EnemyTerrainMotionKind.groundedDynamic;
+  @override
+  late final TerrainPlacementCapsule capsule;
+  @override
+  late final TerrainTraversalProfile traversalProfile;
+  @override
+  String get diagnosticKey => 'npc:${npcId.name}';
+}
+
 /// Catalog-derived capsule policy for one enemy spawn.
 final class TerrainEnemySpawnPlacementProfile
-    extends TerrainSpawnPlacementProfile {
+    extends TerrainActorSpawnPlacementProfile {
   /// Resolves one enemy's facing-aware capsule and traversal policy.
   factory TerrainEnemySpawnPlacementProfile.fromCatalog({
     required EnemyCatalog catalog,
@@ -85,12 +125,15 @@ final class TerrainEnemySpawnPlacementProfile
   final EnemyId enemyId;
 
   /// Whether placement is grounded, flying-clearance, or kinematic-only.
+  @override
   final EnemyTerrainMotionKind motionKind;
 
   /// Facing-resolved upright capsule used for support and clearance.
+  @override
   final TerrainPlacementCapsule capsule;
 
   /// Catalog-owned slope, one-way, and contact eligibility policy.
+  @override
   final TerrainTraversalProfile traversalProfile;
 
   @override
@@ -205,7 +248,7 @@ final class TerrainSpawnPlacementRequest {
     bool allowSameSupportClamp = false,
   }) {
     final isFlying =
-        profile is TerrainEnemySpawnPlacementProfile &&
+        profile is TerrainActorSpawnPlacementProfile &&
         profile.motionKind == EnemyTerrainMotionKind.flyingDynamic;
     if (supportSelection == TerrainSpawnSupportSelection.none && !isFlying) {
       throw ArgumentError(
@@ -369,7 +412,7 @@ final class TerrainSpawnPlacementResolver {
       return _failure(request, TerrainPlacementValidity.intendedSupportMissing);
     }
     return switch (request.profile) {
-      TerrainEnemySpawnPlacementProfile profile => _resolveEnemy(
+      TerrainActorSpawnPlacementProfile profile => _resolveActor(
         request,
         profile,
       ),
@@ -380,9 +423,9 @@ final class TerrainSpawnPlacementResolver {
     };
   }
 
-  TerrainSpawnPlacementResult _resolveEnemy(
+  TerrainSpawnPlacementResult _resolveActor(
     TerrainSpawnPlacementRequest request,
-    TerrainEnemySpawnPlacementProfile profile,
+    TerrainActorSpawnPlacementProfile profile,
   ) {
     if (profile.motionKind == EnemyTerrainMotionKind.flyingDynamic) {
       final result = _placementQuery.validateClearance(
@@ -397,8 +440,11 @@ final class TerrainSpawnPlacementResolver {
       return _fromPlacementResult(request, result);
     }
 
+    final isDerf =
+        profile is TerrainEnemySpawnPlacementProfile &&
+        profile.enemyId == EnemyId.derf;
     if (profile.motionKind == EnemyTerrainMotionKind.kinematicPlacement &&
-        (profile.enemyId != EnemyId.derf ||
+        (!isDerf ||
             request.supportSelection !=
                 TerrainSpawnSupportSelection.obstacleTop)) {
       return _failure(request, TerrainPlacementValidity.profileIneligible);
@@ -415,7 +461,6 @@ final class TerrainSpawnPlacementResolver {
             : TerrainPlacementValidity.noSupport,
       );
     }
-    final isDerf = profile.enemyId == EnemyId.derf;
     final result = _placementQuery.resolveGrounded(
       TerrainGroundPlacementRequest(
         desiredBodyCenterXTicks: request.desiredBodyCenter.xTicks,

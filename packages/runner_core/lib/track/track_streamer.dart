@@ -6,6 +6,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../encounters/encounter_definition.dart';
 import '../traps/trap_placement.dart';
 import '../tuning/track_tuning.dart';
 import '../util/deterministic_rng.dart' show mix32;
@@ -78,6 +79,7 @@ class ActiveTrackChunkSnapshot {
     required this.patternName,
     required this.chunkKey,
     this.traps = const [],
+    this.encounters = const [],
   });
 
   /// Deterministic sequential streamed instance index.
@@ -97,6 +99,7 @@ class ActiveTrackChunkSnapshot {
 
   /// Immutable canonical placements from this exact selected pattern.
   final List<TrapPlacement> traps;
+  final List<EncounterDefinition> encounters;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -233,6 +236,9 @@ class TrackStreamer {
             patternName: pattern.name,
             chunkKey: pattern.chunkKey,
             traps: List<TrapPlacement>.unmodifiable(pattern.traps),
+            encounters: List<EncounterDefinition>.unmodifiable(
+              pattern.encounters,
+            ),
           ),
         );
         nextIndex += 1;
@@ -252,6 +258,7 @@ class TrackStreamer {
     required double cameraLeft,
     required double cameraRight,
     required SpawnEnemy spawnEnemy,
+    bool Function(int chunkIndex)? retainChunk,
   }) {
     // Streaming disabled – return no-op.
     if (!tuning.enabled) {
@@ -317,6 +324,9 @@ class TrackStreamer {
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
           traps: List<TrapPlacement>.unmodifiable(pattern.traps),
+          encounters: List<EncounterDefinition>.unmodifiable(
+            pattern.encounters,
+          ),
         ),
       );
       spawnedChunks.add(
@@ -335,7 +345,9 @@ class TrackStreamer {
 
     // ── Cull old chunks behind the camera ──
     final cullLimitX = cameraLeft - tuning.cullBehindMargin;
-    while (_active.isNotEmpty && _active.first.endX < cullLimitX) {
+    while (_active.isNotEmpty &&
+        _active.first.endX < cullLimitX &&
+        !(retainChunk?.call(_active.first.index) ?? false)) {
       _active.removeAt(0); // O(n) but chunk count is small (~3-5).
       changed = true;
     }
@@ -360,6 +372,7 @@ class TrackStreamer {
             patternName: c.patternName,
             chunkKey: c.chunkKey,
             traps: c.traps,
+            encounters: c.encounters,
           ),
         );
       }
@@ -483,6 +496,7 @@ class _ActiveChunk {
     required this.tier,
     required this.visualSprites,
     required this.traps,
+    required this.encounters,
     this.pendingHashashSpawns = 0,
   });
 
@@ -507,6 +521,7 @@ class _ActiveChunk {
   /// Render sprites for authored prefab visuals in this chunk.
   final List<ChunkVisualSpriteWorld> visualSprites;
   final List<TrapPlacement> traps;
+  final List<EncounterDefinition> encounters;
 
   /// Deferred hashash spawns that should trigger when this chunk is camera-right.
   int pendingHashashSpawns;

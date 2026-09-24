@@ -8,6 +8,8 @@ library;
 
 import 'npcs/npc_navigation_profiles.dart';
 import 'ecs/systems/npc_ai_system.dart';
+import 'encounters/encounter_spawn_adapter.dart';
+import 'encounters/encounter_instance.dart';
 
 import 'dart:async';
 import 'dart:math';
@@ -946,6 +948,15 @@ class GameCore {
     tickHz: _movement.tickHz,
   );
   final EncounterSystem _encounters = EncounterSystem();
+  List<ActiveTrackChunkSnapshot>? _registeredEncounterChunks;
+  late final _encounterSpawnAdapter = EncounterSpawnAdapter(
+    world: _world,
+    motion: _worldMotionAuthority,
+    spawns: _spawnService,
+    groundTopY: _levelDefinition.groundTopY,
+    flyingHoverOffsetY: _unocoDemonTuning.base.unocoDemonHoverOffsetY,
+    enemies: _enemyCatalog,
+  );
   late final ReactiveProcSystem _reactiveProcSystem;
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
@@ -1509,6 +1520,23 @@ class GameCore {
       enemyRequests: pendingTrackSpawns.enemyRequests,
       spawnedChunks: pendingTrackSpawns.spawnedChunks,
     );
+    final playerTransform = _world.transform.indexOf(_player);
+    final playerCollider = _world.colliderAabb.indexOf(_player);
+    _encounters.activate(
+      _world,
+      playerX: colliderCenterX(
+        _world,
+        entity: _player,
+        transformIndex: playerTransform,
+        colliderIndex: playerCollider,
+      ),
+      playerY:
+          _world.transform.posY[playerTransform] +
+          _world.colliderAabb.offsetY[playerCollider],
+      tick: tick,
+      spawn: (occurrence) =>
+          _encounterSpawnAdapter.spawn(occurrence, tick: tick),
+    );
     _worldMotionAuthority.prepareTick(
       _world,
       player: _player,
@@ -1803,6 +1831,7 @@ class GameCore {
       cameraLeft: cameraLeft,
       runEnded: _isPlayerDead(),
     );
+    _flushEncounterOutcomes();
     _enemyDeathStateSystem.step(
       _world,
       currentTick: tick,
@@ -1865,6 +1894,7 @@ class GameCore {
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: enemyRequests.add,
+      retainChunk: _encounters.retainsChunk,
     );
     if (result.selectionChanged) {
       _replaceStagedTerrainCandidate(_trackManager.activeChunks);
@@ -1933,6 +1963,7 @@ class GameCore {
     required List<SpawnEnemyRequest> enemyRequests,
     required List<TrackSpawnedChunk> spawnedChunks,
   }) {
+    _synchronizeEncounters();
     _world.traps.synchronize(_trackManager.activeChunks, _stagedTerrainCatalog);
     for (final request in enemyRequests) {
       _spawnTrackEnemy(request);
@@ -1941,6 +1972,43 @@ class GameCore {
       chunks: spawnedChunks,
       lowestResourceStat: _lowestResourceStat,
     );
+  }
+
+  void _synchronizeEncounters() {
+    final current = _trackManager.activeChunks;
+    if (identical(current, _registeredEncounterChunks)) return;
+    final previous =
+        _registeredEncounterChunks ?? const <ActiveTrackChunkSnapshot>[];
+    final currentIds = current.map((chunk) => chunk.index).toSet();
+    final previousIds = previous.map((chunk) => chunk.index).toSet();
+    for (final chunk in previous) {
+      if (!currentIds.contains(chunk.index)) {
+        _encounters.retireChunk(_world, chunk.index);
+      }
+    }
+    for (final chunk in current) {
+      if (previousIds.contains(chunk.index)) continue;
+      for (final definition in chunk.encounters) {
+        _encounters.register(
+          EncounterOccurrence(
+            chunkIndex: chunk.index,
+            startX: chunk.startX,
+            endX: chunk.endX,
+            definition: definition,
+          ),
+          tick: tick,
+          suppressOpening: chunk.index < _levelDefinition.noEnemyChunks,
+        );
+      }
+    }
+    _registeredEncounterChunks = current;
+    _flushEncounterOutcomes();
+  }
+
+  void _flushEncounterOutcomes() {
+    for (final outcome in _encounters.drainOutcomes()) {
+      _events.add(EncounterResolvedEvent(outcome: outcome));
+    }
   }
 
   void _spawnTrackEnemy(SpawnEnemyRequest request) {
@@ -2033,6 +2101,7 @@ class GameCore {
   /// After this call, [gameOver] is true and [stepOneTick] will no-op.
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     _encounters.endRun(_world, tick: tick);
+    _flushEncounterOutcomes();
     gameOver = true;
     paused = true;
     final goldEarned = computeGoldEarned(collectiblesCollected: collectibles);
