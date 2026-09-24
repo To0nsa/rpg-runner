@@ -122,19 +122,29 @@ All three trap sheets join run-start warmup and the game's awaited registry load
 ## Chunk Creator
 
 The Traps scene domain owns selection, catalog placement, sprite movement,
-independent trigger movement/redrawing/corner resizing, and a numeric geometry
-dialog. Facing mirrors the catalog art/damage preview while retaining the saved
-trigger. A frame slider projects exact catalog poses, damage capsules and dart
-muzzle/path; blue authoring rectangles are activation triggers, not damage.
+independent trigger movement/redrawing/corner resizing, and an inline numeric
+inspector. Creation and existing placements use the same collapsible sections
+and saved-item cards as the other Chunk domains. Catalog selection does not arm
+placement; the explicit Place in scene action does. Scene tools live above the
+canvas and snapping controls stay with creation or editing. Facing mirrors the
+catalog art/damage preview while retaining the saved trigger. A frame slider
+projects exact catalog poses, damage capsules and dart muzzle/path; blue authoring rectangles are activation triggers, not damage.
 Idle/active art is partitioned around terrain and prefab layers. The common
 warning/active painter runs after the complete editor scene.
 
 Water and traps share `SceneRectangleGesture` for pointer ownership, whole-pixel
 or tile-grid snapping, neighbor snapping, movement, resize and chunk bounds.
 Each domain retains its own validation and commit policy. Trap previews remain
-local until pointer release or dialog acceptance. The full Core placement
-validator checks the candidate before the existing revision-checked composition
-command, session Undo/Redo and atomic chunk Save path accept it. Navigation
+local until pointer release or Save edit. Anchor, facing and trigger fields form
+one local buffer through the shared exact-edit controller and rectangle editor.
+Selection, domain, owner and inspector-collapse changes resolve that buffer with
+the shared Save/Discard/Cancel dialog. Shell Save/Play accepts valid input first;
+Undo discards pending input before session history and Redo waits for resolution.
+The mounted inspector retains its source revision across external document
+changes, rejects stale saves and keeps the input visible until discarded.
+Duplicate validates a one-tile right offset before adding the copy.
+The full Core placement validator checks the candidate before the existing
+revision-checked composition command, session Undo/Redo and atomic chunk Save path accept it. Navigation
 restores selection by canonical placement value and reconciles against the
 current document. No separate trap document or writer exists.
 

@@ -255,8 +255,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Traps'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Spike'));
-      await tester.tap(find.text('Spike'));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('chunk_trap_creation_panel_toggle')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('chunk_trap_creation_panel_toggle')),
+      );
       await tester.pump();
       final surfaceFinder = find.byKey(const ValueKey('chunk_scene_surface'));
       Offset point(Offset world) {
@@ -271,6 +275,29 @@ void main() {
             world * surface.transform.zoom;
       }
 
+      // Choosing a type leaves selection mode active until explicitly armed.
+      tester
+          .widget<DropdownButtonFormField<TrapId>>(
+            find.byType(DropdownButtonFormField<TrapId>),
+          )
+          .onChanged!(TrapId.swingingAxe);
+      await tester.pumpAndSettle();
+      tester
+          .widget<DropdownButtonFormField<TrapId>>(
+            find.byType(DropdownButtonFormField<TrapId>),
+          )
+          .onChanged!(TrapId.spike);
+      await tester.pumpAndSettle();
+      await tester.tapAt(point(const Offset(300, 160)));
+      await tester.pumpAndSettle();
+      expect(
+        (session.document as ChunkV2Document).chunks.single.traps,
+        isEmpty,
+      );
+      final place = find.byKey(const ValueKey('chunk_trap_place'));
+      await tester.ensureVisible(place);
+      await tester.tap(place);
+      await tester.pump();
       await tester.tapAt(point(const Offset(300, 160)));
       await tester.pumpAndSettle();
       ChunkV2FileData current() =>
@@ -312,6 +339,129 @@ void main() {
       session.undo();
       await tester.pumpAndSettle();
       expect(current().traps.single, saved);
+
+      Future<void> tapKey(String key) async {
+        final target = find.byKey(ValueKey(key));
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+      }
+
+      final state = tester.state<ChunkAuthoringWorkspaceState>(
+        find.byType(ChunkAuthoringWorkspace),
+      );
+      // Undo removed the changed selection; select the restored saved row.
+      await tapKey('chunk_trap_placement_0');
+      final xField = find.byKey(const ValueKey('chunk_trap_x'));
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, '320');
+      await tester.pump();
+      expect(
+        current().traps.single,
+        saved,
+        reason: 'Inline input is a local buffer.',
+      );
+      expect(state.canRedo, isFalse);
+      await tester.tap(find.text('Terrain'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('chunk_trap_unsaved_edit_dialog')),
+        findsOneWidget,
+      );
+      await tapKey('chunk_trap_unsaved_edit_cancel');
+      expect(tester.widget<TextField>(xField).controller!.text, '320');
+      // Collapsing the inspector uses the same pending-edit decision.
+      await tapKey('chunk_trap_existing_panel_toggle');
+      await tapKey('chunk_trap_unsaved_edit_discard');
+      expect(xField, findsNothing);
+      await tapKey('chunk_trap_existing_panel_toggle');
+      expect(tester.widget<TextField>(xField).controller!.text, '300');
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, 'not a coordinate');
+      await tester.pump();
+      expect(await state.finalizeLocalEdits(), isFalse);
+      await tester.pumpAndSettle();
+      expect(find.text('Use whole-pixel anchor coordinates.'), findsOneWidget);
+      await tester.enterText(xField, '320');
+      await tester.pump();
+      await tester.tap(find.text('Terrain'));
+      await tester.pumpAndSettle();
+      await tapKey('chunk_trap_unsaved_edit_save');
+      expect(current().traps.single.x, 320);
+      await tester.tap(find.text('Traps'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, '330');
+      await tester.pump();
+      expect(state.handleUndoShortcut(), isTrue);
+      await tester.pumpAndSettle();
+      expect(
+        current().traps.single.x,
+        320,
+        reason: 'Undo discards local input first.',
+      );
+      expect(tester.widget<TextField>(xField).controller!.text, '320');
+      expect(state.handleUndoShortcut(), isTrue);
+      await tester.pumpAndSettle();
+      expect(current().traps.single, saved);
+      expect(state.handleRedoShortcut(), isTrue);
+      await tester.pumpAndSettle();
+      expect(current().traps.single.x, 320);
+      await tapKey('chunk_trap_placement_0');
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, '340');
+      await tester.pump();
+      // An external source revision must not silently replace a mounted buffer.
+      final beforeExternalEdit = current();
+      final replacement = beforeExternalEdit.traps.single.copyWith(x: 330);
+      final externalCommit = ChunkV2CompositionOperation.replace(
+        chunk: beforeExternalEdit,
+        target: ChunkV2CompositionTarget.traps,
+        sourceIndex: 0,
+      ).buildTrap(candidate: replacement)!;
+      session.applyCommand(
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+          payload: {'chunkKey': original.chunkKey, 'commit': externalCommit},
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(xField).controller!.text, '340');
+      await tapKey('chunk_trap_save_edit');
+      expect(
+        find.text(
+          'The chunk changed while editing. Cancel changes and retry from the current chunk.',
+        ),
+        findsOneWidget,
+      );
+      expect(current().traps.single, replacement);
+      await tapKey('chunk_trap_cancel_edit');
+      expect(xField, findsNothing);
+      await tapKey('chunk_trap_placement_0');
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, '350');
+      await tester.pump();
+      expect(await state.finalizeLocalEdits(), isTrue);
+      await tester.pumpAndSettle();
+      expect(current().traps.single.x, 350);
+      final widthField = find.byKey(
+        const ValueKey('chunk_trap_trigger_rectangle_width_field'),
+      );
+      await tester.ensureVisible(widthField);
+      await tester.enterText(widthField, '220');
+      await tester.pump();
+      expect(current().traps.single.trigger.width, saved.trigger.width);
+      await tester.tap(find.text('Terrain'));
+      await tester.pumpAndSettle();
+      await tapKey('chunk_trap_unsaved_edit_save');
+      expect(current().traps.single.trigger.width, 220);
+      await tester.tap(find.text('Traps'));
+      await tester.pumpAndSettle();
+      await tapKey('chunk_trap_duplicate');
+      expect(current().traps, hasLength(2));
+      expect(current().traps.last.x, 350 + current().tileSize);
+      await tapKey('chunk_trap_delete');
+      expect(current().traps, hasLength(1));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
