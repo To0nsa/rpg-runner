@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_normal_004",
   "id": "forest_ruin_normal_004",
-  "revision": 31,
+  "revision": 39,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -21,6 +21,14 @@
       "zIndex": -21,
       "snapToGrid": false,
       "scale": 1.8
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 503,
+      "y": 127,
+      "zIndex": 0,
+      "snapToGrid": false
     },
     {
       "prefabId": "tiny_swords_ground_platform_05_64x64_platform",
@@ -103,6 +111,21 @@
       "width": 114,
       "height": 81,
       "materialKey": "biome_water"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "swinging_axe",
+      "x": 479,
+      "y": 131,
+      "facing": "right",
+      "trigger": {
+        "offsetX": -107,
+        "offsetY": -7,
+        "width": 163,
+        "height": 72
+      },
+      "windupMs": 300
     }
   ]
 }

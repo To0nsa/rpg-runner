@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_normal_005",
   "id": "forest_rocky_grove_normal_005",
-  "revision": 15,
+  "revision": 19,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -82,6 +82,20 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "spike",
+      "x": 329,
+      "y": 182,
+      "trigger": {
+        "offsetX": -160,
+        "offsetY": -44,
+        "width": 210,
+        "height": 64
+      },
+      "windupMs": 300
     }
   ]
 }

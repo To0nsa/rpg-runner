@@ -8711,7 +8711,7 @@
     {
       "prefabKey": "fantasy_environment_bridge_01",
       "id": "fantasy_environment_bridge_01",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -8720,7 +8720,38 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 8,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -32,
+              "y": -8
+            },
+            {
+              "x": 32,
+              "y": -8
+            },
+            {
+              "x": 32,
+              "y": -1
+            },
+            {
+              "x": -16,
+              "y": -1
+            },
+            {
+              "x": -16,
+              "y": 8
+            },
+            {
+              "x": -32,
+              "y": 8
+            }
+          ]
+        }
+      ],
       "tags": [
         "fantasy_environment",
         "mixed_biomes"
@@ -13046,16 +13077,87 @@
     {
       "prefabKey": "rune_rocks_mossy_rock_06",
       "id": "rune_rocks_mossy_rock_06",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
-      "kind": "decoration",
+      "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
         "sliceId": "rune_rocks_mossy_rock_06"
       },
       "anchorXPx": 24,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -20,
+              "y": 7
+            },
+            {
+              "x": -16,
+              "y": -2
+            },
+            {
+              "x": -14,
+              "y": -8
+            },
+            {
+              "x": -9,
+              "y": -14
+            },
+            {
+              "x": -8,
+              "y": -18
+            },
+            {
+              "x": -4,
+              "y": -22
+            },
+            {
+              "x": 4,
+              "y": -22
+            },
+            {
+              "x": 6,
+              "y": -19
+            },
+            {
+              "x": 11,
+              "y": -15
+            },
+            {
+              "x": 21,
+              "y": -5
+            },
+            {
+              "x": 21,
+              "y": -1
+            },
+            {
+              "x": 24,
+              "y": 8
+            },
+            {
+              "x": 23,
+              "y": 21
+            },
+            {
+              "x": 19,
+              "y": 24
+            },
+            {
+              "x": -12,
+              "y": 24
+            },
+            {
+              "x": -20,
+              "y": 15
+            }
+          ]
+        }
+      ],
       "tags": [
         "props",
         "rune_rocks"
@@ -14990,7 +15092,7 @@
     {
       "prefabKey": "tiny_swords_bleachers_01",
       "id": "tiny_swords_bleachers_01",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -14999,7 +15101,78 @@
       },
       "anchorXPx": 54,
       "anchorYPx": 30,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -52,
+              "y": -30
+            },
+            {
+              "x": -32,
+              "y": -30
+            },
+            {
+              "x": -32,
+              "y": -22
+            },
+            {
+              "x": -20,
+              "y": -22
+            },
+            {
+              "x": -19,
+              "y": -14
+            },
+            {
+              "x": -6,
+              "y": -14
+            },
+            {
+              "x": -3,
+              "y": -6
+            },
+            {
+              "x": 8,
+              "y": -6
+            },
+            {
+              "x": 10,
+              "y": 2
+            },
+            {
+              "x": 22,
+              "y": 2
+            },
+            {
+              "x": 24,
+              "y": 10
+            },
+            {
+              "x": 36,
+              "y": 10
+            },
+            {
+              "x": 38,
+              "y": 18
+            },
+            {
+              "x": 50,
+              "y": 18
+            },
+            {
+              "x": 52,
+              "y": 29
+            },
+            {
+              "x": -52,
+              "y": 29
+            }
+          ]
+        }
+      ],
       "tags": [
         "tiny_swords",
         "village_props"

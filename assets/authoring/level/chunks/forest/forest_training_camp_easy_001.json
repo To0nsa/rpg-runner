@@ -1,60 +1,58 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_training_camp_normal_001",
-  "id": "forest_training_camp_normal_001",
-  "revision": 73,
+  "chunkKey": "forest_training_camp_easy_001",
+  "id": "forest_training_camp_easy_001",
+  "revision": 4,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
   "width": 600,
   "height": 270,
-  "difficulty": "normal",
+  "difficulty": "easy",
   "assemblyGroupId": "trainingcamp",
   "tags": [],
   "tileLayers": [],
   "prefabs": [
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 336,
+      "y": 96,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
     {
       "prefabId": "gandalf_hardcore_small_tent_01",
       "prefabKey": "gandalf_hardcore_small_tent_01",
       "x": 64,
       "y": 176,
       "zIndex": 0,
-      "snapToGrid": false,
+      "snapToGrid": true,
       "scale": 1.5
     },
     {
       "prefabId": "gandalf_hardcore_small_tent_01",
       "prefabKey": "gandalf_hardcore_small_tent_01",
-      "x": 192,
+      "x": 208,
       "y": 176,
       "zIndex": 0,
-      "snapToGrid": false,
+      "snapToGrid": true,
       "scale": 1.5
     },
     {
       "prefabId": "gandalf_hardcore_small_tent_01",
       "prefabKey": "gandalf_hardcore_small_tent_01",
-      "x": 380,
+      "x": 480,
       "y": 176,
       "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 1.5,
-      "flipX": true
-    },
-    {
-      "prefabId": "gandalf_hardcore_small_tent_01",
-      "prefabKey": "gandalf_hardcore_small_tent_01",
-      "x": 502,
-      "y": 176,
-      "zIndex": 0,
-      "snapToGrid": false,
+      "snapToGrid": true,
       "scale": 1.5,
       "flipX": true
     },
     {
       "prefabId": "tiny_swords_firecamp_01",
       "prefabKey": "tiny_swords_firecamp_01",
-      "x": 288,
+      "x": 336,
       "y": 208,
       "zIndex": 0,
       "snapToGrid": true
@@ -85,32 +83,6 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
-    }
-  ],
-  "traps": [
-    {
-      "trapId": "spike",
-      "x": 128,
-      "y": 224,
-      "trigger": {
-        "offsetX": -29,
-        "offsetY": -49,
-        "width": 60,
-        "height": 69
-      },
-      "windupMs": 200
-    },
-    {
-      "trapId": "spike",
-      "x": 444,
-      "y": 224,
-      "trigger": {
-        "offsetX": -30,
-        "offsetY": -48,
-        "width": 64,
-        "height": 71
-      },
-      "windupMs": 200
     }
   ]
 }
