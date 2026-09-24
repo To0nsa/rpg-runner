@@ -11,6 +11,19 @@ damage; the visible weapon or separate dart does.
 | Swinging Axe | 0.8 seconds | 8 HP physical | 9.38 seconds |
 | Poison Darts | 0.5 seconds | 1 HP Poison impact | 1 second |
 
+These are defaults. Each placed trap has its own **Damage on hit (HP)** and
+**Seconds before damage** fields in Chunk Creator, both when creating it and
+when editing its saved row. Damage accepts 0.01–1000 HP in 0.01 HP increments;
+delay accepts 0–30 seconds in 0.001-second increments. Reset to defaults restores
+that type's values for the current creation/edit buffer. Editing one placement
+does not change other traps or the catalog defaults.
+
+The delay changes animation wind-up, keeping the first harmful pose synchronized
+with damage. Attack/recovery animation and the one-second cooldown retain their
+duration. Zero starts at the first harmful pose. For Poison Darts, this is the
+delay before firing; travel adds time before impact. The damage field changes
+impact only, leaving Poison pulses and Slow unchanged.
+
 Timing rounds cumulative animation boundaries up to a simulation tick. Spike
 and Axe can damage both player and enemies once each per cycle; a blocked
 attempt still counts. Darts travel at 340 world units per second, last three

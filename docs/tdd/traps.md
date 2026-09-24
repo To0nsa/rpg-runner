@@ -4,6 +4,8 @@ The Core catalog, Chunk-v2 placements, fixed-tick gameplay, Flame rendering and
 Chunk Creator Traps tab are implemented. See the
 [completed plan](../archive/2026-09-24/building/traps/plan.md) and
 [validation record](../archive/2026-09-24/verification/traps.md).
+Per-placement tuning has its own
+[verification record](../archive/2026-09-24/verification/trap-placement-tuning.md).
 
 ## Ownership and source
 
@@ -15,14 +17,23 @@ their captured terrain dimensions. Traps do not alter terrain signatures or
 connection seams.
 
 Source order is lexicographic by x, y, trap enum ordinal, facing enum ordinal,
-trigger offsetX, offsetY, width, height. Exact duplicates and more than eight
-placements per chunk are rejected. Positions and rectangle coordinates must be
-integers. The full sprite rectangle, anchor, trigger and all damage envelopes
+trigger offsetX, offsetY, width, height, effective damage100 and windupMs.
+Exact duplicates and more than eight placements per chunk are rejected.
+Positions and rectangle coordinates must be integers. The full sprite rectangle,
+anchor, trigger and all damage envelopes
 must fit in the chunk. Spike omits `facing`; the other types require `left` or
 `right`. Facing mirrors art and damage geometry about the anchor, but leaves
 the independently saved trigger unchanged. An absent `traps` field means empty;
 explicit null fails. Export omits an empty collection, preserving existing
 trap-free bytes.
+
+Each placement optionally overrides `damage100` (integer hundredths of HP,
+1–100000) and `windupMs` (integer milliseconds, 0–30000). Omitted values resolve
+to the catalog defaults; explicit defaults serialize away. Equality, hashing,
+canonical ordering and editor selection use effective values. Strict decoding
+rejects null, non-integer and out-of-range overrides. These fields flow through
+the shared codec, materializer, generated constructors and captured Play; no
+separate tuning document or migration path exists.
 
 Editor composition snapshots and operations include traps. Existing layer,
 prefab and marker edits retain them, and trap operations use the same optimistic
@@ -65,6 +76,15 @@ is 152 ticks (2520 ms reference, +13⅓ ms); Axe is 563 ticks (9380 ms,
 +3⅓ ms); launcher is 60 ticks (1000 ms, exact). Total error is less than one
 tick. The catalog gives a one-second cooldown following each sequence.
 
+A placement's wind-up retimes only frames before the first harmful pose (or
+dart launch). Their cumulative boundaries are scaled by requested/original
+wind-up, then rounded up once to a tick using integer rational arithmetic.
+Subsequent frame boundaries shift by the wind-up difference, retaining authored
+attack/recovery durations. Zero skips harmless wind-up frames. Default values
+preserve the original schedule exactly; damage remains aligned with the same
+visible poses. The editor accepts HP to two decimals and seconds to three,
+converting directly to integer source units without silently rounding input.
+
 `RenderFrameRect` is pure data for explicit sprite extraction. Frame selection
 belongs to fixed-tick Core timing; renderers must not infer hit windows from
 elapsed animation time.
@@ -94,7 +114,9 @@ Frame transitions into nonharmful art do not repeat the prior pose's damage.
 
 Darts use the common projectile motion, nearest swept hit, damage, status and
 lifetime systems. The trap spawn adapter gives them environmental targeting,
-1 HP base Poison impact, speed 340 units/second and three seconds of travel.
+the placement's impact damage (default 1 HP Poison), speed 340 units/second and
+three seconds of travel. Spawn copies damage so later launcher retirement cannot
+change a live projectile. Contact traps also read the placement's damage.
 They have no physical terrain body. A dart created on T first hits on T+1,
 including actors overlapping its muzzle; ordinary projectiles retain their
 existing launch-tick eligibility. Ownerless projectile source zero is converted
@@ -135,13 +157,18 @@ rectangles are authoring-only activation triggers. Idle/active art is partitione
 around terrain and prefab layers. Geometry guides render after the complete
 editor scene only while authoring; Visual preview and Play show trap art without
 colored zones or exclamation markers. The catalog's seconds-before-damage label
-describes the animation wind-up, not a separate visual warning.
+describes the animation wind-up, not a separate visual warning. Damage and delay
+fields sit beneath the creation preview and in the selected placement's inline
+editor. Creation values seed the next placement; selecting a different type
+restores its catalog defaults. Reset to defaults changes only that local buffer.
+For darts, delay is to launch; impact also depends on travel.
 
 Water and traps share `SceneRectangleGesture` for pointer ownership, whole-pixel
 or tile-grid snapping, neighbor snapping, movement, resize and chunk bounds.
 Each domain retains its own validation and commit policy. Trap previews remain
-local until pointer release or Save edit. Anchor, facing and trigger fields form
-one local buffer through the shared exact-edit controller and rectangle editor.
+local until pointer release or Save edit. Damage, delay, anchor, facing and
+trigger fields form one local buffer through the shared exact-edit controller
+and rectangle editor.
 Selection, domain, owner and inspector-collapse changes resolve that buffer with
 the shared Save/Discard/Cancel dialog. Shell Save/Play accepts valid input first;
 Undo discards pending input before session history and Redo waits for resolution.
@@ -198,10 +225,12 @@ Game-over text uses the value attribution without looking up a live launcher.
 ## Pre-live compatibility cutover
 
 Client, Functions ticket/board defaults and validator accept game compatibility
-`2026.09.4`. Replay/command format 1 and the ranked rules/score/ghost versions
-are unchanged: no wire fields changed. The coordinated release includes trap
-content, accepted-hit status eligibility, terminal Fire/Poison pulses and swept
-first-contact projectiles, even on trap-free levels. Old versions are rejected.
+`2026.09.5`. Replay/command format 1 and the ranked rules/score/ghost versions
+are unchanged: no replay wire fields changed. This release adds per-placement
+damage and animation wind-up to compiled content and simulation. Catalog-default
+placements retain their previous behavior; versions through `2026.09.4` cannot
+interpret tuned content and are rejected. The existing trap, status and swept
+projectile rules remain in effect.
 
 The game is not live. At deployment, stop old ticket issuance and cancel open
 disposable test runs. Let in-flight validation/settlement finish, then reset any

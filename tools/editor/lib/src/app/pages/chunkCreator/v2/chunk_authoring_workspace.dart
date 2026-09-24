@@ -2,12 +2,15 @@ import '../../../../chunks/chunk_v2_composition_commit.dart';
 import 'chunk_trap_gesture.dart';
 import 'chunk_trap_panel.dart';
 import 'chunk_trap_inline_inspector.dart';
+import 'chunk_trap_tuning_fields.dart';
+import '../../../../chunks/chunk_trap_tuning_input.dart';
 
 import 'chunk_trap_visual_source.dart';
 import 'chunk_elevation_guides.dart';
 
 import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
 import 'package:runner_core/traps/trap_placement.dart';
+import 'package:runner_core/traps/trap_catalog.dart';
 
 import '../../../../chunks/chunk_connection_creation.dart';
 import '../../../../chunks/chunk_level_target.dart';
@@ -177,6 +180,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   final ChunkMarkerSceneGesture _markerGesture = ChunkMarkerSceneGesture();
   final ChunkWaterDrawing _waterDrawing = ChunkWaterDrawing();
   final ChunkTrapGesture _trapGesture = ChunkTrapGesture()..previewFrame = -1;
+  late final _trapDamage = TextEditingController(
+    text: formatTrapDamage100(
+      TrapCatalog.get(_trapGesture.catalogId).damage100,
+    ),
+  );
+  late final _trapWindup = TextEditingController(
+    text: formatTrapWindupMs(TrapCatalog.get(_trapGesture.catalogId).windupMs),
+  );
   final _trapEditController = TerrainPolygonExactEditController();
   ChunkV2FileData? _trapEditorChunk;
   bool _trapCreationExpanded = false;
@@ -565,6 +576,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   @override
   void dispose() {
+    _trapDamage.dispose();
+    _trapWindup.dispose();
     _trapImages.dispose();
     _trapEditController
       ..removeListener(_handleExactEditChanged)
@@ -929,8 +942,21 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         if (mounted) setState(() => _trapExistingExpanded = expanded);
       },
       snapControls: snapControls(creation: true),
+      damage100: parseTrapDamage100(_trapDamage.text),
+      windupMs: parseTrapWindupMs(_trapWindup.text),
+      tuningControls: ChunkTrapTuningFields(
+        keyPrefix: 'chunk_trap_create',
+        damage: _trapDamage,
+        windup: _trapWindup,
+        enabled: enabled && _trapGesture.tool != ChunkTrapTool.place,
+        onChanged: () => setState(() {}),
+        onReset: () => setState(_resetTrapCreationTuning),
+      ),
       error: _trapGesture.error,
-      onCatalog: (id) => setState(() => _trapGesture.catalogId = id),
+      onCatalog: (id) => setState(() {
+        _trapGesture.catalogId = id;
+        _resetTrapCreationTuning();
+      }),
       onSelect: (trap) => _selectTrap(trap, toggle: true),
       onPlace: () => _setTrapTool(ChunkTrapTool.place),
       onCancel: () => setState(() {
@@ -987,7 +1013,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   Future<void> _setTrapTool(ChunkTrapTool tool) async {
     if (_hasActiveOperation || !await _resolveTrapEdit() || !mounted) return;
+    if (tool == ChunkTrapTool.place) {
+      final damage = parseTrapDamage100(_trapDamage.text);
+      final windup = parseTrapWindupMs(_trapWindup.text);
+      if (damage == null || windup == null) return;
+      _trapGesture.damage100 = damage;
+      _trapGesture.windupMs = windup;
+    }
     setState(() => _trapGesture.tool = tool);
+  }
+
+  void _resetTrapCreationTuning() {
+    final def = TrapCatalog.get(_trapGesture.catalogId);
+    _trapDamage.text = formatTrapDamage100(def.damage100);
+    _trapWindup.text = formatTrapWindupMs(def.windupMs);
   }
 
   String? _applyTrapEdit(

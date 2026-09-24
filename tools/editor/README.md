@@ -31,11 +31,12 @@ flutter run -d windows
 ## Current Capabilities
 
 Chunk Creator's **Traps** tab places Spike, Swinging Axe and Poison Darts.
-Expand **Create trap**, choose a type, and press **Place in scene** before
+Expand **Create trap**, choose a type, set **Damage on hit (HP)** and **Seconds
+before damage** beneath its preview, and press **Place in scene** before
 clicking or dragging its anchor. Selecting a type alone does not arm placement;
 Cancel or Escape leaves placement mode. Select an **Existing traps** row to edit
-anchor coordinates, facing and trigger dimensions inline with **Save edit** or
-**Cancel changes**. Unsaved input is protected when switching selection, tabs or
+damage, delay, anchor coordinates, facing and trigger dimensions inline with
+**Save edit** or **Cancel changes**. Unsaved input is protected when switching selection, tabs or
 owners, or collapsing the inspector; Save and Play accept valid input first.
 Drag the sprite to move it with its trigger, use **Move trigger** or **Draw
 trigger** above the scene to position the activation area independently, or drag
@@ -45,8 +46,12 @@ The frame slider shows the attack pose and read-only damage shape or dart muzzle
 Blue rectangles are activation areas; red shapes are damage. These geometry
 guides are authoring-only; Visual preview and Play render trap art without colored
 warning zones or markers. The catalog shows seconds before damage (the animation
-wind-up). Trap edits use normal Undo/Redo, Save, Build and captured Play. Timing,
-damage and cooldowns remain Core-owned.
+wind-up; for darts, time before firing). Damage accepts 0.01–1000 HP to two
+decimals, and delay accepts 0–30 seconds to three decimals. These values belong
+to each placement; **Reset to defaults** restores its type's defaults in the
+local buffer. Poison/Slow and cooldowns stay at their Core defaults. Trap edits
+use normal Undo/Redo, Save, Build and captured Play; Core applies the authored
+damage and retimes the wind-up while keeping attack poses synchronized.
 
 Implemented authoring domains:
 

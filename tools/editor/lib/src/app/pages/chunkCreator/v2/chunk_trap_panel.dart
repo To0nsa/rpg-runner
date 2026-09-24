@@ -4,6 +4,7 @@ import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
 import '../../../../atlas/atlas_pixel_rect.dart';
+import '../../../../chunks/chunk_trap_tuning_input.dart';
 import '../../shared/atlas_region_preview_tile.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
@@ -31,6 +32,9 @@ class ChunkTrapPanel extends StatelessWidget {
     required this.onCreationExpansionChanged,
     required this.onExistingExpansionChanged,
     required this.snapControls,
+    required this.tuningControls,
+    required this.damage100,
+    required this.windupMs,
     required this.selectedEditor,
     required this.onCatalog,
     required this.onSelect,
@@ -47,6 +51,8 @@ class ChunkTrapPanel extends StatelessWidget {
   final ValueChanged<bool> onCreationExpansionChanged,
       onExistingExpansionChanged;
   final Widget snapControls;
+  final Widget tuningControls;
+  final int? damage100, windupMs;
   final Widget? selectedEditor;
   final ValueChanged<TrapId> onCatalog;
   final ValueChanged<TrapPlacement> onSelect;
@@ -102,11 +108,14 @@ class ChunkTrapPanel extends StatelessWidget {
                     height: source.height,
                   ),
                 ),
-                title: Text('${def.damage100 / 100} HP on hit'),
+                title: Text(
+                  '${damage100 == null ? '—' : formatTrapDamage100(damage100!)} HP on hit',
+                ),
                 subtitle: Text(
-                  '${def.firstHarmfulTick(60) / 60} s before damage',
+                  '${windupMs == null ? '—' : formatTrapWindupMs(windupMs!)} s before damage',
                 ),
               ),
+              tuningControls,
               snapControls,
               const SizedBox(height: 8),
               Text(
@@ -121,7 +130,12 @@ class ChunkTrapPanel extends StatelessWidget {
                 children: [
                   FilledButton.icon(
                     key: const ValueKey('chunk_trap_place'),
-                    onPressed: enabled && !placing && traps.length < 8
+                    onPressed:
+                        enabled &&
+                            !placing &&
+                            traps.length < 8 &&
+                            damage100 != null &&
+                            windupMs != null
                         ? onPlace
                         : null,
                     icon: const Icon(Icons.add_location_alt_outlined),
@@ -147,7 +161,8 @@ class ChunkTrapPanel extends StatelessWidget {
           key: const ValueKey('chunk_trap_existing_panel'),
           expansionKey: const ValueKey('chunk_trap_existing_panel_toggle'),
           title: 'Existing traps',
-          description: 'Select a trap to edit its anchor and trigger.',
+          description:
+              'Select a trap to edit its damage, timing and placement.',
           trailing: Text('${traps.length}'),
           collapsible: true,
           expanded: existingExpanded,

@@ -6,9 +6,11 @@ import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
 import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
+import '../../../../chunks/chunk_trap_tuning_input.dart';
 import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
 import 'chunk_trap_panel.dart';
+import 'chunk_trap_tuning_fields.dart';
 
 /// Keeps numeric input local until one revision-guarded composition edit succeeds.
 /// The workspace supplies a new key when selection or its source revision changes.
@@ -44,6 +46,12 @@ class ChunkTrapInlineInspector extends StatefulWidget {
 class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
   late final _x = TextEditingController(text: '${widget.source.x}');
   late final _y = TextEditingController(text: '${widget.source.y}');
+  late final _damage = TextEditingController(
+    text: formatTrapDamage100(widget.source.damage100),
+  );
+  late final _windup = TextEditingController(
+    text: formatTrapWindupMs(widget.source.windupMs),
+  );
   late Facing _facing = widget.source.facing;
   final _rectangle = TerrainPolygonExactEditController();
   String? _error;
@@ -54,6 +62,8 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
       (_x.text != '${widget.source.x}' ||
           _y.text != '${widget.source.y}' ||
           _facing != widget.source.facing ||
+          parseTrapDamage100(_damage.text) != widget.source.damage100 ||
+          parseTrapWindupMs(_windup.text) != widget.source.windupMs ||
           _rectangle.hasChanges);
 
   @override
@@ -78,6 +88,8 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
     setState(() {
       _x.text = '${widget.source.x}';
       _y.text = '${widget.source.y}';
+      _damage.text = formatTrapDamage100(widget.source.damage100);
+      _windup.text = formatTrapWindupMs(widget.source.windupMs);
       _facing = widget.source.facing;
       _error = null;
       _saved = false;
@@ -93,6 +105,8 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
       ..dispose();
     _x.dispose();
     _y.dispose();
+    _damage.dispose();
+    _windup.dispose();
     super.dispose();
   }
 
@@ -108,6 +122,24 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
           Text(
             'Edit ${trapDisplayName(widget.source.trapId)}',
             style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 12),
+          ChunkTrapTuningFields(
+            keyPrefix: 'chunk_trap_edit',
+            damage: _damage,
+            windup: _windup,
+            enabled: widget.enabled,
+            onChanged: () {
+              setState(() {});
+              _changed();
+            },
+            onReset: () {
+              setState(() {
+                _damage.text = formatTrapDamage100(def.damage100);
+                _windup.text = formatTrapWindupMs(def.windupMs);
+              });
+              _changed();
+            },
           ),
           const SizedBox(height: 12),
           Row(
@@ -196,10 +228,15 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
                     );
                     return false;
                   }
+                  final damage = parseTrapDamage100(_damage.text);
+                  final windup = parseTrapWindupMs(_windup.text);
+                  if (damage == null || windup == null) return false;
                   final candidate = widget.source.copyWith(
                     x: x,
                     y: y,
                     facing: _facing,
+                    damage100: damage,
+                    windupMs: windup,
                     trigger: TrapRect(
                       xHalfPixels ~/ 2,
                       (bottomYHalfPixels - heightHalfPixels) ~/ 2,
@@ -249,7 +286,7 @@ class _ChunkTrapInlineInspectorState extends State<ChunkTrapInlineInspector> {
           Text(
             widget.frame < 0
                 ? 'Preview: idle'
-                : 'Preview frame ${widget.frame} · ${def.frameStartTick(widget.frame, 60)} ticks',
+                : 'Preview frame ${widget.frame} · ${def.frameStartTick(widget.frame, 60, windupMs: parseTrapWindupMs(_windup.text) ?? widget.source.windupMs)} ticks',
           ),
           Slider(
             key: const ValueKey('chunk_trap_frame'),

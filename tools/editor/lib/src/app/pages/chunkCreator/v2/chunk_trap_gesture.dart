@@ -80,6 +80,7 @@ typedef ChunkTrapGestureResult = ({
 final class ChunkTrapGesture {
   ChunkTrapTool tool = ChunkTrapTool.select;
   TrapId catalogId = TrapId.spike;
+  int? damage100, windupMs;
   int previewFrame = 0;
   ChunkV2FileData? _chunk;
   ChunkV2CompositionOperation? _operation;
@@ -113,6 +114,8 @@ final class ChunkTrapGesture {
             x: quantizeChunkSceneCoordinate(point.dx, step: step),
             y: quantizeChunkSceneCoordinate(point.dy, step: step),
             trigger: TrapCatalog.get(catalogId).defaultTrigger,
+            damage100: damage100,
+            windupMs: windupMs,
           )
         : selected!;
     final corner = !adding && tool == ChunkTrapTool.select

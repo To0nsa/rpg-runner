@@ -184,6 +184,7 @@ void main() {
   test(
     'revision guard, Undo/Redo and Save/reload use the chunk transaction',
     () async {
+      trap = trap.copyWith(damage100: 625, windupMs: 125);
       final workspace = await createChunkLevelFixture();
       final original = example();
       final file = File(
@@ -374,6 +375,19 @@ void main() {
         isEmpty,
       );
       final place = find.byKey(const ValueKey('chunk_trap_place'));
+      final createDamage = find.byKey(
+        const ValueKey('chunk_trap_create_damage'),
+      );
+      final createWindup = find.byKey(
+        const ValueKey('chunk_trap_create_windup'),
+      );
+      await tester.ensureVisible(createDamage);
+      await tester.enterText(createDamage, '0');
+      await tester.pump();
+      expect(tester.widget<FilledButton>(place).onPressed, isNull);
+      await tester.enterText(createDamage, '6.25');
+      await tester.enterText(createWindup, '0.125');
+      await tester.pump();
       await tester.ensureVisible(place);
       await tester.tap(place);
       await tester.pump();
@@ -383,6 +397,8 @@ void main() {
           (session.document as ChunkV2Document).chunks.single;
       expect(current().traps, hasLength(1));
       final saved = current().traps.single;
+      expect(saved.damage100, 625);
+      expect(saved.windupMs, 125);
       final slider = find.byKey(const ValueKey('chunk_trap_frame'));
       await tester.ensureVisible(slider);
       tester.widget<Slider>(slider).onChanged!(9);
@@ -432,6 +448,11 @@ void main() {
       // Undo removed the changed selection; select the restored saved row.
       await tapKey('chunk_trap_placement_0');
       final xField = find.byKey(const ValueKey('chunk_trap_x'));
+      final damageField = find.byKey(const ValueKey('chunk_trap_edit_damage'));
+      final windupField = find.byKey(const ValueKey('chunk_trap_edit_windup'));
+      await tester.ensureVisible(damageField);
+      await tester.enterText(damageField, '8.75');
+      await tester.enterText(windupField, '1.234');
       await tester.ensureVisible(xField);
       await tester.enterText(xField, '320');
       await tester.pump();
@@ -448,6 +469,8 @@ void main() {
         findsOneWidget,
       );
       await tapKey('chunk_trap_unsaved_edit_cancel');
+      expect(tester.widget<TextField>(damageField).controller!.text, '8.75');
+      expect(tester.widget<TextField>(windupField).controller!.text, '1.234');
       expect(tester.widget<TextField>(xField).controller!.text, '320');
       // Collapsing the inspector uses the same pending-edit decision.
       await tapKey('chunk_trap_existing_panel_toggle');
@@ -455,6 +478,15 @@ void main() {
       expect(xField, findsNothing);
       await tapKey('chunk_trap_existing_panel_toggle');
       expect(tester.widget<TextField>(xField).controller!.text, '300');
+      expect(tester.widget<TextField>(damageField).controller!.text, '6.25');
+      expect(tester.widget<TextField>(windupField).controller!.text, '0.125');
+      await tester.ensureVisible(windupField);
+      await tester.enterText(windupField, '-1');
+      await tester.pump();
+      expect(await state.finalizeLocalEdits(), isFalse);
+      expect(current().traps.single, saved);
+      await tester.enterText(windupField, '1.234');
+      await tester.enterText(damageField, '8.75');
       await tester.ensureVisible(xField);
       await tester.enterText(xField, 'not a coordinate');
       await tester.pump();
@@ -467,8 +499,13 @@ void main() {
       await tester.pumpAndSettle();
       await tapKey('chunk_trap_unsaved_edit_save');
       expect(current().traps.single.x, 320);
+      expect(current().traps.single.damage100, 875);
+      expect(current().traps.single.windupMs, 1234);
       await tester.tap(find.text('Traps'));
       await tester.pumpAndSettle();
+      await tapKey('chunk_trap_edit_reset');
+      expect(tester.widget<TextField>(damageField).controller!.text, '5');
+      expect(tester.widget<TextField>(windupField).controller!.text, '0.7');
       await tester.ensureVisible(xField);
       await tester.enterText(xField, '330');
       await tester.pump();
@@ -480,6 +517,8 @@ void main() {
         reason: 'Undo discards local input first.',
       );
       expect(tester.widget<TextField>(xField).controller!.text, '320');
+      expect(tester.widget<TextField>(damageField).controller!.text, '8.75');
+      expect(tester.widget<TextField>(windupField).controller!.text, '1.234');
       expect(state.handleUndoShortcut(), isTrue);
       await tester.pumpAndSettle();
       expect(current().traps.single, saved);
@@ -539,6 +578,17 @@ void main() {
       await tapKey('chunk_trap_duplicate');
       expect(current().traps, hasLength(2));
       expect(current().traps.last.x, 350 + current().tileSize);
+      expect(current().traps.last.damage100, 875);
+      expect(current().traps.last.windupMs, 1234);
+      // Editing one copy must leave the other placement's tuning intact.
+      await tester.ensureVisible(damageField);
+      await tester.enterText(damageField, '3');
+      await tester.enterText(windupField, '0');
+      await tapKey('chunk_trap_save_edit');
+      expect(current().traps.first.damage100, 875);
+      expect(current().traps.first.windupMs, 1234);
+      expect(current().traps.last.damage100, 300);
+      expect(current().traps.last.windupMs, 0);
       await tapKey('chunk_trap_delete');
       expect(current().traps, hasLength(1));
       expect(tester.takeException(), isNull);

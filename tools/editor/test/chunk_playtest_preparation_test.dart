@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_identity.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/traps/trap_geometry.dart';
 import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
@@ -236,6 +237,8 @@ void main() {
           x: 300,
           y: 220,
           trigger: TrapRect(-80, -40, 120, 48),
+          damage100: 275,
+          windupMs: 125,
         ),
       ];
       final chunk = repositoryDocument.chunks
@@ -270,6 +273,16 @@ void main() {
       final chunkScenario = focused.scenario! as ChunkPlaytestScenario;
       final levelScenario = full.scenario! as LevelPlaytestScenario;
       expect(chunkScenario.draftPattern.traps, traps);
+      expect(
+        levelScenario.levelDefinition.chunkPatternSource
+            .patternFor(
+              chunkIndex: 0,
+              seed: levelScenario.seed,
+              tier: ChunkPatternTier.easy,
+            )
+            .traps,
+        traps,
+      );
       final chunkCore = GameCore.chunkPlaytest(scenario: chunkScenario);
       final levelCore = GameCore.levelPlaytest(scenario: levelScenario);
       expect(
