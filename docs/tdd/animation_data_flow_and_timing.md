@@ -108,6 +108,13 @@ fullStripTicks = frameCountsByKey[key] * ticksPerFrame
 This prevents fractional frame steps from leaving a completed strip on its last
 frame after its Core lifecycle window should have ended.
 
+`PickupRenderCatalog` supplies the gold collectible's
+`entities/collectibles/gold_spin.png` strip: seven 25x25 frames, centered at
+`(12.5, 12.5)`, looping at 0.1 seconds per frame to match the asset pack preview.
+`PickupRenderRegistry` renders it at native pixel size. This presentation data
+does not change pickup collision or scoring. Restoration gems retain their
+12-frame 16x16 rows and 0.08-second frame steps.
+
 ## 5) Why same animation can look wrong across abilities
 
 If two abilities share one `AnimKey` (for example `AnimKey.cast`) but have

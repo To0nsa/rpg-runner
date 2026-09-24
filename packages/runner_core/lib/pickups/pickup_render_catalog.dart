@@ -37,9 +37,16 @@ class PickupRenderCatalog {
   RenderAnimSetDefinition get(int pickupVariant) {
     switch (pickupVariant) {
       case PickupVariant.collectible:
-        return _rowFromSheet(
-          assetPath: 'entities/collectibles/coins.png',
-          row: 0,
+        return const RenderAnimSetDefinition(
+          frameWidth: 25,
+          frameHeight: 25,
+          anchorPoint: Vec2(12.5, 12.5),
+          sourcesByKey: <AnimKey, String>{
+            AnimKey.idle: 'entities/collectibles/gold_spin.png',
+          },
+          frameCountsByKey: <AnimKey, int>{AnimKey.idle: 7},
+          // Match the asset pack's 100 ms per-frame spin preview.
+          stepTimeSecondsByKey: <AnimKey, double>{AnimKey.idle: 0.1},
         );
       case PickupVariant.restorationHealth:
         return _rowFromSheet(

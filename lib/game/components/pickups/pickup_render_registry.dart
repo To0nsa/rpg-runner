@@ -83,7 +83,7 @@ class PickupRenderRegistry {
 
   final PickupRenderCatalog _catalog;
 
-  // 16px art scaled to match Core collider sizes.
+  // Render at native pixel size; Core owns collider dimensions.
   static final Vector2 _collectibleScale = Vector2.all(1.0);
   static final Vector2 _restorationScale = Vector2.all(1.0);
 
