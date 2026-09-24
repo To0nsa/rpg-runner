@@ -52,9 +52,8 @@ void main() {
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft, useGravity: false),
       ),
     );
-    final level = LevelRegistry.byId(
-      LevelId.field,
-    ).copyWith(noEnemyChunks: 9999);
+    final level = LevelRegistry.byId(LevelId.field)
+        .copyWith(noEnemyChunks: 9999);
     final a = GameCore(
       levelDefinition: level,
       seed: seed,
@@ -75,8 +74,7 @@ void main() {
         .toSet();
 
     // Always move right so the player stays in view and the camera keeps advancing.
-    const ticks =
-        1800; // ~30 seconds at 60Hz (enough to trigger multiple spawn/cull cycles).
+    const ticks = 1800; // ~30 seconds at 60Hz (enough to trigger multiple spawn/cull cycles).
     var maxTerrainPolygons = 0;
 
     for (var t = 1; t <= ticks; t += 1) {
@@ -111,11 +109,18 @@ void main() {
     expect(finalChunkIndices.intersection(initialChunkIndices), isEmpty);
     expect(
       finalTerrain.polygons.map((polygon) => polygon.sourceId.chunkKey),
-      everyElement('field_flat'),
+      everyElement(isIn(['field_flat', 'field_roadside_rescue'])),
     );
     expect(
-      finalTerrain.polygons.map((polygon) => polygon.sourceId.shapeId),
-      everyElement('solid_001'),
+      finalTerrain.polygons.map(
+        (polygon) => (polygon.sourceId.chunkKey, polygon.sourceId.shapeId),
+      ),
+      everyElement(
+        isIn([
+          ('field_flat', 'solid_001'),
+          ('field_roadside_rescue', 'ground'),
+        ]),
+      ),
     );
   });
 }

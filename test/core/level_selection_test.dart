@@ -126,7 +126,7 @@ void main() {
   });
 
   test(
-    'field level uses its flat default chunk without an authored assembly',
+    'field level selects flat and rescue chunks without an authored assembly',
     () {
       final level = LevelRegistry.byId(LevelId.field);
       expect(level.assembly, isNull);
@@ -145,10 +145,10 @@ void main() {
           ),
       ];
 
-      expect(
-        selections.map((selection) => selection.pattern.name).toList(),
-        everyElement('field_flat'),
-      );
+      expect(selections.map((selection) => selection.pattern.name).toSet(), {
+        'field_flat',
+        'field_roadside_rescue',
+      });
       expect(
         selections
             .map((selection) => selection.pattern.assemblyGroupId)

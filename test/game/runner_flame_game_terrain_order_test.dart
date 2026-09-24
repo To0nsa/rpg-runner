@@ -68,7 +68,7 @@ void main() {
             ? GameCore.chunkPlaytest(
                 scenario: ChunkPlaytestScenario(
                   terrainChunks: stagedAuthoredTerrain.chunks.where(
-                    (chunk) => chunk.levelId == 'field',
+                    (chunk) => chunk.chunkKey == pattern.chunkKey,
                   ),
                   levelDefinition: level,
                   visualThemeId: 'fixture',
@@ -126,7 +126,9 @@ void main() {
         await tester.pumpWidget(GameWidget(game: game));
         for (var attempt = 0; attempt < 200; attempt++) {
           await tester.pump(const Duration(milliseconds: 25));
-          await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+          );
           expect(tester.takeException(), isNull);
           if (game.loadState.value.phase == RunLoadPhase.worldReady) {
             break;
