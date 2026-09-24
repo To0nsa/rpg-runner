@@ -293,8 +293,8 @@ void main() {
       f.step(30);
       final dart = f.state.dart!;
       f.move(actor, 0, 0);
-      f.step(60);
-      f.step(120);
+      f.step(96);
+      f.step(156);
       expect(f.state.phase, TrapPhase.waitingForClear);
       final lifetime = LifetimeSystem();
       for (var tick = 0; tick < 180; tick++) {
@@ -306,6 +306,93 @@ void main() {
       expect(f.state.dart, isNull);
       f.step(211);
       expect(f.state.phase, TrapPhase.idle);
+    },
+  );
+
+  for (final facing in Facing.values) {
+    for (final hz in [30, 60, 120]) {
+      test(
+        'launcher emerges, fires once and lowers at $hz Hz facing $facing',
+        () {
+          final f = _Fixture(TrapId.poisonDarts, facing: facing, hz: hz);
+          final def = TrapCatalog.get(TrapId.poisonDarts);
+          final actor = f.actor(200, 128);
+          final framesSeen = <int>{};
+          expect(def.frames[f.state.frameIndex].source.y, 48);
+          final end = (1600 * hz + 999) ~/ 1000;
+          final fire = hz ~/ 2;
+          for (var tick = 0; tick < end; tick++) {
+            f.step(tick);
+            final snapshot = f.world.traps.buildSnapshots().single;
+            framesSeen.add(snapshot.frameIndex);
+            expect(snapshot.facing, facing);
+            expect(snapshot.x, 200);
+            expect(snapshot.y, 128);
+            if (tick < fire) {
+              expect(snapshot.phase, TrapPhase.warning);
+              expect(def.frames[snapshot.frameIndex].source.y, 48);
+              expect(f.state.dart, isNull);
+            } else {
+              expect(snapshot.phase, TrapPhase.active);
+              expect(f.world.projectile.denseEntities, hasLength(1));
+              expect(f.world.projectile.firstHitTick.single, fire + 1);
+            }
+            expect(f.world.damageQueue.length, 0);
+          }
+          expect(framesSeen, hasLength(14));
+          expect(def.frames[f.state.frameIndex].source.y, 560);
+          f.step(end);
+          expect(f.state.phase, TrapPhase.cooldown);
+          expect(f.state.frameIndex, def.idleFrameIndex);
+          f.step(end + hz - 1);
+          expect(f.state.phase, TrapPhase.cooldown);
+          f.step(end + hz);
+          expect(f.state.phase, TrapPhase.waitingForClear);
+          f.move(actor, 0, 0);
+          f.step(end + hz + 1);
+          expect(f.state.phase, TrapPhase.waitingForClear);
+          f.world.destroyEntity(f.state.dart!);
+          f.step(end + hz + 2);
+          expect(f.state.phase, TrapPhase.idle);
+          f.move(actor, 200, 128);
+          f.step(end + hz + 3);
+          expect(f.state.phase, TrapPhase.warning);
+          expect(f.state.frameIndex, 0);
+          expect(f.state.dart, isNull);
+        },
+      );
+    }
+  }
+
+  test('launcher cancels emergence and returns to its lowered idle pose', () {
+    for (final tick in [0, 12, 24]) {
+      final f = _Fixture(TrapId.poisonDarts);
+      f.actor(200, 128);
+      f.step(0);
+      f.step(tick);
+      expect(f.state.frameIndex, tick ~/ 12);
+      f.step(tick + 1, cameraRight: 178);
+      expect(f.state.phase, TrapPhase.cooldown);
+      expect(f.state.frameIndex, 0);
+      expect(f.world.projectile.denseEntities, isEmpty);
+    }
+  });
+
+  test(
+    'a tick crossing emergence and firing still creates exactly one dart',
+    () {
+      final f = _Fixture(TrapId.poisonDarts, hz: 1);
+      f.actor(200, 128);
+      f.step(0);
+      expect(f.state.phase, TrapPhase.warning);
+      expect(f.state.dart, isNull);
+      f.step(1);
+      final dart = f.state.dart;
+      expect(dart, isNotNull);
+      expect(f.world.projectile.firstHitTick.single, 2);
+      f.step(2);
+      expect(f.world.projectile.denseEntities, [dart]);
+      expect(f.state.phase, TrapPhase.cooldown);
     },
   );
 

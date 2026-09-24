@@ -31,8 +31,84 @@ void main() {
           expect(frame.srcPosition.x, def.frames[i].source.x);
           expect(frame.srcPosition.y, def.frames[i].source.y);
           expect(frame.srcSize.x, def.frames[i].source.width);
+          expect(frame.srcSize.y, def.frames[i].source.height);
         }
       }
+      images.clearCache();
+    },
+  );
+
+  testWidgets(
+    'launcher emergence and lowering retain every source pixel and anchor',
+    (tester) async {
+      final game = FlameGame();
+      final images = Images();
+      final registry = TrapRenderRegistry();
+      await tester.runAsync(() => registry.load(images));
+      final views = TrapRenderSystem(world: game.world, registry: registry);
+      await tester.pumpWidget(GameWidget(game: game));
+      await tester.runAsync(() => game.loaded);
+      const source = TrapSourceRef(
+        trapId: TrapId.poisonDarts,
+        chunkKey: 'fixture',
+        chunkIndex: 0,
+        placementOrdinal: 0,
+      );
+      final sheet = registry.frame(TrapId.poisonDarts, 0).image;
+      for (final facing in Facing.values) {
+        for (final (frame, row, column) in [
+          (0, 0, 0),
+          (1, 0, 1),
+          (2, 0, 2),
+          for (var col = 0; col < 6; col++) (8 + col, 4, col),
+        ]) {
+          views.sync([
+            TrapSnapshot(
+              source: source,
+              x: 100,
+              y: 80,
+              facing: facing,
+              phase: frame < 3 ? TrapPhase.warning : TrapPhase.active,
+              frameIndex: frame,
+              zIndex: -21,
+            ),
+          ], cameraCenter: Vector2.zero());
+          await tester.pump();
+          game.update(0);
+          final view = game.world.children.whereType<SpriteComponent>().single;
+          expect(view.priority, -26);
+          final actualRecorder = ui.PictureRecorder();
+          view.renderTree(ui.Canvas(actualRecorder));
+          final expectedRecorder = ui.PictureRecorder();
+          final canvas = ui.Canvas(expectedRecorder)
+            ..translate(100, 80)
+            ..scale(facing == Facing.left ? -1 : 1, 1);
+          // Compare with the full 128px cell, independently of catalog cropping.
+          // The sheet-space pivot stays (64,72) throughout vertical movement.
+          canvas.drawImageRect(
+            sheet,
+            Rect.fromLTWH(column * 128.0, row * 128.0, 128, 128),
+            const Rect.fromLTWH(-64, -72, 128, 128),
+            Paint()..filterQuality = FilterQuality.none,
+          );
+          final actualPicture = actualRecorder.endRecording();
+          final expectedPicture = expectedRecorder.endRecording();
+          await tester.runAsync(() async {
+            final actual = await actualPicture.toImage(200, 160);
+            final expected = await expectedPicture.toImage(200, 160);
+            expect(
+              (await actual.toByteData())!.buffer.asUint8List(),
+              (await expected.toByteData())!.buffer.asUint8List(),
+              reason: 'frame $frame facing $facing must not clip or shift',
+            );
+            actual.dispose();
+            expected.dispose();
+          });
+          actualPicture.dispose();
+          expectedPicture.dispose();
+        }
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
       images.clearCache();
     },
   );

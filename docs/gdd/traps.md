@@ -9,7 +9,7 @@ damage; the visible weapon or separate dart does.
 | --- | --- | --- | --- |
 | Spike | 0.7 seconds | 5 HP physical | 2.52 seconds |
 | Swinging Axe | 0.8 seconds | 8 HP physical | 9.38 seconds |
-| Poison Darts | 0.5 seconds | 1 HP Poison impact | 1 second |
+| Poison Darts | 0.5 seconds | 1 HP Poison impact | 1.6 seconds |
 
 These are defaults. Each placed trap has its own **Damage on hit (HP)** and
 **Seconds before damage** fields in Chunk Creator, both when creating it and
@@ -28,6 +28,13 @@ with damage. Attack/recovery animation and the one-second cooldown retain their
 duration. Zero starts at the first harmful pose. For Poison Darts, this is the
 delay before firing; travel adds time before impact. The damage field changes
 impact only, leaving Poison pulses and Slow unchanged.
+
+The Poison Darts launcher rests lowered. Activation plays its rise out of the
+ground during the configured delay, then fires one dart, recovers and lowers
+again. Lowering takes 0.6 seconds before the one-second cooldown begins. A zero
+delay skips the rise and fires immediately. Its placement anchor, facing and
+authored depth stay fixed throughout; terrain can hide the lowered art at the
+chosen depth. Cancellation on leaving view returns it to the lowered pose.
 
 Timing rounds cumulative animation boundaries up to a simulation tick. Spike
 and Axe can damage both player and enemies once each per cycle; a blocked

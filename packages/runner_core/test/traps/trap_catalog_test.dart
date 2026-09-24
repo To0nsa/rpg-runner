@@ -7,12 +7,12 @@ import 'package:runner_core/traps/trap_validation.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('reviewed GIF sequences retain cumulative duration and warning', () {
+  test('reviewed art sequences retain cumulative duration and warning', () {
     for (final (id, count, milliseconds, warningMs, sheetWidth, sheetHeight)
         in [
           (TrapId.spike, 27, 2520, 700, 1920, 256),
           (TrapId.swingingAxe, 51, 9380, 800, 2816, 512),
-          (TrapId.poisonDarts, 8, 1000, 500, 1536, 1152),
+          (TrapId.poisonDarts, 14, 1600, 500, 1536, 1152),
         ]) {
       final def = TrapCatalog.get(id);
       expect(def.frames, hasLength(count));

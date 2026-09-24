@@ -190,31 +190,43 @@ abstract final class TrapCatalog {
     id: TrapId.poisonDarts,
     assetPath: 'entities/traps/poison_darts/spritesheet.png',
     anchor: const Vec2(32, 24),
-    restingBounds: const TrapRect(-22, -9, 40, 34),
+    restingBounds: const TrapRect(-22, 21, 40, 34),
     activationVisibilityBounds: const TrapRect(16, -16, 36, 32),
     defaultTrigger: const TrapRect(40, -32, 180, 64),
     damage100: dartDamage100,
     muzzle: const Vec2(22, -2),
-    // Crop away authored flying darts. Rows 2/3 recover after the first shot.
+    // Row 0 emerges during the configured wind-up; row 4 lowers after recovery.
+    // The shared crop retains the low stem and rising smear but excludes flying
+    // darts. Its origin/anchor keep the raised launcher and muzzle stationary.
     frames: [
-      for (var i = 0; i < 5; i++)
+      for (var i = 0; i < 3; i++)
         TrapFrame(
-          source: RenderFrameRect(i * 128 + 32, 176, 52, 64),
+          source: RenderFrameRect(i * 128 + 32, 48, 54, 80),
           durationMs: i < 2 ? 200 : 100,
+        ),
+      for (var i = 3; i < 5; i++)
+        TrapFrame(
+          source: RenderFrameRect(i * 128 + 32, 176, 54, 80),
+          durationMs: 100,
           firesDart: i == 3,
         ),
       const TrapFrame(
-        source: RenderFrameRect(32, 304, 52, 64),
+        source: RenderFrameRect(32, 304, 54, 80),
         durationMs: 100,
       ),
       const TrapFrame(
-        source: RenderFrameRect(32, 432, 52, 64),
+        source: RenderFrameRect(32, 432, 54, 80),
         durationMs: 100,
       ),
       const TrapFrame(
-        source: RenderFrameRect(288, 432, 52, 64),
+        source: RenderFrameRect(288, 432, 54, 80),
         durationMs: 100,
       ),
+      for (var i = 0; i < 6; i++)
+        TrapFrame(
+          source: RenderFrameRect(i * 128 + 32, 560, 54, 80),
+          durationMs: 100,
+        ),
     ],
   );
 }

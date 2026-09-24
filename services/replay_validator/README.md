@@ -60,14 +60,14 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The current validator build accepts game compatibility `2026.09.6`;
+The current validator build accepts game compatibility `2026.09.7`;
 replay/command format `1`, `rules-v2`, `score-v1`, and `ghost-v1` remain the
-supported ranked tuple. Forest navigation recovery, graph placement and five
-chunk clearance adjustments now replay through the same Core implementation.
-Previous compatibility versions, including `2026.09.5`, are rejected before
-replay. This build does not
-ship a historical selector, camera simulation, or the retired `rules-v1`
-combat simulator.
+supported ranked tuple. Poison Darts now emerge during their configured wind-up
+and retract before cooldown; lowered resting visibility and longer rearming
+cycles replay through the same Core implementation. This includes the earlier
+Forest traversal repairs. Previous versions, including `2026.09.6`, are rejected
+before replay. This build does not ship a historical selector, camera simulation,
+or the retired `rules-v1` combat simulator.
 
 For this non-live release use the [trap cutover procedure](../../docs/tdd/traps.md#pre-live-compatibility-cutover).
 Stop old issuance, cancel disposable test runs, and let running validation and
@@ -108,7 +108,7 @@ firebase deploy --project rpg-runner-d7add `
 
 Then run the checked-in service/queue policy from the repository root.
 For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
-the matching `2026.09.6` worker and Functions configuration before enabling new
+the matching `2026.09.7` worker and Functions configuration before enabling new
 client issuance. This repository implementation does not deploy those services.
 
 ```powershell

@@ -367,6 +367,14 @@ this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
 
+Poison Darts emergence and retraction ship as game compatibility `2026.09.7`.
+The catalog selects lowered idle art, plays emergence within the configured
+wind-up and adds 600 ms of lowering before cooldown. The lowered resting-camera
+bounds and longer cycle change activation/rearming outcomes. All timing and
+frame selection stay in Core; system ordering, launch delay, damage and wire
+formats are unchanged. Client issuance, Functions and worker switch together
+under the [pre-live cutover](traps.md#pre-live-compatibility-cutover).
+
 Forest traversal repairs ship as game compatibility `2026.09.6`. Navigation
 replans after an unexpected landing, preserves airborne jump motion across
 terrain publication, matches authored-facing collision offsets, samples

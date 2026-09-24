@@ -61,7 +61,7 @@ ignored `resources/traps` directory; runtime PNGs are under
 | --- | --- | --- | --- | --- |
 | Spike | 27 row-major cells, 15 columns; GIF 0–26 | 100 ms except cells 7–9 at 40 ms | (64,96) | 700 ms |
 | Axe | Occupied cells 10–31, then 32–36 repeated three times, then 37–49, then 0; GIF 23–73 | 100 ms through 31; 350 ms for 32–36; 70 ms for 37–40; 150 ms for 41–49; 300 ms for 0 | (64,26) | 800 ms |
-| Dart launcher | Cropped row 1 cells 0–4, row 2 cell 0, row 3 cells 0 and 2 | 200 ms for first two poses, then 100 ms | (32,24) in cropped frame | 500 ms |
+| Dart launcher | Cropped row 0 cells 0–2, row 1 cells 3–4, row 2 cell 0, row 3 cells 0 and 2, row 4 cells 0–5 | 200 ms for first two poses, then 100 ms | (32,24) in cropped frame | 500 ms |
 
 Axe occupied-cell numbering follows rows with 10, 22, 5 and 13 occupied cells.
 GIF 0–22 is ambient motion and is excluded from the triggered cycle. Blade
@@ -69,8 +69,18 @@ capsules follow each visible blade pose; the two blurred release poses use
 elongated capsules. Spike capsules follow the exposed tips during cells 7–21.
 
 The Poison Darts pack has no reference GIF. Its initial safe timing is explicit
-catalog tuning. Launcher rectangles are 52×64, offset (32,48) within each
-128-pixel sheet cell. This crops the baked flying darts from the launcher art.
+catalog tuning. Sheet rows and cells above are zero-based. Row 0 supplies the
+lowered idle pose, emergence smear and raised pose within the existing 500 ms
+wind-up. Row 4 lowers the launcher after its single-shot recovery, adding 600 ms
+before cooldown. Idle, cooldown and waiting-for-clear use row 0 cell 0; losing
+visibility cancels directly to that lowered pose, as for other trap idle poses.
+The lowered resting visibility rectangle is (-22,21,40,34); the raised attack
+visibility rectangle and muzzle remain fixed.
+
+Launcher rectangles are 54×80, offset (32,48) within each 128-pixel sheet cell.
+The crop retains the complete emergence smear and lowered stem while excluding
+the baked flying darts beyond the muzzle. Every launcher frame shares this size
+and anchor, retaining the sheet-space pivot (64,72) in both facing directions.
 The muzzle is (22,-2) relative to the anchor. The independent flight rectangle
 is the full cell (0,640,128,128), with pivot (15,72), retaining native pixel size.
 Impact uses row 6 cells 0–11 at 60 ms each, with its own pivot (64,76).
@@ -82,7 +92,7 @@ the triggered cycle begins at cell 10.
 Core frame boundaries use ceiling of cumulative milliseconds × tickHz / 1000.
 This avoids accumulating per-frame rounding error. At 60 Hz the Spike sequence
 is 152 ticks (2520 ms reference, +13⅓ ms); Axe is 563 ticks (9380 ms,
-+3⅓ ms); launcher is 60 ticks (1000 ms, exact). Total error is less than one
++3⅓ ms); launcher is 96 ticks (1600 ms, exact). Total error is less than one
 tick. The catalog gives a one-second cooldown following each sequence.
 
 A placement's wind-up retimes only frames before the first harmful pose (or
@@ -240,12 +250,15 @@ Game-over text uses the value attribution without looking up a live launcher.
 ## Pre-live compatibility cutover
 
 Client, Functions ticket/board defaults and validator accept game compatibility
-`2026.09.5`. Replay/command format 1 and the ranked rules/score/ghost versions
-are unchanged: no replay wire fields changed. This release adds per-placement
-damage and animation wind-up to compiled content and simulation. Catalog-default
-placements retain their previous behavior; versions through `2026.09.4` cannot
-interpret tuned content and are rejected. The existing trap, status and swept
-projectile rules remain in effect.
+`2026.09.7`. Replay/command format 1 and the ranked rules/score/ghost versions
+are unchanged: no replay wire fields changed. The poison launcher now rests
+lowered, emerges during its configured wind-up, and retracts before cooldown.
+Its lowered resting visibility bounds and longer cycle can change activation
+and rearming outcomes, so versions through `2026.09.6` are rejected. Damage,
+dart launch delay (including zero/custom wind-up), projectile travel, statuses,
+single-dart gating and the one-second cooldown retain their existing rules.
+This release includes the earlier per-placement tuning (`2026.09.5`) and
+Forest traversal repairs (`2026.09.6`).
 
 The game is not live. At deployment, stop old ticket issuance and cancel open
 disposable test runs. Let in-flight validation/settlement finish, then reset any
