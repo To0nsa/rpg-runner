@@ -5,7 +5,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Current audits](audit/README.md).
 - [Current implementation plans](building/README.md): NPC rescue encounters.
 - [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; deployed in `2026.09.8`.
-- [Latest production release](archive/2026-09-25/verification/game-compat-2026.09.8-production.md): NPC rescue, current levels, traps and navigation deployed as `2026.09.8`/`score-v2`, with verification limits recorded.
+- [Latest production release](archive/2026-09-25/verification/game-compat-2026.09.9-production.md): Forest spawn revision deployed as `2026.09.9`/`score-v2`; tests and benchmarks omitted at the owner's request.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.

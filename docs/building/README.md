@@ -8,9 +8,10 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): `2026.09.8`/`score-v2`
+- [Rescue release operations](rescue_release_operations.md): `2026.09.9`/`score-v2`
   deployed to Functions, Cloud Run and web Hosting. No run cancellations were
-  needed. Remaining live gameplay smoke needs a linked Play Games account.
+  needed. The latest Forest content update was deployed without tests at the
+  owner's request. Remaining live gameplay smoke needs a linked Play Games account.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

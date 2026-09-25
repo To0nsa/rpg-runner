@@ -73,7 +73,7 @@ before replay. This build does not ship a historical selector, camera simulation
 or the retired `rules-v1` combat simulator.
 
 The matching worker, Functions and web client were deployed on September 25;
-see [release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.8-production.md).
+see [current release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 Use the [release checklist](../../docs/building/rescue_release_operations.md)
 for the remaining signed-in smoke check and any future cutover.
 Stop old issuance, cancel disposable test runs, and let running validation and

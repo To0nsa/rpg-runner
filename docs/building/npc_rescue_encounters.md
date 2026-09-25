@@ -1,7 +1,8 @@
 # NPC rescue encounters
 
 Status: gameplay, authoring, scoring and production content are implemented and
-deployed as `2026.09.8`. M7 retains the signed-in production smoke follow-up in
+first deployed as `2026.09.8`, followed by the `2026.09.9` Forest content update.
+M7 retains the signed-in production smoke follow-up in
 [release operations](rescue_release_operations.md). The owner stopped further
 benchmarks and requested deployment on September 25; performance sign-off is
 not claimed.
