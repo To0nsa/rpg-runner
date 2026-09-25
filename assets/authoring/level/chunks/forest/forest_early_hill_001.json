@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_hill_001",
   "id": "forest_early_hill_001",
-  "revision": 48,
+  "revision": 55,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -63,7 +63,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 304,
+      "y": 25,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

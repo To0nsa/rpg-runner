@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_woodcamp_normal_001",
   "id": "forest_woodcamp_normal_001",
-  "revision": 38,
+  "revision": 49,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -22,10 +22,27 @@
       "snapToGrid": true
     },
     {
+      "prefabId": "gandalf_hardcore_birch_01",
+      "prefabKey": "gandalf_hardcore_birch_01",
+      "x": 522,
+      "y": 133,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.6
+    },
+    {
       "prefabId": "tiny_swords_tree_01",
       "prefabKey": "tiny_swords_tree_01",
       "x": 219,
       "y": 152,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "pixel_fantasy_caves_small_rock_05",
+      "prefabKey": "pixel_fantasy_caves_small_rock_05",
+      "x": 34,
+      "y": 195,
       "zIndex": 0,
       "snapToGrid": false
     },
@@ -138,6 +155,37 @@
       "width": 93,
       "height": 46,
       "materialKey": "biome_water"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "huntress2",
+          "npcId": "huntress2",
+          "x": 530,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "derf",
+          "x": 315,
+          "facing": "left",
+          "placement": "obstacleTop"
+        }
+      ]
     }
   ]
 }

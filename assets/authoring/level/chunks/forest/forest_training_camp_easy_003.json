@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_training_camp_easy_003",
   "id": "forest_training_camp_easy_003",
-  "revision": 4,
+  "revision": 8,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -107,6 +107,37 @@
       "width": 92,
       "height": 46,
       "materialKey": "biome_water"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 44,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "warrior",
+          "npcId": "warrior",
+          "x": 333,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "grojib",
+          "x": 414,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ]
     }
   ]
 }

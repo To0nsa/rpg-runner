@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_forest_005",
   "id": "forest_early_forest_005",
-  "revision": 22,
+  "revision": 23,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -30,7 +30,16 @@
       "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 287,
+      "y": 55,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

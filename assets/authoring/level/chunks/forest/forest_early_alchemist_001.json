@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_alchemist_001",
   "id": "forest_early_alchemist_001",
-  "revision": 69,
+  "revision": 70,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -95,7 +95,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 351,
+      "y": 64,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

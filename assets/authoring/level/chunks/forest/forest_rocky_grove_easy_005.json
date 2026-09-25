@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_005",
   "id": "forest_rocky_grove_easy_005",
-  "revision": 32,
+  "revision": 33,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -40,7 +40,16 @@
       "scale": 2.0
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 471,
+      "y": 50,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "solid_001",

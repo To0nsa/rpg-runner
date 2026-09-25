@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_hill_003",
   "id": "forest_early_hill_003",
-  "revision": 3,
+  "revision": 5,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -13,7 +13,16 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 390,
+      "y": 98,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "solid_001",

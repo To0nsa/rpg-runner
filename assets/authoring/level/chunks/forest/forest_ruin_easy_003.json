@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_easy_003",
   "id": "forest_ruin_easy_003",
-  "revision": 67,
+  "revision": 72,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -63,7 +63,16 @@
       "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 344,
+      "y": 178,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

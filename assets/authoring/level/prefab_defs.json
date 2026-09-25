@@ -18838,7 +18838,7 @@
     {
       "prefabKey": "tiny_swords_wood_logs_01",
       "id": "tiny_swords_wood_logs_01",
-      "revision": 2,
+      "revision": 7,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -18889,15 +18889,7 @@
               "y": -20
             },
             {
-              "x": -29,
-              "y": -23
-            },
-            {
-              "x": -2,
-              "y": -24
-            },
-            {
-              "x": 5,
+              "x": -28,
               "y": -22
             },
             {

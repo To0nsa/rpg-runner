@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_training_camp_normal_001",
   "id": "forest_training_camp_normal_001",
-  "revision": 73,
+  "revision": 74,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -60,7 +60,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 289,
+      "y": 98,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_normal_001",
   "id": "forest_rocky_grove_normal_001",
-  "revision": 34,
+  "revision": 35,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -67,7 +67,16 @@
       "flipX": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "derf",
+      "x": 376,
+      "y": 51,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "obstacleTop"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

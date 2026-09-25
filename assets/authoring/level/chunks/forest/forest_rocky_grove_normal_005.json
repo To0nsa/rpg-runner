@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_normal_005",
   "id": "forest_rocky_grove_normal_005",
-  "revision": 19,
+  "revision": 20,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -87,8 +87,8 @@
   "traps": [
     {
       "trapId": "spike",
-      "x": 329,
-      "y": 182,
+      "x": 333,
+      "y": 200,
       "trigger": {
         "offsetX": -160,
         "offsetY": -44,

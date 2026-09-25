@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_normal_002",
   "id": "forest_ruin_normal_002",
-  "revision": 14,
+  "revision": 15,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -62,7 +62,16 @@
       "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "hashash",
+      "x": 387,
+      "y": 42,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

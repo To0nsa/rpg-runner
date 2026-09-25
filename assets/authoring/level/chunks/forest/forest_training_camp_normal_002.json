@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_training_camp_normal_002",
   "id": "forest_training_camp_normal_002",
-  "revision": 63,
+  "revision": 64,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -89,7 +89,16 @@
       "scale": 2.0
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "derf",
+      "x": 354,
+      "y": 95,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "obstacleTop"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

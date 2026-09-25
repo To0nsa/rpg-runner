@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_easy_woodcamp_001",
   "id": "forest_easy_woodcamp_001",
-  "revision": 48,
+  "revision": 57,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -32,7 +32,7 @@
     {
       "prefabId": "tiny_swords_wood_logs_01",
       "prefabKey": "tiny_swords_wood_logs_01",
-      "x": 194,
+      "x": 163,
       "y": 200,
       "zIndex": 0,
       "snapToGrid": false
@@ -40,7 +40,7 @@
     {
       "prefabId": "tiny_swords_sawbuck_01",
       "prefabKey": "tiny_swords_sawbuck_01",
-      "x": 335,
+      "x": 285,
       "y": 200,
       "zIndex": 0,
       "snapToGrid": false
@@ -70,7 +70,16 @@
       "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "derf",
+      "x": 158,
+      "y": 102,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "obstacleTop"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "solid_001",
@@ -95,6 +104,37 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "huntress",
+          "npcId": "huntress",
+          "x": 372,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "hashash",
+          "x": 465,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ]
     }
   ]
 }

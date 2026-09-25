@@ -185,6 +185,22 @@ class LevelRegistry {
                 maxChunkCount: 6,
                 requireDistinctChunks: true,
               ),
+              LevelAssemblySegment(
+                segmentId: 'default_4',
+                groupId: 'woodcamp',
+                difficulty: ChunkPatternTier.normal,
+                minChunkCount: 3,
+                maxChunkCount: 3,
+                requireDistinctChunks: true,
+              ),
+              LevelAssemblySegment(
+                segmentId: 'ruin_2_2_2_2_2',
+                groupId: 'rocky_grove',
+                difficulty: ChunkPatternTier.normal,
+                minChunkCount: 3,
+                maxChunkCount: 6,
+                requireDistinctChunks: true,
+              ),
             ],
           ),
         );

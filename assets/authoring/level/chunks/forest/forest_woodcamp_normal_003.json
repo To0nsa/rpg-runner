@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_woodcamp_normal_003",
   "id": "forest_woodcamp_normal_003",
-  "revision": 4,
+  "revision": 7,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -64,9 +64,26 @@
       "y": 208,
       "zIndex": 0,
       "snapToGrid": true
+    },
+    {
+      "prefabId": "woods_table_food_01",
+      "prefabKey": "woods_table_food_01",
+      "x": 363,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "hashash",
+      "x": 336,
+      "y": 102,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "solid_002",
