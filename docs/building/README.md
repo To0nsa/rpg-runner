@@ -2,23 +2,18 @@
 
 - [Completed Forest enemy navigation repair](../archive/2026-09-24/building/forest_enemy_navigation.md):
   navigation and five chunk adjustments validated at unchanged movement limits;
-  compatibility `2026.09.6` awaits deployment.
+  included in the deployed `2026.09.8` release.
 
-- [NPC rescue encounters](npc_rescue_encounters.md): implementation in progress;
-  M0–M6 contracts, shared targeting, encounter lifecycle, authored compilation,
-  all NPC archetypes, rendering, Entities/Chunk Creator editing and scoring delivered.
-  NPCs are confined to their encounter's chunk.
-  D1–D7 are confirmed, including one-chunk off-screen
-  abandonment and editable rescue points. Enemy victors resume normal AI.
-  Activation, terminal priority, damage credit, actor integration and authoring
-  gaps are addressed in the plan. Next: playable content and integrated validation.
+- [NPC rescue encounters](npc_rescue_encounters.md): gameplay, rendering,
+  authoring, scoring and production content delivered. M7 retains signed-in
+  production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): pending matching
-  `2026.09.8`/`score-v2` deployment, container benchmark and disposable-state cutover.
+- [Rescue release operations](rescue_release_operations.md): `2026.09.8`/`score-v2`
+  deployed to Functions, Cloud Run and web Hosting. No run cancellations were
+  needed. Remaining live gameplay smoke needs a linked Play Games account.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
-  and [validation](../archive/2026-09-24/verification/traps.md). Remote deployment
-  and disposable-run cancellation/reset remain operational release work.
+  and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.
 
 - [Completed chunk connections and terrain heights](../archive/2026-09-15/building/chunk_connections/strategy.md).
 - [Previous planning baseline](../archive/2026-09-15/README.md).

@@ -71,7 +71,10 @@ Forest traversal repairs. Previous versions, including `2026.09.7`, are rejected
 before replay. This build does not ship a historical selector, camera simulation,
 or the retired `rules-v1` combat simulator.
 
-For this non-live release use the [release checklist](../../docs/building/rescue_release_operations.md).
+The matching worker, Functions and web client were deployed on September 25;
+see [release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.8-production.md).
+Use the [release checklist](../../docs/building/rescue_release_operations.md)
+for the remaining signed-in smoke check and any future cutover.
 Stop old issuance, cancel disposable test runs, and let running validation and
 settlement finish before resetting their remaining test state. Switch matching
 worker, generated content, Functions and client builds together; use fresh
@@ -111,7 +114,7 @@ firebase deploy --project rpg-runner-d7add `
 Then run the checked-in service/queue policy from the repository root.
 For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
 the matching `2026.09.8` worker and Functions configuration before enabling new
-client issuance. This repository implementation does not deploy those services.
+client issuance. The September 25 deployment is recorded in the evidence above.
 
 ```powershell
 .\services\replay_validator\configure_cloud.ps1 `

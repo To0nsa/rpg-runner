@@ -1,6 +1,10 @@
 # NPC rescue encounters
 
-Status: In progress; M0–M5 delivered: Core encounters, authored compilation, all three NPC archetypes, rendering, Entities source editing and Chunk Creator encounter authoring. Score integration and production/release validation remain.
+Status: gameplay, authoring, scoring and production content are implemented and
+deployed as `2026.09.8`. M7 retains the signed-in production smoke follow-up in
+[release operations](rescue_release_operations.md). The owner stopped further
+benchmarks and requested deployment on September 25; performance sign-off is
+not claimed.
 
 Created: September 24, 2026.
 
@@ -846,7 +850,12 @@ worker, checking every NPC's full horizontal body bounds and authoritative
 ordinary-combat digest and traversal matrix) and 152 worker tests pass in an
 isolated checkout. Generated rescue-only changes are staged from the committed
 authoring baseline; concurrent user Forest/navigation edits remain separate.
-Full editor/app checks and compiled performance evidence are still in progress.
+Subsequent app/editor checks completed; their fixture/content failures were
+corrected and the affected targets passed. The final 20/13/9 HP tuning passed
+127 encounter/traversal cases and all four real rescue replays. Current authored
+levels were explicitly requested for generation and deployment and committed
+with their matching outputs. See the [release verification](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
+for the exact release, validation results and remaining smoke/performance limits.
 
 | Area | Required evidence |
 | --- | --- |

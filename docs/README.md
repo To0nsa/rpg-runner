@@ -4,14 +4,14 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
 - [Current implementation plans](building/README.md): NPC rescue encounters.
-- [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; compatibility `2026.09.6` awaits deployment.
-- [Latest production release](archive/2026-09-20/verification/game-compat-2026.09.3-production.md): swimming compatibility `2026.09.3` deployment and verification.
+- [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; deployed in `2026.09.8`.
+- [Latest production release](archive/2026-09-25/verification/game-compat-2026.09.8-production.md): NPC rescue, current levels, traps and navigation deployed as `2026.09.8`/`score-v2`, with verification limits recorded.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.
-- [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): implemented gameplay, rendering and Chunk Creator authoring; included with Forest repairs in the pending `2026.09.8` [release](building/rescue_release_operations.md).
+- [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): gameplay, rendering and Chunk Creator authoring deployed with Forest repairs in `2026.09.8`.
 - [Technical design documents](tdd/): implemented architecture and contracts.
-- [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities source editing, Chunk Creator authoring and shared rescue scoring; production-content delivery remains tracked in the active plan.
+- [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed.
 - [Game design documents](gdd/): implemented mechanics and content rules.
 - [Documentation rules](rules/code-documentation-policy.md).
 
