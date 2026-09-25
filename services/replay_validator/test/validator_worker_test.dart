@@ -93,6 +93,7 @@ void main() {
               ? -1.0
               : 0.0;
           final aim = dx < 0 ? -1.0 : 1.0;
+          final attacking = enemies.isNotEmpty && dx.abs() < 300;
           final tick = app.tick + 1;
           frames.add(
             ReplayCommandFrameV1(
@@ -100,16 +101,17 @@ void main() {
               moveAxis: axis,
               aimDirX: aim,
               aimDirY: 0,
-              pressedMask:
-                  ReplayCommandFrameV1.pressedStrikeBit |
-                  ReplayCommandFrameV1.pressedProjectileBit,
+              pressedMask: attacking
+                  ? ReplayCommandFrameV1.pressedStrikeBit |
+                        ReplayCommandFrameV1.pressedProjectileBit
+                  : 0,
             ),
           );
           app.applyCommands([
             MoveAxisCommand(tick: tick, axis: axis),
             AimDirCommand(tick: tick, x: aim, y: 0),
-            StrikePressedCommand(tick: tick),
-            ProjectilePressedCommand(tick: tick),
+            if (attacking) StrikePressedCommand(tick: tick),
+            if (attacking) ProjectilePressedCommand(tick: tick),
           ]);
           app.stepOneTick();
           rescues.addAll(
