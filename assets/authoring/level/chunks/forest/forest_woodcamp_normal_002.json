@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_woodcamp_normal_002",
   "id": "forest_woodcamp_normal_002",
-  "revision": 42,
+  "revision": 43,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -54,16 +54,7 @@
       "snapToGrid": false
     }
   ],
-  "markers": [
-    {
-      "markerId": "grojib",
-      "x": 366,
-      "y": 137,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "solid_001",

@@ -368,6 +368,9 @@ this document plus the relevant replay/consumer documentation.
 ## Authored content and generated outputs
 
 Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
+The subsequent Forest spawn revision uses gameplay `2026.09.9`; removing enemy
+placements changes deterministic replay outcomes and requires matching client
+and worker content. Scoring and command encoding are unchanged.
 Core owns occurrence activation, target selection, participant damage credit,
 chunk containment, terminal priority and checked rescue awards. Shared UI/worker
 scoring consumes terminal rescue statistics; replay/command encoding stays at 1.

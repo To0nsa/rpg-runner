@@ -197,7 +197,7 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 Terminal stats include `rescuedNpcs` and `rescuePoints`. Shared score calculation
 adds the actual resolved rescue awards and uses the ticket's tick rate. Client
 summary score, rescue and gold claims are ignored; gold rules and exactly-once
-settlement remain unchanged. Current support is game compatibility `2026.09.8`
+settlement remain unchanged. Current support is game compatibility `2026.09.9`
 and ranked `rules-v2`/`score-v2`/`ghost-v1`, with replay/command format 1. Previous
 gameplay versions and `score-v1` are rejected before replay. Follow the
 [pre-live release checklist](../building/rescue_release_operations.md) when deploying.

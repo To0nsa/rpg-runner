@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_training_camp_easy_004",
   "id": "forest_training_camp_easy_004",
-  "revision": 22,
+  "revision": 23,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -56,16 +56,7 @@
       "snapToGrid": false
     }
   ],
-  "markers": [
-    {
-      "markerId": "hashash",
-      "x": 496,
-      "y": 76,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_forest_003",
   "id": "forest_early_forest_003",
-  "revision": 82,
+  "revision": 83,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -79,16 +79,7 @@
       "scale": 0.3
     }
   ],
-  "markers": [
-    {
-      "markerId": "hashash",
-      "x": 286,
-      "y": 58,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "solid_001",

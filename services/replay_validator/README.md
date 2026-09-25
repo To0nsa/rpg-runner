@@ -60,14 +60,15 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The current validator build accepts game compatibility `2026.09.8`;
+The current validator build accepts game compatibility `2026.09.9`;
 replay/command format `1`, `rules-v2`, `score-v2`, and `ghost-v1` are the
 supported ranked tuple. Rescue encounter outcomes and points are derived from
 replayed Core; provisional client rescue statistics are ignored. This includes
 Poison Darts, which emerge during their configured wind-up
 and retract before cooldown; lowered resting visibility and longer rearming
 cycles replay through the same Core implementation. This includes the earlier
-Forest traversal repairs. Previous versions, including `2026.09.7`, are rejected
+Forest traversal repairs and the subsequent Forest spawn revision. Previous
+versions, including `2026.09.8`, are rejected
 before replay. This build does not ship a historical selector, camera simulation,
 or the retired `rules-v1` combat simulator.
 
@@ -113,7 +114,7 @@ firebase deploy --project rpg-runner-d7add `
 
 Then run the checked-in service/queue policy from the repository root.
 For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
-the matching `2026.09.8` worker and Functions configuration before enabling new
+the matching `2026.09.9` worker and Functions configuration before enabling new
 client issuance. The September 25 deployment is recorded in the evidence above.
 
 ```powershell

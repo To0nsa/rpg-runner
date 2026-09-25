@@ -270,7 +270,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.hashash, x: 494.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -409,7 +408,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.hashash, x: 286.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -537,7 +535,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.unocoDemon, x: 287.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -620,7 +617,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.grojib, x: 304.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -2071,7 +2067,6 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.hashash, x: 496.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
 ]);
@@ -2499,7 +2494,6 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.hashash, x: 529.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -2681,7 +2675,6 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.unocoDemon, x: 300.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),
   ChunkPattern(
@@ -2977,7 +2970,6 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.grojib, x: 259.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
     traps: const <TrapPlacement>[
       TrapPlacement(
@@ -3057,7 +3049,6 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.grojib, x: 289.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
     traps: const <TrapPlacement>[
       TrapPlacement(
@@ -3554,7 +3545,6 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
-      SpawnMarker(enemyId: EnemyId.grojib, x: 366.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
     ],
     traps: const <TrapPlacement>[
       TrapPlacement(

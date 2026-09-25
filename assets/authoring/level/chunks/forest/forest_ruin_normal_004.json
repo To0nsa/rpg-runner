@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_normal_004",
   "id": "forest_ruin_normal_004",
-  "revision": 40,
+  "revision": 41,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -48,16 +48,7 @@
       "flipX": true
     }
   ],
-  "markers": [
-    {
-      "markerId": "grojib",
-      "x": 259,
-      "y": 69,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "ground"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "solid_001",
