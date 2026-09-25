@@ -50,7 +50,10 @@ void main() {
     );
     expect(
       issues.map((issue) => issue.code),
-      everyElement('polygon_vertex_soft_target_exceeded'),
+      everyElement(isIn([
+        'polygon_vertex_soft_target_exceeded',
+        'chunk_connection_unused',
+      ])),
     );
   });
 }

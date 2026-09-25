@@ -3,3 +3,4 @@
 assets/authoring/**/*.json text eol=lf
 # The generator's reviewed fixture is compared as exact output bytes.
 test/fixtures/polygon_terrain_generator/staged_authored_terrain.g.dart text eol=lf
+test/fixtures/polygon_terrain_generator/*.json text eol=lf

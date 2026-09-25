@@ -22,6 +22,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 2 selectable character definitions
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
 - 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)
+- 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
+  editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring
 - Gear/loadout setup flow before runs
 - In-game HUD, pause, game-over, and scoring
 - Board-backed leaderboards, replay validation, and ghost publication
