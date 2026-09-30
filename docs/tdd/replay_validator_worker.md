@@ -103,16 +103,17 @@ replay was finalized before expiry.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
 - The current hard-cutover compatibility tuple is:
-  - current game compatibility: `2026.09.6`
+  - current game compatibility: `2026.09.10`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v2`
-  - score: `score-v1`
+  - score: `score-v2`
   - ghost: `ghost-v1`
-- This build rejects `2026.03.0`, `2026.08.0`, `2026.09.0`, `2026.09.1`, `2026.09.2`, and
+- This build rejects previous gameplay versions through `2026.09.9` and
   `rules-v1` tickets. It owns one connection-aware selector, the
   128-world-unit camera grace rule, difficulty-paced camera targets, and the
   current capsule combat implementation, plus shared player/ground-enemy water
-  speed penalties and deterministic enemy swimming pursuit.
+  speed penalties, deterministic enemy swimming pursuit, and the slower camera
+  target speeds.
   Drain old issuance and queued work on the old worker before the matching
   app/Functions/content/worker switch; see the [release policy](chunk_connections.md#compatibility-release).
 - A ranked ticket carries the board window captured at issuance. Validation
@@ -197,7 +198,7 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 Terminal stats include `rescuedNpcs` and `rescuePoints`. Shared score calculation
 adds the actual resolved rescue awards and uses the ticket's tick rate. Client
 summary score, rescue and gold claims are ignored; gold rules and exactly-once
-settlement remain unchanged. Current support is game compatibility `2026.09.9`
+settlement remain unchanged. Current support is game compatibility `2026.09.10`
 and ranked `rules-v2`/`score-v2`/`ghost-v1`, with replay/command format 1. Previous
 gameplay versions and `score-v1` are rejected before replay. Follow the
 [pre-live release checklist](../building/rescue_release_operations.md) when deploying.

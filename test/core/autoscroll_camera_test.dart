@@ -118,10 +118,10 @@ void main() {
 
   test('camera difficulty targets scale baseline speed and ease downward', () {
     final tuning = derived(const CameraTuning());
-    expect(tuning.targetSpeedXFor(ChunkPatternTier.early), 150.0);
-    expect(tuning.targetSpeedXFor(ChunkPatternTier.easy), 160.0);
-    expect(tuning.targetSpeedXFor(ChunkPatternTier.normal), 180.0);
-    expect(tuning.targetSpeedXFor(ChunkPatternTier.hard), 190.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.early), 120.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.easy), 128.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.normal), 144.0);
+    expect(tuning.targetSpeedXFor(ChunkPatternTier.hard), 152.0);
 
     final cam = AutoscrollCamera(
       viewWidth: virtualWidth.toDouble(),
@@ -132,7 +132,7 @@ void main() {
         targetX: virtualWidth * 0.5,
         centerY: defaultLevelCameraCenterY,
         targetY: defaultLevelCameraCenterY,
-        speedX: 190.0,
+        speedX: 152.0,
       ),
     );
 
@@ -143,7 +143,7 @@ void main() {
       targetSpeedX: tuning.targetSpeedXFor(ChunkPatternTier.early),
     );
 
-    expect(cam.state.speedX, 170.0);
+    expect(cam.state.speedX, 132.0);
   });
 
   test('GameCore applies the resolved chunk difficulty camera target', () {

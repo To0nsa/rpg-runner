@@ -4,6 +4,12 @@ Status: deployed September 25, 2026. Signed-in production gameplay smoke remains
 outstanding. See the [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [current Forest content release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
+The repository now targets gameplay `2026.09.10` for a 20% reduction in camera
+auto-scroll targets. This source change is not deployed. Its client, Functions,
+worker and board versions must be cut over together after the existing run and
+settlement drain steps; the completed `2026.09.9` steps below are historical
+deployment evidence, not completion evidence for `2026.09.10`.
+
 The matching release is gameplay `2026.09.9`, rules `rules-v2`, score `score-v2`,
 ghost `ghost-v1`, replay/command format 1. It includes the earlier Forest
 navigation and Poison Darts changes, plus grounded melee combat holding on

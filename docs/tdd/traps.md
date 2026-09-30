@@ -249,8 +249,9 @@ Game-over text uses the value attribution without looking up a live launcher.
 
 ## Pre-live compatibility cutover
 
-The current combined release is game compatibility `2026.09.9` and `score-v2`;
-see the [rescue release checklist](../building/rescue_release_operations.md).
+The deployed combined release is game compatibility `2026.09.9` and `score-v2`;
+the repository now targets `2026.09.10` for slower camera pacing. See the
+[rescue release checklist](../building/rescue_release_operations.md).
 It includes Poison Darts emergence/retraction introduced in `2026.09.7`.
 That trap change left replay/command format and scoring unchanged. The poison launcher rests
 lowered, emerges during its configured wind-up, and retracts before cooldown.

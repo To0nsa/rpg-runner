@@ -278,8 +278,8 @@ simulation and sets the run paused.
 The camera terminal check runs after final player motion and the camera update.
 It ends the run only when the player's right collider edge is strictly less
 than `cameraLeft - CameraTuning.fallBehindGraceDistance`; equality remains
-safe. The default grace distance is 128 world units, approximately 0.67 seconds
-at the default 190-world-unit-per-second Hard target. This is a spatial rule,
+safe. The default grace distance is 128 world units, approximately 0.84 seconds
+at the default 152-world-unit-per-second Hard target. This is a spatial rule,
 not a timer, so its effective duration varies with relative player/camera
 motion.
 
@@ -289,15 +289,18 @@ exclusive, so an exact seam uses the entering chunk. The resolved authored tier
 is retained by selection after automatic-pool fallback or an explicit section
 override; Core never re-infers it from the global chunk index. Early, Easy,
 Normal and Hard multiply the baseline target by 0.75, 0.80, 0.90 and 0.95,
-respectively. With the default 200-world-unit-per-second baseline, the targets
-are 150, 160, 180 and 190 world units per second. The existing acceleration
-eases toward the new target in either direction. Track-disabled fixtures or a
-position outside the active stream retain the baseline target.
+respectively. The default baseline is 80% of the player's
+200-world-unit-per-second normal maximum speed, so the targets are 120, 128,
+144 and 152 world units per second. The existing acceleration eases toward the
+new target in either direction. Track-disabled fixtures or a position outside
+the active stream retain the baseline target.
 
 The grace-distance outcome change was released as game compatibility
 `2026.09.1`. Difficulty-paced camera targets change camera position, streaming
 timing and possible terminal outcomes, so they are released as game
 compatibility `2026.09.2`.
+The 20% reduction to the camera's baseline target changes those same replayed
+outcomes and is released as game compatibility `2026.09.10`.
 
 ## Outputs and consumers
 

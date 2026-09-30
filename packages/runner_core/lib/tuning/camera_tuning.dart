@@ -17,13 +17,13 @@ enum CameraVerticalMode {
 
 /// Off-screen distance the player may fall behind before the run ends.
 ///
-/// The 128-world-unit default is approximately 0.67 seconds at the default
-/// 190-world-unit-per-second Hard camera target speed.
+/// The 128-world-unit default is approximately 0.84 seconds at the default
+/// 152-world-unit-per-second Hard camera target speed.
 const double defaultFallBehindGraceDistance = 128.0;
 
 class CameraTuning {
   const CameraTuning({
-    this.speedLagMulX = 1.0,
+    this.speedLagMulX = 0.8,
     this.earlySpeedMultiplier = 0.75,
     this.easySpeedMultiplier = 0.80,
     this.normalSpeedMultiplier = 0.90,
@@ -56,7 +56,8 @@ class CameraTuning {
              fallBehindGraceDistance < double.infinity,
        );
 
-  /// Baseline auto-scroll lags behind `MovementTuning.maxSpeedX` by this multiplier.
+  /// The default baseline auto-scroll target is 80% of
+  /// `MovementTuning.maxSpeedX`, giving players more time to react.
   final double speedLagMulX;
 
   /// Early-chunk target speed relative to the baseline camera target.

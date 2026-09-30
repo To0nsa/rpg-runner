@@ -107,7 +107,7 @@ void main() {
     expect(seenEnemies, containsAll(['grojib', 'hashash', 'unocoDemon']));
     expect(
       digest,
-      'ec0c409c2a88e46ff36af3adbf56777b1827610dfd745c599c60394a54533701',
+      'c66630d5f88189ad08a2f3db1a6831a7f7f10e1f3c17e03b91dd970d450eea27',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

@@ -52,16 +52,17 @@ or an explicit section override:
 
 | Difficulty | Baseline multiplier | Default target |
 | --- | ---: | ---: |
-| Early | 75% | 150 world units/second |
-| Easy | 80% | 160 world units/second |
-| Normal | 90% | 180 world units/second |
-| Hard | 95% | 190 world units/second |
+| Early | 75% | 120 world units/second |
+| Easy | 80% | 128 world units/second |
+| Normal | 90% | 144 world units/second |
+| Hard | 95% | 152 world units/second |
 
-The default targets use the 200-world-unit-per-second baseline derived from the
-player's normal maximum speed. At an exact chunk seam, the entering chunk owns
-the target. Existing acceleration smooths both increases and decreases; player
-pull-forward behavior can still move the camera target ahead when the player
-crosses the follow threshold.
+The default targets use 80% of the player's 200-world-unit-per-second normal
+maximum speed, for a 160-world-unit-per-second camera baseline. This gives the
+player more time to traverse each chunk. At an exact chunk seam, the entering
+chunk owns the target. Existing acceleration smooths both increases and
+decreases. Player pull-forward behavior can still move the camera target ahead
+when the player crosses the follow threshold.
 
 
 ## Ground elevations and connecting chunks
