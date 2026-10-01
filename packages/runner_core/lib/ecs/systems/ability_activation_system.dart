@@ -48,6 +48,7 @@ class AbilityActivationSystem {
     required this.spellBooks,
     required this.accessories,
     this.playerCastOriginOffset,
+    this.projectileAimPathClear,
     ResolvedStatsCache? statsCache,
   }) : _statsCache =
            statsCache ??
@@ -67,6 +68,12 @@ class AbilityActivationSystem {
   final SpellBookCatalog spellBooks;
   final AccessoryCatalog accessories;
   final double? playerCastOriginOffset;
+
+  /// Optional Core sightline check in world units for projectile auto aim.
+  /// Production supplies the current published terrain; isolated tests may
+  /// omit it when terrain is outside the scenario under test.
+  final bool Function(double fromX, double fromY, double toX, double toY)?
+  projectileAimPathClear;
 
   final ResolvedStatsCache _statsCache;
 
@@ -619,6 +626,8 @@ class AbilityActivationSystem {
       directionalFallbackY: directionalFallback.$2,
       homingWindupTicks: windupTicks,
       homingProjectileSpeedUnitsPerSecond: null,
+      homingProjectileLifetimeSeconds: null,
+      homingProjectileOriginOffset: 0,
     );
     final dirX = dir.$1;
     final dirY = dir.$2;
@@ -793,6 +802,8 @@ class AbilityActivationSystem {
       directionalFallbackY: directionalFallback.$2,
       homingWindupTicks: windupTicks,
       homingProjectileSpeedUnitsPerSecond: null,
+      homingProjectileLifetimeSeconds: null,
+      homingProjectileOriginOffset: 0,
     );
     final dirX = dir.$1;
     final dirY = dir.$2;
@@ -1007,6 +1018,7 @@ class AbilityActivationSystem {
       authoredCasterOffset: playerCastOriginOffset,
     );
     final double projectileBaseSpeedUnitsPerSecond;
+    final double projectileLifetimeSeconds;
     DamageType? weaponDamageType;
     List<WeaponProc> weaponProcs = const <WeaponProc>[];
 
@@ -1035,6 +1047,7 @@ class AbilityActivationSystem {
         ballistic = projectile.ballistic;
         gravityScale = projectile.gravityScale;
         projectileBaseSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
+        projectileLifetimeSeconds = projectile.lifetimeSeconds;
         weaponDamageType = projectile.damageType;
         weaponProcs = _resolveProjectilePayloadProcs(
           world,
@@ -1051,9 +1064,9 @@ class AbilityActivationSystem {
           return false;
         }
         projectileId = hitDelivery.projectileId;
-        projectileBaseSpeedUnitsPerSecond = projectiles
-            .get(projectileId)
-            .speedUnitsPerSecond;
+        final projectile = projectiles.get(projectileId);
+        projectileBaseSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
+        projectileLifetimeSeconds = projectile.lifetimeSeconds;
         ballistic = false;
         gravityScale = 1.0;
         weaponDamageType = spellBook.damageType;
@@ -1084,45 +1097,6 @@ class AbilityActivationSystem {
         maxPierceHits: baseMaxPierceHits,
       ),
     );
-
-    final rawAimX =
-        aimOverrideX ??
-        (inputIndex == null ? 0.0 : world.playerInput.aimDirX[inputIndex]);
-    final rawAimY =
-        aimOverrideY ??
-        (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
-    final directionalFallback = _directionalFallbackDirection(
-      world,
-      movementIndex: movementIndex,
-      inputIndex: inputIndex,
-    );
-    final fallbackDirX = directionalFallback.$1;
-    final fallbackDirY = directionalFallback.$2;
-    final resolvedDir = _resolveCommitDirection(
-      world,
-      source: player,
-      ability: ability,
-      rawAimX: rawAimX,
-      rawAimY: rawAimY,
-      directionalFallbackX: fallbackDirX,
-      directionalFallbackY: fallbackDirY,
-      homingWindupTicks: windupTicks,
-      homingProjectileSpeedUnitsPerSecond:
-          projectileBaseSpeedUnitsPerSecond *
-          (chargeTuning.speedScaleBp / 10000.0),
-    );
-    final aimX = resolvedDir.$1;
-    final aimY = resolvedDir.$2;
-
-    if (ability.category == AbilityCategory.ranged) {
-      final dirX = aimX;
-      if (dirX.abs() > 1e-6) {
-        world.movement.facing[movementIndex] = dirX >= 0
-            ? Facing.right
-            : Facing.left;
-        world.movement.facingLockTicksLeft[movementIndex] = 1;
-      }
-    }
 
     final resolvedStats = _resolvedStatsForLoadout(world, player);
     final offenseBuff = _offenseBuffBonusesFor(world, player);
@@ -1172,6 +1146,44 @@ class AbilityActivationSystem {
       staminaCost100: commitCost.staminaCost100,
     );
     if (fail != null) return false;
+
+    final rawAimX =
+        aimOverrideX ??
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirX[inputIndex]);
+    final rawAimY =
+        aimOverrideY ??
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
+    final directionalFallback = _directionalFallbackDirection(
+      world,
+      movementIndex: movementIndex,
+      inputIndex: inputIndex,
+    );
+    final fallbackDirX = directionalFallback.$1;
+    final fallbackDirY = directionalFallback.$2;
+    final resolvedDir = _resolveCommitDirection(
+      world,
+      source: player,
+      ability: ability,
+      rawAimX: rawAimX,
+      rawAimY: rawAimY,
+      directionalFallbackX: fallbackDirX,
+      directionalFallbackY: fallbackDirY,
+      homingWindupTicks: windupTicks,
+      homingProjectileSpeedUnitsPerSecond:
+          projectileBaseSpeedUnitsPerSecond *
+          (chargeTuning.speedScaleBp / 10000.0),
+      homingProjectileLifetimeSeconds: projectileLifetimeSeconds,
+      homingProjectileOriginOffset: originOffset,
+    );
+    final aimX = resolvedDir.$1;
+    final aimY = resolvedDir.$2;
+
+    if (aimX.abs() > 1e-6) {
+      world.movement.facing[movementIndex] = aimX >= 0
+          ? Facing.right
+          : Facing.left;
+      world.movement.facingLockTicksLeft[movementIndex] = 1;
+    }
 
     final facingDir = _facingFromDirectionX(aimX, fallbackDirX: fallbackDirX);
     _applyCommitSideEffects(
@@ -1298,6 +1310,8 @@ class AbilityActivationSystem {
     required double directionalFallbackY,
     required int homingWindupTicks,
     required double? homingProjectileSpeedUnitsPerSecond,
+    required double? homingProjectileLifetimeSeconds,
+    required double homingProjectileOriginOffset,
   }) {
     final targetSpecific = _resolveTargetSpecificDirection(
       world,
@@ -1309,6 +1323,8 @@ class AbilityActivationSystem {
       directionalFallbackY: directionalFallbackY,
       homingWindupTicks: homingWindupTicks,
       homingProjectileSpeedUnitsPerSecond: homingProjectileSpeedUnitsPerSecond,
+      homingProjectileLifetimeSeconds: homingProjectileLifetimeSeconds,
+      homingProjectileOriginOffset: homingProjectileOriginOffset,
     );
     if (targetSpecific != null) return targetSpecific;
 
@@ -1339,16 +1355,20 @@ class AbilityActivationSystem {
     required double directionalFallbackY,
     required int homingWindupTicks,
     required double? homingProjectileSpeedUnitsPerSecond,
+    required double? homingProjectileLifetimeSeconds,
+    required double homingProjectileOriginOffset,
   }) {
     switch (ability.targetingModel) {
       case TargetingModel.none:
         return null;
       case TargetingModel.homing:
-        return _nearestHostileAim(
+        return _bestHostileAim(
           world,
           source: source,
           windupTicks: homingWindupTicks,
           projectileSpeedUnitsPerSecond: homingProjectileSpeedUnitsPerSecond,
+          projectileLifetimeSeconds: homingProjectileLifetimeSeconds,
+          projectileOriginOffset: homingProjectileOriginOffset,
         );
       case TargetingModel.directional:
         return _normalizeDirectionOrNull(rawAimX, rawAimY) ??
@@ -1391,11 +1411,13 @@ class AbilityActivationSystem {
     return primaryX >= 0 ? Facing.right : Facing.left;
   }
 
-  (double, double)? _nearestHostileAim(
+  (double, double)? _bestHostileAim(
     EcsWorld world, {
     required EntityId source,
     required int windupTicks,
     required double? projectileSpeedUnitsPerSecond,
+    required double? projectileLifetimeSeconds,
+    required double projectileOriginOffset,
   }) {
     final sourceTi = world.transform.tryIndexOf(source);
     if (sourceTi == null) return null;
@@ -1414,6 +1436,12 @@ class AbilityActivationSystem {
     final hasProjectileLead =
         projectileSpeedUnitsPerSecond != null &&
         projectileSpeedUnitsPerSecond > 1e-6;
+    final maxProjectileReach =
+        hasProjectileLead && projectileLifetimeSeconds != null
+        ? max(0.0, projectileOriginOffset) +
+              projectileSpeedUnitsPerSecond * projectileLifetimeSeconds
+        : double.infinity;
+    final maxProjectileReach2 = maxProjectileReach * maxProjectileReach;
 
     var bestDist2 = double.infinity;
     var bestInterceptSeconds = double.infinity;
@@ -1425,7 +1453,11 @@ class AbilityActivationSystem {
     final targets = world.health.denseEntities;
     for (var i = 0; i < targets.length; i += 1) {
       final target = targets[i];
-      if (target == source || world.deathState.has(target)) continue;
+      if (target == source ||
+          world.health.hp[i] <= 0 ||
+          world.deathState.has(target)) {
+        continue;
+      }
 
       final targetFi = world.faction.tryIndexOf(target);
       if (targetFi == null) continue;
@@ -1443,7 +1475,7 @@ class AbilityActivationSystem {
       final relX = targetExecuteX - sourceExecuteX;
       final relY = targetExecuteY - sourceExecuteY;
       final relDist2 = relX * relX + relY * relY;
-      if (relDist2 <= 1e-12) continue;
+      if (relDist2 <= 1e-12 || relDist2 > maxProjectileReach2) continue;
 
       var candidateHasIntercept = false;
       var candidateInterceptSeconds = double.infinity;
@@ -1457,8 +1489,11 @@ class AbilityActivationSystem {
           targetVelX: targetVelX,
           targetVelY: targetVelY,
           projectileSpeedUnitsPerSecond: projectileSpeedUnitsPerSecond,
+          projectileOriginOffset: projectileOriginOffset,
         );
-        if (interceptSeconds != null) {
+        if (interceptSeconds != null &&
+            (projectileLifetimeSeconds == null ||
+                interceptSeconds <= projectileLifetimeSeconds)) {
           candidateHasIntercept = true;
           candidateInterceptSeconds = interceptSeconds;
           candidateAimX = relX + targetVelX * interceptSeconds;
@@ -1497,6 +1532,20 @@ class AbilityActivationSystem {
       }
 
       if (take) {
+        if (hasProjectileLead && projectileAimPathClear != null) {
+          final aimLength = sqrt(candidateAimLen2);
+          final originX =
+              sourceExecuteX +
+              candidateAimX / aimLength * projectileOriginOffset;
+          final originY =
+              sourceExecuteY +
+              candidateAimY / aimLength * projectileOriginOffset;
+          final targetX = sourceExecuteX + candidateAimX;
+          final targetY = sourceExecuteY + candidateAimY;
+          if (!projectileAimPathClear!(originX, originY, targetX, targetY)) {
+            continue;
+          }
+        }
         bestEntity = target;
         bestDist2 = relDist2;
         bestInterceptSeconds = candidateInterceptSeconds;
@@ -1520,9 +1569,13 @@ class AbilityActivationSystem {
     required double targetVelX,
     required double targetVelY,
     required double projectileSpeedUnitsPerSecond,
+    required double projectileOriginOffset,
   }) {
     if (projectileSpeedUnitsPerSecond <= 1e-9) return null;
-    final c = relX * relX + relY * relY;
+    final c =
+        relX * relX +
+        relY * relY -
+        projectileOriginOffset * projectileOriginOffset;
     if (c <= 1e-12) return 0.0;
 
     final speed2 =
@@ -1530,7 +1583,9 @@ class AbilityActivationSystem {
     final vv = targetVelX * targetVelX + targetVelY * targetVelY;
     final rv = relX * targetVelX + relY * targetVelY;
     final a = vv - speed2;
-    final b = 2.0 * rv;
+    // The projectile starts originOffset units along the chosen direction.
+    final b =
+        2.0 * (rv - projectileOriginOffset * projectileSpeedUnitsPerSecond);
 
     // Degenerate to linear solve when quadratic term is tiny.
     if (a.abs() <= 1e-9) {

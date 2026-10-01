@@ -23,6 +23,7 @@ import 'combat/middleware/hashash_teleport_evade_middleware.dart';
 import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
+import 'combat/projectile_aim_visibility.dart';
 import 'combat/status/status.dart';
 import 'collision/terrain/terrain_compiler.dart';
 import 'collision/terrain/terrain_geometry.dart';
@@ -659,6 +660,11 @@ class GameCore {
     );
 
     // Player combat (input → intents).
+    final projectileAimVisibility = ProjectileAimVisibility(
+      () => (_worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority)
+          .terrainRuntimeBundle
+          .edgeIndex,
+    );
     _abilityActivationSystem = AbilityActivationSystem(
       tickHz: tickHz,
       inputBufferTicks: _abilities.inputBufferTicks,
@@ -668,6 +674,7 @@ class GameCore {
       spellBooks: _spellBooks,
       accessories: _accessories,
       playerCastOriginOffset: _playerCharacter.catalog.castOriginOffset,
+      projectileAimPathClear: projectileAimVisibility.isClear,
       statsCache: _resolvedStatsCache,
     );
     _mobilityImpactSystem = MobilityImpactSystem(abilities: abilityCatalog);

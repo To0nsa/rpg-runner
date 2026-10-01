@@ -41,7 +41,7 @@ enum TargetingModel {
   aimed, // Uses explicit aim cursor (ranged)
   aimedLine, // Directional line shot; strong when targets align
   aimedCharge, // Charged shot with long commit window
-  homing, // Auto-locks nearest target
+  homing, // Auto-selects a hostile direction at commit
   groundTarget, // AOE circle on ground
 }
 

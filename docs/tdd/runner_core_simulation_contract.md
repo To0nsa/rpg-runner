@@ -89,6 +89,19 @@ and live-health checks still apply. Standalone and delayed requests retain
 apply-time invulnerability gating. DoT channels enqueue a due terminal pulse
 before expiry, so five-second/one-second-period effects pulse five times.
 
+Player projectile auto aim resolves once when an ability commits. It scans live
+hostile health entities in stable store order, rejects targets beyond the
+equipped projectile's speed-times-lifetime reach, and predicts windup and
+flight using current velocities. The intercept equation includes the same
+directional cast offset used by projectile spawning. Feasible intercepts rank
+by flight time; remaining candidates rank by projected distance, with entity
+ID as the final tie-break. Only candidates that would improve the current
+choice query the published terrain edge index for an unobstructed sightline.
+The query reuses scratch storage until the terrain publication changes. Aim is
+stored in the committed intent and projectiles do not steer after launch.
+These rules affect replayed outcomes and require a coordinated client/worker
+game-compatibility release.
+
 During phase 7, melee/area hitboxes, projectiles, and mobility impacts query
 that AABB grid only for candidates. `HitResolver` preserves stable entity-ID
 ordering and owner/faction filters, then confirms attack capsule versus target
