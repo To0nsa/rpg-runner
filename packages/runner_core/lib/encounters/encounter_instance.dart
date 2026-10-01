@@ -1,4 +1,6 @@
 import '../ecs/entity_id.dart';
+import '../npcs/npc_guard_region.dart';
+import '../track/chunk_pattern_source.dart';
 import 'encounter_definition.dart';
 
 typedef EncounterKey = ({int chunkIndex, String encounterId});
@@ -26,7 +28,14 @@ final class EncounterOccurrence {
     required this.startX,
     required this.endX,
     required this.definition,
-  }) : participants = List.unmodifiable(
+    ChunkAssemblySelection? assembly,
+  }) : guardRegion = NpcGuardRegion.forChunk(
+         chunkIndex: chunkIndex,
+         startX: startX,
+         endX: endX,
+         assembly: assembly,
+       ),
+       participants = List.unmodifiable(
          <EncounterParticipant>[...definition.npcs, ...definition.enemies]
            ..sort((a, b) => a.id.compareTo(b.id)),
        ) {
@@ -42,6 +51,9 @@ final class EncounterOccurrence {
   final double startX;
   final double endX;
   final EncounterDefinition definition;
+
+  /// Survivor territory; activation and rescue objectives remain chunk-local.
+  final NpcGuardRegion guardRegion;
 
   /// Publication order shared by placement preflight, actor creation and registration.
   final List<EncounterParticipant> participants;

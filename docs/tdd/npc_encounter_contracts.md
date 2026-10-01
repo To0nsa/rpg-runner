@@ -86,7 +86,12 @@ before death cleanup. Unresolved member enemies bypass ordinary behind-camera
 culling; falling out of the world still removes them. Run exit finalizes groups
 before statistics or player-death freeze. The controller's terrain-retention and
 retirement APIs enforce expiry before cleanup and retain only a monotonic retired
-chunk index. Streamed chunk snapshots carry typed encounter definitions. Each new
+chunk index. Streamed chunk snapshots carry typed encounter definitions and the exact selected
+`ChunkAssemblySelection` in both live and speculative selections. Its start
+chunk/count identify one Flow occurrence independently of repeated source IDs.
+`EncounterOccurrence.guardRegion` derives the section interval using the owning
+chunk width; automatic and standalone chunks derive a one-chunk region. Active
+encounter placement and objectives still use the original chunk bounds. Each new
 index registers once after terrain publication, opening suppression skips the
 complete roster, and the streamer retains unresolved owning chunks. Retirement
 releases membership metadata before removed terrain is observed. Terminal
