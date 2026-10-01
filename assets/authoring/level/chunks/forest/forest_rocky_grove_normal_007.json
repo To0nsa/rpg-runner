@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "forest_rocky_grove_normal_004",
-  "id": "forest_rocky_grove_normal_004",
-  "revision": 25,
+  "chunkKey": "forest_rocky_grove_normal_007",
+  "id": "forest_rocky_grove_normal_007",
+  "revision": 5,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,35 +14,11 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_02_64x64_platform",
-      "prefabKey": "tiny_swords_ground_platform_02_64x64_platform",
-      "x": 371,
-      "y": 182,
+      "prefabId": "tiny_swords_ground_platform_07_32x96_platform",
+      "prefabKey": "tiny_swords_ground_platform_07_32x96_platform",
+      "x": 350,
+      "y": 174,
       "zIndex": -21,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "kauzz_forest_tree_03",
-      "prefabKey": "kauzz_forest_tree_03",
-      "x": 272,
-      "y": 120,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "pixel_fantasy_caves_small_rock_01",
-      "prefabKey": "pixel_fantasy_caves_small_rock_01",
-      "x": 172,
-      "y": 155,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "tiny_swords_ground_platform_03_32x64_platform",
-      "prefabKey": "tiny_swords_ground_platform_03_32x64_platform",
-      "x": 104,
-      "y": 161,
-      "zIndex": 0,
       "snapToGrid": false
     }
   ],
@@ -57,19 +33,19 @@
           "y": 224
         },
         {
-          "x": 181,
-          "y": 224
+          "x": 84,
+          "y": 197
         },
         {
-          "x": 213,
+          "x": 163,
           "y": 183
         },
         {
-          "x": 268,
+          "x": 241,
           "y": 183
         },
         {
-          "x": 268,
+          "x": 241,
           "y": 270
         },
         {
@@ -108,9 +84,9 @@
   "waterRegions": [
     {
       "id": "water_1",
-      "x": 268,
+      "x": 241,
       "y": 183,
-      "width": 195,
+      "width": 222,
       "height": 87,
       "materialKey": "biome_water"
     }

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_rocky_grove_easy_008",
+  "id": "forest_rocky_grove_easy_008",
+  "revision": 13,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "rocky_grove",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "pixel_fantasy_caves_small_rock_03",
+      "prefabKey": "pixel_fantasy_caves_small_rock_03",
+      "x": 239,
+      "y": 154,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 471,
+      "y": 50,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 152
+        },
+        {
+          "x": 121,
+          "y": 152
+        },
+        {
+          "x": 197,
+          "y": 192
+        },
+        {
+          "x": 375,
+          "y": 192
+        },
+        {
+          "x": 511,
+          "y": 152
+        },
+        {
+          "x": 600,
+          "y": 152
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

@@ -11965,7 +11965,7 @@
     {
       "prefabKey": "pixel_fantasy_caves_small_rock_03",
       "id": "pixel_fantasy_caves_small_rock_03",
-      "revision": 2,
+      "revision": 10,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -11974,7 +11974,102 @@
       },
       "anchorXPx": 48,
       "anchorYPx": 48,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -48,
+              "y": 48
+            },
+            {
+              "x": -44,
+              "y": 29
+            },
+            {
+              "x": -39,
+              "y": 25
+            },
+            {
+              "x": -29,
+              "y": -2
+            },
+            {
+              "x": -14,
+              "y": -6
+            },
+            {
+              "x": -3,
+              "y": -9
+            },
+            {
+              "x": 5,
+              "y": -13
+            },
+            {
+              "x": 16,
+              "y": -15
+            },
+            {
+              "x": 20,
+              "y": -21
+            },
+            {
+              "x": 23,
+              "y": -31
+            },
+            {
+              "x": 34,
+              "y": -34
+            },
+            {
+              "x": 41,
+              "y": -33
+            },
+            {
+              "x": 43,
+              "y": -21
+            },
+            {
+              "x": 41,
+              "y": -4
+            },
+            {
+              "x": 36,
+              "y": -2
+            },
+            {
+              "x": 35,
+              "y": 2
+            },
+            {
+              "x": 39,
+              "y": 7
+            },
+            {
+              "x": 39,
+              "y": 12
+            },
+            {
+              "x": 43,
+              "y": 13
+            },
+            {
+              "x": 43,
+              "y": 18
+            },
+            {
+              "x": 48,
+              "y": 25
+            },
+            {
+              "x": 48,
+              "y": 48
+            }
+          ]
+        }
+      ],
       "tags": [
         "pixel_fantasy_caves",
         "props1"

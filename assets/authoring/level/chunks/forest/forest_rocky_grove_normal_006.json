@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_normal_006",
   "id": "forest_rocky_grove_normal_006",
-  "revision": 5,
+  "revision": 8,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -59,8 +59,8 @@
   "markers": [
     {
       "markerId": "grojib",
-      "x": 278,
-      "y": 124,
+      "x": 269,
+      "y": 25,
       "chancePercent": 100,
       "salt": 0,
       "placement": "ground"

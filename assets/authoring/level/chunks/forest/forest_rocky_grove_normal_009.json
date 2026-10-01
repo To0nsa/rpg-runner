@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_rocky_grove_normal_009",
+  "id": "forest_rocky_grove_normal_009",
+  "revision": 10,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "assemblyGroupId": "rocky_grove",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 152
+        },
+        {
+          "x": 133,
+          "y": 152
+        },
+        {
+          "x": 197,
+          "y": 176
+        },
+        {
+          "x": 197,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 197,
+          "y": 176
+        },
+        {
+          "x": 305,
+          "y": 176
+        },
+        {
+          "x": 305,
+          "y": 270
+        },
+        {
+          "x": 197,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_003",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 305,
+          "y": 176
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 305,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

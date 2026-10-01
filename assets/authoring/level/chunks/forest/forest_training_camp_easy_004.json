@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_training_camp_easy_004",
   "id": "forest_training_camp_easy_004",
-  "revision": 23,
+  "revision": 25,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -38,22 +38,6 @@
       "zIndex": 0,
       "snapToGrid": true,
       "scale": 0.4
-    },
-    {
-      "prefabId": "rune_rocks_mossy_rock_01",
-      "prefabKey": "rune_rocks_mossy_rock_01",
-      "x": 102,
-      "y": 166,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "rune_rocks_mossy_rock_04",
-      "prefabKey": "rune_rocks_mossy_rock_04",
-      "x": 77,
-      "y": 192,
-      "zIndex": 0,
-      "snapToGrid": false
     }
   ],
   "markers": [],
