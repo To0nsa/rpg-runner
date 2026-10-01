@@ -10,6 +10,14 @@ $global:fakeActiveRuns = $false
 $global:fakeBuildStatus = "SUCCESS"
 $global:fakeImageTag = ""
 $global:fakeImageUri = "europe-west1-docker.pkg.dev/test-project/replay/replay-validator@sha256:$('a' * 64)"
+$global:fakeIssuerImageUri = "europe-west1-docker.pkg.dev/test-project/gcf-artifacts/issuer@sha256:$('b' * 64)"
+$global:fakeIssuerHealthy = $true
+$global:fakeIssuerSplitTraffic = $false
+$global:fakeMissingIssuerImage = $false
+$global:fakeIssuerDeployFails = $false
+$global:fakeArtifactLookupDenied = $false
+$global:fakeFirebaseDebug = $false
+$script:passed = 0
 $global:mockFiles = @(
   "tools/release/release.ps1", "tools/release/release_support.ps1",
   "functions/src/index.ts", "functions/src/runs/compatibility.ts",
@@ -22,8 +30,16 @@ function git {
   return $global:mockFiles
 }
 function corepack {
+  $global:fakeFirebaseDebug = [bool]$env:DEBUG
   $global:releaseTrace.Add("firebase " + ($args -join " "))
   $global:LASTEXITCODE = 0
+  if (($args -join " ") -match 'functions:runSessionCreate(,|\s|$)') {
+    $envValues = Read-ReleaseEnvironment $fixture "test-project"
+    $global:fakeIssuancePaused = $envValues.ContainsKey("RUN_SUPPORTED_GAME_COMPAT_VERSIONS") -and
+      $envValues.RUN_SUPPORTED_GAME_COMPAT_VERSIONS -eq "release-paused"
+    if ($global:fakeIssuerDeployFails) { $global:LASTEXITCODE = 7; return "Mock issuer rebuild failed" }
+    $global:fakeIssuerHealthy = $true
+  }
   return "Mock Firebase success"
 }
 function node {
@@ -54,12 +70,34 @@ function gcloud {
   if ($command.StartsWith("run services update runsessioncreate")) {
     if ($command.Contains("--update-env-vars=")) { $global:fakeIssuancePaused = $true }
     if ($command.Contains("--remove-env-vars=")) { $global:fakeIssuancePaused = $false }
+    $global:fakeIssuerHealthy = $true
     return "{}"
   }
   if ($command.StartsWith("run services describe runsessioncreate")) {
-    return (@{ spec = @{ template = @{ spec = @{ containers = @(@{
-      env = @(@{name="RUN_SUPPORTED_GAME_COMPAT_VERSIONS";value=$(if ($global:fakeIssuancePaused) {"release-paused"} else {"normal"})})
-    }) } } } } | ConvertTo-Json -Depth 15)
+    # A failed update can leave the desired template paused while old live
+    # traffic remains unpaused. Only the serving revision establishes the gate.
+    return (@{
+      spec = @{template=@{spec=@{containers=@(@{env=@(@{name="RUN_SUPPORTED_GAME_COMPAT_VERSIONS";value="release-paused"})})}}}
+      status = @{
+        latestReadyRevisionName="issuer-ready"
+        latestCreatedRevisionName=$(if ($global:fakeIssuerHealthy) {"issuer-ready"} else {"issuer-failed"})
+        conditions=@(@{type="Ready";status=$(if ($global:fakeIssuerHealthy) {"True"} else {"False"})})
+        traffic=$(if ($global:fakeIssuerSplitTraffic) {
+          @(@{revisionName="issuer-ready";percent=50},@{revisionName="old-issuer";percent=50})
+        } else { @(@{revisionName="issuer-ready";percent=100}) })
+      }
+    } | ConvertTo-Json -Depth 15)
+  }
+  if ($command.StartsWith("run revisions describe issuer-ready")) {
+    return (@{
+      status=@{imageDigest=$global:fakeIssuerImageUri}
+      spec=@{containers=@(@{env=@(@{name="RUN_SUPPORTED_GAME_COMPAT_VERSIONS";value=$(if ($global:fakeIssuancePaused) {"release-paused"} else {"normal"})})})}
+    } | ConvertTo-Json -Depth 10)
+  }
+  if ($command.StartsWith("artifacts docker images describe")) {
+    if ($global:fakeArtifactLookupDenied) { $global:LASTEXITCODE=1; return "PERMISSION_DENIED" }
+    if ($global:fakeMissingIssuerImage) { $global:LASTEXITCODE=1; return "Image not found." }
+    return "{}"
   }
   if ($command.StartsWith("run services describe replay-validator")) {
     return (@{status=@{latestReadyRevisionName="ready";traffic=@(@{revisionName="ready";percent=100})}} | ConvertTo-Json -Depth 10)
@@ -79,6 +117,7 @@ function Invoke-WebRequest {
 function Assert-Test {
   param([bool]$Value, [string]$Message)
   if (-not $Value) { throw "FAIL: $Message" }
+  $script:passed += 1
   Write-Host "PASS: $Message"
 }
 
@@ -124,7 +163,44 @@ try {
   Assert-Test $rejected "deployment requires verified issuance pause"
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq 0) "unpaused deployment makes no Firebase changes"
 
+  $global:fakeIssuerHealthy = $false
+  $rejected = $false
+  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*healthy current revision*" }
+  Assert-Test $rejected "failed paused template cannot establish a live issuance pause"
+  $global:fakeIssuerHealthy = $true
+  $global:fakeIssuerSplitTraffic = $true
+  $rejected = $false
+  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Issuer traffic*" }
+  Assert-Test $rejected "split issuer traffic blocks cutover"
+  $global:fakeIssuerSplitTraffic = $false
+
+  $global:fakeArtifactLookupDenied = $true
+  $rejected = $false
+  try { & $entry -Action PauseIssuance } catch { $rejected = $_.Exception.Message -like "*PERMISSION_DENIED*" }
+  Assert-Test ($rejected -and @($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq 0) "registry access failure does not trigger an issuer rebuild"
+  $global:fakeArtifactLookupDenied = $false
+  $global:fakeMissingIssuerImage = $true
+  $envPath = Join-Path $fixture "functions/.env.test-project"
+  $envBefore = (Get-FileHash -LiteralPath $envPath).Hash
+  $savedDebug = $env:DEBUG
+  $env:DEBUG = "true"
+  try {
+    & $entry -Action PauseIssuance
+    Assert-Test ($env:DEBUG -eq "true" -and -not $global:fakeFirebaseDebug) "Firebase deployment suppresses inherited debug responses and restores the caller setting"
+  } finally { $env:DEBUG = $savedDebug }
+  Assert-Test $global:fakeIssuancePaused "removed issuer image is rebuilt with a deployed pause gate"
+  Assert-Test ((Get-FileHash -LiteralPath $envPath).Hash -eq $envBefore -and
+    (Get-ReleaseSourceDigest $fixture "test-project") -eq $source) "successful issuer recovery restores the original environment bytes and source fingerprint"
+  $global:fakeIssuerDeployFails = $true
+  $rejected = $false
+  try { & $entry -Action PauseIssuance } catch { $rejected = $_.Exception.Message -like "*failed (7)*" }
+  Assert-Test ($rejected -and (Get-FileHash -LiteralPath $envPath).Hash -eq $envBefore) "failed issuer recovery also restores the original environment bytes"
+  $global:fakeIssuerDeployFails = $false
+  $global:fakeMissingIssuerImage = $false
+  $global:releaseTrace.Clear()
+
   & $entry -Action PauseIssuance
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "run services update runsessioncreate*--image=$($global:fakeIssuerImageUri)*" }).Count -eq 1) "runtime pause pins the serving immutable issuer image"
   $global:fakeActiveRuns = $true
   $rejected = $false
   try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cutover blocked*" }
@@ -150,7 +226,7 @@ try {
   Assert-Test ($issuer.Count -eq 1 -and
     $global:releaseTrace.IndexOf("hosting byte check") -lt $global:releaseTrace.IndexOf($issuer[0])) "live artifact verification precedes ticket issuer deployment"
   Assert-Test (-not $global:fakeIssuancePaused) "explicit ResumeIssuance removes temporary runtime gate"
-  Write-Host "12 mocked release integration checks passed; no cloud commands executed."
+  Write-Host "$script:passed mocked release integration checks passed; no cloud commands executed."
 } finally {
   $resolvedFixture = (Resolve-Path -LiteralPath $fixture).Path
   $allowedPrefix = (Join-Path $workspaceRoot ".tmp/release-tests").TrimEnd('\') + '\'
@@ -158,7 +234,8 @@ try {
     throw "Refusing to remove fixture outside the test workspace."
   }
   Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
-  foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles")) {
+  foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
+    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug")) {
     Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
   }
 }

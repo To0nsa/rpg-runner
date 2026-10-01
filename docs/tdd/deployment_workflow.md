@@ -60,7 +60,9 @@ account. Continue the signed-in release checklist after restoring issuance.
 ## Preparation and reuse
 
 Prepare first resolves root pnpm and Flutter workspace dependencies with frozen
-lockfiles, then resolves the independent Dart validator lockfile. Generated
+lockfiles, then resolves the independent editor and Dart validator lockfiles.
+Root analysis includes editor sources, so a fresh checkout needs the editor's
+separate package configuration even though editor tests are a separate gate. Generated
 content must pass the repository generator's dry-run freshness check.
 
 It runs three independent jobs after dependency resolution:
@@ -90,6 +92,22 @@ the result. Job failures stop the remaining jobs; their logs identify the
 failed slice. Run only one preparation per checkout because artifact directories
 are shared.
 
+If other work is underway, select the authorized release commit and prepare in
+an isolated checkout before starting any checks:
+
+~~~powershell
+git -c core.autocrlf=false worktree add --detach .tmp/release-<id> <release-commit>
+~~~
+
+Copy the existing application functions/.env and project-specific .env file
+into that checkout when required; keep SDK credentials in their existing user
+configuration. Run every release action from the same isolated root. Later main
+worktree changes do not join that release. Record the deployed commit separately
+from later gameplay or deployment-documentation commits. Deterministic gameplay
+changes excluded from a deployed commit require a new compatibility version
+before their next client/worker cutover, even if their branch still names the
+previous tuple.
+
 BuildImage starts asynchronously, so agents can report progress and poll
 ImageStatus without repeating a source upload. Repeated BuildImage calls reuse
 the recorded build; use BuildImage -Rebuild to submit another. The checked-in
@@ -104,7 +122,19 @@ PauseIssuance temporarily sets the deployed runsessioncreate Cloud Run service's
 RUN_SUPPORTED_GAME_COMPAT_VERSIONS to release-paused. This uses the existing
 compatibility allowlist: normal client versions fail before a ticket is issued.
 It is a temporary compatibility gate, not an authorization or abuse-control
-replacement. Both queues continue processing while existing validation and
+replacement. The pause pins the serving revision's immutable image when that
+image still exists in Artifact Registry. Firebase's managed image cleanup can
+remove an older image while its imported Cloud Run revision keeps serving. If
+the registry explicitly reports that image missing, PauseIssuance rebuilds the
+prepared issuer through Firebase with release-paused explicitly included in the
+project environment for that deployment. It restores the local environment
+file byte-for-byte in finally, including after failure, and checks the source
+fingerprint. Permission and other registry failures stop rather than trigger
+a rebuild. This paused recovery does not open normal issuance.
+
+Pause verification reads the revision serving 100% of traffic and requires a
+healthy current service revision with the explicit gate. A desired template
+left behind by a failed update cannot establish a pause. Both queues continue processing while existing validation and
 settlement drain. Do not publish another runSessionCreate revision during this
 interval; Firebase deployment may overwrite the runtime gate.
 
@@ -148,6 +178,9 @@ environment, plus credentials accepted by the pinned Firebase CLI. Scripts pass
 the project explicitly and do not change the operator's global CLI project or
 account. They never print an access token. Keep credentials outside release
 manifests; inspect configuration evidence before sharing it externally.
+Firebase deployment suppresses inherited DEBUG output for that invocation and
+restores the caller's setting afterward. Do not print Firebase login JSON:
+login:list --json includes cached token fields; select account identifiers only.
 
 For restricted Windows agent processes, distinguish a missing SDK from an
 inaccessible configuration. Check Get-Command gcloud and the process APPDATA,
@@ -197,5 +230,8 @@ project/digest fencing, blocked drain states, native failure propagation and
 stderr-safe JSON. The integration suite invokes the actual entry point against
 an isolated fixture with mocked CLI commands, proving issuer exclusion,
 settlement-before-worker ordering, checkpoints and readiness-before-resume.
+They also reject failed paused templates and split issuer traffic, verify
+immutable issuer pinning, and cover missing-image recovery and environment
+restoration on both successful and failed rebuilds.
 Mocks never establish live IAM, successful Firebase publication, actual container
 throughput or signed-in gameplay acceptance.

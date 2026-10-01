@@ -49,7 +49,12 @@ function Invoke-ReleaseFirebase {
     "--config", (Join-Path $root "firebase.json"), "--project", $ProjectId,
     "--only", $Targets, "--non-interactive")
   Write-Host "Deploying $Targets"
-  Invoke-ReleaseCommand corepack (@("pnpm") + $commandArgs) $root (Join-Path $evidenceDirectory "firebase.log") | Write-Host
+  $savedDebug = $env:DEBUG
+  try {
+    # An inherited DEBUG value makes Firebase print full API responses.
+    $env:DEBUG = ""
+    Invoke-ReleaseCommand corepack (@("pnpm") + $commandArgs) $root (Join-Path $evidenceDirectory "firebase.log") | Write-Host
+  } finally { $env:DEBUG = $savedDebug }
 }
 
 function Get-ReleaseInventory {
@@ -87,14 +92,55 @@ function Get-ImageStatus {
 }
 
 
-function Assert-IssuancePaused {
+function Get-ServingIssuerRevision {
   $json = Invoke-ReleaseGcloud @("run", "services", "describe", "runsessioncreate",
-    "--project=$ProjectId", "--region=$Region", "--format=json(spec.template.spec.containers)")
+    "--project=$ProjectId", "--region=$Region", "--format=json(status)")
   $service = $json | ConvertFrom-Json
-  $overrides = @($service.spec.template.spec.containers[0].env |
+  $ready = $service.status.latestReadyRevisionName
+  $traffic = @($service.status.traffic | Where-Object { $_.percent -gt 0 })
+  if (-not $ready -or $traffic.Count -ne 1 -or
+      $traffic[0].revisionName -ne $ready -or $traffic[0].percent -ne 100) {
+    throw "Issuer traffic is not entirely on its ready revision; inspect production before continuing."
+  }
+  $json = Invoke-ReleaseGcloud @("run", "revisions", "describe", $ready,
+    "--project=$ProjectId", "--region=$Region", "--format=json(status,spec.containers)")
+  return [pscustomobject]@{ service = $service; revision = ($json | ConvertFrom-Json) }
+}
+
+function Assert-IssuancePaused {
+  $issuer = Get-ServingIssuerRevision
+  $status = $issuer.service.status
+  if ($status.latestCreatedRevisionName -ne $status.latestReadyRevisionName -or
+      @($status.conditions | Where-Object { $_.type -eq "Ready" -and $_.status -eq "True" }).Count -ne 1) {
+    throw "Issuer is not paused on a healthy current revision; inspect the failed deployment."
+  }
+  $overrides = @($issuer.revision.spec.containers[0].env |
     Where-Object { $_.name -eq "RUN_SUPPORTED_GAME_COMPAT_VERSIONS" })
   if ($overrides.Count -ne 1 -or $overrides[0].value -ne "release-paused") {
     throw "Issuance is not paused by this workflow. Run PauseIssuance after preparing the image."
+  }
+}
+
+function Invoke-PausedIssuerRebuild {
+  $path = Join-Path $root "functions/.env.$ProjectId"
+  $existed = Test-Path -LiteralPath $path
+  $original = if ($existed) { [IO.File]::ReadAllBytes($path) } else { $null }
+  try {
+    $text = if ($existed) { [IO.File]::ReadAllText($path) } else { "" }
+    $text = [regex]::Replace($text,
+      '(?m)^[ \t]*RUN_SUPPORTED_GAME_COMPAT_VERSIONS[ \t]*=.*(?:\r?\n|$)', "")
+    $text = $text.TrimEnd() + [Environment]::NewLine +
+      "RUN_SUPPORTED_GAME_COMPAT_VERSIONS=release-paused" + [Environment]::NewLine
+    [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
+    # The explicit gate is part of this deployment, so rebuilt source cannot
+    # open issuance before its matching replay consumers are ready.
+    Invoke-ReleaseFirebase "functions:runSessionCreate"
+  } finally {
+    if ($existed) { [IO.File]::WriteAllBytes($path, $original) }
+    elseif (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+  }
+  if ((Get-ReleaseSourceDigest $root $ProjectId) -ne $sourceDigest) {
+    throw "Release source changed during issuer recovery; inspect production and prepare matching source."
   }
 }
 
@@ -181,6 +227,7 @@ if ($Action -eq "Prepare") {
   Write-Host "Resolving frozen dependencies"
   Invoke-ReleaseCommand corepack @("pnpm", "install", "--frozen-lockfile") $root (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
   Invoke-ReleaseCommand flutter @("pub", "get", "--enforce-lockfile") $root (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
+  Invoke-ReleaseCommand flutter @("pub", "get", "--enforce-lockfile") (Join-Path $root "tools/editor") (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
   Invoke-ReleaseCommand dart @("pub", "get", "--enforce-lockfile") (Join-Path $root "services/replay_validator") (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
   Invoke-ReleaseCommand dart @("run", "tool/generate_chunk_runtime_data.dart", "--dry-run") $root (Join-Path $evidenceDirectory "content.log") | Out-Null
 
@@ -295,9 +342,27 @@ if ($Action -eq "ImageStatus") {
 if ($Action -eq "PauseIssuance") {
   if (-not (Get-ImageStatus)) { throw "Image is still building; issuance was not paused." }
   Assert-ReleaseImage $state $ProjectId $Region
-  Invoke-ReleaseGcloud @("run", "services", "update", "runsessioncreate",
-    "--project=$ProjectId", "--region=$Region",
-    "--update-env-vars=RUN_SUPPORTED_GAME_COMPAT_VERSIONS=release-paused", "--quiet") "issuance" | Out-Null
+  $issuer = Get-ServingIssuerRevision
+  $issuerImage = $issuer.revision.status.imageDigest
+  if ($issuerImage -notmatch "^$([regex]::Escape("$Region-docker.pkg.dev/$ProjectId/"))[^@]+@sha256:[0-9a-f]{64}$") {
+    throw "Serving issuer did not report a project-local immutable image; inspect production."
+  }
+  $imageExists = $true
+  try {
+    Invoke-ReleaseGcloud @("artifacts", "docker", "images", "describe", $issuerImage,
+      "--project=$ProjectId", "--format=json(image_summary)") "issuance" | Out-Null
+  } catch {
+    if ($_.Exception.Message -notlike "*Image not found*") { throw }
+    $imageExists = $false
+  }
+  if ($imageExists) {
+    Invoke-ReleaseGcloud @("run", "services", "update", "runsessioncreate",
+      "--project=$ProjectId", "--region=$Region", "--image=$issuerImage",
+      "--update-env-vars=RUN_SUPPORTED_GAME_COMPAT_VERSIONS=release-paused", "--quiet") "issuance" | Out-Null
+  } else {
+    Write-Host "Previous issuer image was removed. Rebuilding prepared issuer with the explicit pause gate."
+    Invoke-PausedIssuerRebuild
+  }
   Assert-IssuancePaused
   $state.issuancePausedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState

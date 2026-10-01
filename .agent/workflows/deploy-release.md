@@ -5,7 +5,9 @@ Read [deployment_workflow.md](../../docs/tdd/deployment_workflow.md) and the
 Use tools/release/release.ps1 as the entry point. Its default action is Plan.
 
 1. Inspect source/worktree and run Plan. Resolve tuple or Functions environment
-   drift before preparing.
+   drift before preparing. If other work is active, create an isolated detached
+   worktree at the authorized release commit first. Copy only required application
+   environment files and run every stage from that root; exclude later edits.
 2. Run Prepare. Review the per-slice logs and successful manifest; use Rebuild
    only when a matching preparation must deliberately be repeated.
 3. Run Inspect if cloud access is available. If an installed gcloud reports no
@@ -17,7 +19,10 @@ Use tools/release/release.ps1 as the entry point. Its default action is Plan.
    Preparation can be reused while the source and artifact hashes match.
 5. Once production cutover is authorized, run PauseIssuance. Keep queues running
    while validation and settlement drain. Any cancellation/reset needs its own
-   authorization and is not performed by this workflow.
+   authorization and is not performed by this workflow. The action pins the live
+   issuer image or, when it was deleted by managed cleanup, rebuilds the prepared
+   issuer with the pause gate explicitly set. Verify the healthy serving revision,
+   not just a desired template from a failed update.
 6. Run Deploy -CutoverReady only after the drain review. Review saved
    checkpoints if an index or later deployment step fails; keep issuance paused.
 7. Inspect board completion, then run ResumeIssuance -CutoverReady. Complete the
@@ -26,6 +31,8 @@ Use tools/release/release.ps1 as the entry point. Its default action is Plan.
 8. Record actual source, image/revision, Hosting artifact identity, live checks,
    exclusions and remaining work. Update the release checklist; archive it only
    when its outstanding verification is complete or explicitly superseded.
+   Pending deterministic gameplay excluded from this deployment needs its own
+   compatibility version before the next cutover.
 
 Backend-only package deployment commands do not perform this coordinated
 cutover. Do not use them while a gameplay compatibility release is in progress.

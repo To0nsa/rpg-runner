@@ -219,6 +219,10 @@ gameplay compatibility releases. Its backend phase deploys all exported
 Functions except runSessionCreate, plus rules/indexes. The issuer belongs to
 ResumeIssuance after matching worker, Hosting and boards are verified; deploying
 it earlier can overwrite the temporary runtime issuance pause.
+PauseIssuance has one recovery exception: when managed cleanup removed the old
+issuer image, it rebuilds the prepared issuer with release-paused explicitly in
+the deployment environment. That recovery must preserve the gate, restore local
+environment bytes, and verify the healthy serving revision before cutover.
 
 After Functions deployment, preserve private invoker access for immediate
 settlement and both Eventarc target services. Source version defaults and

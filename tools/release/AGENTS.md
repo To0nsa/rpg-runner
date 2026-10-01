@@ -9,6 +9,9 @@ checklist before changing this workflow.
   duplicating their deployment policy.
 - Keep ticket issuance paused across Functions/worker/Hosting cutover. Never
   redeploy runSessionCreate in the backend phase; it belongs to ResumeIssuance.
+- PauseIssuance may rebuild a missing issuer image only with the explicit
+  release-paused environment gate. Restore local environment bytes in finally.
+  Verify the healthy revision serving all traffic, not the desired template.
 - Keep successful preparation bound to source/toolchain/artifact evidence.
   Production stage checkpoints must never outlive their matching artifacts.
 - Keep cloud mutations sequential and explicit. Tests use mocked commands and
