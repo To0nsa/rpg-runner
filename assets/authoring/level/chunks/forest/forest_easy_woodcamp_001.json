@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_easy_woodcamp_001",
   "id": "forest_easy_woodcamp_001",
-  "revision": 57,
+  "revision": 58,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -70,16 +70,7 @@
       "snapToGrid": false
     }
   ],
-  "markers": [
-    {
-      "markerId": "derf",
-      "x": 158,
-      "y": 102,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "obstacleTop"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "solid_001",
