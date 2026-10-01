@@ -52,7 +52,7 @@ try {
     "artifact" | Set-Content -LiteralPath $target
   }
   $state = [pscustomobject]@{
-    schemaVersion = 1; projectId = "test-project"; region = "europe-west1"
+    schemaVersion = 2; scope = "Coordinated"; projectId = "test-project"; region = "europe-west1"
     sourceDigest = "source-a"; prepared = $true
     functionsDigest = Get-ReleaseTreeDigest (Join-Path $fixture "functions/lib")
     webDigest = Get-ReleaseTreeDigest (Join-Path $fixture "build/web")

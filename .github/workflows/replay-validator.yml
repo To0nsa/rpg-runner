@@ -33,29 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dart-lang/setup-dart@v1.8.0
-        with:
-          sdk: "3.13.1"
-
-      - name: Install dependencies
-        working-directory: services/replay_validator
-        run: dart pub get --enforce-lockfile
-
-      - name: Analyze service
-        working-directory: services/replay_validator
-        run: dart analyze
-
-      - name: Run service tests
-        working-directory: services/replay_validator
-        run: dart test test
-
-      - name: Compile and run AOT protocol rejection probe
-        working-directory: services/replay_validator
-        run: |
-          dart compile exe tool/aot_protocol_probe.dart \
-            -o "$RUNNER_TEMP/aot_protocol_probe"
-          "$RUNNER_TEMP/aot_protocol_probe"
-
       - name: Build final image
         run: >-
           docker build --pull

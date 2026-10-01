@@ -45,6 +45,7 @@ jobs:
         run: |
           .\tools\release\test_release.ps1
           .\tools\release\test_release_integration.ps1
+          .\tools\release\test_release_cache.ps1
       - name: Resolve offline release plan
         shell: ${{ matrix.shell }}
         run: .\tools\release\release.ps1 -Action Plan

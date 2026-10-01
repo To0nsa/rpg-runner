@@ -102,7 +102,11 @@ function Get-ReleaseContract {
 
 function Get-ReleaseFileDigest {
   param([string]$Root, [string[]]$RelativePaths)
-  $records = foreach ($relative in ($RelativePaths | Sort-Object -Unique)) {
+  $unique = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+  foreach ($relative in $RelativePaths) { $unique.Add($relative.Replace('\', '/')) | Out-Null }
+  $sorted = [string[]]@($unique)
+  [Array]::Sort($sorted, [StringComparer]::Ordinal)
+  $records = foreach ($relative in $sorted) {
     $path = Join-Path $Root $relative
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Release input missing: $relative" }
     $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
@@ -110,7 +114,7 @@ function Get-ReleaseFileDigest {
   }
   $sha = [System.Security.Cryptography.SHA256]::Create()
   try {
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes(($records -join [Environment]::NewLine))
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes(($records -join "`n"))
     return ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
   } finally { $sha.Dispose() }
 }
@@ -121,7 +125,7 @@ function Get-ReleaseSourceDigest {
   $paths = @($listing -split '\r?\n' | Where-Object {
     $_ -match '^(assets|lib|web|test|test_driver|packages|functions|services/replay_validator|tool|tools/cloud|tools/release|\.github/workflows)/' -or
     $_ -match '^(\.dockerignore|\.gcloudignore|\.firebaserc|firebase\.json|firestore\..+|pubspec\..+|package\.json|pnpm-.+\.yaml|analysis_options\.yaml)$'
-  } | Where-Object { $_ -notmatch '^functions/(lib|lib_test|node_modules)/' })
+  } | Where-Object { $_ -notmatch '^functions/(lib|lib_test|node_modules)/' -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf) })
   foreach ($relative in @("functions/.env", "functions/.env.$ProjectId")) {
     if (Test-Path -LiteralPath (Join-Path $Root $relative)) { $paths += $relative }
   }
@@ -140,13 +144,19 @@ function Get-ReleaseTreeDigest {
 
 function Assert-ReleasePrepared {
   param([object]$State, [string]$SourceDigest, [string]$ProjectId, [string]$Region, [string]$Root)
-  if ($State.schemaVersion -ne 1 -or $State.projectId -ne $ProjectId -or $State.region -ne $Region -or
-      $State.sourceDigest -ne $SourceDigest -or $State.prepared -ne $true) {
+  if ($State.schemaVersion -ne 2 -or $State.projectId -ne $ProjectId -or $State.region -ne $Region -or
+      $State.sourceDigest -ne $SourceDigest -or $State.prepared -ne $true -or $State.scope -notin @("Hosting", "Backend", "Coordinated", "None")) {
     throw "No matching successful preparation. Run Prepare."
   }
-  if ($State.functionsDigest -ne (Get-ReleaseTreeDigest (Join-Path $Root "functions/lib")) -or
-      $State.webDigest -ne (Get-ReleaseTreeDigest (Join-Path $Root "build/web"))) {
-    throw "Prepared build artifacts changed. Run Prepare -Rebuild."
+  foreach ($entry in @(@("functionsDigest", "functions/lib"), @("webDigest", "build/web"))) {
+    $digest = $State.($entry[0])
+    if ($digest -and $digest -ne (Get-ReleaseTreeDigest (Join-Path $Root $entry[1]))) {
+      throw "Prepared build artifacts changed. Run Prepare -Rebuild."
+    }
+  }
+  if (($State.scope -in @("Backend", "Coordinated") -and -not $State.functionsDigest) -or
+      ($State.scope -in @("Hosting", "Coordinated") -and -not $State.webDigest)) {
+    throw "Required prepared build artifacts missing. Run Prepare."
   }
 }
 

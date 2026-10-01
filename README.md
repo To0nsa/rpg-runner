@@ -122,8 +122,12 @@ Functions, Firestore rules/indexes, the replay worker and web Hosting:
 .\tools\release\release.ps1 -Action Prepare
 ~~~
 
-The default Plan is offline. Prepare runs independent validation/build jobs in
-parallel and saves reusable source/artifact evidence. The same entry point
+The default Plan is offline and selects the required deployment scope. Prepare
+reuses a persistent component cache, including built web/Functions artifacts.
+Checkout freezes a commit; ImportCI reuses a successful exact-commit CI bundle.
+CI runs client tests in four shards and records slow-test timings. Hosting-only
+and backend-only changes use verified baseline checks; gameplay changes retain
+the coordinated cutover. The same entry point
 provides live inspection, asynchronous image builds, and explicit issuance
 pause/deploy/resume stages. Follow the workflow before invoking those production
 actions; a gameplay compatibility change requires matching client, Functions,

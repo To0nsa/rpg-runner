@@ -15,6 +15,16 @@ The current branch still names `2026.09.10`, but its excluded deterministic
 gameplay needs a new compatibility version and coordinated client/worker
 release before publication. The completed gates below apply to `6bfda4c8`.
 
+## Preparation workflow for the next release
+
+The deployment tooling now keeps validated components/artifacts in a persistent
+cache shared with frozen checkouts. CI covers the client/shared packages, shards
+Flutter tests, and publishes exact-commit preparation bundles. Plan can select
+verified Hosting/Backend scopes after the first new coordinated release records
+a production baseline. These tooling changes do not alter the production
+evidence below or complete its outstanding smoke checks. The new CI workflow
+needs a successful remote run after publication; local tests mock cloud actions.
+
 ## Deployed release: 2026.09.10 at 6bfda4c8
 
 Use the [deployment workflow](../tdd/deployment_workflow.md) and its

@@ -58,65 +58,139 @@ pending reward settlement, or quarantined settlement. It does not cancel runs,
 reset remote data, migrate historical replay authority, or create a canary
 account. Continue the signed-in release checklist after restoring issuance.
 
-## Preparation and reuse
+## Preparation, CI and reuse
 
-Prepare first resolves root pnpm and Flutter workspace dependencies with frozen
-lockfiles, then resolves the independent editor and Dart validator lockfiles.
-Root analysis includes editor sources, so a fresh checkout needs the editor's
-separate package configuration even though editor tests are a separate gate. Generated
-content must pass the repository generator's dry-run freshness check.
+Preparation now uses a persistent component cache in the common Git checkout's
+.tmp/release-cache/. Detached release worktrees share it, so deleting a release
+checkout does not delete validated web/Functions artifacts or successful check
+records. CacheDirectory can select a separate local/CI cache. Existing schema-1
+release manifests remain historical evidence and are not reusable preparation;
+use a new frozen checkout instead of rewriting those records.
 
-It runs three independent jobs after dependency resolution:
-
-- Functions production dependency audit, build and emulator tests.
-- Root Dart analysis, Flutter tests excluding device integration tests, and the
-  release web build.
-- Core, protocol and content-pipeline package analysis/tests, validator
-  analysis/tests, and the compiled AOT protocol-rejection probe.
-
-Device integration/performance tests and editor tests are separate task-specific
-checks. Release image throughput is checked remotely, not by pretending that
-local tests prove the container's one-CPU/512-MiB behavior.
-
-Evidence and per-job logs live under
-.tmp/releases/<project>/<source-sha256>/. A manifest records the tuple, toolchain,
-prepared artifact hashes, Cloud Build ID, immutable image and deployment
-checkpoints. Fingerprints include tracked and non-ignored untracked deployment
-sources, authoring/assets, web inputs, test inputs, deployment scripts and
-Functions environment files. Environment contents are hashed, not printed.
-Compiled Functions output and web output are hashed separately.
-
-A successful Prepare is reused only when source, toolchain and artifact bytes
-still match. Use Prepare -Rebuild to intentionally repeat it. Failed jobs never
-mark preparation successful, and source changes during preparation invalidate
-the result. Job failures stop the remaining jobs; their logs identify the
-failed slice. Run only one preparation per checkout because artifact directories
-are shared.
-
-If other work is underway, select the authorized release commit and prepare in
-an isolated checkout before starting any checks:
+Create that checkout from the authorized commit with:
 
 ~~~powershell
-git -c core.autocrlf=false worktree add --detach .tmp/release-<id> <release-commit>
+.\tools\release\release.ps1 -Action Checkout -Commit <release-commit>
 ~~~
 
-Copy the existing application functions/.env and project-specific .env file
-into that checkout when required; keep SDK credentials in their existing user
-configuration. Run every release action from the same isolated root. Later main
-worktree changes do not join that release. Record the deployed commit separately
-from later gameplay or deployment-documentation commits. Deterministic gameplay
-changes excluded from a deployed commit require a new compatibility version
-before their next client/worker cutover, even if their branch still names the
-previous tuple.
+Checkout creates/reuses .tmp/release-checkouts/<commit> with LF source bytes,
+checks that an existing checkout is clean and still at that commit, and copies
+only the application's .env and configured-project .env file. Credentials stay
+in the user's existing SDK configuration. Run subsequent actions from the
+printed checkout. Its default cache stays in the main checkout. Run one
+preparation per checkout/cache key; concurrent writers fail rather than combine
+incomplete artifacts.
 
-BuildImage starts asynchronously, so agents can report progress and poll
-ImageStatus without repeating a source upload. Repeated BuildImage calls reuse
-the recorded build; use BuildImage -Rebuild to submit another. The checked-in
-Cloud Build configuration benchmarks the exact final image with 36,000 ticks,
-strict throughput checks, one CPU and 512 MiB before publishing it. CI additionally
-runs image health/configuration smoke and vulnerability checks; a Cloud Build
-benchmark is not equivalent to all CI gates.
+Prepare resolves frozen dependencies only for components whose checks/builds
+need to run (plus the pinned Firebase CLI when absent). Client analysis targets
+lib, test and test_driver; shared packages have their own analysis/tests, so
+release preparation no longer resolves the independent editor merely to analyze
+unrelated sources. Editor and device integration/performance checks remain
+separate task-specific gates. Production npm advisories are checked on every
+backend/coordinated preparation, including cache hits, because advisories can
+change without source changes.
 
+A coordinated preparation requires these components:
+
+- Functions emulator tests and the production TypeScript build.
+- Client analysis/tests excluding device integration, and the release web build.
+- Core, protocol, content-pipeline and terrain-material analysis/tests.
+- Validator analysis/tests and the compiled AOT protocol-rejection probe.
+- Generated-content dry-run freshness.
+
+Node, Flutter-workspace and independent Dart-service work run concurrently;
+checks within a local SDK workspace run sequentially. CI splits client tests
+into four file shards on separate runners and overlaps analysis, shared-package
+checks and builds. It keeps all unit/widget tests. Flutter's JSON reports and
+slow-tests-<shard>.json record elapsed test durations for future optimization;
+they do not replace assertions. A local cache miss runs the client suite once;
+reuse avoids repeating it on the release machine.
+
+.github/workflows/release-preparation.yml is the shared CI recipe. It replaces
+the old Functions-only workflow and takes over the validator unit/AOT checks.
+replay-validator.yml retains final-container health/configuration smoke,
+non-root execution, strict one-CPU/512-MiB throughput and vulnerability checks.
+The preparation bundle does not claim those container gates. CI uses pinned
+Flutter 3.47.1, Dart 3.13.1, Node 24.16.0 and the repository's pnpm version;
+a reusable bundle requires matching SDK revisions/versions locally.
+
+To reuse a successful CI bundle on the exact clean release commit:
+
+~~~powershell
+.\tools\release\release.ps1 -Action ImportCI -RunId <successful-run-id>
+.\tools\release\release.ps1 -Action Prepare
+~~~
+
+ImportCI uses gh to verify the origin repository, exact commit, workflow path,
+successful completed status and push/workflow_dispatch event. Fork/PR runs,
+incomplete client-shard coverage, mismatched input/toolchain hashes and modified
+artifact bytes are rejected. CI artifacts expire after 14 days; already imported
+local cache entries persist. Application environment files and credentials are
+excluded from CI bundles. Prepare still checks the local release tuple and
+project environment, restores verified artifacts, and performs the fresh audit.
+When CI is unavailable or SDKs differ, local Prepare runs the same recipes.
+
+Each component key hashes its relevant source/dependencies/tests and validation
+recipe, plus SDK identity. Test-only edits invalidate validation, not production
+builds. UI edits reuse backend evidence; Core/protocol edits invalidate dependent
+client/validator evidence. Failed checks never publish markers. Artifact copies
+are hashed, reject links, and publish complete cache entries atomically. Rebuild
+reruns relevant recipes; identical inputs/toolchains producing different build
+bytes block reuse until investigated.
+
+Per-release evidence remains in .tmp/releases/<project>/<source-sha256>/:
+source/contract/scope, component keys, artifact hashes, timings/logs, image and
+stage checkpoints. Source fences reject edits during preparation/upload and
+before production actions. Main-worktree edits cannot join a frozen checkout.
+Do not relabel old omitted checks as successful current evidence.
+
+BuildImage starts asynchronously and caches successful exact-image benchmark
+results by worker inputs, project and region outside the release checkout.
+Reuse re-reads the original Cloud Build status and immutable image result.
+Rebuild deliberately submits another image. The strict 36,000-tick benchmark of
+the final container remains required for coordinated release; it is inexpensive
+and is not removed by this optimization.
+
+## Scoped deployment
+
+Plan reports Auto scope. Scope Coordinated can widen it; an explicit Hosting or
+Backend scope cannot narrow changes that require another scope. Without a
+verified local production baseline, the first release is coordinated. It must
+still use a new gameplay version for deterministic changes excluded from the
+last published commit; absence of a baseline is not permission to reuse a tuple.
+
+ResumeIssuance after a successful coordinated cutover records the baseline:
+runtime input hashes and contract, immutable worker image, published web hash
+and ACTIVE Functions identities. It verifies worker health/100% serving traffic
+and live web bytes. Subsequent scoped releases update it only after verification.
+Baseline hashes include project environment/configuration, and environment
+contents are never printed or uploaded into CI artifacts.
+
+- UI/assets-only changes select Hosting; only client checks/build are required.
+- Backend-only profile/account/ownership changes select Backend; Functions
+  tests/build and the fresh production audit are required.
+- Core, shared protocol, worker, infrastructure or tuple changes select
+  Coordinated. Backend run/board/leaderboard/ghost sources are conservatively
+  shared inputs because they participate in replay/projection contracts.
+- No runtime change selects None and deploys nothing.
+
+A deterministic simulation change against a baseline requires a new matching
+gameCompatVersion. All scopes validate the client/backend/worker/board tuple.
+Before scoped mutations, the workflow rechecks baseline Functions identities,
+worker health/digest/traffic, published web hash, healthy unpaused issuer and
+RUNNING replay queues. External production drift blocks the fast path.
+
+For a scoped release the commands are Plan, Prepare, Deploy. It does not build
+or deploy a worker, pause queues or change issuance policy. Backend deploys
+Functions/rules/indexes under the unchanged protocol and tuple, verifies READY
+indexes, ACTIVE exports and private invocation permissions; the issuer is
+redeployed normally. Hosting publishes only the prepared web artifact. Successful
+backend/Hosting checkpoints support retry after a later readiness failure.
+
+Coordinated releases retain the explicit BuildImage, PauseIssuance, drain,
+Deploy -CutoverReady and ResumeIssuance -CutoverReady stages below. Scoped
+Deploy still requires user deployment authorization; choosing a scope supplies
+no consent. Linked Play Games smoke remains a live gate after either path.
 ## Cutover ordering
 
 PauseIssuance temporarily sets the deployed runsessioncreate Cloud Run service's
@@ -224,6 +298,7 @@ tag later.
 ~~~powershell
 .\tools\release\test_release.ps1
 .\tools\release\test_release_integration.ps1
+.\tools\release\test_release_cache.ps1
 ~~~
 
 The helper suite covers source/version/environment drift, artifact tampering,
@@ -234,5 +309,11 @@ settlement-before-worker ordering, checkpoints and readiness-before-resume.
 They also reject failed paused templates and split issuer traffic, verify
 immutable issuer pinning, and cover missing-image recovery and environment
 restoration on both successful and failed rebuilds.
+Cache/CI checks exercise the preparation recipes, component invalidation,
+artifact restoration/tampering, current advisory audit, failed-marker rejection,
+scope/version selection, exact-run provenance, complete client-shard assembly,
+bundle import and slow-test timing. The entry-point fixtures also exercise
+Hosting-only deployment and backend retries while indexes build. Run all three
+suites under Windows PowerShell 5.1 and PowerShell 7.
 Mocks never establish live IAM, successful Firebase publication, actual container
 throughput or signed-in gameplay acceptance.

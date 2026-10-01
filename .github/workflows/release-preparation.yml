@@ -1,0 +1,176 @@
+name: Release preparation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "test_driver/**"
+      - "web/**"
+      - "assets/**"
+      - "packages/**"
+      - "functions/**"
+      - "services/replay_validator/**"
+      - "tool/**"
+      - "tools/release/**"
+      - "pubspec.*"
+      - "analysis_options.yaml"
+      - "pnpm-*.yaml"
+      - "package.json"
+      - "firebase*.json"
+      - "firestore.*"
+      - ".github/workflows/release-preparation.yml"
+  push:
+    branches: [master]
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "test_driver/**"
+      - "web/**"
+      - "assets/**"
+      - "packages/**"
+      - "functions/**"
+      - "services/replay_validator/**"
+      - "tool/**"
+      - "tools/release/**"
+      - "pubspec.*"
+      - "analysis_options.yaml"
+      - "pnpm-*.yaml"
+      - "package.json"
+      - "firebase*.json"
+      - "firestore.*"
+      - ".github/workflows/release-preparation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-preparation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  component:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {component: functions-checks, shard: 0, count: 1, label: functions-checks}
+          - {component: functions-build, shard: 0, count: 1, label: functions-build}
+          - {component: client-build, shard: 0, count: 1, label: client-build}
+          - {component: client-checks, shard: 0, count: 4, label: client-checks-0}
+          - {component: client-checks, shard: 1, count: 4, label: client-checks-1}
+          - {component: client-checks, shard: 2, count: 4, label: client-checks-2}
+          - {component: client-checks, shard: 3, count: 4, label: client-checks-3}
+          - {component: core-checks, shard: 0, count: 1, label: core-checks}
+          - {component: protocol-checks, shard: 0, count: 1, label: protocol-checks}
+          - {component: content-checks, shard: 0, count: 1, label: content-checks}
+          - {component: terrain-checks, shard: 0, count: 1, label: terrain-checks}
+          - {component: validator-checks, shard: 0, count: 1, label: validator-checks}
+          - {component: content-freshness, shard: 0, count: 1, label: content-freshness}
+    steps:
+      - name: Keep checkout bytes portable
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.16.0"
+      - name: Enable pinned package manager
+        shell: pwsh
+        run: corepack enable
+      - uses: actions/setup-java@v4
+        if: startsWith(matrix.component, 'functions-')
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: subosito/flutter-action@v2
+        if: "!startsWith(matrix.component, 'functions-') && matrix.component != 'validator-checks'"
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+      - uses: dart-lang/setup-dart@v1.8.0
+        if: matrix.component == 'validator-checks'
+        with:
+          sdk: "3.13.1"
+      - name: Resolve frozen dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . ./tools/release/release_support.ps1
+          $component = '${{ matrix.component }}'
+          if ($component.StartsWith('functions-')) {
+            Invoke-ReleaseCommand corepack @('pnpm','install','--frozen-lockfile') $PWD | Write-Host
+            Invoke-ReleaseCommand corepack @('pnpm','--dir','functions','audit','--prod') $PWD | Write-Host
+          } elseif ($component -eq 'validator-checks') {
+            Invoke-ReleaseCommand dart @('pub','get','--enforce-lockfile') (Join-Path $PWD 'services/replay_validator') | Write-Host
+          } else {
+            Invoke-ReleaseCommand flutter @('pub','get','--enforce-lockfile') $PWD | Write-Host
+          }
+      - name: Compute component cache key
+        id: inputs
+        shell: pwsh
+        run: |
+          . ./tools/release/release_support.ps1
+          . ./tools/release/release_cache.ps1
+          . ./tools/release/prepare_release.ps1
+          $component = '${{ matrix.component }}'
+          $inputs = Get-ReleaseComponentInputs $PWD $component
+          $chain = Get-ReleaseToolchain $PWD (Get-ReleaseComponentFamily $component)
+          $key = Get-ReleaseComponentKey $inputs $chain
+          "key=$key" >> $env:GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        if: matrix.component != 'client-checks'
+        with:
+          path: .tmp/ci-component
+          key: release-v1-${{ matrix.component }}-${{ steps.inputs.outputs.key }}
+      - name: Validate or reuse component
+        shell: pwsh
+        run: >-
+          ./tools/release/validate_release.ps1
+          -Component '${{ matrix.component }}'
+          -CacheDirectory .tmp/ci-component
+          -ShardIndex ${{ matrix.shard }}
+          -ShardCount ${{ matrix.count }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.label }}
+          path: .tmp/ci-component
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ matrix.label }}
+          path: .tmp/ci-logs
+          if-no-files-found: ignore
+          retention-days: 14
+
+  bundle:
+    needs: component
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: release-*
+          path: .tmp/ci-downloads
+      - name: Verify complete coverage and assemble release bundle
+        shell: pwsh
+        run: |
+          . ./tools/release/release_support.ps1
+          . ./tools/release/release_cache.ps1
+          . ./tools/release/release_ci.ps1
+          Merge-ReleaseCIBundle (Join-Path $PWD '.tmp/ci-downloads') (Join-Path $PWD '.tmp/ci-bundle') '${{ github.sha }}' ${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: .tmp/ci-bundle
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

@@ -183,7 +183,10 @@ tools/release/release.ps1; its default Plan is offline.
 Prepare source and artifacts before a cutover. BuildImage uploads source and
 starts Cloud Build; PauseIssuance, Deploy and ResumeIssuance mutate production
 and require the user's release authorization. Keep runSessionCreate excluded
-from the backend cutover phase so the runtime pause survives redeployment.
+from the coordinated backend cutover phase so the runtime pause survives
+redeployment. Use Plan's component scope and persistent evidence cache; scoped
+Hosting/Backend releases require a verified baseline and fresh live checks.
+Shared gameplay/protocol/infrastructure changes retain coordinated cutover.
 Do not reset data or cancel runs merely because a release checklist describes
 that option. Report historical evidence, mocked checks and live verification
 separately. Read tools/release/AGENTS.md before editing release tooling.

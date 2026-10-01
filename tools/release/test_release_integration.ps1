@@ -17,9 +17,12 @@ $global:fakeMissingIssuerImage = $false
 $global:fakeIssuerDeployFails = $false
 $global:fakeArtifactLookupDenied = $false
 $global:fakeFirebaseDebug = $false
+$global:fakeIndexesReady = $true
+$global:fakeFunctionsVersion = '2026-10-01T00:00:00Z'
 $script:passed = 0
 $global:mockFiles = @(
-  "tools/release/release.ps1", "tools/release/release_support.ps1",
+  "tools/release/release.ps1", "tools/release/release_support.ps1", "tools/release/release_cache.ps1",
+  "tools/release/prepare_release.ps1", "tools/release/profile_tests.ps1", "tools/release/release_ci.ps1",
   "functions/src/index.ts", "functions/src/runs/compatibility.ts",
   "functions/src/boards/provisioning.ts", "lib/ui/state/app/app_state.dart",
   "services/replay_validator/lib/src/validator_worker.dart", "firebase.json", ".firebaserc"
@@ -27,9 +30,12 @@ $global:mockFiles = @(
 
 function git {
   $global:LASTEXITCODE = 0
+  if (($args -join ' ') -like '*--git-common-dir*') { return Join-Path $fixture '.git' }
+  if (($args -join ' ') -like 'rev-parse*') { return 'c' * 40 }
   return $global:mockFiles
 }
 function corepack {
+  if (($args -join ' ') -match '--only functions,firestore:rules') { $global:fakeFunctionsVersion='2026-10-02T00:00:00Z' }
   $global:fakeFirebaseDebug = [bool]$env:DEBUG
   $global:releaseTrace.Add("firebase " + ($args -join " "))
   $global:LASTEXITCODE = 0
@@ -91,7 +97,7 @@ function gcloud {
   if ($command.StartsWith("run revisions describe issuer-ready")) {
     return (@{
       status=@{imageDigest=$global:fakeIssuerImageUri}
-      spec=@{containers=@(@{env=@(@{name="RUN_SUPPORTED_GAME_COMPAT_VERSIONS";value=$(if ($global:fakeIssuancePaused) {"release-paused"} else {"normal"})})})}
+      spec=@{containers=@(@{env=@(@{name=$(if ($global:fakeIssuancePaused) {'RUN_SUPPORTED_GAME_COMPAT_VERSIONS'} else {'GCLOUD_PROJECT'});value=$(if ($global:fakeIssuancePaused) {'release-paused'} else {'test-project'})})})}
     } | ConvertTo-Json -Depth 10)
   }
   if ($command.StartsWith("artifacts docker images describe")) {
@@ -100,13 +106,18 @@ function gcloud {
     return "{}"
   }
   if ($command.StartsWith("run services describe replay-validator")) {
-    return (@{status=@{latestReadyRevisionName="ready";traffic=@(@{revisionName="ready";percent=100})}} | ConvertTo-Json -Depth 10)
+    return (@{status=@{latestCreatedRevisionName="ready";latestReadyRevisionName="ready";conditions=@(@{type="Ready";status="True"});traffic=@(@{revisionName="ready";percent=100})}} | ConvertTo-Json -Depth 10)
   }
   if ($command.StartsWith("run revisions describe ready")) { return $global:fakeImageUri }
   if ($command.Contains("get-iam-policy")) {
     return '{"bindings":[{"role":"roles/run.invoker","members":["serviceAccount:private"]}]}'
   }
-  if ($command.StartsWith("firestore indexes")) { return "[]" }
+  if ($command.StartsWith("firestore indexes")) { if ($global:fakeIndexesReady) { return "[]" }; return '[{"state":"CREATING"}]' }
+  if ($command.StartsWith("tasks queues describe")) { return 'RUNNING' }
+  if ($command.StartsWith("functions list")) {
+    $exports = [regex]::Matches((Get-Content -Raw (Join-Path $fixture 'functions/src/index.ts')), 'export const ([A-Za-z][A-Za-z0-9_]*)\s*=')
+    return (@($exports | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion } }) | ConvertTo-Json -Depth 5)
+  }
   return "{}"
 }
 function Invoke-WebRequest {
@@ -142,7 +153,7 @@ try {
   $evidence = Join-Path $fixture ".tmp/releases/test-project/$source"
   New-Item -ItemType Directory -Force -Path $evidence | Out-Null
   [pscustomobject]@{
-    schemaVersion=1; projectId="test-project"; region="europe-west1"; sourceDigest=$source
+    schemaVersion=2; scope="Coordinated"; inputs=@{}; components=@(); functionsLiveIdentity=""; projectId="test-project"; region="europe-west1"; sourceDigest=$source
     contract=(Get-ReleaseContract $fixture "test-project"); prepared=$true; preparedAt="fixture"
     toolchain="fixture"; functionsDigest=(Get-ReleaseTreeDigest (Join-Path $fixture "functions/lib"))
     webDigest=(Get-ReleaseTreeDigest (Join-Path $fixture "build/web"))
@@ -159,7 +170,10 @@ try {
   Assert-Test $rejected "deployment requires explicit cutover review"
 
   $rejected = $false
-  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*not paused*" }
+  try { & $entry -Action Deploy -CutoverReady } catch {
+    $rejected = $_.Exception.Message -like "*not paused*"
+    if (-not $rejected) { throw }
+  }
   Assert-Test $rejected "deployment requires verified issuance pause"
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq 0) "unpaused deployment makes no Firebase changes"
 
@@ -226,6 +240,50 @@ try {
   Assert-Test ($issuer.Count -eq 1 -and
     $global:releaseTrace.IndexOf("hosting byte check") -lt $global:releaseTrace.IndexOf($issuer[0])) "live artifact verification precedes ticket issuer deployment"
   Assert-Test (-not $global:fakeIssuancePaused) "explicit ResumeIssuance removes temporary runtime gate"
+
+  # A second checkout with a UI-only delta uses the verified baseline written
+  # by ResumeIssuance, and must not touch the worker, queues or ticket issuer.
+  $global:mockFiles += 'lib/ui/menu.dart'
+  'new menu' | Set-Content -LiteralPath (Join-Path $fixture 'lib/ui/menu.dart')
+  $source = Get-ReleaseSourceDigest $fixture 'test-project'
+  $evidence = Join-Path $fixture ".tmp/releases/test-project/$source"
+  New-Item -ItemType Directory -Force -Path $evidence | Out-Null
+  $scopedState = [pscustomobject]@{
+    schemaVersion=2;scope='Hosting';projectId='test-project';region='europe-west1';sourceDigest=$source
+    prepared=$true;preparedAt=$null;inputs=@{};components=@();functionsLiveIdentity='';functionsDigest='';webDigest=(Get-ReleaseTreeDigest (Join-Path $fixture 'build/web'))
+    functionsDeployedAt=$null;workerDeployedAt=$null;hostingDeployedAt=$null;deployedAt=$null
+  }
+  $scopedState | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'release.json')
+  $global:releaseTrace.Clear()
+  $global:fakeIssuancePaused=$true
+  $rejected=$false
+  try { & $entry -Action Deploy } catch { $rejected=$_.Exception.Message -like '*compatibility override*' }
+  Assert-Test ($rejected -and @($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 0) 'scoped deploy refuses a paused issuer before mutations'
+  $global:fakeIssuancePaused=$false
+  $global:releaseTrace.Clear()
+  & $entry -Action Deploy
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 1 -and
+    @($global:releaseTrace | Where-Object { $_ -match 'builds|tasks queues (pause|resume)|run services update|configure matching' }).Count -eq 0) 'Hosting-only release deploys once without image, queue or issuer mutations'
+  & $entry -Action Prepare
+  $after = Get-Content -Raw (Join-Path $evidence 'release.json') | ConvertFrom-Json
+  Assert-Test ($after.scope -eq 'None') 'successful scoped release advances the runtime baseline'
+  $global:mockFiles += 'functions/src/profiles/profile.ts'
+  New-Item -ItemType Directory -Force -Path (Join-Path $fixture 'functions/src/profiles') | Out-Null
+  'profile change' | Set-Content -LiteralPath (Join-Path $fixture 'functions/src/profiles/profile.ts')
+  $source = Get-ReleaseSourceDigest $fixture 'test-project'
+  $evidence = Join-Path $fixture ".tmp/releases/test-project/$source"
+  New-Item -ItemType Directory -Force -Path $evidence | Out-Null
+  $scopedState.sourceDigest=$source; $scopedState.scope='Backend'; $scopedState.webDigest=''
+  $scopedState.functionsDigest=Get-ReleaseTreeDigest (Join-Path $fixture 'functions/lib')
+  $scopedState | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'release.json')
+  $global:releaseTrace.Clear(); $global:fakeIndexesReady=$false
+  $rejected=$false
+  try { & $entry -Action Deploy } catch { $rejected=$_.Exception.Message -like '*indexes are still building*' }
+  Assert-Test $rejected 'backend-only release stops while indexes build'
+  $global:fakeIndexesReady=$true
+  & $entry -Action Deploy
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 1 -and
+    @($global:releaseTrace | Where-Object { $_ -match 'builds|tasks queues (pause|resume)|run services update|configure matching' }).Count -eq 0) 'backend retry reuses deployed Functions without worker/Hosting/queue cutover'
   Write-Host "$script:passed mocked release integration checks passed; no cloud commands executed."
 } finally {
   $resolvedFixture = (Resolve-Path -LiteralPath $fixture).Path
@@ -235,7 +293,7 @@ try {
   }
   Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
   foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
-    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug")) {
+    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion")) {
     Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
   }
 }

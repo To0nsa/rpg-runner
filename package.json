@@ -10,6 +10,6 @@
     "functions:deploy": "corepack pnpm --filter rpg-runner-functions run deploy",
     "functions:test": "corepack pnpm --filter rpg-runner-functions run test",
     "release": "powershell -NoProfile -File tools/release/release.ps1",
-    "release:test": "powershell -NoProfile -File tools/release/test_release.ps1 && powershell -NoProfile -File tools/release/test_release_integration.ps1"
+    "release:test": "powershell -NoProfile -File tools/release/test_release.ps1 && powershell -NoProfile -File tools/release/test_release_integration.ps1 && powershell -NoProfile -File tools/release/test_release_cache.ps1"
   }
 }

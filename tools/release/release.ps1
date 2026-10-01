@@ -5,22 +5,40 @@ Checks, prepares, inspects, builds and deploys the configured Firebase release.
 Plan is offline. Prepare changes only local build output. Inspect is read-only.
 BuildImage uploads source and starts Cloud Build; PauseIssuance, Deploy and
 ResumeIssuance change production.
-Deploy requires successful unchanged preparation, a benchmarked image, fresh
-drain evidence and the operator's CutoverReady assertion. No data is cancelled
-or deleted. Issuance pauses and resumes only through their explicit stages.
+Deploy requires successful unchanged preparation. Coordinated releases also
+require a benchmarked image, fresh drain evidence and CutoverReady. Scoped
+releases require unchanged live consumers and a verified production baseline.
+No data is cancelled or deleted. Issuance pauses and resumes explicitly.
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet("Plan", "Prepare", "Inspect", "BuildImage", "ImageStatus", "PauseIssuance", "Deploy", "ResumeIssuance")]
+  [ValidateSet("Plan", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "PauseIssuance", "Deploy", "ResumeIssuance")]
   [string]$Action = "Plan",
   [string]$ProjectId = "",
   [string]$Region = "europe-west1",
+  [ValidateSet("Auto", "Hosting", "Backend", "Coordinated")]
+  [string]$Scope = "Auto",
+  [string]$CacheDirectory = "",
+  [string]$Commit = "HEAD",
+  [long]$RunId = 0,
   [switch]$Rebuild,
   [switch]$CutoverReady
 )
 
 . (Join-Path $PSScriptRoot "release_support.ps1")
+. (Join-Path $PSScriptRoot "release_cache.ps1")
+. (Join-Path $PSScriptRoot "prepare_release.ps1")
+. (Join-Path $PSScriptRoot "release_ci.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
+$cacheRoot = Get-ReleaseCacheRoot $root $CacheDirectory
+if ($Action -eq "Checkout") {
+  New-ReleaseCheckout $root $Commit
+  return
+}
+if ($Action -eq "ImportCI") {
+  Import-ReleaseCI $root $cacheRoot $RunId
+  return
+}
 $firebase = Get-Content -Raw -LiteralPath (Join-Path $root "firebase.json") | ConvertFrom-Json
 $defaultProject = (Get-Content -Raw -LiteralPath (Join-Path $root ".firebaserc") | ConvertFrom-Json).projects.default
 if (-not $ProjectId) { $ProjectId = $defaultProject }
@@ -28,6 +46,9 @@ if ($ProjectId -ne $defaultProject -or $firebase.hosting.site -ne $ProjectId) {
   throw "This workflow targets the configured project and Hosting site only. Configure a separate environment before deploying elsewhere."
 }
 $contract = Get-ReleaseContract $root $ProjectId
+$inputs = Get-ReleaseInputHashes $root $ProjectId
+$baseline = Read-ReleaseBaseline $cacheRoot $ProjectId $Region
+$resolvedScope = Resolve-ReleaseScope $inputs $contract $baseline $Scope
 $sourceDigest = Get-ReleaseSourceDigest $root $ProjectId
 $evidenceDirectory = Join-Path $root ".tmp/releases/$ProjectId/$sourceDigest"
 $statePath = Join-Path $evidenceDirectory "release.json"
@@ -86,6 +107,10 @@ function Get-ImageStatus {
   $script:state.imageUri = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator@$($image[0].digest)"
   $script:state.imageVerified = $true
   Save-ReleaseState
+  $imageDirectory = Join-Path $cacheRoot "images/$ProjectId/$Region"
+  New-Item -ItemType Directory -Force -Path $imageDirectory | Out-Null
+  @{ workerInputs = $inputs.worker; buildId = $state.buildId; imageTag = $state.imageTag; imageUri = $state.imageUri } |
+    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $imageDirectory "$($inputs.worker).json") -Encoding utf8
   $json | Set-Content -LiteralPath (Join-Path $evidenceDirectory "cloud-build.json") -Encoding utf8
   Write-Host $script:state.imageUri
   return $true
@@ -115,7 +140,7 @@ function Assert-IssuancePaused {
     throw "Issuer is not paused on a healthy current revision; inspect the failed deployment."
   }
   $overrides = @($issuer.revision.spec.containers[0].env |
-    Where-Object { $_.name -eq "RUN_SUPPORTED_GAME_COMPAT_VERSIONS" })
+    Where-Object { $_ -and $_.name -eq "RUN_SUPPORTED_GAME_COMPAT_VERSIONS" })
   if ($overrides.Count -ne 1 -or $overrides[0].value -ne "release-paused") {
     throw "Issuance is not paused by this workflow. Run PauseIssuance after preparing the image."
   }
@@ -146,6 +171,12 @@ function Invoke-PausedIssuerRebuild {
 
 
 function Assert-LiveReleaseArtifacts {
+  Assert-LiveWorker $state.imageUri
+  Assert-LiveHosting (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash
+}
+
+function Assert-LiveWorker {
+  param([string]$ExpectedImage)
   $json = Invoke-ReleaseGcloud @("run", "services", "describe", "replay-validator",
     "--project=$ProjectId", "--region=$Region", "--format=json(status)")
   $service = $json | ConvertFrom-Json
@@ -153,15 +184,82 @@ function Assert-LiveReleaseArtifacts {
   $digest = Invoke-ReleaseGcloud @("run", "revisions", "describe", $revision,
     "--project=$ProjectId", "--region=$Region", "--format=value(status.imageDigest)")
   $traffic = @($service.status.traffic | Where-Object { $_.revisionName -eq $revision -and $_.percent -eq 100 })
-  if ($digest -ne $state.imageUri -or $traffic.Count -ne 1) {
+  if ($digest -ne $ExpectedImage -or $traffic.Count -ne 1 -or
+      $service.status.latestCreatedRevisionName -ne $revision -or
+      @($service.status.conditions | Where-Object { $_.type -eq "Ready" -and $_.status -eq "True" }).Count -ne 1) {
     throw "Live worker digest/traffic differs from the prepared release."
   }
+}
+
+function Assert-LiveHosting {
+  param([string]$ExpectedHash)
   $download = Join-Path $evidenceDirectory "hosting-main.dart.js"
   Invoke-WebRequest -UseBasicParsing -Uri "https://$ProjectId.web.app/main.dart.js?release=$sourceDigest" -Headers @{ "Cache-Control" = "no-cache" } -OutFile $download
-  if ((Get-FileHash -LiteralPath $download).Hash -ne
-      (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash) {
+  if ((Get-FileHash -LiteralPath $download).Hash -ne $ExpectedHash) {
     throw "Live Hosting JavaScript differs from the prepared release."
   }
+}
+
+function Get-LiveFunctionsIdentity {
+  $decodedFunctions = Invoke-ReleaseGcloud @("functions", "list", "--project=$ProjectId", "--regions=$Region", "--format=json") | ConvertFrom-Json
+  $functions = @($decodedFunctions)
+  $exports = [regex]::Matches((Get-Content -Raw -LiteralPath (Join-Path $root "functions/src/index.ts")), 'export const ([A-Za-z][A-Za-z0-9_]*)\s*=')
+  foreach ($export in $exports) {
+    $found = @($functions | Where-Object { ($_.name -split '/')[-1] -eq $export.Groups[1].Value -and $_.state -eq "ACTIVE" })
+    if ($found.Count -ne 1 -or -not $found[0].updateTime) { throw "Functions inventory is missing an ACTIVE export: $($export.Groups[1].Value)" }
+  }
+  $identity = @($functions | Sort-Object name | ForEach-Object { [ordered]@{ name = $_.name; updateTime = $_.updateTime } }) | ConvertTo-Json -Compress
+  return Get-ReleaseComponentKey $identity "functions-live-v1"
+}
+
+function Assert-ScopedBaseline {
+  if (-not $baseline) { throw "Scoped deployment requires a verified production baseline." }
+  $expectedFunctions = if ($state.scope -eq "Backend" -and $state.functionsDeployedAt) { $state.functionsLiveIdentity } else { $baseline.functionsIdentity }
+  if ((Get-LiveFunctionsIdentity) -ne $expectedFunctions) { throw "Live Functions changed outside the release baseline. Use a coordinated release." }
+  Assert-LiveWorker $baseline.workerImage
+  $expectedWeb = if ($state.scope -eq "Hosting" -and $state.hostingDeployedAt) { (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash } else { $baseline.webSha256 }
+  Assert-LiveHosting $expectedWeb
+  $issuer = Get-ServingIssuerRevision
+  if ($issuer.service.status.latestCreatedRevisionName -ne $issuer.service.status.latestReadyRevisionName -or
+      @($issuer.service.status.conditions | Where-Object { $_.type -eq "Ready" -and $_.status -eq "True" }).Count -ne 1) { throw "Issuer is not healthy for a scoped deployment." }
+  $overrides = @($issuer.revision.spec.containers[0].env | Where-Object { $_ -and $_.name -eq "RUN_SUPPORTED_GAME_COMPAT_VERSIONS" })
+  if ($overrides.Count -gt 0 -and ($overrides.Count -ne 1 -or $overrides[0].value -ne $contract.gameCompatVersion)) { throw "Issuer compatibility override blocks a scoped deployment." }
+  foreach ($queue in @("replay-validation", "replay-projection")) {
+    $queueState = Invoke-ReleaseGcloud @("tasks", "queues", "describe", $queue, "--project=$ProjectId", "--location=$Region", "--format=value(state)")
+    if ($queueState -ne "RUNNING") { throw "Scoped deployment requires both replay queues RUNNING." }
+  }
+}
+
+function Confirm-ReleaseBackend {
+  $indexes = Invoke-ReleaseGcloud @("firestore", "indexes", "composite", "list", "--project=$ProjectId", "--format=json") | ConvertFrom-Json
+  if (@($indexes | Where-Object { $_.state -ne "READY" }).Count -gt 0) { throw "Firestore indexes are still building. Retry Deploy when READY." }
+  foreach ($entry in @(
+    @("runsettlementimmediate", "sa-replay-validator@$ProjectId.iam.gserviceaccount.com"),
+    @("runprojectiononaccepted", "sa-run-control@$ProjectId.iam.gserviceaccount.com"),
+    @("runsettlementonhandoff", "sa-run-control@$ProjectId.iam.gserviceaccount.com")
+  )) {
+    Invoke-ReleaseGcloud @("run", "services", "add-iam-policy-binding", $entry[0], "--project=$ProjectId", "--region=$Region", "--member=serviceAccount:$($entry[1])", "--role=roles/run.invoker", "--quiet") "iam" | Out-Null
+    $policy = Invoke-ReleaseGcloud @("run", "services", "get-iam-policy", $entry[0], "--project=$ProjectId", "--region=$Region", "--format=json") | ConvertFrom-Json
+    foreach ($binding in $policy.bindings) {
+      if ($binding.role -eq "roles/run.invoker" -and @($binding.members | Where-Object { $_ -in @("allUsers", "allAuthenticatedUsers") }).Count -gt 0) { throw "Public invoker binding on $($entry[0]); inspect IAM before continuing." }
+    }
+  }
+  Get-LiveFunctionsIdentity | Out-Null
+}
+
+function Save-ProductionBaseline {
+  param([string]$WorkerImage, [string]$WebHash)
+  Assert-LiveWorker $WorkerImage
+  Assert-LiveHosting $WebHash
+  $identity = Get-LiveFunctionsIdentity
+  $directory = Join-Path $cacheRoot "deployments/$ProjectId"
+  New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  $path = Join-Path $directory "$Region.json"
+  $temporary = "$path.$([Guid]::NewGuid().ToString('N')).tmp"
+  @{ schemaVersion = 2; projectId = $ProjectId; region = $Region; verifiedAt = [DateTime]::UtcNow.ToString("o")
+    contract = $contract; inputs = $inputs; workerImage = $WorkerImage; webSha256 = $WebHash; functionsIdentity = $identity } |
+    ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $temporary -Encoding utf8
+  Move-Item -LiteralPath $temporary -Destination $path -Force
 }
 
 function Confirm-ReleaseQueues {
@@ -179,11 +277,14 @@ if ($Action -eq "Plan") {
     contract = $contract
     sourceDigest = $sourceDigest
     evidenceDirectory = $evidenceDirectory
-    stages = @("Prepare: parallel local validation/build", "Inspect: live read-only snapshot",
+    cacheDirectory = $cacheRoot
+    scope = $resolvedScope
+    components = @(Get-ReleaseComponents $resolvedScope)
+    stages = if ($resolvedScope -ne "Coordinated") { @("Prepare: reuse/validate changed components", "Deploy: verify baseline and publish $resolvedScope") } else { @("Prepare: parallel local validation/build", "Inspect: live read-only snapshot",
       "BuildImage: asynchronous remote build and strict benchmark", "ImageStatus: immutable result",
       "PauseIssuance: temporary runtime compatibility gate",
       "Deploy -CutoverReady: Functions/indexes, IAM, worker/queues, boards, Hosting",
-      "ResumeIssuance -CutoverReady: readiness checks, queues, ticket issuer")
+      "ResumeIssuance -CutoverReady: readiness checks, queues, ticket issuer") }
   } | ConvertTo-Json -Depth 10
   return
 }
@@ -193,103 +294,40 @@ $state = if (Test-Path -LiteralPath $statePath) {
   Get-Content -Raw -LiteralPath $statePath | ConvertFrom-Json
 } else {
   [pscustomobject]@{
-    schemaVersion = 1; projectId = $ProjectId; region = $Region
+    schemaVersion = 2; projectId = $ProjectId; region = $Region; scope = $resolvedScope; inputs = $inputs; components = @()
     sourceDigest = $sourceDigest; contract = $contract
     prepared = $false; preparedAt = $null; toolchain = $null
-    functionsDigest = ""; webDigest = ""
+    functionsDigest = ""; webDigest = ""; functionsLiveIdentity = ""
     buildId = ""; imageTag = ""; imageUri = ""; imageVerified = $false
     functionsDeployedAt = $null; workerDeployedAt = $null; hostingDeployedAt = $null
     deployedAt = $null; issuancePausedAt = $null; issuanceResumedAt = $null
   }
 }
+
+if ($state.schemaVersion -ne 2) { throw "Historical preparation is not compatible with component evidence. Preserve it and use a fresh release checkout/cache." }
 if ($state.region -ne $Region) { throw "Evidence belongs to a different region." }
 
 if ($Action -eq "Prepare") {
-  $toolchain = [ordered]@{
-    node = Invoke-ReleaseCommand node @("--version") $root
-    pnpm = Invoke-ReleaseCommand corepack @("pnpm", "--version") $root
-    flutter = Invoke-ReleaseCommand flutter @("--version", "--machine") $root
-    dart = Invoke-ReleaseCommand dart @("--version") $root
-  } | ConvertTo-Json -Compress
-  if ($state.prepared -and -not $Rebuild -and $state.toolchain -eq $toolchain) {
-    Assert-ReleasePrepared $state $sourceDigest $ProjectId $Region $root
-    Write-Host "Reusing successful preparation: $statePath"
-    return
-  }
   $state.prepared = $false
-  $state.imageVerified = $false
-  $state.buildId = ""
+  $state.scope = $resolvedScope
+  $state.inputs = $inputs
   $state.functionsDeployedAt = $null
   $state.workerDeployedAt = $null
   $state.hostingDeployedAt = $null
   $state.deployedAt = $null
   Save-ReleaseState
-  Write-Host "Resolving frozen dependencies"
-  Invoke-ReleaseCommand corepack @("pnpm", "install", "--frozen-lockfile") $root (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
-  Invoke-ReleaseCommand flutter @("pub", "get", "--enforce-lockfile") $root (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
-  Invoke-ReleaseCommand flutter @("pub", "get", "--enforce-lockfile") (Join-Path $root "tools/editor") (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
-  Invoke-ReleaseCommand dart @("pub", "get", "--enforce-lockfile") (Join-Path $root "services/replay_validator") (Join-Path $evidenceDirectory "dependencies.log") | Out-Null
-  Invoke-ReleaseCommand dart @("run", "tool/generate_chunk_runtime_data.dart", "--dry-run") $root (Join-Path $evidenceDirectory "content.log") | Out-Null
-
-  $jobs = @()
-  $worker = {
-    param($Root, $Support, $Log, $Slice)
-    . $Support
-    if ($Slice -eq "functions") {
-      Invoke-ReleaseCommand corepack @("pnpm", "--dir", "functions", "audit", "--prod") $Root $Log | Out-Null
-      Invoke-ReleaseCommand corepack @("pnpm", "--dir", "functions", "build") $Root $Log | Out-Null
-      Invoke-ReleaseCommand corepack @("pnpm", "--dir", "functions", "test") $Root $Log | Out-Null
-    } elseif ($Slice -eq "client") {
-      Invoke-ReleaseCommand dart @("analyze") $Root $Log | Out-Null
-      Invoke-ReleaseCommand flutter @("test", "--exclude-tags=integration") $Root $Log | Out-Null
-      Invoke-ReleaseCommand flutter @("build", "web", "--release", "--no-pub") $Root $Log | Out-Null
-    } else {
-      foreach ($package in @("runner_core", "run_protocol", "runner_content_pipeline")) {
-        Invoke-ReleaseCommand dart @("analyze") (Join-Path $Root "packages/$package") $Log | Out-Null
-        Invoke-ReleaseCommand dart @("test", "test") (Join-Path $Root "packages/$package") $Log | Out-Null
-      }
-      $directory = Join-Path $Root "services/replay_validator"
-      Invoke-ReleaseCommand dart @("analyze") $directory $Log | Out-Null
-      Invoke-ReleaseCommand dart @("test", "test") $directory $Log | Out-Null
-      $probe = Join-Path (Split-Path $Log) "aot_protocol_probe.exe"
-      Invoke-ReleaseCommand dart @("compile", "exe", "tool/aot_protocol_probe.dart", "-o", $probe) $directory $Log | Out-Null
-      Invoke-ReleaseCommand $probe @() $directory $Log | Out-Null
-    }
-    return "$Slice passed"
-  }
-  try {
-    foreach ($slice in @("functions", "client", "validator")) {
-      Write-Host "Starting $slice checks/build (log: $slice.log)"
-      $jobs += Start-Job -Name $slice -ScriptBlock $worker -ArgumentList $root,
-        (Join-Path $PSScriptRoot "release_support.ps1"), (Join-Path $evidenceDirectory "$slice.log"), $slice
-    }
-    while (@($jobs | Where-Object { $_.State -in @("Running", "NotStarted") }).Count -gt 0) {
-      if (@($jobs | Where-Object { $_.State -eq "Failed" }).Count -gt 0) { break }
-      # Wait only on remaining jobs to avoid an already-completed job busy loop.
-      $pending = @($jobs | Where-Object { $_.State -in @("Running", "NotStarted") })
-      if ($pending.Count -gt 0) { Wait-Job -Job $pending -Any -Timeout 5 | Out-Null }
-    }
-    foreach ($job in $jobs) {
-      Receive-Job -Job $job -ErrorAction Stop | Write-Host
-      if ($job.State -ne "Completed") { throw "$($job.Name) did not complete." }
-    }
-  } finally {
-    $jobs | Where-Object { $_.State -eq "Running" } | Stop-Job
-    $jobs | Remove-Job -Force
-  }
+  $state.components = @(Invoke-ReleasePreparation $root $cacheRoot (Get-ReleaseComponents $state.scope) $evidenceDirectory -Rebuild:$Rebuild)
   if ((Get-ReleaseSourceDigest $root $ProjectId) -ne $sourceDigest) {
     throw "Release source changed during preparation. Run Prepare again."
   }
-  $state.functionsDigest = Get-ReleaseTreeDigest (Join-Path $root "functions/lib")
-  $state.webDigest = Get-ReleaseTreeDigest (Join-Path $root "build/web")
-  $state.toolchain = $toolchain
+  $state.functionsDigest = if ($state.scope -in @("Backend", "Coordinated")) { Get-ReleaseTreeDigest (Join-Path $root "functions/lib") } else { "" }
+  $state.webDigest = if ($state.scope -in @("Hosting", "Coordinated")) { Get-ReleaseTreeDigest (Join-Path $root "build/web") } else { "" }
   $state.prepared = $true
   $state.preparedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState
-  Write-Host "Prepared release: $statePath"
+  Write-Host "Prepared $($state.scope) release: $statePath"
   return
 }
-
 if ($Action -eq "Inspect") {
   foreach ($entry in @(
     @("worker", @("run", "services", "describe", "replay-validator", "--region=$Region",
@@ -313,7 +351,44 @@ if ($Action -eq "Inspect") {
 
 Assert-ReleasePrepared $state $sourceDigest $ProjectId $Region $root
 
+if ($state.scope -in @("Hosting", "Backend", "None")) {
+  if ($Action -ne "Deploy") { throw "$Action is only needed for coordinated releases. Use Deploy for $($state.scope)." }
+  if ($resolvedScope -ne $state.scope) { throw "Deployment scope changed since preparation. Run Prepare again." }
+  Assert-ScopedBaseline
+  if ($state.scope -eq "None") { Write-Host "No runtime changes to deploy."; return }
+  if ($state.scope -eq "Hosting") {
+    if (-not $state.hostingDeployedAt) {
+      Invoke-ReleaseFirebase "hosting"
+      $state.hostingDeployedAt = [DateTime]::UtcNow.ToString("o")
+      Save-ReleaseState
+    }
+    Save-ProductionBaseline $baseline.workerImage (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash
+  } else {
+    if (-not $state.functionsDeployedAt) {
+      Invoke-ReleaseFirebase "functions,firestore:rules,firestore:indexes"
+      $state.functionsLiveIdentity = Get-LiveFunctionsIdentity
+      $state.functionsDeployedAt = [DateTime]::UtcNow.ToString("o")
+      Save-ReleaseState
+    }
+    Confirm-ReleaseBackend
+    $state.functionsDeployedAt = [DateTime]::UtcNow.ToString("o")
+    Save-ProductionBaseline $baseline.workerImage $baseline.webSha256
+  }
+  $state.deployedAt = [DateTime]::UtcNow.ToString("o")
+  Save-ReleaseState
+  Write-Host "$($state.scope) deployed and verified. Linked Play Games smoke remains required."
+  return
+}
+
 if ($Action -eq "BuildImage") {
+  $imageCache = Join-Path $cacheRoot "images/$ProjectId/$Region/$($inputs.worker).json"
+  if (-not $state.buildId -and -not $Rebuild -and (Test-Path -LiteralPath $imageCache)) {
+    $imageRecord = Get-Content -Raw -LiteralPath $imageCache | ConvertFrom-Json
+    if ($imageRecord.workerInputs -ne $inputs.worker) { throw "Worker image cache input mismatch." }
+    $state.buildId = $imageRecord.buildId
+    $state.imageTag = $imageRecord.imageTag
+    Save-ReleaseState
+  }
   if ($state.buildId -and -not $Rebuild) {
     Get-ImageStatus | Out-Null
     return
@@ -397,6 +472,7 @@ if ($Action -eq "ResumeIssuance") {
     "--remove-env-vars=RUN_SUPPORTED_GAME_COMPAT_VERSIONS", "--quiet") "issuance" | Out-Null
   $state.issuanceResumedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState
+  Save-ProductionBaseline $state.imageUri (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash
   Write-Host "Ticket issuance restored. Linked Play Games end-to-end smoke remains required."
   return
 }
@@ -416,30 +492,7 @@ if (-not $state.functionsDeployedAt) {
   Save-ReleaseState
 }
 Assert-IssuancePaused
-$indexes = Invoke-ReleaseGcloud @("firestore", "indexes", "composite", "list",
-  "--project=$ProjectId", "--format=json") | ConvertFrom-Json
-if (@($indexes | Where-Object { $_.state -ne "READY" }).Count -gt 0) {
-  throw "Firestore indexes are still building. Keep issuance paused and retry Deploy when READY."
-}
-$validatorAccount = "sa-replay-validator@$ProjectId.iam.gserviceaccount.com"
-$controlAccount = "sa-run-control@$ProjectId.iam.gserviceaccount.com"
-foreach ($entry in @(
-  @("runsettlementimmediate", $validatorAccount),
-  @("runprojectiononaccepted", $controlAccount),
-  @("runsettlementonhandoff", $controlAccount)
-)) {
-  Invoke-ReleaseGcloud @("run", "services", "add-iam-policy-binding", $entry[0],
-    "--project=$ProjectId", "--region=$Region", "--member=serviceAccount:$($entry[1])",
-    "--role=roles/run.invoker", "--quiet") "iam" | Out-Null
-  $policy = Invoke-ReleaseGcloud @("run", "services", "get-iam-policy", $entry[0],
-    "--project=$ProjectId", "--region=$Region", "--format=json") | ConvertFrom-Json
-  foreach ($binding in $policy.bindings) {
-    if ($binding.role -eq "roles/run.invoker" -and
-        (@($binding.members | Where-Object { $_ -in @("allUsers", "allAuthenticatedUsers") }).Count -gt 0)) {
-      throw "Public invoker binding on $($entry[0]); keep issuance paused and review IAM."
-    }
-  }
-}
+Confirm-ReleaseBackend
 $cloudScript = Join-Path $root "services/replay_validator/configure_cloud.ps1"
 if (-not $state.workerDeployedAt) {
   $cloudArguments = @{
