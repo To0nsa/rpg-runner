@@ -10,6 +10,9 @@ import 'package:runner_core/ecs/actor_facing.dart';
 import 'package:runner_core/ecs/collider_aabb_utils.dart';
 import 'package:runner_core/ecs/systems/npc_combat_lifecycle.dart';
 import 'package:runner_core/npcs/npc_id.dart';
+import 'package:runner_core/npcs/npc_catalog.dart';
+import 'package:runner_core/npcs/npc_guard_region.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/enemies/enemy_store.dart';
@@ -83,6 +86,89 @@ void main() {
       );
       expect(h.world.transform.velX[ti], 0);
     });
+
+    for (final id in NpcId.values) {
+      test(
+        '${id.name} guard expansion preserves complete body bounds in both directions',
+        () {
+          final h = _terrainHarness(floorWidth: 600);
+          final npc = EntityFactory(h.world).createNpc(
+            npcId: id,
+            posX: 100,
+            posY: 70,
+            chunkStartX: 20,
+            chunkEndX: 180,
+          );
+          final ti = h.world.transform.indexOf(npc);
+          var crossedOrigin = false;
+          var reachedRight = false;
+          var reachedLeft = false;
+          for (var tick = 1; tick <= 480; tick++) {
+            if (tick == 121) {
+              beginNpcGuarding(
+                h.world,
+                npc,
+                NpcGuardRegion.forChunk(
+                  chunkIndex: 0,
+                  startX: 20,
+                  endX: 180,
+                  assembly: const ChunkAssemblySelection(
+                    segmentId: 'camp',
+                    segmentIndex: 0,
+                    runSequence: 0,
+                    cycleIndex: 0,
+                    startChunkIndex: 0,
+                    chunkCount: 2,
+                    repeatsFinalSegment: false,
+                  ),
+                ),
+              );
+            }
+            h.authority.prepareTick(
+              h.world,
+              player: h.player,
+              currentTick: tick,
+            );
+            final direction = tick <= 280 ? 1 : -1;
+            setActorFacing(
+              h.world,
+              npc,
+              direction > 0 ? Facing.right : Facing.left,
+            );
+            h.world.transform.velX[ti] =
+                direction * const NpcCatalog().get(id).speedX;
+            GravitySystem().step(
+              h.world,
+              h.movement,
+              physics: const PhysicsTuning(),
+            );
+            _stepAuthority(h, currentTick: tick);
+            final ci = h.world.worldContactCapsule.indexOf(npc);
+            final center =
+                h.world.transform.posX[ti] +
+                h.world.worldContactCapsule.offsetXTicks[ci] *
+                    colliderFacingSign(h.world, npc) /
+                    terrainPhysicsTicksPerWorldUnit;
+            final radius =
+                h.world.worldContactCapsule.radiusTicks[ci] /
+                terrainPhysicsTicksPerWorldUnit;
+            final upper = tick < 121 ? 180 : 340;
+            expect(center - radius, greaterThanOrEqualTo(20));
+            expect(center + radius, lessThanOrEqualTo(upper));
+            if (tick >= 121) {
+              crossedOrigin |= center - radius > 180;
+              reachedRight |= (center + radius - 340).abs() < 0.01;
+              if (tick > 280) {
+                reachedLeft |= (center - radius - 20).abs() < 0.01;
+              }
+            }
+          }
+          expect(crossedOrigin, isTrue);
+          expect(reachedRight, isTrue);
+          expect(reachedLeft, isTrue);
+        },
+      );
+    }
 
     test('NPC teleport placement validates the full mirrored capsule against its chunk', () {
       final h = _terrainHarness();
@@ -1005,7 +1091,7 @@ void main() {
   MovementTuningDerived movement,
   TerrainMultiBodyWorldMotionAuthority authority,
 })
-_terrainHarness({bool sloped = false}) {
+_terrainHarness({bool sloped = false, double floorWidth = 300}) {
   final world = EcsWorld(seed: 1);
   final movement = MovementTuningDerived.from(
     eloiseCharacter.tuning.movement,
@@ -1029,7 +1115,7 @@ _terrainHarness({bool sloped = false}) {
     mana: archetype.mana,
     stamina: archetype.stamina,
   );
-  final geometry = _terrainGeometry(sloped: sloped);
+  final geometry = _terrainGeometry(sloped: sloped, floorWidth: floorWidth);
   final authority = TerrainMultiBodyWorldMotionAuthority(
     geometry: geometry,
     playerProfile: archetype.terrainTraversalProfile,
@@ -1097,6 +1183,7 @@ TerrainGeometry _terrainGeometry({
   bool sloped = false,
   int version = 1,
   double topY = 100,
+  double floorWidth = 300,
 }) => const TerrainCompiler().compile(
   sloped
       ? <TerrainPolygonInput>[
@@ -1125,8 +1212,8 @@ TerrainGeometry _terrainGeometry({
             ),
             vertices: <(double, double)>[
               (0, topY),
-              (300, topY),
-              (300, topY + 40),
+              (floorWidth, topY),
+              (floorWidth, topY + 40),
               (0, topY + 40),
             ],
           ),

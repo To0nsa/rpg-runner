@@ -133,7 +133,8 @@ final class EncounterSystem {
         // A faulty adapter cannot publish a partial required roster. It returns
         // only newly created actors; never destroy an already-owned participant.
         for (final entity in entities.values.toSet()) {
-          if (world.isEntityAlive(entity) && !world.encounterMember.has(entity) &&
+          if (world.isEntityAlive(entity) &&
+              !world.encounterMember.has(entity) &&
               !world.playerInput.has(entity)) {
             world.destroyEntity(entity);
           }
@@ -195,7 +196,8 @@ final class EncounterSystem {
   }) {
     if (hpLost100 <= 0 || credit != DamageCredit.player) return;
     final i = world.encounterMember.tryIndexOf(target);
-    if (i == null || world.encounterMember.role[i] != EncounterMemberRole.enemy) {
+    if (i == null ||
+        world.encounterMember.role[i] != EncounterMemberRole.enemy) {
       return;
     }
     final state = _states[world.encounterMember.encounter[i]];
@@ -295,6 +297,12 @@ final class EncounterSystem {
       }
     }
     world.encounterMember.removals.clear();
+    // Guards outlive their retired encounter records; stop them before run freeze.
+    for (var i = 0; i < world.npc.denseEntities.length; i++) {
+      if (world.npc.guardRegion[i] != null) {
+        protectNpc(world, world.npc.denseEntities[i]);
+      }
+    }
   }
 
   /// Unresolved actors must survive ordinary camera-distance cleanup, including
@@ -353,7 +361,8 @@ final class EncounterSystem {
     EncounterParticipant member,
     EntityId? entity,
   ) {
-    if (entity == null || !world.isEntityAlive(entity) ||
+    if (entity == null ||
+        !world.isEntityAlive(entity) ||
         world.encounterMember.has(entity) ||
         world.playerInput.has(entity) ||
         !world.transform.has(entity) ||
@@ -414,7 +423,14 @@ final class EncounterSystem {
         continue;
       }
       if (world.encounterMember.role[i] == EncounterMemberRole.npc) {
-        if (!state.defeated.contains(entry.key)) protectNpc(world, entity);
+        if (!state.defeated.contains(entry.key)) {
+          if (reason == EncounterEndReason.rescued ||
+              reason == EncounterEndReason.unassisted) {
+            beginNpcGuarding(world, entity, state.occurrence.guardRegion);
+          } else {
+            protectNpc(world, entity);
+          }
+        }
       } else {
         // Preserve health, resources, cooldowns and all committed ability state.
         world.aiTarget.removeEntity(entity);

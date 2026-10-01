@@ -33,7 +33,9 @@ flutter run -d windows
 Chunk Creator's **Encounters** tab authors rescue groups in the current chunk.
 Create a named group, position its activation rectangle, then place Warrior,
 Huntress or Huntress II allies and required enemies from the catalog cards.
-NPC movement bounds always follow the owning chunk. Inline inspectors expose
+NPCs stay in the owning chunk during an active encounter. Cleared survivors guard
+the containing Flow section; automatic levels and Chunk Play use one chunk.
+Inline inspectors expose
 facing, terrain support, enemy targeting inheritance, and points per survivor
 (default 250, with explicit overrides including zero). Existing enemy markers
 can be converted into required participants in one undoable transaction.

@@ -16,6 +16,7 @@ import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/navigation/terrain_placement_query.dart';
+import 'package:runner_core/navigation/terrain_spawn_placement.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
 import 'package:runner_core/navigation/terrain_surface_navigator.dart';
 import 'package:runner_core/navigation/terrain_surface_pathfinder.dart';
@@ -154,6 +155,93 @@ void main() {
       expect(world.navIntent.desiredX[nav], 115);
     },
   );
+  test('ground pursuit derives stationary enemy support without adding dynamic contacts', () {
+    final bundle = TerrainRuntimeBundle.build(
+      geometry: _floorGeometry(version: 1),
+      groundEnemyProfiles: [
+        ...buildDefaultGroundEnemyTerrainGraphProfiles(),
+        ...buildNpcNavigationProfiles(
+          tickHz: 60,
+          physics: const PhysicsTuning(),
+        ),
+      ],
+    );
+    final fixture = _worldOnGraph(
+      bundle,
+      enemyBodyX: 100 * 1024,
+      playerBodyX: 50 * 1024,
+    );
+    const catalog = EnemyCatalog();
+    final archetype = catalog.get(EnemyId.derf);
+    final contact = catalog.terrainContactProfile(EnemyId.derf);
+    final placement = TerrainSpawnPlacementResolver.forGeometry(bundle.geometry)
+        .resolve(
+          TerrainSpawnPlacementRequest(
+            profile: TerrainEnemySpawnPlacementProfile.fromCatalog(
+              catalog: catalog,
+              enemyId: EnemyId.derf,
+              facing: Facing.left,
+            ),
+            desiredBodyCenter: TerrainPoint(400 * 1024, 170 * 1024),
+            supportSelection: TerrainSpawnSupportSelection.obstacleTop,
+            requestedSupportYTicks: 100 * 1024,
+          ),
+        );
+    expect(placement.accepted, isTrue, reason: placement.diagnostic);
+    final body = placement.bodyCenter!;
+    final world = fixture.world;
+    final attacker = EntityFactory(world).createNpc(
+      npcId: NpcId.warrior,
+      posX: 100,
+      posY: 0,
+      chunkStartX: 0,
+      chunkEndX: 600,
+    );
+    final npcProfile = const NpcCatalog().terrainContactProfile(NpcId.warrior);
+    world.worldContactCapsule.add(attacker, npcProfile.capsule);
+    world.terrainTraversalProfile.add(attacker, npcProfile.traversal);
+    world.terrainContact.add(attacker);
+    _setSupport(
+      world,
+      entity: attacker,
+      bundle: bundle,
+      graph: bundle.graphPublication[npcNavigationProfileKey(NpcId.warrior)],
+      surface: bundle.surfaceSet.surfaces.single,
+      desiredBodyXTicks: 100 * 1024,
+    );
+    final target = EntityFactory(world).createEnemy(
+      enemyId: EnemyId.derf,
+      posX: body.xTicks / 1024,
+      posY: body.yTicks / 1024,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: archetype.body,
+      collider: archetype.collider,
+      health: archetype.health,
+      mana: archetype.mana,
+      stamina: archetype.stamina,
+    );
+    world.worldContactCapsule.add(target, contact.capsule);
+    world.terrainTraversalProfile.add(target, contact.traversal);
+    world.aiTarget.configure(
+      attacker,
+      targetPolicy: AiTargetPolicy.nearestOpponent,
+      candidates: [target],
+      playerFallback: false,
+    );
+    AiTargetSystem().step(world, player: fixture.player);
+    _system(() => bundle).step(world, player: fixture.player, currentTick: 1);
+    final nav = world.navIntent.indexOf(attacker);
+    expect(world.navIntent.hasPlan[nav], isTrue);
+    expect(world.navIntent.desiredX[nav], 400);
+    expect(world.terrainContact.has(target), isFalse);
+    expect(
+      world.transform.posY[world.transform.indexOf(target)],
+      body.yTicks / 1024,
+    );
+  });
+
   test('different selected actors keep independent paths and release cleanly', () {
     final bundle = _bundle(_floorGeometry(version: 1));
     final a = _worldOnGraph(

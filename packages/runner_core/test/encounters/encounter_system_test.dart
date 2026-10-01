@@ -51,7 +51,8 @@ void main() {
       expect(f.system.outcome(key)!.reason, EncounterEndReason.rescued);
       expect(f.system.rescuedNpcs, 2);
       expect(f.system.rescuePoints, 642);
-      expect(f.world.npc.protected, everyElement(isTrue));
+      expect(f.world.npc.protected, everyElement(isFalse));
+      expect(f.world.npc.guardRegion, everyElement(isNotNull));
       f.resolve();
       f.system.endRun(f.world, tick: 2);
       expect(f.system.rescuePoints, 642);
@@ -60,21 +61,52 @@ void main() {
     },
   );
 
+  test('zero damage and NPC damage cannot qualify; unassisted survivors guard without credit', () {
+    final f = _Fixture();
+    final key = f.add();
+    f.activate();
+    f.damage(f.enemy(key), 0, DamageCredit.player);
+    f.damage(f.enemy(key), 5000, DamageCredit.none);
+    f.resolve();
+    expect(f.system.outcome(key)!.reason, EncounterEndReason.unassisted);
+    expect(f.world.npc.isProtected(f.npc(key)), isFalse);
+    expect(f.world.npc.guardRegion.single, isNotNull);
+    expect(f.system.rescuePoints, 0);
+    expect(f.system.rescuedNpcs, 0);
+  });
+
   test(
-    'zero damage and NPC damage cannot qualify; unassisted survivors are safe',
+    'later guard death and origin retirement never change settled awards',
     () {
       final f = _Fixture();
-      final key = f.add();
+      final key = f.add(points: 333);
       f.activate();
-      f.damage(f.enemy(key), 0, DamageCredit.player);
-      f.damage(f.enemy(key), 5000, DamageCredit.none);
+      f.damage(f.enemy(key), 5000, DamageCredit.player);
       f.resolve();
-      expect(f.system.outcome(key)!.reason, EncounterEndReason.unassisted);
-      expect(f.world.npc.isProtected(f.npc(key)), isTrue);
-      expect(f.system.rescuePoints, 0);
-      expect(f.system.rescuedNpcs, 0);
+      final npc = f.npc(key);
+      f.system.retireChunk(f.world, 0);
+      expect(f.world.npc.guardRegion.single, isNotNull);
+      expect(f.world.encounterMember.has(npc), isFalse);
+      expect(f.system.retainsActor(f.world, npc), isFalse);
+      f.damage(npc, 5000, DamageCredit.none);
+      expect(f.world.health.hp[f.world.health.indexOf(npc)], 0);
+      f.resolve();
+      f.system.endRun(f.world, tick: 2);
+      expect((f.system.rescuedNpcs, f.system.rescuePoints), (1, 333));
+      expect(f.system.drainOutcomes(), hasLength(1));
+      expect(f.world.npc.guardRegion.single, isNull);
     },
   );
+
+  test('camera abandonment keeps survivors protected instead of guarding', () {
+    final f = _Fixture();
+    final key = f.add();
+    f.activate();
+    f.resolve(camera: 1200);
+    expect(f.world.npc.isProtected(f.npc(key)), isTrue);
+    expect(f.world.npc.guardRegion.single, isNull);
+    expect(f.world.aiTarget.has(f.npc(key)), isFalse);
+  });
 
   test(
     'enemy victory releases targeting without changing committed combat state',

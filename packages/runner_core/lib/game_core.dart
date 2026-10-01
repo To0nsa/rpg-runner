@@ -8,6 +8,7 @@ library;
 
 import 'npcs/npc_navigation_profiles.dart';
 import 'ecs/systems/npc_ai_system.dart';
+import 'ecs/systems/npc_guard_system.dart';
 import 'encounters/encounter_spawn_adapter.dart';
 import 'encounters/encounter_instance.dart';
 
@@ -915,6 +916,7 @@ class GameCore {
   /// The ECS world containing all component stores.
   late final EcsWorld _world;
   final AiTargetSystem _aiTargetSystem = AiTargetSystem();
+  final NpcGuardSystem _npcGuardSystem = NpcGuardSystem();
 
   /// Factory for creating complex entities (player, enemies).
   late final EntityFactory _entityFactory;
@@ -1576,6 +1578,8 @@ class GameCore {
     );
 
     // ─── Phase 3: AI, input, and movement ───
+    // Guard membership uses the published world before the shared target selection.
+    _npcGuardSystem.step(_world);
     // Every AI consumer shares this identity; movement may update its position.
     _aiTargetSystem.step(_world, player: _player);
     _hashashTeleportAmbushSystem.step(
@@ -2002,6 +2006,7 @@ class GameCore {
             startX: chunk.startX,
             endX: chunk.endX,
             definition: definition,
+            assembly: chunk.assembly,
           ),
           tick: tick,
           suppressOpening: chunk.index < _levelDefinition.noEnemyChunks,

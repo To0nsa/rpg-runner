@@ -60,15 +60,17 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts game compatibility `2026.09.10`;
+The validator source accepts game compatibility `2026.10.1`;
 replay/command format `1`, `rules-v2`, `score-v2`, and `ghost-v1` are the
 supported ranked tuple. Rescue encounter outcomes and points are derived from
-replayed Core; provisional client rescue statistics are ignored. This includes
+replayed Core; provisional client rescue statistics are ignored. Living survivors
+continue fighting within their Flow section occurrence, with immutable rescue
+awards and deterministic guard rosters. This includes
 Poison Darts, which emerge during their configured wind-up
 and retract before cooldown; lowered resting visibility and longer rearming
 cycles replay through the same Core implementation. This includes the earlier
 Forest traversal repairs, the Forest spawn revision, and the 20% camera target
-reduction. Previous versions, including `2026.09.9`, are rejected
+reduction. Previous versions, including `2026.09.10`, are rejected
 before replay. This build does not ship a historical selector, camera simulation,
 or the retired `rules-v1` combat simulator.
 
@@ -76,8 +78,8 @@ The preceding `2026.09.9` worker, Functions and web client were deployed on
 September 25; see [release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 The matching `2026.09.10` worker, Functions and web client were deployed
 October 1 from frozen `6bfda4c8`; see [current production evidence](../../docs/verification/game-compat-2026.09.10-production.md).
-Later projectile/content edits are excluded and require a new compatibility
-release. The strict exact-image benchmark and infrastructure checks passed;
+Later projectile/content edits and section guards are excluded from that frozen
+production build and require the coordinated `2026.10.1` compatibility release. The strict exact-image benchmark and infrastructure checks passed;
 signed-in gameplay smoke remains outstanding.
 Use the [release checklist](../../docs/building/rescue_release_operations.md)
 for the remaining signed-in smoke check and any future cutover.
@@ -132,9 +134,9 @@ firebase deploy --project rpg-runner-d7add `
 ```
 
 Then run the checked-in service/queue policy from the repository root.
-For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
-the matching `2026.09.10` worker and Functions configuration before enabling new
-client issuance. The preceding September 25 deployment is recorded above.
+For a game compatibility cutover, stop old issuance and drain validation and
+settlement as described above. Deploy matching `2026.10.1` worker, Functions and
+client artifacts before enabling new issuance. This change has not been deployed.
 
 ```powershell
 .\services\replay_validator\configure_cloud.ps1 `

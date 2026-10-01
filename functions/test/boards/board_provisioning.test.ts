@@ -34,7 +34,7 @@ const db = getFirestore(app);
 const config: BoardProvisioningConfig = {
   competitiveLevelIds: ["field", "forest"],
   weeklyLevelId: "field",
-  gameCompatVersion: "2026.09.10",
+  gameCompatVersion: "2026.10.1",
   rulesetVersion: "rules-v2",
   scoreVersion: "score-v2",
   ghostVersion: "ghost-v1",
@@ -240,7 +240,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    "board_competitive_2026_03_field_rules_v2_score_v2_2026_09_10_ghost_v1",
+    "board_competitive_2026_03_field_rules_v2_score_v2_2026_10_1_ghost_v1",
   );
 
   const boards = await db.collection("leaderboard_boards").get();
@@ -309,7 +309,7 @@ async function assertBoardExists(args: {
   const doc = snapshot.docs[0]!;
   assert.equal(doc.get("status"), "active");
   assert.equal(doc.get("tickHz"), 60);
-  assert.equal(doc.get("gameCompatVersion"), "2026.09.10");
+  assert.equal(doc.get("gameCompatVersion"), "2026.10.1");
   assert.equal(doc.get("boardKey.mode"), args.mode);
   assert.equal(doc.get("boardKey.levelId"), args.levelId);
   assert.equal(doc.get("boardKey.windowId"), args.windowId);

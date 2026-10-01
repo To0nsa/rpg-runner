@@ -126,8 +126,9 @@ final class TerrainEnemyNavigationSystem {
       if (targetId == null ||
           !world.worldContactCapsule.has(targetId) ||
           !world.terrainTraversalProfile.has(targetId) ||
-          !world.terrainContact.has(targetId) ||
-          !world.body.has(targetId)) {
+          !world.body.has(targetId) ||
+          (!world.terrainContact.has(targetId) &&
+              !world.body.isKinematic[world.body.indexOf(targetId)])) {
         navStore.targetEntity[navIndex] = null;
         navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
         final intents = world.navIntent;
@@ -325,6 +326,11 @@ final class TerrainEnemyNavigationSystem {
     required TerrainRuntimeBundle bundle,
     required bool isPlayer,
   }) {
+    // Ground-mounted targets have no dynamic contact store. Resolve their
+    // actual supported pose without giving them movement authority or moving them.
+    if (!world.terrainContact.has(targetEntity)) {
+      return _stationaryTargetSnapshot(world, targetEntity, bundle.version);
+    }
     final current = _worldActorSnapshot(
       world,
       entity: targetEntity,
@@ -373,6 +379,61 @@ final class TerrainEnemyNavigationSystem {
       grounded: true,
       priorSupportEdgeId: _landingPrediction.supportEdgeId,
       priorSupportGeometryVersion: _landingPrediction.geometryVersion,
+    );
+  }
+
+  TerrainSurfaceNavigationActorSnapshot _stationaryTargetSnapshot(
+    EcsWorld world,
+    EntityId entity,
+    int bundleVersion,
+  ) {
+    final ti = world.transform.indexOf(entity);
+    final ci = world.worldContactCapsule.indexOf(entity);
+    final bodyCenter = TerrainPoint(
+      physicsCoordinateToTicks(world.transform.posX[ti]),
+      physicsCoordinateToTicks(world.transform.posY[ti]),
+    );
+    final capsule = TerrainPlacementCapsule(
+      radiusTicks: world.worldContactCapsule.radiusTicks[ci],
+      verticalHalfSegmentTicks:
+          world.worldContactCapsule.verticalHalfSegmentTicks[ci],
+      resolvedOffsetXTicks:
+          world.worldContactCapsule.offsetXTicks[ci] *
+          colliderFacingSign(world, entity),
+      offsetYTicks: world.worldContactCapsule.offsetYTicks[ci],
+    );
+    final profile = world
+        .terrainTraversalProfile
+        .profile[world.terrainTraversalProfile.indexOf(entity)];
+    const requirement = TerrainSupportRequirement.groundedEnemyRuntime();
+    final footY =
+        bodyCenter.yTicks +
+        capsule.offsetYTicks +
+        capsule.radiusTicks +
+        capsule.verticalHalfSegmentTicks;
+    final placement = _placementQuery!.resolveGrounded(
+      TerrainGroundPlacementRequest(
+        desiredBodyCenterXTicks: bodyCenter.xTicks,
+        minimumSupportYTicks: footY - capsule.radiusTicks,
+        maximumSupportYTicks: footY + capsule.radiusTicks,
+        capsule: capsule,
+        traversalProfile: profile,
+        supportRequirement: requirement,
+        expectedGeometryVersion: bundleVersion,
+      ),
+    );
+    final supported =
+        placement.isValid &&
+        (placement.bodyCenter!.yTicks - bodyCenter.yTicks).abs() <=
+            terrainCollisionSkinTicks;
+    return TerrainSurfaceNavigationActorSnapshot(
+      bodyCenter: bodyCenter,
+      capsule: capsule,
+      traversalProfile: profile,
+      supportRequirement: requirement,
+      grounded: supported,
+      priorSupportEdgeId: supported ? placement.supportEdgeId : null,
+      priorSupportGeometryVersion: supported ? bundleVersion : -1,
     );
   }
 
