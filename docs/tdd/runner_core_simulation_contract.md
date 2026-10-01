@@ -100,7 +100,8 @@ choice query the published terrain edge index for an unobstructed sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
 These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release.
+game-compatibility release. They are included in the pending `2026.09.10`
+source release; the latest checked-in production evidence is for `2026.09.9`.
 
 During phase 7, melee/area hitboxes, projectiles, and mobility impacts query
 that AABB grid only for candidates. `HitResolver` preserves stable entity-ID

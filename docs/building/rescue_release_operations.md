@@ -6,7 +6,9 @@ outstanding. See the [initial rescue deployment](../archive/2026-09-25/verificat
 and [current Forest content release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
 The repository now targets gameplay `2026.09.10` for a 20% reduction in camera
-auto-scroll targets. No current-source deployment evidence is recorded. Its client, Functions,
+auto-scroll targets and projectile auto aim that filters targets by travel reach
+and terrain sightline, then predicts from the offset launch point. No
+current-source deployment evidence is recorded. Its client, Functions,
 worker and board versions must be cut over together after the existing run and
 settlement drain steps; the completed `2026.09.9` steps below are historical
 deployment evidence, not completion evidence for `2026.09.10`.
