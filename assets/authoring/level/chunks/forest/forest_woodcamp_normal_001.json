@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_woodcamp_normal_001",
   "id": "forest_woodcamp_normal_001",
-  "revision": 49,
+  "revision": 57,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -63,14 +63,6 @@
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_boulder_03",
-      "prefabKey": "tiny_swords_boulder_03",
-      "x": 208,
-      "y": 208,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
       "prefabId": "fantasy_environment_bridge_01",
       "prefabKey": "fantasy_environment_bridge_01",
       "x": 152,
@@ -84,14 +76,6 @@
       "prefabKey": "tiny_swords_bush_03",
       "x": 545,
       "y": 202,
-      "zIndex": 1,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "tiny_swords_boulder_02",
-      "prefabKey": "tiny_swords_boulder_02",
-      "x": 244,
-      "y": 208,
       "zIndex": 1,
       "snapToGrid": false
     }
