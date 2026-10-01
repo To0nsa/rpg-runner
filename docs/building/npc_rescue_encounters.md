@@ -14,7 +14,7 @@ post-completion part of D1 below. Active encounters remain chunk-bound; living
 survivors of rescued or unassisted clears now guard their containing Flow section
 and remain vulnerable. The old survivor-safety details in this original plan are
 historical. See [current encounter contracts](../tdd/npc_encounter_contracts.md)
-and [section guard implementation](npc_section_guards.md). M7's production smoke
+and [section guard implementation](../archive/2026-10-02/building/npc_section_guards.md). M7's production smoke
 follow-up is unaffected; section guards require their own compatibility release.
 
 Plan audited against the working tree: September 24, 2026. The gaps recorded

@@ -51,6 +51,11 @@ void main() {
     expect(originWasPublished, isTrue);
     expect(originRetired, isTrue);
     core.giveUp();
+    final stoppedGuard = core.buildSnapshot().entities.singleWhere(
+      (e) => e.id == actorId,
+    );
+    expect(stoppedGuard.npcHealth!.protected, isTrue);
+    expect(stoppedGuard.vel!.x, 0);
     final stats = core.drainEvents().whereType<RunEndedEvent>().single.stats;
     expect((stats.rescuedNpcs, stats.rescuePoints), (1, 250));
   });

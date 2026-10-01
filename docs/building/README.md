@@ -1,7 +1,9 @@
 # Current Implementation Plans
 
-- [NPC section guards](npc_section_guards.md): implementation in progress on
-  `feature/npc-section-guards`; section-bounded survivor combat and replay validation.
+- [Completed NPC section guards](../archive/2026-10-02/building/npc_section_guards.md):
+  implemented on `feature/npc-section-guards` as pending gameplay `2026.10.1`;
+  see [validation](../verification/npc-section-guards.md) and the separate
+  [unresolved Forest content finding](../audit/forest_content_drift_2026-10-02.md).
 
 - [Completed Forest enemy navigation repair](../archive/2026-09-24/building/forest_enemy_navigation.md):
   navigation and five chunk adjustments validated at unchanged movement limits;
