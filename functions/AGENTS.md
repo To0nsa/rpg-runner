@@ -210,6 +210,20 @@ When changing backend behavior:
 - ensure the compiled test path still maps correctly
 - keep emulator assumptions intact
 
+
+## Deployment
+
+Use ../tools/release/release.ps1 and
+[the deployment workflow](../docs/tdd/deployment_workflow.md) for coordinated
+gameplay compatibility releases. Its backend phase deploys all exported
+Functions except runSessionCreate, plus rules/indexes. The issuer belongs to
+ResumeIssuance after matching worker, Hosting and boards are verified; deploying
+it earlier can overwrite the temporary runtime issuance pause.
+
+After Functions deployment, preserve private invoker access for immediate
+settlement and both Eventarc target services. Source version defaults and
+checked-in environment files do not establish the live configuration.
+
 ## Cross-Repo Contract Responsibilities
 
 Changes here often require Flutter-side updates too. When a callable request or response changes, update:

@@ -172,6 +172,22 @@ inside that package. Run it with `dart test` from `packages/runner_core`.
 - Report tested horizons and exclusions. These pursuit tests do not replace
   spawn, combat, player, camera, performance or full-run integration checks.
 
+
+## Deployment Workflow
+
+Use [.agent/workflows/deploy-release.md](.agent/workflows/deploy-release.md)
+and [docs/tdd/deployment_workflow.md](docs/tdd/deployment_workflow.md) for
+coordinated Functions/worker/web releases. The entry point is
+tools/release/release.ps1; its default Plan is offline.
+
+Prepare source and artifacts before a cutover. BuildImage uploads source and
+starts Cloud Build; PauseIssuance, Deploy and ResumeIssuance mutate production
+and require the user's release authorization. Keep runSessionCreate excluded
+from the backend cutover phase so the runtime pause survives redeployment.
+Do not reset data or cancel runs merely because a release checklist describes
+that option. Report historical evidence, mocked checks and live verification
+separately. Read tools/release/AGENTS.md before editing release tooling.
+
 ## Commit Hygiene
 
 For multi-step implementation work, make small, coherent commits after each

@@ -39,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: services/replay_validator
-        run: dart pub get
+        run: dart pub get --enforce-lockfile
 
       - name: Analyze service
         working-directory: services/replay_validator

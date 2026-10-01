@@ -10,7 +10,7 @@ All exported functions are defined in:
 
 The Flutter app calls these through `FirebaseFunctions.instance.httpsCallable(...)` inside adapters in:
 
-- `lib/ui/state/*.dart`
+- `lib/ui/state/**/firebase_*.dart`
 
 The deployed 2nd-generation Functions runtime is Node.js 24, selected by
 `functions/package.json`. This runtime choice applies to every function in the
@@ -18,7 +18,7 @@ codebase and must stay aligned with the local/CI Node version used for builds
 and emulator tests.
 
 The backend SDK baseline is Firebase Functions 7, Firebase Admin 14, and Cloud
-Tasks 6. The workspace lockfile contains narrow patched `uuid` overrides for
+Tasks 7. The workspace lockfile contains narrow patched `uuid` overrides for
 two older Storage HTTP helpers; remove those overrides only after their
 upstream dependency ranges accept the patched major.
 
@@ -64,7 +64,7 @@ in [`callable_abuse_controls.md`](callable_abuse_controls.md).
 
 ### `loadoutOwnershipLoadCanonicalState`
 
-- Client adapter: `lib/ui/state/firebase_loadout_ownership_api.dart`
+- Client adapter: `lib/ui/state/ownership/firebase_loadout_ownership_api.dart`
 - Called by: `AppState.bootstrap()`, run preflight, fallback flows.
 - Returns canonical ownership state (selection/meta/progression + revision).
 
@@ -75,7 +75,7 @@ Why:
 
 ### `loadoutOwnershipExecuteCommand`
 
-- Client adapter: `lib/ui/state/firebase_loadout_ownership_api.dart`
+- Client adapter: `lib/ui/state/ownership/firebase_loadout_ownership_api.dart`
 - Public commands are limited to selection/loadout/equip actions and
   server-validated store purchase/refresh actions.
 - Direct gold awards, entitlement grants, and ownership reset are server-only
@@ -100,7 +100,7 @@ Why:
 
 ### `playerProfileLoad`
 
-- Client adapter: `lib/ui/state/firebase_user_profile_remote_api.dart`
+- Client adapter: `lib/ui/state/profile/firebase_user_profile_remote_api.dart`
 - Called by: `AppState.bootstrap()` and fallback/default flows.
 - Loads or lazily creates the profile inside a Firestore transaction.
 
@@ -113,7 +113,7 @@ Why:
 
 ### `playerProfileUpdate`
 
-- Client adapter: `lib/ui/state/firebase_user_profile_remote_api.dart`
+- Client adapter: `lib/ui/state/profile/firebase_user_profile_remote_api.dart`
 - Called by: profile rename flow + profile-name onboarding completion.
 
 Why:
@@ -164,7 +164,7 @@ retention are specified in
 
 ### `runBoardsLoadActive`
 
-- Client adapter: `lib/ui/state/firebase_run_boards_api.dart`
+- Client adapter: `lib/ui/state/boards/firebase_run_boards_api.dart`
 - Called by: run-start preflight and leaderboard board resolution.
 - Returns active board manifest for mode+level+compat version.
 
@@ -175,7 +175,7 @@ Why:
 
 ### `runSessionCreate`
 
-- Client adapter: `lib/ui/state/firebase_run_session_api.dart`
+- Client adapter: `lib/ui/state/run/firebase_run_session_api.dart`
 - Called by: run start descriptor preparation.
 - Returns run ticket (`runSessionId`, seed, mode/level/character/loadout snapshot, board linkage).
 - Sends a bounded client request ID. Identical retries and concurrent
@@ -196,7 +196,7 @@ Why:
 
 ### `runSessionCreateUploadGrant`
 
-- Client adapter: `lib/ui/state/firebase_run_session_api.dart`
+- Client adapter: `lib/ui/state/run/firebase_run_session_api.dart`
 - Called by: replay submission coordinator before upload.
 - Returns scoped upload grant for pending replay artifact.
 - The signed grant and upload lease cap the replay at 8 MiB, and active upload
@@ -212,7 +212,7 @@ Why:
 
 ### `runSessionFinalizeUpload`
 
-- Client adapter: `lib/ui/state/firebase_run_session_api.dart`
+- Client adapter: `lib/ui/state/run/firebase_run_session_api.dart`
 - Called after upload with content hash/size and metadata.
 - Rejects claimed or stored replay sizes above 8 MiB and records attempted
   finalized bytes against the per-UID quota before Storage metadata lookup.
@@ -230,7 +230,7 @@ Why:
 
 ### `runSessionLoadStatus`
 
-- Client adapter: `lib/ui/state/firebase_run_session_api.dart`
+- Client adapter: `lib/ui/state/run/firebase_run_session_api.dart`
 - Called by: submission polling/refresh and resume flows.
 - Returns current submission status.
 
@@ -245,7 +245,7 @@ Why:
 
 ### `leaderboardLoadBoard`
 
-- Client adapter: `lib/ui/state/firebase_leaderboard_api.dart`
+- Client adapter: `lib/ui/state/boards/firebase_leaderboard_api.dart`
 - Called by: leaderboard screen.
 - Returns board entries/view model.
 
@@ -256,7 +256,7 @@ Why:
 
 ### `leaderboardLoadMyRank`
 
-- Client adapter: `lib/ui/state/firebase_leaderboard_api.dart`
+- Client adapter: `lib/ui/state/boards/firebase_leaderboard_api.dart`
 - Called by: leaderboard “my rank” view.
 - Returns caller-specific rank projection.
 
@@ -271,7 +271,7 @@ Why:
 
 ### `ghostLoadManifest`
 
-- Client adapter: `lib/ui/state/firebase_ghost_api.dart`
+- Client adapter: `lib/ui/state/boards/firebase_ghost_api.dart`
 - Called when loading a ghost entry from leaderboard context.
 - Returns the active manifest, including replay digest and Storage generation lineage, plus a short-lived URL signed for that exact promoted object generation.
 
@@ -301,13 +301,13 @@ Why:
 - Exported in `functions/src/index.ts`.
 - Ensures managed leaderboard boards/windows exist.
 - Uses logic in `functions/src/boards/provisioning.ts`.
-- Defaults new boards to current game compatibility `2026.09.2`, combat
-  `rules-v2`, `score-v1`, and `ghost-v1`. A managed board ID binds mode, level,
+- Defaults new boards to current game compatibility `2026.09.10`, combat
+  `rules-v2`, `score-v2`, and `ghost-v1`. A managed board ID binds mode, level,
   window, ruleset, score, game compatibility, and ghost version, so rollout
   partitions can coexist without sharing leaderboard/ghost descendants.
 - Active-board and run-session callables accept only the compatibility
   allowlist resolved from `RUN_SUPPORTED_GAME_COMPAT_VERSIONS`. The default is
-  `2026.09.2` only. Complete the [compatibility drain and switch](chunk_connections.md#compatibility-release)
+  `2026.09.10` only. Complete the [coordinated release](deployment_workflow.md)
   and remove old overrides before enabling new issuance. Historical labels
   cannot execute on the current worker.
 - The read-only production inventory groups active sessions by game
@@ -464,6 +464,14 @@ defined in `docs/tdd/reward_settlement_operations.md`.
   Functions CI workflow together with build and the emulator suite.
 - Firebase CLI is pinned in `functions/package.json`; local and CI tests must
   use that workspace binary through the package script.
+
+## Deployment
+
+Use the [deployment workflow](deployment_workflow.md) for prepared builds,
+explicit project selection, issuer pause, repair/settlement-before-worker
+ordering, READY indexes and post-deploy private IAM checks. The ticket issuer
+is excluded from the backend phase and restored only after matching worker,
+web and board readiness. Source defaults do not establish the live version.
 
 ## 7) Why this architecture is used
 

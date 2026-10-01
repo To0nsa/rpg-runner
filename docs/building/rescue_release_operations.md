@@ -1,16 +1,53 @@
 # Rescue release operations
 
-Status: deployed September 25, 2026. Signed-in production gameplay smoke remains
+Status: 2026.09.9 was deployed September 25, 2026; 2026.09.10 remains a source
+release awaiting deployment evidence. Signed-in production gameplay smoke remains
 outstanding. See the [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [current Forest content release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
 The repository now targets gameplay `2026.09.10` for a 20% reduction in camera
-auto-scroll targets. This source change is not deployed. Its client, Functions,
+auto-scroll targets. No current-source deployment evidence is recorded. Its client, Functions,
 worker and board versions must be cut over together after the existing run and
 settlement drain steps; the completed `2026.09.9` steps below are historical
 deployment evidence, not completion evidence for `2026.09.10`.
 
-The matching release is gameplay `2026.09.9`, rules `rules-v2`, score `score-v2`,
+## Current source release: 2026.09.10
+
+Use the [deployment workflow](../tdd/deployment_workflow.md) and its
+[agent checklist](../../.agent/workflows/deploy-release.md).
+The earlier owner's omission of tests/benchmarks applies only to the historical
+2026.09.9 deployment below; it does not waive the current release gates.
+
+- [ ] Prepare matching source, frozen dependencies, fresh generated content and
+  successful client/Functions/shared-package/validator checks.
+- [ ] Build and benchmark the immutable release worker image.
+- [ ] Pause normal ticket issuance and complete the drain/cancellation review.
+- [ ] Deploy Functions repair/settlement surfaces and READY indexes, private
+  invocation permissions, matching worker/queues and web artifacts.
+- [ ] Verify current/next boards and published worker/web identity, then restore
+  queues and matching ticket issuance.
+- [ ] Complete the linked Play Games and retired-version smoke checks below,
+  then record current release evidence.
+
+## Read-only production inspection: October 1, 2026
+
+The release Inspect action completed against rpg-runner-d7add at
+2026-10-01T18:38:03.955Z. All 26 Functions reported ACTIVE; validation and
+projection queues reported RUNNING. The ready worker remained
+replay-validator-00042-g9g with 100% traffic and immutable image digest
+sha256:e2716e59c3db8bb6577b917ab12769b0a9b2faf38d5779afcc6b76f152717aa7,
+matching the September 25 deployment evidence.
+
+The inventory contained 194 terminal run sessions, 170 accepted validations and
+170 settled reward grants; no active runs, stale pending settlements or
+quarantined settlements were reported. Current-source 2026.09.10 boards were
+not provisioned (all six expected current/next boards absent). This snapshot
+does not complete the current release or its signed-in gameplay smoke.
+No production changes were performed.
+
+## Historical production evidence: 2026.09.9
+
+The historical matching release is gameplay `2026.09.9`, rules `rules-v2`, score `score-v2`,
 ghost `ghost-v1`, replay/command format 1. It includes the earlier Forest
 navigation and Poison Darts changes, plus grounded melee combat holding on
 direct walk routes and the final allied health tuning: Warrior 20 HP, Huntress

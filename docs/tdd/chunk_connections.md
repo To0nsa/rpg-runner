@@ -316,12 +316,21 @@ do not change selector ordering, eligibility, salts, or the connection digest.
 
 Any future change to profile equality, pool resolution, graph viability,
 candidate ordering, or selection salts is replay-sensitive and requires a new
-coordinated game-compatibility release. Rollout must use the existing
-drain-and-switch process: stop issuing the old version, keep its worker for the
-existing queue, wait for the 24-hour ticket lifetime plus allowed clock skew,
-prove that no old sessions, leases, submissions, or settlement work remain,
-then switch matching app, backend defaults/boards, content, and worker builds.
-Board and ghost artifacts remain under their original compatibility version.
+coordinated game-compatibility release. Use the
+[deployment workflow](deployment_workflow.md) and
+[current release checklist](../building/rescue_release_operations.md) to stop
+old issuance, drain validation and settlement, and switch matching app, backend
+defaults/boards, content and worker builds.
+
+The current pre-live release permits explicitly reviewed cancellation of
+disposable test runs instead of a ticket-lifetime wait; no reset is authorized
+merely by these documents. When retaining every issued ticket, preserve its
+compatible worker through the ticket-lifetime retirement gate and prove that
+no old sessions, leases, submissions or settlement remain before switching.
+The read-only inventory's compatibility-retirement assessment remains available
+for that policy. Board and ghost artifacts retain their original compatibility
+and generation lineage. Current worker support and latest verified production
+evidence are separate facts; see the documentation index.
 
 ## Verification Evidence
 

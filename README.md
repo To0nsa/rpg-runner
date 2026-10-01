@@ -112,15 +112,22 @@ The editor's Build action uses the existing repository generator and reports
 source errors and generated freshness. See the [editor guide](tools/editor/README.md)
 for creation, Save/recovery, inclusion, Play controls, and schema migration.
 
-## Deploy The Web Client
+## Deploy A Release
 
-Build the Flutter web client, then publish it to the configured Firebase
-Hosting site:
+Use the [coordinated release workflow](docs/tdd/deployment_workflow.md) for
+Functions, Firestore rules/indexes, the replay worker and web Hosting:
 
-```bash
-flutter build web --release
-firebase deploy --only hosting --project rpg-runner-d7add
-```
+~~~powershell
+.\tools\release\release.ps1 -Action Plan
+.\tools\release\release.ps1 -Action Prepare
+~~~
+
+The default Plan is offline. Prepare runs independent validation/build jobs in
+parallel and saves reusable source/artifact evidence. The same entry point
+provides live inspection, asynchronous image builds, and explicit issuance
+pause/deploy/resume stages. Follow the workflow before invoking those production
+actions; a gameplay compatibility change requires matching client, Functions,
+worker and board versions.
 
 ## Tech Stack
 
@@ -143,6 +150,7 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The repository's gameplay
-compatibility is 2026.09.6, including the enemy terrain-navigation repairs.
+compatibility is 2026.09.10, including rescue scoring, Forest repairs/spawn
+changes and slower camera pacing.
 The [documentation index](docs/README.md) distinguishes pending compatibility
 work from the latest verified production release.

@@ -7,5 +7,16 @@ steps:
       - -t
       - ${_IMAGE_URI}
       - .
+  - name: gcr.io/cloud-builders/docker
+    id: benchmark-release-image
+    args:
+      - run
+      - --rm
+      - --cpus=1
+      - --memory=512m
+      - ${_IMAGE_URI}
+      - benchmark
+      - --ticks=36000
+      - --strict
 images:
   - ${_IMAGE_URI}

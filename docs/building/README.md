@@ -8,7 +8,9 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): `2026.09.9`/`score-v2`
+- [Rescue release operations](rescue_release_operations.md): `2026.09.10` source awaits
+  coordinated deployment through the [release workflow](../tdd/deployment_workflow.md);
+  `2026.09.9`/`score-v2`
   deployed to Functions, Cloud Run and web Hosting. No run cancellations were
   needed. The latest Forest content update was deployed without tests at the
   owner's request. Remaining live gameplay smoke needs a linked Play Games account.

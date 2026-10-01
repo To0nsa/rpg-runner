@@ -1,0 +1,50 @@
+name: Release tooling
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release-tooling.yml"
+      - "tools/release/**"
+      - "functions/src/index.ts"
+      - "functions/src/runs/compatibility.ts"
+      - "functions/src/boards/provisioning.ts"
+      - "lib/ui/state/app/app_state.dart"
+      - "services/replay_validator/lib/src/validator_worker.dart"
+      - "firebase.json"
+      - ".firebaserc"
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/release-tooling.yml"
+      - "tools/release/**"
+      - "functions/src/index.ts"
+      - "functions/src/runs/compatibility.ts"
+      - "functions/src/boards/provisioning.ts"
+      - "lib/ui/state/app/app_state.dart"
+      - "services/replay_validator/lib/src/validator_worker.dart"
+      - "firebase.json"
+      - ".firebaserc"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        shell: [powershell, pwsh]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Check helpers and mocked deployment sequence
+        shell: ${{ matrix.shell }}
+        run: |
+          .\tools\release\test_release.ps1
+          .\tools\release\test_release_integration.ps1
+      - name: Resolve offline release plan
+        shell: ${{ matrix.shell }}
+        run: .\tools\release\release.ps1 -Action Plan

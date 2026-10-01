@@ -74,7 +74,8 @@ or the retired `rules-v1` combat simulator.
 
 The preceding `2026.09.9` worker, Functions and web client were deployed on
 September 25; see [release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
-The `2026.09.10` source change has not been deployed.
+No checked-in evidence establishes a `2026.09.10` production cutover.
+Confirm current live state before treating the previous release as current.
 Use the [release checklist](../../docs/building/rescue_release_operations.md)
 for the remaining signed-in smoke check and any future cutover.
 Stop old issuance, cancel disposable test runs, and let running validation and
@@ -82,6 +83,20 @@ settlement finish before resetting their remaining test state. Switch matching
 worker, generated content, Functions and client builds together; use fresh
 boards and tickets. Remove stale supported-version environment overrides.
 There is no historical-run migration or ticket-lifetime retirement wait.
+
+## Coordinated Release Entry Point
+
+Use [tools/release/release.ps1](../../tools/release/release.ps1) and the
+[deployment workflow](../../docs/tdd/deployment_workflow.md) for a matching
+Functions, worker, board and web cutover. Prepare runs local checks/builds in
+parallel and records reusable evidence. BuildImage submits asynchronously;
+ImageStatus records the immutable result. The checked-in Cloud Build now
+benchmarks that final image at release limits before publishing it.
+
+PauseIssuance, Deploy and ResumeIssuance are separate, explicitly authorized
+production stages. The detailed commands below remain the underlying worker
+policy and manual operational reference. Do not deploy just the worker for a
+gameplay compatibility change.
 
 ## Build Container Image
 

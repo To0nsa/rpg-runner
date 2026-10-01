@@ -139,6 +139,16 @@ Deploy the Functions settlement dispatcher and repair job before deploying a
 validator revision that emits `settlement_pending`; deploying only the
 validator would strand accepted rewards.
 
+
+Use [the deployment workflow](../../docs/tdd/deployment_workflow.md) and
+tools/release/release.ps1 for coordinated releases. Preparation is reusable only
+with matching source/toolchain/artifact hashes. Cloud Build must benchmark the
+exact final image at one CPU and 512 MiB before it is published; keep its Dart
+dependency resolution locked to the independent service lockfile.
+The worker cutover runs while normal issuance and both queues are paused.
+The matching issuer is restored only after worker/web identity and board
+readiness are verified. Mocked release tests do not establish live readiness.
+
 ## Testing And Build Expectations
 
 Minimum checks from `services/replay_validator/`:

@@ -8,7 +8,7 @@ COPY packages/run_protocol /workspace/packages/run_protocol
 COPY services/replay_validator /workspace/services/replay_validator
 
 WORKDIR /workspace/services/replay_validator
-RUN dart pub get
+RUN dart pub get --enforce-lockfile
 RUN mkdir -p /workspace/out
 RUN dart compile exe bin/server.dart -o /workspace/out/replay_validator_server
 
