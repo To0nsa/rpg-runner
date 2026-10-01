@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_first_chunk_001",
   "id": "forest_early_first_chunk_001",
-  "revision": 24,
+  "revision": 26,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -16,8 +16,8 @@
     {
       "prefabId": "gandalf_hardcore_willow_tree_01",
       "prefabKey": "gandalf_hardcore_willow_tree_01",
-      "x": 372,
-      "y": 102,
+      "x": 386,
+      "y": 100,
       "zIndex": 0,
       "snapToGrid": false,
       "scale": 1.3
@@ -33,8 +33,8 @@
     {
       "prefabId": "tiny_swords_bench_01",
       "prefabKey": "tiny_swords_bench_01",
-      "x": 158,
-      "y": 200,
+      "x": 159,
+      "y": 202,
       "zIndex": 0,
       "snapToGrid": false
     }

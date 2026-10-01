@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_hill_002",
   "id": "forest_early_hill_002",
-  "revision": 27,
+  "revision": 32,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -32,16 +32,16 @@
     {
       "prefabId": "pixel_fantasy_caves_small_rock_04",
       "prefabKey": "pixel_fantasy_caves_small_rock_04",
-      "x": 128,
-      "y": 130,
+      "x": 125,
+      "y": 141,
       "zIndex": 0,
-      "snapToGrid": true
+      "snapToGrid": false
     },
     {
       "prefabId": "high_forest_bush_03",
       "prefabKey": "high_forest_bush_03",
-      "x": 524,
-      "y": 144,
+      "x": 522,
+      "y": 143,
       "zIndex": 0,
       "snapToGrid": false
     }

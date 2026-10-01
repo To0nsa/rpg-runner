@@ -374,6 +374,11 @@ Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
 The subsequent Forest spawn revision uses gameplay `2026.09.9`; removing enemy
 placements changes deterministic replay outcomes and requires matching client
 and worker content. Scoring and command encoding are unchanged.
+The pending `2026.09.10` source release includes early Forest prefab position
+and layer adjustments. Placed solid prefabs retain collision authority at their
+authored positions; regenerate both chunk sprite records and the staged terrain
+artifact together before building the client and replay worker.
+
 Core owns occurrence activation, target selection, participant damage credit,
 chunk containment, terminal priority and checked rescue awards. Shared UI/worker
 scoring consumes terminal rescue statistics; replay/command encoding stays at 1.

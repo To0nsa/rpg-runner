@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_alchemist_001",
   "id": "forest_early_alchemist_001",
-  "revision": 70,
+  "revision": 100,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -16,19 +16,11 @@
     {
       "prefabId": "mondstadt_tree_01",
       "prefabKey": "mondstadt_tree_01",
-      "x": 208,
+      "x": 192,
       "y": 128,
       "zIndex": -21,
       "snapToGrid": true,
       "scale": 1.6
-    },
-    {
-      "prefabId": "mondstadt_grass_01",
-      "prefabKey": "mondstadt_grass_01",
-      "x": 432,
-      "y": 208,
-      "zIndex": -1,
-      "snapToGrid": true
     },
     {
       "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
@@ -42,57 +34,65 @@
       "prefabId": "gandalf_hardcore_large_tent_01",
       "prefabKey": "gandalf_hardcore_large_tent_01",
       "x": 272,
-      "y": 160,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "gandalf_hardcore_drying_herb_01",
-      "prefabKey": "gandalf_hardcore_drying_herb_01",
-      "x": 272,
-      "y": 176,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "gandalf_hardcore_alchemy_02",
-      "prefabKey": "gandalf_hardcore_alchemy_02",
-      "x": 288,
-      "y": 192,
-      "zIndex": 0,
-      "snapToGrid": true
+      "y": 162,
+      "zIndex": 21,
+      "snapToGrid": false
     },
     {
       "prefabId": "gandalf_hardcore_fallen_dead_tree_02",
       "prefabKey": "gandalf_hardcore_fallen_dead_tree_02",
-      "x": 96,
-      "y": 208,
-      "zIndex": 0,
-      "snapToGrid": true
+      "x": 85,
+      "y": 211,
+      "zIndex": 21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "gandalf_hardcore_drying_herb_01",
+      "prefabKey": "gandalf_hardcore_drying_herb_01",
+      "x": 273,
+      "y": 175,
+      "zIndex": 22,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "gandalf_hardcore_alchemy_02",
+      "prefabKey": "gandalf_hardcore_alchemy_02",
+      "x": 289,
+      "y": 194,
+      "zIndex": 22,
+      "snapToGrid": false
     },
     {
       "prefabId": "mondstadt_grass_01",
       "prefabKey": "mondstadt_grass_01",
-      "x": 160,
-      "y": 208,
-      "zIndex": 0,
-      "snapToGrid": true
+      "x": 161,
+      "y": 210,
+      "zIndex": 22,
+      "snapToGrid": false
     },
     {
       "prefabId": "gandalf_hardcore_alchemy_01",
       "prefabKey": "gandalf_hardcore_alchemy_01",
       "x": 256,
-      "y": 208,
-      "zIndex": 0,
-      "snapToGrid": true
+      "y": 210,
+      "zIndex": 22,
+      "snapToGrid": false
     },
     {
       "prefabId": "mondstadt_grass_02",
       "prefabKey": "mondstadt_grass_02",
       "x": 336,
-      "y": 208,
-      "zIndex": 0,
-      "snapToGrid": true
+      "y": 210,
+      "zIndex": 22,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "mondstadt_grass_01",
+      "prefabKey": "mondstadt_grass_01",
+      "x": 432,
+      "y": 210,
+      "zIndex": 22,
+      "snapToGrid": false
     }
   ],
   "markers": [
