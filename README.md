@@ -152,5 +152,8 @@ chunk creation, joined previews and schedule readiness. See
 the selector's 2026.09.0 compatibility rollout. The repository's gameplay
 compatibility is 2026.09.10, including rescue scoring, Forest repairs/spawn
 changes and slower camera pacing.
+The [October 1 production release](docs/verification/game-compat-2026.09.10-production.md)
+uses frozen `6bfda4c8`; later projectile/content changes remain pending a new
+compatibility release.
 The [documentation index](docs/README.md) distinguishes pending compatibility
 work from the latest verified production release.

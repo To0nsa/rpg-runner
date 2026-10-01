@@ -11,8 +11,9 @@ not arbitrary project overrides or native app-store distribution.
 
 Source currently agrees on gameplay 2026.09.10, rules-v2, score-v2 and ghost-v1.
 Replay and command format remain 1. The latest checked-in production evidence
-is [2026.09.9](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
-That historical evidence does not prove today's live state.
+is [2026.09.10 at commit 6bfda4c8](../verification/game-compat-2026.09.10-production.md),
+deployed October 1, 2026. Subsequent projectile and authored-content changes
+were excluded; current branch source is not identical to that deployed commit.
 The [release checklist](../building/rescue_release_operations.md) retains the
 outstanding linked Play Games smoke checks.
 

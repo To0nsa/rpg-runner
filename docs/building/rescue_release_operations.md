@@ -1,37 +1,39 @@
 # Rescue release operations
 
-Status: 2026.09.9 was deployed September 25, 2026; 2026.09.10 remains a source
-release awaiting deployment evidence. Signed-in production gameplay smoke remains
-outstanding. See the [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
-and [current Forest content release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+Status: `2026.09.10` was deployed October 1, 2026 from frozen commit
+`6bfda4c8`; see [current production evidence](../verification/game-compat-2026.09.10-production.md).
+Signed-in production gameplay smoke remains outstanding. Earlier releases:
+[initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
+and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-The repository now targets gameplay `2026.09.10` for a 20% reduction in camera
-auto-scroll targets and projectile auto aim that filters targets by travel reach
-and terrain sightline, then predicts from the offset launch point. No
-current-source deployment evidence is recorded. Its client, Functions,
-worker and board versions must be cut over together after the existing run and
-settlement drain steps; the completed `2026.09.9` steps below are historical
-deployment evidence, not completion evidence for `2026.09.10`.
+The deployed commit includes the 20% reduction in camera auto-scroll targets
+and early Forest prefab/layout refinement. Later projectile auto aim filters
+targets by travel reach and terrain sightline, then predicts from the offset
+launch point; that work and subsequent authored content edits were excluded
+from this deployment at the owner's instruction to ignore ongoing edits.
+The current branch still names `2026.09.10`, but its excluded deterministic
+gameplay needs a new compatibility version and coordinated client/worker
+release before publication. The completed gates below apply to `6bfda4c8`.
 
-## Current source release: 2026.09.10
+## Deployed release: 2026.09.10 at 6bfda4c8
 
 Use the [deployment workflow](../tdd/deployment_workflow.md) and its
 [agent checklist](../../.agent/workflows/deploy-release.md).
 The earlier owner's omission of tests/benchmarks applies only to the historical
 2026.09.9 deployment below; it does not waive the current release gates.
 
-- [ ] Prepare matching source, frozen dependencies, fresh generated content and
+- [x] Prepare matching source, frozen dependencies, fresh generated content and
   successful client/Functions/shared-package/validator checks.
-- [ ] Build and benchmark the immutable release worker image.
-- [ ] Pause normal ticket issuance and complete the drain/cancellation review.
-- [ ] Deploy Functions repair/settlement surfaces and READY indexes, private
+- [x] Build and benchmark the immutable release worker image.
+- [x] Pause normal ticket issuance and complete the drain/cancellation review.
+- [x] Deploy Functions repair/settlement surfaces and READY indexes, private
   invocation permissions, matching worker/queues and web artifacts.
-- [ ] Verify current/next boards and published worker/web identity, then restore
+- [x] Verify current/next boards and published worker/web identity, then restore
   queues and matching ticket issuance.
 - [ ] Complete the linked Play Games and retired-version smoke checks below,
-  then record current release evidence.
+  then append their outcomes to the current release evidence.
 
-## Read-only production inspection: October 1, 2026
+## Pre-cutover read-only production inspection: October 1, 2026
 
 The release Inspect action completed against rpg-runner-d7add at
 2026-10-01T18:38:03.955Z. All 26 Functions reported ACTIVE; validation and
@@ -45,7 +47,7 @@ The inventory contained 194 terminal run sessions, 170 accepted validations and
 quarantined settlements were reported. Current-source 2026.09.10 boards were
 not provisioned (all six expected current/next boards absent). This snapshot
 does not complete the current release or its signed-in gameplay smoke.
-No production changes were performed.
+No production changes were performed during that inspection.
 
 ## Historical production evidence: 2026.09.9
 

@@ -5,8 +5,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Current audits](audit/README.md).
 - [Current implementation plans](building/README.md): NPC rescue encounters.
 - [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; deployed in `2026.09.8`.
-- [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, explicit issuance cutover and deployment evidence. Source targets `2026.09.10`; current source deployment is not verified.
-- [Latest production release](archive/2026-09-25/verification/game-compat-2026.09.9-production.md): Forest spawn revision deployed as `2026.09.9`/`score-v2`; tests and benchmarks omitted at the owner's request.
+- [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
+- [Latest production release](verification/game-compat-2026.09.10-production.md): frozen `6bfda4c8` deployed October 1 as `2026.09.10`/`score-v2`; local checks, strict container benchmark and live infrastructure verification passed. Later projectile/content edits were excluded; signed-in smoke remains open.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.

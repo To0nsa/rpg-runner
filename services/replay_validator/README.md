@@ -74,12 +74,15 @@ or the retired `rules-v1` combat simulator.
 
 The preceding `2026.09.9` worker, Functions and web client were deployed on
 September 25; see [release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
-No checked-in evidence establishes a `2026.09.10` production cutover.
-Confirm current live state before treating the previous release as current.
+The matching `2026.09.10` worker, Functions and web client were deployed
+October 1 from frozen `6bfda4c8`; see [current production evidence](../../docs/verification/game-compat-2026.09.10-production.md).
+Later projectile/content edits are excluded and require a new compatibility
+release. The strict exact-image benchmark and infrastructure checks passed;
+signed-in gameplay smoke remains outstanding.
 Use the [release checklist](../../docs/building/rescue_release_operations.md)
 for the remaining signed-in smoke check and any future cutover.
-Stop old issuance, cancel disposable test runs, and let running validation and
-settlement finish before resetting their remaining test state. Switch matching
+Stop old issuance and let running validation and settlement finish. Any test-run
+cancellation or reset requires its own authorization. Switch matching
 worker, generated content, Functions and client builds together; use fresh
 boards and tickets. Remove stale supported-version environment overrides.
 There is no historical-run migration or ticket-lifetime retirement wait.
