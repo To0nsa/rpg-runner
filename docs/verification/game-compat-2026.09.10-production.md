@@ -137,5 +137,9 @@ publication was outside this coordinated release. See the
 [active checklist](../building/rescue_release_operations.md).
 
 Local logs, benchmark JSON, release checkpoints and PII-free inventory snapshots
-are retained beneath `.tmp/deploy-2026-09-10/.tmp/releases/rpg-runner-d7add/`
-and the source fingerprint above. Credentials are not included in this record.
+are retained beneath
+`.tmp/release-archives/deploy-2026-09-10/releases/rpg-runner-d7add/`
+and the source fingerprint above. The detached deployment worktree was removed
+after hash-verifying the archived evidence. Checkpoints are historical records,
+not reusable preparation for another checkout. Credentials are not included in
+this record.
