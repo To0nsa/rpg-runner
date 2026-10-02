@@ -19,7 +19,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): gameplay, rendering and Chunk Creator authoring deployed with Forest repairs in `2026.09.8`.
 - [Technical design documents](tdd/): implemented architecture and contracts.
 - [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed. Survivor section
-  combat was deployed in `2026.10.1`.
+  combat was deployed in `2026.10.1`. Huntress distance-based throw/stab/slash
+  combat is implemented in source compatibility `2026.10.2`, pending coordinated release.
 - [Game design documents](gdd/): implemented mechanics and content rules.
 - [Documentation rules](rules/code-documentation-policy.md).
 

@@ -100,7 +100,8 @@ choice query the published terrain edge index for an unobstructed sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
 These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release. Current source compatibility is `2026.10.1`, which
+game-compatibility release. Current source compatibility is `2026.10.2`, which
+adds Huntress range-based attacks and confirmed-stab history per opponent, and
 also includes surviving NPC section combat, refreshed Forest generated content,
 and the contiguous walkable-support placement correction. These changes affect
 replay outcomes and must ship with matching client, Functions and worker artifacts.

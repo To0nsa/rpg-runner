@@ -54,7 +54,23 @@ void main() {
     for (final id in NpcId.values) {
       final catalog = const NpcCatalog().get(id);
       final entry = registry.entryFor(id)!;
-      final ability = AbilityCatalog.shared.resolve(catalog.attackAbilityId)!;
+      final sequence = catalog.meleeSequence;
+      final abilities = [
+        AbilityCatalog.shared.resolve(catalog.attackAbilityId)!,
+        if (sequence != null) ...[
+          AbilityCatalog.shared.resolve(sequence.openerAbilityId)!,
+          AbilityCatalog.shared.resolve(sequence.followUpAbilityId)!,
+        ],
+      ];
+      final abilitiesByAnim = {
+        for (final ability in abilities) ability.animKey: ability,
+      };
+      final states = [
+        AnimKey.idle,
+        ...abilitiesByAnim.keys,
+        AnimKey.hit,
+        AnimKey.death,
+      ];
       expect(
         entry.animSet.animations.keys,
         containsAll(catalog.renderAnim.sourcesByKey.keys),
@@ -62,13 +78,9 @@ void main() {
       final view = entry.createView();
       await view.onLoad();
       for (final facing in Facing.values) {
-        for (final state in [
-          AnimKey.idle,
-          ability.animKey,
-          AnimKey.hit,
-          AnimKey.death,
-        ]) {
-          final frameTicks = state == ability.animKey
+        for (final state in states) {
+          final ability = abilitiesByAnim[state];
+          final frameTicks = ability != null
               ? ability.windupTicks
               : state == AnimKey.death
               ? 999
@@ -95,18 +107,13 @@ void main() {
               catalog.renderAnim.frameCountsByKey[state]! - 1,
             );
           }
-          if (state == ability.animKey) {
+          if (ability != null) {
             expect(
               view.animationTicker!.currentIndex,
               ability.windupTicks ~/ 6,
             );
           }
-          final column = [
-            AnimKey.idle,
-            ability.animKey,
-            AnimKey.hit,
-            AnimKey.death,
-          ].indexOf(state);
+          final column = states.indexOf(state);
           final x = 120.0 + column * 220;
           final y = 95.0 + (id.index * 2 + facing.index) * 115;
           view.position.setValues(x, y);
@@ -140,7 +147,7 @@ void main() {
     // Optional review artifact; tests do not depend on local output or goldens.
     if (Platform.environment['NPC_RENDER_REVIEW'] == '1') {
       final picture = recorder.endRecording();
-      final image = await picture.toImage(900, 720);
+      final image = await picture.toImage(1340, 720);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       final file = File('.tmp/npc_render_review.png');
       await file.parent.create(recursive: true);

@@ -1,4 +1,5 @@
 import '../anim/anim_resolver.dart';
+import '../abilities/ability_def.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
@@ -11,6 +12,22 @@ import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'npc_id.dart';
 
+/// Close-range opener followed by repeat attacks against each successfully hit foe.
+/// History belongs to the NPC and survives target changes and bleed expiry.
+final class NpcMeleeSequence {
+  const NpcMeleeSequence({
+    required this.openerAbilityId,
+    required this.followUpAbilityId,
+    required this.range,
+  });
+
+  final AbilityKey openerAbilityId;
+  final AbilityKey followUpAbilityId;
+
+  /// Horizontal reach in world pixels; the NPC's half-height gates vertical reach.
+  final double range;
+}
+
 /// Allied actor tuning uses its own identity, never an enemy score identifier.
 final class NpcArchetype {
   const NpcArchetype({
@@ -22,6 +39,7 @@ final class NpcArchetype {
     this.speedX = 100,
     this.jumpSpeed = 360,
     this.attackRange = 52,
+    this.meleeSequence,
     this.castOriginOffset,
     this.castOriginOffsetY = 0,
   });
@@ -33,6 +51,9 @@ final class NpcArchetype {
   final double speedX;
   final double jumpSpeed;
   final double attackRange;
+
+  /// Takes priority over the default attack when the opponent is in melee reach.
+  final NpcMeleeSequence? meleeSequence;
   final double? castOriginOffset;
   final double castOriginOffsetY;
   Facing get artFacing => Facing.right;
@@ -157,6 +178,11 @@ const _huntress = NpcArchetype(
   speedX: 90,
   attackRange: 260,
   attackAbilityId: 'npc_huntress.throw_spear',
+  meleeSequence: NpcMeleeSequence(
+    openerAbilityId: 'npc_huntress.stab',
+    followUpAbilityId: 'npc_huntress.slash',
+    range: 52, // World pixels: same engagement reach as the allied warrior.
+  ),
   castOriginOffset: 18,
   castOriginOffsetY: -31.5,
   renderAnim: RenderAnimSetDefinition(
@@ -170,6 +196,8 @@ const _huntress = NpcArchetype(
       AnimKey.jump: 'entities/npc/huntress/jump.png',
       AnimKey.fall: 'entities/npc/huntress/fall.png',
       AnimKey.cast: 'entities/npc/huntress/attack3.png',
+      AnimKey.strike: 'entities/npc/huntress/attack2.png',
+      AnimKey.strike2: 'entities/npc/huntress/attack1.png',
       AnimKey.hit: 'entities/npc/huntress/take_hit.png',
       AnimKey.death: 'entities/npc/huntress/death.png',
     },
@@ -180,6 +208,8 @@ const _huntress = NpcArchetype(
       AnimKey.jump: 2,
       AnimKey.fall: 2,
       AnimKey.cast: 7,
+      AnimKey.strike: 5,
+      AnimKey.strike2: 5,
       AnimKey.hit: 3,
       AnimKey.death: 8,
     },
@@ -190,6 +220,8 @@ const _huntress = NpcArchetype(
       AnimKey.jump: .12,
       AnimKey.fall: .12,
       AnimKey.cast: .1,
+      AnimKey.strike: .1,
+      AnimKey.strike2: .1,
       AnimKey.hit: .1,
       AnimKey.death: .12,
     },

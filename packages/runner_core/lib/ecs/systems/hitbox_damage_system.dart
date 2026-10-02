@@ -104,6 +104,14 @@ class HitboxDamageSystem {
         final ti = _overlaps[i];
         final target = broadphase.targets.entities[ti];
 
+        if (world.npc.isSpentMeleeOpener(
+          owner,
+          target,
+          hitboxes.abilityId[hi],
+        )) {
+          continue;
+        }
+
         // "Hit Once" Check: Has this specific hitbox entity already struck this specific target entity?
         if (hitPolicy != HitPolicy.everyTick &&
             world.hitOnce.hasHit(hb, target)) {
@@ -137,6 +145,7 @@ class HitboxDamageSystem {
             damageType: hitboxes.damageType[hi],
             procs: hitboxes.procs[hi],
             source: owner,
+            sourceMeleeAbilityId: hitboxes.abilityId[hi],
             credit: hitboxes.credit[hi],
             sourceKind: hitboxes.sourceKind[hi],
             sourceEnemyId: enemyId,

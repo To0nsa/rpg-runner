@@ -18,12 +18,32 @@ can still change sides with its evade-and-ambush teleport.
 | --- | ---: | --- | ---: | ---: |
 | Warrior | 20 | Sword slash | 4 | 52 |
 | Huntress | 13 | Thrown spear | 4.5 | 260 |
+| Huntress | 13 | Opening stab + bleed | 3 + 3/sec for 5 sec | 52 |
+| Huntress | 13 | Follow-up slash | 4 | 52 |
 | Huntress 2 | 9 | Bow | 3 | 320 |
 
 Health and damage above are display units; distances are world pixels. These
 are current catalog values. NPC attacks use stamina, cooldowns and the same
 damage/status rules as other combat actors. NPC damage is allied damage and
 does not count as player participation. NPC death does not add an enemy kill.
+
+Huntress throws at distant opponents and uses melee within 52 horizontal world
+pixels when their vertical origins differ by at most 27 pixels. Her first
+successful stab against each enemy applies the existing physical bleed; later
+close attacks against that enemy use slash. A successful stab means positive
+health damage: misses, interrupted attacks, blocks that prevent all damage and
+invulnerability leave the opener available. Bleed immunity does not prevent a
+damaging stab from counting. Bleed uses the shared physical DoT channel and its
+normal refresh rules, rather than stacking a separate effect per Huntress.
+
+Each Huntress remembers her own stabbed enemies through target switches, bleed
+expiry and the transition to section guarding. Returning to range resumes spear
+throws; closing again resumes slash for a previously stabbed enemy.
+An opener aimed at a new enemy cannot re-hit a previously stabbed enemy caught
+in the same attack area. She finishes the committed attack before choosing
+another, subject to normal interrupts.
+All three attacks share a cooldown: throws take 1.3 seconds between starts,
+melee 0.8 seconds. Stab and slash each cost 4 stamina; throw costs 5.
 
 A rescue requires every required enemy to be health-defeated, at least one
 living NPC, and positive applied player damage to an encounter enemy. The final

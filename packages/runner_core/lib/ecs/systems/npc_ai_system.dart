@@ -52,7 +52,17 @@ final class NpcAiSystem {
       final targetTi = world.transform.indexOf(target);
       final targetX = world.transform.posX[targetTi];
       final x = world.transform.posX[ti];
-      final ability = AbilityCatalog.shared.resolve(archetype.attackAbilityId)!;
+      final sequence = archetype.meleeSequence;
+      final inMeleeRange =
+          (targetX - x).abs() <= (sequence?.range ?? archetype.attackRange) &&
+          (world.transform.posY[targetTi] - world.transform.posY[ti]).abs() <=
+              archetype.collider.halfY;
+      final abilityId = sequence != null && inMeleeRange
+          ? world.npc.hasLandedMeleeOpener(actor, target)
+                ? sequence.followUpAbilityId
+                : sequence.openerAbilityId
+          : archetype.attackAbilityId;
+      final ability = AbilityCatalog.shared.resolve(abilityId)!;
       final ranged = ability.hitDelivery is ProjectileHitDelivery;
       final targetCenter = aiActorCenter(
         world,
@@ -70,10 +80,7 @@ final class NpcAiSystem {
       final dy = targetCenter.$2 - sourceCenter.$2;
       final inRange = ranged
           ? dx * dx + dy * dy <= archetype.attackRange * archetype.attackRange
-          : (targetX - x).abs() <= archetype.attackRange &&
-                (world.transform.posY[targetTi] - world.transform.posY[ti])
-                        .abs() <=
-                    archetype.collider.halfY;
+          : inMeleeRange;
       if (inRange) {
         if (ranged) {
           casts.commit(
@@ -95,7 +102,7 @@ final class NpcAiSystem {
           melee.commit(
             world,
             actor: actor,
-            abilityId: archetype.attackAbilityId,
+            abilityId: abilityId,
             targetX: targetX,
             currentTick: currentTick,
           );

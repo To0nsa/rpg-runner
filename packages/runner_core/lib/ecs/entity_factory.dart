@@ -268,6 +268,7 @@ class EntityFactory {
       chunkEndX: chunkEndX,
       initialFacing: facing,
       sourceFacing: archetype.artFacing,
+      meleeOpenerAbilityId: archetype.meleeSequence?.openerAbilityId,
     );
     world.surfaceNav.add(id);
     world.navIntent.add(id);

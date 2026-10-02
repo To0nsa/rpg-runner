@@ -164,6 +164,13 @@ class DamageSystem {
       // 7. Record Last Damage details (if store exists).
       // Only useful if damage was actually taken.
       if (nextHp < prevHp) {
+        if (sourceEntity != null) {
+          world.npc.recordMeleeHit(
+            sourceEntity,
+            target,
+            queue.sourceMeleeAbilityId[i],
+          );
+        }
         onParticipationDamage?.call(
           target: target,
           hpLost100: prevHp - nextHp,

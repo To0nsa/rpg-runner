@@ -23,7 +23,7 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
 - 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
-  surviving section guards,
+  surviving section guards and Huntress throw/stab/slash combat,
   editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring
 - Gear/loadout setup flow before runs
 - In-game HUD, pause, game-over, and scoring
@@ -155,11 +155,12 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The repository's gameplay
-compatibility is 2026.10.1, including projectile auto aim, surviving NPC section
+compatibility is 2026.10.2, adding Huntress distance-based attacks and per-enemy
+stab history alongside projectile auto aim, surviving NPC section
 combat, the latest Forest grove/terrain refinements and grounded-placement repair,
 rescue scoring and slower camera pacing.
-The [October 1 production release](docs/verification/game-compat-2026.09.10-production.md)
-uses frozen `6bfda4c8`; the matching `2026.10.1` coordinated release is in
-progress.
+The [recorded October 2 production release](docs/verification/game-compat-2026.10.1-production.md)
+uses frozen `0cb94b94`. Source compatibility `2026.10.2` requires a matching
+coordinated release; this branch does not deploy it.
 The [documentation index](docs/README.md) distinguishes pending compatibility
 work from the latest verified production release.

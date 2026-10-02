@@ -1,3 +1,4 @@
+import '../../abilities/ability_def.dart';
 import '../../combat/damage.dart';
 import '../../combat/damage_credit.dart';
 import '../../combat/damage_type.dart';
@@ -25,6 +26,7 @@ class DamageQueueStore {
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
   final List<EntityId?> sourceEntity = <EntityId?>[];
+  final List<AbilityKey?> sourceMeleeAbilityId = [];
   final List<EnemyId?> sourceEnemyId = <EnemyId?>[];
   final List<ProjectileId?> sourceProjectileId = <ProjectileId?>[];
   final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
@@ -47,6 +49,7 @@ class DamageQueueStore {
     procs.add(request.procs);
     sourceKind.add(request.sourceKind);
     sourceEntity.add(request.source);
+    sourceMeleeAbilityId.add(request.sourceMeleeAbilityId);
     sourceEnemyId.add(request.sourceEnemyId);
     sourceProjectileId.add(request.sourceProjectileId);
     sourceTrap.add(request.sourceTrap);
@@ -67,6 +70,7 @@ class DamageQueueStore {
     procs.clear();
     sourceKind.clear();
     sourceEntity.clear();
+    sourceMeleeAbilityId.clear();
     sourceEnemyId.clear();
     sourceProjectileId.clear();
     sourceTrap.clear();

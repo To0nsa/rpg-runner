@@ -47,7 +47,7 @@ The replay's optional `clientSummary` includes the two fields only as provisiona
 display evidence. The validator ignores these claims and writes both statistics
 from replayed Core to `ValidatedRun.stats`; gold and settlement idempotency remain
 unchanged. Existing open JSON maps support these additive keys without changing
-replay/command format 1. Gameplay compatibility is `2026.10.1`, ranked scoring is
+replay/command format 1. Gameplay compatibility is `2026.10.2`, ranked scoring is
 `score-v2`, and rules/ghost remain `rules-v2`/`ghost-v1`. The worker accepts only the
 new gameplay/score pair. See the [pre-live release checklist](../building/rescue_release_operations.md).
 
@@ -221,6 +221,10 @@ define reviewed sprite anchors, torso capsules, terrain profiles and resources.
 The warrior uses its four-frame sword attack; Huntress uses the seven-frame
 spear throw and Huntress 2 the six-frame bow attack. At 60 Hz, their release
 ticks are respectively 12, 36 and 12.
+Huntress also maps the five-frame `attack2.png` stab to `AnimKey.strike` and
+`attack1.png` slash to `AnimKey.strike2`. Both impact at tick 18, stay active for
+6 ticks and recover for 6 ticks at the 60 Hz authoring rate. Existing animation
+catalog consumers include both strips in preload, warmup, Play capture and ghosts.
 
 `SnapshotBuilder` emits `EntityKind.npc`, a separate `NpcId`, and immutable
 health/protection metadata alongside the shared actor animation, facing, status
@@ -244,6 +248,32 @@ pending/attached combat and never reports an enemy kill. Generic health cleanup
 leaves NPC bodies to that lifecycle.
 
 ## NPC decisions and shared execution
+
+`NpcArchetype.meleeSequence` optionally overrides the default attack at close
+range. Huntress uses a 52-pixel horizontal threshold and its 27-pixel half-height
+as the vertical tolerance. Beyond that melee envelope it retains the existing
+260-pixel center-to-center spear range and predictive aim. The shared committers
+reject attack changes during an active ability. All three Huntress abilities
+use the primary cooldown group, preserving cadence when distance changes.
+
+`NpcStore` owns the configured opener identity and successful targets separately
+for each NPC. `HitboxDamageSystem` carries the committed hitbox's ability through
+`DamageRequest.sourceMeleeAbilityId` and the damage queue; it never infers it from
+the actor's current target or animation. `DamageSystem` records the actual victim
+only after positive HP reduction, after middleware and invulnerability checks.
+This phase-7 confirmation is visible to the next phase-3 NPC decision without
+changing tick ordering. Non-melee damage does not carry this confirmation field.
+The stab uses the existing guaranteed `meleeBleed` on-hit proc and allied damage
+credit. Status immunity does not undo a successful damaging opener.
+
+History survives target roster refresh, bleed expiry and section-guard promotion.
+World destruction removes inbound history before recycling target IDs, while
+NPC component removal discards its own history. Hitbox resolution excludes a
+previously stabbed victim from later openers aimed at nearby new opponents, so
+incidental overlap cannot repeat the stab or refresh its bleed. No history is serialized: replay
+reconstructs it from deterministic confirmed damage. This combat change requires
+matching client, Functions and worker compatibility `2026.10.2`; it is not
+compatible with `2026.10.1` replays and must use the coordinated drain/cutover.
 
 `NpcAiSystem` consumes the shared selected target and terrain navigation
 intent, during both encounters and section guarding. The terrain publication includes allied graph profiles derived from

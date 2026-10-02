@@ -428,6 +428,7 @@ class EcsWorld {
       fatalWorldLoss: fatalWorldLoss,
     );
     aiTarget.forget(entity);
+    npc.forgetTarget(entity);
     surfaceNav.forgetTarget(entity);
     for (final store in _stores) {
       store.removeEntity(entity);

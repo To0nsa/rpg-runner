@@ -4,6 +4,7 @@ import '../events/game_event.dart';
 import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
 import '../traps/trap_placement.dart';
+import '../abilities/ability_def.dart';
 import 'damage_type.dart';
 import 'damage_credit.dart';
 
@@ -20,6 +21,7 @@ class DamageRequest {
     this.damageType = DamageType.physical,
     this.procs = const <WeaponProc>[],
     this.source,
+    this.sourceMeleeAbilityId,
     this.sourceKind = DeathSourceKind.unknown,
     this.sourceEnemyId,
     this.sourceProjectileId,
@@ -46,6 +48,10 @@ class DamageRequest {
 
   /// The optional entity responsible for dealing the damage (e.g. the shooter).
   final EntityId? source;
+
+  /// Captured melee ability identity for post-defense hit confirmation.
+  /// Null for projectiles, damage over time and other non-melee requests.
+  final AbilityKey? sourceMeleeAbilityId;
 
   /// Categorization of the damage source for death messages or analytics.
   final DeathSourceKind sourceKind;
