@@ -811,8 +811,11 @@ class TerrainPlacementQuery {
         candidateIndex,
         surfaceIndex.surfaces,
       );
-      if (candidate.chainId != support.chainId ||
-          !candidate.isEligibleFor(traversalProfile)) {
+      if (!_hasEligibleSupportConnection(
+        support,
+        candidate,
+        traversalProfile,
+      )) {
         continue;
       }
       final edge = geometry.edgeById[candidate.id]!;
@@ -829,6 +832,25 @@ class TerrainPlacementQuery {
       }
     }
     return false;
+  }
+
+  bool _hasEligibleSupportConnection(
+    TerrainNavigationSurface support,
+    TerrainNavigationSurface candidate,
+    TerrainTraversalProfile profile,
+  ) {
+    if (candidate.chainId != support.chainId) return false;
+    // A shared chain can cross steep faces. Only a continuous walkable run may
+    // lift a grounded pose; a shelf beyond an ineligible face is an obstacle.
+    var current = support;
+    final towardLeft = candidate.xMinTicks < support.xMinTicks;
+    while (current.id != candidate.id) {
+      final nextId = towardLeft ? current.previousId : current.nextId;
+      if (nextId == null) return false;
+      current = surfaceIndex.surfaceSet.surfaceById(nextId)!;
+      if (!current.isEligibleFor(profile)) return false;
+    }
+    return true;
   }
 
   (TerrainEdgeId?, int, int) _firstClearanceBlocker({

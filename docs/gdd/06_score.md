@@ -176,7 +176,9 @@ Rescues reward surviving allies after all required encounter enemies are defeate
 and the player has applied damage to a required enemy. Each survivor defaults to
 250 points. Chunk Creator can override that value per group from 0 to 100,000;
 explicit zero and explicit 250 survive Save/Undo. Mixed groups sum their actual
-awards, rather than multiplying all survivors by the current default.
+awards, rather than multiplying all survivors by the current default. A rescued
+survivor becoming a section guard, fighting again or dying later never changes
+this settled award.
 
 No credited survivors means no rescue row. A credited zero-point survivor still
 appears in the row. NPC deaths do not count as enemy kills; existing defeated-enemy

@@ -24,6 +24,34 @@ void main() {
     );
   });
 
+  for (final previous in [
+    'forest_rocky_grove_easy_004',
+    'forest_rocky_grove_easy_007',
+  ]) {
+    for (final enemy in [EnemyId.grojib, EnemyId.hashash]) {
+      test(
+        'rock foothold after $previous continuously reaches route exit for ${enemy.name}',
+        () {
+          final route = LevelTraversalRoute.chunks(
+            level: LevelRegistry.byId(LevelId.forest),
+            seed: 7,
+            chunkKeys: [
+              'forest_early_first_chunk_001',
+              previous,
+              'forest_rocky_grove_easy_008',
+              'forest_rocky_grove_easy_009',
+            ],
+            continuationChunkKey: 'forest_rocky_grove_normal_001',
+          );
+          final harness = EnemyTraversalHarness(route, enemy);
+          expect(harness.traverse(), isNull);
+          expect(harness.enemyX, greaterThanOrEqualTo(harness.finishX));
+          expect(harness.visitedChunks, containsAll([0, 1, 2, 3]));
+        },
+      );
+    }
+  }
+
   for (final scenario in _scenarios) {
     testLevelEnemyTraversal(
       levelId: scenario.levelId,

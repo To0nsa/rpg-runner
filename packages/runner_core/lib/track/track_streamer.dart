@@ -80,6 +80,7 @@ class ActiveTrackChunkSnapshot {
     required this.chunkKey,
     this.traps = const [],
     this.encounters = const [],
+    this.assembly,
   });
 
   /// Deterministic sequential streamed instance index.
@@ -100,6 +101,9 @@ class ActiveTrackChunkSnapshot {
   /// Immutable canonical placements from this exact selected pattern.
   final List<TrapPlacement> traps;
   final List<EncounterDefinition> encounters;
+
+  /// Exact selected Flow occurrence; null for automatic/standalone chunks.
+  final ChunkAssemblySelection? assembly;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -221,13 +225,12 @@ class TrackStreamer {
           ? double.infinity
           : active.first.endX + tuning.cullBehindMargin;
       if (spawnAt <= cullAfter) {
-        final pattern = patternSource
-            .selectionFor(
-              seed: seed,
-              chunkIndex: nextIndex,
-              tier: _tierForChunkIndex(nextIndex),
-            )
-            .pattern;
+        final selection = patternSource.selectionFor(
+          seed: seed,
+          chunkIndex: nextIndex,
+          tier: _tierForChunkIndex(nextIndex),
+        );
+        final pattern = selection.pattern;
         active.add(
           ActiveTrackChunkSnapshot(
             index: nextIndex,
@@ -235,6 +238,7 @@ class TrackStreamer {
             endX: nextStart + tuning.chunkWidth,
             patternName: pattern.name,
             chunkKey: pattern.chunkKey,
+            assembly: selection.assembly,
             traps: List<TrapPlacement>.unmodifiable(pattern.traps),
             encounters: List<EncounterDefinition>.unmodifiable(
               pattern.encounters,
@@ -321,6 +325,7 @@ class TrackStreamer {
           patternName: pattern.name,
           chunkKey: pattern.chunkKey,
           tier: selection.tier,
+          assembly: selection.assembly,
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
           traps: List<TrapPlacement>.unmodifiable(pattern.traps),
@@ -371,6 +376,7 @@ class TrackStreamer {
             endX: c.endX,
             patternName: c.patternName,
             chunkKey: c.chunkKey,
+            assembly: c.assembly,
             traps: c.traps,
             encounters: c.encounters,
           ),
@@ -494,6 +500,7 @@ class _ActiveChunk {
     required this.patternName,
     required this.chunkKey,
     required this.tier,
+    required this.assembly,
     required this.visualSprites,
     required this.traps,
     required this.encounters,
@@ -517,6 +524,7 @@ class _ActiveChunk {
 
   /// Resolved authored difficulty after any automatic-pool fallback.
   final ChunkPatternTier tier;
+  final ChunkAssemblySelection? assembly;
 
   /// Render sprites for authored prefab visuals in this chunk.
   final List<ChunkVisualSpriteWorld> visualSprites;

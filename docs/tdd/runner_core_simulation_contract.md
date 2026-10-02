@@ -60,7 +60,7 @@ order; the contract below records the dependencies that must survive changes.
 | --- | --- | --- |
 | 1 | Stream/cull track, obtain the complete staged candidate, publish terrain, place captured ambient actors/items, activate swept encounter triggers, and prepare motion | Encounter rosters preflight completely before actor creation. An exact prepared selection may replace synchronous construction; consumers never observe mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
-| 3 | Select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
+| 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
 | 5 | Collect pickups, rebuild broadphase, and move existing projectiles | Hit detection requires current spatial data; newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, then position hitboxes | Self abilities resolve before downstream combat so their effects apply deterministically. |
@@ -70,8 +70,8 @@ order; the contract below records the dependencies that must survive changes.
 Encounter lifecycle hooks check camera expiry before streaming and after camera
 motion, record only positive applied player HP damage, and resolve after fatal
 enemy culls but before death cleanup. Run termination has precedence over
-same-tick rescue and finalizes unresolved groups before death freeze or final
-stats. See [encounter contracts](npc_encounter_contracts.md) for the delivered
+same-tick rescue and finalizes unresolved groups and stops surviving section
+guards before death freeze or final stats. See [encounter contracts](npc_encounter_contracts.md) for the delivered
 controller, actor integration and streaming-retention contract.
 
 Combat spatial lookup has a two-stage deterministic contract. During phase 5,
@@ -100,8 +100,11 @@ choice query the published terrain edge index for an unobstructed sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
 These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release. They are included in the `2026.10.1`
-source release; they were excluded from the October 1 `2026.09.10` deployment.
+game-compatibility release. Current source compatibility is `2026.10.1`, which
+also includes surviving NPC section combat, refreshed Forest generated content,
+and the contiguous walkable-support placement correction. These changes affect
+replay outcomes and must ship with matching client, Functions and worker artifacts.
+They were excluded from the October 1 `2026.09.10` deployment at frozen `6bfda4c8`.
 
 During phase 7, melee/area hitboxes, projectiles, and mobility impacts query
 that AABB grid only for candidates. `HitResolver` preserves stable entity-ID
@@ -397,7 +400,12 @@ geometry and blocking prefab pockets. Its 60-chunk authored catalog is
 regenerated into both runtime artifacts before client/worker validation.
 
 Core owns occurrence activation, target selection, participant damage credit,
-chunk containment, terminal priority and checked rescue awards. Shared UI/worker
+active chunk containment, survivor section bounds, terminal priority and checked
+rescue awards. Section guard rosters refresh before shared AI selection and do
+not replace active encounter policies. Guard combat and stationary-target support
+change replayed outcomes; client, Functions and worker use `2026.10.1` together.
+Old gameplay versions are rejected by this worker; scoring and wire formats are
+unchanged. Shared UI/worker
 scoring consumes terminal rescue statistics; replay/command encoding stays at 1.
 The [encounter contract](npc_encounter_contracts.md) defines ordering and ownership.
 The matching client, Functions and worker follow the

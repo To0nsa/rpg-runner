@@ -265,7 +265,7 @@ class _ChunkEncounterInspectorState extends State<ChunkEncounterInspector> {
         if (m == null) ...[
           _field('name', 'Display name', numeric: false),
           const Text(
-            'NPC movement bounds: this entire chunk. Terrain controls vertical movement.',
+            'NPCs fight inside this chunk during the encounter. After clearing it, survivors guard the containing Flow section; automatic levels and Chunk Play use this chunk. Terrain controls vertical movement.',
           ),
           const SizedBox(height: 8),
           const Text('Activation trigger (independent of movement bounds)'),

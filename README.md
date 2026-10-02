@@ -23,6 +23,7 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
 - 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
+  surviving section guards,
   editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring
 - Gear/loadout setup flow before runs
 - In-game HUD, pause, game-over, and scoring
@@ -154,8 +155,9 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The repository's gameplay
-compatibility is 2026.10.1, including projectile auto aim and the latest Forest
-grove/terrain refinements alongside rescue scoring and slower camera pacing.
+compatibility is 2026.10.1, including projectile auto aim, surviving NPC section
+combat, the latest Forest grove/terrain refinements and grounded-placement repair,
+rescue scoring and slower camera pacing.
 The [October 1 production release](docs/verification/game-compat-2026.09.10-production.md)
 uses frozen `6bfda4c8`; the matching `2026.10.1` coordinated release is in
 progress.

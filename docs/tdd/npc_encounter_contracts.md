@@ -75,18 +75,25 @@ invalidates a required enemy rather than treating a terrain cull as a combat win
 
 Resolution priority is run termination, camera expiry, invalid membership, all
 NPCs dead, then required-enemy completion. Completion rescues living NPCs only
-after recorded player HP damage; otherwise survivors become safe without points.
-Terminal outcomes are immutable. Enemies lose only their encounter target policy,
+after recorded player HP damage; otherwise it resolves unassisted without points.
+Both cleared outcomes admit living survivors to vulnerable section guarding.
+Failure and abandonment protect survivors instead. Terminal outcomes and awarded
+statistics are immutable even if a guard subsequently dies. Enemies lose only their encounter target policy,
 retaining resources, statuses and committed attacks. Awards accumulate once from
 each occurrence's resolved points override, including explicit zero.
 
 The coordinator checks expiry before streaming and after the camera update,
 records participation during damage, and resolves after fatal enemy culling but
 before death cleanup. Unresolved member enemies bypass ordinary behind-camera
-culling; falling out of the world still removes them. Run exit finalizes groups
-before statistics or player-death freeze. The controller's terrain-retention and
+culling; falling out of the world still removes them. Run exit finalizes groups and stops all remaining guards, including those whose
+origin records have retired, before statistics or player-death freeze. The controller's terrain-retention and
 retirement APIs enforce expiry before cleanup and retain only a monotonic retired
-chunk index. Streamed chunk snapshots carry typed encounter definitions. Each new
+chunk index. Streamed chunk snapshots carry typed encounter definitions and the exact selected
+`ChunkAssemblySelection` in both live and speculative selections. Its start
+chunk/count identify one Flow occurrence independently of repeated source IDs.
+`EncounterOccurrence.guardRegion` derives the section interval using the owning
+chunk width; automatic and standalone chunks derive a one-chunk region. Active
+encounter placement and objectives still use the original chunk bounds. Each new
 index registers once after terrain publication, opening suppression skips the
 complete roster, and the streamer retains unresolved owning chunks. Retirement
 releases membership metadata before removed terrain is observed. Terminal
@@ -158,8 +165,8 @@ sidebar reuses section/list cards and visual catalogs. Group inspectors own
 display name, activation rectangle, enemy policy and point inheritance; member
 inspectors own catalog identity, X, facing, terrain support and enemy policy
 overrides. Relevant shared readiness diagnostics appear beside the selected
-group/member. The movement boundary is the whole chunk and is shown separately
-from the blue activation rectangle.
+group/member. The inspector describes chunk confinement during an active encounter and
+section guarding after completion, separately from the blue activation rectangle.
 
 `ChunkEncounterGesture` wraps the shared rectangle/snapping interaction. Actor
 drags change only X and resolve Y through Core's `createEncounterSpawnRequest`
@@ -200,7 +207,9 @@ satisfy the same separating projection without moving through the boundary. A
 blocked or over-budget recovery restores the last valid in-bounds pose. The
 controller reports boundary contact separately from terrain wall contacts and
 clears optional constraints before processing an unrestricted actor. NPC stores
-supply immutable quantized bounds to the motion authority. Teleport placement
+supply quantized bounds to the motion authority. The bounds expand exactly once
+on a cleared encounter from the original chunk to its frozen section interval;
+failed or abandoned groups retain their current chunk bounds. Teleport placement
 checks the complete mirrored capsule against the same interval.
 
 ## NPC actor lifecycle
@@ -236,11 +245,11 @@ leaves NPC bodies to that lifecycle.
 
 ## NPC decisions and shared execution
 
-`NpcAiSystem` consumes the encounter-selected target and terrain navigation
-intent. The terrain publication includes allied graph profiles derived from
+`NpcAiSystem` consumes the shared selected target and terrain navigation
+intent, during both encounters and section guarding. The terrain publication includes allied graph profiles derived from
 each registered NPC's actual capsule, speed, jump and gravity. Bounded graph
 views retain the shared surface identities and remove traversals whose takeoff
-or landing falls outside the chunk's full-body range. Goals and safe fallback
+or landing falls outside the NPC's current full-body range. Goals and safe fallback
 ranges are clipped to that range; motion authority remains the final constraint.
 
 Allied and enemy ground movement share surface-speed projection, jump commitment
@@ -260,7 +269,7 @@ offset places each launch at its reviewed release height; ordinary casts retain
 their zero-offset behavior. Rescue cancels an unreleased intent, while detached
 projectiles retain ordinary collision and lifetime behavior.
 
-## Combat ownership and survivor safety
+## Combat ownership and survivor lifecycle
 
 `DamageCredit` is captured when attacks are created and carried through hitboxes,
 projectiles, queued damage, accepted status applications and each DoT channel.
@@ -275,7 +284,11 @@ current owner. Equal-strength extensions preserve pulse phase. DoT requests keep
 their previous null live source, so ownership does not introduce outgoing weaken
 modifiers or attacker-targeted procs.
 
-The NPC store retains identity, facing, owning chunk bounds and protection state.
+The NPC store retains identity, facing, current motion bounds, protection state
+and an optional `NpcGuardRegion`. Guard state remains independent of retired
+encounter membership. `beginNpcGuarding` cancels pending/attached encounter
+attacks, expands motion bounds and configures a guard-owned hostile roster while
+preserving health, statuses, resources and cooldowns.
 `protectNpc` ends attached attacks and pending abilities, clears harmful effects
 and target references, and leaves detached effects and physical bodies intact.
 Protected NPCs are excluded from combat broadphase (including trap occupancy),
@@ -289,6 +302,17 @@ range and selected identity for each participating AI actor. Absence retains
 ordinary player pursuit; an explicit null selection means no target. Roster
 membership is supplied by the owner, never inferred from faction or proximity.
 The actual player cannot be treated as an NPC roster member.
+
+`NpcGuardSystem` refreshes current membership before `AiTargetSystem` in phase 3.
+It orders living guard and enemy IDs, admits enemies whose body-center X is in
+`[minX, maxX)`, and uses nearest-opponent policy with no player fallback for
+guards. Ordinary enemies in those territories receive guard candidates with
+player fallback. `AiTargetOwner` prevents this system from replacing active
+encounter policies or rosters. Leaving a territory or losing its final guard
+removes an ordinary enemy's guard-owned component, restoring normal pursuit.
+`refreshCandidates` preserves selected identity and navigation evidence for
+retained IDs and avoids copying an unchanged roster. Normal perception and
+unreachable-target filtering still apply; there is no section-wide path search.
 
 `AiTargetSystem` runs once before AI in `GameCore`. It filters living actors and
 allied factions, then ranks policy tier, squared center distance and entity ID.
@@ -304,7 +328,11 @@ identity during the tick. Already committed aim, execute ticks, costs, cooldowns
 and active ability phases remain owned by their existing execution systems.
 
 Terrain prediction is cached per target for the current tick and per traversal
-profile for the current published bundle. `SurfaceNavStateStore.targetEntity`
+profile for the current published bundle. Ground-mounted kinematic targets
+such as Derf lack dynamic contact records; their actual pose is queried against
+the same terrain placement/support contract and admitted only within collision
+skin of resolved support. This supplies target support without moving the target
+or adding a dynamic contact store. `SurfaceNavStateStore.targetEntity`
 owns target-support cache identity, including transitions back to ordinary
 pursuit. Target changes invalidate graph/support paths while existing airborne
 scalar jump commitments retain their normal landing behavior. Confirmed no-path

@@ -1,5 +1,14 @@
 # Current Implementation Plans
 
+- [Completed Forest content drift repair](../archive/2026-10-02/building/forest_content_drift_repair.md):
+  current-source generation and all traversal checks pass on the dedicated
+  branch; see [verification](../verification/forest-content-drift-repair.md).
+
+- [Completed NPC section guards](../archive/2026-10-02/building/npc_section_guards.md):
+  implemented on `feature/npc-section-guards` as pending gameplay `2026.10.1`;
+  see [validation](../verification/npc-section-guards.md) and the separate
+  [resolved Forest content finding](../archive/2026-10-02/audit/forest_content_drift_2026-10-02.md).
+
 - [Completed Forest enemy navigation repair](../archive/2026-09-24/building/forest_enemy_navigation.md):
   navigation and five chunk adjustments validated at unchanged movement limits;
   included in the deployed `2026.09.8` release.

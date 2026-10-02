@@ -1,4 +1,7 @@
+import '../../combat/ai_target_policy.dart';
+import '../../npcs/npc_guard_region.dart';
 import '../entity_id.dart';
+import '../stores/ai_target_store.dart';
 import '../stores/hitbox_store.dart';
 import '../world.dart';
 import 'ability_interrupt.dart';
@@ -8,6 +11,7 @@ void protectNpc(EcsWorld world, EntityId entity) {
   final i = world.npc.tryIndexOf(entity);
   if (i == null || world.npc.protected[i]) return;
   world.npc.protected[i] = true;
+  world.npc.guardRegion[i] = null;
   stopNpcCombat(world, entity);
   world.dot.removeEntity(entity);
   world.slow.removeEntity(entity);
@@ -17,6 +21,20 @@ void protectNpc(EcsWorld world, EntityId entity) {
   world.controlLock.removeEntity(entity);
   final modifier = world.statModifier.tryIndexOf(entity);
   if (modifier != null) world.statModifier.moveSpeedMul[modifier] = 1;
+}
+
+/// Ends encounter attacks and admits a vulnerable survivor to its section.
+/// Health, statuses, resources, cooldowns and detached effects remain unchanged.
+void beginNpcGuarding(EcsWorld world, EntityId entity, NpcGuardRegion region) {
+  stopNpcCombat(world, entity);
+  world.npc.beginGuarding(entity, region);
+  world.aiTarget.configure(
+    entity,
+    targetPolicy: AiTargetPolicy.nearestOpponent,
+    candidates: const [],
+    playerFallback: false,
+    rosterOwner: AiTargetOwner.sectionGuard,
+  );
 }
 
 /// Stops autonomous combat on death or resolution without touching detached effects.

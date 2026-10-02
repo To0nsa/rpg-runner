@@ -203,9 +203,13 @@ The supported capsule center is normal-aware rather than `surfaceY - flat
 halfHeight`. It starts from the exact finite surface Y and the capsule's radius
 offset from the sloped line. At an exact compatible transition, a face-local
 position can intersect the neighboring face, so the resolver raises the
-capsule only enough to clear other profile-eligible surfaces in the same
-canonical chain. It retains the deterministic chosen edge and projected
-support point. Incompatible or over-profile neighbors remain ordinary blockers.
+capsule only enough to clear surfaces connected to the selected edge through
+an uninterrupted run of profile-eligible neighbors. A shared canonical chain
+ID alone is insufficient: an intervening steep or otherwise ineligible facet
+ends that run. The resolver retains the deterministic chosen edge and projected
+support point. Shelves beyond an ineligible facet remain ordinary blockers, so
+a grounded graph takeoff cannot be lifted into an unsupported pose above a
+steep face. Incompatible or over-profile neighbors remain ordinary blockers.
 
 Clearance uses `CapsuleSegmentKernel` against the full edge index, including
 walls, ceilings, undersides, adjacent polygons, and finite endpoints. The
@@ -1017,3 +1021,7 @@ coverage; endless/looping routes require an explicit chunk count. See the
 commands, target/spawn assumptions, movement limits, and adaptation rules, and
 the [forest traversal audit](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md)
 for resolved failures, content adjustments, validation and test boundaries.
+The [October 2 repair verification](../verification/forest-content-drift-repair.md)
+records fresh generated-content coverage and the continuous walkable-support
+placement correction, including exact rocky-grove routes and unchanged motion
+limits.

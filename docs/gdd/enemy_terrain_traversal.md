@@ -6,9 +6,8 @@ Grojib and Hashash slope traversal, Hashash terrain-safe ambush placement,
 Unoco flying-terrain traversal, Derf terrain-safe obstacle-top placement, and
 shared terrain-safe enemy/item spawning are implemented on the polygon-terrain
 authority used by repository-backed Field and Forest runs. Replay validation
-constructs the same Core path. The currently authored production ground is
-flat; these rules also govern later slope/platform content without another
-authority switch.
+constructs the same Core path. Current Forest content includes slopes, rocks,
+platforms and pools; these rules apply to the generated authored terrain.
 
 ## Grounded Enemy Rules
 
@@ -61,13 +60,20 @@ horizontal direction until landing or deterministic fallback.
 If an enemy lands on a different rock or platform than planned, it replans from
 that foothold. Streaming the next chunk preserves a jump already in flight.
 Short connected rock facets contribute to the normal one-third-width runtime
-foothold; full-width spawn placement remains stricter.
+foothold; full-width spawn placement remains stricter. A shelf separated by a
+face steeper than the enemy can walk is an obstacle, even when it belongs to
+the same rock. Grounded planning cannot raise the enemy above that face; it
+must find a legal jump from the approach. The October 2 placement correction
+lets both ground enemies execute those jumps in current rocky-grove content
+without changing rock geometry, jump speed, slope limits or traversal budgets.
 
 The Forest traversal repair keeps ground speed at 300, jump speed at 500 and
 the slope limits above. Chunk entries, exits and overhead clearances must fit
 those capabilities, including Grojib's larger capsule. The
 [archived investigation](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md)
-records the geometry adjustments tested on its captured authored build.
+records the geometry adjustments tested on its captured authored build. The
+[October 2 follow-up](../verification/forest-content-drift-repair.md) verifies
+current generated Forest content and the placement correction described above.
 
 The deterministic traversal regression covers Grojib, Hashash and Unoco on
 Forest seeds 7, 42 and 2026 through the first complete authored sequence,
