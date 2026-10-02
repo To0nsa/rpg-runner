@@ -91,6 +91,7 @@ try {
   $components = @('functions-checks','functions-build','client-checks','client-build')
   $items = @(Invoke-ReleasePreparation $fixture $cache $components $logs)
   Assert-CacheTest ($items.Count -eq 4 -and @($global:cacheTrace | Where-Object { $_ -like 'flutter test *' }).Count -eq 1) 'first preparation runs real recipes once'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart pub get --enforce-lockfile' }).Count -eq 1) 'client checks resolve independent worker fixtures without validator checks'
   $global:cacheTrace.Clear()
   # These absolute paths are both verified beneath the isolated fixture.
   foreach ($relative in @('build/web','functions/lib')) {
@@ -102,16 +103,25 @@ try {
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -match '^flutter (test|build)|^pnpm --dir functions (test|build)' }).Count -eq 0) 'cache hit restores both artifacts without tests or builds'
   Assert-CacheTest ((Test-Path (Join-Path $fixture 'build/web/main.dart.js')) -and (Test-Path (Join-Path $fixture 'functions/lib/index.js'))) 'complete artifacts survive checkout cleanup'
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -like '*audit --prod' }).Count -eq 1) 'cache hits still check current production dependency advisories'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart pub get --enforce-lockfile' }).Count -eq 0) 'fully cached checks need no worker fixture resolution'
   $global:cacheTrace.Clear()
   'new UI' | Set-Content -LiteralPath (Join-Path $fixture 'lib/ui/menu.dart')
   Invoke-ReleasePreparation $fixture $cache $components $logs | Out-Null
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -match '^pnpm --dir functions (test|build)' }).Count -eq 0) 'UI edits reuse backend checks and build'
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -like 'flutter build web*' }).Count -eq 1) 'UI edits rebuild the client'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart pub get --enforce-lockfile' }).Count -eq 1) 'rerun client checks resolve worker fixtures independently of cached backend checks'
   $buildInput = Get-ReleaseComponentInputs $fixture 'client-build'
   $global:cacheTrace.Clear()
   'new test' | Set-Content -LiteralPath (Join-Path $fixture 'test/ui_test.dart')
   Invoke-ReleasePreparation $fixture $cache $components $logs | Out-Null
   Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-build') -eq $buildInput -and @($global:cacheTrace | Where-Object { $_ -like 'flutter build web*' }).Count -eq 0) 'test-only edits rerun checks without rebuilding web'
+  $checksBefore = Get-ReleaseComponentInputs $fixture 'client-checks'
+  'new worker resolution' | Set-Content -LiteralPath (Join-Path $fixture 'services/replay_validator/pubspec.lock')
+  Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-checks') -ne $checksBefore -and (Get-ReleaseComponentInputs $fixture 'client-build') -eq $buildInput) 'worker fixture dependencies invalidate client checks without rebuilding web'
+  $checksBefore = Get-ReleaseComponentInputs $fixture 'client-checks'
+  New-Item -ItemType Directory -Force -Path (Join-Path $fixture 'tool') | Out-Null
+  'new generator' | Set-Content -LiteralPath (Join-Path $fixture 'tool/generate_chunk_runtime_data.dart')
+  Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-checks') -ne $checksBefore) 'generator edits invalidate client test evidence'
   $clientBefore = Get-ReleaseComponentInputs $fixture 'client-build'
   $workerBefore = Get-ReleaseComponentInputs $fixture 'validator-checks'
   'new physics' | Set-Content -LiteralPath (Join-Path $fixture 'packages/runner_core/lib/core.dart')

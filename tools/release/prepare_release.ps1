@@ -91,7 +91,9 @@ function Invoke-ReleasePreparation {
   if (@($pending | Where-Object { $_.component -ne "validator-checks" -and $_.component -notlike "functions-*" }).Count -gt 0) {
     Invoke-ReleaseCommand flutter @("pub", "get", "--enforce-lockfile") $Root $dependencies | Out-Null
   }
-  if (@($pending | Where-Object { $_.component -eq "validator-checks" }).Count -gt 0) {
+  # Client generator tests compile real worker fixtures using this independent
+  # package configuration, even when the validator's own checks are cached.
+  if (@($pending | Where-Object { $_.component -in @("validator-checks", "client-checks") }).Count -gt 0) {
     Invoke-ReleaseCommand dart @("pub", "get", "--enforce-lockfile") (Join-Path $Root "services/replay_validator") $dependencies | Out-Null
   }
   if (@($Components | Where-Object { $_ -like "functions-*" }).Count -gt 0) {

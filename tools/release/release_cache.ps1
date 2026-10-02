@@ -57,7 +57,7 @@ function Get-ReleaseComponentInputs {
     "functions-build" { '^(functions/(src/|package\.json$|tsconfig\.json$)|package\.json$|pnpm-[^/]+\.yaml$)' }
     "functions-checks" { '^(functions/(src/|test/|tool/|package\.json$|tsconfig.*\.json$)|firebase\.test\.json$|firestore\.|package\.json$|pnpm-[^/]+\.yaml$|packages/run_protocol/lib/)' }
     "client-build" { "^($workspace|lib/|web/|assets/|$runtime)" }
-    "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|$runtime)" }
+    "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|tool/|services/replay_validator/(lib/|bin/|test/|pubspec\.(yaml|lock)$)|$runtime)" }
     "core-checks" { "^($workspace|packages/runner_core/|assets/authoring/)" }
     "protocol-checks" { "^($workspace|packages/run_protocol/)" }
     "content-checks" { "^($workspace|packages/runner_content_pipeline/|packages/runner_core/lib/|assets/authoring/)" }

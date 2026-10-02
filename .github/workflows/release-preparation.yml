@@ -109,6 +109,9 @@ jobs:
             Invoke-ReleaseCommand dart @('pub','get','--enforce-lockfile') (Join-Path $PWD 'services/replay_validator') | Write-Host
           } else {
             Invoke-ReleaseCommand flutter @('pub','get','--enforce-lockfile') $PWD | Write-Host
+            if ($component -eq 'client-checks') {
+              Invoke-ReleaseCommand dart @('pub','get','--enforce-lockfile') (Join-Path $PWD 'services/replay_validator') | Write-Host
+            }
           }
       - name: Compute component cache key
         id: inputs

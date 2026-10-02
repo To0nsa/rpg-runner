@@ -85,7 +85,10 @@ incomplete artifacts.
 
 Prepare resolves frozen dependencies only for components whose checks/builds
 need to run (plus the pinned Firebase CLI when absent). Client analysis targets
-lib, test and test_driver; shared packages have their own analysis/tests, so
+lib, test and test_driver. Client checks also resolve the validator's independent
+lockfile because authored-trap tests compile real worker fixtures; cached
+validator results do not supply that checkout-local package configuration.
+Shared packages have their own analysis/tests, so
 release preparation no longer resolves the independent editor merely to analyze
 unrelated sources. Editor and device integration/performance checks remain
 separate task-specific gates. Production npm advisories are checked on every
