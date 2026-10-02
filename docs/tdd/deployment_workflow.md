@@ -9,8 +9,9 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-Source and production currently agree on gameplay 2026.10.1, rules-v2,
-score-v2 and ghost-v1. Replay and command format remain 1. The latest
+Source targets gameplay 2026.10.2, rules-v2, score-v3 and ghost-v1 for the
+furthest-progress distance fix and shared 25-world-unit metre. This source change
+has not been deployed. Replay and command format remain 1. The latest
 checked-in production evidence is [2026.10.1 at commit 0cb94b94](../verification/game-compat-2026.10.1-production.md),
 deployed October 2, 2026. That coordinated release includes projectile auto
 aim, NPC section guards and the latest Forest content, with refreshed generated

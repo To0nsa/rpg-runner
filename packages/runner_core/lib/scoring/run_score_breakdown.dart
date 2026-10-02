@@ -1,10 +1,11 @@
 import '../enemies/enemy_id.dart';
 import '../encounters/encounter_limits.dart';
 import '../tuning/score_tuning.dart';
+import 'run_distance.dart';
 
 /// Categories of score contributions shown in the end-of-run breakdown.
 enum RunScoreRowKind {
-  /// Points earned from distance traveled.
+  /// Points earned from furthest horizontal progress.
   distance,
 
   /// Points earned from survival time.
@@ -74,7 +75,6 @@ RunScoreBreakdown buildRunScoreBreakdown({
   required int tickHz,
   int rescuedNpcs = 0,
   int rescuePoints = 0,
-  int unitsPerMeter = kWorldUnitsPerMeter,
 }) {
   if (rescuedNpcs < 0 ||
       rescuedNpcs > EncounterLimits.maxExactScore ||
@@ -92,9 +92,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
     throw ArgumentError('Rescue points exceed the per-survivor award limit.');
   }
   // Convert internal units to player-facing values.
-  final meters = unitsPerMeter <= 0
-      ? 0
-      : (distanceUnits / unitsPerMeter).floor();
+  final meters = distanceUnitsToMeters(distanceUnits);
   final timeSeconds = tickHz <= 0 ? 0 : tick ~/ tickHz;
 
   final rows = <RunScoreRow>[

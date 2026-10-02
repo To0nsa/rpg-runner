@@ -20,6 +20,7 @@ import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/scoring/run_distance.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/trap_snapshot.dart';
 import 'package:test/test.dart';
@@ -421,10 +422,10 @@ void main() {
 
     test('distanceUnitsToMeters converts world units to meters', () {
       expect(distanceUnitsToMeters(0), 0);
-      expect(distanceUnitsToMeters(49.9), 0);
-      expect(distanceUnitsToMeters(50), 1);
-      expect(distanceUnitsToMeters(99.9), 1);
-      expect(distanceUnitsToMeters(149.9), 2);
+      expect(distanceUnitsToMeters(24.9), 0);
+      expect(distanceUnitsToMeters(25), 1);
+      expect(distanceUnitsToMeters(49.9), 1);
+      expect(distanceUnitsToMeters(600), 24);
     });
 
     test('accepted current-compat 30 Hz practice replay creates a settlement handoff', () async {
@@ -453,7 +454,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.10.1',
+        gameCompatVersion: '2026.10.2',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -516,7 +517,7 @@ void main() {
         levelId: 'field',
         windowId: '2026-07',
         rulesetVersion: 'rules-v2',
-        scoreVersion: 'score-v2',
+        scoreVersion: 'score-v3',
       );
       final replayBlob = ReplayBlobV1.withComputedDigest(
         runSessionId: 'run_ranked_board_deleted',
@@ -650,6 +651,7 @@ void main() {
       '2026.09.7',
       '2026.09.9',
       '2026.09.10',
+      '2026.10.1',
       '2099.01.0',
     ]) {
       test(
@@ -721,6 +723,12 @@ void main() {
             name: 'retired_score',
             rulesetVersion: null,
             scoreVersion: 'score-v1',
+            ghostVersion: null,
+          ),
+          (
+            name: 'retired_distance_score',
+            rulesetVersion: null,
+            scoreVersion: 'score-v2',
             ghostVersion: null,
           ),
           (
@@ -1715,7 +1723,7 @@ ValidatorRunSession _session({
   String? storageGeneration = '123',
   String? ticketRunSessionId,
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.10.1',
+  String gameCompatVersion = '2026.10.2',
   String? rulesetVersion,
   String? scoreVersion,
   String? ghostVersion,
@@ -1733,7 +1741,7 @@ ValidatorRunSession _session({
           levelId: 'field',
           windowId: '2026-07',
           rulesetVersion: rulesetVersion ?? 'rules-v2',
-          scoreVersion: scoreVersion ?? 'score-v2',
+          scoreVersion: scoreVersion ?? 'score-v3',
         )
       : null;
   return ValidatorRunSession(
@@ -1749,7 +1757,7 @@ ValidatorRunSession _session({
       tickHz: tickHz,
       gameCompatVersion: gameCompatVersion,
       rulesetVersion: mode.requiresBoard ? rulesetVersion ?? 'rules-v2' : null,
-      scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v2' : null,
+      scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v3' : null,
       ghostVersion: mode.requiresBoard ? ghostVersion ?? 'ghost-v1' : null,
       boardOpensAtMs: mode.requiresBoard
           ? boardOpensAtMs ?? issuedAtMs - 1

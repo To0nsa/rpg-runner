@@ -11,6 +11,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   the current-source 27-case matrix and exact rock routes pass.
 - [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; deployed in `2026.09.8`.
 - [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
+- [Run distance and scoring](gdd/06_score.md#23-distance-means-furthest-progress): source targets `2026.10.2`/`score-v3`, with furthest progress and 24 metres per full chunk; not yet deployed.
 - [Latest production release](verification/game-compat-2026.10.1-production.md): frozen `0cb94b94` deployed October 2 as `2026.10.1`/`score-v2`; exact-commit CI, strict image benchmark and live infrastructure checks passed. Signed-in smoke remains open.
 - [Release checklist](building/rescue_release_operations.md#deployed-release-2026101): `2026.10.1` includes projectile auto aim, NPC section guards and updated Forest content.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.

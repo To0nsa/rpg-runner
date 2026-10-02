@@ -32,7 +32,33 @@ Current conversions (code source of truth):
 - **meters** = `floor(distanceUnits / unitsPerMeter)`
 - **seconds** = `tick ~/ tickHz`
 
-Where `unitsPerMeter = kWorldUnitsPerMeter` (currently **50**) in `packages/runner_core/lib/tuning/score_tuning.dart`.
+Where `unitsPerMeter = kWorldUnitsPerMeter` (**25**) in `packages/runner_core/lib/tuning/score_tuning.dart`.
+The HUD, score breakdown, local results and replay validator all use Core's
+`distanceUnitsToMeters` conversion in `scoring/run_distance.dart`.
+
+### 2.3 Distance means furthest progress
+
+Distance starts at zero at the player's spawn and records the furthest accepted
+horizontal progress reached during the run. Backtracking never reduces the
+displayed distance, but returning over the same ground earns no extra distance.
+For example, moving 10 m forward, 5 m back and 5 m forward still records 10 m.
+Moving behind the spawn and returning to it records zero.
+
+Vertical jumps, camera movement and collision recovery corrections do not add
+distance. Slopes count their horizontal span; this is level progress, not total
+surface or airborne path length. A dash counts its accepted horizontal progress
+only when it passes the previous furthest point.
+
+A full 600-world-unit chunk spans **24 m**. The default spawn is 300 units into
+the first chunk, so the remaining half of that opening chunk spans **12 m**.
+This scale leaves world geometry, movement speeds and chunk lengths unchanged.
+
+Distance still awards **5 points per whole metre** by default: a full chunk of
+new progress earns **120 distance points**. The new scale doubles distance points
+for the same unrepeated world-space progress compared with the old 50-unit scale.
+These rules use gameplay compatibility `2026.10.2` and ranked `score-v3`.
+Previously saved results retain their recorded values; old board partitions are
+not rescaled or merged with new results.
 
 ---
 

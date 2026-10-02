@@ -1,4 +1,5 @@
 import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/scoring/run_distance.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:run_protocol/run_duration.dart';
@@ -100,7 +101,7 @@ RunResult buildRunResult({
     tickHz: tickHz,
   );
 
-  final distanceMeters = (event.distance / kWorldUnitsPerMeter).floor();
+  final distanceMeters = distanceUnitsToMeters(event.distance);
   final durationSeconds = canonicalRunDurationSeconds(
     tick: event.tick,
     tickHz: tickHz,

@@ -11,7 +11,7 @@ export type RankedBoardMode = (typeof rankedModes)[number];
 
 const defaultManagedLevelIds = ["field", "forest"];
 const defaultRulesetVersion = "rules-v2";
-const defaultScoreVersion = "score-v2";
+const defaultScoreVersion = "score-v3";
 const defaultGhostVersion = "ghost-v1";
 const defaultTickHz = 60;
 const defaultSeedNamespace = "rpg-runner-board-seed-v1";

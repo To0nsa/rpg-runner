@@ -100,7 +100,7 @@ choice query the published terrain edge index for an unobstructed sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
 These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release. Current source compatibility is `2026.10.1`, which
+game-compatibility release. The `2026.10.1` release
 also includes surviving NPC section combat, refreshed Forest generated content,
 and the contiguous walkable-support placement correction. These changes affect
 replay outcomes and must ship with matching client, Functions and worker artifacts.
@@ -321,6 +321,34 @@ outcomes and is released as game compatibility `2026.09.10`.
 
 ## Outputs and consumers
 
+### Run distance
+
+Current source compatibility is `2026.10.2`, with ranked scoring `score-v3`.
+After world motion and before terminal fall checks, `GameCore` records the
+motion authority's signed accepted player body X displacement in a per-run
+`RunDistanceTracker`. The authority excludes recovery corrections and facing
+offset changes. Tick order, movement and command encoding are unchanged.
+
+The tracker starts at zero, sums signed displacement and retains the largest
+nonnegative cumulative value. Therefore backing up does not lose earned progress,
+but retracing that ground cannot earn it again. Motion remains on the existing
+fixed-point-derived world-unit grid. Vertical travel, camera movement, spawn
+placement and test-only teleport placement do not contribute.
+
+`GameCore.distance`, snapshot distance and terminal event distance expose that
+same read-only furthest progress in world units. Core's `distanceUnitsToMeters`
+floors it using the shared 25-world-units-per-metre scale; HUD, score breakdown,
+local run results and worker persistence all use that function. No consumer
+selects its own scale. Score tuning retains 5 points per whole metre.
+
+The changed distance and score outcomes require matching client, Functions and
+worker artifacts and new versioned boards. Historical results are not converted;
+the worker rejects earlier gameplay and score versions before replay. Production
+cutover is separate from this source change; follow the
+[deployment workflow](deployment_workflow.md).
+
+### Snapshots and events
+
 Core exposes immutable snapshots through `GameCore.buildSnapshot` and transient
 events through `GameCore.drainEvents`.
 
@@ -403,7 +431,8 @@ Core owns occurrence activation, target selection, participant damage credit,
 active chunk containment, survivor section bounds, terminal priority and checked
 rescue awards. Section guard rosters refresh before shared AI selection and do
 not replace active encounter policies. Guard combat and stationary-target support
-change replayed outcomes; client, Functions and worker use `2026.10.1` together.
+change replayed outcomes and were released together in client, Functions and
+worker compatibility `2026.10.1`.
 Old gameplay versions are rejected by this worker; scoring and wire formats are
 unchanged. Shared UI/worker
 scoring consumes terminal rescue statistics; replay/command encoding stays at 1.

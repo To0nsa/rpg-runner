@@ -103,12 +103,12 @@ replay was finalized before expiry.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
 - The current hard-cutover compatibility tuple is:
-  - current game compatibility: `2026.10.1`
+  - current source game compatibility: `2026.10.2`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v2`
-  - score: `score-v2`
+  - score: `score-v3`
   - ghost: `ghost-v1`
-- This build rejects previous gameplay versions through `2026.09.9` and
+- This build rejects previous gameplay versions through `2026.10.1` and
   `rules-v1` tickets. It owns one connection-aware selector, the
   128-world-unit camera grace rule, difficulty-paced camera targets, and the
   current capsule combat implementation, plus shared player/ground-enemy water
@@ -187,7 +187,7 @@ If no end event is produced, worker forces give-up and requires a terminal `RunE
 
 From terminal event it computes authoritative result:
 - score (via `buildRunScoreBreakdown(...)`)
-- distance meters
+- distance metres (Core's shared 25-world-unit scale applied to furthest progress)
 - duration seconds
 - end reason
 - gold earned
@@ -198,9 +198,12 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 Terminal stats include `rescuedNpcs` and `rescuePoints`. Shared score calculation
 adds the actual resolved rescue awards and uses the ticket's tick rate. Client
 summary score, rescue and gold claims are ignored; gold rules and exactly-once
-settlement remain unchanged. Current support is game compatibility `2026.10.1`
-and ranked `rules-v2`/`score-v2`/`ghost-v1`, with replay/command format 1. Previous
-gameplay versions and `score-v1` are rejected before replay. Follow the
+settlement remain unchanged. Current source support is game compatibility `2026.10.2`
+and ranked `rules-v2`/`score-v3`/`ghost-v1`, with replay/command format 1. Distance
+tracks furthest accepted horizontal progress from spawn, so retracing ground
+does not add score. HUD, local results and validation call the same Core metre
+conversion; the worker has no independent scale. Previous gameplay versions,
+`score-v1` and `score-v2` are rejected before replay. Follow the
 [pre-live release checklist](../building/rescue_release_operations.md) when deploying.
 
 ## 4.8 Replay throughput gate

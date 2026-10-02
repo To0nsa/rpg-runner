@@ -16,6 +16,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'camera/autoscroll_camera.dart';
+import 'scoring/run_distance.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'abilities/forced_interrupt_policy.dart';
@@ -1091,8 +1092,11 @@ class GameCore {
   /// Whether the run has ended (simulation is frozen permanently).
   bool gameOver = false;
 
-  /// Total distance traveled (world units, not meters).
-  double distance = 0;
+  final RunDistanceTracker _runDistance = RunDistanceTracker();
+
+  /// Furthest accepted horizontal progress from spawn, in world units.
+  /// Backtracking, vertical travel and recovery corrections cannot add distance.
+  double get distance => _runDistance.distanceUnits;
 
   /// Number of collectibles picked up this run.
   int collectibles = 0;
@@ -1641,7 +1645,7 @@ class GameCore {
     _waterImmersionSystem.step(_world, waterRegions);
 
     // ─── Phase 4: Distance tracking ───
-    distance += distanceDelta;
+    _runDistance.recordMotion(distanceDelta);
 
     // ─── Phase 5: Death condition checks ───
     if (_checkFellIntoGap()) {

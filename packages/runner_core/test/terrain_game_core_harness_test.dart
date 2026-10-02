@@ -3,6 +3,7 @@ import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_definition.dart';
@@ -25,6 +26,68 @@ const _stagedTerrainTestDigest =
     'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
 void main() {
+  test('distance follows furthest ground reached through reversals and facing changes', () {
+    final core = GameCore.terrainMotionHarness(
+      seed: 7,
+      levelDefinition: _level(),
+      playerCharacter: eloiseCharacter,
+      terrainGeometry: _terrain(),
+    );
+    final startX = core.playerPosX;
+    var furthestX = startX;
+    var previousX = startX;
+    var previousDistance = 0.0;
+    var sawBacktracking = false;
+    var sawRetracing = false;
+    var sawNewGroundAfterRetracing = false;
+    expect(core.distance, 0);
+    for (var tick = 1; tick <= 200; tick++) {
+      final axis = tick <= 60 || tick > 100 ? 1.0 : -1.0;
+      core.applyCommands([MoveAxisCommand(tick: tick, axis: axis)]);
+      core.stepOneTick();
+      expect(core.gameOver, isFalse);
+      final x = core.playerPosX;
+      if (x < previousX) sawBacktracking = true;
+      if (sawBacktracking && x > previousX && x <= furthestX) {
+        sawRetracing = true;
+        expect(core.distance, previousDistance);
+      }
+      if (x > furthestX) {
+        furthestX = x;
+        if (sawRetracing) sawNewGroundAfterRetracing = true;
+      }
+      expect(core.distance, closeTo(furthestX - startX, 1 / 1024));
+      expect(core.buildSnapshot().distance, core.distance);
+      previousX = x;
+      previousDistance = core.distance;
+    }
+    expect(sawBacktracking, isTrue);
+    expect(sawRetracing, isTrue);
+    expect(sawNewGroundAfterRetracing, isTrue);
+    core.giveUp();
+    expect(
+      core.drainEvents().whereType<RunEndedEvent>().single.distance,
+      core.distance,
+    );
+  });
+
+  test('standing and vertical jumping add no distance', () {
+    final core = GameCore.terrainMotionHarness(
+      seed: 7,
+      levelDefinition: _level(),
+      playerCharacter: eloiseCharacter,
+      terrainGeometry: _terrain(),
+    );
+    final startY = core.playerPosY;
+    for (var tick = 1; tick <= 15; tick++) {
+      core.applyCommands([if (tick == 5) JumpPressedCommand(tick: tick)]);
+      core.stepOneTick();
+      expect(core.gameOver, isFalse);
+      expect(core.distance, 0);
+    }
+    expect(core.playerPosY, lessThan(startY));
+  });
+
   test('track-disabled fixture uses deterministic polygon terrain', () {
     final core = GameCore(
       seed: 7,
