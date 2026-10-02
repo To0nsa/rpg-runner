@@ -40,6 +40,7 @@ import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/staged_terrain_render_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
 import 'snapshots/trap_snapshot.dart';
+import 'snapshots/world_interaction_snapshot.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
@@ -161,6 +162,7 @@ class SnapshotBuilder {
     required List<StaticPrefabSpriteSnapshot> staticPrefabSprites,
     StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot,
     List<TrapSnapshot> traps = const [],
+    List<WorldInteractionSnapshot> interactions = const [],
   }) {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
@@ -504,10 +506,12 @@ class SnapshotBuilder {
         abilityMobilityId: loadoutDef.abilityMobilityId,
         abilitySpellId: loadoutDef.abilitySpellId,
         abilityJumpId: loadoutDef.abilityJumpId,
+        blessings: world.levelBlessings.snapshots(player),
       ),
       entities: entities,
       staticPrefabSprites: staticPrefabSprites,
       traps: traps,
+      interactions: interactions,
       stagedTerrainRenderSnapshot: stagedTerrainRenderSnapshot,
     );
   }

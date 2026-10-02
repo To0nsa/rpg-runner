@@ -4,7 +4,7 @@ import '../world.dart';
 ///
 /// **Responsibilities**:
 /// - Iterates over all entities with [Health], [Mana], or [Stamina].
-/// - Applies regeneration rates (`regenPerSecond`) scaled by `dtSeconds`.
+/// - Applies regeneration rates in integer hundredths/second through fixed-tick accumulators.
 /// - Clamps values to `[0, Max]`.
 ///
 /// **Performance**:
@@ -30,11 +30,18 @@ class ResourceRegenSystem {
       if (deathState.has(store.denseEntities[i])) continue;
       final max = store.hpMax[i];
       if (max <= 0) continue;
-      
+
       final current = store.hp[i];
       if (current >= max) continue;
-      
-      final regen = store.regenPerSecond100[i];
+
+      final blessingIndex = world.levelBlessings.tryIndexOf(
+        store.denseEntities[i],
+      );
+      final regen =
+          store.regenPerSecond100[i] +
+          (blessingIndex == null
+              ? 0
+              : world.levelBlessings.healthRegen100[blessingIndex]);
       if (regen <= 0) continue;
 
       final accum = store.regenAccumulator[i] + regen;
@@ -55,11 +62,18 @@ class ResourceRegenSystem {
       if (deathState.has(store.denseEntities[i])) continue;
       final max = store.manaMax[i];
       if (max <= 0) continue;
-      
+
       final current = store.mana[i];
       if (current >= max) continue;
-      
-      final regen = store.regenPerSecond100[i];
+
+      final blessingIndex = world.levelBlessings.tryIndexOf(
+        store.denseEntities[i],
+      );
+      final regen =
+          store.regenPerSecond100[i] +
+          (blessingIndex == null
+              ? 0
+              : world.levelBlessings.manaRegen100[blessingIndex]);
       if (regen <= 0) continue;
 
       final accum = store.regenAccumulator[i] + regen;
@@ -80,11 +94,18 @@ class ResourceRegenSystem {
       if (deathState.has(store.denseEntities[i])) continue;
       final max = store.staminaMax[i];
       if (max <= 0) continue;
-      
+
       final current = store.stamina[i];
       if (current >= max) continue;
-      
-      final regen = store.regenPerSecond100[i];
+
+      final blessingIndex = world.levelBlessings.tryIndexOf(
+        store.denseEntities[i],
+      );
+      final regen =
+          store.regenPerSecond100[i] +
+          (blessingIndex == null
+              ? 0
+              : world.levelBlessings.staminaRegen100[blessingIndex]);
       if (regen <= 0) continue;
 
       final accum = store.regenAccumulator[i] + regen;

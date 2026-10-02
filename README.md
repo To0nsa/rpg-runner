@@ -25,6 +25,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
   surviving section guards,
   editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring
+- Reusable world interactions with a Forest regeneration shrine, persistent fire,
+  and level-duration resource bonuses; [manual configuration](docs/tdd/world_interactions.md)
 - Gear/loadout setup flow before runs
 - In-game HUD, pause, game-over, and scoring
 - Board-backed leaderboards, replay validation, and ghost publication

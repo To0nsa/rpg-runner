@@ -77,6 +77,7 @@ import 'ecs/systems/projectile_world_collision_system.dart';
 import 'ecs/systems/projectile_launch_system.dart';
 import 'ecs/systems/reactive_proc_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
+import 'ecs/systems/world_interaction_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/self_ability_system.dart';
 import 'ecs/systems/status_system.dart';
@@ -1485,7 +1486,7 @@ class GameCore {
   /// 23. **Reactive procs**: Resolve defensive reactive hooks.
   /// 24. **Status application**: Apply queued status profiles.
   /// 25. **Death handling**: Despawn dead entities, record kills.
-  /// 26. **Resource regen**: Regenerate mana and stamina.
+  /// 26. **Interactions and regen**: Grant top-contact blessings, regenerate resources.
   /// 27. **Animation**: Compute per-entity anim key + frame.
   /// 28. **Cleanup**: Remove entities past their lifetime.
   ///
@@ -1875,6 +1876,13 @@ class GameCore {
     }
 
     // ─── Phase 15: Resource regeneration ───
+    // Final living-player support grants modifiers before this tick's regen.
+    const WorldInteractionSystem().step(
+      _world,
+      player: _player,
+      tick: tick,
+      geometryVersion: _worldMotionAuthority.terrainGeometryVersion,
+    );
     _resourceRegenSystem.step(_world);
 
     // ─── Phase 16: Animation ───
@@ -1976,6 +1984,10 @@ class GameCore {
   }) {
     _synchronizeEncounters();
     _world.traps.synchronize(_trackManager.activeChunks, _stagedTerrainCatalog);
+    _world.interactions.synchronize(
+      _trackManager.activeChunks,
+      _stagedTerrainCatalog,
+    );
     for (final request in enemyRequests) {
       _spawnTrackEnemy(request);
     }
@@ -2407,6 +2419,7 @@ class GameCore {
       collectibleScore: collectibleScore,
       staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
       traps: _world.traps.buildSnapshots(),
+      interactions: _world.interactions.buildSnapshots(),
       stagedTerrainRenderSnapshot:
           _worldMotionAuthority.terrainRenderSnapshot ??
           _stagedTerrainCandidate?.renderSnapshot,

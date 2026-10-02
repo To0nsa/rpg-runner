@@ -17,6 +17,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.
 - [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): gameplay, rendering and Chunk Creator authoring deployed with Forest repairs in `2026.09.8`.
+- [World interaction contracts](tdd/world_interactions.md) and [regeneration shrine](gdd/world_interactions.md): manually configured top-contact blessing and fire animation; editor controls are deferred.
 - [Technical design documents](tdd/): implemented architecture and contracts.
 - [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed. Survivor section
   combat was deployed in `2026.10.1`.
