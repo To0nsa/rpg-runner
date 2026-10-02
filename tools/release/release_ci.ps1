@@ -38,7 +38,9 @@ function Import-ReleaseCI {
   $origin = Invoke-ReleaseCommand git @("remote", "get-url", "origin") $Root
   $match = [regex]::Match($origin, 'github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?$')
   if (-not $match.Success) { throw "CI import requires a GitHub origin." }
-  $repository = $match.Groups[1].Value
+  # GitHub redirects renamed origins; run metadata uses the canonical full name.
+  $repository = Invoke-ReleaseCommand gh @("api", "repos/$($match.Groups[1].Value)", "--jq", ".full_name") $Root
+  if ($repository -notmatch '^[^/\s]+/[^/\s]+$') { throw "Cannot resolve canonical GitHub repository." }
   $commit = Invoke-ReleaseCommand git @("rev-parse", "HEAD") $Root
   if (Invoke-ReleaseCommand git @("status", "--porcelain") $Root) { throw "ImportCI requires a clean frozen commit." }
   $run = Invoke-ReleaseCommand gh @("api", "repos/$repository/actions/runs/$RunId") $Root | ConvertFrom-Json

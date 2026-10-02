@@ -4,11 +4,17 @@ The `2026.09.9` Forest content revision removes ten ambient enemy placements:
 four in early chunks, one in an easy chunk and five in normal chunks. Authored
 sources and generated runtime content carry this revision together.
 
-The pending `2026.09.10` source release also refines seven early Forest
+The deployed `2026.09.10` release also refines seven early Forest
 chunks: camp props use foreground layers, and trees, rocks, bushes, moss and
 the opening bench have adjusted placements. Solid prefab collision follows
 those authored positions; these are included in the matching regenerated
 client and replay-worker content.
+
+The `2026.10.1` source release adds three easy and three normal Forest grove
+chunks and simplifies existing grove, ruin, training-camp and woodcamp layouts.
+Prefab changes remove obstructing terrain pockets. Their authored solid
+placements and generated collision/sprite records ship together to the client
+and replay worker; scoring rules remain unchanged.
 
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.

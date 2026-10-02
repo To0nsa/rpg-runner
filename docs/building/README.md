@@ -11,8 +11,8 @@
 - [Rescue release operations](rescue_release_operations.md): frozen `6bfda4c8`
   deployed as `2026.09.10`/`score-v2` to Functions, Cloud Run and web Hosting on
   October 1. Checks and the exact-image benchmark passed; no cancellation/reset
-  was needed. Later projectile/content edits remain pending a new compatibility
-  release. Live gameplay smoke still needs a linked Play Games account.
+  was needed. The `2026.10.1` release of later projectile/content changes is in
+  progress. Live gameplay smoke still needs a linked Play Games account.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

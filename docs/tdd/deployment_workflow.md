@@ -9,13 +9,15 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-Source currently agrees on gameplay 2026.09.10, rules-v2, score-v2 and ghost-v1.
+Source currently agrees on gameplay 2026.10.1, rules-v2, score-v2 and ghost-v1.
 Replay and command format remain 1. The latest checked-in production evidence
 is [2026.09.10 at commit 6bfda4c8](../verification/game-compat-2026.09.10-production.md),
 deployed October 1, 2026. Subsequent projectile and authored-content changes
 were excluded; current branch source is not identical to that deployed commit.
-The [release checklist](../building/rescue_release_operations.md) retains the
-outstanding linked Play Games smoke checks.
+The `2026.10.1` release includes those projectile changes and the latest Forest
+content, with both generated terrain and chunk patterns refreshed. Its
+coordinated deployment is in progress; the [release checklist](../building/rescue_release_operations.md)
+retains the outstanding linked Play Games smoke checks.
 
 ## Commands
 

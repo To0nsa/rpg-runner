@@ -32,7 +32,14 @@ function Invoke-ReleaseCommand {
   if ($LogPath) {
     @($rendered, $diagnostics) | Add-Content -LiteralPath $LogPath -Encoding utf8
   }
-  if ($code -ne 0) { throw "$Command failed ($code). $rendered $diagnostics" }
+  if ($code -ne 0) {
+    if ($LogPath) {
+      $detail = "$rendered $diagnostics".Trim()
+      if ($detail.Length -gt 2000) { $detail = $detail.Substring($detail.Length - 2000) }
+      throw "$Command failed ($code). $detail See $LogPath for full output."
+    }
+    throw "$Command failed ($code). $rendered $diagnostics"
+  }
   if ($diagnostics -and -not $LogPath) { Write-Verbose $diagnostics }
   return $rendered
 }

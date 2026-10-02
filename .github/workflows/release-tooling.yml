@@ -30,22 +30,39 @@ permissions:
 
 jobs:
   validate:
+    name: PowerShell 7
     runs-on: windows-latest
     timeout-minutes: 10
-    strategy:
-      matrix:
-        shell: [powershell, pwsh]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
       - name: Check helpers and mocked deployment sequence
-        shell: ${{ matrix.shell }}
+        shell: pwsh
         run: |
           .\tools\release\test_release.ps1
           .\tools\release\test_release_integration.ps1
           .\tools\release\test_release_cache.ps1
       - name: Resolve offline release plan
-        shell: ${{ matrix.shell }}
+        shell: pwsh
+        run: .\tools\release\release.ps1 -Action Plan
+
+  windows-powershell:
+    name: Windows PowerShell 5.1
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Check helpers and mocked deployment sequence
+        shell: powershell
+        run: |
+          .\tools\release\test_release.ps1
+          .\tools\release\test_release_integration.ps1
+          .\tools\release\test_release_cache.ps1
+      - name: Resolve offline release plan
+        shell: powershell
         run: .\tools\release\release.ps1 -Action Plan

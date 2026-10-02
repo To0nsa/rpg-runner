@@ -11,9 +11,22 @@ and early Forest prefab/layout refinement. Later projectile auto aim filters
 targets by travel reach and terrain sightline, then predicts from the offset
 launch point; that work and subsequent authored content edits were excluded
 from this deployment at the owner's instruction to ignore ongoing edits.
-The current branch still names `2026.09.10`, but its excluded deterministic
-gameplay needs a new compatibility version and coordinated client/worker
-release before publication. The completed gates below apply to `6bfda4c8`.
+Current source now names `2026.10.1` for those previously excluded deterministic
+changes and the latest Forest geometry. Its coordinated deployment is in
+progress. The completed historical gates below apply to `6bfda4c8`.
+
+## Release in progress: 2026.10.1
+
+Authorized October 2, 2026. Scope includes projectile auto aim, the six new
+Forest grove chunks and subsequent layout/prefab collision refinements.
+Regenerated Core chunk patterns and staged terrain include all 60 chunks.
+Rules/score/ghost versions and replay/command formats remain unchanged.
+
+- [ ] Validate/build one frozen source snapshot and benchmark its exact image.
+- [ ] Pause issuance, verify a drained read-only inventory, deploy matching
+  Functions/worker/web, and restore issuance after board/artifact readiness.
+- [ ] Record immutable artifacts and live verification; retain existing data.
+- [ ] Complete linked Play Games gameplay/replay/settlement/ghost smoke.
 
 ## Preparation workflow for the next release
 

@@ -90,11 +90,11 @@ claims.
 Connection-aware terrain selection was introduced in game compatibility
 `2026.09.0`. The 128-world-unit camera fall-behind grace distance is issued as
 `2026.09.1`, and difficulty-paced camera targets are issued as `2026.09.2`.
-Current Functions defaults and the worker accept only `2026.09.10` with ranked
+Current Functions defaults and the worker accept only `2026.10.1` with ranked
 `rules-v2`/`score-v2`/`ghost-v1`. The rescue release includes prior navigation and
 trap changes, followed by the Forest spawn revision in `2026.09.9` and the
 20% camera target reduction in `2026.09.10`;
-compatibility labels do not select historical Core implementations.
+The `2026.10.1` release adds projectile auto aim and the latest Forest grove/terrain content. Compatibility labels do not select historical Core implementations.
 Replay and command encoding remain version 1. Follow the current
 [pre-live cancellation/reset procedure](../building/rescue_release_operations.md).
 Practice and ranked creation reject versions outside the backend allowlist before

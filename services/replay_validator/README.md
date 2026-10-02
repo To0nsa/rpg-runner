@@ -60,7 +60,7 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts game compatibility `2026.09.10`;
+The validator source accepts game compatibility `2026.10.1`;
 replay/command format `1`, `rules-v2`, `score-v2`, and `ghost-v1` are the
 supported ranked tuple. Rescue encounter outcomes and points are derived from
 replayed Core; provisional client rescue statistics are ignored. This includes
@@ -76,8 +76,8 @@ The preceding `2026.09.9` worker, Functions and web client were deployed on
 September 25; see [release evidence and verification limits](../../docs/archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 The matching `2026.09.10` worker, Functions and web client were deployed
 October 1 from frozen `6bfda4c8`; see [current production evidence](../../docs/verification/game-compat-2026.09.10-production.md).
-Later projectile/content edits are excluded and require a new compatibility
-release. The strict exact-image benchmark and infrastructure checks passed;
+That historical release excluded later projectile/content edits. Their matching
+`2026.10.1` deployment is in progress. The historical strict exact-image benchmark and infrastructure checks passed;
 signed-in gameplay smoke remains outstanding.
 Use the [release checklist](../../docs/building/rescue_release_operations.md)
 for the remaining signed-in smoke check and any future cutover.
@@ -133,7 +133,7 @@ firebase deploy --project rpg-runner-d7add `
 
 Then run the checked-in service/queue policy from the repository root.
 For the game compatibility cutover, complete the pre-live cancellation/reset above first. Deploy
-the matching `2026.09.10` worker and Functions configuration before enabling new
+the matching `2026.10.1` worker and Functions configuration before enabling new
 client issuance. The preceding September 25 deployment is recorded above.
 
 ```powershell

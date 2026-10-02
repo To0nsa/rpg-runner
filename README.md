@@ -154,10 +154,10 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The repository's gameplay
-compatibility is 2026.09.10, including rescue scoring, Forest repairs/spawn
-changes and slower camera pacing.
+compatibility is 2026.10.1, including projectile auto aim and the latest Forest
+grove/terrain refinements alongside rescue scoring and slower camera pacing.
 The [October 1 production release](docs/verification/game-compat-2026.09.10-production.md)
-uses frozen `6bfda4c8`; later projectile/content changes remain pending a new
-compatibility release.
+uses frozen `6bfda4c8`; the matching `2026.10.1` coordinated release is in
+progress.
 The [documentation index](docs/README.md) distinguishes pending compatibility
 work from the latest verified production release.

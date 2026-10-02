@@ -26,7 +26,7 @@ function git {
   $global:LASTEXITCODE = 0
   if (($args -join ' ') -like 'rev-parse*') { return 'c' * 40 }
   if (($args -join ' ') -eq 'status --porcelain') { return '' }
-  if (($args -join ' ') -eq 'remote get-url origin') { return 'https://github.com/owner/repo.git' }
+  if (($args -join ' ') -eq 'remote get-url origin') { return 'https://github.com/owner/legacy-name.git' }
   return @(Get-ChildItem -LiteralPath $fixture -Recurse -File |
     ForEach-Object { $_.FullName.Substring($fixture.Length + 1).Replace('\','/') } |
     Where-Object { $_ -notmatch '^(\.tmp/|build/|functions/lib/)' -and $_ -notmatch '/node_modules/' })
@@ -68,6 +68,7 @@ function Receive-Job { param($Job); if ($Job.Failure) { throw $Job.Failure }; re
 function Remove-Job { param([Parameter(ValueFromPipeline)]$Job, [switch]$Force); process {} }
 function gh {
   $global:LASTEXITCODE = 0
+  if ($args[0] -eq 'api' -and $args -contains '--jq') { return 'owner/repo' }
   if ($args[0] -eq 'api') { return $global:cacheCIRun | ConvertTo-Json -Depth 8 }
   if (($args -join ' ') -like 'run download*') {
     $destination = $args[[Array]::IndexOf($args, '--dir') + 1]
@@ -184,7 +185,7 @@ try {
   Import-ReleaseCI $fixture $importCache 123
   $build = @($manifest.components | Where-Object component -eq 'client-build')[0]
   Restore-ReleaseArtifact $fixture $importCache 'client-build' $build.key
-  Assert-CacheTest ((Get-ReleaseCachedComponent $importCache 'client-build' $build.key).passed) 'trusted bundle imports and restores hashed artifacts'
+  Assert-CacheTest ((Get-ReleaseCachedComponent $importCache 'client-build' $build.key).passed) 'trusted bundle imports through a renamed origin and restores hashed artifacts'
   $clientFragments = @(Get-ChildItem (Join-Path $downloads 'release-client-checks-3') -Filter component.json -Recurse -File)
   $fragmentRecord = Get-Content -Raw $clientFragments[0].FullName | ConvertFrom-Json
   $fragmentRecord.shardIndex=2

@@ -100,8 +100,8 @@ choice query the published terrain edge index for an unobstructed sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
 These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release. They are included in the pending `2026.09.10`
-source release; the latest checked-in production evidence is for `2026.09.9`.
+game-compatibility release. They are included in the `2026.10.1`
+source release; they were excluded from the October 1 `2026.09.10` deployment.
 
 During phase 7, melee/area hitboxes, projectiles, and mobility impacts query
 that AABB grid only for candidates. `HitResolver` preserves stable entity-ID
@@ -388,10 +388,13 @@ Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
 The subsequent Forest spawn revision uses gameplay `2026.09.9`; removing enemy
 placements changes deterministic replay outcomes and requires matching client
 and worker content. Scoring and command encoding are unchanged.
-The pending `2026.09.10` source release includes early Forest prefab position
+The deployed `2026.09.10` release includes early Forest prefab position
 and layer adjustments. Placed solid prefabs retain collision authority at their
 authored positions; regenerate both chunk sprite records and the staged terrain
 artifact together before building the client and replay worker.
+The `2026.10.1` release expands the grove pools and simplifies later Forest
+geometry and blocking prefab pockets. Its 60-chunk authored catalog is
+regenerated into both runtime artifacts before client/worker validation.
 
 Core owns occurrence activation, target selection, participant damage credit,
 chunk containment, terminal priority and checked rescue awards. Shared UI/worker

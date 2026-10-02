@@ -301,13 +301,13 @@ Why:
 - Exported in `functions/src/index.ts`.
 - Ensures managed leaderboard boards/windows exist.
 - Uses logic in `functions/src/boards/provisioning.ts`.
-- Defaults new boards to current game compatibility `2026.09.10`, combat
+- Defaults new boards to current game compatibility `2026.10.1`, combat
   `rules-v2`, `score-v2`, and `ghost-v1`. A managed board ID binds mode, level,
   window, ruleset, score, game compatibility, and ghost version, so rollout
   partitions can coexist without sharing leaderboard/ghost descendants.
 - Active-board and run-session callables accept only the compatibility
   allowlist resolved from `RUN_SUPPORTED_GAME_COMPAT_VERSIONS`. The default is
-  `2026.09.10` only. Complete the [coordinated release](deployment_workflow.md)
+  `2026.10.1` only. Complete the [coordinated release](deployment_workflow.md)
   and remove old overrides before enabling new issuance. Historical labels
   cannot execute on the current worker.
 - The read-only production inventory groups active sessions by game
