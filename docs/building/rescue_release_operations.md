@@ -1,32 +1,40 @@
 # Rescue release operations
 
-Status: `2026.09.10` was deployed October 1, 2026 from frozen commit
-`6bfda4c8`; see [current production evidence](../verification/game-compat-2026.09.10-production.md).
+Status: `2026.10.1` was deployed October 2, 2026 from frozen commit
+`0cb94b94`; see [current production evidence](../verification/game-compat-2026.10.1-production.md).
 Signed-in production gameplay smoke remains outstanding. Earlier releases:
+[2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-The deployed commit includes the 20% reduction in camera auto-scroll targets
+The preceding `2026.09.10` commit includes the 20% reduction in camera auto-scroll targets
 and early Forest prefab/layout refinement. Later projectile auto aim filters
 targets by travel reach and terrain sightline, then predicts from the offset
 launch point; that work and subsequent authored content edits were excluded
-from this deployment at the owner's instruction to ignore ongoing edits.
-Current source now names `2026.10.1` for those previously excluded deterministic
-changes and the latest Forest geometry. Its coordinated deployment is in
-progress. The completed historical gates below apply to `6bfda4c8`.
+from that deployment at the owner's instruction to ignore ongoing edits.
+The `2026.10.1` cutover includes those previously excluded deterministic
+changes and the latest Forest geometry. The historical gates below apply to
+`6bfda4c8`.
 
-## Release in progress: 2026.10.1
+## Deployed release: 2026.10.1
 
 Authorized October 2, 2026. Scope includes projectile auto aim, the six new
 Forest grove chunks and subsequent layout/prefab collision refinements.
 Regenerated Core chunk patterns and staged terrain include all 60 chunks.
 Rules/score/ghost versions and replay/command formats remain unchanged.
 
-- [ ] Validate/build one frozen source snapshot and benchmark its exact image.
-- [ ] Pause issuance, verify a drained read-only inventory, deploy matching
+- [x] Validate/build one frozen source snapshot and benchmark its exact image.
+- [x] Pause issuance, verify a drained read-only inventory, deploy matching
   Functions/worker/web, and restore issuance after board/artifact readiness.
-- [ ] Record immutable artifacts and live verification; retain existing data.
+- [x] Record immutable artifacts and live verification; retain existing data.
 - [ ] Complete linked Play Games gameplay/replay/settlement/ghost smoke.
+
+The owner authorized cancellation of six issued `2026.09.10` sessions to
+complete the cutover. They had no upload, validated replay or reward grant.
+The records were preserved with conditional terminal writes; no player data,
+rewards or replay artifacts were reset. The final inventory showed zero active
+sessions, all 176 grants settled, six expected boards, and both queues RUNNING.
+See the [production evidence](../verification/game-compat-2026.10.1-production.md).
 
 ## Preparation workflow for the next release
 

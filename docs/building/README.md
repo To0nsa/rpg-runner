@@ -5,7 +5,7 @@
   branch; see [verification](../verification/forest-content-drift-repair.md).
 
 - [Completed NPC section guards](../archive/2026-10-02/building/npc_section_guards.md):
-  implemented on `feature/npc-section-guards` as pending gameplay `2026.10.1`;
+  implemented on `feature/npc-section-guards` and deployed as gameplay `2026.10.1`;
   see [validation](../verification/npc-section-guards.md) and the separate
   [resolved Forest content finding](../archive/2026-10-02/audit/forest_content_drift_2026-10-02.md).
 
@@ -17,11 +17,11 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): frozen `6bfda4c8`
-  deployed as `2026.09.10`/`score-v2` to Functions, Cloud Run and web Hosting on
-  October 1. Checks and the exact-image benchmark passed; no cancellation/reset
-  was needed. The `2026.10.1` release of later projectile/content changes is in
-  progress. Live gameplay smoke still needs a linked Play Games account.
+- [Rescue release operations](rescue_release_operations.md): frozen `0cb94b94`
+  deployed as `2026.10.1`/`score-v2` to Functions, Cloud Run and web Hosting on
+  October 2. Checks and the exact-image benchmark passed. Six issued older
+  sessions were cancelled with owner authorization; live gameplay smoke still
+  needs a linked Play Games account.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

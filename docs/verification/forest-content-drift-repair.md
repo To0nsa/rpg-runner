@@ -49,10 +49,10 @@ separate 48-check matrix then passed those final assertions and all controls.
 
 Functions and editor code were unchanged in this repair. Their earlier NPC
 guard checks remain historical evidence in [the guard report](npc-section-guards.md).
-Client, Functions and worker still agree on the pending `2026.10.1` gameplay
+Client, Functions and worker agreed on the then-pending `2026.10.1` gameplay
 version. This placement correction and generated refresh affect replay outcomes
-and belong to that unreleased coordinated cutover; scoring, rules and replay
-encoding are unchanged.
+and were included in the subsequent [coordinated cutover](game-compat-2026.10.1-production.md);
+scoring, rules and replay encoding are unchanged.
 
 ## Tested horizons and exclusions
 

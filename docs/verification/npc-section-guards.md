@@ -76,6 +76,6 @@ evidence on the unchanged committed runtime. It uses no-enemy streams and does
 not measure maximum-density guard combat. Its Forest trace advances about 332
 world pixels, so it is not finite-route traversal proof. It does not replace the
 exact release-image one-CPU/512 MiB container gate or signed-in gameplay smoke.
-The latest production remains frozen `6bfda4c8` at `2026.09.10`. A future
-`2026.10.1` cutover requires matching client/Functions/worker artifacts, old
-issuance stopped and validation/settlement drained, without an implicit reset.
+At the time of this local verification, production remained frozen `6bfda4c8`
+at `2026.09.10`. The matching `2026.10.1` client/Functions/worker cutover was
+subsequently completed; see the [production evidence](game-compat-2026.10.1-production.md).
