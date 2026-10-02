@@ -133,7 +133,30 @@ Treat every change as production-minded cleanup, not a quick patch:
 
 ## Validation Expectations
 
-Run the smallest relevant checks for the slice you touched:
+Keep validation proportional to the task's scope and risk. Do not run every
+test suite for every prompt or edit.
+
+- For explanation-only work, do not run tests unless needed to answer the question.
+- For documentation-only changes, review the diff and check formatting/links as
+  relevant; do not run application analyzers or test suites.
+- For small code changes, run targeted analysis and the tests that exercise the
+  affected behavior. Broaden validation only when dependencies, failures, or
+  unresolved risks justify it.
+- For an exact undo/revert, inspect the diff and verify the intended prior state
+  is restored. Run tests only if conflicts, intervening changes, or remaining
+  uncertainty require them.
+- Run full suites when explicitly requested, when a change has broad impact, or
+  when the applicable release/CI workflow requires them. Explain why before
+  starting an unusually expensive check.
+- Reuse checks already completed for unchanged code; do not repeat them without
+  a concrete reason. Stop once the relevant checks provide sufficient evidence.
+
+This scope rule also applies to command lists in layer-specific AGENTS files:
+blanket "minimum checks" lists are not a requirement to run full suites for
+every edit. Preserve checks specifically required for an affected invariant or
+release gate.
+
+Choose relevant commands and focused test targets from the following:
 
 - Flutter/Dart changes: `dart analyze` and relevant `flutter test` targets
 - Shared content-pipeline changes: `dart analyze packages/runner_content_pipeline`
@@ -141,7 +164,8 @@ Run the smallest relevant checks for the slice you touched:
 - Shared protocol changes: `dart analyze packages/run_protocol` and `dart test packages/run_protocol/test`
 - Backend changes: `corepack pnpm --dir functions build` and `corepack pnpm --dir functions test`
 - Replay validator changes: `dart analyze services/replay_validator` and `dart test services/replay_validator/test`
-- Editor changes: `cd tools/editor && dart analyze` and `cd tools/editor && flutter test`
+- Editor changes: targeted `dart analyze` and relevant `flutter test` targets
+  from `tools/editor`
 - Cross-layer contract changes: validate both the Flutter client side and the backend side
 
 If you cannot run a relevant check, state that clearly in the final handoff.
