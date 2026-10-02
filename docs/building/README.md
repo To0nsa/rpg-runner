@@ -17,11 +17,11 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): frozen `0cb94b94`
-  deployed as `2026.10.1`/`score-v2` to Functions, Cloud Run and web Hosting on
-  October 2. Checks and the exact-image benchmark passed. Six issued older
-  sessions were cancelled with owner authorization; live gameplay smoke still
-  needs a linked Play Games account.
+- [Rescue release operations](rescue_release_operations.md): frozen `b5835b8e`
+  deployed as `2026.10.3`/`score-v3` to Functions, Cloud Run, and web Hosting on
+  October 3 (Helsinki time). Checks and the exact-image benchmark passed. Two
+  issued older sessions were cancelled with owner authorization; live gameplay
+  smoke still needs a linked Play Games account.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

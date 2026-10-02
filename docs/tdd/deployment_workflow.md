@@ -9,15 +9,14 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-Source prepares gameplay 2026.10.2 for Huntress throw/stab/slash combat and
-the furthest-progress distance rule, with a shared 25-world-unit metre. Its
-ranked tuple is rules-v2, score-v3 and ghost-v1; replay and command format
-remain 1. The recorded production release remains 2026.10.1. The latest
-checked-in production evidence is [2026.10.1 at commit 0cb94b94](../verification/game-compat-2026.10.1-production.md),
-deployed October 2, 2026. That coordinated release includes projectile auto
-aim, NPC section guards and the latest Forest content, with refreshed generated
-terrain and chunk patterns. The [release checklist](../building/rescue_release_operations.md)
-retains the outstanding linked Play Games smoke checks.
+The current production release is gameplay `2026.10.3`, with Huntress
+throw/stab/slash combat, furthest-progress distance at 25 world units per
+metre, and regeneration shrines. Its ranked tuple is `rules-v2`, `score-v3`,
+and `ghost-v1`; replay and command formats remain 1. See the
+[October 3 production evidence](../verification/game-compat-2026.10.3-production.md)
+for frozen commit `b5835b8e`, artifacts, cutover checks, and exclusions. The
+[release checklist](../building/rescue_release_operations.md) retains the
+outstanding linked Play Games smoke checks.
 
 ## Commands
 

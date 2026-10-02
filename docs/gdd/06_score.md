@@ -56,7 +56,8 @@ This scale leaves world geometry, movement speeds and chunk lengths unchanged.
 Distance still awards **5 points per whole metre** by default: a full chunk of
 new progress earns **120 distance points**. The new scale doubles distance points
 for the same unrepeated world-space progress compared with the old 50-unit scale.
-These rules use gameplay compatibility `2026.10.2` and ranked `score-v3`.
+These rules began in gameplay compatibility `2026.10.2` and remain in the
+deployed `2026.10.3` release with ranked `score-v3`.
 Previously saved results retain their recorded values; old board partitions are
 not rescaled or merged with new results.
 

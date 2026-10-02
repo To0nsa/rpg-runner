@@ -1,22 +1,42 @@
 # Rescue release operations
 
-Status: `2026.10.1` was deployed October 2, 2026 from frozen commit
-`0cb94b94`; see [current production evidence](../verification/game-compat-2026.10.1-production.md).
+Status: `2026.10.3` was deployed October 3, 2026 (Helsinki time) from frozen
+commit `b5835b8e`; see [current production evidence](../verification/game-compat-2026.10.3-production.md).
 Signed-in production gameplay smoke remains outstanding. Earlier releases:
+[2026.10.1](../verification/game-compat-2026.10.1-production.md),
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-The preceding `2026.09.10` commit includes the 20% reduction in camera auto-scroll targets
-and early Forest prefab/layout refinement. Later projectile auto aim filters
-targets by travel reach and terrain sightline, then predicts from the offset
-launch point; that work and subsequent authored content edits were excluded
-from that deployment at the owner's instruction to ignore ongoing edits.
-The `2026.10.1` cutover includes those previously excluded deterministic
-changes and the latest Forest geometry. The historical gates below apply to
-`6bfda4c8`.
+## Deployed release: 2026.10.3
+
+Authorized October 3, 2026 (Helsinki time). Scope includes Huntress
+throw/stab/slash combat, furthest-progress distance at 25 world units per
+metre with ranked `score-v3`, and regeneration shrines. Gameplay compatibility
+is `2026.10.3`; rules/ghost and replay/command formats remain unchanged.
+
+- [x] Validate/build one frozen source snapshot and benchmark its exact image.
+- [x] Pause issuance, verify a drained read-only inventory, deploy matching
+  Functions/worker/web, and restore issuance after board/artifact readiness.
+- [x] Record immutable artifacts and live verification; retain existing data.
+- [ ] Complete linked Play Games gameplay/replay/settlement/ghost and
+  retired-version smoke.
+
+The owner authorized cancellation of two issued `2026.10.1` sessions to
+complete the cutover. Neither had an upload, validated replay, or reward grant.
+Their records were preserved with conditional terminal writes. The final
+inventory showed zero active sessions, all 177 grants settled, six expected
+boards, and both queues RUNNING. See the
+[production evidence](../verification/game-compat-2026.10.3-production.md).
 
 ## Deployed release: 2026.10.1
+
+The preceding `2026.09.10` commit includes the 20% reduction in camera
+auto-scroll targets and early Forest prefab/layout refinement. Later
+projectile auto aim and authored content edits were excluded from that
+deployment at the owner's instruction to ignore ongoing edits. This cutover
+includes those previously excluded deterministic changes and the latest
+Forest geometry.
 
 Authorized October 2, 2026. Scope includes projectile auto aim, the six new
 Forest grove chunks and subsequent layout/prefab collision refinements.
@@ -35,16 +55,6 @@ The records were preserved with conditional terminal writes; no player data,
 rewards or replay artifacts were reset. The final inventory showed zero active
 sessions, all 176 grants settled, six expected boards, and both queues RUNNING.
 See the [production evidence](../verification/game-compat-2026.10.1-production.md).
-
-## Preparation workflow for the next release
-
-The deployment tooling now keeps validated components/artifacts in a persistent
-cache shared with frozen checkouts. CI covers the client/shared packages, shards
-Flutter tests, and publishes exact-commit preparation bundles. Plan can select
-verified Hosting/Backend scopes after the first new coordinated release records
-a production baseline. These tooling changes do not alter the production
-evidence below or complete its outstanding smoke checks. The new CI workflow
-needs a successful remote run after publication; local tests mock cloud actions.
 
 ## Deployed release: 2026.09.10 at 6bfda4c8
 
