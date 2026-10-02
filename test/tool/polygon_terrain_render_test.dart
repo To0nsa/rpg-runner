@@ -420,6 +420,7 @@ void main() {
     }
 
     expect(imports, <String>[
+      'packages/runner_core/lib/ecs/stores/world_interaction_store.dart',
       'packages/runner_core/lib/game_core.dart',
       'packages/runner_core/lib/playtest/chunk_playtest_scenario.dart',
       'packages/runner_core/lib/playtest/level_playtest_scenario.dart',
