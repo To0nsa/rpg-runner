@@ -147,9 +147,6 @@ void main() {
         'forest_rocky_grove_easy_004',
         'forest_rocky_grove_easy_005',
         'forest_rocky_grove_easy_006',
-        'forest_rocky_grove_easy_007',
-        'forest_rocky_grove_easy_008',
-        'forest_rocky_grove_easy_009',
       ]);
 
       final host = tester.widget<RunnerPlaytestHost>(

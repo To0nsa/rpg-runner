@@ -1599,18 +1599,6 @@ void main() {
             child.key == const ValueKey<String>('chunk_actor_terrain_toggle'),
       );
       expect(actorControlIndex, greaterThanOrEqualTo(0));
-      final pocketToggle = find.byKey(
-        const ValueKey('chunk_pocket_warnings_toggle'),
-      );
-      final pocketZones = find.byKey(const ValueKey('chunk_pocket_zones'));
-      expect(tester.widget<FilterChip>(pocketToggle).selected, isTrue);
-      expect(pocketZones, findsOneWidget);
-      await tester.tap(pocketToggle);
-      await tester.pump();
-      expect(pocketZones, findsNothing);
-      await tester.tap(pocketToggle);
-      await tester.pump();
-      expect(pocketZones, findsOneWidget);
       expect(
         globalControlsWrap.children[actorControlIndex + 1].key,
         const ValueKey<String>('chunk_marker_placement_toggle'),
@@ -4019,15 +4007,6 @@ void main() {
     await tester.tap(visualPreview);
     await tester.pump();
     expect(gridOverlay, findsNothing);
-    expect(find.byKey(const ValueKey('chunk_pocket_zones')), findsNothing);
-    expect(
-      tester
-          .widget<FilterChip>(
-            find.byKey(const ValueKey('chunk_pocket_warnings_toggle')),
-          )
-          .onSelected,
-      isNull,
-    );
     expect(tester.widget<FilterChip>(showGrid).onSelected, isNull);
     expect(tester.widget<SwitchListTile>(creationSnapToGrid).onChanged, isNull);
     expect(
@@ -4037,7 +4016,6 @@ void main() {
     await tester.tap(visualPreview);
     await tester.pump();
     expect(gridOverlay, findsOneWidget);
-    expect(find.byKey(const ValueKey('chunk_pocket_zones')), findsOneWidget);
 
     tester.widget<SwitchListTile>(creationSnapToGrid).onChanged!(true);
     tester.widget<SwitchListTile>(creationSnapToNeighborVertices).onChanged!(

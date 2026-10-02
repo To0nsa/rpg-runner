@@ -1231,37 +1231,6 @@ blockers, local-hover candidates, and Derf perch eligibility. The projection is
 built when either actor-terrain or marker evidence requires it, and never
 mutates source, history, revision, collision authority, or RNG state.
 
-The default-on **Pockets** scene-header toggle checks every registered
-player character, ground-navigating enemy and supported NPC against the current
-accepted Chunk collision expansion, regardless of placed spawns or the Actor
-terrain selector. `ChunkPocketOverlay` debounces updates by 150 ms, runs
-`buildChunkPocketWarnings` off the UI isolate, and rejects obsolete results by
-generation. Edits, Undo/Redo and source refresh replace the geometry identity;
-pan/zoom only repaints. Pending scene edits/gestures hide evidence and show a
-paused state. Invalid compilation and query failure are explicit unavailable
-states, never a successful empty result. Visual preview hides the overlay.
-
-Core's authoring-only `TerrainPocketQuery` locates capsule-offset intersections
-of opposing, non-walkable exposed solid faces, checks finite-face contact, then
-uses the production capsule controller to verify an unsupported wedge. Sixteen
-one-world-unit downward probes must contain four consecutive blocked requests
-with both candidate contacts and at most four physics ticks of movement. Any
-grounding or overlap recovery rejects the candidate; the capsule must fit in the
-complete compiled scene. These are bounded geometric probes, not an alternate
-gravity integration or full movement simulation. Catalog capsule sizes and
-traversal masks/slope limits stay authoritative. Equal edge-pair results merge
-actor labels into one numbered translucent red gap with a red boundary.
-
-This warning is advisory: it changes no source, Save/Build gating, simulation,
-replay compatibility or actor capabilities. It detects local steep-face fall
-wedges, including the original rocky-grove rock pair. It is not a full route
-solver, entrance-reachability proof, or exhaustive stuck detector. Endpoint-only
-pinches, grounded pits with insufficient jump clearance, water/swimming behavior,
-optional air jumps/teleports and pockets spanning Chunk seams are outside this
-local check. Flying Unoco and stationary Derf are deliberately excluded from
-fall-trap claims; their existing Actor terrain/placement evidence remains
-available. Absence of a warning does not replace Play or traversal tests.
-
 The opt-in marker layer uses that internal terrain projection and constructs a
 `TerrainSpawnPlacementResolver` over its version-coherent Core geometry, edge
 index, surface index, and surface-set identity. Explicit chunk-v2 staging also

@@ -56,20 +56,6 @@ override that selection without resetting global chunk indexes. The enemy-free
 opening still suppresses enemies only for the first configured number of chunks;
 terrain hazards remain active.
 
-## Avoiding trapping decoration pockets
-
-In Chunk Creator, **Pockets** is enabled by default. Numbered red areas
-identify narrow gaps where a player, ground enemy or allied NPC capsule can
-remain suspended between steep solid faces without landing. The summary names
-the affected actors; a gap safe for the player may still trap a larger ally.
-Widen the passage with clearance or close it with a simple walkable collision
-surface. Visual decoration does not need to follow every collision contour.
-
-Warnings are advisory and do not prevent Save or change gameplay. They cover
-local steep-sided fall pockets, not every inaccessible route, deep pit or seam
-between Chunks. Flying and stationary enemies are not evaluated as falling
-actors. Continue to use Play and actor traversal checks after composition edits.
-
 ## Camera pacing by difficulty
 
 The chunk containing the camera center sets the horizontal auto-scroll target.
