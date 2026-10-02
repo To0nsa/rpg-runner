@@ -1,5 +1,8 @@
 # Current Implementation Plans
 
+- [Forest content drift repair](forest_content_drift_repair.md): fixing the
+  inherited generated/runtime mismatch and four seeded enemy traversal failures.
+
 - [Completed NPC section guards](../archive/2026-10-02/building/npc_section_guards.md):
   implemented on `feature/npc-section-guards` as pending gameplay `2026.10.1`;
   see [validation](../verification/npc-section-guards.md) and the separate

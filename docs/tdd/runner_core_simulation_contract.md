@@ -101,7 +101,11 @@ The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
 These rules affect replayed outcomes and require a coordinated client/worker
 game-compatibility release. Current source compatibility is `2026.10.1`, which
-also includes surviving NPC section combat. The latest checked-in production
+also includes surviving NPC section combat, refreshed Forest generated content,
+and the contiguous walkable-support placement correction. These are pending
+source changes under the same unreleased compatibility version; the correction
+and content refresh affect replay outcomes and must ship with matching client,
+Functions and worker artifacts. The latest checked-in production
 evidence remains frozen `6bfda4c8` at `2026.09.10` on October 1.
 
 During phase 7, melee/area hitboxes, projectiles, and mobility impacts query

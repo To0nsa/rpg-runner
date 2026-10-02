@@ -336,6 +336,31 @@ void main() {
   });
 
   group('complete capsule clearance', () {
+    test('a shelf beyond an ineligible face cannot lift a grounded pose', () {
+      final fixture = _fixture(<TerrainPolygonInput>[
+        _polygon('steep_step', const <(double, double)>[
+          (0, 100),
+          (40, 100),
+          (42, 92),
+          (80, 92),
+          (80, 140),
+          (0, 140),
+        ]),
+      ]);
+      final support = fixture.surfaces.surfaces.singleWhere(
+        (surface) => surface.start == TerrainPoint.fromWorld(0, 100),
+      );
+      final result = _place(
+        fixture,
+        support,
+        xTicks: _ticks(36),
+        profile: sixtyProfile,
+        capsule: _capsule(radiusWorld: 10, spineWorld: 2),
+      );
+      expect(result.validity, TerrainPlacementValidity.blockedClearance);
+      expect(result.bodyCenter!.yTicks, _ticks(88));
+    });
+
     test('rejects blocked headroom and an adjacent wall', () {
       final fixture = _fixture(<TerrainPolygonInput>[
         _rectangle('floor', 0, 100, 100, 140),
