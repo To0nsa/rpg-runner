@@ -62,12 +62,14 @@ for Grojib, Hashash and Unoco with seeds 7/42/2026: 27 cases plus harness contro
 Derf is stationary and has placement/support tests instead. This matrix is enemy
 pursuit evidence, not complete NPC Forest traversal, camera or combat coverage.
 
-Generated freshness is not green on the inherited baseline. Temporary regeneration
-passes dry-run but exposes four Forest traversal failures, independently reproduced
-at the pre-feature revision. The generated refresh was discarded and no authored
-geometry was changed. See the [open content finding](../audit/forest_content_drift_2026-10-02.md).
-Passing committed-runtime tests must not be presented as current authored Forest
-clearance evidence.
+At the original guard-validation revision, generated freshness was not green.
+Temporary regeneration passed dry-run but exposed four Forest traversal failures,
+independently reproduced before the feature. That temporary refresh was discarded.
+Those historical committed-runtime tests do not establish current-source Forest
+clearance. The subsequent user-requested repair at `474aae70` retains fresh
+generated content and resolves all four failures without editing authored geometry
+or actor capabilities. See the [closed finding](../archive/2026-10-02/audit/forest_content_drift_2026-10-02.md)
+and [current-source verification](forest-content-drift-repair.md).
 
 The [benchmark report](npc-section-guards-benchmark.json) is local Windows AOT
 evidence on the unchanged committed runtime. It uses no-enemy streams and does

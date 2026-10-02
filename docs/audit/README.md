@@ -1,7 +1,8 @@
 # Current Audits
 
-- [Forest authored-content drift](forest_content_drift_2026-10-02.md): unresolved
-  generator drift and four traversal failures reproduced before section guards.
+- [Resolved Forest authored-content drift](../archive/2026-10-02/audit/forest_content_drift_2026-10-02.md):
+  generated outputs refreshed and four inherited traversal failures fixed at
+  unchanged catalog capabilities. See [current-source verification](../verification/forest-content-drift-repair.md).
 
 - [Resolved Forest enemy traversal check](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md):
   all nine cases across three seeded assemblies pass after navigation and

@@ -1021,3 +1021,7 @@ coverage; endless/looping routes require an explicit chunk count. See the
 commands, target/spawn assumptions, movement limits, and adaptation rules, and
 the [forest traversal audit](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md)
 for resolved failures, content adjustments, validation and test boundaries.
+The [October 2 repair verification](../verification/forest-content-drift-repair.md)
+records fresh generated-content coverage and the continuous walkable-support
+placement correction, including exact rocky-grove routes and unchanged motion
+limits.

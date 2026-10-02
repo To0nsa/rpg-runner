@@ -6,8 +6,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Current implementation plans](building/README.md): NPC rescue production smoke.
 - [NPC section guards](verification/npc-section-guards.md): implemented and locally
   validated on a dedicated branch; pending `2026.10.1` coordinated release.
-- [Forest authored-content drift](audit/forest_content_drift_2026-10-02.md):
-  inherited generator drift and traversal failures remain unresolved.
+- [Forest content repair](verification/forest-content-drift-repair.md): generated
+  content is fresh and all four inherited traversal failures are resolved;
+  the current-source 27-case matrix and exact rock routes pass.
 - [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; deployed in `2026.09.8`.
 - [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
 - [Latest production release](verification/game-compat-2026.09.10-production.md): frozen `6bfda4c8` deployed October 1 as `2026.09.10`/`score-v2`; local checks, strict container benchmark and live infrastructure verification passed. Later projectile/content edits were excluded; signed-in smoke remains open.

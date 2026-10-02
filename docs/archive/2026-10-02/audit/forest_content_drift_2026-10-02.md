@@ -1,6 +1,9 @@
 # Forest authored-content drift found during NPC guard validation
 
-Observed: October 2, 2026. Status: unresolved, outside the NPC section-guard change.
+Observed and resolved: October 2, 2026. Status: closed by user-requested follow-up
+at implementation commit `474aae70` on `feature/npc-section-guards`.
+
+## Original observation
 
 The section-guard branch starts from commit `135fa7cc`. Its committed authored
 Forest sources include changes not present in `authored_chunk_patterns.dart` and
@@ -36,12 +39,32 @@ dart test test/navigation/level_enemy_traversal_test.dart --name 'forest travers
 Pop-Location
 ```
 
-The generated refresh was discarded from the NPC branch. Its committed runtime
-matrix passes, but that result does not establish current authored Forest
-traversability. Diagnose chunk composition, graph planning and motion execution
-before accepting a separate content refresh. A release built after regeneration
-must resolve this issue or explicitly address its scope; no fix or deployment
-is authorized by this audit.
+The temporary generated refresh was discarded during the initial guard task.
+Those historical committed-runtime passes did not establish current authored
+Forest traversability.
 
-See [NPC guard validation](../verification/npc-section-guards.md) for the delivered
+## User-requested resolution
+
+The user subsequently requested fixing this finding. The follow-up retains the
+fresh generated runtime and corrects shared grounded placement: only an
+uninterrupted profile-eligible support path can lift a capsule. A shelf beyond
+a steep ineligible face stays an obstacle, so the graph selects a takeoff that
+the enemy can actually reach. Authored geometry, collider/profile limits, jump
+and movement speeds, finish controls and tick budgets were not changed.
+
+All four original failures now pass. The full fresh-content traversal matrix
+and controls pass 48 checks, including four exact rock-sequence regressions.
+Core tests (741), Flutter Core/generator tests (402), worker tests (174),
+analyzers, generator freshness and the clean compiled strict replay benchmark
+pass. Forest horizons are 72, 69 and 71 chunks at seeds 7, 42 and 2026; the
+exact fixtures cover four chunks continuously from a valid authored opener.
+
+See [follow-up verification](../../../verification/forest-content-drift-repair.md)
+for detailed evidence, benchmark limits and exclusions, and the
+[completed repair plan](../building/forest_content_drift_repair.md). This closes
+the drift and traversal finding. Matching client/Functions/worker deployment
+under the pending `2026.10.1` release remains a separate authorized cutover.
+No deployment occurred.
+
+See [NPC guard validation](../../../verification/npc-section-guards.md) for the delivered
 feature and its separate passing checks.

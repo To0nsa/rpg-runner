@@ -71,7 +71,9 @@ The Forest traversal repair keeps ground speed at 300, jump speed at 500 and
 the slope limits above. Chunk entries, exits and overhead clearances must fit
 those capabilities, including Grojib's larger capsule. The
 [archived investigation](../archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md)
-records the geometry adjustments tested on its captured authored build.
+records the geometry adjustments tested on its captured authored build. The
+[October 2 follow-up](../verification/forest-content-drift-repair.md) verifies
+current generated Forest content and the placement correction described above.
 
 The deterministic traversal regression covers Grojib, Hashash and Unoco on
 Forest seeds 7, 42 and 2026 through the first complete authored sequence,

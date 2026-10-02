@@ -65,8 +65,11 @@ Delivered commits: `fde0dafe` and `ef273f7d`. All feature acceptance criteria
 are implemented; the validation checkbox records checks and their limits, not
 a claim that inherited generated freshness or current authored Forest traversal
 passes. Full results: [verification](../../../verification/npc-section-guards.md).
-The [Forest content finding](../../../audit/forest_content_drift_2026-10-02.md)
-reproduces before this feature; archiving this completed plan does not close it.
+The [Forest content finding](../audit/forest_content_drift_2026-10-02.md)
+reproduced before this feature; archiving this plan did not close it. The later
+user-requested [repair](forest_content_drift_repair.md) at `474aae70` resolves it
+with fresh generated content and unchanged actor capabilities. Historical checks
+below remain evidence for the original guard revision.
 
 Final local checks: 736 Core tests, 385 Flutter tests, 174 worker tests, 212
 Functions emulator tests and 15 editor tests passed; all relevant analyzers
