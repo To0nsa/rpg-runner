@@ -30,6 +30,8 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 import 'package:test/test.dart';
 
+import '../../../packages/runner_core/test/test_support/world_interaction_run_fixture.dart';
+
 void main() {
   test(
     'replayed backtracking preserves furthest progress and terminal distance',
@@ -87,6 +89,43 @@ void main() {
       );
     },
   );
+  for (final hz in [30, 60, 120]) {
+    test('world interaction blessing replays identically at $hz Hz', () {
+      final direct = worldInteractionRunCore(
+        PlayerCharacterRegistry.eloise,
+        tickHz: hz,
+      );
+      final replayed = worldInteractionRunCore(
+        PlayerCharacterRegistry.eloise,
+        tickHz: hz,
+      );
+      for (var tick = 1; tick <= hz * 3; tick++) {
+        direct.applyCommands([if (tick == hz) JumpPressedCommand(tick: tick)]);
+        direct.stepOneTick();
+      }
+      final result = runReplaySimulation(
+        core: replayed,
+        totalTicks: hz * 3,
+        commandStream: [
+          ReplayCommandFrameV1(
+            tick: hz,
+            moveAxis: 0,
+            pressedMask: ReplayCommandFrameV1.pressedJumpBit,
+          ),
+        ],
+      );
+      expect(result.runEnded, isNull);
+      expect(replayed.buildSnapshot().hud.blessings, hasLength(1));
+      expect(
+        replayed.buildSnapshot().interactions.any((i) => i.active),
+        isTrue,
+      );
+      expect(
+        worldInteractionRunState(replayed),
+        worldInteractionRunState(direct),
+      );
+    });
+  }
 
   test('enemy swimming snapshots match direct Core and protocol replay', () {
     final direct = _buildWaterCore(withEnemies: true);

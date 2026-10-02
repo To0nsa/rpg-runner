@@ -6,6 +6,7 @@ library;
 
 import '../abilities/ability_def.dart';
 import 'enums.dart';
+import '../interactions/level_blessing.dart';
 
 class PlayerHudSnapshot {
   const PlayerHudSnapshot({
@@ -50,7 +51,11 @@ class PlayerHudSnapshot {
     required this.abilityMobilityId,
     required this.abilitySpellId,
     required this.abilityJumpId,
+    this.blessings = const [],
   });
+
+  /// Persistent effects granted during this level attempt.
+  final List<LevelBlessingSnapshot> blessings;
 
   /// Current health.
   final double hp;

@@ -2,6 +2,8 @@ import 'package:image/image.dart' as image;
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/traps/trap_catalog.dart';
+import 'package:runner_core/interactions/world_interaction_catalog.dart';
+import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
 import 'package:runner_core/traps/trap_id.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
@@ -45,6 +47,24 @@ Future<List<PlaytestPreparationIssue>> validateCapturedPlaytestAssets({
           message: 'Captured image cannot be decoded: $error',
         ),
       );
+    }
+  }
+  for (final id in WorldInteractionId.values) {
+    final def = WorldInteractionRenderCatalog.get(id);
+    for (final path in def.assetPaths) {
+      final key = 'assets/images/$path';
+      final size = dimensions[key];
+      if (size == null ||
+          def.source.x + def.source.width > size.width ||
+          def.source.y + def.source.height > size.height) {
+        issues.add(
+          PlaytestPreparationIssue(
+            code: 'playtest_interaction_art_invalid',
+            sourcePath: key,
+            message: 'Interaction animation requires every complete frame.',
+          ),
+        );
+      }
     }
   }
   final catalog = decodeTerrainMaterialCatalog(

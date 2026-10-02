@@ -13,6 +13,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/traps/trap_catalog.dart';
+import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
 import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/pickups/pickup_render_catalog.dart';
@@ -326,6 +327,7 @@ class UiAssetLifecycle {
       addFromRenderAnim(projectileCatalog.get(projectileId));
     }
 
+    paths.addAll(WorldInteractionRenderCatalog.assetPaths);
     const pickupCatalog = PickupRenderCatalog();
     for (final id in TrapId.values) {
       paths.add(TrapCatalog.get(id).assetPath);

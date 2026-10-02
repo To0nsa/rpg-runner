@@ -16,6 +16,8 @@ import 'components/aim_ray.dart';
 import 'debug/trap_hitbox_overlay.dart';
 import 'components/traps/trap_render_registry.dart';
 import 'components/traps/trap_render_system.dart';
+import 'components/interactions/world_interaction_render_registry.dart';
+import 'components/interactions/world_interaction_render_system.dart';
 import 'components/pixel_parallax_backdrop.dart';
 import 'components/player/player_animations.dart';
 import 'components/staged_terrain.dart';
@@ -147,6 +149,13 @@ class RunnerFlameGame extends FlameGame {
   final SpellImpactRenderRegistry _spellImpactRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
   final TrapRenderRegistry _trapRenderRegistry = TrapRenderRegistry();
+  final WorldInteractionRenderRegistry _interactionRegistry =
+      WorldInteractionRenderRegistry();
+  late final WorldInteractionRenderSystem _interactionViews =
+      WorldInteractionRenderSystem(
+        world: world,
+        registry: _interactionRegistry,
+      );
   final TrapHitboxOverlay _trapHitboxes = TrapHitboxOverlay();
   late final TrapRenderSystem _trapViews = TrapRenderSystem(
     world: world,
@@ -212,6 +221,7 @@ class RunnerFlameGame extends FlameGame {
       _spellImpactRenderRegistry.load(images),
       _pickupRenderRegistry.load(images),
       _trapRenderRegistry.load(images),
+      _interactionRegistry.load(images),
       if (RenderDebugFlags.canUseRenderDebug)
         Future<void>.value(camera.viewfinder.add(_trapHitboxes)),
       terrainLoad,
@@ -226,6 +236,11 @@ class RunnerFlameGame extends FlameGame {
     );
     _trapViews.sync(
       controller.snapshot.traps,
+      cameraCenter: camera.viewfinder.position,
+    );
+    _interactionViews.sync(
+      controller.snapshot.interactions,
+      tickHz: controller.tickHz,
       cameraCenter: camera.viewfinder.position,
     );
     _trapHitboxes.traps = controller.snapshot.traps;
@@ -299,6 +314,11 @@ class RunnerFlameGame extends FlameGame {
     camera.viewfinder.position = _cameraCenterScratch;
     _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
     _trapViews.sync(currSnapshot.traps, cameraCenter: _cameraCenterScratch);
+    _interactionViews.sync(
+      currSnapshot.interactions,
+      tickHz: controller.tickHz,
+      cameraCenter: _cameraCenterScratch,
+    );
     _trapHitboxes.traps = currSnapshot.traps;
     _trapHitboxes.cameraCenter.setFrom(_cameraCenterScratch);
 

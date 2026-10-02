@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
+import 'level_blessings_hud.dart';
 
 class TopLeftHudOverlay extends StatelessWidget {
   const TopLeftHudOverlay({required this.controller, super.key});
@@ -21,23 +22,36 @@ class TopLeftHudOverlay extends StatelessWidget {
         final hud = controller.snapshot.hud;
         return IgnorePointer(
           child: RepaintBoundary(
-            child: SizedBox(
-              width: _barWidth,
-              height: totalHeight,
-
-              child: CustomPaint(
-                painter: _HudBarsPainter(
-                  hp: hud.hp,
-                  hpMax: hud.hpMax,
-                  mana: hud.mana,
-                  manaMax: hud.manaMax,
-                  stamina: hud.stamina,
-                  staminaMax: hud.staminaMax,
-                  barWidth: _barWidth,
-                  barHeight: _barHeight,
-                  barGap: _barGap,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: _barWidth,
+                  height: totalHeight,
+                  child: CustomPaint(
+                    painter: _HudBarsPainter(
+                      hp: hud.hp,
+                      hpMax: hud.hpMax,
+                      mana: hud.mana,
+                      manaMax: hud.manaMax,
+                      stamina: hud.stamina,
+                      staminaMax: hud.staminaMax,
+                      barWidth: _barWidth,
+                      barHeight: _barHeight,
+                      barGap: _barGap,
+                    ),
+                  ),
                 ),
-              ),
+                if (hud.blessings.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  LevelBlessingsHud(
+                    blessings: hud.blessings,
+                    tick: controller.tick,
+                    tickHz: controller.tickHz,
+                  ),
+                ],
+              ],
             ),
           ),
         );
@@ -80,13 +94,7 @@ class _HudBarsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _drawBar(
-      canvas,
-      y: 0,
-      value: hp,
-      max: hpMax,
-      fill: _hp,
-    );
+    _drawBar(canvas, y: 0, value: hp, max: hpMax, fill: _hp);
     _drawBar(
       canvas,
       y: barHeight + barGap,

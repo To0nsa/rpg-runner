@@ -65,7 +65,7 @@ order; the contract below records the dependencies that must survive changes.
 | 5 | Collect pickups, rebuild broadphase, and move existing projectiles | Hit detection requires current spatial data; newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, then position hitboxes | Self abilities resolve before downstream combat so their effects apply deterministically. |
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
-| 8 | Apply queued statuses and visual cues, process deaths, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
+| 8 | Apply queued statuses and visual cues, process deaths, top-contact interactions, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
 
 Encounter lifecycle hooks check camera expiry before streaming and after camera
 motion, record only positive applied player HP damage, and resolve after fatal
@@ -319,11 +319,16 @@ compatibility `2026.09.2`.
 The 20% reduction to the camera's baseline target changes those same replayed
 outcomes and is released as game compatibility `2026.09.10`.
 
+Top-contact world interactions run after death resolution and before resource
+regeneration. They consume final support and grant player-owned level blessings;
+streaming retirement never removes a granted bonus. Current source uses
+`2026.10.3` for this replay-sensitive addition. See [world interactions](world_interactions.md).
+
 ## Outputs and consumers
 
 ### Run distance
 
-Current source compatibility is `2026.10.2`, with ranked scoring `score-v3`.
+Current source compatibility is `2026.10.3`, with ranked scoring `score-v3`.
 After world motion and before terminal fall checks, `GameCore` records the
 motion authority's signed accepted player body X displacement in a per-run
 `RunDistanceTracker`. The authority excludes recovery corrections and facing

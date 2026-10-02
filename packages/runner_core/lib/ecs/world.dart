@@ -74,6 +74,8 @@ import 'stores/spawn_state_store.dart';
 import 'stores/target_point_intent_store.dart';
 import 'stores/transform_store.dart';
 import 'stores/trap_store.dart';
+import 'stores/world_interaction_store.dart';
+import 'stores/level_blessing_store.dart';
 
 /// Minimal Entity Component System (ECS) world container.
 ///
@@ -97,6 +99,10 @@ class EcsWorld {
   /// Seed used for deterministic RNG in the core, passed to components that need it.
   final int seed;
   final TrapStore traps = TrapStore();
+  final WorldInteractionStore interactions = WorldInteractionStore();
+  late final LevelBlessingStore levelBlessings = _register(
+    LevelBlessingStore(),
+  );
   late final AiTargetStore aiTarget = _register(AiTargetStore());
   late final NpcStore npc = _register(NpcStore());
   late final EncounterMemberStore encounterMember = _register(
