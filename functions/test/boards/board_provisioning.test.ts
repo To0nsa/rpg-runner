@@ -240,7 +240,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    "board_competitive_2026_03_field_rules_v2_score_v2_2026_09_10_ghost_v1",
+    "board_competitive_2026_03_field_rules_v2_score_v2_2026_10_1_ghost_v1",
   );
 
   const boards = await db.collection("leaderboard_boards").get();
