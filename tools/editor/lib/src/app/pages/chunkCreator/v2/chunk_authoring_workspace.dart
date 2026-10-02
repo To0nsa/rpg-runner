@@ -81,6 +81,7 @@ import 'chunk_actor_terrain_overlay_painter.dart';
 import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
+import 'chunk_pocket_overlay.dart';
 import 'chunk_marker_scene_gesture.dart';
 import 'chunk_owner_panels.dart';
 import 'chunk_polygon_authoring_controller.dart';
@@ -175,6 +176,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool _showShapeEdges = false;
   bool _visualPreview = false;
   bool _showActorTerrain = false;
+  bool _showPocketWarnings = true;
   ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
   bool _showMarkerPlacements = false;
   bool _terrainCreationSnapToGrid = false;
@@ -2175,6 +2177,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ) => EditorPanelCard(
     key: const ValueKey<String>('chunk_creation_scene'),
     title: 'Chunk creation scene',
+    trailing: Tooltip(
+      message:
+          'Highlight fall pockets that block players, ground enemies or NPCs.',
+      child: FilterChip(
+        key: const ValueKey('chunk_pocket_warnings_toggle'),
+        label: const Text('Pockets'),
+        selected: _showPocketWarnings,
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        onSelected: _visualPreview
+            ? null
+            : (selected) => setState(() => _showPocketWarnings = selected),
+      ),
+    ),
     bodyMode: EditorPanelBodyMode.expanded,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2909,6 +2925,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         images: _encounterImages,
                       ),
                       trapVisual(ChunkTrapVisualPass.overlay),
+                      if (!_visualPreview && _showPocketWarnings)
+                        ChunkPocketOverlay(
+                          geometry: expansion?.geometry,
+                          transform: transform,
+                          paused:
+                              _hasActiveOperation ||
+                              _hasPendingSelectedSceneEdit,
+                        ),
                     ],
                   ),
                   onInspectWorldPoint: (point) {

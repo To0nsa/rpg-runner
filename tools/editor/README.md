@@ -841,6 +841,17 @@ yellow. The default-off **Actor terrain** chip beside **Marker placement**
 highlights Core-eligible surfaces for the selected actor; it starts on Éloïse,
 where cyan edges answer whether the accepted terrain is traversable by her.
 The selector can expose the existing Grojib, Hashash, Unoco, and Derf evidence.
+The default-on **Pockets** toggle in the scene header shades trapping gaps red
+and numbers them. The scene summary lists affected players, ground enemies and
+NPCs, using their actual catalog capsule sizes and walkable slopes. Checks cover
+all these actors even when they have no spawn in this Chunk, and refresh after
+accepted unsaved edits, Undo/Redo and source reload. Finish a pending edit to
+refresh its warnings. Visual preview hides them; the toggle can turn them off.
+Widen a flagged gap or close it with walkable collision, then check again.
+This is an advisory local fall-pocket check, not a guarantee that every route
+is passable. It excludes flying/stationary actors, endpoint-only pinches,
+grounded pits, swimming and gaps formed across Chunk seams. Use Actor terrain,
+Marker placement and Play for the complementary checks.
 The default-off **Show grid** chip beside **Visual preview** displays a
 tile-size grid clipped to the Chunk bounds on every domain tab. **Visual
 preview** goes further: it hides that grid, authoring polygons and
