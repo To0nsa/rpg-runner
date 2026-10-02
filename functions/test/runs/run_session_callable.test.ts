@@ -201,7 +201,7 @@ test("loadActiveBoardManifest rejects disabled board for current window", async 
       levelId: "field",
       windowId: window.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion: "2026.10.2",
     ghostVersion: "ghost-v1",
@@ -288,7 +288,7 @@ test("createRunSession binds competitive ticket to active monthly board", async 
       levelId: "field",
       windowId: window.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion,
     ghostVersion: "ghost-v1",
@@ -316,10 +316,10 @@ test("createRunSession binds competitive ticket to active monthly board", async 
     levelId: "field",
     windowId: window.windowId,
     rulesetVersion: "rules-v2",
-    scoreVersion: "score-v2",
+    scoreVersion: "score-v3",
   });
   assert.equal(ticket.rulesetVersion, "rules-v2");
-  assert.equal(ticket.scoreVersion, "score-v2");
+  assert.equal(ticket.scoreVersion, "score-v3");
   assert.equal(ticket.ghostVersion, "ghost-v1");
   assert.equal(ticket.gameCompatVersion, gameCompatVersion);
   assert.equal(ticket.boardOpensAtMs, window.opensAtMs);
@@ -354,7 +354,7 @@ test("createRunSession binds weekly ticket to active weekly board", async () => 
       levelId: "field",
       windowId: window.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion,
     ghostVersion: "ghost-v1",
@@ -382,10 +382,10 @@ test("createRunSession binds weekly ticket to active weekly board", async () => 
     levelId: "field",
     windowId: window.windowId,
     rulesetVersion: "rules-v2",
-    scoreVersion: "score-v2",
+    scoreVersion: "score-v3",
   });
   assert.equal(ticket.rulesetVersion, "rules-v2");
-  assert.equal(ticket.scoreVersion, "score-v2");
+  assert.equal(ticket.scoreVersion, "score-v3");
   assert.equal(ticket.ghostVersion, "ghost-v1");
   assert.equal(ticket.gameCompatVersion, gameCompatVersion);
   assert.equal(ticket.boardOpensAtMs, window.opensAtMs);
@@ -537,7 +537,7 @@ test("createRunSession resolves board by month window across rollover", async ()
       levelId: "field",
       windowId: marchWindow.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion,
     ghostVersion: "ghost-v1",
@@ -557,7 +557,7 @@ test("createRunSession resolves board by month window across rollover", async ()
       levelId: "field",
       windowId: aprilWindow.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion,
     ghostVersion: "ghost-v1",
@@ -628,7 +628,7 @@ test("createRunSession resolves weekly board by week window across rollover", as
       levelId: "field",
       windowId: previousWeek.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion,
     ghostVersion: "ghost-v1",
@@ -648,7 +648,7 @@ test("createRunSession resolves weekly board by week window across rollover", as
       levelId: "field",
       windowId: nextWeek.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion,
     ghostVersion: "ghost-v1",

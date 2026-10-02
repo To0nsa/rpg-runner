@@ -98,7 +98,7 @@ class RunEndedEvent extends GameEvent {
   /// The tick on which the run ended.
   final int tick;
 
-  /// Total distance traveled (meters/pixels).
+  /// Furthest accepted horizontal progress from spawn, in world units.
   final double distance;
 
   /// Why the run ended (Death vs GiveUp).

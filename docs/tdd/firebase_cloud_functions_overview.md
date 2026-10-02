@@ -301,8 +301,8 @@ Why:
 - Exported in `functions/src/index.ts`.
 - Ensures managed leaderboard boards/windows exist.
 - Uses logic in `functions/src/boards/provisioning.ts`.
-- Defaults new boards to current game compatibility `2026.10.2`, combat
-  `rules-v2`, `score-v2`, and `ghost-v1`. A managed board ID binds mode, level,
+- Defaults new boards to source game compatibility `2026.10.2`, combat
+  `rules-v2`, `score-v3`, and `ghost-v1`. A managed board ID binds mode, level,
   window, ruleset, score, game compatibility, and ghost version, so rollout
   partitions can coexist without sharing leaderboard/ghost descendants.
 - Active-board and run-session callables accept only the compatibility

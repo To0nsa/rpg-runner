@@ -47,9 +47,10 @@ The replay's optional `clientSummary` includes the two fields only as provisiona
 display evidence. The validator ignores these claims and writes both statistics
 from replayed Core to `ValidatedRun.stats`; gold and settlement idempotency remain
 unchanged. Existing open JSON maps support these additive keys without changing
-replay/command format 1. Gameplay compatibility is `2026.10.2`, ranked scoring is
-`score-v2`, and rules/ghost remain `rules-v2`/`ghost-v1`. The worker accepts only the
-new gameplay/score pair. See the [pre-live release checklist](../building/rescue_release_operations.md).
+replay/command format 1. Current source gameplay compatibility is `2026.10.2`,
+ranked scoring is `score-v3`, and rules/ghost remain `rules-v2`/`ghost-v1`.
+The distance revision changes no rescue awards; the worker accepts only the
+current gameplay/score pair. See the [deployment workflow](deployment_workflow.md).
 
 The ordinary-combat regression uses an explicit marker roster on the generated
 `field_flat` terrain, with no encounter definitions. Its current camera-paced

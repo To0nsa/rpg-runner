@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:runner_core/scoring/run_distance.dart';
 
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
@@ -25,7 +26,9 @@ class ScoreOverlay extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final distanceMeters = (controller.snapshot.distance / 100.0).floor();
+        final distanceMeters = distanceUnitsToMeters(
+          controller.snapshot.distance,
+        );
         final collectibles = controller.snapshot.hud.collectibles;
         return IgnorePointer(
           child: RepaintBoundary(

@@ -10,8 +10,8 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/scoring/run_distance.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
-import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/codecs/canonical_json_codec.dart';
 import 'package:run_protocol/replay_blob.dart';
@@ -118,7 +118,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
   static const Duration _allowedAuthorityClockSkew = Duration(minutes: 5);
   static const Set<String> _supportedGameCompatVersions = <String>{'2026.10.2'};
   static const Set<String> _supportedRulesetVersions = <String>{'rules-v2'};
-  static const Set<String> _supportedScoreVersions = <String>{'score-v2'};
+  static const Set<String> _supportedScoreVersions = <String>{'score-v3'};
   static const Set<String> _supportedGhostVersions = <String>{'ghost-v1'};
 
   @override
@@ -1261,13 +1261,3 @@ final Stopwatch _processMonotonicClock = Stopwatch()..start();
 
 int _defaultMonotonicClockMicros() =>
     _processMonotonicClock.elapsedMicroseconds;
-
-int distanceUnitsToMeters(
-  double distanceUnits, {
-  int unitsPerMeter = kWorldUnitsPerMeter,
-}) {
-  if (unitsPerMeter <= 0 || distanceUnits <= 0) {
-    return 0;
-  }
-  return (distanceUnits / unitsPerMeter).floor();
-}

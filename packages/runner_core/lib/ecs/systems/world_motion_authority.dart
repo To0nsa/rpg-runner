@@ -76,7 +76,8 @@ abstract interface class WorldMotionAuthority {
     required int currentTick,
   });
 
-  /// Integrates the selected world and returns this tick's distance delta.
+  /// Integrates the world and returns signed player body X motion in world units.
+  /// Recovery corrections and collider facing offsets are excluded.
   double step(
     EcsWorld world, {
     required EntityId player,
@@ -1275,7 +1276,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     );
     final progressionBodyX =
         result.progressionXTicks - (currentOffsetX - previousOffsetX);
-    return progressionBodyX > 0 ? progressionBodyX : 0;
+    return progressionBodyX;
   }
 
   void _writeContactState(

@@ -496,7 +496,7 @@ async function seedManagedActiveBoard(
       levelId: args.levelId,
       windowId: args.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion: "2026.10.2",
     ghostVersion: "ghost-v1",

@@ -17,6 +17,6 @@ test("gameplay release client, board default and worker share one compatibility"
   assert.throws(() => assertSupportedGameCompatVersion("2026.09.10", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.1", resolveSupportedGameCompatVersions({})));
   const provisioning = readFileSync("src/boards/provisioning.ts", "utf8");
-  assert.ok(provisioning.includes('defaultScoreVersion = "score-v2"'));
-  assert.ok(worker.includes("_supportedScoreVersions = <String>{'score-v2'}"));
+  assert.ok(provisioning.includes('defaultScoreVersion = "score-v3"'));
+  assert.ok(worker.includes("_supportedScoreVersions = <String>{'score-v3'}"));
 });

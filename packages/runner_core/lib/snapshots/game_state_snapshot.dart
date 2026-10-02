@@ -53,7 +53,7 @@ class GameStateSnapshot {
   /// asset paths and visuals without importing any Core gameplay logic.
   final String? visualThemeId;
 
-  /// Distance progressed in the run.
+  /// Furthest accepted horizontal progress from spawn, in world units.
   final double distance;
 
   /// Whether the simulation is currently paused.

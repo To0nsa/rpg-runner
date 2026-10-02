@@ -1,8 +1,8 @@
 /// Scoring tuning (points per time, distance, kills).
 library;
 
-/// World units per meter (used for distance→score conversion).
-const int kWorldUnitsPerMeter = 50;
+/// Shared metre scale: a 600-unit chunk spans 24 metres.
+const int kWorldUnitsPerMeter = 25;
 
 class ScoreTuning {
   const ScoreTuning({
@@ -18,7 +18,7 @@ class ScoreTuning {
   /// Points per real-time second survived (implemented deterministically via tickHz).
   final int timeScorePerSecond;
 
-  /// Points per whole meter traveled (50 world units = 1 meter).
+  /// Points per whole metre of furthest progress (25 world units = 1 metre).
   final int distanceScorePerMeter;
 
   /// Points for killing an enemy (by type).

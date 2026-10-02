@@ -194,7 +194,8 @@ Its `step` integrates each enabled dynamic terrain body exactly once in entity
 ID order after those systems compose velocity. Final support and resolved
 motion then drive distance, death/camera checks, snapshots, and animation.
 
-Core distance uses positive accepted body X progression and does not
+Core distance retains the furthest cumulative signed accepted body X progression
+from spawn, so backtracking and retracing cannot earn extra distance. It does not
 count movement requested into a wall. Grounded locomotion animation advances
 from accepted distance along support, with a continuous `0.75x` to `1.50x`
 playback clamp. Recovery, snap, and vertical step legs do not advance that

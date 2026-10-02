@@ -142,7 +142,7 @@ test("handleRunBoardsLoadActive rejects unsupported game compatibility", async (
       levelId: "field",
       windowId: window.windowId,
       rulesetVersion: "rules-v1",
-      scoreVersion: "score-v2",
+      scoreVersion: "score-v3",
     },
     gameCompatVersion: "2026.10.2",
     ghostVersion: "ghost-v1",

@@ -155,8 +155,9 @@ Chunk/Level authoring includes three terrain elevation guides, exact connecting
 chunk creation, joined previews and schedule readiness. See
 [chunk connections](docs/tdd/chunk_connections.md) for the editor workflow and
 the selector's 2026.09.0 compatibility rollout. The repository's gameplay
-compatibility is 2026.10.2, adding Huntress distance-based attacks and per-enemy
-stab history alongside projectile auto aim, surviving NPC section
+compatibility is 2026.10.2, adding Huntress distance-based attacks, per-enemy
+stab history, and furthest-progress run distance at 25 world units per metre
+(`score-v3`) alongside projectile auto aim, surviving NPC section
 combat, the latest Forest grove/terrain refinements and grounded-placement repair,
 rescue scoring and slower camera pacing.
 The [recorded October 2 production release](docs/verification/game-compat-2026.10.1-production.md)

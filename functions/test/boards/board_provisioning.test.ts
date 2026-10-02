@@ -36,7 +36,7 @@ const config: BoardProvisioningConfig = {
   weeklyLevelId: "field",
   gameCompatVersion: "2026.10.2",
   rulesetVersion: "rules-v2",
-  scoreVersion: "score-v2",
+  scoreVersion: "score-v3",
   ghostVersion: "ghost-v1",
   tickHz: 60,
   seedNamespace: "tests-board-seed",
@@ -51,9 +51,9 @@ after(async () => {
   await Promise.all(getApps().map((value) => deleteApp(value)));
 });
 
-test("default provisioning config issues the capsule-combat ruleset", () => {
+test("default provisioning config issues current combat and distance scoring", () => {
   assert.equal(resolveBoardProvisioningConfig({}).rulesetVersion, "rules-v2");
-  assert.equal(resolveBoardProvisioningConfig({}).scoreVersion, "score-v2");
+  assert.equal(resolveBoardProvisioningConfig({}).scoreVersion, "score-v3");
 });
 
 test("ensureManagedLeaderboardBoards provisions competitive all-levels and weekly featured-level", async () => {
@@ -186,7 +186,8 @@ test("same-window boards coexist across compatibility versions", async () => {
   const nowMs = Date.UTC(2026, 2, 14, 12, 0, 0, 0);
   const drainingConfig: BoardProvisioningConfig = {
     ...config,
-    gameCompatVersion: "2026.08.0",
+    gameCompatVersion: "2026.10.1",
+    scoreVersion: "score-v2",
   };
 
   const draining = await ensureManagedBoardForModeLevel({
@@ -240,7 +241,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    "board_competitive_2026_03_field_rules_v2_score_v2_2026_10_1_ghost_v1",
+    "board_competitive_2026_03_field_rules_v2_score_v3_2026_10_2_ghost_v1",
   );
 
   const boards = await db.collection("leaderboard_boards").get();

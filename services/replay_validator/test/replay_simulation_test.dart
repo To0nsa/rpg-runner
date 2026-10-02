@@ -1,6 +1,7 @@
 import 'package:replay_validator/src/replay_simulation.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/ecs/hit/hit_resolver.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
@@ -30,6 +31,63 @@ import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'replayed backtracking preserves furthest progress and terminal distance',
+    () {
+      GameCore build() => GameCore(
+        seed: 871,
+        levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
+          tuning: const CoreTuning(
+            camera: CameraTuning(speedLagMulX: 0, followThresholdRatio: 1),
+            track: TrackTuning(enabled: false),
+          ),
+        ),
+        playerCharacter: PlayerCharacterRegistry.eloise,
+      );
+      final direct = build();
+      final replayed = build();
+      final startX = direct.playerPosX;
+      var furthestX = startX;
+      var positiveTravel = 0.0;
+      final frames = <ReplayCommandFrameV1>[];
+      for (var tick = 1; tick <= 200; tick++) {
+        final axis = tick <= 60 || tick > 100 ? 1 : -1;
+        frames.add(
+          ReplayCommandFrameV1(
+            tick: tick,
+            moveAxis: axis.toDouble(),
+            pressedMask: 0,
+          ),
+        );
+        final previousX = direct.playerPosX;
+        direct.applyCommands([
+          MoveAxisCommand(tick: tick, axis: axis.toDouble()),
+        ]);
+        direct.stepOneTick();
+        expect(direct.gameOver, isFalse);
+        if (direct.playerPosX > furthestX) furthestX = direct.playerPosX;
+        if (direct.playerPosX > previousX) {
+          positiveTravel += direct.playerPosX - previousX;
+        }
+      }
+      final result = runReplaySimulation(
+        core: replayed,
+        totalTicks: 200,
+        commandStream: frames,
+      );
+      expect(result.runEnded, isNull);
+      expect(positiveTravel, greaterThan(direct.distance + 25));
+      expect(direct.distance, closeTo(furthestX - startX, 1 / 1024));
+      expect(replayed.distance, direct.distance);
+      direct.giveUp();
+      replayed.giveUp();
+      expect(
+        replayed.drainEvents().whereType<RunEndedEvent>().single.distance,
+        direct.drainEvents().whereType<RunEndedEvent>().single.distance,
+      );
+    },
+  );
+
   test('enemy swimming snapshots match direct Core and protocol replay', () {
     final direct = _buildWaterCore(withEnemies: true);
     final replayed = _buildWaterCore(withEnemies: true);
