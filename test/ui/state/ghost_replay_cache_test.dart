@@ -11,6 +11,94 @@ import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
 import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 
 void main() {
+  test(
+    'corrupt cached gzip is replaced only after verified decoding',
+    () async {
+      final directory = await Directory.systemTemp.createTemp('ghost-corrupt-');
+      addTearDown(() => directory.delete(recursive: true));
+      final replay = _buildReplayBlob(
+        boardId: 'board_1',
+        runSessionId: 'run_1',
+      );
+      final downloader = _FakeGhostReplayDownloader(
+        payload: gzip.encode(utf8.encode(jsonEncode(replay.toJson()))),
+      );
+      final cache = FileGhostReplayCache(
+        cacheDirectory: directory,
+        downloader: downloader,
+        clockMs: () => 1234,
+      );
+      final manifest = _manifest(
+        boardId: 'board_1',
+        entryId: 'entry_1',
+        runSessionId: 'run_1',
+        expiresAtMs: 10000,
+        replayDigest: replay.canonicalSha256,
+      );
+      final first = await cache.loadReplay(manifest: manifest);
+      await first.cachedFile.writeAsBytes([
+        0x1f,
+        0x8b,
+        99,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        255,
+      ]);
+      final recovered = await cache.loadReplay(manifest: manifest);
+      expect(downloader.calls, 2);
+      expect(recovered.replayBlob.toJson(), replay.toJson());
+      expect(await recovered.cachedFile.readAsBytes(), downloader.payload);
+    },
+  );
+
+  for (final corruptGzip in [false, true]) {
+    test(
+      'worker rejects corrupt payload (gzip: $corruptGzip) without caching',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'ghost-invalid-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final replay = _buildReplayBlob(
+          boardId: 'board_1',
+          runSessionId: 'run_1',
+        );
+        final json = replay.toJson()..['seed'] = 999;
+        final cache = FileGhostReplayCache(
+          cacheDirectory: directory,
+          downloader: _FakeGhostReplayDownloader(
+            payload: corruptGzip
+                ? [0x1f, 0x8b, 99, 0, 0, 0, 0, 0, 0, 0, 255]
+                : gzip.encode(utf8.encode(jsonEncode(json))),
+          ),
+          clockMs: () => 1234,
+        );
+        await expectLater(
+          cache.loadReplay(
+            manifest: _manifest(
+              boardId: 'board_1',
+              entryId: 'entry_1',
+              runSessionId: 'run_1',
+              expiresAtMs: 10000,
+              replayDigest: replay.canonicalSha256,
+            ),
+          ),
+          throwsA(
+            corruptGzip
+                ? isA<RunStartRemoteException>()
+                : isA<FormatException>(),
+          ),
+        );
+        expect(await directory.list().toList(), isEmpty);
+      },
+    );
+  }
+
   test('downloads and caches verified ghost replay blob', () async {
     final cacheDir = await Directory.systemTemp.createTemp('ghost-cache-');
     addTearDown(() => cacheDir.delete(recursive: true));
@@ -19,7 +107,7 @@ void main() {
       runSessionId: 'run_1',
     );
     final downloader = _FakeGhostReplayDownloader(
-      payload: utf8.encode(jsonEncode(replayBlob.toJson())),
+      payload: gzip.encode(utf8.encode(jsonEncode(replayBlob.toJson()))),
     );
     final cache = FileGhostReplayCache(
       cacheDirectory: cacheDir,

@@ -171,6 +171,11 @@ Deserialization sequence:
    - `replayBlob.runSessionId == manifest.runSessionId`
    - `replayBlob.boardId == manifest.boardId`
 
+On native platforms, steps 5–8 run together in a short-lived compute isolate
+for both downloads and cache hits. The worker receives only replay bytes and
+expected digest/session/board identifiers; it returns the fully verified value.
+Cache writes still happen only after successful verification.
+
 If a cached file fails decode/validation, deletion is best-effort and the entry
 is treated as a miss.
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'ghost_api.dart';
@@ -118,7 +119,7 @@ class FileGhostReplayCache implements GhostReplayCache {
     }
 
     final downloadedBytes = await _downloader.downloadBytes(url: uri);
-    final replayBlob = _decodeAndValidateReplay(
+    final replayBlob = await _decodeReplay(
       bytes: downloadedBytes,
       manifest: manifest,
     );
@@ -144,10 +145,7 @@ class FileGhostReplayCache implements GhostReplayCache {
     }
     try {
       final bytes = await cacheFile.readAsBytes();
-      final replayBlob = _decodeAndValidateReplay(
-        bytes: bytes,
-        manifest: manifest,
-      );
+      final replayBlob = await _decodeReplay(bytes: bytes, manifest: manifest);
       return GhostReplayBootstrap(
         manifest: manifest,
         replayBlob: replayBlob,
@@ -161,49 +159,6 @@ class FileGhostReplayCache implements GhostReplayCache {
         // A later verified write may still replace this unusable cache entry.
       }
       return null;
-    }
-  }
-
-  ReplayBlobV1 _decodeAndValidateReplay({
-    required List<int> bytes,
-    required GhostManifest manifest,
-  }) {
-    final jsonBytes = _maybeDecompressGzip(bytes);
-    final decoded = jsonDecode(utf8.decode(jsonBytes));
-    final replayBlob = ReplayBlobV1.fromJson(decoded, verifyDigest: true);
-    if (replayBlob.canonicalSha256 != manifest.replayDigest) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message: 'Ghost replay digest does not match manifest.',
-      );
-    }
-    if (replayBlob.runSessionId != manifest.runSessionId) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message: 'Ghost replay runSessionId does not match manifest.',
-      );
-    }
-    if (replayBlob.boardId != manifest.boardId) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message: 'Ghost replay boardId does not match manifest.',
-      );
-    }
-    return replayBlob;
-  }
-
-  List<int> _maybeDecompressGzip(List<int> bytes) {
-    final looksGzip = bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
-    if (!looksGzip) {
-      return bytes;
-    }
-    try {
-      return gzip.decode(bytes);
-    } catch (error) {
-      throw RunStartRemoteException(
-        code: 'invalid-response',
-        message: 'Ghost replay gzip decode failed: $error',
-      );
     }
   }
 
@@ -267,3 +222,62 @@ Directory _defaultGhostCacheDirectory() {
 }
 
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;
+
+// Only immutable payload data crosses the worker boundary; never capture the
+// cache instance, downloader, filesystem handles, or signed download URL.
+typedef _ReplayDecodeRequest = ({
+  List<int> bytes,
+  String replayDigest,
+  String runSessionId,
+  String boardId,
+});
+
+Future<ReplayBlobV1> _decodeReplay({
+  required List<int> bytes,
+  required GhostManifest manifest,
+}) => compute(_decodeAndValidateReplay, (
+  bytes: bytes,
+  replayDigest: manifest.replayDigest,
+  runSessionId: manifest.runSessionId,
+  boardId: manifest.boardId,
+), debugLabel: 'ghost-replay-decode');
+
+ReplayBlobV1 _decodeAndValidateReplay(_ReplayDecodeRequest request) {
+  final jsonBytes = _maybeDecompressGzip(request.bytes);
+  final decoded = jsonDecode(utf8.decode(jsonBytes));
+  final replayBlob = ReplayBlobV1.fromJson(decoded, verifyDigest: true);
+  if (replayBlob.canonicalSha256 != request.replayDigest) {
+    throw const RunStartRemoteException(
+      code: 'failed-precondition',
+      message: 'Ghost replay digest does not match manifest.',
+    );
+  }
+  if (replayBlob.runSessionId != request.runSessionId) {
+    throw const RunStartRemoteException(
+      code: 'failed-precondition',
+      message: 'Ghost replay runSessionId does not match manifest.',
+    );
+  }
+  if (replayBlob.boardId != request.boardId) {
+    throw const RunStartRemoteException(
+      code: 'failed-precondition',
+      message: 'Ghost replay boardId does not match manifest.',
+    );
+  }
+  return replayBlob;
+}
+
+List<int> _maybeDecompressGzip(List<int> bytes) {
+  final looksGzip = bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
+  if (!looksGzip) {
+    return bytes;
+  }
+  try {
+    return gzip.decode(bytes);
+  } catch (error) {
+    throw RunStartRemoteException(
+      code: 'invalid-response',
+      message: 'Ghost replay gzip decode failed: $error',
+    );
+  }
+}
