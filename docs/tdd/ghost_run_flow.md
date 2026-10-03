@@ -176,8 +176,15 @@ When `RunnerGameWidget` initializes:
    - `runner.advanceToTick(_controller.tick)`
 3. Widget publishes one immutable `GhostRenderFrame` through a single notifier:
    - replay blob
-   - adjacent previous/current simulation snapshots, including during catch-up
+   - adjacent previous/current `ActorFrameSnapshot` projections, including during catch-up
    - the drained events for this publication, consumed exactly once
+
+Core actor frames reuse the full snapshot's player/projectile/enemy/NPC projection
+without computing HUD/loadout validation, terrain, pickups or debug hitboxes.
+Playback still executes every deterministic tick and drains all its events. It
+builds at most two actor frames per advancement, regardless of catch-up length.
+Completed playback publishes a terminal frame as both previous and current,
+preventing a finished ghost from oscillating with the live interpolation alpha.
 
 The listener consumes an existing frame when attaching. Replay replacement or
 clearing invalidates pending animation loads, so stale loads cannot restore a
@@ -313,6 +320,8 @@ UI behavior:
 ---
 
 ## 9) Related docs
+
+- [Ghost performance verification](../verification/ghost-performance-2026-10-03.md)
 
 - `docs/tdd/authentication_flow_and_authorization.md`
 - `docs/tdd/firebase_cloud_functions_overview.md`

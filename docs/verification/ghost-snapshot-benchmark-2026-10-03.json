@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "level": "field",
+      "seed": 1337,
+      "tick": 180,
+      "fullEntities": 4,
+      "actorEntities": 2,
+      "iterationsPerRound": 10000,
+      "rounds": 7,
+      "fullMedianUs": 3.1668,
+      "actorMedianUs": 0.3781,
+      "projectionSpeedup": 8.375562020629463
+    },
+    {
+      "level": "forest",
+      "seed": 1337,
+      "tick": 180,
+      "fullEntities": 4,
+      "actorEntities": 2,
+      "iterationsPerRound": 10000,
+      "rounds": 7,
+      "fullMedianUs": 3.5819,
+      "actorMedianUs": 0.5179,
+      "projectionSpeedup": 6.916200038617493
+    }
+  ],
+  "checksum": 876000
+}

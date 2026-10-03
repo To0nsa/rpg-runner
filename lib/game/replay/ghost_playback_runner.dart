@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:collection';
 
-import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -15,7 +14,10 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/replay_blob.dart';
-import 'package:runner_core/snapshots/game_state_snapshot.dart';
+import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
+import 'package:flutter/foundation.dart';
+
+import 'replay_command_codec.dart';
 
 class GhostPlaybackRunner {
   GhostPlaybackRunner._({
@@ -24,7 +26,7 @@ class GhostPlaybackRunner {
     required Map<int, ReplayCommandFrameV1> frameByTick,
   }) : _core = core,
        _frameByTick = frameByTick {
-    _snapshot = _core.buildSnapshot();
+    _snapshot = _captureSnapshot();
     _previousSnapshot = _snapshot;
   }
 
@@ -75,9 +77,20 @@ class GhostPlaybackRunner {
   }
 
   final Map<int, ReplayCommandFrameV1> _frameByTick;
-  late GameStateSnapshot _snapshot;
-  late GameStateSnapshot _previousSnapshot;
+  late ActorFrameSnapshot _snapshot;
+  late ActorFrameSnapshot _previousSnapshot;
   final List<GameEvent> _drainedEvents = <GameEvent>[];
+  late final List<GameEvent> _eventsView = UnmodifiableListView(_drainedEvents);
+  int _snapshotBuildCount = 0;
+
+  /// Projections since construction, for checking the catch-up allocation bound.
+  @visibleForTesting
+  int get debugSnapshotBuildCount => _snapshotBuildCount;
+
+  ActorFrameSnapshot _captureSnapshot() {
+    _snapshotBuildCount += 1;
+    return _core.buildActorFrameSnapshot();
+  }
 
   int _lastAdvancedTick = 0;
   RunEndedEvent? _runEndedEvent;
@@ -86,10 +99,10 @@ class GhostPlaybackRunner {
   /// Current immutable snapshot of the ghost simulation.
   ///
   /// This is render-only data; gameplay authority remains in the live run.
-  GameStateSnapshot get snapshot => _snapshot;
+  ActorFrameSnapshot get snapshot => _snapshot;
 
-  /// Immediately preceding simulation tick, or the initial snapshot at tick zero.
-  GameStateSnapshot get previousSnapshot => _previousSnapshot;
+  /// Adjacent previous tick while active; equals [snapshot] at start/completion.
+  ActorFrameSnapshot get previousSnapshot => _previousSnapshot;
 
   int get tick => _core.tick;
   bool get isComplete => _completed;
@@ -98,15 +111,19 @@ class GhostPlaybackRunner {
 
   /// Read-only view of events drained from the ghost core since the last
   /// [clearDrainedEvents] call.
-  List<GameEvent> get drainedEvents => UnmodifiableListView(_drainedEvents);
+  List<GameEvent> get drainedEvents => _eventsView;
 
   /// Clears buffered drained events after render consumers process them.
   void clearDrainedEvents() {
     _drainedEvents.clear();
   }
 
+  /// Replays all commands through [targetTick], projecting only the final pair.
+  ///
+  /// Completion freezes interpolation at the terminal snapshot; no gameplay
+  /// ticks or transient events are skipped when catching up after a hitch.
   void advanceToTick(int targetTick) {
-    if (_completed) {
+    if (_completed || _disposed) {
       return;
     }
     final clampedTarget = math.max(
@@ -125,17 +142,22 @@ class GhostPlaybackRunner {
       final frame = _frameByTick[nextTick];
       final commands = frame == null
           ? const <Command>[]
-          : _commandsFromReplayFrame(frame);
+          : ReplayCommandCodec.commandsFromFrame(frame);
       _core.applyCommands(commands);
       _core.stepOneTick();
-      _previousSnapshot = _snapshot;
-      _snapshot = _core.buildSnapshot();
       _lastAdvancedTick = nextTick;
       _drainCoreEvents();
       if (_runEndedEvent != null || _core.gameOver) {
-        _completed = true;
-        dispose();
+        _complete();
         return;
+      }
+      if (_lastAdvancedTick >= replayBlob.totalTicks) {
+        _finalizeIfAtReplayEnd();
+        return;
+      }
+      if (nextTick >= clampedTarget - 1) {
+        _previousSnapshot = _snapshot;
+        _snapshot = _captureSnapshot();
       }
     }
     _finalizeIfAtReplayEnd();
@@ -147,13 +169,19 @@ class GhostPlaybackRunner {
   }
 
   void _finalizeIfAtReplayEnd() {
-    if (_completed || _lastAdvancedTick < replayBlob.totalTicks) {
+    if (_completed || _disposed || _lastAdvancedTick < replayBlob.totalTicks) {
       return;
     }
     if (!_core.gameOver) {
       _core.giveUp();
     }
     _drainCoreEvents();
+    _complete();
+  }
+
+  void _complete() {
+    _snapshot = _captureSnapshot();
+    _previousSnapshot = _snapshot;
     _completed = true;
     dispose();
   }
@@ -165,50 +193,6 @@ class GhostPlaybackRunner {
         _runEndedEvent = event;
       }
     }
-  }
-
-  static List<Command> _commandsFromReplayFrame(ReplayCommandFrameV1 frame) {
-    final out = <Command>[];
-    final tick = frame.tick;
-    final moveAxis = frame.moveAxis;
-    if (moveAxis != null && moveAxis != 0) {
-      out.add(MoveAxisCommand(tick: tick, axis: moveAxis));
-    }
-    final aimDirX = frame.aimDirX;
-    final aimDirY = frame.aimDirY;
-    if (aimDirX != null && aimDirY != null) {
-      out.add(AimDirCommand(tick: tick, x: aimDirX, y: aimDirY));
-    }
-    if (frame.jumpPressed) {
-      out.add(JumpPressedCommand(tick: tick));
-    }
-    if (frame.dashPressed) {
-      out.add(DashPressedCommand(tick: tick));
-    }
-    if (frame.strikePressed) {
-      out.add(StrikePressedCommand(tick: tick));
-    }
-    if (frame.projectilePressed) {
-      out.add(ProjectilePressedCommand(tick: tick));
-    }
-    if (frame.secondaryPressed) {
-      out.add(SecondaryPressedCommand(tick: tick));
-    }
-    if (frame.spellPressed) {
-      out.add(SpellPressedCommand(tick: tick));
-    }
-    final changedMask = frame.abilitySlotHeldChangedMask;
-    if (changedMask != 0) {
-      for (final slot in AbilitySlot.values) {
-        final bit = 1 << slot.index;
-        if ((changedMask & bit) == 0) {
-          continue;
-        }
-        final held = (frame.abilitySlotHeldValueMask & bit) != 0;
-        out.add(AbilitySlotHeldCommand(tick: tick, slot: slot, held: held));
-      }
-    }
-    return out;
   }
 }
 

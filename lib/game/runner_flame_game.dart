@@ -9,7 +9,7 @@ import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/snapshots/game_state_snapshot.dart';
+import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'components/aim_ray.dart';
@@ -506,8 +506,8 @@ class RunnerFlameGame extends FlameGame {
 
   @visibleForTesting
   void debugSetGhostRenderStateForTest({
-    GameStateSnapshot? snapshot,
-    GameStateSnapshot? prevSnapshot,
+    ActorFrameSnapshot? snapshot,
+    ActorFrameSnapshot? prevSnapshot,
     ReplayBlobV1? replayBlob,
     SpriteAnimSet? playerAnimSet,
     List<GameEvent>? events,

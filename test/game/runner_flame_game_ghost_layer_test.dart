@@ -21,6 +21,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
+import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 import 'package:runner_core/util/vec2.dart';
 import 'package:rpg_runner/game/components/sprite_anim/sprite_anim_set.dart';
 import 'package:rpg_runner/game/game_controller.dart';
@@ -74,7 +75,7 @@ void main() {
       addTearDown(layer.clearViews);
       final replay = _ghostReplayBlob(levelId: LevelId.field);
       final animSet = _buildAnimSet(image);
-      GameStateSnapshot snapshot(int tick, double x) => _copySnapshot(
+      ActorFrameSnapshot snapshot(int tick, double x) => _copySnapshot(
         harness.controller.snapshot,
         tick: tick,
         entities: [
@@ -194,7 +195,7 @@ void main() {
       final world = Component();
       final replay = _ghostReplayBlob(levelId: LevelId.field);
       final base = harness.controller.snapshot;
-      GameStateSnapshot snapshot(int tick, double x) => _copySnapshot(
+      ActorFrameSnapshot snapshot(int tick, double x) => _copySnapshot(
         base,
         tick: tick,
         entities: [_entity(id: 101, kind: EntityKind.player, x: x, y: 20)],
@@ -544,25 +545,16 @@ _Harness _buildHarness() {
   );
 }
 
-GameStateSnapshot _copySnapshot(
+ActorFrameSnapshot _copySnapshot(
   GameStateSnapshot base, {
   required int tick,
   required List<EntityRenderSnapshot> entities,
 }) {
-  return GameStateSnapshot(
+  return ActorFrameSnapshot(
     tick: tick,
-    runId: base.runId,
-    seed: base.seed,
-    levelIdentity: base.levelIdentity,
-    visualThemeId: base.visualThemeId,
     distance: base.distance,
-    paused: base.paused,
     gameOver: base.gameOver,
-    camera: base.camera,
-    hud: base.hud,
     entities: entities,
-    staticPrefabSprites: base.staticPrefabSprites,
-    stagedTerrainRenderSnapshot: base.stagedTerrainRenderSnapshot,
   );
 }
 

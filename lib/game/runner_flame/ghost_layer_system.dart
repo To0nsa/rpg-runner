@@ -11,7 +11,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/snapshots/game_state_snapshot.dart';
+import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import '../components/camera_space_snapped_sprite_animation.dart';
@@ -80,12 +80,12 @@ class GhostLayerSystem {
   );
   final Map<(SpriteAnimSet, double, double), double> _visualRadii = {};
   final List<CameraSpaceSnappedSpriteAnimation> _ghostImpacts = [];
-  GameStateSnapshot? _indexedPrevious;
+  ActorFrameSnapshot? _indexedPrevious;
 
   DeterministicAnimView? _ghostPlayer;
   int? _ghostPlayerEntityId;
-  GameStateSnapshot? _ghostPrevSnapshot;
-  GameStateSnapshot? _ghostSnapshot;
+  ActorFrameSnapshot? _ghostPrevSnapshot;
+  ActorFrameSnapshot? _ghostSnapshot;
   ReplayBlobV1? _ghostReplayBlob;
   SpriteAnimSet? _ghostPlayerAnimSet;
   String? _ghostPlayerAnimCharacterId;
@@ -653,8 +653,8 @@ class GhostLayerSystem {
   int get debugGhostProjectileCount => _ghostProjectiles.length;
 
   void debugSetGhostRenderStateForTest({
-    GameStateSnapshot? snapshot,
-    GameStateSnapshot? prevSnapshot,
+    ActorFrameSnapshot? snapshot,
+    ActorFrameSnapshot? prevSnapshot,
     ReplayBlobV1? replayBlob,
     SpriteAnimSet? playerAnimSet,
     List<GameEvent>? events,

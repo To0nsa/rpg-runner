@@ -354,6 +354,13 @@ cutover is separate from this source change; follow the
 
 ### Snapshots and events
 
+`GameCore.buildActorFrameSnapshot()` exposes immutable player, enemy, NPC and
+projectile state for actor-only consumers such as ghost rendering. It reuses the
+full snapshot's entity projection and preserves filtered entity ordering, without
+HUD/loadout, terrain, pickup or debug-hitbox projection work. Neither snapshot
+API advances gameplay or consumes events, so callers may omit unrendered
+intermediate projections. The full live snapshot retains its existing contract.
+
 Core exposes immutable snapshots through `GameCore.buildSnapshot` and transient
 events through `GameCore.drainEvents`.
 

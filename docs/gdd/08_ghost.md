@@ -240,9 +240,16 @@ Mitigations:
      at its recorded tick rate, including offscreen actors and combat.
    - Projectiles retain animation age when their views leave and re-enter the
      viewport. Offscreen hit/impact events do not create VFX.
-2. **No audio**
+2. **Projection and outline cost**
+   - Ghost playback builds only actor/projectile presentation, omitting live HUD
+     and static-world output. Every replay tick still runs; catch-up projects
+     at most two snapshots for interpolation. Finished ghosts freeze at their
+     terminal pose.
+   - Sprite outlines reuse a run-owned texture cache, keeping the same appearance
+     with one outline draw plus the tinted sprite after cache warmup.
+3. **No audio**
    - GhostWorld produces no audio/haptics.
-3. **Reduced VFX budget**
+4. **Reduced VFX budget**
    - Keep VFX deterministic but cheaper (same triggers, cheaper emitters) *only if it doesn’t change timing/state*.
    - Safer: keep VFX identical but render them with a lightweight renderer.
 

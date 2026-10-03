@@ -36,6 +36,7 @@ import 'snapshots/enums.dart';
 import 'snapshots/camera_snapshot.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
+import 'snapshots/actor_frame_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/staged_terrain_render_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
@@ -165,7 +166,6 @@ class SnapshotBuilder {
     List<WorldInteractionSnapshot> interactions = const [],
   }) {
     // ─── Query player component indices ───
-    final mi = world.movement.indexOf(player);
     final onGround = WorldSupportView(world).isGrounded(player);
     final jumpStateIndex = world.jumpState.tryIndexOf(player);
     final hi = world.health.indexOf(player);
@@ -391,60 +391,11 @@ class SnapshotBuilder {
         ? 0
         : _scaleAbilityTicks(jumpAbility.cooldownTicks);
 
-    // ─── Read player transform ───
-    final ti = world.transform.indexOf(player);
-    final playerPosX = world.transform.posX[ti];
-    final playerPosY = world.transform.posY[ti];
-    final playerVelX = world.transform.velX[ti];
-    final playerVelY = world.transform.velY[ti];
-    final playerFacing = world.movement.facing[mi];
-    final animState = world.animState;
-    final AnimKey anim;
-    final int playerAnimFrame;
-    if (animState.has(player)) {
-      final ai = animState.indexOf(player);
-      anim = animState.anim[ai];
-      playerAnimFrame = animState.animFrame[ai];
-    } else {
-      anim = AnimKey.idle;
-      playerAnimFrame = tick;
-    }
-
-    final playerPos = Vec2(playerPosX, playerPosY);
-    final playerVel = Vec2(playerVelX, playerVelY);
     final playerLastDamageTick = world.lastDamage.has(player)
         ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
         : -1;
 
-    Vec2? playerSize;
-    if (world.colliderAabb.has(player)) {
-      final aabbi = world.colliderAabb.indexOf(player);
-      playerSize = Vec2(
-        world.colliderAabb.halfX[aabbi] * 2,
-        world.colliderAabb.halfY[aabbi] * 2,
-      );
-    }
-
-    // ─── Build entity list (player first) ───
-    final entities = <EntityRenderSnapshot>[
-      EntityRenderSnapshot(
-        id: player,
-        kind: EntityKind.player,
-        isSwimming: swimming,
-        waterImmersion1000: swimIndex == null
-            ? 0
-            : world.swimState.immersion1000[swimIndex],
-        pos: playerPos,
-        vel: playerVel,
-        size: playerSize,
-        facing: playerFacing,
-        anim: anim,
-        grounded: onGround,
-        animFrame: playerAnimFrame,
-        statusVisualMask: _statusVisualMaskForEntity(player),
-        controlLockMask: _controlLockMaskForEntity(player),
-      ),
-    ];
+    final entities = <EntityRenderSnapshot>[_buildPlayer(tick: tick)];
 
     // Append all other renderable entities.
     _addProjectiles(entities, tick: tick);
@@ -513,6 +464,77 @@ class SnapshotBuilder {
       traps: traps,
       interactions: interactions,
       stagedTerrainRenderSnapshot: stagedTerrainRenderSnapshot,
+    );
+  }
+
+  /// Projects actors and projectiles without computing HUD or static geometry.
+  ActorFrameSnapshot buildActorFrame({
+    required int tick,
+    required double distance,
+    required bool gameOver,
+  }) {
+    final entities = <EntityRenderSnapshot>[_buildPlayer(tick: tick)];
+    _addProjectiles(entities, tick: tick);
+    _addActors(entities, tick: tick);
+    return ActorFrameSnapshot(
+      tick: tick,
+      distance: distance,
+      gameOver: gameOver,
+      entities: entities,
+    );
+  }
+
+  EntityRenderSnapshot _buildPlayer({required int tick}) {
+    final mi = world.movement.indexOf(player);
+    final onGround = WorldSupportView(world).isGrounded(player);
+    final swimming = world.swimState.isSwimming(player);
+    final swimIndex = world.swimState.tryIndexOf(player);
+    final ti = world.transform.indexOf(player);
+    final playerPosX = world.transform.posX[ti];
+    final playerPosY = world.transform.posY[ti];
+    final playerVelX = world.transform.velX[ti];
+    final playerVelY = world.transform.velY[ti];
+    final playerFacing = world.movement.facing[mi];
+    final animState = world.animState;
+    final AnimKey anim;
+    final int playerAnimFrame;
+    if (animState.has(player)) {
+      final ai = animState.indexOf(player);
+      anim = animState.anim[ai];
+      playerAnimFrame = animState.animFrame[ai];
+    } else {
+      anim = AnimKey.idle;
+      playerAnimFrame = tick;
+    }
+
+    final playerPos = Vec2(playerPosX, playerPosY);
+    final playerVel = Vec2(playerVelX, playerVelY);
+
+    Vec2? playerSize;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      playerSize = Vec2(
+        world.colliderAabb.halfX[aabbi] * 2,
+        world.colliderAabb.halfY[aabbi] * 2,
+      );
+    }
+
+    return EntityRenderSnapshot(
+      id: player,
+      kind: EntityKind.player,
+      isSwimming: swimming,
+      waterImmersion1000: swimIndex == null
+          ? 0
+          : world.swimState.immersion1000[swimIndex],
+      pos: playerPos,
+      vel: playerVel,
+      size: playerSize,
+      facing: playerFacing,
+      anim: anim,
+      grounded: onGround,
+      animFrame: playerAnimFrame,
+      statusVisualMask: _statusVisualMaskForEntity(player),
+      controlLockMask: _controlLockMaskForEntity(player),
     );
   }
 

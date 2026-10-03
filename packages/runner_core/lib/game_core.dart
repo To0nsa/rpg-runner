@@ -116,6 +116,7 @@ import 'spellBook/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/camera_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
+import 'snapshots/actor_frame_snapshot.dart';
 import 'snapshots/terrain_player_debug_snapshot.dart';
 import 'snapshot_builder.dart';
 import 'loadout/loadout_validator.dart';
@@ -2393,6 +2394,14 @@ class GameCore {
     _events.clear();
     return drained;
   }
+
+  /// Projects player, enemies, NPCs and projectiles at the current tick.
+  ///
+  /// Shares entity projection with [buildSnapshot] while omitting HUD and
+  /// static-world work. Reading either projection cannot advance the simulation
+  /// or consume events; callers may skip projections for unrendered ticks.
+  ActorFrameSnapshot buildActorFrameSnapshot() => _snapshotBuilder
+      .buildActorFrame(tick: tick, distance: distance, gameOver: gameOver);
 
   /// Builds an immutable snapshot for render/UI consumption.
   ///

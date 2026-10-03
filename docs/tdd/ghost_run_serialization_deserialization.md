@@ -211,7 +211,11 @@ Playback constructor:
 - `loadoutSnapshot` object -> `EquippedLoadoutDef`
 - `commandStream` array -> tick-indexed frame map
 
-After that, playback is runtime-only deterministic stepping (`advanceToTick(...)`), not further wire deserialization.
+After that, playback is runtime-only deterministic stepping (`advanceToTick(...)`),
+not further wire deserialization. Rendering receives Core-owned
+`ActorFrameSnapshot` values containing player/enemy/NPC/projectile state; these
+are local projections, not a new wire format. Catch-up builds only the final
+adjacent frame pair while preserving all commands and events.
 
 ---
 
