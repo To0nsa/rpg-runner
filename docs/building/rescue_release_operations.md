@@ -1,33 +1,43 @@
 # Rescue release operations
 
-Status: `2026.10.3` was deployed October 3, 2026 (Helsinki time) from frozen
-commit `b5835b8e`; see [current production evidence](../verification/game-compat-2026.10.3-production.md).
+Status: `2026.10.4` was deployed October 3, 2026 (Helsinki time) from frozen
+commit `43e6c841`; see [current production evidence](../verification/game-compat-2026.10.4-production.md).
 Signed-in production gameplay smoke remains outstanding. Earlier releases:
+[2026.10.3](../verification/game-compat-2026.10.3-production.md),
 [2026.10.1](../verification/game-compat-2026.10.1-production.md),
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-## Pending source: 2026.10.4 blessing and Forest updates
+## Deployed release: 2026.10.4
 
 Source now gives the Forest blessing +0.10 health, mana, and stamina per second
 and labels it “Bénédiction des Dames de la forêt”. Client, Functions defaults,
 and worker use `2026.10.4` because the prior health and mana rates replay
-differently. This source update has not been deployed; production evidence above
-remains `2026.10.3`. A future release requires coordinated cutover.
+differently. The coordinated cutover is complete.
 
-The pending release also includes 37-HP allied NPCs, the nine-chunk Forest
+The release also includes 37-HP allied NPCs, the nine-chunk Forest
 hard finale and current authored layouts, startup/ghost-loading improvements,
 regenerated runtime content, and the patched backend multipart dependency.
-The owner authorized repairs and deployment on October 3. Preparation must
-pass before production changes; the initial `e35ec73a` attempt failed content
-readiness, generated freshness, and the current dependency audit.
+The owner authorized repairs and deployment on October 3. The repaired frozen
+source passed preparation and the exact-image benchmark. Six unsubmitted
+`2026.10.3` tickets were cancelled with separate owner authorization and their
+records retained. No rewards, validated runs or profiles were reset.
+
+- [x] Repair release blockers, regenerate content and validate the frozen source.
+- [x] Build and strictly benchmark the exact worker image.
+- [x] Pause issuance, complete the approved cancellation and verify drain.
+- [x] Deploy Functions/worker/web, verify all six boards and live artifacts,
+  then restore both queues and issuance.
+- [x] Record the verified production baseline and release evidence.
+- [ ] Complete linked Play Games gameplay/replay/settlement/ghost and
+  retired-version smoke below.
 
 ## Client maintenance: ghost cache filenames
 
 The October 3 [ghost cache release](../verification/ghost-cache-client-2026-10-03.md)
 published frozen `8d7d9bdc` through the verified Hosting scope and installed the
-fixed debug APK on the connected Android phone. Compatibility remains `2026.10.3`.
+fixed debug APK on the connected Android phone under compatibility `2026.10.3`.
 
 - [x] Focused ghost regressions, full 876-test client gate, and production web build.
 - [x] Verify the live baseline, publish Hosting, and verify the new live artifact.

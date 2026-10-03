@@ -17,12 +17,12 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): frozen `b5835b8e`
-  deployed as `2026.10.3`/`score-v3` to Functions, Cloud Run, and web Hosting on
-  October 3 (Helsinki time). Checks and the exact-image benchmark passed. Two
+- [Rescue release operations](rescue_release_operations.md): frozen `43e6c841`
+  deployed as `2026.10.4`/`score-v3` to Functions, Cloud Run, and web Hosting on
+  October 3 (Helsinki time). Checks and the exact-image benchmark passed. Six
   issued older sessions were cancelled with owner authorization; live gameplay
   smoke still needs a linked Play Games account.
-  The subsequent [ghost cache client fix](../verification/ghost-cache-client-2026-10-03.md)
+  The earlier [ghost cache client fix](../verification/ghost-cache-client-2026-10-03.md)
   passed 876 client tests and was published to Hosting and installed on Android;
   ghost launch, cache reuse, and rendering were subsequently verified on the phone.
 
