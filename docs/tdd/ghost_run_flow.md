@@ -186,6 +186,18 @@ builds at most two actor frames per advancement, regardless of catch-up length.
 Completed playback publishes a terminal frame as both previous and current,
 preventing a finished ghost from oscillating with the live interpolation alpha.
 
+Level loading awaits live and ghost terrain preparation, ghost player animations,
+and bounded outline warmup before publishing worldReady. Start is immediate
+after that gate. Ghost preparation failures clear the optional ghost and leave
+the live run playable. Live and ghost player views share run-owned animation
+definitions for the same catalog character; their animation tickers stay separate.
+
+Outline warmup prioritizes the first frame of each likely animation, then its
+remaining frames. Candidates are the ghost character, actors/projectiles in the
+initial preview, and the equipped projectile. Warmup does not evict already
+warmed textures to fill the 16 MiB budget, yields in small batches, and discards
+late textures after cancellation or cache clearing. Other frames remain lazy.
+
 The listener consumes an existing frame when attaching. Replay replacement or
 clearing invalidates pending animation loads, so stale loads cannot restore a
 closed ghost. Render interpolation never reconsumes an event batch.

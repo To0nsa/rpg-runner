@@ -8,6 +8,47 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
+    'prewarming survives first draw and preserves its memory budget',
+    () async {
+      final source = await _sourceImage();
+      addTearDown(source.dispose);
+      final cache = GhostOutlineCache(maxBytes: 200);
+      addTearDown(cache.clear);
+      final sprites = List.generate(4, (_) => Sprite(source));
+      final size = Vector2(3, 3);
+      await cache.prewarm(
+        sprites.map((sprite) => (sprite, size)),
+        isCancelled: () => false,
+      );
+      expect(cache.frameCount, 2);
+      expect(cache.estimatedBytes, 200);
+      final built = cache.debugRasterizationCount;
+      for (final sprite in sprites.take(2)) {
+        await _pixels((canvas) => cache.render(canvas, sprite, size));
+      }
+      expect(cache.debugRasterizationCount, built);
+    },
+  );
+
+  test('clearing during warmup cannot retain a late texture', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    final cache = GhostOutlineCache();
+    addTearDown(cache.clear);
+    final warmup = cache.prewarm([
+      (Sprite(source), Vector2(3, 3)),
+    ], isCancelled: () => false);
+    cache.clear();
+    await warmup;
+    expect(cache.frameCount, 0);
+    expect(cache.estimatedBytes, 0);
+    await cache.prewarm([
+      (Sprite(source), Vector2(3, 3)),
+    ], isCancelled: () => true);
+    expect(cache.frameCount, 0);
+  });
+
+  test(
     'cached outline matches offset draws for scaled and mirrored sprites',
     () async {
       final source = await _sourceImage();

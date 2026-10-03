@@ -1,4 +1,7 @@
 import 'dart:ui' as ui;
+import 'dart:async';
+
+import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 
 import 'package:flame/cache.dart';
 import 'package:flame/game.dart';
@@ -97,6 +100,7 @@ void main() {
             background: await _solidImage(const Color(0xFF0000FF), 1),
           );
         });
+        final ghostPreparation = Completer<Iterable<ActorFrameSnapshot>>();
         final game = RunnerFlameGame(
           controller: controller,
           input: RunnerInputRouter(controller: controller),
@@ -104,6 +108,7 @@ void main() {
           meleeAimPreview: aim,
           playerCharacter: PlayerCharacterRegistry.eloise,
           imageCache: images,
+          ghostPreparation: ghostPreparation.future,
           parallaxThemes: const {
             'fixture': ParallaxTheme(
               backgroundLayers: [
@@ -124,6 +129,12 @@ void main() {
           images.dispose();
         });
         await tester.pumpWidget(GameWidget(game: game));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        expect(game.loadState.value.phase, isNot(RunLoadPhase.worldReady));
+        ghostPreparation.complete(const []);
         for (var attempt = 0; attempt < 200; attempt++) {
           await tester.pump(const Duration(milliseconds: 25));
           await tester.runAsync(

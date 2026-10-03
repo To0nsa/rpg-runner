@@ -291,3 +291,10 @@ Ghost Race is “done” when:
 - **VFX determinism**: particle randomness must be seed-driven in GhostWorld too.
 
 If any of those risks triggers, you’ll see ghost desync (ghost enemies not where expected). Treat desync as a blocker.
+
+## Loading readiness
+
+The run stays on its loading presentation until the selected ghost's initial
+terrain and animation assets are prepared and likely outline frames are warmed
+within the memory budget. Pressing Start does not wait for ghost preparation.
+A failed optional ghost is removed without preventing the live run.

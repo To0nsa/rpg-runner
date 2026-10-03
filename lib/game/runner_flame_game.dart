@@ -65,6 +65,7 @@ class RunnerFlameGame extends FlameGame {
     this.parallaxThemes,
     this.terrainMaterials,
     this.ghostRenderListenable,
+    this.ghostPreparation,
     CombatFeedbackTuning combatFeedbackTuning = const CombatFeedbackTuning(),
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
@@ -82,6 +83,7 @@ class RunnerFlameGame extends FlameGame {
     if (imageCache != null) {
       images = imageCache;
     }
+    _playerAnimations = PlayerAnimationLibrary(images);
     _liveWorldSync = LiveWorldSyncSystem(
       controller: controller,
       world: world,
@@ -109,6 +111,7 @@ class RunnerFlameGame extends FlameGame {
       spellImpactRenderRegistry: _spellImpactRenderRegistry,
       combatFeedbackTuning: _combatFeedbackTuning,
       ghostRenderListenable: ghostRenderListenable,
+      playerAnimations: _playerAnimations,
     );
   }
 
@@ -129,13 +132,22 @@ class RunnerFlameGame extends FlameGame {
   /// Atomic replay snapshots and events; null disables ghost rendering.
   final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
 
+  /// Run-owned playback preparation, awaited before world readiness.
+  /// Returned immutable preview frames select likely outline textures to warm.
+  /// Callers handle optional ghost failures by returning an empty list.
+  final Future<Iterable<ActorFrameSnapshot>>? ghostPreparation;
+
+  late final PlayerAnimationLibrary _playerAnimations;
+  bool _removed = false;
+
   /// The selected player character definition for this run (render-only usage).
   final PlayerCharacterDefinition playerCharacter;
 
   /// UI-facing load progress for the run route.
   ///
   /// `worldReady` guarantees that initial terrain, parallax, player, static
-  /// prefabs, and render registries have finished loading.
+  /// prefabs, render registries, and selected ghost preparation (simulation,
+  /// animations, bounded outline warmup) have finished loading.
   final ValueNotifier<RunLoadState> loadState = ValueNotifier<RunLoadState>(
     RunLoadState.initial,
   );
@@ -179,6 +191,7 @@ class RunnerFlameGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    if (_removed) return;
     _ghostLayer.attachListeners();
 
     assert(() {
@@ -204,13 +217,17 @@ class RunnerFlameGame extends FlameGame {
     final parallaxLoad = _backgroundParallax?.loaded ?? Future<void>.value();
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
-    final playerAnimations = await loadPlayerAnimations(
-      images,
-      renderAnim: playerCharacter.renderAnim,
+    final playerAnimations = await _playerAnimations.load(
+      playerCharacter.renderAnim,
     );
     _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
 
+    Iterable<ActorFrameSnapshot> ghostPreviews = const [];
     await Future.wait<void>(<Future<void>>[
+      if (ghostPreparation != null)
+        ghostPreparation!.then((frames) {
+          ghostPreviews = frames;
+        }),
       controller.prepareTerrainAhead(),
       _enemyRenderRegistry.load(images),
       _npcRenderRegistry.load(images),
@@ -225,7 +242,11 @@ class RunnerFlameGame extends FlameGame {
       waterForegroundLoad,
       parallaxLoad,
     ]);
+    if (_removed) return;
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
+    await _ghostLayer.prepareForRun(previewFrames: ghostPreviews);
+    if (_removed) return;
+    _setLoadState(RunLoadPhase.ghostPrepared, 0.9);
 
     await _liveWorldSync.mountPlayer(playerAnimations);
     await _liveWorldSync.mountStaticPrefabSprites(
@@ -465,20 +486,24 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void onRemove() {
+    _removed = true;
     _ghostLayer.detachListeners();
     _ghostLayer.clearViews();
     controller.removeEventListener(_eventFeedback.handleGameEvent);
+    _playerAnimations.clear();
     images.clearCache();
     super.onRemove();
   }
 
   @override
   void onDispose() {
+    _removed = true;
     loadState.dispose();
     super.onDispose();
   }
 
   void _setLoadState(RunLoadPhase phase, double progress) {
+    if (_removed) return;
     final clamped = progress.clamp(0.0, 1.0);
     loadState.value = RunLoadState(phase: phase, progress: clamped);
   }

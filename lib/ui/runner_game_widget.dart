@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
+import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/events/game_event.dart';
@@ -48,8 +49,8 @@ import 'viewport/viewport_metrics.dart';
 /// cleans it up on dispose.
 /// The loading presentation stays mounted while render assets and upcoming
 /// terrain are prepared; HUD and controls appear only after the initial world
-/// is render-ready. Start also awaits the selected ghost's first window before
-/// either simulation advances.
+/// is render-ready, including selected ghost preparation and outline warmup.
+/// Start never waits on pending ghost asset or terrain work.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.
@@ -149,7 +150,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late BoardKey? _boardKey;
   GhostReplayBootstrap? _ghostReplayBootstrap;
   GhostPlaybackRunner? _ghostPlaybackRunner;
-  Future<void>? _ghostTerrainPreparation;
+  Future<List<ActorFrameSnapshot>>? _ghostPreparation;
 
   late int _runId;
   int? _provisionalGoldEarned;
@@ -682,7 +683,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _initializeGhostPlaybackRunner() {
     _ghostPlaybackRunner?.dispose();
-    _ghostTerrainPreparation = null;
+    _ghostPreparation = null;
     final bootstrap = _ghostReplayBootstrap;
     if (bootstrap == null) {
       _ghostPlaybackRunner = null;
@@ -692,7 +693,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     try {
       final runner = GhostPlaybackRunner.fromReplayBlob(bootstrap.replayBlob);
       _ghostPlaybackRunner = runner;
-      _ghostTerrainPreparation = runner.prepareTerrainAhead();
+      _ghostPreparation = _prepareGhostForRun(runner);
       _publishGhostRenderFeed();
     } catch (error) {
       _ghostPlaybackRunner?.dispose();
@@ -702,6 +703,23 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         'Ghost playback initialization failed for entryId='
         '${bootstrap.manifest.entryId}: $error',
       );
+    }
+  }
+
+  Future<List<ActorFrameSnapshot>> _prepareGhostForRun(
+    GhostPlaybackRunner runner,
+  ) async {
+    try {
+      await runner.prepareTerrainAhead();
+      return [runner.snapshot];
+    } catch (error) {
+      if (mounted && identical(runner, _ghostPlaybackRunner)) {
+        runner.dispose();
+        _ghostPlaybackRunner = null;
+        _clearGhostRenderFeed();
+        debugPrint('Ghost preparation failed: $error');
+      }
+      return const [];
     }
   }
 
@@ -733,7 +751,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   Future<void> _startGame() async {
-    if (_started) return;
+    if (_started || _game.loadState.value.phase != RunLoadPhase.worldReady) {
+      return;
+    }
     if (_runRecorder == null) {
       if (!_runRecorderInitializing) {
         unawaited(_initializeRunRecorder());
@@ -747,9 +767,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       }
       return;
     }
-    final controller = _controller;
-    await _ghostTerrainPreparation;
-    if (!mounted || !identical(controller, _controller) || _started) return;
     setState(() => _started = true);
     _clearInputs();
     final lifecycle = WidgetsBinding.instance.lifecycleState;
@@ -932,6 +949,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _playerImpactFeedbackSignal = ValueNotifier<int>(0);
     _lastPlayerDamageTick = _controller.snapshot.hud.lastDamageTick;
     _lastChargeTier = 0;
+    _initializeGhostPlaybackRunner();
     _game = RunnerFlameGame(
       controller: _controller,
       input: _input,
@@ -939,11 +957,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       meleeAimPreview: _meleeAimPreview,
       playerCharacter: playerCharacter,
       ghostRenderListenable: _ghostRenderBridge,
+      ghostPreparation: _ghostPreparation,
     );
     _runRecorder = null;
     _runRecorderInitError = null;
     _runRecorderInitializing = false;
-    _initializeGhostPlaybackRunner();
     unawaited(_initializeRunRecorder());
   }
 
@@ -959,7 +977,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _runRecorder = null;
     _ghostPlaybackRunner?.dispose();
     _ghostPlaybackRunner = null;
-    _ghostTerrainPreparation = null;
+    _ghostPreparation = null;
     _clearGhostRenderFeed();
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();

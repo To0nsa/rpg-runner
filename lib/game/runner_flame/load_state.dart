@@ -6,6 +6,7 @@ enum RunLoadPhase {
   parallaxMounted,
   playerAnimationsLoaded,
   registriesLoaded,
+  ghostPrepared,
   worldReady,
 }
 

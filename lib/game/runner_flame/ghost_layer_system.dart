@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as dart_math;
 
 import 'package:flame/cache.dart';
@@ -9,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
@@ -42,7 +42,9 @@ class GhostLayerSystem {
     required SpellImpactRenderRegistry spellImpactRenderRegistry,
     required this.combatFeedbackTuning,
     required this.ghostRenderListenable,
-  }) : _enemyRenderRegistry = enemyRenderRegistry,
+    PlayerAnimationLibrary? playerAnimations,
+  }) : _playerAnimations = playerAnimations ?? PlayerAnimationLibrary(images),
+       _enemyRenderRegistry = enemyRenderRegistry,
        _npcRenderRegistry = npcRenderRegistry,
        _projectileRenderRegistry = projectileRenderRegistry,
        _spellImpactRenderRegistry = spellImpactRenderRegistry;
@@ -50,6 +52,7 @@ class GhostLayerSystem {
   final GameController controller;
   final Component world;
   final Images images;
+  final PlayerAnimationLibrary _playerAnimations;
   final CombatFeedbackTuning combatFeedbackTuning;
   final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
 
@@ -88,18 +91,21 @@ class GhostLayerSystem {
   ActorFrameSnapshot? _ghostSnapshot;
   ReplayBlobV1? _ghostReplayBlob;
   SpriteAnimSet? _ghostPlayerAnimSet;
-  String? _ghostPlayerAnimCharacterId;
+  Future<void>? _animationPreparation;
+  bool _attached = false;
   int _animationLoadGeneration = 0;
   GhostRenderFrame? _lastFrame;
   bool _ghostLayerDisabled = false;
   String? _ghostLayerDisableReason;
 
   void attachListeners() {
+    _attached = true;
     ghostRenderListenable?.addListener(_onGhostRenderFeedChanged);
     _onGhostRenderFeedChanged();
   }
 
   void detachListeners() {
+    _attached = false;
     ghostRenderListenable?.removeListener(_onGhostRenderFeedChanged);
     _animationLoadGeneration += 1;
   }
@@ -114,7 +120,7 @@ class GhostLayerSystem {
       _ghostSnapshot = null;
       _ghostPrevSnapshot = null;
       _ghostPlayerAnimSet = null;
-      _ghostPlayerAnimCharacterId = null;
+      _animationPreparation = null;
       _ghostLayerDisabled = false;
       _ghostLayerDisableReason = null;
       _clearGhostViews();
@@ -128,10 +134,11 @@ class GhostLayerSystem {
       _ghostLayerDisabled = false;
       _ghostLayerDisableReason = null;
       final generation = ++_animationLoadGeneration;
-      if (replayBlob.playerCharacterId != _ghostPlayerAnimCharacterId) {
-        _ghostPlayerAnimSet = null;
-        unawaited(_loadGhostPlayerAnimations(replayBlob, generation));
-      }
+      _ghostPlayerAnimSet = null;
+      _animationPreparation = _loadGhostPlayerAnimations(
+        replayBlob,
+        generation,
+      );
     }
     _ghostPrevSnapshot = frame.previous;
     _ghostSnapshot = frame.current;
@@ -157,20 +164,100 @@ class GhostLayerSystem {
         fieldName: 'ghostReplayBlob.playerCharacterId',
       );
       final character = PlayerCharacterRegistry.resolve(characterId);
-      final animationSet = await loadPlayerAnimations(
-        images,
-        renderAnim: character.renderAnim,
-      );
+      final animationSet = await _playerAnimations.load(character.renderAnim);
       if (generation != _animationLoadGeneration) return;
       _ghostPlayerAnimSet = animationSet;
-      _ghostPlayerAnimCharacterId = replayBlob.playerCharacterId;
     } catch (error) {
       if (generation != _animationLoadGeneration) return;
       disableLayer('ghost-player-animation-load-failed', details: '$error');
     }
   }
 
+  /// Completes selected ghost assets and bounded outline warmup before Start.
+  /// Preview frames are immutable worker projections used only to choose art.
+  /// Replacement/removal invalidates in-flight work without reviving old views.
+  Future<void> prepareForRun({
+    Iterable<ActorFrameSnapshot> previewFrames = const [],
+  }) async {
+    while (_animationPreparation != null) {
+      final pending = _animationPreparation;
+      await pending;
+      if (identical(pending, _animationPreparation)) break;
+    }
+    if (!_attached || _ghostLayerDisabled || _ghostPlayerAnimSet == null) {
+      return;
+    }
+    final generation = _animationLoadGeneration;
+    try {
+      await _outlines.prewarm(
+        _outlineWarmupFrames(previewFrames),
+        isCancelled: () => !_attached || generation != _animationLoadGeneration,
+      );
+    } catch (error) {
+      if (_attached && generation == _animationLoadGeneration) {
+        disableLayer('ghost-outline-warmup-failed', details: '$error');
+      }
+    }
+  }
+
+  Iterable<(Sprite, Vector2)> _outlineWarmupFrames(
+    Iterable<ActorFrameSnapshot> previews,
+  ) sync* {
+    final sets = <SpriteAnimSet>{_ghostPlayerAnimSet!};
+    for (final frame in [?_ghostSnapshot, ...previews]) {
+      for (final entity in frame.entities) {
+        final set = switch (entity.kind) {
+          EntityKind.enemy =>
+            entity.enemyId == null
+                ? null
+                : _enemyRenderRegistry.entryFor(entity.enemyId!)?.animSet,
+          EntityKind.npc =>
+            entity.npcId == null
+                ? null
+                : _npcRenderRegistry.entryFor(entity.npcId!)?.animSet,
+          EntityKind.projectile =>
+            entity.projectileId == null
+                ? null
+                : _projectileRenderRegistry
+                      .entryFor(entity.projectileId!)
+                      ?.animSet,
+          _ => null,
+        };
+        if (set != null) sets.add(set);
+      }
+    }
+    final projectileName =
+        _ghostReplayBlob?.loadoutSnapshot['projectileSlotSpellId'];
+    for (final id in ProjectileId.values) {
+      if (id.name != projectileName) continue;
+      final set = _projectileRenderRegistry.entryFor(id)?.animSet;
+      if (set != null) sets.add(set);
+    }
+    // Give every likely animation an opening frame before filling its strip.
+    for (final set in sets) {
+      for (final animation in set.animations.values) {
+        if (animation.frames.isNotEmpty) {
+          yield (animation.frames.first.sprite, set.frameSize);
+        }
+      }
+    }
+    for (final set in sets) {
+      for (final animation in set.animations.values) {
+        for (final frame in animation.frames.skip(1)) {
+          yield (frame.sprite, set.frameSize);
+        }
+      }
+    }
+  }
+
+  @visibleForTesting
+  int get debugOutlineFrameCount => _outlines.frameCount;
+
+  @visibleForTesting
+  SpriteAnimSet? get debugPlayerAnimations => _ghostPlayerAnimSet;
+
   void disableLayer(String reasonCode, {String? details}) {
+    _animationLoadGeneration += 1;
     _ghostLayerDisabled = true;
     _ghostLayerDisableReason = reasonCode;
     _clearGhostViews();

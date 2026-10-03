@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart';
 
 /// Run-owned, bounded textures for the ghost's eight-offset sprite outline.
 ///
@@ -17,6 +18,11 @@ class GhostOutlineCache {
   final _frames = <(Sprite, double, double), ui.Image>{};
   final _paint = ui.Paint()..filterQuality = ui.FilterQuality.none;
   int _bytes = 0;
+  int _generation = 0;
+  int _rasterizationCount = 0;
+
+  @visibleForTesting
+  int get debugRasterizationCount => _rasterizationCount;
 
   int get estimatedBytes => _bytes;
   int get frameCount => _frames.length;
@@ -45,7 +51,58 @@ class GhostOutlineCache {
     canvas.drawImage(image, const ui.Offset(-1, -1), _paint);
   }
 
+  /// Warms frames in priority order without evicting earlier useful textures.
+  /// Yields between small batches, and discards pending images after [clear]
+  /// or owner cancellation. Graphics work stays on the Flutter isolate.
+  Future<void> prewarm(
+    Iterable<(Sprite, Vector2)> frames, {
+    required bool Function() isCancelled,
+  }) async {
+    final generation = _generation;
+    var built = 0;
+    for (final (sprite, size) in frames) {
+      if (generation != _generation || isCancelled()) return;
+      if (size.x <= 0 || size.y <= 0) continue;
+      final key = (sprite, size.x, size.y);
+      if (_frames.containsKey(key)) continue;
+      final width = (size.x + 2).ceil();
+      final height = (size.y + 2).ceil();
+      final bytes = width * height * 4;
+      if (_bytes + bytes > maxBytes) continue;
+      final picture = _record(sprite, size);
+      final ui.Image image;
+      try {
+        image = await picture.toImage(width, height);
+        _rasterizationCount += 1;
+      } finally {
+        picture.dispose();
+      }
+      if (generation != _generation || isCancelled()) {
+        image.dispose();
+        return;
+      }
+      if (_frames.containsKey(key) || _bytes + bytes > maxBytes) {
+        image.dispose();
+        continue;
+      }
+      _frames[key] = image;
+      _bytes += bytes;
+      // Four textures per batch keeps the loading animation responsive.
+      if (++built % 4 == 0) await Future<void>.delayed(Duration.zero);
+    }
+  }
+
   ui.Image _build(Sprite sprite, Vector2 size) {
+    final picture = _record(sprite, size);
+    try {
+      _rasterizationCount += 1;
+      return picture.toImageSync((size.x + 2).ceil(), (size.y + 2).ceil());
+    } finally {
+      picture.dispose();
+    }
+  }
+
+  ui.Picture _record(Sprite sprite, Vector2 size) {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     final paint = ui.Paint()
@@ -69,16 +126,12 @@ class GhostOutlineCache {
       sprite.render(canvas, size: size, overridePaint: paint);
       canvas.restore();
     }
-    final picture = recorder.endRecording();
-    try {
-      return picture.toImageSync((size.x + 2).ceil(), (size.y + 2).ceil());
-    } finally {
-      picture.dispose();
-    }
+    return recorder.endRecording();
   }
 
   /// Releases generated images without disposing the shared source sprites.
   void clear() {
+    _generation += 1;
     for (final image in _frames.values) {
       image.dispose();
     }

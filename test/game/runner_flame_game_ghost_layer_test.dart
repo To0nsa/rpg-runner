@@ -1,4 +1,8 @@
 import 'dart:ui' as ui;
+import 'dart:async';
+
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:rpg_runner/game/components/player/player_animations.dart';
 
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -42,6 +46,72 @@ import '../test_tunings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final cancel in [false, true]) {
+    test(
+      'ghost preparation awaits shared animations and fences cancellation: $cancel',
+      () async {
+        final harness = _buildHarness();
+        addTearDown(harness.dispose);
+        final images = _GatedImages();
+        addTearDown(images.clearCache);
+        final library = PlayerAnimationLibrary(images);
+        addTearDown(library.clear);
+        final definition = PlayerCharacterRegistry.eloise.renderAnim;
+        final liveAnimations = library.load(definition);
+        final replay = _ghostReplayBlob(levelId: LevelId.field);
+        final snapshot = _copySnapshot(
+          harness.controller.snapshot,
+          tick: 0,
+          entities: [],
+        );
+        final feed = ValueNotifier<GhostRenderFrame?>(
+          GhostRenderFrame(
+            replayBlob: replay,
+            previous: snapshot,
+            current: snapshot,
+            events: const [],
+          ),
+        );
+        addTearDown(feed.dispose);
+        final layer = GhostLayerSystem(
+          controller: harness.controller,
+          world: Component(),
+          images: images,
+          playerAnimations: library,
+          enemyRenderRegistry: EnemyRenderRegistry(),
+          npcRenderRegistry: NpcRenderRegistry(),
+          projectileRenderRegistry: ProjectileRenderRegistry(),
+          spellImpactRenderRegistry: SpellImpactRenderRegistry(),
+          combatFeedbackTuning: const CombatFeedbackTuning(),
+          ghostRenderListenable: feed,
+        );
+        addTearDown(() {
+          layer.detachListeners();
+          layer.clearViews();
+        });
+        layer.attachListeners();
+        var ready = false;
+        final preparation = layer.prepareForRun().then((_) {
+          ready = true;
+        });
+        await Future<void>.delayed(Duration.zero);
+        expect(ready, isFalse);
+        if (cancel) feed.value = null;
+        images.gate.complete();
+        await preparation;
+        final liveSet = await liveAnimations;
+        expect(images.loads, definition.sourcesByKey.values.toSet().length);
+        if (cancel) {
+          expect(layer.debugPlayerAnimations, isNull);
+          expect(layer.debugOutlineFrameCount, 0);
+        } else {
+          expect(identical(liveSet, layer.debugPlayerAnimations), isTrue);
+          expect(layer.debugOutlineFrameCount, greaterThan(0));
+        }
+      },
+    );
+  }
 
   test(
     'viewport culls actors and effects while retaining projectile age',
@@ -629,4 +699,16 @@ Future<ui.Image> _singlePixelImage() async {
   canvas.drawRect(const ui.Rect.fromLTWH(0, 0, 1, 1), paint);
   final picture = recorder.endRecording();
   return picture.toImage(1, 1);
+}
+
+class _GatedImages extends Images {
+  final gate = Completer<void>();
+  int loads = 0;
+
+  @override
+  Future<ui.Image> load(String fileName, {String? key, String? package}) async {
+    loads += 1;
+    await gate.future;
+    return super.load(fileName, key: key, package: package);
+  }
 }
