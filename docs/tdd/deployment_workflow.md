@@ -21,7 +21,7 @@ outstanding linked Play Games smoke checks.
 The subsequent [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under the same tuple and installed a rebuilt debug
 APK on the connected phone. It required no issuance pause or run cancellation;
-post-fix device playback verification is waiting for phone unlock.
+ghost launch, cache reuse, and rendering were subsequently verified on Android.
 
 ## Commands
 

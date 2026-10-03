@@ -17,7 +17,8 @@ fixed debug APK on the connected Android phone. Compatibility remains `2026.10.3
 - [x] Focused ghost regressions, full 876-test client gate, and production web build.
 - [x] Verify the live baseline, publish Hosting, and verify the new live artifact.
 - [x] Install the fixed Android app while retaining account and app data.
-- [ ] Unlock the phone and verify the Forest Competitive ghost opens and renders.
+- [x] Verify the Forest Competitive ghost opens and renders on the unlocked phone,
+  including a second launch reusing the saved replay.
 
 No run cancellations or server cutover were needed. This maintenance release
 does not complete the broader signed-in smoke below.

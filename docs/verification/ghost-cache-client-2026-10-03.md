@@ -49,7 +49,7 @@ Artifact evidence:
 The release manifest, component logs, and JSON test report remain under the
 frozen checkout's `.tmp/releases/rpg-runner-d7add/<source-fingerprint>/`.
 
-## Android installation and remaining verification
+## Android installation and device verification
 
 The fixed debug APK was built and installed on the connected CPH2465 running
 Android 15, retaining app data. Android reports installation at 10:18:43 on
@@ -57,9 +57,21 @@ October 3. APK SHA-256:
 `389ddda287dbdd7fead5597e7cb154e6766c4a8b60199c60ed551abab51eb0e9`.
 This was a direct device installation, not an app-store release.
 
-The phone subsequently required fingerprint/password unlock. The owner was
-asked to unlock it, but the post-fix ghost launch could not be observed during
-this release. The debug session was detached, leaving the installed app intact.
-The linked Play Games gameplay/replay/settlement/ghost and retired-version smoke
-in the [release checklist](../building/rescue_release_operations.md) remains
-open; automated tests and artifact verification do not complete it.
+After the owner unlocked the phone, the Forest Competitive rank-1 ghost
+(score 9350, distance 962m, duration 02:18) launched successfully at about 11:24
+Helsinki time. The app reached `Tap to start` and wrote a 166,878-byte replay
+under the new 147-byte filename. Gameplay started and rendered the translucent
+ghost independently of the live character. The stationary smoke player fell
+behind after three seconds; the existing best leaderboard entry remained intact.
+
+A second launch of the same entry also reached the start screen, reused the
+cache file without changing its timestamp, and rendered the ghost ahead of the
+player. It was left paused at `00:01` for the owner. The local screenshot
+`.tmp/ghost-diagnostic/ghost-verify-paused.png` records that state. No source or
+production changes were needed for this follow-up check.
+
+This completes the specific Android ghost-launch/cache/render regression check.
+The broader linked Play Games gameplay/replay/once-only settlement and
+retired-version smoke in the
+[release checklist](../building/rescue_release_operations.md) remains open;
+this short playback observation does not establish those outcomes.

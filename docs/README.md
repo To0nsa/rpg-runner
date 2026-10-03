@@ -12,7 +12,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Completed Forest traversal repair](archive/2026-09-24/audit/forest_enemy_traversal_2026-09-24.md): nine seeded enemy cases pass; deployed in `2026.09.8`.
 - [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
 - [Run distance and scoring](gdd/06_score.md#23-distance-means-furthest-progress): deployed in `2026.10.3`/`score-v3`, with furthest progress and 24 metres per full chunk.
-- [Latest client release](verification/ghost-cache-client-2026-10-03.md): ghost cache filename fix `8d7d9bdc` published to Hosting and installed on the connected Android phone; 876 client tests passed. Phone unlock is needed for the post-fix ghost launch check.
+- [Latest client release](verification/ghost-cache-client-2026-10-03.md): ghost cache filename fix `8d7d9bdc` published to Hosting and installed on the connected Android phone; 876 client tests passed. Ghost launch, cache reuse, and rendering were verified on the phone.
 - [Latest coordinated production release](verification/game-compat-2026.10.3-production.md): frozen `b5835b8e` deployed October 3 (Helsinki time) as `2026.10.3`/`score-v3`; local preparation, strict image benchmark, and live infrastructure checks passed. Signed-in smoke remains open.
 - [Release checklist](building/rescue_release_operations.md#deployed-release-2026103): `2026.10.3` includes Huntress combat, revised distance scoring, and regeneration shrines.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
