@@ -210,6 +210,7 @@ class AppState extends ChangeNotifier {
   String _profileId = defaultOwnershipProfileId;
   int _ownershipRevision = 0;
   bool _bootstrapped = false;
+  bool _disposed = false;
   bool _warmupStarted = false;
   OwnershipSyncStatus _ownershipSyncStatus = OwnershipSyncStatus.idle;
   Timer? _ownershipFlushTimer;
@@ -243,6 +244,8 @@ class AppState extends ChangeNotifier {
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
 
+  /// Loads authenticated player data once, sharing concurrent attempts.
+  /// Forced refreshes flush pending ownership edits before reading the server.
   Future<void> bootstrap({bool force = false}) =>
       _authProfileController.bootstrap(force: force);
 
@@ -474,6 +477,7 @@ class AppState extends ChangeNotifier {
       _runSubmissionController._resumePendingRunSubmissions();
 
   void _notifyListeners() {
+    if (_disposed) return;
     notifyListeners();
   }
 
@@ -527,7 +531,7 @@ class AppState extends ChangeNotifier {
   }
 
   void _applyCanonicalState(OwnershipCanonicalState canonical) {
-    if (_accountDeletionAccepted) return;
+    if (_disposed || _accountDeletionAccepted) return;
     _clearRunTicketPrefetchState();
     _profileId = canonical.profileId;
     _selection = canonical.selection;
@@ -537,10 +541,12 @@ class AppState extends ChangeNotifier {
   }
 
   Future<AuthSession> _ensureAuthSession() async {
+    if (_disposed) throw StateError('AppState has been disposed.');
     if (_accountDeletionAccepted) {
       throw StateError('Account deletion has been accepted.');
     }
     final session = await _authApi.ensureAuthenticatedSession();
+    if (_disposed) throw StateError('AppState has been disposed.');
     if (_accountDeletionAccepted) {
       throw StateError('Account deletion has been accepted.');
     }
@@ -624,6 +630,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;
     _clearRunTicketPrefetchState();

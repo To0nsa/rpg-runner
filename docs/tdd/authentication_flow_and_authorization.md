@@ -54,6 +54,14 @@ Boot route flow:
 
 This means bootstrap is intentionally fail-closed until Play Games auth succeeds.
 
+Concurrent `AppState.bootstrap()` calls share one attempt. Forced refreshes
+finish the pending ownership flush before loading profile and canonical
+ownership. A delayed bootstrap read cannot replace a newer ownership revision
+published while that read was in flight; queued selection is projected again
+after loading. Disposed app state and accepted account deletion fence late
+bootstrap responses. Hub warmup only starts after bootstrap succeeds, handles
+background errors, and permits another attempt after a warmup failure.
+
 Lifecycle ownership flushes (inactive, paused, detached, and reconnect/resume)
 are deferred until bootstrap succeeds. The app shell also suppresses these
 flushes while the splash or loader route is visible, including a resume loader

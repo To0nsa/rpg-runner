@@ -292,6 +292,11 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
       ownerUserId: ownerUserId,
       coalesceKey: 'selection',
     );
+    if (_app._disposed ||
+        _app._accountDeletionAccepted ||
+        _authSession.userId != ownerUserId) {
+      return;
+    }
     if (pending == null ||
         pending.commandType != OwnershipPendingCommandType.setSelection) {
       return;

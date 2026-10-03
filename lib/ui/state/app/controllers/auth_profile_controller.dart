@@ -3,9 +3,31 @@ part of 'package:rpg_runner/ui/state/app/app_state.dart';
 final class _AppStateAuthProfileController extends _AppStateController {
   _AppStateAuthProfileController(super._app);
   AccountDeletionResult? _acceptedDeletionResult;
+  Future<void>? _bootstrapInFlight;
+
   Future<void> bootstrap({bool force = false}) async {
+    final active = _bootstrapInFlight;
+    if (active != null) return active;
     if (_bootstrapped && !force) return;
+    final pending = _bootstrap(force: force);
+    _bootstrapInFlight = pending;
+    try {
+      await pending;
+    } finally {
+      if (identical(_bootstrapInFlight, pending)) {
+        _bootstrapInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _bootstrap({required bool force}) async {
+    if (force && _bootstrapped) {
+      await _app.flushOwnershipEdits(
+        trigger: OwnershipFlushTrigger.connectivityRestored,
+      );
+    }
     final session = await _ensureAuthSession();
+    final revisionBeforeLoad = _ownershipRevision;
     final loadedProfile = await _profileRemoteApi.loadProfile(
       userId: session.userId,
       sessionId: session.sessionId,
@@ -14,9 +36,18 @@ final class _AppStateAuthProfileController extends _AppStateController {
       userId: session.userId,
       sessionId: session.sessionId,
     );
-    if (_app._accountDeletionAccepted) return;
+    if (_app._disposed || _app._accountDeletionAccepted) return;
+    if (_authSession.userId != session.userId) {
+      throw StateError('The signed-in player changed during startup.');
+    }
     _profile = loadedProfile;
-    _applyCanonicalState(canonical);
+    // A background settlement may publish newer ownership during this read.
+    if (_ownershipRevision == revisionBeforeLoad ||
+        canonical.revision >= _ownershipRevision) {
+      _applyCanonicalState(canonical);
+    }
+    await _reconcileSelectionProjectionFromOutbox(ownerUserId: session.userId);
+    if (_app._disposed || _app._accountDeletionAccepted) return;
     _bootstrapped = true;
     _notifyListeners();
   }
@@ -184,23 +215,32 @@ final class _AppStateAuthProfileController extends _AppStateController {
   }
 
   void startWarmup() {
-    if (_app._accountDeletionAccepted) return;
+    if (!_bootstrapped || _app._disposed || _app._accountDeletionAccepted) {
+      return;
+    }
     if (_warmupStarted) return;
     _warmupStarted = true;
-    unawaited(() async {
+    unawaited(_warmup());
+  }
+
+  Future<void> _warmup() async {
+    try {
       final session = await _ensureAuthSession();
       await _refreshOwnershipSyncStatusFromOutbox(ownerUserId: session.userId);
+      if (_app._disposed || _app._accountDeletionAccepted) return;
       _notifyListeners();
-    }());
-    unawaited(startRunTicketPrefetchForCurrentSelection());
-    if (_selection.selectedRunMode != RunMode.weekly) {
-      unawaited(
-        startRunTicketPrefetchFor(
-          mode: RunMode.weekly,
-          levelId: _defaultWeeklyFeaturedLevelId,
-        ),
-      );
+      await Future.wait([
+        startRunTicketPrefetchForCurrentSelection(),
+        if (_selection.selectedRunMode != RunMode.weekly)
+          startRunTicketPrefetchFor(
+            mode: RunMode.weekly,
+            levelId: _defaultWeeklyFeaturedLevelId,
+          ),
+        _resumePendingRunSubmissions(),
+      ]);
+    } catch (error, stackTrace) {
+      _warmupStarted = false;
+      debugPrint('App warmup failed: $error\n$stackTrace');
     }
-    unawaited(_resumePendingRunSubmissions());
   }
 }

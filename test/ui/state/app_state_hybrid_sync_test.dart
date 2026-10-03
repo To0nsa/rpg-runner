@@ -17,6 +17,116 @@ import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  test('concurrent bootstrap calls share one canonical read', () async {
+    final ownership = _DelayedCanonicalOwnershipApi();
+    final app = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownership,
+    );
+    addTearDown(app.dispose);
+    ownership.holdNextRead = true;
+    final first = app.bootstrap();
+    await ownership.readStarted.future;
+    final second = app.bootstrap(force: true);
+    expect(ownership.loadCanonicalCalls, 1);
+    ownership.releaseRead.complete();
+    await Future.wait([first, second]);
+    expect(app.isBootstrapped, isTrue);
+    expect(ownership.loadCanonicalCalls, 1);
+  });
+
+  test('resume waits for an active ownership flush before loading', () async {
+    final ownership = _DelayedFirstSelectionOwnershipApi();
+    final app = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownership,
+    );
+    addTearDown(app.dispose);
+    await app.bootstrap();
+    await app.setRunMode(RunMode.competitive);
+    final flush = app.flushOwnershipEdits(
+      trigger: OwnershipFlushTrigger.manual,
+    );
+    await ownership.waitForFirstSelectionSend();
+    final resume = app.bootstrap(force: true);
+    await Future<void>.delayed(Duration.zero);
+    expect(ownership.loadCanonicalCalls, 1);
+    ownership.releaseFirstSelectionSend();
+    await Future.wait([flush, resume]);
+    expect(ownership.loadCanonicalCalls, 2);
+    expect(app.selection.selectedRunMode, RunMode.competitive);
+    expect(app.ownershipRevision, 1);
+  });
+
+  test('a delayed bootstrap read cannot overwrite newer ownership', () async {
+    final ownership = _DelayedCanonicalOwnershipApi();
+    final app = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownership,
+    );
+    addTearDown(app.dispose);
+    await app.bootstrap();
+    ownership.holdNextRead = true;
+    final resume = app.bootstrap(force: true);
+    await ownership.readStarted.future;
+    await app.setRunMode(RunMode.competitive);
+    await app.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
+    ownership.releaseRead.complete();
+    await resume;
+    expect(app.ownershipRevision, 1);
+    expect(app.selection.selectedRunMode, RunMode.competitive);
+  });
+
+  test('resume preserves queued selection when delivery fails', () async {
+    final app = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _FailingSelectionOwnershipApi(),
+    );
+    addTearDown(app.dispose);
+    await app.bootstrap();
+    await app.setRunMode(RunMode.competitive);
+    await app.bootstrap(force: true);
+    expect(app.selection.selectedRunMode, RunMode.competitive);
+    expect(app.ownershipSyncStatus.pendingSelectionCount, 1);
+  });
+
+  test(
+    'warmup waits for bootstrap and can retry a local cache failure',
+    () async {
+      final outbox = _FailOnceWarmupOutbox();
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _RecordingOwnershipApi(),
+        ownershipOutboxStore: outbox,
+      );
+      addTearDown(app.dispose);
+      app.startWarmup();
+      await Future<void>.delayed(Duration.zero);
+      expect(outbox.loadCalls, 0);
+      await app.bootstrap();
+      app.startWarmup();
+      await Future<void>.delayed(Duration.zero);
+      expect(outbox.loadCalls, 1);
+      app.startWarmup();
+      await Future<void>.delayed(Duration.zero);
+      expect(outbox.loadCalls, 2);
+    },
+  );
+
+  test('disposed app ignores a pending bootstrap response', () async {
+    final ownership = _DelayedCanonicalOwnershipApi()..holdNextRead = true;
+    final app = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownership,
+    );
+    final pending = app.bootstrap();
+    await ownership.readStarted.future;
+    app.dispose();
+    ownership.releaseRead.complete();
+    await pending;
+    expect(app.isBootstrapped, isFalse);
+  });
+
   test('setRunMode updates selection optimistically before flush', () async {
     final ownershipApi = _RecordingOwnershipApi();
     final appState = AppState(
@@ -450,6 +560,7 @@ class _CountingOwnershipOutboxStore implements OwnershipOutboxStore {
 }
 
 class _RecordingOwnershipApi implements LoadoutOwnershipApi {
+  int loadCanonicalCalls = 0;
   int _revision = 0;
   int setSelectionCalls = 0;
   int setAbilitySlotCalls = 0;
@@ -482,6 +593,7 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
     required String userId,
     required String sessionId,
   }) async {
+    loadCanonicalCalls += 1;
     return _canonical();
   }
 
@@ -525,6 +637,39 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> refreshStore(
     RefreshStoreCommand command,
   ) async => _acceptedResult();
+}
+
+class _DelayedCanonicalOwnershipApi extends _RecordingOwnershipApi {
+  bool holdNextRead = false;
+  final readStarted = Completer<void>();
+  final releaseRead = Completer<void>();
+
+  @override
+  Future<OwnershipCanonicalState> loadCanonicalState({
+    required String userId,
+    required String sessionId,
+  }) async {
+    final snapshot = await super.loadCanonicalState(
+      userId: userId,
+      sessionId: sessionId,
+    );
+    if (holdNextRead) {
+      holdNextRead = false;
+      readStarted.complete();
+      await releaseRead.future;
+    }
+    return snapshot;
+  }
+}
+
+class _FailOnceWarmupOutbox extends InMemoryOwnershipOutboxStore {
+  int loadCalls = 0;
+
+  @override
+  Future<List<OwnershipPendingCommand>> loadAll({required String ownerUserId}) {
+    if (++loadCalls == 1) throw StateError('local cache unavailable');
+    return super.loadAll(ownerUserId: ownerUserId);
+  }
 }
 
 class _FailingSelectionOwnershipApi extends _RecordingOwnershipApi {
