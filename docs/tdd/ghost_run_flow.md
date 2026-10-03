@@ -174,12 +174,16 @@ When `RunnerGameWidget` initializes:
 1. If `ghostReplayBootstrap` exists, it creates `GhostPlaybackRunner.fromReplayBlob(...)`.
 2. On each controller tick, ghost runner advances to player tick:
    - `runner.advanceToTick(_controller.tick)`
-3. Widget publishes ghost render feed via notifiers:
+3. Widget publishes one immutable `GhostRenderFrame` through a single notifier:
    - replay blob
-   - latest ghost snapshot
-   - drained ghost events
+   - adjacent previous/current simulation snapshots, including during catch-up
+   - the drained events for this publication, consumed exactly once
 
-`RunnerFlameGame` listens to those notifiers and maintains a dedicated ghost layer:
+The listener consumes an existing frame when attaching. Replay replacement or
+clearing invalidates pending animation loads, so stale loads cannot restore a
+closed ghost. Render interpolation never reconsumes an event batch.
+
+`RunnerFlameGame` listens to that notifier and maintains a dedicated ghost layer:
 - ghost player/enemy/projectile views
 - ghost-specific visual style (`RenderVisualStyle.ghost`)
 - ghost event cues (projectile hit flashes, visual cue pulses)
@@ -290,7 +294,7 @@ UI behavior:
 4. Verify manifest `replayStorageRef` under `ghosts/`.
 5. Verify signed URL freshness (`downloadUrlExpiresAtMs`).
 6. Verify replay digest + manifest ID matching in cache loader.
-7. Verify `RunnerGameWidget` publishes ghost notifiers each tick.
+7. Verify `RunnerGameWidget` publishes atomic ghost frames after controller advancement.
 8. Verify `RunnerFlameGame` ghost layer is not disabled and has ghost views.
 
 ---

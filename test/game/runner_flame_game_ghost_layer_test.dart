@@ -1,5 +1,11 @@
 import 'dart:ui' as ui;
 
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/spell_impacts/spell_impact_id.dart';
+import 'package:rpg_runner/game/replay/ghost_render_frame.dart';
+import 'package:rpg_runner/game/components/player/player_view.dart';
+import 'package:rpg_runner/game/components/camera_space_snapped_sprite_animation.dart';
+
 import 'package:flame/components.dart';
 import 'package:flame/cache.dart';
 import 'package:flutter/foundation.dart';
@@ -35,6 +41,85 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
+    'atomic feed preserves adjacent ticks and consumes effects once',
+    () async {
+      final harness = _buildHarness();
+      addTearDown(harness.dispose);
+      final image = await _singlePixelImage();
+      addTearDown(image.dispose);
+      final images = Images();
+      addTearDown(images.clearCache);
+      final impacts = SpellImpactRenderRegistry();
+      await impacts.load(images);
+      final world = Component();
+      final replay = _ghostReplayBlob(levelId: LevelId.field);
+      final base = harness.controller.snapshot;
+      GameStateSnapshot snapshot(int tick, double x) => _copySnapshot(
+        base,
+        tick: tick,
+        entities: [_entity(id: 101, kind: EntityKind.player, x: x, y: 20)],
+      );
+      final previous = snapshot(5, 10);
+      final current = snapshot(6, 30);
+      final events = <GameEvent>[
+        SpellImpactEvent(
+          tick: 6,
+          impactId: SpellImpactId.fireExplosion,
+          pos: const Vec2(20, 20),
+        ),
+      ];
+      final frame = GhostRenderFrame(
+        replayBlob: replay,
+        previous: previous,
+        current: current,
+        events: events,
+      );
+      events.clear();
+      final feed = ValueNotifier<GhostRenderFrame?>(frame);
+      addTearDown(feed.dispose);
+      final layer = GhostLayerSystem(
+        controller: harness.controller,
+        world: world,
+        images: images,
+        enemyRenderRegistry: EnemyRenderRegistry(),
+        npcRenderRegistry: NpcRenderRegistry(),
+        projectileRenderRegistry: ProjectileRenderRegistry(),
+        spellImpactRenderRegistry: impacts,
+        combatFeedbackTuning: const CombatFeedbackTuning(),
+        ghostRenderListenable: feed,
+      );
+      layer.debugSetGhostRenderStateForTest(
+        replayBlob: replay,
+        playerAnimSet: _buildAnimSet(image),
+      );
+      layer.attachListeners();
+      addTearDown(layer.detachListeners);
+      layer.syncLayer(alpha: 0.5, cameraCenter: Vector2.zero());
+      expect(world.children.whereType<PlayerView>().single.position.x, 20);
+      layer.flushPendingSpellImpactEvents(cameraCenter: Vector2.zero());
+      expect(
+        world.children.whereType<CameraSpaceSnappedSpriteAnimation>(),
+        hasLength(1),
+      );
+      feed.value = GhostRenderFrame(
+        replayBlob: replay,
+        previous: current,
+        current: snapshot(7, 50),
+        events: const [],
+      );
+      layer.syncLayer(alpha: 0.5, cameraCenter: Vector2.zero());
+      layer.flushPendingSpellImpactEvents(cameraCenter: Vector2.zero());
+      expect(world.children.whereType<PlayerView>().single.position.x, 40);
+      expect(
+        world.children.whereType<CameraSpaceSnappedSpriteAnimation>(),
+        hasLength(1),
+      );
+      feed.value = null;
+      expect(layer.debugHasGhostPlayerView, isFalse);
+    },
+  );
+
+  test(
     'all NPC identities synchronize in live and ghost pools and retire cleanly',
     () async {
       final harness = _buildHarness();
@@ -64,9 +149,7 @@ void main() {
         projectileRenderRegistry: projectiles,
         spellImpactRenderRegistry: SpellImpactRenderRegistry(),
         combatFeedbackTuning: const CombatFeedbackTuning(),
-        ghostSnapshotListenable: null,
-        ghostEventsListenable: null,
-        ghostReplayBlobListenable: null,
+        ghostRenderListenable: null,
       );
       final actors = [
         for (final id in NpcId.values)

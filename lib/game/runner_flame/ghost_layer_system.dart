@@ -23,6 +23,7 @@ import '../components/spell_impacts/spell_impact_render_registry.dart';
 import '../components/sprite_anim/deterministic_anim_view.dart';
 import '../components/sprite_anim/sprite_anim_set.dart';
 import '../game_controller.dart';
+import '../replay/ghost_render_frame.dart';
 import '../tuning/combat_feedback_tuning.dart';
 import '../util/math_util.dart' as math;
 import 'render_constants.dart';
@@ -38,9 +39,7 @@ class GhostLayerSystem {
     required ProjectileRenderRegistry projectileRenderRegistry,
     required SpellImpactRenderRegistry spellImpactRenderRegistry,
     required this.combatFeedbackTuning,
-    required this.ghostSnapshotListenable,
-    required this.ghostEventsListenable,
-    required this.ghostReplayBlobListenable,
+    required this.ghostRenderListenable,
   }) : _enemyRenderRegistry = enemyRenderRegistry,
        _npcRenderRegistry = npcRenderRegistry,
        _projectileRenderRegistry = projectileRenderRegistry,
@@ -50,9 +49,7 @@ class GhostLayerSystem {
   final Component world;
   final Images images;
   final CombatFeedbackTuning combatFeedbackTuning;
-  final ValueListenable<GameStateSnapshot?>? ghostSnapshotListenable;
-  final ValueListenable<List<GameEvent>>? ghostEventsListenable;
-  final ValueListenable<ReplayBlobV1?>? ghostReplayBlobListenable;
+  final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
 
   final EnemyRenderRegistry _enemyRenderRegistry;
   final NpcRenderRegistry _npcRenderRegistry;
@@ -83,25 +80,27 @@ class GhostLayerSystem {
   ReplayBlobV1? _ghostReplayBlob;
   SpriteAnimSet? _ghostPlayerAnimSet;
   String? _ghostPlayerAnimCharacterId;
-  bool _ghostPlayerAnimLoading = false;
+  int _animationLoadGeneration = 0;
+  GhostRenderFrame? _lastFrame;
   bool _ghostLayerDisabled = false;
   String? _ghostLayerDisableReason;
 
   void attachListeners() {
-    ghostSnapshotListenable?.addListener(_onGhostRenderFeedChanged);
-    ghostEventsListenable?.addListener(_onGhostRenderFeedChanged);
-    ghostReplayBlobListenable?.addListener(_onGhostRenderFeedChanged);
+    ghostRenderListenable?.addListener(_onGhostRenderFeedChanged);
+    _onGhostRenderFeedChanged();
   }
 
   void detachListeners() {
-    ghostSnapshotListenable?.removeListener(_onGhostRenderFeedChanged);
-    ghostEventsListenable?.removeListener(_onGhostRenderFeedChanged);
-    ghostReplayBlobListenable?.removeListener(_onGhostRenderFeedChanged);
+    ghostRenderListenable?.removeListener(_onGhostRenderFeedChanged);
+    _animationLoadGeneration += 1;
   }
 
   void _onGhostRenderFeedChanged() {
-    final replayBlob = ghostReplayBlobListenable?.value;
-    if (replayBlob == null) {
+    final frame = ghostRenderListenable?.value;
+    if (identical(frame, _lastFrame)) return;
+    _lastFrame = frame;
+    if (frame == null) {
+      _animationLoadGeneration += 1;
       _ghostReplayBlob = null;
       _ghostSnapshot = null;
       _ghostPrevSnapshot = null;
@@ -110,40 +109,38 @@ class GhostLayerSystem {
       _ghostLayerDisabled = false;
       _ghostLayerDisableReason = null;
       _clearGhostViews();
-    } else {
+      return;
+    }
+
+    final replayBlob = frame.replayBlob;
+    if (!identical(replayBlob, _ghostReplayBlob)) {
+      _clearGhostViews();
       _ghostReplayBlob = replayBlob;
-      if (replayBlob.playerCharacterId != _ghostPlayerAnimCharacterId &&
-          !_ghostPlayerAnimLoading) {
-        unawaited(_loadGhostPlayerAnimations(replayBlob));
+      _ghostLayerDisabled = false;
+      _ghostLayerDisableReason = null;
+      final generation = ++_animationLoadGeneration;
+      if (replayBlob.playerCharacterId != _ghostPlayerAnimCharacterId) {
+        _ghostPlayerAnimSet = null;
+        unawaited(_loadGhostPlayerAnimations(replayBlob, generation));
       }
     }
-
-    final nextSnapshot = ghostSnapshotListenable?.value;
-    if (nextSnapshot != null) {
-      _ghostPrevSnapshot = _ghostSnapshot;
-      _ghostSnapshot = nextSnapshot;
-    }
-
-    final events = ghostEventsListenable?.value;
-    if (events != null && events.isNotEmpty) {
-      for (final event in events) {
-        if (event is ProjectileHitEvent) {
-          _pendingGhostProjectileHitEvents.add(event);
-          continue;
-        }
-        if (event is SpellImpactEvent) {
-          _pendingGhostSpellImpactEvents.add(event);
-          continue;
-        }
-        if (event is EntityVisualCueEvent) {
-          _pendingGhostEntityVisualCueEvents.add(event);
-        }
+    _ghostPrevSnapshot = frame.previous;
+    _ghostSnapshot = frame.current;
+    for (final event in frame.events) {
+      if (event is ProjectileHitEvent) {
+        _pendingGhostProjectileHitEvents.add(event);
+      } else if (event is SpellImpactEvent) {
+        _pendingGhostSpellImpactEvents.add(event);
+      } else if (event is EntityVisualCueEvent) {
+        _pendingGhostEntityVisualCueEvents.add(event);
       }
     }
   }
 
-  Future<void> _loadGhostPlayerAnimations(ReplayBlobV1 replayBlob) async {
-    _ghostPlayerAnimLoading = true;
+  Future<void> _loadGhostPlayerAnimations(
+    ReplayBlobV1 replayBlob,
+    int generation,
+  ) async {
     try {
       final characterId = _enumByName(
         PlayerCharacterId.values,
@@ -151,17 +148,16 @@ class GhostLayerSystem {
         fieldName: 'ghostReplayBlob.playerCharacterId',
       );
       final character = PlayerCharacterRegistry.resolve(characterId);
-      _ghostPlayerAnimSet = await loadPlayerAnimations(
+      final animationSet = await loadPlayerAnimations(
         images,
         renderAnim: character.renderAnim,
       );
+      if (generation != _animationLoadGeneration) return;
+      _ghostPlayerAnimSet = animationSet;
       _ghostPlayerAnimCharacterId = replayBlob.playerCharacterId;
-      _ghostLayerDisabled = false;
-      _ghostLayerDisableReason = null;
     } catch (error) {
+      if (generation != _animationLoadGeneration) return;
       disableLayer('ghost-player-animation-load-failed', details: '$error');
-    } finally {
-      _ghostPlayerAnimLoading = false;
     }
   }
 

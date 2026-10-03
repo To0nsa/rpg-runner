@@ -15,7 +15,6 @@ import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/snapshots/game_state_snapshot.dart';
 
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
@@ -23,6 +22,7 @@ import '../game/input/runner_gameplay_action.dart';
 import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/replay/run_recorder.dart';
 import '../game/replay/ghost_playback_runner.dart';
+import '../game/replay/ghost_render_frame.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
@@ -129,12 +129,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   static const Duration _steadySubmissionPollInterval = Duration(seconds: 5);
 
   final UiHaptics _haptics = const UiHapticsService();
-  final ValueNotifier<GameStateSnapshot?> _ghostSnapshotBridge =
-      ValueNotifier<GameStateSnapshot?>(null);
-  final ValueNotifier<List<GameEvent>> _ghostEventsBridge =
-      ValueNotifier<List<GameEvent>>(const <GameEvent>[]);
-  final ValueNotifier<ReplayBlobV1?> _ghostReplayBlobBridge =
-      ValueNotifier<ReplayBlobV1?>(null);
+  final ValueNotifier<GhostRenderFrame?> _ghostRenderBridge =
+      ValueNotifier<GhostRenderFrame?>(null);
 
   bool _pausedByLifecycle = false;
   bool _started = false;
@@ -276,22 +272,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _clearGhostRenderFeed();
       return;
     }
-    _ghostReplayBlobBridge.value = runner.replayBlob;
-    _ghostSnapshotBridge.value = runner.snapshot;
-    if (runner.drainedEvents.isEmpty) {
-      _ghostEventsBridge.value = const <GameEvent>[];
-      return;
-    }
-    _ghostEventsBridge.value = List<GameEvent>.unmodifiable(
-      runner.drainedEvents,
+    _ghostRenderBridge.value = GhostRenderFrame(
+      replayBlob: runner.replayBlob,
+      previous: runner.previousSnapshot,
+      current: runner.snapshot,
+      events: runner.drainedEvents,
     );
     runner.clearDrainedEvents();
   }
 
   void _clearGhostRenderFeed() {
-    _ghostReplayBlobBridge.value = null;
-    _ghostSnapshotBridge.value = null;
-    _ghostEventsBridge.value = const <GameEvent>[];
+    _ghostRenderBridge.value = null;
   }
 
   void _emitChargeHaptics() {
@@ -947,9 +938,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       projectileAimPreview: _projectileAimPreview,
       meleeAimPreview: _meleeAimPreview,
       playerCharacter: playerCharacter,
-      ghostSnapshotListenable: _ghostSnapshotBridge,
-      ghostEventsListenable: _ghostEventsBridge,
-      ghostReplayBlobListenable: _ghostReplayBlobBridge,
+      ghostRenderListenable: _ghostRenderBridge,
     );
     _runRecorder = null;
     _runRecorderInitError = null;
@@ -983,9 +972,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _disposeGame();
-    _ghostReplayBlobBridge.dispose();
-    _ghostSnapshotBridge.dispose();
-    _ghostEventsBridge.dispose();
+    _ghostRenderBridge.dispose();
     super.dispose();
   }
 

@@ -23,7 +23,10 @@ class GhostPlaybackRunner {
     required GameCore core,
     required Map<int, ReplayCommandFrameV1> frameByTick,
   }) : _core = core,
-       _frameByTick = frameByTick;
+       _frameByTick = frameByTick {
+    _snapshot = _core.buildSnapshot();
+    _previousSnapshot = _snapshot;
+  }
 
   factory GhostPlaybackRunner.fromReplayBlob(ReplayBlobV1 replayBlob) {
     final levelId = _enumByName(
@@ -72,7 +75,8 @@ class GhostPlaybackRunner {
   }
 
   final Map<int, ReplayCommandFrameV1> _frameByTick;
-  late GameStateSnapshot _snapshot = _core.buildSnapshot();
+  late GameStateSnapshot _snapshot;
+  late GameStateSnapshot _previousSnapshot;
   final List<GameEvent> _drainedEvents = <GameEvent>[];
 
   int _lastAdvancedTick = 0;
@@ -83,6 +87,9 @@ class GhostPlaybackRunner {
   ///
   /// This is render-only data; gameplay authority remains in the live run.
   GameStateSnapshot get snapshot => _snapshot;
+
+  /// Immediately preceding simulation tick, or the initial snapshot at tick zero.
+  GameStateSnapshot get previousSnapshot => _previousSnapshot;
 
   int get tick => _core.tick;
   bool get isComplete => _completed;
@@ -121,6 +128,7 @@ class GhostPlaybackRunner {
           : _commandsFromReplayFrame(frame);
       _core.applyCommands(commands);
       _core.stepOneTick();
+      _previousSnapshot = _snapshot;
       _snapshot = _core.buildSnapshot();
       _lastAdvancedTick = nextTick;
       _drainCoreEvents();

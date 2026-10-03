@@ -38,6 +38,7 @@ import 'input/runner_input_router.dart';
 import 'runner_flame/camera_shake_controller.dart';
 import 'runner_flame/event_feedback_system.dart';
 import 'runner_flame/ghost_layer_system.dart';
+import 'replay/ghost_render_frame.dart';
 import 'runner_flame/live_world_sync_system.dart';
 import 'runner_flame/load_state.dart';
 import 'runner_flame/render_constants.dart';
@@ -63,9 +64,7 @@ class RunnerFlameGame extends FlameGame {
     Images? imageCache,
     this.parallaxThemes,
     this.terrainMaterials,
-    this.ghostSnapshotListenable,
-    this.ghostEventsListenable,
-    this.ghostReplayBlobListenable,
+    this.ghostRenderListenable,
     CombatFeedbackTuning combatFeedbackTuning = const CombatFeedbackTuning(),
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
@@ -109,9 +108,7 @@ class RunnerFlameGame extends FlameGame {
       projectileRenderRegistry: _projectileRenderRegistry,
       spellImpactRenderRegistry: _spellImpactRenderRegistry,
       combatFeedbackTuning: _combatFeedbackTuning,
-      ghostSnapshotListenable: ghostSnapshotListenable,
-      ghostEventsListenable: ghostEventsListenable,
-      ghostReplayBlobListenable: ghostReplayBlobListenable,
+      ghostRenderListenable: ghostRenderListenable,
     );
   }
 
@@ -128,9 +125,9 @@ class RunnerFlameGame extends FlameGame {
   /// UI-driven aim preview (render-only).
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
-  final ValueListenable<GameStateSnapshot?>? ghostSnapshotListenable;
-  final ValueListenable<List<GameEvent>>? ghostEventsListenable;
-  final ValueListenable<ReplayBlobV1?>? ghostReplayBlobListenable;
+
+  /// Atomic replay snapshots and events; null disables ghost rendering.
+  final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
 
   /// The selected player character definition for this run (render-only usage).
   final PlayerCharacterDefinition playerCharacter;

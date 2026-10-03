@@ -50,6 +50,18 @@ void main() {
     },
   );
 
+  test('catch-up retains the immediately preceding tick for interpolation', () {
+    final runner = GhostPlaybackRunner.fromReplayBlob(
+      _buildReplayBlob(runSessionId: 'run_ghost_catchup'),
+    );
+    addTearDown(runner.dispose);
+    runner.advanceToTick(1);
+    expect(runner.previousSnapshot.tick, 0);
+    runner.advanceToTick(20);
+    expect(runner.previousSnapshot.tick, 19);
+    expect(runner.snapshot.tick, 20);
+  });
+
   test('ghost playback exposes drained events read-only and clearable', () {
     final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_events');
     final runner = GhostPlaybackRunner.fromReplayBlob(replayBlob);
