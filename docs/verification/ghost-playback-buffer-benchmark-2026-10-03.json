@@ -1,0 +1,131 @@
+{
+  "runtime": "3.13.1 (stable) (Tue Aug 18 01:00:59 2026 -0700) on \"windows_x64\"",
+  "operatingSystem": "windows",
+  "mode": "Flutter test / debug, headless native VM",
+  "fixture": "seed 1337, Eloise, 900-tick command stream, actual terminal tick",
+  "terrainPreparation": "Both synchronous and buffered runners prepare terrain before measurement.",
+  "warmupRoundsPerLevel": 1,
+  "measuredRoundsPerLevel": 3,
+  "limitations": [
+    "Measures ghost stepping versus ready-frame consumption on the UI isolate.",
+    "Includes request dispatch in consumption; worker CPU and transfer run concurrently.",
+    "Maximum-speed consumer waits are not real-time underruns.",
+    "No live game, raster/GPU workload, mobile device, or end-to-end FPS measurement."
+  ],
+  "results": [
+    {
+      "level": "field",
+      "round": 1,
+      "ticks": 900,
+      "nativeStartupAndPrefillMs": 98.687,
+      "synchronousUiStepUs": {
+        "mean": 331.7711111111111,
+        "p50": 172,
+        "p95": 1030,
+        "max": 8045
+      },
+      "bufferedUiConsumptionUs": {
+        "mean": 18.82888888888889,
+        "p50": 9,
+        "p95": 44,
+        "max": 1266
+      },
+      "producerWaitIterationsAtMaximumConsumptionSpeed": 20
+    },
+    {
+      "level": "field",
+      "round": 2,
+      "ticks": 900,
+      "nativeStartupAndPrefillMs": 68.481,
+      "synchronousUiStepUs": {
+        "mean": 298.2633333333333,
+        "p50": 98,
+        "p95": 1034,
+        "max": 5679
+      },
+      "bufferedUiConsumptionUs": {
+        "mean": 16.213333333333335,
+        "p50": 4,
+        "p95": 48,
+        "max": 555
+      },
+      "producerWaitIterationsAtMaximumConsumptionSpeed": 18
+    },
+    {
+      "level": "field",
+      "round": 3,
+      "ticks": 900,
+      "nativeStartupAndPrefillMs": 84.797,
+      "synchronousUiStepUs": {
+        "mean": 256.04555555555555,
+        "p50": 87,
+        "p95": 934,
+        "max": 3708
+      },
+      "bufferedUiConsumptionUs": {
+        "mean": 9.353333333333333,
+        "p50": 3,
+        "p95": 26,
+        "max": 571
+      },
+      "producerWaitIterationsAtMaximumConsumptionSpeed": 18
+    },
+    {
+      "level": "forest",
+      "round": 1,
+      "ticks": 900,
+      "nativeStartupAndPrefillMs": 1936.454,
+      "synchronousUiStepUs": {
+        "mean": 462.6144444444444,
+        "p50": 38,
+        "p95": 425,
+        "max": 310241
+      },
+      "bufferedUiConsumptionUs": {
+        "mean": 2.2577777777777777,
+        "p50": 1,
+        "p95": 10,
+        "max": 215
+      },
+      "producerWaitIterationsAtMaximumConsumptionSpeed": 218
+    },
+    {
+      "level": "forest",
+      "round": 2,
+      "ticks": 900,
+      "nativeStartupAndPrefillMs": 1961.082,
+      "synchronousUiStepUs": {
+        "mean": 352.4411111111111,
+        "p50": 30,
+        "p95": 165,
+        "max": 266844
+      },
+      "bufferedUiConsumptionUs": {
+        "mean": 1.5477777777777777,
+        "p50": 0,
+        "p95": 4,
+        "max": 338
+      },
+      "producerWaitIterationsAtMaximumConsumptionSpeed": 211
+    },
+    {
+      "level": "forest",
+      "round": 3,
+      "ticks": 900,
+      "nativeStartupAndPrefillMs": 1889.626,
+      "synchronousUiStepUs": {
+        "mean": 382.78777777777776,
+        "p50": 30,
+        "p95": 195,
+        "max": 284807
+      },
+      "bufferedUiConsumptionUs": {
+        "mean": 3.7855555555555553,
+        "p50": 1,
+        "p95": 5,
+        "max": 2113
+      },
+      "producerWaitIterationsAtMaximumConsumptionSpeed": 210
+    }
+  ]
+}

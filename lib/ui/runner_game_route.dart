@@ -20,9 +20,10 @@ import 'state/ownership/selection_state.dart';
 /// [runSessionId], [runId], and [seed] must come from a server-issued run
 /// session ticket. [tickHz] must use that ticket's fixed simulation rate.
 /// The hosted widget keeps its loading presentation visible while initial
-/// render assets and upcoming live/ghost terrain are prepared. HUD and controls
-/// appear only after the initial world is render-ready; preparation is released
-/// when the route closes.
+/// render assets, upcoming terrain, and the selected ghost playback buffer and
+/// outlines are prepared. HUD and controls appear only after world readiness.
+/// Ghost precomputation never advances live gameplay; its run-owned worker and
+/// render preparation are released when the route closes.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,

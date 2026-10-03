@@ -22,7 +22,7 @@ import '../game/input/aim_preview.dart';
 import '../game/input/runner_gameplay_action.dart';
 import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/replay/run_recorder.dart';
-import '../game/replay/ghost_playback_runner.dart';
+import '../game/replay/buffered_ghost_playback.dart';
 import '../game/replay/ghost_render_frame.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
@@ -50,7 +50,8 @@ import 'viewport/viewport_metrics.dart';
 /// The loading presentation stays mounted while render assets and upcoming
 /// terrain are prepared; HUD and controls appear only after the initial world
 /// is render-ready, including selected ghost preparation and outline warmup.
-/// Start never waits on pending ghost asset or terrain work.
+/// Start never waits on pending ghost asset or terrain work. A bounded native
+/// worker computes ghost ticks ahead; only presentation follows the live tick.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.
@@ -149,7 +150,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late String? _boardId;
   late BoardKey? _boardKey;
   GhostReplayBootstrap? _ghostReplayBootstrap;
-  GhostPlaybackRunner? _ghostPlaybackRunner;
+  BufferedGhostPlayback? _ghostPlaybackRunner;
   Future<List<ActorFrameSnapshot>>? _ghostPreparation;
 
   late int _runId;
@@ -252,34 +253,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _advanceGhostPlaybackToPlayerTick() {
-    final runner = _ghostPlaybackRunner;
-    if (runner == null || runner.isComplete) {
-      return;
-    }
-    try {
-      runner.advanceToTick(_controller.tick);
-      _publishGhostRenderFeed();
-    } catch (error) {
-      debugPrint('Ghost playback failed: $error');
-      runner.dispose();
-      _ghostPlaybackRunner = null;
-      _clearGhostRenderFeed();
-    }
+    _ghostPlaybackRunner?.advanceToTick(_controller.tick);
   }
 
   void _publishGhostRenderFeed() {
+    if (!mounted) return;
     final runner = _ghostPlaybackRunner;
-    if (runner == null) {
-      _clearGhostRenderFeed();
-      return;
-    }
-    _ghostRenderBridge.value = GhostRenderFrame(
-      replayBlob: runner.replayBlob,
-      previous: runner.previousSnapshot,
-      current: runner.snapshot,
-      events: runner.drainedEvents,
-    );
-    runner.clearDrainedEvents();
+    _ghostRenderBridge.value = runner?.frame;
+    final failure = runner?.error;
+    if (failure != null) debugPrint('Ghost playback failed: $failure');
   }
 
   void _clearGhostRenderFeed() {
@@ -683,44 +665,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _initializeGhostPlaybackRunner() {
     _ghostPlaybackRunner?.dispose();
+    _ghostPlaybackRunner = null;
     _ghostPreparation = null;
+    _clearGhostRenderFeed();
     final bootstrap = _ghostReplayBootstrap;
-    if (bootstrap == null) {
-      _ghostPlaybackRunner = null;
-      _clearGhostRenderFeed();
-      return;
-    }
-    try {
-      final runner = GhostPlaybackRunner.fromReplayBlob(bootstrap.replayBlob);
-      _ghostPlaybackRunner = runner;
-      _ghostPreparation = _prepareGhostForRun(runner);
-      _publishGhostRenderFeed();
-    } catch (error) {
-      _ghostPlaybackRunner?.dispose();
-      _ghostPlaybackRunner = null;
-      _clearGhostRenderFeed();
-      debugPrint(
-        'Ghost playback initialization failed for entryId='
-        '${bootstrap.manifest.entryId}: $error',
-      );
-    }
-  }
-
-  Future<List<ActorFrameSnapshot>> _prepareGhostForRun(
-    GhostPlaybackRunner runner,
-  ) async {
-    try {
-      await runner.prepareTerrainAhead();
-      return [runner.snapshot];
-    } catch (error) {
-      if (mounted && identical(runner, _ghostPlaybackRunner)) {
-        runner.dispose();
-        _ghostPlaybackRunner = null;
-        _clearGhostRenderFeed();
-        debugPrint('Ghost preparation failed: $error');
-      }
-      return const [];
-    }
+    if (bootstrap == null) return;
+    final runner = BufferedGhostPlayback(replayBlob: bootstrap.replayBlob);
+    _ghostPlaybackRunner = runner;
+    runner.addListener(_publishGhostRenderFeed);
+    _ghostPreparation = runner.prepare();
   }
 
   Map<String, Object?> _loadoutSnapshot(EquippedLoadoutDef loadout) {

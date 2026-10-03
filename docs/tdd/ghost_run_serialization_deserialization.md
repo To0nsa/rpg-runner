@@ -219,8 +219,12 @@ Playback constructor:
 After that, playback is runtime-only deterministic stepping (`advanceToTick(...)`),
 not further wire deserialization. Rendering receives Core-owned
 `ActorFrameSnapshot` values containing player/enemy/NPC/projectile state; these
-are local projections, not a new wire format. Catch-up builds only the final
-adjacent frame pair while preserving all commands and events.
+are local projections, not a new wire format. On native platforms, a persistent
+worker owns construction and stepping. It receives the verified replay once
+and returns bounded batches of actor snapshots and ordered events. The UI
+consumes samples by live tick, preserving all commands and events. See
+[Ghost Run Flow](ghost_run_flow.md#producer-buffer-and-timing-ownership) for
+queue bounds, underrun behavior, cancellation, and the cooperative web path.
 
 ---
 

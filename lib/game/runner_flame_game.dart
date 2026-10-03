@@ -80,9 +80,8 @@ class RunnerFlameGame extends FlameGame {
            height: virtualHeight.toDouble(),
          ),
        ) {
-    if (imageCache != null) {
-      images = imageCache;
-    }
+    // A closing run must never dispose or retain pending loads for its successor.
+    images = imageCache ?? Images();
     _playerAnimations = PlayerAnimationLibrary(images);
     _liveWorldSync = LiveWorldSyncSystem(
       controller: controller,
@@ -220,6 +219,10 @@ class RunnerFlameGame extends FlameGame {
     final playerAnimations = await _playerAnimations.load(
       playerCharacter.renderAnim,
     );
+    if (_removed) {
+      images.clearCache();
+      return;
+    }
     _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
 
     Iterable<ActorFrameSnapshot> ghostPreviews = const [];
@@ -242,16 +245,26 @@ class RunnerFlameGame extends FlameGame {
       waterForegroundLoad,
       parallaxLoad,
     ]);
-    if (_removed) return;
+    if (_removed) {
+      images.clearCache();
+      return;
+    }
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
     await _ghostLayer.prepareForRun(previewFrames: ghostPreviews);
-    if (_removed) return;
+    if (_removed) {
+      images.clearCache();
+      return;
+    }
     _setLoadState(RunLoadPhase.ghostPrepared, 0.9);
 
     await _liveWorldSync.mountPlayer(playerAnimations);
     await _liveWorldSync.mountStaticPrefabSprites(
       controller.snapshot.staticPrefabSprites,
     );
+    if (_removed) {
+      images.clearCache();
+      return;
+    }
     _trapViews.sync(
       controller.snapshot.traps,
       cameraCenter: camera.viewfinder.position,

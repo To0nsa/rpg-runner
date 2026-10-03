@@ -19,6 +19,9 @@ import 'package:flutter/foundation.dart';
 
 import 'replay_command_codec.dart';
 
+/// Synchronous deterministic replay engine for offline use and ghost workers.
+/// Real-time routes consume BufferedGhostPlayback; they never step this Core
+/// on the native UI isolate. All commands and events retain their recorded tick.
 class GhostPlaybackRunner {
   GhostPlaybackRunner._({
     required this.replayBlob,

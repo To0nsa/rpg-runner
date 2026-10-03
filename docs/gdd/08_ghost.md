@@ -53,7 +53,7 @@ There are two viable strategies:
 
 ### Deterministic dual simulation
 - Store **only player inputs** (plus minimal metadata).
-- During Ghost Race, run a second **ghost simulation** in lockstep:
+- During Ghost Race, compute a second **ghost simulation** ahead of presentation:
   - same seed
   - same ruleset/score versions
   - same deterministic tick rate
@@ -138,16 +138,19 @@ The camera:
 - used to render both worlds in the same viewport (GhostWorld is just another render layer).
 
 ### 5.2 Tick scheduling
-For each `tick`:
-1. Apply local inputs to LiveWorld.
-2. Apply recorded inputs for current tick to GhostWorld.
-3. Step LiveWorld (authoritative).
-4. Step GhostWorld (replay).
-5. Render: LiveWorld normal + GhostWorld grayscale.
 
-Important:
-- Both worlds must use the same `tickHz` and same deterministic time step.
-- Never use wall-clock time or frame delta to drive sim outcomes.
+The live world advances from local inputs at its authoritative fixed tick rate.
+The ghost independently replays recorded commands in tick order, preparing a
+bounded window ahead. Presentation consumes only samples at or before the live
+tick, so precomputation never shows future ghost actions.
+
+- Native platforms run ghost simulation in a persistent background worker.
+- Web yields between short simulation slices on the UI thread.
+- Both worlds retain the same deterministic tick rate; elapsed wall time never
+  changes simulation outcomes.
+- If the worker falls behind, the ghost holds its latest available pose while
+  the live run continues. It catches up when samples arrive.
+- Finished ghosts remain frozen at their terminal pose.
 
 ### 5.3 Isolation rules (no gameplay interaction)
 GhostWorld must not:
@@ -242,9 +245,9 @@ Mitigations:
      viewport. Offscreen hit/impact events do not create VFX.
 2. **Projection and outline cost**
    - Ghost playback builds only actor/projectile presentation, omitting live HUD
-     and static-world output. Every replay tick still runs; catch-up projects
-     at most two snapshots for interpolation. Finished ghosts freeze at their
-     terminal pose.
+     and static-world output. Every replay tick still runs; bounded worker
+     batches retain compact per-tick frames for exact playback. Finished ghosts
+     freeze at their terminal pose.
    - Sprite outlines reuse a run-owned texture cache, keeping the same appearance
      with one outline draw plus the tinted sprite after cache warmup.
 3. **No audio**
@@ -295,6 +298,7 @@ If any of those risks triggers, you’ll see ghost desync (ghost enemies not whe
 ## Loading readiness
 
 The run stays on its loading presentation until the selected ghost's initial
-terrain and animation assets are prepared and likely outline frames are warmed
+terrain, buffered playback, and animation assets are prepared and likely
+outline frames are warmed
 within the memory budget. Pressing Start does not wait for ghost preparation.
 A failed optional ghost is removed without preventing the live run.

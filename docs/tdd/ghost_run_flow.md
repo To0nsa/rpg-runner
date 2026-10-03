@@ -171,26 +171,61 @@ Failure behavior: invalid data is rejected; bad cached files are deleted and re-
 ## 3.6 In-run playback + rendering
 
 When `RunnerGameWidget` initializes:
-1. If `ghostReplayBootstrap` exists, it creates `GhostPlaybackRunner.fromReplayBlob(...)`.
-2. On each controller tick, ghost runner advances to player tick:
-   - `runner.advanceToTick(_controller.tick)`
-3. Widget publishes one immutable `GhostRenderFrame` through a single notifier:
-   - replay blob
-   - adjacent previous/current `ActorFrameSnapshot` projections, including during catch-up
-   - the drained events for this publication, consumed exactly once
+1. A selected replay creates `BufferedGhostPlayback`, which starts a native
+   `GhostPlaybackSource` worker. The worker constructs its own
+   `GhostPlaybackRunner`/`GameCore` and prepares upcoming terrain.
+2. Loading pre-fills at most 120 compact samples (including tick zero). Those
+   immutable snapshots also identify likely early actor/projectile art to warm.
+3. Live controller notifications request the current player tick. This consumes
+   only ready samples; it never steps the ghost Core on the native UI isolate.
+4. One immutable `GhostRenderFrame` is published atomically:
+   - the original verified replay identity,
+   - adjacent previous/current actor snapshots when synchronized,
+   - events from consumed samples, exactly once and in simulation order.
 
-Core actor frames reuse the full snapshot's player/projectile/enemy/NPC projection
-without computing HUD/loadout validation, terrain, pickups or debug hitboxes.
-Playback still executes every deterministic tick and drains all its events. It
-builds at most two actor frames per advancement, regardless of catch-up length.
-Completed playback publishes a terminal frame as both previous and current,
-preventing a finished ghost from oscillating with the live interpolation alpha.
+### Producer, buffer, and timing ownership
+
+The native source uses one persistent isolate per ghost, with one outstanding
+request at a time. Batches contain compact snapshots and their events, not UI
+objects or a repeated copy of the replay. The verified replay is transferred
+once at startup. The main-isolate queue plus reserved incoming slots is bounded
+to 120 samples (two seconds at 60 Hz); it refills when at most 60 remain.
+A paused live run therefore stops further production once that window is full.
+The producer is closed as soon as its terminal batch arrives, while playback
+keeps that terminal sample queued until the live tick reaches it.
+
+Every deterministic tick and event still executes. Core actor frames omit
+HUD/loadout validation, terrain, pickups, and debug hitboxes. The synchronous
+runner can project only the final adjacent pair for offline catch-up; buffered
+production calls it once per tick so each sample can be consumed at the exact
+live tick without resimulation.
+
+During a buffer underrun, presentation holds the latest available pose with
+previous=current. Refill consumes all intervening samples/events and restores
+adjacent interpolation when it reaches the requested live tick. It never
+extrapolates, rewinds, skips simulation commands, or blocks the live controller.
+Completion also freezes previous=current at the actual terminal tick.
+
+Source errors, unexpected exit, invalid batches, and a 30-second unanswered
+native request disable the optional ghost. Route disposal/restart closes ports,
+stops the worker, releases frames, and fences late results. Terrain preparation
+already submitted to a bounded helper may finish after cancellation; its result
+is discarded.
+
+Web uses the same producer through cooperative slices, yielding after roughly
+2 ms of simulation work. This is not parallel execution, and an individual Core
+tick or initial construction can exceed that budget. Native worker parity and
+cooperative scheduling are tested on the VM; browser/device frame rates require
+separate profiling.
 
 Level loading awaits live and ghost terrain preparation, ghost player animations,
 and bounded outline warmup before publishing worldReady. Start is immediate
 after that gate. Ghost preparation failures clear the optional ghost and leave
 the live run playable. Live and ghost player views share run-owned animation
 definitions for the same catalog character; their animation tickers stay separate.
+Each game owns its image cache (or an explicitly injected cache), so an
+interrupted loading run cannot leave pending global image requests for the next
+run or dispose its successor's textures.
 
 Outline warmup prioritizes the first frame of each likely animation, then its
 remaining frames. Candidates are the ghost character, actors/projectiles in the
