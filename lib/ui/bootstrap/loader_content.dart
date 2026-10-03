@@ -9,6 +9,7 @@ class LoaderContent extends StatelessWidget {
     this.title = 'The Long Run',
     this.subtitle = 'Lothringen',
     this.loadingMessage = 'Loading...',
+    this.errorTitle = 'Bootstrap failed',
     this.errorMessage,
     this.continueLabel = 'Retry',
     this.onContinue,
@@ -17,6 +18,7 @@ class LoaderContent extends StatelessWidget {
   final String title;
   final String subtitle;
   final String loadingMessage;
+  final String errorTitle;
   final String? errorMessage;
   final String continueLabel;
   final VoidCallback? onContinue;
@@ -64,7 +66,7 @@ class LoaderContent extends StatelessWidget {
           ],
           if (_hasError) ...[
             Text(
-              'Bootstrap failed',
+              errorTitle,
               style: ui.text.body.copyWith(
                 color: ui.colors.danger,
                 fontSize: 16,

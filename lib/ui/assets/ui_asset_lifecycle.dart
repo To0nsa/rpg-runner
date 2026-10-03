@@ -1,31 +1,13 @@
-import 'package:runner_core/npcs/npc_catalog.dart';
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:runner_core/contracts/render_anim_set_definition.dart';
-import 'package:runner_core/enemies/enemy_catalog.dart';
-import 'package:runner_core/enemies/enemy_id.dart';
-import 'package:runner_core/levels/level_definition.dart';
-import 'package:runner_core/levels/level_id.dart';
-import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
-import 'package:runner_core/projectiles/projectile_id.dart';
-import 'package:runner_core/traps/trap_catalog.dart';
-import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
-import 'package:runner_core/traps/trap_id.dart';
-import 'package:runner_core/projectiles/projectile_render_catalog.dart';
-import 'package:runner_core/pickups/pickup_render_catalog.dart';
-import 'package:runner_core/spell_impacts/spell_impact_id.dart';
-import 'package:runner_core/spell_impacts/spell_impact_render_catalog.dart';
-import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 
 import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
-import '../../game/themes/terrain_material_registry.dart';
-import 'asset_scopes.dart';
 import 'lru_cache.dart';
 
 class IdleAnimBundle {
@@ -35,53 +17,34 @@ class IdleAnimBundle {
   final Anchor anchor;
 }
 
+/// Owns menu previews only. Runtime assets are loaded by run-owned registries.
 class UiAssetLifecycle {
-  UiAssetLifecycle({
-    int maxHubThemes = 8,
-    int maxHubCharacters = 4,
-    int maxRunThemes = 0,
-    int maxRunCharacters = 0,
-  }) : _hubParallaxCache = LruCache<String, List<AssetImage>>(
-         maxEntries: maxHubThemes,
-         onEvict: _evictParallaxLayers,
-       ),
-       _runParallaxCache = LruCache<String, List<AssetImage>>(
-         maxEntries: maxRunThemes,
-         onEvict: _evictParallaxLayers,
-       ),
-       _hubIdleCache = LruCache<PlayerCharacterId, IdleAnimBundle>(
-         maxEntries: maxHubCharacters,
-       ),
-       _runIdleCache = LruCache<PlayerCharacterId, IdleAnimBundle>(
-         maxEntries: maxRunCharacters,
-       );
+  UiAssetLifecycle({int maxHubThemes = 8, int maxHubCharacters = 4})
+    : _hubParallaxCache = LruCache<String, List<AssetImage>>(
+        maxEntries: maxHubThemes,
+        onEvict: _evictParallaxLayers,
+      ),
+      _hubIdleCache = LruCache<PlayerCharacterId, IdleAnimBundle>(
+        maxEntries: maxHubCharacters,
+      );
 
   final Images _idleImages = Images();
 
   final LruCache<String, List<AssetImage>> _hubParallaxCache;
-  final LruCache<String, List<AssetImage>> _runParallaxCache;
   final LruCache<PlayerCharacterId, IdleAnimBundle> _hubIdleCache;
-  final LruCache<PlayerCharacterId, IdleAnimBundle> _runIdleCache;
 
   final Map<PlayerCharacterId, Future<IdleAnimBundle>> _hubIdleInFlight =
       <PlayerCharacterId, Future<IdleAnimBundle>>{};
-  final Map<PlayerCharacterId, Future<IdleAnimBundle>> _runIdleInFlight =
-      <PlayerCharacterId, Future<IdleAnimBundle>>{};
-  final Map<String, Future<void>> _runBootstrapWarmInFlight =
-      <String, Future<void>>{};
 
   final Map<AssetImage, Future<void>> _parallaxPrecacheInFlight =
       <AssetImage, Future<void>>{};
 
-  Future<IdleAnimBundle> getIdle(
-    PlayerCharacterId id, {
-    AssetScope scope = AssetScope.hub,
-  }) {
-    final cache = _idleCacheFor(scope);
+  Future<IdleAnimBundle> getIdle(PlayerCharacterId id) {
+    final cache = _hubIdleCache;
     final cached = cache.get(id);
     if (cached != null) return Future.value(cached);
 
-    final inFlight = _idleInFlightFor(scope);
+    final inFlight = _hubIdleInFlight;
     final existing = inFlight[id];
     if (existing != null) return existing;
 
@@ -100,11 +63,8 @@ class UiAssetLifecycle {
     return future;
   }
 
-  Future<List<AssetImage>> getParallaxLayers(
-    String? visualThemeId, {
-    AssetScope scope = AssetScope.hub,
-  }) async {
-    final cache = _parallaxCacheFor(scope);
+  Future<List<AssetImage>> getParallaxLayers(String? visualThemeId) async {
+    final cache = _hubParallaxCache;
     final key = _cacheKeyForTheme(visualThemeId);
     final cached = cache.get(key);
     if (cached != null) return cached;
@@ -132,13 +92,10 @@ class UiAssetLifecycle {
     required BuildContext context,
   }) async {
     try {
-      final layers = await getParallaxLayers(
-        visualThemeId,
-        scope: AssetScope.hub,
-      );
+      final layers = await getParallaxLayers(visualThemeId);
       if (!context.mounted) return;
       await Future.wait([
-        getIdle(characterId, scope: AssetScope.hub),
+        getIdle(characterId),
         precacheParallaxLayers(layers, context),
       ]);
       trimHubCaches();
@@ -147,72 +104,20 @@ class UiAssetLifecycle {
     }
   }
 
-  /// Best-effort warmup for run-start assets while the bootstrap route is
-  /// visible.
-  ///
-  /// This keeps run-start asset orchestration in a single module and shifts
-  /// decode pressure before entering the run route.
-  Future<void> warmRunStartAssets({
-    required LevelId levelId,
-    required PlayerCharacterId characterId,
-    required BuildContext context,
-  }) {
-    final key = '${levelId.name}:${characterId.name}';
-    final existing = _runBootstrapWarmInFlight[key];
-    if (existing != null) return existing;
-
-    final future =
-        _warmRunStartAssetsImpl(
-          levelId: levelId,
-          characterId: characterId,
-          context: context,
-        ).whenComplete(() {
-          _runBootstrapWarmInFlight.remove(key);
-        });
-
-    _runBootstrapWarmInFlight[key] = future;
-    return future;
-  }
-
   void trimHubCaches() {
     _hubParallaxCache.trim();
     _hubIdleCache.trim();
   }
 
-  void purgeRunCaches() {
-    _runParallaxCache.clear();
-    _runIdleCache.clear();
-    _runIdleInFlight.clear();
-    _runBootstrapWarmInFlight.clear();
-  }
-
   void purgeAll() {
     _hubParallaxCache.clear();
-    _runParallaxCache.clear();
     _hubIdleCache.clear();
-    _runIdleCache.clear();
     _hubIdleInFlight.clear();
-    _runIdleInFlight.clear();
-    _runBootstrapWarmInFlight.clear();
     _parallaxPrecacheInFlight.clear();
     _idleImages.clearCache();
   }
 
   void dispose() => purgeAll();
-
-  LruCache<String, List<AssetImage>> _parallaxCacheFor(AssetScope scope) {
-    return scope == AssetScope.run ? _runParallaxCache : _hubParallaxCache;
-  }
-
-  LruCache<PlayerCharacterId, IdleAnimBundle> _idleCacheFor(AssetScope scope) {
-    return scope == AssetScope.run ? _runIdleCache : _hubIdleCache;
-  }
-
-  Map<PlayerCharacterId, Future<IdleAnimBundle>> _idleInFlightFor(
-    AssetScope scope,
-  ) {
-    return scope == AssetScope.run ? _runIdleInFlight : _hubIdleInFlight;
-  }
 
   Future<IdleAnimBundle> _loadIdleBundle(PlayerCharacterId characterId) async {
     final def = PlayerCharacterRegistry.resolve(characterId);
@@ -241,118 +146,6 @@ class UiAssetLifecycle {
       for (final layer in theme.backgroundLayers) img(layer.assetPath),
       for (final layer in theme.foregroundLayers) img(layer.assetPath),
     ];
-  }
-
-  Future<void> _warmRunStartAssetsImpl({
-    required LevelId levelId,
-    required PlayerCharacterId characterId,
-    required BuildContext context,
-  }) async {
-    if (!LevelRegistry.isAvailable(levelId)) return;
-    try {
-      final level = LevelRegistry.byId(levelId);
-      final runVisualThemeIds = reachableRunVisualThemeIdsForLevelDefinition(
-        level,
-      );
-      final resolvedParallaxLayers = await Future.wait(
-        <Future<List<AssetImage>>>[
-          for (final visualThemeId in runVisualThemeIds)
-            getParallaxLayers(visualThemeId, scope: AssetScope.run),
-        ],
-      );
-      if (!context.mounted) return;
-
-      final relPaths = collectRunStartImagePathsForCharacter(characterId);
-
-      final futures = <Future<void>>[
-        getIdle(characterId, scope: AssetScope.run).then((_) {}),
-      ];
-      for (final layers in resolvedParallaxLayers) {
-        futures.add(precacheParallaxLayers(layers, context));
-      }
-      for (final relPath in relPaths) {
-        futures.add(
-          _precacheImageOnce(AssetImage('assets/images/$relPath'), context),
-        );
-      }
-
-      await Future.wait(futures);
-    } catch (_) {
-      // Best-effort warmup.
-    }
-  }
-
-  @visibleForTesting
-  static List<String> reachableRunVisualThemeIdsForLevelDefinition(
-    LevelDefinition level,
-  ) {
-    final ordered = <String>{};
-    final levelVisualThemeId = level.visualThemeId;
-    if (levelVisualThemeId != null && levelVisualThemeId.isNotEmpty) {
-      ordered.add(levelVisualThemeId);
-    }
-
-    return ordered.toList(growable: false);
-  }
-
-  @visibleForTesting
-  static Set<String> collectRunStartImagePathsForCharacter(
-    PlayerCharacterId characterId,
-  ) {
-    final paths = <String>{};
-
-    void addFromRenderAnim(RenderAnimSetDefinition renderAnim) {
-      for (final rawPath in renderAnim.sourcesByKey.values) {
-        final path = rawPath.trim();
-        if (path.isNotEmpty) {
-          paths.add(path);
-        }
-      }
-    }
-
-    addFromRenderAnim(PlayerCharacterRegistry.resolve(characterId).renderAnim);
-
-    const enemyCatalog = EnemyCatalog();
-    for (final enemyId in EnemyId.values) {
-      addFromRenderAnim(enemyCatalog.get(enemyId).renderAnim);
-    }
-
-    for (final id in NpcCatalog.supportedIds) {
-      addFromRenderAnim(const NpcCatalog().get(id).renderAnim);
-    }
-
-    const projectileCatalog = ProjectileRenderCatalog();
-    for (final projectileId in ProjectileId.values) {
-      if (projectileId == ProjectileId.unknown) continue;
-      addFromRenderAnim(projectileCatalog.get(projectileId));
-    }
-
-    paths.addAll(WorldInteractionRenderCatalog.assetPaths);
-    const pickupCatalog = PickupRenderCatalog();
-    for (final id in TrapId.values) {
-      paths.add(TrapCatalog.get(id).assetPath);
-    }
-    const pickupVariants = <int>[
-      PickupVariant.collectible,
-      PickupVariant.restorationHealth,
-      PickupVariant.restorationMana,
-      PickupVariant.restorationStamina,
-    ];
-    for (final variant in pickupVariants) {
-      addFromRenderAnim(pickupCatalog.get(variant));
-    }
-
-    const spellImpactCatalog = SpellImpactRenderCatalog();
-    for (final impactId in SpellImpactId.values) {
-      if (impactId == SpellImpactId.unknown) continue;
-      addFromRenderAnim(spellImpactCatalog.get(impactId));
-    }
-
-    for (final material in TerrainMaterialRegistry.byKey.values) {
-      paths.addAll(material.assetPaths);
-    }
-
-    return paths;
   }
 
   Future<void> _precacheImageOnce(AssetImage provider, BuildContext context) {

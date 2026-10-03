@@ -6,6 +6,7 @@ import 'package:runner_core/events/game_event.dart';
 
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/leaderboard_entry.dart';
+
 import '../../app/ui_routes.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/leaderboard_table.dart';
@@ -15,8 +16,8 @@ import '../../leaderboard/run_result.dart';
 import '../../leaderboard/shared_prefs_leaderboard_store.dart';
 import '../../levels/level_id_ui.dart';
 import '../../state/app/app_state.dart';
-import '../../state/boards/leaderboard_api.dart';
 import '../../state/run/run_start_remote_exception.dart';
+import '../../state/boards/leaderboard_api.dart';
 import '../../state/ownership/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
@@ -349,44 +350,15 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
       return;
     }
     setState(() => _startingGhostEntryId = entryId);
-    final appState = context.read<AppState>();
     try {
-      if (appState.selection.selectedRunMode != widget.runMode) {
-        await appState.setRunMode(widget.runMode);
-      }
-      if (!mounted) {
-        return;
-      }
-      if (appState.selection.selectedLevelId != widget.levelId) {
-        await appState.setLevel(widget.levelId);
-      }
-      if (!mounted) {
-        return;
-      }
-      final descriptor = await appState.prepareRunStartDescriptor(
-        ghostEntryId: entryId,
+      await Navigator.of(context).pushNamed(
+        UiRoutes.runBootstrap,
+        arguments: RunStartBootstrapArgs(
+          selectMode: widget.runMode,
+          selectLevelId: widget.levelId,
+          ghostEntryId: entryId,
+        ),
       );
-      if (!mounted) {
-        return;
-      }
-      await Navigator.of(
-        context,
-      ).pushNamed(UiRoutes.run, arguments: descriptor);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      final message = switch (error) {
-        RunStartRemoteException exception when exception.message != null =>
-          exception.message!,
-        RunStartRemoteException exception when exception.isPreconditionFailed =>
-          'Ghost run cannot start for this board entry right now.',
-        _ =>
-          'Unable to start ghost run right now. Check your connection and try again.',
-      };
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() => _startingGhostEntryId = null);

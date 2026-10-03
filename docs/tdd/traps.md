@@ -163,7 +163,7 @@ Creator's authoring guides. The default renderer produces no trap overlays in
 any phase, verified by pixel tests; sprite frames and layer priorities remain
 snapshot-driven.
 
-All three trap sheets join run-start warmup and the game's awaited registry load.
+All three trap sheets join the game's run-owned awaited registry load.
 
 ## Chunk Creator
 

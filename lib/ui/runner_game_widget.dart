@@ -4,17 +4,12 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:run_protocol/board_key.dart';
-import 'package:run_protocol/replay_blob.dart';
-import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
-import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
-import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/enums.dart';
 
 import '../game/game_controller.dart';
@@ -22,9 +17,6 @@ import '../game/input/aim_preview.dart';
 import '../game/input/runner_gameplay_action.dart';
 import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/replay/run_recorder.dart';
-import '../game/replay/buffered_ghost_playback.dart';
-import '../game/replay/ghost_render_frame.dart';
-import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
 import 'bootstrap/loader_content.dart';
@@ -34,8 +26,9 @@ import 'hud/gameover/game_over_overlay.dart';
 import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
+import 'run/runner_run_session.dart';
+import 'run/run_start_preparation.dart';
 import 'state/app/app_state.dart';
-import 'state/run/local_replay_artifact_store.dart';
 import 'state/run/run_start_remote_exception.dart';
 import 'state/ownership/selection_state.dart';
 import 'state/boards/ghost_replay_cache.dart';
@@ -46,10 +39,11 @@ import 'viewport/viewport_metrics.dart';
 /// Embed-friendly widget that hosts the mini-game.
 ///
 /// Intended to be mounted by a host app. It owns its [GameController] and
-/// cleans it up on dispose.
-/// The loading presentation stays mounted while render assets and upcoming
-/// terrain are prepared; HUD and controls appear only after the initial world
-/// is render-ready, including selected ghost preparation and outline warmup.
+/// cleans it up on dispose through a run-owned session.
+/// The loading presentation waits for render assets, upcoming terrain, selected
+/// ghost preparation, and replay-recorder initialization. HUD, controls, and
+/// Start appear only after all required preparation succeeds. Required failures
+/// offer retry at tick zero with the same ticket, plus the host's exit callback.
 /// Start never waits on pending ghost asset or terrain work. A bounded native
 /// worker computes ghost ticks ahead; only presentation follows the live tick.
 ///
@@ -73,6 +67,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
     this.viewportAlignment = Alignment.center,
+    this.sessionFactory,
   });
 
   /// Master RNG seed for deterministic generation.
@@ -118,6 +113,10 @@ class RunnerGameWidget extends StatefulWidget {
   /// Where the scaled view is placed within the available screen.
   final Alignment viewportAlignment;
 
+  /// Overrides local dependencies in startup lifecycle tests.
+  @visibleForTesting
+  final RunnerRunSession Function(RunStartDescriptor)? sessionFactory;
+
   @override
   State<RunnerGameWidget> createState() => _RunnerGameWidgetState();
 }
@@ -131,29 +130,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   static const Duration _steadySubmissionPollInterval = Duration(seconds: 5);
 
   final UiHaptics _haptics = const UiHapticsService();
-  final ValueNotifier<GhostRenderFrame?> _ghostRenderBridge =
-      ValueNotifier<GhostRenderFrame?>(null);
-
   bool _pausedByLifecycle = false;
   bool _started = false;
   bool _exitConfirmOpen = false;
   bool _pausedBeforeExitConfirm = false;
   bool _restartInFlight = false;
+  RunStartPreparation? _restartPreparation;
 
-  late String _runSessionId;
-  late int _seed;
-  late int _tickHz;
-  late LevelId _levelId;
-  late PlayerCharacterId _playerCharacterId;
-  late RunMode _runMode;
-  late EquippedLoadoutDef _equippedLoadout;
-  late String? _boardId;
-  late BoardKey? _boardKey;
-  GhostReplayBootstrap? _ghostReplayBootstrap;
-  BufferedGhostPlayback? _ghostPlaybackRunner;
-  Future<List<ActorFrameSnapshot>>? _ghostPreparation;
-
-  late int _runId;
+  late RunStartDescriptor _descriptor;
+  String get _runSessionId => _descriptor.runSessionId;
+  LevelId get _levelId => _descriptor.levelId;
+  RunMode get _runMode => _descriptor.runMode;
   int? _provisionalGoldEarned;
   RunSubmissionStatus? _runSubmissionStatus;
   Timer? _runSubmissionPollTimer;
@@ -165,21 +152,19 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   bool _runReplayJournalInFlight = false;
   String? _runReplayJournalError;
 
-  late GameController _controller;
-  late RunnerInputRouter _input;
+  late RunnerRunSession _session;
+  GameController get _controller => _session.controller;
   late RunnerSemanticActionDispatcher _actions;
-  late AimPreviewModel _projectileAimPreview;
-  late AimPreviewModel _meleeAimPreview;
+  AimPreviewModel get _projectileAimPreview => _session.projectileAimPreview;
+  AimPreviewModel get _meleeAimPreview => _session.meleeAimPreview;
   late ValueNotifier<Rect?> _aimCancelHitboxRect;
   late ValueNotifier<int> _forceAimCancelSignal;
   late ValueNotifier<int> _playerImpactFeedbackSignal;
   int _lastPlayerDamageTick = -1;
   int _lastChargeTier = 0;
-  late RunnerFlameGame _game;
-  RunRecorder? _runRecorder;
-  bool _runRecorderInitializing = false;
-  String? _runRecorderInitError;
-  int _runRecorderGeneration = 0;
+  RunnerFlameGame get _game => _session.game;
+  RunRecorder? get _runRecorder => _session.recorder;
+  bool _loadingRetryInFlight = false;
 
   @override
   void initState() {
@@ -187,17 +172,19 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     WidgetsBinding.instance.addObserver(this);
 
     _validateInitialRunInputs();
-    _runSessionId = widget.runSessionId;
-    _runId = widget.runId;
-    _seed = widget.seed;
-    _tickHz = widget.tickHz;
-    _levelId = widget.levelId;
-    _playerCharacterId = widget.playerCharacterId;
-    _runMode = widget.runMode;
-    _equippedLoadout = widget.equippedLoadout;
-    _boardId = widget.boardId;
-    _boardKey = widget.boardKey;
-    _ghostReplayBootstrap = widget.ghostReplayBootstrap;
+    _descriptor = RunStartDescriptor(
+      runSessionId: widget.runSessionId,
+      runId: widget.runId,
+      seed: widget.seed,
+      tickHz: widget.tickHz,
+      levelId: widget.levelId,
+      playerCharacterId: widget.playerCharacterId,
+      runMode: widget.runMode,
+      equippedLoadout: widget.equippedLoadout,
+      boardId: widget.boardId,
+      boardKey: widget.boardKey,
+      ghostReplayBootstrap: widget.ghostReplayBootstrap,
+    );
     _initGame();
 
     // Start in "ready" (paused) until the user taps to begin.
@@ -209,7 +196,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _onLifecycle(state);
 
   void _onLifecycle(AppLifecycleState state) {
-    final runLoaded = _game.loadState.value.phase == RunLoadPhase.worldReady;
+    final runLoaded = _session.isReady;
     final uiState = _buildUiState(runLoaded: runLoaded);
     if (state == AppLifecycleState.resumed) {
       if (_pausedByLifecycle && uiState.started && !uiState.gameOver) {
@@ -240,7 +227,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _onControllerTick() {
-    _advanceGhostPlaybackToPlayerTick();
     _emitChargeHaptics();
 
     final damageTick = _controller.snapshot.hud.lastDamageTick;
@@ -250,22 +236,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     if (hud.chargeEnabled && hud.chargeActive) {
       _cancelHeldChargedAim();
     }
-  }
-
-  void _advanceGhostPlaybackToPlayerTick() {
-    _ghostPlaybackRunner?.advanceToTick(_controller.tick);
-  }
-
-  void _publishGhostRenderFeed() {
-    if (!mounted) return;
-    final runner = _ghostPlaybackRunner;
-    _ghostRenderBridge.value = runner?.frame;
-    final failure = runner?.error;
-    if (failure != null) debugPrint('Ghost playback failed: $failure');
-  }
-
-  void _clearGhostRenderFeed() {
-    _ghostRenderBridge.value = null;
   }
 
   void _emitChargeHaptics() {
@@ -391,9 +361,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   Future<void> _journalReplayForSubmission(RunEndedEvent event) async {
     final appState = _maybeAppState();
-    if (_runRecorder == null && _runRecorderInitializing) {
-      await _waitForRunRecorderReady();
-    }
+
     final recorder = _runRecorder;
     if (appState == null || recorder == null) {
       if (!mounted) return;
@@ -482,18 +450,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           message: '$error',
         );
       });
-    }
-  }
-
-  Future<void> _waitForRunRecorderReady() async {
-    const pollStep = Duration(milliseconds: 50);
-    const maxWait = Duration(seconds: 2);
-    var waited = Duration.zero;
-    while (_runRecorder == null &&
-        _runRecorderInitializing &&
-        waited < maxWait) {
-      await Future<void>.delayed(pollStep);
-      waited += pollStep;
     }
   }
 
@@ -609,90 +565,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _runSubmissionPollingFast = false;
   }
 
-  void _onAppliedCommandFrame(ReplayCommandFrameV1 frame) {
-    final recorder = _runRecorder;
-    if (recorder == null) {
-      return;
-    }
-    try {
-      recorder.appendFrame(frame);
-    } catch (error) {
-      _runRecorderInitError = 'Replay recorder frame append failed: $error';
-      debugPrint(_runRecorderInitError);
-    }
-  }
-
-  Future<void> _initializeRunRecorder() async {
-    if (_runRecorderInitializing) {
-      return;
-    }
-    _runRecorderInitializing = true;
-    final generation = ++_runRecorderGeneration;
-    try {
-      final spoolDirectory = defaultReplaySpoolDirectory();
-      final recorder = await RunRecorder.create(
-        header: RunRecorderHeader(
-          runSessionId: _runSessionId,
-          boardId: _boardId,
-          boardKey: _boardKey,
-          tickHz: _controller.tickHz,
-          seed: _seed,
-          levelId: _levelId.name,
-          playerCharacterId: _playerCharacterId.name,
-          loadoutSnapshot: _loadoutSnapshot(_equippedLoadout),
-        ),
-        spoolDirectory: spoolDirectory,
-        fileStem: _runSessionId,
-      );
-      if (!mounted || generation != _runRecorderGeneration) {
-        await recorder.close();
-        return;
-      }
-      _runRecorder = recorder;
-      _runRecorderInitError = null;
-    } catch (error) {
-      if (!mounted || generation != _runRecorderGeneration) {
-        return;
-      }
-      _runRecorderInitError = 'Replay recorder initialization failed: $error';
-      debugPrint(_runRecorderInitError);
-    } finally {
-      if (mounted && generation == _runRecorderGeneration) {
-        _runRecorderInitializing = false;
-      }
-    }
-  }
-
-  void _initializeGhostPlaybackRunner() {
-    _ghostPlaybackRunner?.dispose();
-    _ghostPlaybackRunner = null;
-    _ghostPreparation = null;
-    _clearGhostRenderFeed();
-    final bootstrap = _ghostReplayBootstrap;
-    if (bootstrap == null) return;
-    final runner = BufferedGhostPlayback(replayBlob: bootstrap.replayBlob);
-    _ghostPlaybackRunner = runner;
-    runner.addListener(_publishGhostRenderFeed);
-    _ghostPreparation = runner.prepare();
-  }
-
-  Map<String, Object?> _loadoutSnapshot(EquippedLoadoutDef loadout) {
-    return <String, Object?>{
-      'mask': loadout.mask,
-      'mainWeaponId': loadout.mainWeaponId.name,
-      'offhandWeaponId': loadout.offhandWeaponId.name,
-      'spellBookId': loadout.spellBookId.name,
-      'projectileSlotSpellId': loadout.projectileSlotSpellId.name,
-      'accessoryId': loadout.accessoryId.name,
-      'abilityPrimaryId': loadout.abilityPrimaryId,
-      'abilitySecondaryId': loadout.abilitySecondaryId,
-      'abilityProjectileId': loadout.abilityProjectileId,
-      'abilitySpellId': loadout.abilitySpellId,
-      'abilityMobilityId': loadout.abilityMobilityId,
-      'abilityJumpId': loadout.abilityJumpId,
-    };
-  }
-
   RunnerGameUiState _buildUiState({required bool runLoaded}) {
     final snapshot = _controller.snapshot;
     return RunnerGameUiState(
@@ -703,23 +575,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     );
   }
 
-  Future<void> _startGame() async {
-    if (_started || _game.loadState.value.phase != RunLoadPhase.worldReady) {
-      return;
-    }
-    if (_runRecorder == null) {
-      if (!_runRecorderInitializing) {
-        unawaited(_initializeRunRecorder());
-      }
-      final messenger = ScaffoldMessenger.maybeOf(context);
-      if (messenger != null) {
-        final message = _runRecorderInitError == null
-            ? 'Preparing replay recorder. Try starting again.'
-            : 'Replay recorder failed to initialize. Restart run to retry.';
-        messenger.showSnackBar(SnackBar(content: Text(message)));
-      }
-      return;
-    }
+  void _startGame() {
+    if (_started || !_session.isReady) return;
     setState(() => _started = true);
     _clearInputs();
     final lifecycle = WidgetsBinding.instance.lifecycleState;
@@ -747,87 +604,76 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     setState(() => _restartInFlight = true);
     _controller.setPaused(true);
     _clearInputs();
-    try {
-      final descriptor = await appState.prepareRunStartDescriptor(
+    final preparation = RunStartPreparation(
+      appState: appState,
+      request: RunStartBootstrapArgs(
         expectedMode: _runMode,
         expectedLevelId: _levelId,
-      );
+      ),
+    );
+    _restartPreparation = preparation;
+    try {
+      final descriptor = await preparation.prepare();
       if (!mounted) return;
-      _restartWithDescriptor(descriptor);
+      if (descriptor != null) {
+        _restartWithDescriptor(descriptor);
+      } else if (preparation.error case final error?) {
+        _showRestartFailure(error);
+      }
     } catch (error) {
       if (!mounted) return;
       _showRestartFailure(error);
     } finally {
-      if (mounted) {
-        setState(() => _restartInFlight = false);
+      if (identical(_restartPreparation, preparation)) {
+        _restartPreparation = null;
+        preparation.dispose();
       }
+      if (mounted) setState(() => _restartInFlight = false);
     }
   }
 
   void _showRestartFailure(Object error) {
-    final message = error is RunStartRemoteException && error.isLevelUnavailable
-        ? 'This level is unavailable in this build. Return to the hub and select an available level.'
-        : error is RunStartRemoteException && error.isPreconditionFailed
-        ? 'Run restart requirements changed. Return to hub and start a new run.'
-        : 'Unable to restart run right now. Check your connection and try again.';
+    final message = RunStartPreparation.messageFor(error);
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _restartWithDescriptor(RunStartDescriptor descriptor) {
-    final oldController = _controller;
-    final oldProjectilePreview = _projectileAimPreview;
-    final oldMeleePreview = _meleeAimPreview;
+    final oldSession = _session;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
     final oldForceAimCancelSignal = _forceAimCancelSignal;
     final oldPlayerImpactFeedbackSignal = _playerImpactFeedbackSignal;
-    final oldRecorder = _runRecorder;
-    oldController.removeEventListener(_handleGameEvent);
-    oldController.removeListener(_onControllerTick);
-    oldController.removeAppliedCommandFrameListener(_onAppliedCommandFrame);
+    oldSession.controller.removeEventListener(_handleGameEvent);
+    oldSession.controller.removeListener(_onControllerTick);
+    unawaited(
+      oldSession.stop().catchError((Object error) {
+        debugPrint('Run cleanup failed: $error');
+      }),
+    );
     _stopSubmissionStatusPolling();
 
     setState(() {
       _pausedByLifecycle = false;
       _started = false;
       _exitConfirmOpen = false;
-      _runSessionId = descriptor.runSessionId;
-      _runId = descriptor.runId;
-      _seed = descriptor.seed;
-      _tickHz = descriptor.tickHz;
-      _levelId = descriptor.levelId;
-      _playerCharacterId = descriptor.playerCharacterId;
-      _runMode = descriptor.runMode;
-      _equippedLoadout = descriptor.equippedLoadout;
-      _boardId = descriptor.boardId;
-      _boardKey = descriptor.boardKey;
-      _ghostReplayBootstrap = descriptor.ghostReplayBootstrap;
+      _descriptor = descriptor;
       _provisionalGoldEarned = null;
       _runSubmissionStatus = null;
       _runSubmissionRunSessionId = null;
       _runReplayJournaled = false;
       _runReplayJournalInFlight = false;
       _runReplayJournalError = null;
-      _runRecorder = null;
-      _runRecorderInitError = null;
-      _runRecorderInitializing = false;
-      _ghostPlaybackRunner?.dispose();
-      _ghostPlaybackRunner = null;
       _initGame();
     });
     _controller.setPaused(true);
     _clearInputs();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      oldController.shutdown();
-      oldController.dispose();
-      oldProjectilePreview.dispose();
-      oldMeleePreview.dispose();
+      oldSession.dispose();
       oldAimCancelHitboxRect.dispose();
       oldForceAimCancelSignal.dispose();
       oldPlayerImpactFeedbackSignal.dispose();
-      unawaited(oldRecorder?.close() ?? Future<void>.value());
     });
   }
 
@@ -875,47 +721,45 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initGame() {
-    final playerCharacter = PlayerCharacterRegistry.resolve(_playerCharacterId);
-    _controller = GameController(
-      core: GameCore(
-        seed: _seed,
-        runId: _runId,
-        tickHz: _tickHz,
-        levelDefinition: LevelRegistry.byId(_levelId),
-        playerCharacter: playerCharacter,
-        equippedLoadoutOverride: _equippedLoadout,
-      ),
-      tickHz: _tickHz,
-    );
+    _session =
+        widget.sessionFactory?.call(_descriptor) ??
+        RunnerRunSession(descriptor: _descriptor);
     _controller.addEventListener(_handleGameEvent);
     _controller.addListener(_onControllerTick);
-    _controller.addAppliedCommandFrameListener(_onAppliedCommandFrame);
-    _input = RunnerInputRouter(controller: _controller);
     _actions = RunnerSemanticActionDispatcher(
-      input: _input,
+      input: _session.input,
       resolveInputMode: _resolveInputMode,
     );
-    _projectileAimPreview = AimPreviewModel();
-    _meleeAimPreview = AimPreviewModel();
     _aimCancelHitboxRect = ValueNotifier<Rect?>(null);
     _forceAimCancelSignal = ValueNotifier<int>(0);
     _playerImpactFeedbackSignal = ValueNotifier<int>(0);
     _lastPlayerDamageTick = _controller.snapshot.hud.lastDamageTick;
     _lastChargeTier = 0;
-    _initializeGhostPlaybackRunner();
-    _game = RunnerFlameGame(
-      controller: _controller,
-      input: _input,
-      projectileAimPreview: _projectileAimPreview,
-      meleeAimPreview: _meleeAimPreview,
-      playerCharacter: playerCharacter,
-      ghostRenderListenable: _ghostRenderBridge,
-      ghostPreparation: _ghostPreparation,
-    );
-    _runRecorder = null;
-    _runRecorderInitError = null;
-    _runRecorderInitializing = false;
-    unawaited(_initializeRunRecorder());
+  }
+
+  Future<void> _retryLoading() async {
+    if (_started || _loadingRetryInFlight) return;
+    setState(() => _loadingRetryInFlight = true);
+    final attempt = _session;
+    try {
+      // A retry has not consumed any ticks. Reuse its ticket only after the old
+      // recorder closes, so two attempts never write the same replay files.
+      await attempt.stop();
+      if (!mounted || !identical(attempt, _session)) return;
+      _restartWithDescriptor(_descriptor);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to release the previous run. Exit and try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingRetryInFlight = false);
+    }
   }
 
   void _disposeGame() {
@@ -923,17 +767,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _clearInputs();
     _controller.removeEventListener(_handleGameEvent);
     _controller.removeListener(_onControllerTick);
-    _controller.removeAppliedCommandFrameListener(_onAppliedCommandFrame);
-    _controller.shutdown();
-    _controller.dispose();
-    unawaited(_runRecorder?.close() ?? Future<void>.value());
-    _runRecorder = null;
-    _ghostPlaybackRunner?.dispose();
-    _ghostPlaybackRunner = null;
-    _ghostPreparation = null;
-    _clearGhostRenderFeed();
-    _projectileAimPreview.dispose();
-    _meleeAimPreview.dispose();
+    _session.dispose();
     _aimCancelHitboxRect.dispose();
     _forceAimCancelSignal.dispose();
     _playerImpactFeedbackSignal.dispose();
@@ -942,8 +776,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _restartPreparation?.dispose();
+    _restartPreparation = null;
     _disposeGame();
-    _ghostRenderBridge.dispose();
     super.dispose();
   }
 
@@ -954,6 +789,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
+            final session = _session;
             final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
             final metrics = computeViewportMetrics(
               constraints,
@@ -969,23 +805,30 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 key: ValueKey(_game),
                 game: _game,
                 autofocus: false,
-                loadingBuilder: (_) => const _RunLoadingView(),
+                loadingBuilder: (_) => const SizedBox.shrink(),
+                errorBuilder: (_, error) =>
+                    _RunLoadFailureReporter(session: session, error: error),
               ),
             );
 
             return gameView;
           },
         ),
-        ValueListenableBuilder<RunLoadState>(
-          valueListenable: _game.loadState,
-          builder: (context, loadState, _) {
-            final runLoaded = loadState.phase == RunLoadPhase.worldReady;
+        AnimatedBuilder(
+          animation: _session,
+          builder: (context, _) {
+            final runLoaded = _session.isReady;
             return AnimatedBuilder(
               animation: _controller,
               builder: (context, _) {
                 final uiState = _buildUiState(runLoaded: runLoaded);
                 if (uiState.showLoadingOverlay) {
-                  return const SizedBox.shrink();
+                  return _RunLoadingView(
+                    message: _session.loadingMessage,
+                    errorMessage: _session.errorMessage,
+                    onRetry: _loadingRetryInFlight ? null : _retryLoading,
+                    onExit: widget.showExitButton ? widget.onExit : null,
+                  );
                 }
                 if (uiState.gameOver) {
                   final runEndedEvent = _controller.lastRunEndedEvent;
@@ -1053,12 +896,57 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 }
 
 class _RunLoadingView extends StatelessWidget {
-  const _RunLoadingView();
+  const _RunLoadingView({
+    required this.message,
+    this.errorMessage,
+    this.onRetry,
+    this.onExit,
+  });
+
+  final String message;
+  final String? errorMessage;
+  final VoidCallback? onRetry;
+  final VoidCallback? onExit;
 
   @override
-  Widget build(BuildContext context) {
-    return const LoaderShell(
-      child: LoaderContent(loadingMessage: 'Building level...'),
-    );
+  Widget build(BuildContext context) => LoaderShell(
+    scrollable: errorMessage != null,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LoaderContent(
+          loadingMessage: message,
+          errorTitle: 'Unable to start run',
+          errorMessage: errorMessage,
+          onContinue: onRetry,
+        ),
+        if (onExit != null)
+          TextButton(onPressed: onExit, child: const Text('Exit')),
+      ],
+    ),
+  );
+}
+
+/// Forwards errors from GameWidget mounting without notifying during build.
+class _RunLoadFailureReporter extends StatefulWidget {
+  const _RunLoadFailureReporter({required this.session, required this.error});
+  final RunnerRunSession session;
+  final Object error;
+
+  @override
+  State<_RunLoadFailureReporter> createState() =>
+      _RunLoadFailureReporterState();
+}
+
+class _RunLoadFailureReporterState extends State<_RunLoadFailureReporter> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.session.reportHostLoadFailure(widget.error);
+    });
   }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

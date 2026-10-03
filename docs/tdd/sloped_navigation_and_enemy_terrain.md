@@ -567,8 +567,10 @@ finish but cannot retain results or schedule another batch after disposal.
 
 The run route keeps its loading presentation above the Flame view until the
 initial terrain, parallax, player, static prefabs, and render registries have
-finished loading and `RunnerFlameGame` publishes `worldReady`. The player HUD,
-controls, and ready prompt are not mounted before that boundary.
+finished loading and `RunnerFlameGame` publishes `worldReady`. The UI-owned
+run session additionally awaits replay-recorder initialization. The player HUD,
+controls, and ready prompt are not mounted before both boundaries succeed;
+see [run startup](run_startup.md).
 
 A cold cache, a jump beyond the window, or unsupported/failed isolate work uses
 the original synchronous build. Speculative failures are diagnostic only and

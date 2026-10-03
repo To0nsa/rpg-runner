@@ -7,7 +7,6 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
-import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/pages/hub/run_start_bootstrap_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
@@ -18,6 +17,21 @@ import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  testWidgets('route construction failure remains recoverable', (tester) async {
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: _SuccessRunSessionApi(),
+    );
+    addTearDown(appState.dispose);
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(_TestApp(appState: appState, failNavigation: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Run Route Placeholder'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'unavailable compiled level explains recovery without entering a run',
     (tester) async {
@@ -86,17 +100,15 @@ void main() {
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({required this.appState});
+  const _TestApp({required this.appState, this.failNavigation = false});
 
   final AppState appState;
+  final bool failNavigation;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppState>.value(value: appState),
-        Provider<UiAssetLifecycle>(create: (_) => _NoopUiAssetLifecycle()),
-      ],
+      providers: [ChangeNotifierProvider<AppState>.value(value: appState)],
       child: MaterialApp(
         initialRoute: UiRoutes.runBootstrap,
         onGenerateRoute: (settings) {
@@ -111,6 +123,9 @@ class _TestApp extends StatelessWidget {
                 builder: (_) => RunStartBootstrapPage(args: bootstrapArgs),
               );
             case UiRoutes.run:
+              if (failNavigation && settings.arguments is RunStartDescriptor) {
+                throw StateError('route unavailable');
+              }
               return MaterialPageRoute<void>(
                 settings: settings,
                 builder: (_) => const Scaffold(
@@ -127,17 +142,6 @@ class _TestApp extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NoopUiAssetLifecycle extends UiAssetLifecycle {
-  _NoopUiAssetLifecycle();
-
-  @override
-  Future<void> warmRunStartAssets({
-    required LevelId levelId,
-    required PlayerCharacterId characterId,
-    required BuildContext context,
-  }) async {}
 }
 
 class _SuccessRunSessionApi implements RunSessionApi {

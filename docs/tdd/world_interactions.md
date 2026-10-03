@@ -76,7 +76,7 @@ and `(67,154)` pivot for all four supplied Fogo frames. Their bytes are preserve
 under `assets/images/entities/effects/world_interactions/fire_01.png` through
 `fire_04.png`. Display scale is 0.2 times prefab scale; the base sits one world
 unit below the top surface. This retains source alignment and all opaque pixels.
-The registry validates image bounds, joins run-start warmup and awaited loading,
+The registry validates image bounds, joins the run-owned awaited registry loading,
 and uses the existing camera-space pixel snapping and prefab depth scale.
 
 Captured editor Play includes all four exact images, rejects missing/corrupt or

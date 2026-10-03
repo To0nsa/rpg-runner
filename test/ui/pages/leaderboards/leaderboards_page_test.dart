@@ -13,6 +13,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/pages/leaderboards/leaderboards_page.dart';
+import 'package:rpg_runner/ui/pages/hub/run_start_bootstrap_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/boards/ghost_api.dart';
@@ -109,6 +110,11 @@ class _TestApp extends StatelessWidget {
         ),
         home: const LeaderboardsPage(),
         routes: <String, WidgetBuilder>{
+          UiRoutes.runBootstrap: (context) => RunStartBootstrapPage(
+            args:
+                ModalRoute.of(context)!.settings.arguments!
+                    as RunStartBootstrapArgs,
+          ),
           UiRoutes.run: (_) => const Scaffold(body: Text('run-route-marker')),
         },
       ),

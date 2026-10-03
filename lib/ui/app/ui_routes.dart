@@ -2,6 +2,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:run_protocol/board_key.dart';
+
 import '../state/ownership/selection_state.dart';
 import '../state/boards/ghost_replay_cache.dart';
 
@@ -28,11 +29,17 @@ class RunStartBootstrapArgs {
     this.expectedMode,
     this.expectedLevelId,
     this.ghostEntryId,
+    this.selectMode,
+    this.selectLevelId,
   });
 
   final RunMode? expectedMode;
   final LevelId? expectedLevelId;
   final String? ghostEntryId;
+
+  /// Explicit leaderboard selection applied before canonical run preflight.
+  final RunMode? selectMode;
+  final LevelId? selectLevelId;
 }
 
 class LoaderArgs {

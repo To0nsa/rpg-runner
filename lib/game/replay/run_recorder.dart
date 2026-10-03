@@ -66,8 +66,8 @@ class RunRecorder {
 
   final IOSink _spoolSink;
   final _DigestAccumulator _streamDigestAccumulator = _DigestAccumulator();
-  late final ByteConversionSink _streamDigestSink =
-      sha256.startChunkedConversion(_streamDigestAccumulator);
+  late final ByteConversionSink _streamDigestSink = sha256
+      .startChunkedConversion(_streamDigestAccumulator);
 
   var _framesRecorded = 0;
   var _maxTick = 0;
@@ -93,6 +93,19 @@ class RunRecorder {
     }
 
     final sink = spoolFile.openWrite(mode: FileMode.writeOnly);
+    try {
+      // An empty add starts the lazy sink consumer; flush alone is a no-op
+      // before the first add. Await the file open without writing a frame.
+      sink.add(const <int>[]);
+      await sink.flush();
+    } catch (_) {
+      try {
+        await sink.close();
+      } catch (_) {
+        // Preserve the initialization error from flush.
+      }
+      rethrow;
+    }
     return RunRecorder._(
       header: header,
       spoolFile: spoolFile,

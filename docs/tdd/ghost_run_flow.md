@@ -113,8 +113,9 @@ because the row can become stale after it was loaded.
    - `entry.ghostAvailable == true`
    - `entry.entryId` is non-empty
 2. On tap:
-   - UI aligns app selection to target run mode + level.
-   - `AppState.prepareRunStartDescriptor(ghostEntryId: entryId)` is called.
+   - UI opens the shared run bootstrap route with target mode, level, and entry.
+   - RunStartPreparation aligns selection and calls
+     `AppState.prepareRunStartDescriptor(ghostEntryId: entryId)`.
 
 ## 3.3 Run start descriptor + ghost bootstrap
 
@@ -219,8 +220,9 @@ cooperative scheduling are tested on the VM; browser/device frame rates require
 separate profiling.
 
 Level loading awaits live and ghost terrain preparation, ghost player animations,
-and bounded outline warmup before publishing worldReady. Start is immediate
-after that gate. Ghost preparation failures clear the optional ghost and leave
+and bounded outline warmup before publishing worldReady. The UI-owned
+RunnerRunSession also awaits recorder initialization before showing Start;
+see [run startup](run_startup.md). Start is immediate after combined readiness. Ghost preparation failures clear the optional ghost and leave
 the live run playable. Live and ghost player views share run-owned animation
 definitions for the same catalog character; their animation tickers stay separate.
 Each game owns its image cache (or an explicitly injected cache), so an

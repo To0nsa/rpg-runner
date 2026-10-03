@@ -21,7 +21,9 @@ import 'state/ownership/selection_state.dart';
 /// session ticket. [tickHz] must use that ticket's fixed simulation rate.
 /// The hosted widget keeps its loading presentation visible while initial
 /// render assets, upcoming terrain, and the selected ghost playback buffer and
-/// outlines are prepared. HUD and controls appear only after world readiness.
+/// outlines are prepared and the replay recorder has opened its file. Required
+/// loading failures offer retry and exit; retries before Start reuse the ticket
+/// after closing the previous attempt. HUD and controls appear only when ready.
 /// Ghost precomputation never advances live gameplay; its run-owned worker and
 /// render preparation are released when the route closes.
 Route<void> createRunnerGameRoute({

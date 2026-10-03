@@ -153,7 +153,7 @@ Implementation:
 
 What is cached in memory:
 
-- parallax `AssetImage` layer lists (hub/run scopes),
+- parallax `AssetImage` layer lists (menu previews),
 - player idle animation bundles,
 - in-flight precache futures.
 
@@ -168,8 +168,11 @@ Why:
 
 Lifecycle:
 
-- run caches can be purged on run exit,
-- all caches are cleared on lifecycle disposal.
+- menu preview caches persist across runs; runtime images belong to each Flame game,
+- menu caches are cleared on lifecycle disposal.
+
+Run loading does not await a separate Flutter asset warmup. See
+[run startup](run_startup.md) for runtime cache ownership and readiness.
 
 ## B) Firebase auth cached-read fallback (SDK state)
 

@@ -15,7 +15,6 @@ import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/util/vec2.dart';
 import 'package:rpg_runner/game/components/npcs/npc_render_registry.dart';
-import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/playtest/runner_playtest_appearance.dart';
 
 void main() {
@@ -26,10 +25,7 @@ void main() {
     final images = Images();
     addTearDown(images.clearCache);
     await registry.load(images);
-    final warmup = UiAssetLifecycle.collectRunStartImagePathsForCharacter(
-      PlayerCharacterRegistry.eloise.id,
-    );
-    expect(warmup, containsAll(registry.assetPaths.toSet()));
+    expect(images.keys, containsAll(registry.assetPaths.toSet()));
     final captured = RunnerPlaytestAppearance(
       parallaxThemes: {},
       terrainMaterials: {},
@@ -46,8 +42,6 @@ void main() {
       captured,
       contains('assets/images/entities/npc/huntress_2/arrow/move.png'),
     );
-    expect(warmup, contains('entities/npc/huntress/spear_move.png'));
-    expect(warmup, contains('entities/npc/huntress_2/arrow/move.png'));
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);

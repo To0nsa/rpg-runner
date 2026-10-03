@@ -31,7 +31,8 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
   and submission status values
 - `lib/ui/state/boards/`: active-board, leaderboard, ghost manifest, and ghost
   replay cache clients
-- `lib/ui/assets/`: preview cache and warmup lifecycle
+- `lib/ui/assets/`: menu preview cache and warmup lifecycle
+- `lib/ui/run/`: shared remote preflight and local run-session ownership/readiness
 - `lib/ui/viewport/` and `lib/ui/scoped/`: viewport fitting and scoped system UI/orientation behavior
 
 ## House Style
@@ -88,7 +89,10 @@ Rules:
 
 The run route is a UI-owned assembly of lower layers:
 
-- `RunnerGameWidget` creates and owns the controller, Flame game, aim preview state, and overlay wiring
+- `RunnerRunSession` owns controller, input router, Flame game, aim previews, recorder, and ghost lifecycle
+- `RunnerGameWidget` owns the session, overlays, input/lifecycle policy, and submission UI
+- Start requires both world and recorder readiness; required load failures offer retry and exit
+- `RunStartPreparation` coordinates hub, leaderboard, and restart preflight through AppState
 - `RunnerGameRoute` scopes orientation and system UI behavior for embedded or routed runs
 - HUD and controls read snapshots and send input through the existing router/controller path
 
@@ -109,10 +113,11 @@ Avoid duplicating gameplay state in UI-only models just to make rendering easier
 The UI layer already manages preview and warmup behavior:
 
 - hub selection warmup in `UiApp`
-- run cache purging after leaving a run
+- runtime images loaded only by run-owned Flame registries, released with that run
 - preview asset lifecycle in `lib/ui/assets/`
 
-If a page or widget needs art previews, integrate with the existing asset lifecycle instead of adding one-off preload code.
+If a page or widget needs art previews, integrate with the existing asset lifecycle instead of adding one-off preload code. Do not add a whole-run Flutter precache
+pass; it does not populate the run-owned Flame image cache.
 
 ## What Belongs In This Layer
 

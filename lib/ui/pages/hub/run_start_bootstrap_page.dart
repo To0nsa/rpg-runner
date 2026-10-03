@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
-import '../../assets/ui_asset_lifecycle.dart';
 import '../../bootstrap/loader_content.dart';
 import '../../components/loader_shell.dart';
+import '../../run/run_start_preparation.dart';
 import '../../state/app/app_state.dart';
-import '../../state/run/run_start_remote_exception.dart';
 
 class RunStartBootstrapPage extends StatefulWidget {
   const RunStartBootstrapPage({required this.args, super.key});
@@ -18,76 +17,65 @@ class RunStartBootstrapPage extends StatefulWidget {
 }
 
 class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
-  bool _inFlight = false;
-  String? _errorMessage;
+  late final RunStartPreparation _preparation;
+  String? _navigationError;
 
   @override
   void initState() {
     super.initState();
+    _preparation = RunStartPreparation(
+      appState: context.read<AppState>(),
+      request: widget.args,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _prepareAndNavigate();
+      if (mounted) _prepareAndNavigate();
     });
   }
 
   Future<void> _prepareAndNavigate() async {
-    if (_inFlight) return;
-    setState(() {
-      _inFlight = true;
-      _errorMessage = null;
-    });
-
+    if (_preparation.inFlight) return;
+    setState(() => _navigationError = null);
+    final descriptor = await _preparation.prepare();
+    if (!mounted || descriptor == null) return;
     try {
-      final appState = context.read<AppState>();
-      final lifecycle = context.read<UiAssetLifecycle>();
-      final descriptor = await appState.prepareRunStartDescriptor(
-        expectedMode: widget.args.expectedMode,
-        expectedLevelId: widget.args.expectedLevelId,
-        ghostEntryId: widget.args.ghostEntryId,
-      );
-      if (!mounted) return;
-      await lifecycle.warmRunStartAssets(
-        levelId: descriptor.levelId,
-        characterId: descriptor.playerCharacterId,
-        context: context,
-      );
-      if (!mounted) return;
-      final navigator = Navigator.of(context);
-      await navigator.pushReplacementNamed(UiRoutes.run, arguments: descriptor);
+      await Navigator.of(context)
+          .pushReplacementNamed(UiRoutes.run, arguments: descriptor);
     } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = _messageFor(error);
-      });
-    } finally {
       if (mounted) {
-        setState(() => _inFlight = false);
+        setState(
+          () => _navigationError = RunStartPreparation.messageFor(error),
+        );
       }
     }
   }
 
-  String _messageFor(Object error) {
-    if (error is RunStartRemoteException && error.isLevelUnavailable) {
-      return 'This level is unavailable in this build. Return to the hub and select an available level.';
-    }
-    if (error is RunStartRemoteException && error.isPreconditionFailed) {
-      return 'Run start requirements changed. Return to hub and try again.';
-    }
-    return 'Unable to start run right now. Check your connection and try again.';
+  @override
+  void dispose() {
+    _preparation.dispose();
+    super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final errorMessage = _errorMessage;
-    final hasError = errorMessage != null;
-    return LoaderShell(
-      scrollable: hasError,
-      child: LoaderContent(
-        loadingMessage: 'Preparing run...',
-        errorMessage: errorMessage,
-        onContinue: _inFlight ? null : _prepareAndNavigate,
-        continueLabel: _inFlight ? 'Retrying...' : 'Retry',
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _preparation,
+    builder: (context, _) => LoaderShell(
+      scrollable: _preparation.error != null || _navigationError != null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LoaderContent(
+            loadingMessage: 'Preparing run...',
+            errorMessage: _navigationError ?? _preparation.errorMessage,
+            onContinue: _preparation.inFlight ? null : _prepareAndNavigate,
+            continueLabel: _preparation.inFlight ? 'Retrying...' : 'Retry',
+          ),
+          if (Navigator.of(context).canPop())
+            TextButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              child: const Text('Exit'),
+            ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

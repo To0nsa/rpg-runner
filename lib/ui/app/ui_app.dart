@@ -149,10 +149,6 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       _currentRouteName = route?.settings.name;
     }
 
-    if (change == _UiRouteChange.pop && route?.settings.name == UiRoutes.run) {
-      _purgeRunCaches();
-    }
-
     _applyGlobalSystemUiMode();
 
     if (change == _UiRouteChange.pop || change == _UiRouteChange.remove) {
@@ -190,13 +186,6 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     );
   }
 
-  void _purgeRunCaches() {
-    final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-    final lifecycle = Provider.of<UiAssetLifecycle>(ctx, listen: false);
-    lifecycle.purgeRunCaches();
-  }
-
   void _showResumeLoader() {
     if (_resumeInFlight) return;
     if (!_hasSeenRoute || _isStartupRoute) {
@@ -228,9 +217,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             );
             final authApi = FirebaseAuthApi();
             final accountDeletionApi = FirebaseAccountDeletionApi(
-              source: PluginFirebaseAccountDeletionSource(
-                functions: functions,
-              ),
+              source: PluginFirebaseAccountDeletionSource(functions: functions),
             );
             final ownershipApi = FirebaseLoadoutOwnershipApi(
               source: PluginFirebaseLoadoutOwnershipSource(
@@ -238,19 +225,13 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
               ),
             );
             final runBoardsApi = FirebaseRunBoardsApi(
-              source: PluginFirebaseRunBoardsSource(
-                functions: functions,
-              ),
+              source: PluginFirebaseRunBoardsSource(functions: functions),
             );
             final runSessionApi = FirebaseRunSessionApi(
-              source: PluginFirebaseRunSessionSource(
-                functions: functions,
-              ),
+              source: PluginFirebaseRunSessionSource(functions: functions),
             );
             final leaderboardApi = FirebaseLeaderboardApi(
-              source: PluginFirebaseLeaderboardSource(
-                functions: functions,
-              ),
+              source: PluginFirebaseLeaderboardSource(functions: functions),
             );
             final ghostApi = FirebaseGhostApi(
               source: PluginFirebaseGhostSource(functions: functions),

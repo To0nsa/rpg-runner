@@ -72,7 +72,8 @@ The run route currently flows like this:
 
 1. `AppState` builds run args from selection/meta state.
 2. `UiRouter` creates the run route.
-3. `RunnerGameWidget` constructs `GameCore`, `GameController`, `RunnerInputRouter`, and `RunnerFlameGame`.
+3. `RunnerGameWidget` owns a `RunnerRunSession`, which constructs Core, controller, input router, Flame game, recorder, and optional ghost.
+   Its ready state requires world and recorder readiness; pre-start retry recreates the local attempt after cleanup.
 4. `RunnerFlameGame` renders immutable snapshots while `GameOverlay` and `GameOverOverlay` handle in-run UI.
 5. End-of-run rewards and replay submissions feed back into `AppState`, which
    talks to run-session, ownership, leaderboard, and ghost-facing backend

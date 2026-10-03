@@ -144,6 +144,12 @@ These are full-screen overlays that temporarily override normal HUD to express t
 
 ### 4.1 Ready / pre-run
 
+* Loading keeps the simulation at tick zero until the world and replay recorder
+  are ready. The HUD and **Tap to start** appear only after both succeed.
+* Required loading failures offer **Retry** and **Exit**. Retry before Start keeps
+  the same run setup and ghost; a restart after playing obtains a fresh run.
+* Loading has no artificial minimum delay. Optional ghost playback/render failures
+  allow the live run to continue without that ghost.
 * Single CTA (call to action): **Tap to start**
 * Short one-line goal ("Survive as long as possible" style)
 * Must block input except start.

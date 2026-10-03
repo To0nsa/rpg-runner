@@ -99,7 +99,9 @@ void main() {
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 300)),
           );
-          await tester.pump();
+          // Advance the fake event queue so already-queued, cancelled terrain
+          // work can observe disposal without retaining a test timer.
+          await tester.pump(Duration.zero);
           expect(tester.takeException(), isNull);
           return;
         }

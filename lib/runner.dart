@@ -1,4 +1,6 @@
 // Public entrypoint ("barrel file") for embedding the runner in a host app.
+// Hosted runs wait for world and recorder readiness and expose loading recovery;
+// hosts provide a server-issued ticket and an exit path (see the widget/route).
 //
 // Host apps should import only this file:
 // `import 'package:rpg_runner/runner.dart';`

@@ -78,7 +78,8 @@ Preserve these rules:
 
 - add new runtime render content through the existing registry/theme pattern
 - keep asset lookup centralized instead of spreading path strings through components
-- coordinate with `lib/ui/assets/` if a change affects preview or warmup behavior
+- keep runtime asset requirements in render registries and the run-owned image cache; `lib/ui/assets/` owns menu previews
+- report required initial-load failures through `RunLoadState`; UI combines world and recorder readiness and owns recovery
 - avoid hidden persistent caches inside leaf components
 
 ## Camera, Viewport, And Pixel Math

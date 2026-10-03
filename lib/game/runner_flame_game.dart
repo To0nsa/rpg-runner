@@ -189,6 +189,29 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
+    try {
+      await _loadWorld();
+    } catch (error, stackTrace) {
+      if (_removed) {
+        images.clearCache();
+        return;
+      }
+      debugPrintStack(
+        label: 'Run world loading failed: $error',
+        stackTrace: stackTrace,
+        maxFrames: 12,
+      );
+      loadState.value = RunLoadState(
+        phase: RunLoadPhase.failed,
+        progress: loadState.value.progress,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _loadWorld() async {
     await super.onLoad();
     if (_removed) return;
     _ghostLayer.attachListeners();
@@ -216,17 +239,13 @@ class RunnerFlameGame extends FlameGame {
     final parallaxLoad = _backgroundParallax?.loaded ?? Future<void>.value();
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
-    final playerAnimations = await _playerAnimations.load(
-      playerCharacter.renderAnim,
-    );
-    if (_removed) {
-      images.clearCache();
-      return;
-    }
-    _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
-
+    late final SpriteAnimSet playerAnimations;
     Iterable<ActorFrameSnapshot> ghostPreviews = const [];
     await Future.wait<void>(<Future<void>>[
+      _playerAnimations.load(playerCharacter.renderAnim).then((animations) {
+        playerAnimations = animations;
+        _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
+      }),
       if (ghostPreparation != null)
         ghostPreparation!.then((frames) {
           ghostPreviews = frames;
@@ -306,6 +325,7 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void update(double dt) {
+    if (_removed) return;
     final snapshot = controller.snapshot;
     if (!snapshot.paused && !snapshot.gameOver) {
       input.pumpHeldInputs();
@@ -495,6 +515,12 @@ class RunnerFlameGame extends FlameGame {
     );
 
     super.update(dt);
+  }
+
+  /// Fences pending preparation as soon as the UI releases this attempt.
+  /// The Flame widget still owns removal/disposal and final image cleanup.
+  void cancelPreparation() {
+    _removed = true;
   }
 
   @override

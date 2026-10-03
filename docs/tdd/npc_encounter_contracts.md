@@ -269,7 +269,7 @@ ticks are respectively 12, 36 and 12.
 Huntress also maps the five-frame `attack2.png` stab to `AnimKey.strike` and
 `attack1.png` slash to `AnimKey.strike2`. Both impact at tick 18, stay active for
 6 ticks and recover for 6 ticks at the 60 Hz authoring rate. Existing animation
-catalog consumers include both strips in preload, warmup, Play capture and ghosts.
+catalog consumers include both strips in render preload, Play capture and ghosts.
 
 `SnapshotBuilder` emits `EntityKind.npc`, a separate `NpcId`, and immutable
 health, protection, and guarding metadata alongside the shared actor animation,
@@ -281,7 +281,7 @@ check without a bar when protected. Guarding derives from the NPC's live section
 region, independently of protection and the retired encounter record. Ghost NPCs
 retain the existing ghost style, without live health or reward feedback.
 
-All NPC animation and projectile images are in UI warmup, render preload and
+All NPC animation and projectile images are in run-owned render preload and
 immutable Play asset capture, including content beyond the starting chunk.
 Build source fingerprints include NPC PNGs. Entities exposes all three packs
 through its existing guarded source parser and transactional export path.

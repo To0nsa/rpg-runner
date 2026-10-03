@@ -184,6 +184,33 @@ RunEndedEvent _runEndedAfterGiveUp(GameCore core) {
 }
 
 void main() {
+  test(
+    'create reports file-open failure before publishing a recorder',
+    () async {
+      final dir = await Directory.systemTemp.createTemp(
+        'recorder_open_failure_',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      await Directory.fromUri(dir.uri.resolve('blocked.frames.ndjson'))
+          .create();
+      await expectLater(
+        RunRecorder.create(
+          header: const RunRecorderHeader(
+            runSessionId: 'blocked',
+            tickHz: 60,
+            seed: 1,
+            levelId: 'field',
+            playerCharacterId: 'eloise',
+            loadoutSnapshot: {},
+          ),
+          spoolDirectory: dir,
+          fileStem: 'blocked',
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+    },
+  );
+
   test('replay bytes are reproduced from same command stream', () async {
     final dir = await Directory.systemTemp.createTemp('replay-recorder-bytes-');
     addTearDown(() async {
