@@ -18,6 +18,11 @@ import 'ui_routes.dart';
 class UiRouter {
   const UiRouter._();
 
+  /// Starts with exactly one gate; Flutter's default would also push `/`.
+  static List<Route<dynamic>> onGenerateInitialRoutes(String initialRoute) => [
+    onGenerateRoute(const RouteSettings(name: UiRoutes.brandSplash)),
+  ];
+
   static Route<void> _pageRoute(RouteSettings settings, Widget page) {
     return MaterialPageRoute<void>(settings: settings, builder: (_) => page);
   }
@@ -80,9 +85,21 @@ class UiRouter {
             restoreSystemUiMode: SystemUiMode.immersiveSticky,
           );
         }
-        return _pageRoute(settings, const PlayHubPage());
+        return _pageRoute(
+          settings,
+          const PlaceholderPage(
+            title: 'Unable to start run',
+            message: 'Return to the hub and start the run again.',
+          ),
+        );
       default:
-        return _pageRoute(settings, const PlayHubPage());
+        return _pageRoute(
+          settings,
+          const PlaceholderPage(
+            title: 'Page unavailable',
+            message: 'This page could not be opened. Go back and try again.',
+          ),
+        );
     }
   }
 }

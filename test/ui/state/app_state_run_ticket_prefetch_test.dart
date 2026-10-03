@@ -426,6 +426,7 @@ void main() {
       runSessionApi: runSessionApi,
     );
 
+    await appState.bootstrap();
     appState.startWarmup();
     await _waitForCalls(runSessionApi, minimumCalls: 2);
 
@@ -442,6 +443,7 @@ void main() {
       runSessionApi: runSessionApi,
     );
 
+    await appState.bootstrap();
     appState.startWarmup();
     await _waitForCalls(runSessionApi, minimumCalls: 2);
     final callsAfterFirstWarmup = runSessionApi.createRunSessionCalls;
@@ -511,7 +513,6 @@ class _RecordingRunSessionApi implements RunSessionApi {
           mode: requestedModes.last,
           levelId: requestedLevels.last,
           gameCompatVersion: '2026.10.4',
-
         ),
         runSessionId: 'run_session_$createRunSessionCalls',
         expiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,

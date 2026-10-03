@@ -27,15 +27,6 @@ class _PlayHubPageState extends State<PlayHubPage> {
   bool _preparingRunStart = false;
   _RunStartSource? _runStartSource;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<AppState>().startWarmup();
-    });
-  }
-
   Future<void> _startRun({
     _RunStartSource source = _RunStartSource.main,
   }) async {

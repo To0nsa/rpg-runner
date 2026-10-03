@@ -13,14 +13,23 @@ class BrandSplashScreen extends StatefulWidget {
 }
 
 class _BrandSplashScreenState extends State<BrandSplashScreen> {
+  Timer? _transition;
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 1800), () {
+    // Studio branding remains visible for 1.8 seconds before game loading.
+    _transition = Timer(const Duration(milliseconds: 1800), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, UiRoutes.loader);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _transition?.cancel();
+    super.dispose();
   }
 
   @override

@@ -20,7 +20,7 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
   - `lib/ui/state/auth/firebase_auth_api.dart`
   - Handles session discovery, refresh, Play Games restore, and provider linking.
 - App orchestration: `AppState`
-  - `lib/ui/state/app_state.dart`
+  - `lib/ui/state/app/app_state.dart`
   - Calls `ensureAuthenticatedSession()` before remote operations.
 - Backend callables:
   - `functions/src/index.ts`
@@ -34,13 +34,34 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
 
 Boot route flow:
 
-1. `main()` initializes Firebase, activates App Check, and starts `UiApp`.
-   A release build without a production attestation path fails during this
-   step rather than silently continuing without App Check.
-2. `BrandSplashScreen` routes to loader.
-3. `LoaderPage` calls `AppState.bootstrap()`.
+1. `main()` starts `UiApp` immediately with the production `AppServices` owner.
+   `firebase_app_services.dart` holds Firebase client construction, while
+   `ui_theme.dart` holds the common theme. No Firebase client is created yet.
+2. The initial route generator creates only `BrandSplashScreen`, without an
+   underlying `/` or hub route. Its cancellable 1.8-second studio timer replaces
+   the splash with the game loader.
+3. `LoaderPage` calls `AppBootstrapper`, which awaits `AppServices.initialize()`
+   before `AppState.bootstrap()`. Initialization creates Firebase, activates
+   App Check, then constructs state and API adapters. The loader's two-second
+   minimum runs concurrently with this work; it is never shortened on cold
+   start. Retries and resume do not impose another minimum.
 4. `AppState.bootstrap()` calls `_ensureAuthSession()`.
 5. `_ensureAuthSession()` delegates to `AuthApi.ensureAuthenticatedSession()`.
+
+`AppServices` shares in-flight initialization and retains successful state.
+Failed initialization is retryable; Firebase already initialized before an
+App Check failure is reused on retry. `UiApp` disposes the service owner and
+its state, while the lazy `ListenableProvider` only owns the subscription.
+Disposal during initialization prevents late construction of clients.
+
+Initialization errors are displayed by the existing game loader, even if
+Firebase is unavailable. Release attestation requirements still fail closed.
+Authentication failures offer **Retry Play Games sign-in**; service and player
+data failures offer **Retry** with a stage-specific explanation. Raw exceptions
+and stack traces stay in diagnostics, rather than player-facing text. Successful
+cold bootstrap replaces the loader with required name setup or the hub. Back
+cannot reveal an uninitialized hub or skip onboarding. Unknown routes and
+invalid run arguments display explicit errors rather than routing to the hub.
 
 `FirebaseAuthApi.ensureAuthenticatedSession()` behavior:
 
@@ -68,12 +89,23 @@ flushes while the splash or loader route is visible, including a resume loader
 for a previously bootstrapped session. Native Play Games activity transitions
 therefore cannot retrigger sign-in behind a failed loader. Returning to the
 splash keeps its existing transition to the loader instead of stacking a resume
-loader. A failed loader remains available for an explicit **Retry Play Games
-sign-in** action.
+loader. A failed loader remains available for explicit retry.
+
+On menu resume, one loader gates the existing route while forced bootstrap
+owns flush-before-refresh ordering. System Back cannot dismiss this loader;
+successful completion pops it. The shell tracks page routes separately from
+dialogs and handles replacement/removal below the top route. Run preparation
+and gameplay retain their own lifecycle handling, including when a dialog is
+open, and are not covered by an app resume loader. Ownership reconnect flushes
+remain available on those routes.
+
+The shell configures landscape and immersive display outside widget builds.
+Immersive updates are coalesced per frame and checked for disposal; platform
+channel failures are logged without preventing the loading/error UI.
 
 ## 4) App-level session shape
 
-`AuthSession` (in `lib/ui/state/auth_api.dart`) carries:
+`AuthSession` (in `lib/ui/state/auth/auth_api.dart`) carries:
 
 - `userId`: Firebase uid.
 - `sessionId`: client-generated fingerprint derived from token/user metadata.

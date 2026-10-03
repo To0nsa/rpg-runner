@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
+import 'package:rpg_runner/ui/app/app_services.dart';
 import 'package:rpg_runner/ui/bootstrap/app_bootstrapper.dart';
 import 'package:rpg_runner/ui/bootstrap/loader_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
@@ -39,9 +40,9 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Bootstrap failed'), findsOneWidget);
+    expect(find.text('Unable to load player data'), findsOneWidget);
 
-    await tester.tap(find.text('Retry Play Games sign-in'));
+    await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
 
     expect(find.text('hub-page'), findsOneWidget);
@@ -70,42 +71,43 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Retry Play Games sign-in'));
+    await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Bootstrap failed'), findsOneWidget);
-    expect(find.textContaining('retry failed'), findsOneWidget);
+    expect(find.text('Unable to load player data'), findsOneWidget);
+    expect(find.textContaining('retry failed'), findsNothing);
     expect(find.text('hub-page'), findsNothing);
     expect(bootstrapper.calls, 2);
   });
 
-  testWidgets('long bootstrap error stays renderable without overflow', (
-    tester,
-  ) async {
-    final appState = AppState(
-      authApi: const _StaticAuthApi(),
-      userProfileRemoteApi: const _StaticUserProfileRemoteApi(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-    );
-    final bootstrapper = _StaticBootstrapper(
-      result: BootstrapResult.failure(
-        StateError(
-          List<String>.filled(80, 'very long bootstrap error').join('\n'),
+  testWidgets(
+    'raw bootstrap diagnostics are not exposed and errors remain scrollable',
+    (tester) async {
+      final appState = AppState(
+        authApi: const _StaticAuthApi(),
+        userProfileRemoteApi: const _StaticUserProfileRemoteApi(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+      );
+      final bootstrapper = _StaticBootstrapper(
+        result: BootstrapResult.failure(
+          StateError(
+            List<String>.filled(80, 'very long bootstrap error').join('\n'),
+          ),
+          StackTrace.current,
         ),
-        StackTrace.current,
-      ),
-    );
+      );
 
-    await tester.pumpWidget(
-      _TestApp(appState: appState, bootstrapper: bootstrapper),
-    );
-    await tester.pump();
-    await tester.pump();
+      await tester.pumpWidget(
+        _TestApp(appState: appState, bootstrapper: bootstrapper),
+      );
+      await tester.pump();
+      await tester.pump();
 
-    expect(find.text('Bootstrap failed'), findsOneWidget);
-    expect(find.byType(SingleChildScrollView), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Unable to load player data'), findsOneWidget);
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _TestApp extends StatelessWidget {
@@ -116,8 +118,10 @@ class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AppState>.value(
-      value: appState,
+    return Provider<AppServices>(
+      create: (_) =>
+          AppServices(initialize: () async {}, createAppState: () => appState),
+      dispose: (_, services) => services.dispose(),
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
         home: LoaderPage(
@@ -150,7 +154,11 @@ class _StaticBootstrapper extends AppBootstrapper {
   final BootstrapResult result;
 
   @override
-  Future<BootstrapResult> run(AppState appState, {required bool force}) async {
+  Future<BootstrapResult> run(
+    AppServices services, {
+    required bool force,
+  }) async {
+    await services.initialize();
     return result;
   }
 }
@@ -163,7 +171,11 @@ class _QueueBootstrapper extends AppBootstrapper {
   int calls = 0;
 
   @override
-  Future<BootstrapResult> run(AppState appState, {required bool force}) async {
+  Future<BootstrapResult> run(
+    AppServices services, {
+    required bool force,
+  }) async {
+    await services.initialize();
     calls += 1;
     if (_results.isEmpty) {
       return BootstrapResult.failure(

@@ -60,6 +60,8 @@ Common mistakes to avoid:
 Important existing flows and modules:
 
 - App shell and route orchestration: `lib/ui/app/`
+- Service initialization/lifetime and production dependency wiring:
+  `lib/ui/app/app_services.dart`, `lib/ui/app/firebase_app_services.dart`
 - bootstrap, auth warmup, resume loader, profile onboarding: `lib/ui/bootstrap/`
 - menu/meta pages: `lib/ui/pages/`
 - shared components, text helpers, icons, theming: `lib/ui/components/`, `lib/ui/text/`, `lib/ui/theme/`

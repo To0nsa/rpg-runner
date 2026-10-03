@@ -54,6 +54,11 @@ flutter pub get
 flutter run
 ```
 
+Startup preserves the 1.8-second studio splash and a minimum two-second game
+loader. Initialization and player-data failures remain on the loader with an
+explicit retry; the hub opens only after bootstrap and required name setup.
+See [startup and authentication](docs/tdd/authentication_flow_and_authorization.md).
+
 Android startup requires Play Games sign-in. On a new workstation, register
 the debug signing certificate in Firebase and Play Games; a regenerated
 debug keystore has a different SHA-1. See

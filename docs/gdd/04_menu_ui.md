@@ -92,12 +92,22 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ### 3.2 Navigation Map
 
-- Launch → **Loader** → (if name prompt pending) **Profile Name Setup** → **Play Hub**
-- Resume → **Loader** → return to the prior screen
+- Launch → **Studio Splash** (1.8 seconds) → **Game Loader** (at least two
+  seconds) → (if name prompt pending) **Profile Name Setup** → **Play Hub**.
+  Both branding durations are intentional. Service initialization and player
+  loading run during the game loader; slower loading keeps it visible longer.
+  Back cannot reveal the hub before startup or required name setup completes.
+- Menu resume → **Loader** → return to the prior screen after refresh succeeds.
+  This loader cannot be dismissed with Back. Resume and explicit retries do
+  not repeat the branding delay. Run preparation and gameplay retain their own
+  lifecycle behavior without an app resume loader.
 - Play Games sign-in must succeed before entering the hub. If sign-in fails or
   is canceled, stay on the loader with **Retry Play Games sign-in**. Opening or
   dismissing the native sign-in screen must not automatically reopen it. Resume
   during the splash or loader keeps the existing startup screen in place.
+- Service initialization and player-data failures stay on the game loader
+  with an explanation and **Retry**. Technical exception text is not shown to
+  players. Only authentication failures use **Retry Play Games sign-in**.
 - From Play Hub:
   - `Start Run` → In-Game (starts the **selected level** using the **selected run type**: Practice/Competitive)
   - `Edit Level` → Setup Level (route)

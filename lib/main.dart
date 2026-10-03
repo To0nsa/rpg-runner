@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
 
-import 'firebase_app_check_bootstrap.dart';
-import 'firebase_options.dart';
+import 'ui/app/firebase_app_services.dart';
 import 'ui/app/ui_app.dart';
 
 /// Production app entry point for the rpg-runner game.
@@ -12,20 +9,7 @@ import 'ui/app/ui_app.dart';
 /// `RunnerGameWidget` / `createRunnerGameRoute` (see `lib/runner.dart`).
 /// Embedding apps should initialize Firebase, activate App Check where
 /// supported, and initialize any other services themselves.
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Lock to landscape orientation
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
-
-  // Hide status bar and navigation bar (immersive fullscreen)
-  // Note: Also re-applied in MenuScaffold to handle navigation edge cases
-  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await activateFirebaseAppCheck();
-  runApp(const UiApp());
+  runApp(UiApp(services: createFirebaseAppServices()));
 }

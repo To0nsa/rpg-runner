@@ -20,7 +20,8 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
 
 ## Current Important Areas
 
-- `lib/ui/app/`: `UiApp`, routes, navigation shell
+- `lib/ui/app/`: `UiApp`, routes, navigation shell, `AppServices` lifetime owner,
+  and production dependency construction in `firebase_app_services.dart`
 - `lib/ui/bootstrap/`: startup loader, brand splash, profile-name setup
 - `lib/ui/pages/`: hub, level/setup, town, options, messages, profile, leaderboards
 - `lib/ui/hud/` and `lib/ui/controls/`: in-run overlays and input widgets
@@ -60,6 +61,16 @@ When cleaning up UI code, prefer a full migration to the active component/theme 
 - keep `SystemChrome` usage in app-shell or scoped helper code, not leaf widgets
 
 This repo already centralizes global immersive-mode behavior in `UiApp` and route-scoped behavior in `scoped/`. Reuse that.
+
+Startup must create only the studio splash route. Preserve its 1.8-second
+branding duration and the game loader's two-second cold-start minimum.
+Initialize services through `AppBootstrapper`/`AppServices` behind the loader
+so initialization failures are visible and retryable. `AppServices` owns
+`AppState` disposal; the provider only subscribes after initialization. Keep
+production client construction and theme configuration out of `UiApp`.
+Forced bootstrap owns ownership flush-before-refresh ordering. Page tracking
+must ignore dialogs when deciding whether to show a resume loader; system Back
+must not bypass a resume refresh. Hub warmup starts only after bootstrap.
 
 ## App State And Backend Access
 
