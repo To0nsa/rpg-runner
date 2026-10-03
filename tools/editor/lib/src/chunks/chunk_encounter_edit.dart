@@ -101,6 +101,8 @@ EncounterParticipant? findEncounterMember(
 ) => [...group.npcs, ...group.enemies].where((e) => e.id == id).firstOrNull;
 
 /// Retains explicit zero/equal-default overrides unless default mode is selected.
+/// Participant lists are copied into source ID order before strict commit
+/// validation; edits never reorder the captured group or caller-owned lists.
 EncounterDefinition editEncounter(
   EncounterDefinition before, {
   String? id,
@@ -117,8 +119,10 @@ EncounterDefinition editEncounter(
   trigger: trigger ?? before.trigger,
   targetPolicy: targetPolicy ?? before.targetPolicy,
   pointsPerNpc: useDefaultPoints ? null : pointsPerNpc ?? before.pointsPerNpc,
-  npcs: npcs ?? before.npcs,
-  enemies: enemies ?? before.enemies,
+  npcs: (npcs ?? before.npcs).toList()
+    ..sort((left, right) => left.id.compareTo(right.id)),
+  enemies: (enemies ?? before.enemies).toList()
+    ..sort((left, right) => left.id.compareTo(right.id)),
 );
 
 EncounterNpcPlacement editEncounterNpc(

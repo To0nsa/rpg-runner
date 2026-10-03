@@ -201,9 +201,14 @@ runtime occurrence identity still includes the new streamed chunk index.
 
 Encounter edit helpers preserve group/member identity through moves and renames,
 allocate fresh IDs for local duplication, and retain nullable policy/reward
-inheritance explicitly. A composition operation replaces or deletes one complete
-owned group under the existing owner/revision/before-snapshot guard. Removing its
-last required member remains a saveable incomplete draft.
+inheritance explicitly. The shared editor edit helper sorts copies of both
+participant lists by source ID before composition validation, so catalog
+placement, duplication and marker conversion do not depend on insertion order.
+Captured groups and caller-owned lists remain unchanged; source decoding and
+commit validation still reject noncanonical input. A composition operation
+replaces or deletes one complete owned group under the existing
+owner/revision/before-snapshot guard. Removing its last required member remains
+a saveable incomplete draft.
 
 Chunk Creator exposes Encounters in its existing scene selector. The contextual
 sidebar reuses section/list cards and visual catalogs. Group inspectors own

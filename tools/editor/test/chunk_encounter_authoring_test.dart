@@ -397,7 +397,7 @@ void main() {
             world * surface.transform.zoom;
       }
 
-      await tap('chunk_npc_card_huntress2');
+      await tap('chunk_npc_card_warrior');
       expect(
         current().encounters.single.npcs,
         isEmpty,
@@ -406,8 +406,35 @@ void main() {
       await tap('chunk_encounter_place_npc');
       await tester.tapAt(point(const Offset(256, 197)));
       await tester.pumpAndSettle();
-      expect(current().encounters.single.npcs.single.npcId, NpcId.huntress2);
+      expect(current().encounters.single.npcs.single.npcId, NpcId.warrior);
       final npc = current().encounters.single.npcs.single;
+      for (final (npcId, x) in [
+        (NpcId.huntress2, 384.0),
+        (NpcId.huntress, 320.0),
+      ]) {
+        await tap('chunk_npc_card_${npcId.name}');
+        await tap('chunk_encounter_place_npc');
+        await tester.tapAt(point(Offset(x, 197)));
+        await tester.pumpAndSettle();
+        expect(
+          current().encounters.single.npcs.map((m) => m.npcId),
+          contains(npcId),
+        );
+        expect(
+          tester
+              .widget<ChunkEncounterInspector>(
+                find.byType(ChunkEncounterInspector),
+              )
+              .member!
+              .id,
+          npcId.name,
+        );
+      }
+      expect(current().encounters.single.npcs.map((m) => m.id), [
+        'huntress',
+        'huntress2',
+        'warrior',
+      ]);
       await tap('chunk_encounter_place_enemy');
       await tester.tapAt(point(const Offset(416, 190)));
       await tester.pumpAndSettle();
@@ -481,13 +508,13 @@ void main() {
       await tester.pumpAndSettle();
       await tap('chunk_encounter_member_${id}_${npc.id}');
       await tap('chunk_encounter_duplicate');
-      expect(current().encounters.single.npcs, hasLength(2));
+      expect(current().encounters.single.npcs, hasLength(4));
       final duplicateId = current().encounters.single.npcs.last.id;
       await tap('chunk_encounter_delete');
-      expect(current().encounters.single.npcs, hasLength(1));
+      expect(current().encounters.single.npcs, hasLength(3));
       state.handleUndoShortcut();
       await tester.pumpAndSettle();
-      expect(current().encounters.single.npcs, hasLength(2));
+      expect(current().encounters.single.npcs, hasLength(4));
       expect(
         tester
             .widget<ChunkEncounterInspector>(
@@ -499,7 +526,7 @@ void main() {
       );
       state.handleRedoShortcut();
       await tester.pumpAndSettle();
-      expect(current().encounters.single.npcs, hasLength(1));
+      expect(current().encounters.single.npcs, hasLength(3));
       await tester.runAsync(session.exportDirectWrite);
       expect(session.exportError, isNull);
       final saved = ChunkV2FileCodec.decode(file.readAsStringSync());
@@ -511,7 +538,11 @@ void main() {
       );
       await tester.runAsync(session.loadWorkspace);
       await tester.pumpAndSettle();
-      expect(current().encounters.single.npcs.single.id, npc.id);
+      expect(current().encounters.single.npcs.map((m) => m.id), [
+        'huntress',
+        'huntress2',
+        npc.id,
+      ]);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },

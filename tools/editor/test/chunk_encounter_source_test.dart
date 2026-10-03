@@ -6,6 +6,7 @@ import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/combat/ai_target_policy.dart';
 import 'package:runner_core/encounters/encounter_limits.dart';
+import 'package:runner_core/npcs/npc_id.dart';
 import 'package:runner_editor/src/chunks/chunk_encounter_edit.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -88,6 +89,83 @@ void main() {
       expect(original.enemies.single.x, isNot(450));
     },
   );
+
+  for (final npcId in [NpcId.huntress, NpcId.huntress2]) {
+    test('adding and duplicating ${npcId.name} after Warrior commits', () {
+      final chunk = _chunk();
+      final original = chunk.encounters.single;
+      final member = editEncounterNpc(
+        original.npcs.single,
+        id: npcId.name,
+        npcId: npcId,
+        x: 320,
+      );
+      final added = addEncounterMember(original, member);
+      final duplicated = addEncounterMember(
+        added,
+        duplicateEncounterMember(added, member),
+      );
+      for (final candidate in [added, duplicated]) {
+        final commit = ChunkV2CompositionOperation.replace(
+          chunk: chunk,
+          target: ChunkV2CompositionTarget.encounters,
+          sourceIndex: 0,
+        ).buildEncounter(candidate: candidate)!;
+        final result = const ChunkV2CompositionCommitPolicy().apply(
+          document: _document(chunk),
+          chunkIndex: 0,
+          commit: commit,
+        );
+        expect(result.accepted, isTrue, reason: result.issues.toString());
+        expect(result.chunk.revision, chunk.revision + 1);
+        expect(result.chunk.encounters.single.npcs.map((m) => m.id), [
+          npcId.name,
+          if (identical(candidate, duplicated)) '${npcId.name}_2',
+          'warrior',
+        ]);
+        expect(
+          encounterDefinitionsToJson(
+            ChunkV2FileCodec.decode(ChunkV2FileCodec.encode(result.chunk))
+                .encounters,
+          ),
+          encounterDefinitionsToJson(result.chunk.encounters),
+        );
+      }
+      expect(original.npcs.single.id, 'warrior');
+      expect(added.npcs, hasLength(2));
+    });
+  }
+
+  test('duplicating an earlier enemy preserves canonical source order', () {
+    final chunk = _chunk();
+    final original = chunk.encounters.single;
+    final withEnemy = addEncounterMember(
+      original,
+      editEncounterEnemy(original.enemies.single, id: 'enemy', x: 480),
+    );
+    final candidate = addEncounterMember(
+      withEnemy,
+      duplicateEncounterMember(withEnemy, original.enemies.single),
+    );
+    final commit = ChunkV2CompositionOperation.replace(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.encounters,
+      sourceIndex: 0,
+    ).buildEncounter(candidate: candidate)!;
+    final result = const ChunkV2CompositionCommitPolicy().apply(
+      document: _document(chunk),
+      chunkIndex: 0,
+      commit: commit,
+    );
+    expect(result.accepted, isTrue, reason: result.issues.toString());
+    expect(result.chunk.encounters.single.enemies.map((m) => m.id), [
+      'ambusher',
+      'ambusher_2',
+      'enemy',
+    ]);
+    expect(withEnemy.enemies.map((m) => m.id), ['ambusher', 'enemy']);
+    expect(original.enemies.single.id, 'ambusher');
+  });
 
   test('duplicate groups and members allocate separate local identities', () {
     final chunk = _chunk();
