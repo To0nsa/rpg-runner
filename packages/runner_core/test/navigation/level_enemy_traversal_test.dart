@@ -60,4 +60,37 @@ void main() {
       enemyIds: _mobileEnemies,
     );
   }
+
+  for (final enemy in [EnemyId.grojib, EnemyId.hashash]) {
+    test('hard grove rock foothold preserves pursuit for ${enemy.name}', () {
+      final route = LevelTraversalRoute.chunks(
+        level: LevelRegistry.byId(LevelId.forest),
+        seed: 42,
+        chunkKeys: [
+          'forest_default_early_001',
+          'forest_rocky_grove_hard_001',
+          'forest_rocky_grove_hard_004',
+        ],
+        continuationChunkKey: 'forest_rocky_grove_hard_005',
+      );
+      final harness = EnemyTraversalHarness(route, enemy);
+      expect(harness.traverse(), isNull);
+      expect(harness.enemyX, greaterThanOrEqualTo(harness.finishX));
+      expect(harness.visitedChunks, containsAll([0, 1, 2]));
+    });
+  }
+
+  test('finish target finds support beyond a continuation midpoint gap', () {
+    final route = LevelTraversalRoute.chunks(
+      level: LevelRegistry.byId(LevelId.forest),
+      seed: 2026,
+      chunkKeys: ['forest_default_early_001', 'forest_rocky_grove_hard_007'],
+      continuationChunkKey: 'forest_rocky_grove_hard_008',
+    );
+    final harness = EnemyTraversalHarness(route, EnemyId.unocoDemon);
+    expect(harness.traverse(), isNull);
+    expect(harness.finishX, 1200);
+    expect(harness.enemyX, greaterThanOrEqualTo(harness.finishX));
+    expect(harness.targetX, greaterThan(1500));
+  });
 }

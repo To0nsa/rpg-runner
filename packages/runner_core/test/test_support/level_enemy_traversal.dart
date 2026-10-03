@@ -538,8 +538,25 @@ class EnemyTraversalHarness {
     final failures = <String>[];
     // The nominal endpoint can land on a prefab corner. Move the target along
     // the exit area until its full capsule has a legal foothold and clearance.
-    for (final offset in [0, -16, 16, 32, 48, 64, 80, 96]) {
+    // A continuation can have a gap at its midpoint. Search farther forward
+    // for final-target support while keeping the tested finish fixed.
+    final offsets = [
+      0,
+      -16,
+      16,
+      32,
+      48,
+      64,
+      80,
+      96,
+      if (minimumX != null)
+        for (var forward = 32; forward <= 256; forward += 16) -forward,
+    ];
+    for (final offset in offsets) {
       if (minimumX != null && x - offset < minimumX) continue;
+      if (minimumX != null && x - offset > finishX + route.width - 32) {
+        continue;
+      }
       for (final surface in bundle.surfaceSet.surfaces) {
         final capsuleX =
             physicsCoordinateToTicks(x - offset) + capsule.offsetXTicks[ci];

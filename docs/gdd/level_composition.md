@@ -22,6 +22,16 @@ with distinct chunk keys and hard difficulty. The original normal chunks remain
 available for normal sections. Rocky Grove's hard pool contains the nine copied
 normal layouts; its three older hard layouts have been removed.
 
+The `2026.10.4` Forest assembly ends with nine distinct Rocky Grove hard
+chunks, then repeats that final section with a fresh selection. The hard
+layouts include the authored October 3 terrain, prop and encounter updates.
+The exit terrain of `forest_rocky_grove_hard_003` retains its ground surface
+classification so it connects to the rest of the pool without changing its
+geometry or the nine-chunk section length.
+An entrance platform in `forest_rocky_grove_hard_004` supplies a foothold
+before its enlarged rock for the existing ground-enemy movement limits.
+Its water gap remains open.
+
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.

@@ -86,6 +86,9 @@ separate placement/clearance and combat coverage.
    `continuationChunkKey`. That extra terrain supplies target support and is not
    part of the tested route length. Final target probes stay beyond the boundary
    with room for the actor's stand-off; they never move the finish backward.
+   When the continuation midpoint is unsupported, final-target probes also
+   search forward in 16-unit steps up to 256 units, bounded inside that one
+   continuation chunk. The tested boundary and actor capabilities stay fixed.
 5. Keep arrival and time budgets meaningful. Defaults are 128 world units of
    intermediate waypoint tolerance, 600 ticks without 4 units of new forward progress, and
    1,800 ticks per chunk, at 60 Hz. Unoco intentionally stops short of its

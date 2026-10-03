@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_003",
   "id": "forest_rocky_grove_hard_003",
-  "revision": 23,
+  "revision": 24,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -95,6 +95,7 @@
           "y": 270
         }
       ],
+      "surfaceKind": "ground",
       "materialKey": "dirt_hole"
     }
   ]

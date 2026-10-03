@@ -8,13 +8,20 @@ Signed-in production gameplay smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-## Pending source: 2026.10.4 blessing tuning
+## Pending source: 2026.10.4 blessing and Forest updates
 
 Source now gives the Forest blessing +0.10 health, mana, and stamina per second
 and labels it “Bénédiction des Dames de la forêt”. Client, Functions defaults,
 and worker use `2026.10.4` because the prior health and mana rates replay
 differently. This source update has not been deployed; production evidence above
 remains `2026.10.3`. A future release requires coordinated cutover.
+
+The pending release also includes 37-HP allied NPCs, the nine-chunk Forest
+hard finale and current authored layouts, startup/ghost-loading improvements,
+regenerated runtime content, and the patched backend multipart dependency.
+The owner authorized repairs and deployment on October 3. Preparation must
+pass before production changes; the initial `e35ec73a` attempt failed content
+readiness, generated freshness, and the current dependency audit.
 
 ## Client maintenance: ghost cache filenames
 
