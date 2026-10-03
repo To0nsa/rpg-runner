@@ -119,10 +119,14 @@ class NpcHealthSnapshot {
     required this.hp100,
     required this.maxHp100,
     required this.protected,
+    this.guarding = false,
   });
   final int hp100;
   final int maxHp100;
   final bool protected;
+
+  /// Whether this survivor cleared its encounter and still guards its section.
+  final bool guarding;
 }
 
 /// Bitmask flags for persistent status visuals.

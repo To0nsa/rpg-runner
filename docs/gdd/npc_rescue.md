@@ -68,8 +68,9 @@ Failed or abandoned groups' survivors become protected: they stop fighting and
 cannot be targeted or damaged. Run end also stops remaining guards. Normal terrain
 streaming and actor cleanup continue; an original encounter record can retire
 while its guard remains in later loaded terrain, without retaining a full section
-indefinitely. Live NPCs show a green allied health bar with a cross; protected
-survivors show a check. Ghost NPCs use ghost visuals without live health or reward
+indefinitely. Live NPCs show a green allied health bar with a cross; cleared
+section guards also show a check above the bar. Protected survivors show a check
+without a bar. Ghost NPCs use ghost visuals without live health or reward
 feedback. All three have movement, attack, hit and complete death animations.
 
 Core resolves a default award of 250 points per survivor, with a per-encounter

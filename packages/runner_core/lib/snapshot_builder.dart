@@ -955,6 +955,7 @@ class SnapshotBuilder {
                   hp100: world.health.hp[hi],
                   maxHp100: world.health.hpMax[hi],
                   protected: npcs.protected[ni],
+                  guarding: npcs.guardRegion[ni] != null,
                 ),
           facing: ei == null ? npcs.facing[ni!] : enemies.facing[ei],
           artFacingDir: ei == null

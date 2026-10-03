@@ -228,12 +228,14 @@ Huntress also maps the five-frame `attack2.png` stab to `AnimKey.strike` and
 catalog consumers include both strips in preload, warmup, Play capture and ghosts.
 
 `SnapshotBuilder` emits `EntityKind.npc`, a separate `NpcId`, and immutable
-health/protection metadata alongside the shared actor animation, facing, status
-and motion fields. No NPC receives an enemy identity. Enemy and NPC registries
+health, protection, and guarding metadata alongside the shared actor animation,
+facing, status and motion fields. No NPC receives an enemy identity. Enemy and NPC registries
 share `ActorRenderRegistry` and `DeterministicAnimView`; live and ghost pools
 accept both identities and apply the same deterministic frame/anchor handling.
-Live NPCs show allied health bars and a check when protected. Ghost NPCs retain
-the existing ghost style, without live health or reward feedback.
+Live NPCs show allied health bars, a check above the bar while guarding, and a
+check without a bar when protected. Guarding derives from the NPC's live section
+region, independently of protection and the retired encounter record. Ghost NPCs
+retain the existing ghost style, without live health or reward feedback.
 
 All NPC animation and projectile images are in UI warmup, render preload and
 immutable Play asset capture, including content beyond the starting chunk.

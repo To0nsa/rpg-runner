@@ -2,7 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 
-/// Live allied health. Safe survivors show a check; ghost actors have no HUD.
+/// Live allied health. Cleared guards retain a health bar and gain a check.
 class NpcHealthIndicator extends PositionComponent {
   NpcHealthSnapshot? health;
   final _background = Paint()..color = const Color(0xE61B2638);
@@ -16,7 +16,9 @@ class NpcHealthIndicator extends PositionComponent {
   void render(Canvas canvas) {
     final value = health;
     if (value == null || value.hp100 <= 0 || value.maxHp100 <= 0) return;
-    if (value.protected) {
+    if (value.protected || value.guarding) {
+      if (value.guarding) canvas.save();
+      if (value.guarding) canvas.translate(0, -11);
       canvas.drawPath(
         Path()
           ..moveTo(-4, 1)
@@ -24,7 +26,8 @@ class NpcHealthIndicator extends PositionComponent {
           ..lineTo(5, -3),
         _safe,
       );
-      return;
+      if (value.guarding) canvas.restore();
+      if (value.protected) return;
     }
     canvas.drawRect(const Rect.fromLTWH(-15, -1, 30, 6), _background);
     final ratio = (value.hp100 / value.maxHp100).clamp(0.0, 1.0);

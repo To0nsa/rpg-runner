@@ -44,6 +44,7 @@ void main() {
         expect(npc.pos.x, greaterThan(600));
         expect(npc.npcHealth!.hp100, greaterThan(0));
         expect(npc.npcHealth!.protected, isFalse);
+        expect(npc.npcHealth!.guarding, isTrue);
         originRetired = true;
         break;
       }
@@ -55,6 +56,7 @@ void main() {
       (e) => e.id == actorId,
     );
     expect(stoppedGuard.npcHealth!.protected, isTrue);
+    expect(stoppedGuard.npcHealth!.guarding, isFalse);
     expect(stoppedGuard.vel!.x, 0);
     final stats = core.drainEvents().whereType<RunEndedEvent>().single.stats;
     expect((stats.rescuedNpcs, stats.rescuePoints), (1, 250));
@@ -97,6 +99,7 @@ void main() {
           );
           if (outcome != null) {
             expect(npc.npcHealth!.protected, isFalse);
+            expect(npc.npcHealth!.guarding, isTrue);
             hpAtRescue ??= npc.npcHealth!.hp100;
             damagedAfterRescue |= npc.npcHealth!.hp100 < hpAtRescue;
             attackedAfterRescue |=
