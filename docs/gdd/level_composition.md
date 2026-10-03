@@ -16,6 +16,11 @@ Prefab changes remove obstructing terrain pockets. Their authored solid
 placements and generated collision/sprite records ship together to the client
 and replay worker; scoring rules remain unchanged.
 
+The hard chunk catalog includes copies of all 24 normal chunks across Field,
+Forest and New Level. These copies retain their source layouts and encounters,
+with distinct chunk keys and hard difficulty. The original normal chunks remain
+available for normal sections.
+
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.

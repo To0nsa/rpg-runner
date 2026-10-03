@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_hard_004",
+  "id": "forest_ruin_hard_004",
+  "revision": 41,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "fantasy_environment_pine_tree_02",
+      "prefabKey": "fantasy_environment_pine_tree_02",
+      "x": 61,
+      "y": 92,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.8
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 503,
+      "y": 127,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_05_64x64_platform",
+      "prefabKey": "tiny_swords_ground_platform_05_64x64_platform",
+      "x": 188,
+      "y": 149,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_statue_02",
+      "prefabKey": "ancient_forest_statue_02",
+      "x": 305,
+      "y": 157,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 212,
+          "y": 189
+        },
+        {
+          "x": 333,
+          "y": 189
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 212,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 189
+        },
+        {
+          "x": 98,
+          "y": 189
+        },
+        {
+          "x": 98,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "water_1",
+      "x": 98,
+      "y": 189,
+      "width": 114,
+      "height": 81,
+      "materialKey": "biome_water"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "swinging_axe",
+      "x": 479,
+      "y": 131,
+      "facing": "right",
+      "trigger": {
+        "offsetX": -107,
+        "offsetY": -7,
+        "width": 163,
+        "height": 72
+      },
+      "windupMs": 300
+    }
+  ]
+}

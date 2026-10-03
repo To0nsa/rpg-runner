@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_woodcamp_hard_001",
+  "id": "forest_woodcamp_hard_001",
+  "revision": 57,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "woodcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_bush_01",
+      "prefabKey": "tiny_swords_bush_01",
+      "x": 352,
+      "y": 208,
+      "zIndex": -1,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "gandalf_hardcore_birch_01",
+      "prefabKey": "gandalf_hardcore_birch_01",
+      "x": 522,
+      "y": 133,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.6
+    },
+    {
+      "prefabId": "tiny_swords_tree_01",
+      "prefabKey": "tiny_swords_tree_01",
+      "x": 219,
+      "y": 152,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "pixel_fantasy_caves_small_rock_05",
+      "prefabKey": "pixel_fantasy_caves_small_rock_05",
+      "x": 34,
+      "y": 195,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_wood_logs_01",
+      "prefabKey": "tiny_swords_wood_logs_01",
+      "x": 321,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sawbuck_01",
+      "prefabKey": "tiny_swords_sawbuck_01",
+      "x": 460,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_bridge_01",
+      "prefabKey": "fantasy_environment_bridge_01",
+      "x": 152,
+      "y": 222,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_03",
+      "prefabKey": "tiny_swords_bush_03",
+      "x": 545,
+      "y": 202,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 159,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 159,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 66,
+          "y": 224
+        },
+        {
+          "x": 66,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "water_1",
+      "x": 66,
+      "y": 224,
+      "width": 93,
+      "height": 46,
+      "materialKey": "biome_water"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "huntress2",
+          "npcId": "huntress2",
+          "x": 530,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "derf",
+          "x": 315,
+          "facing": "left",
+          "placement": "obstacleTop"
+        }
+      ]
+    }
+  ]
+}

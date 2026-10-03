@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "field_roadside_rescue_hard",
+  "id": "field_roadside_rescue_hard",
+  "revision": 1,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "default",
+  "tags": [
+    "rescue"
+  ],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 222
+        },
+        {
+          "x": 600,
+          "y": 222
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "roadside_rescue",
+      "name": "Roadside rescue",
+      "trigger": {
+        "x": 160,
+        "y": 0,
+        "width": 224,
+        "height": 222
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "archer",
+          "npcId": "huntress2",
+          "x": 224,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "huntress",
+          "npcId": "huntress",
+          "x": 272,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "warrior",
+          "npcId": "warrior",
+          "x": 352,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "ambusher",
+          "enemyId": "hashash",
+          "x": 528,
+          "facing": "left",
+          "placement": "ground"
+        },
+        {
+          "id": "raider",
+          "enemyId": "grojib",
+          "x": 432,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ]
+    }
+  ]
+}

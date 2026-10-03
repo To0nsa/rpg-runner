@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_woodcamp_hard_002",
+  "id": "forest_woodcamp_hard_002",
+  "revision": 43,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "woodcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 271,
+      "y": 118,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_well_01",
+      "prefabKey": "tiny_swords_well_01",
+      "x": 464,
+      "y": 161,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_01",
+      "prefabKey": "tiny_swords_bush_01",
+      "x": 285,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_wall_01",
+      "prefabKey": "tiny_swords_wall_01",
+      "x": 96,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bush_02",
+      "prefabKey": "tiny_swords_bush_02",
+      "x": 327,
+      "y": 188,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 175,
+          "y": 224
+        },
+        {
+          "x": 249,
+          "y": 209
+        },
+        {
+          "x": 515,
+          "y": 209
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 175,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 175,
+          "y": 224
+        },
+        {
+          "x": 175,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "poison_darts",
+      "x": 175,
+      "y": 199,
+      "facing": "right",
+      "trigger": {
+        "offsetX": 26,
+        "offsetY": -25,
+        "width": 233,
+        "height": 55
+      },
+      "windupMs": 200
+    }
+  ]
+}
