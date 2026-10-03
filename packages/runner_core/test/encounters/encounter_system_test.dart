@@ -17,6 +17,31 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'cached occurrence order includes registration and excludes retirement',
+    () {
+      final f = _Fixture();
+      final first = f.add(index: 1, start: 0);
+      f.activate(x: 0);
+      f.add(index: 2, id: 'z_group', start: 0);
+      f.add(index: 2, id: 'a_group', start: 0);
+      f.system.endRun(f.world, tick: 1);
+      expect(f.system.drainOutcomes().map((o) => o.key), [
+        first,
+        (chunkIndex: 2, encounterId: 'a_group'),
+        (chunkIndex: 2, encounterId: 'z_group'),
+      ]);
+      f.system.retireChunk(f.world, 1);
+      f.system.retireChunk(f.world, 2);
+      final next = f.add(index: 3, start: 0);
+      f.activate();
+      expect(f.spawned, [next]);
+      f.resolve();
+      expect(f.system.phase(next), EncounterPhase.active);
+      expect(f.system.retainedEncounters, 1);
+    },
+  );
+
   test('dormant triggers sweep inclusively in stable occurrence and local ID order', () {
     final f = _Fixture();
     f.add(index: 1, id: 'second', start: 0);

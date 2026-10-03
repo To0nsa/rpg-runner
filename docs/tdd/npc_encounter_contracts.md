@@ -113,6 +113,50 @@ using the preceding player collider-center sweep. A real warrior/player rescue,
 repeated chunk instances, suppression, atomic failure and run exit are covered by
 streamed Core fixtures and captured authored Play.
 
+## Runtime cost controls
+
+Encounter iteration caches its canonical chunk/encounter-ID order until a
+registration or retirement changes membership. Phase transitions retain that
+order; expiry still runs at every existing coordinator boundary. Empty outcome
+drains reuse a constant list.
+
+Section guard discovery groups living guards by the complete occurrence bounds.
+Each section scans the living enemy list once per tick. Guard and enemy rosters
+remain ordered by entity ID, including overlapping territories, and unchanged
+rosters retain their lists, selections and blocked-path evidence. Discovery still
+observes current enemy positions every tick; no throttling delays boundary entry,
+death or target changes.
+
+Target selection can retain an eligible highest-priority target immediately when
+there is no blocked-path evidence to refresh. Preferred-NPC policies still scan
+for NPCs when retaining the lower-priority player fallback. Any blocked evidence
+keeps the complete selection pass so its original invalidation timing survives.
+Roster reference counts let destruction skip candidate-list searches for IDs that
+occur in no roster. Selected targets and blocked evidence are still cleared for
+every destroyed ID before recycling; configuration, refresh and swap removal keep
+the counts synchronized.
+
+Bounded NPC graphs are created only after a usable target is found and remain
+cached by terrain publication, profile and movement bounds. Existing loading
+already prepares eight future terrain selections with the base NPC graphs. No
+extra loading gate or enlarged cache is needed for these changes.
+
+`packages/runner_core/tool/benchmark_npc_encounters.dart` measures the affected
+systems in isolation. Compile it with `dart compile exe` for comparisons;
+`--navigation` includes chunk/section graph restriction for all three NPC profiles
+on four three-chunk authored fixtures. It reports median microseconds across five
+100 ms batches after warmup. Stable rosters and fresh target acquisition are
+separate cases. These desktop AOT measurements exclude full simulation and
+rendering and do not establish mobile frame budgets.
+
+On October 3, 2026, Windows x64 with Dart 3.13.1 AOT measured the stable
+64-guard/128-enemy fixture at 1.085 ms per roster/selection tick before these
+changes and 0.161 ms afterward. Unrelated temporary-entity destruction fell from
+59.9 to 2.1 microseconds per operation. The six bounded graph variants took
+0.245 ms in the most expensive of the four measured fixtures, once per new
+publication/bounds combination. This evidence supports keeping the existing
+loading horizon; it is not a full-run or mobile performance sign-off.
+
 ## Authored source and readiness
 
 Chunk-v2 accepts an optional `encounters` array. Absence means empty; explicit

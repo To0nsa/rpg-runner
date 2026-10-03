@@ -112,16 +112,6 @@ final class TerrainEnemyNavigationSystem {
           )],
       };
       if (graph == null) continue;
-      if (npcIndex != null) {
-        final original = graph;
-        final bounds = world.npc.movementBounds[npcIndex];
-        graph = _boundedGraphs.putIfAbsent((
-          graph.profileKey,
-          bounds.minXTicks,
-          bounds.maxXTicks,
-        ), () => restrictTerrainGraph(original, bounds));
-      }
-
       final targetId = combatTarget(world, enemy, player);
       if (targetId == null ||
           !world.worldContactCapsule.has(targetId) ||
@@ -139,6 +129,15 @@ final class TerrainEnemyNavigationSystem {
         intents.desiredX[intentIndex] =
             world.transform.posX[world.transform.indexOf(enemy)];
         continue;
+      }
+      if (npcIndex != null) {
+        final original = graph;
+        final bounds = world.npc.movementBounds[npcIndex];
+        graph = _boundedGraphs.putIfAbsent((
+          graph.profileKey,
+          bounds.minXTicks,
+          bounds.maxXTicks,
+        ), () => restrictTerrainGraph(original, bounds));
       }
       final selectionIndex = world.aiTarget.tryIndexOf(enemy);
       if (navStore.targetEntity[navIndex] != targetId) {

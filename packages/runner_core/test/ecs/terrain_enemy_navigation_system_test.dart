@@ -140,19 +140,28 @@ void main() {
       world.aiTarget.configure(
         npc,
         targetPolicy: AiTargetPolicy.nearestOpponent,
-        candidates: [fixture.enemy],
+        candidates: const [],
         playerFallback: false,
       );
-      AiTargetSystem().step(world, player: fixture.player);
       final system = _system(() => bundle);
-      system.step(world, player: fixture.player, currentTick: 1);
       final nav = world.navIntent.indexOf(npc);
+      system.step(world, player: fixture.player, currentTick: 0);
+      expect(world.navIntent.hasPlan[nav], isFalse);
+      expect(world.navIntent.desiredX[nav], 150);
+      world.aiTarget.refreshCandidates(npc, [fixture.enemy]);
+      AiTargetSystem().step(world, player: fixture.player);
+      system.step(world, player: fixture.player, currentTick: 1);
       expect(world.navIntent.hasPlan[nav], isTrue);
       expect(world.navIntent.desiredX[nav], 285);
       expect(graph.buildProfile.radiusTicks, contact.capsule.radiusTicks);
       world.transform.posX[world.transform.indexOf(fixture.enemy)] = 20;
       system.step(world, player: fixture.player, currentTick: 2);
       expect(world.navIntent.desiredX[nav], 115);
+      world.aiTarget.refreshCandidates(npc, []);
+      AiTargetSystem().step(world, player: fixture.player);
+      system.step(world, player: fixture.player, currentTick: 3);
+      expect(world.navIntent.hasPlan[nav], isFalse);
+      expect(world.navIntent.desiredX[nav], 150);
     },
   );
   test('ground pursuit derives stationary enemy support without adding dynamic contacts', () {

@@ -27,11 +27,17 @@ typedef AiTargetNavigationEvidence = (
 final class AiTargetStore extends SparseSet {
   final List<AiTargetPolicy> policy = [];
   final List<AiTargetOwner> owner = [];
+
+  /// Frozen rosters; replace through [configure] or [refreshCandidates] so
+  /// inbound reference counts remain consistent with entity-ID cleanup.
   final List<List<EntityId>> opponents = [];
   final List<bool> includePlayer = [];
   final List<double> perceptionSquared = [];
   final List<EntityId?> selected = [];
   final List<Map<EntityId, AiTargetNavigationEvidence>> unreachable = [];
+
+  // Counts roster references, including candidates with no AI store of their own.
+  final Map<EntityId, int> _rosterReferences = {};
 
   void configure(
     EntityId actor, {
@@ -51,9 +57,11 @@ final class AiTargetStore extends SparseSet {
       throw ArgumentError('AI candidates must be distinct other actors.');
     }
     final index = addEntity(actor);
+    _removeRosterReferences(opponents[index]);
     policy[index] = targetPolicy;
     owner[index] = rosterOwner;
     opponents[index] = roster;
+    _addRosterReferences(roster);
     includePlayer[index] = playerFallback;
     perceptionSquared[index] = perceptionRange * perceptionRange;
     selected[index] = null;
@@ -79,22 +87,43 @@ final class AiTargetStore extends SparseSet {
         candidates.contains(actor)) {
       throw ArgumentError('AI candidates must be distinct other actors.');
     }
+    _removeRosterReferences(previous);
     opponents[i] = List.unmodifiable(candidates);
+    _addRosterReferences(candidates);
     unreachable[i].removeWhere(
       (candidate, _) => !candidates.contains(candidate),
     );
     // Selection eligibility, including player fallback, is resolved once by AI.
   }
 
-  /// Invalidates inbound references in addition to removing the actor's store.
+  /// Clears inbound references before world teardown can recycle [entity].
   void forget(EntityId entity) {
+    final inRoster = _rosterReferences.containsKey(entity);
     for (var i = 0; i < denseEntities.length; i++) {
       if (selected[i] == entity) selected[i] = null;
       unreachable[i].remove(entity);
-      if (opponents[i].contains(entity)) {
+      if (inRoster && opponents[i].contains(entity)) {
         opponents[i] = List.unmodifiable(
           opponents[i].where((id) => id != entity),
         );
+      }
+    }
+    _rosterReferences.remove(entity);
+  }
+
+  void _addRosterReferences(List<EntityId> roster) {
+    for (final candidate in roster) {
+      _rosterReferences[candidate] = (_rosterReferences[candidate] ?? 0) + 1;
+    }
+  }
+
+  void _removeRosterReferences(List<EntityId> roster) {
+    for (final candidate in roster) {
+      final remaining = _rosterReferences[candidate]! - 1;
+      if (remaining == 0) {
+        _rosterReferences.remove(candidate);
+      } else {
+        _rosterReferences[candidate] = remaining;
       }
     }
   }
@@ -112,6 +141,7 @@ final class AiTargetStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
+    _removeRosterReferences(opponents[removeIndex]);
     policy[removeIndex] = policy[lastIndex];
     owner[removeIndex] = owner[lastIndex];
     opponents[removeIndex] = opponents[lastIndex];

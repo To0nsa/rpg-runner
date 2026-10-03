@@ -17,6 +17,28 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('shared and overlapping sections preserve globally ordered rosters', () {
+    final f = _Fixture();
+    final first = f.guard(x: 430);
+    final overlapping = f.guard(x: 1000, start: 600, chunkIndex: 1);
+    final sameSection = f.guard(x: 500, id: NpcId.huntress);
+    final enemy = f.enemy(1100);
+    f.step();
+    expect(f.roster(enemy), [first, overlapping, sameSection]);
+    for (final guard in [first, overlapping, sameSection]) {
+      expect(f.roster(guard), [enemy]);
+    }
+    final original = f.roster(first);
+    f.step();
+    expect(identical(f.roster(first), original), isTrue);
+    f.move(enemy, 2000);
+    f.step();
+    expect(f.roster(first), isEmpty);
+    expect(f.roster(sameSection), isEmpty);
+    expect(f.roster(overlapping), [enemy]);
+    expect(f.roster(enemy), [overlapping]);
+  });
+
   test(
     'guards discover entering enemies only inside their own section occurrence',
     () {

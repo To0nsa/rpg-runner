@@ -55,6 +55,20 @@ final class AiTargetSystem {
         }
       }
 
+      // A valid highest-priority selection cannot be displaced by distance.
+      // Keep the full scan when blocked evidence needs its per-tick refresh.
+      if (retained != null && targets.unreachable[i].isEmpty) {
+        final isPlayer = retained == player;
+        final inRoster = isPlayer
+            ? targets.includePlayer[i]
+            : policy != AiTargetPolicy.playerOnly &&
+                  targets.opponents[i].contains(retained);
+        if (inRoster) {
+          consider(retained, isPlayer: isPlayer);
+          if (retainedTier == 0) continue;
+        }
+      }
+
       if (targets.includePlayer[i]) consider(player, isPlayer: true);
       if (policy != AiTargetPolicy.playerOnly) {
         for (final opponent in targets.opponents[i]) {

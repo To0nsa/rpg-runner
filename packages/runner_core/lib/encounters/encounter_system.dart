@@ -12,6 +12,7 @@ import 'encounter_limits.dart';
 /// this owner alone decides participation, terminal outcomes and awards.
 final class EncounterSystem {
   final Map<EncounterKey, _EncounterState> _states = {};
+  List<_EncounterState>? _ordered;
   final List<EncounterOutcome> _outcomes = [];
   double? _previousPlayerX;
   double? _previousPlayerY;
@@ -55,6 +56,7 @@ final class EncounterSystem {
     }
     final state = _EncounterState(occurrence);
     _states[key] = state;
+    _ordered = null;
     if (suppressOpening) {
       state.phase = EncounterPhase.skipped;
       final event = EncounterOutcome(
@@ -327,6 +329,7 @@ final class EncounterSystem {
     final keys = _states.keys
         .where((key) => key.chunkIndex == chunkIndex)
         .toList();
+    if (keys.isNotEmpty) _ordered = null;
     for (final key in keys) {
       final state = _states.remove(key)!;
       for (final entity in state.entities.values) {
@@ -342,18 +345,21 @@ final class EncounterSystem {
   }
 
   List<EncounterOutcome> drainOutcomes() {
+    if (_outcomes.isEmpty) return const [];
     final result = List<EncounterOutcome>.unmodifiable(_outcomes);
     _outcomes.clear();
     return result;
   }
 
-  List<_EncounterState> _orderedStates() => _states.values.toList()
-    ..sort((a, b) {
-      final chunk = a.occurrence.chunkIndex.compareTo(b.occurrence.chunkIndex);
-      return chunk != 0
-          ? chunk
-          : a.occurrence.definition.id.compareTo(b.occurrence.definition.id);
-    });
+  List<_EncounterState> _orderedStates() => _ordered ??=
+      (_states.values.toList()..sort((a, b) {
+        final chunk = a.occurrence.chunkIndex.compareTo(
+          b.occurrence.chunkIndex,
+        );
+        return chunk != 0
+            ? chunk
+            : a.occurrence.definition.id.compareTo(b.occurrence.definition.id);
+      }));
 
   bool _validSpawn(
     EcsWorld world,

@@ -179,6 +179,103 @@ void main() {
     expect(combatTarget(world, a, player), npc);
   });
 
+  test('retention still refreshes other candidates blocked-route evidence', () {
+    final world = EcsWorld();
+    final enemy = actor(world, 0, faction: Faction.enemy);
+    final player = actor(world, 100);
+    final retained = actor(world, 10);
+    final blocked = actor(world, 20);
+    world.aiTarget.configure(
+      enemy,
+      targetPolicy: AiTargetPolicy.nearestOpponent,
+      candidates: [retained, blocked],
+    );
+    final selector = AiTargetSystem()..step(world, player: player);
+    final i = world.aiTarget.indexOf(enemy);
+    world.aiTarget.unreachable[i][blocked] = targetNavigationEvidence(
+      world,
+      enemy,
+      blocked,
+    );
+    world.transform.posX[world.transform.indexOf(blocked)] = 21;
+    selector.step(world, player: player);
+    expect(combatTarget(world, enemy, player), retained);
+    expect(world.aiTarget.unreachable[i], isEmpty);
+    world.transform.posX[world.transform.indexOf(blocked)] = 20;
+    world.health.hp[world.health.indexOf(retained)] = 0;
+    selector.step(world, player: player);
+    expect(combatTarget(world, enemy, player), blocked);
+  });
+
+  test('retained selection obeys roster, faction and perception changes', () {
+    final world = EcsWorld();
+    final enemy = actor(world, 0, faction: Faction.enemy);
+    final player = actor(world, 100);
+    final first = actor(world, 10);
+    final second = actor(world, 20);
+    world.aiTarget.configure(
+      enemy,
+      targetPolicy: AiTargetPolicy.nearestOpponent,
+      candidates: [first, second],
+      perceptionRange: 50,
+    );
+    final selector = AiTargetSystem()..step(world, player: player);
+    expect(combatTarget(world, enemy, player), first);
+    world.aiTarget.refreshCandidates(enemy, [second]);
+    selector.step(world, player: player);
+    expect(combatTarget(world, enemy, player), second);
+    world.faction.faction[world.faction.indexOf(second)] = Faction.enemy;
+    selector.step(world, player: player);
+    expect(combatTarget(world, enemy, player), player);
+    world.aiTarget.configure(
+      enemy,
+      targetPolicy: AiTargetPolicy.nearestOpponent,
+      candidates: [first],
+      perceptionRange: 50,
+      playerFallback: false,
+    );
+    selector.step(world, player: player);
+    expect(combatTarget(world, enemy, player), first);
+    world.transform.posX[world.transform.indexOf(first)] = 51;
+    selector.step(world, player: player);
+    expect(combatTarget(world, enemy, player), isNull);
+  });
+
+  test('roster replacement and swap removal preserve inbound cleanup', () {
+    final world = EcsWorld();
+    final player = actor(world, 100);
+    final a = actor(world, 0, faction: Faction.enemy);
+    final b = actor(world, 0, faction: Faction.enemy);
+    final first = actor(world, 10);
+    final second = actor(world, 20);
+    for (final enemy in [a, b]) {
+      world.aiTarget.configure(
+        enemy,
+        targetPolicy: AiTargetPolicy.nearestOpponent,
+        candidates: [first, second],
+      );
+    }
+    world.aiTarget.refreshCandidates(a, [second]);
+    world.aiTarget.configure(
+      a,
+      targetPolicy: AiTargetPolicy.nearestOpponent,
+      candidates: [first],
+    );
+    world.destroyEntity(a);
+    world.destroyEntity(first);
+    expect(world.aiTarget.opponents.single, [second]);
+    world.destroyEntity(second);
+    expect(world.aiTarget.opponents.single, isEmpty);
+    final recycled = actor(world, 1);
+    expect(recycled, second);
+    AiTargetSystem().step(world, player: player);
+    expect(combatTarget(world, b, player), player);
+    world.destroyEntity(player);
+    expect(world.aiTarget.selected.single, isNull);
+    world.destroyEntity(b);
+    expect(world.aiTarget.denseEntities, isEmpty);
+  });
+
   for (final type in [EnemyId.unocoDemon, EnemyId.derf]) {
     test('$type aims at its selected NPC and preserves the committed cast', () {
       final world = EcsWorld();

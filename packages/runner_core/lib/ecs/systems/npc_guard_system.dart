@@ -1,4 +1,5 @@
 import '../../combat/ai_target_policy.dart';
+import '../../npcs/npc_guard_region.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
 import '../stores/ai_target_store.dart';
@@ -13,6 +14,7 @@ final class NpcGuardSystem {
   final List<EntityId> _guards = [];
   final List<EntityId> _enemies = [];
   final List<EntityId> _candidates = [];
+  final Map<(int, int, double, double), _GuardSection> _sections = {};
 
   void step(EcsWorld world) {
     _guards.clear();
@@ -24,6 +26,7 @@ final class NpcGuardSystem {
       }
     }
     if (_guards.isEmpty) {
+      _sections.clear();
       for (var i = world.aiTarget.denseEntities.length - 1; i >= 0; i--) {
         if (world.aiTarget.owner[i] == AiTargetOwner.sectionGuard &&
             world.enemy.has(world.aiTarget.denseEntities[i])) {
@@ -38,17 +41,32 @@ final class NpcGuardSystem {
       if (isLivingCombatActor(world, enemy)) _enemies.add(enemy);
     }
     _enemies.sort();
+    for (final section in _sections.values) {
+      section.guards.clear();
+      section.enemies.clear();
+    }
     for (final guard in _guards) {
       final region = world.npc.guardRegion[world.npc.indexOf(guard)]!;
-      _candidates.clear();
+      final section = _sections.putIfAbsent((
+        region.firstChunkIndex,
+        region.chunkCount,
+        region.minX,
+        region.maxX,
+      ), () => _GuardSection(region));
+      section.guards.add(guard);
+    }
+    _sections.removeWhere((_, section) => section.guards.isEmpty);
+    for (final section in _sections.values) {
       for (final enemy in _enemies) {
-        if (region.contains(
+        if (section.region.contains(
           world.transform.posX[world.transform.indexOf(enemy)],
         )) {
-          _candidates.add(enemy);
+          section.enemies.add(enemy);
         }
       }
-      world.aiTarget.refreshCandidates(guard, _candidates);
+      for (final guard in section.guards) {
+        world.aiTarget.refreshCandidates(guard, section.enemies);
+      }
     }
     // Walk backwards: releasing guard-owned targets swap-removes store entries.
     for (var i = world.aiTarget.denseEntities.length - 1; i >= 0; i--) {
@@ -67,11 +85,15 @@ final class NpcGuardSystem {
       }
       final x = world.transform.posX[world.transform.indexOf(enemy)];
       _candidates.clear();
-      for (final guard in _guards) {
-        if (world.npc.guardRegion[world.npc.indexOf(guard)]!.contains(x)) {
-          _candidates.add(guard);
+      var matchingSections = 0;
+      for (final section in _sections.values) {
+        if (section.region.contains(x)) {
+          _candidates.addAll(section.guards);
+          matchingSections++;
         }
       }
+      // Overlapping territories must retain the same global entity-ID order.
+      if (matchingSections > 1) _candidates.sort();
       if (_candidates.isEmpty) {
         if (targetIndex != null) world.aiTarget.removeEntity(enemy);
       } else if (targetIndex != null) {
@@ -86,4 +108,11 @@ final class NpcGuardSystem {
       }
     }
   }
+}
+
+final class _GuardSection {
+  _GuardSection(this.region);
+  final NpcGuardRegion region;
+  final List<EntityId> guards = [];
+  final List<EntityId> enemies = [];
 }
