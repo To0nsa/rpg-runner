@@ -184,12 +184,17 @@ Directory:
 - `<systemTemp>/rpg_runner/ghost_cache`
 
 Filename derivation:
-- prefix from sanitized `boardId_entryId`
-- encoded suffix from `boardId|entryId|runSessionId|promotedReplayStorageGeneration|replayDigest|updatedAtMs` (base64url, no `=`)
+- prefix `ghost_<entryHash>`, where `entryHash` is the SHA-256 hex digest of
+  the JSON array `[boardId, entryId]`; full identities keep pruning entry-specific.
+- version suffix is the SHA-256 hex digest of the JSON array
+  `[boardId, entryId, runSessionId, promotedReplayStorageGeneration, replayDigest, updatedAtMs]`.
 - final suffix: `.replay.json`
 
 Note:
 - Extension is always `.replay.json`, even when payload bytes are gzip-compressed.
+- Filenames are 146 ASCII bytes regardless of identifier length, fitting Android
+  filename limits. Existing Base64-named temporary files are cold misses and
+  remain subject to OS temporary-storage cleanup; there is no legacy read path.
 
 Pruning behavior:
 - On successful write, older files with same board+entry prefix are best-effort deleted.

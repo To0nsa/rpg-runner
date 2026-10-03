@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
+import 'package:crypto/crypto.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'ghost_api.dart';
@@ -234,18 +234,28 @@ class FileGhostReplayCache implements GhostReplayCache {
 
 String _cacheFileName(GhostManifest manifest) {
   final prefix = _cacheFilePrefix(manifest.boardId, manifest.entryId);
-  final keyRaw =
-      '${manifest.boardId}|${manifest.entryId}|${manifest.runSessionId}|'
-      '${manifest.promotedReplayStorageGeneration}|${manifest.replayDigest}|'
-      '${manifest.updatedAtMs}';
-  final encodedKey = base64Url.encode(utf8.encode(keyRaw)).replaceAll('=', '');
-  return '${prefix}_$encodedKey.replay.json';
+  // Bound filenames independently of server IDs and Storage generation lengths.
+  final keyDigest = sha256.convert(
+    utf8.encode(
+      jsonEncode([
+        manifest.boardId,
+        manifest.entryId,
+        manifest.runSessionId,
+        manifest.promotedReplayStorageGeneration,
+        manifest.replayDigest,
+        manifest.updatedAtMs,
+      ]),
+    ),
+  );
+  return '${prefix}_$keyDigest.replay.json';
 }
 
 String _cacheFilePrefix(String boardId, String entryId) {
-  final raw = '${boardId}_$entryId'.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
-  final maxLen = math.min(raw.length, 48);
-  return 'ghost_${raw.substring(0, maxLen)}';
+  // Pruning must distinguish full entry identities, even on long shared boards.
+  final entryDigest = sha256.convert(
+    utf8.encode(jsonEncode([boardId, entryId])),
+  );
+  return 'ghost_$entryDigest';
 }
 
 Directory _defaultGhostCacheDirectory() {

@@ -153,6 +153,8 @@ Backend handler:
 `FileGhostReplayCache` behavior:
 1. Cache directory: system temp under `rpg_runner/ghost_cache`.
 2. Cache key includes board/entry/runSession, promoted Storage generation, replay digest, and updated timestamp.
+   SHA-256 filename components keep names at 146 ASCII bytes and preserve full
+   board/entry identity when pruning superseded versions.
 3. Attempts to read existing cached file first.
 4. If cache miss:
    - validates download URL is not already expired,
