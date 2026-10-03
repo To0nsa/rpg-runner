@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_trainingcamp_hard_002",
+  "id": "forest_trainingcamp_hard_002",
+  "revision": 65,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "trainingcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "pixel_fantasy_caves_tree_01",
+      "prefabKey": "pixel_fantasy_caves_tree_01",
+      "x": 435,
+      "y": 144,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 128,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "tiny_swords_training_dummy_01",
+      "prefabKey": "tiny_swords_training_dummy_01",
+      "x": 438,
+      "y": 184,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_training_dummy_01",
+      "prefabKey": "tiny_swords_training_dummy_01",
+      "x": 533,
+      "y": 184,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_crate_01",
+      "prefabKey": "tiny_swords_crate_01",
+      "x": 64,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "woods_crate_02",
+      "prefabKey": "woods_crate_02",
+      "x": 350,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 2.0
+    },
+    {
+      "prefabId": "tiny_swords_anvil_01",
+      "prefabKey": "tiny_swords_anvil_01",
+      "x": 231,
+      "y": 209,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_barrel_01",
+      "prefabKey": "tiny_swords_barrel_01",
+      "x": 32,
+      "y": 192,
+      "zIndex": 1,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "woods_crate_01",
+      "prefabKey": "woods_crate_01",
+      "x": 308,
+      "y": 194,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 2.0
+    }
+  ],
+  "markers": [
+    {
+      "markerId": "derf",
+      "x": 354,
+      "y": 95,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "obstacleTop"
+    }
+  ],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

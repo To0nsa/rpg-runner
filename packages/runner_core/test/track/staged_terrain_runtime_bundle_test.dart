@@ -10,12 +10,12 @@ const _digest =
 void main() {
   test('builds one version-coherent collision and navigation candidate', () {
     final catalog = StagedTerrainArtifactCatalog(
-      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
     );
     final bundle = const StagedTerrainRuntimeBundleBuilder().build(
       bindings: <StagedTerrainChunkBinding>[
         catalog.bind(
-          chunkKey: 'field_flat',
+          chunkKey: 'field_default_normal_001',
           chunkIndex: 5,
           worldOriginXTicks: 4096,
         ),

@@ -1,6 +1,6 @@
 # World interactions and regeneration shrine
 
-The vasque in Forest's `forest_early_hill_001` is a regeneration shrine.
+The vasque in Forest's `forest_default_early_008` is a regeneration shrine.
 The player lights it by landing on or walking onto the bowl's flat top.
 There is no button, delay, damage, or immediate resource refill. Side contact,
 jumping underneath, passing overhead, and enemy contact do not light it.

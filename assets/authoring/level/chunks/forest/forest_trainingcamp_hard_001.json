@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_trainingcamp_hard_001",
+  "id": "forest_trainingcamp_hard_001",
+  "revision": 76,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "trainingcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 64,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 192,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 380,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5,
+      "flipX": true
+    },
+    {
+      "prefabId": "gandalf_hardcore_small_tent_01",
+      "prefabKey": "gandalf_hardcore_small_tent_01",
+      "x": 502,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5,
+      "flipX": true
+    },
+    {
+      "prefabId": "tiny_swords_firecamp_01",
+      "prefabKey": "tiny_swords_firecamp_01",
+      "x": 288,
+      "y": 208,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "spike",
+      "x": 128,
+      "y": 224,
+      "trigger": {
+        "offsetX": -29,
+        "offsetY": -49,
+        "width": 60,
+        "height": 69
+      },
+      "windupMs": 200
+    },
+    {
+      "trapId": "spike",
+      "x": 444,
+      "y": 224,
+      "trigger": {
+        "offsetX": -30,
+        "offsetY": -48,
+        "width": 64,
+        "height": 71
+      },
+      "windupMs": 200
+    }
+  ]
+}

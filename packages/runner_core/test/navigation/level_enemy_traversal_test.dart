@@ -36,7 +36,7 @@ void main() {
             level: LevelRegistry.byId(LevelId.forest),
             seed: 7,
             chunkKeys: [
-              'forest_early_first_chunk_001',
+              'forest_default_early_001',
               previous,
               'forest_rocky_grove_easy_008',
               'forest_rocky_grove_easy_009',

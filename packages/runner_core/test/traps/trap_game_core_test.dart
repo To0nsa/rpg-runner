@@ -43,8 +43,8 @@ void main() {
         hardPatterns: [],
         normalPatterns: [
           ChunkPattern(
-            name: 'field_flat',
-            chunkKey: 'field_flat',
+            name: 'field_default_normal_001',
+            chunkKey: 'field_default_normal_001',
             traps: [
               for (var i = 0; i < 8; i++)
                 TrapPlacement(

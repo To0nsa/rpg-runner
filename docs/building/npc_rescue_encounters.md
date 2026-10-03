@@ -850,7 +850,7 @@ score and gold claims are ignored at 30 Hz. Defaults now agree on gameplay
 `2026.09.8`/`score-v2`; retired versions reject before replay. Deployment remains
 tracked separately in [release operations](rescue_release_operations.md).
 
-M7 content evidence: `field_roadside_rescue` includes all three allies against
+M7 content evidence: `field_default_normal_002` includes all three allies against
 Grojib/Hashash with default rewards and clear, connected ground. Seeds 7, 42 and
 2026 rescue all three before ordinary auto-scroll catches the player; the 2026
 case also passes at 30 Hz. Tests record actual inputs and replay through the

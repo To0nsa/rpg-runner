@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_trainingcamp_normal_004",
+  "id": "forest_trainingcamp_normal_004",
+  "revision": 84,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "assemblyGroupId": "trainingcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "gandalf_hardcore_fruit_tree_01",
+      "prefabKey": "gandalf_hardcore_fruit_tree_01",
+      "x": 261,
+      "y": 53,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.3
+    },
+    {
+      "prefabId": "gandalf_hardcore_large_tent_01",
+      "prefabKey": "gandalf_hardcore_large_tent_01",
+      "x": 368,
+      "y": 123,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "cimetery_statue_01",
+      "prefabKey": "cimetery_statue_01",
+      "x": 224,
+      "y": 145,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.4
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_06",
+      "prefabKey": "rune_rocks_mossy_rock_06",
+      "x": 51,
+      "y": 202,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_04",
+      "prefabKey": "rune_rocks_mossy_rock_04",
+      "x": 28,
+      "y": 210,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 144,
+          "y": 187
+        },
+        {
+          "x": 429,
+          "y": 187
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 144,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 78,
+          "y": 224
+        },
+        {
+          "x": 144,
+          "y": 224
+        },
+        {
+          "x": 144,
+          "y": 270
+        },
+        {
+          "x": 78,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 78,
+          "y": 224
+        },
+        {
+          "x": 78,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "warrior",
+          "npcId": "warrior",
+          "x": 549,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "grojib",
+          "x": 468,
+          "facing": "left",
+          "placement": "ground"
+        }
+      ]
+    }
+  ]
+}

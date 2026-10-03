@@ -20,11 +20,11 @@
     },
     {
       "levelId": "forest",
-      "revision": 195,
+      "revision": 196,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
-      "firstChunkKey": "forest_early_first_chunk_001",
+      "firstChunkKey": "forest_default_early_001",
       "cameraCenterY": 135,
       "groundTopY": 224,
       "terrainHeightStepPx": 24,

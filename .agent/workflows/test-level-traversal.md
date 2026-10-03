@@ -105,8 +105,8 @@ For an isolated sequence, add a normal Dart test that creates:
 final route = LevelTraversalRoute.chunks(
   level: LevelRegistry.byId(LevelId.field),
   seed: 42,
-  chunkKeys: ['field_flat', 'field_flat', 'field_flat'],
-  continuationChunkKey: 'field_flat',
+  chunkKeys: ['field_default_normal_001', 'field_default_normal_001', 'field_default_normal_001'],
+  continuationChunkKey: 'field_default_normal_001',
 );
 final harness = EnemyTraversalHarness(route, EnemyId.grojib);
 expect(harness.traverse(), isNull);

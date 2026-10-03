@@ -6,7 +6,7 @@ score IDs. Core contracts, shared AI targeting, all three NPC archetypes, encoun
 lifecycle, shared authored compilation and Chunk Creator authoring are delivered
 slices of the [rescue implementation plan](../building/npc_rescue_encounters.md).
 Rescue statistics and score presentation are implemented. The generated Field
-pool includes `field_roadside_rescue`, authored with all three NPCs and required
+pool includes `field_default_normal_002`, authored with all three NPCs and required
 Grojib/Hashash participants. Normal Core and the replay worker use that same
 source-generated content; editor Play uses the shared captured-source pipeline.
 
@@ -53,7 +53,7 @@ The distance revision changes no rescue awards; the worker accepts only the
 current gameplay/score pair. See the [deployment workflow](deployment_workflow.md).
 
 The ordinary-combat regression uses an explicit marker roster on the generated
-`field_flat` terrain, with no encounter definitions. Its current camera-paced
+`field_default_normal_001` terrain, with no encounter definitions. Its current camera-paced
 trace covers 1068 ticks and Grojib, Hashash and Unoco behavior, including
 motion, attack animation, projectiles, resources and terminal state. Derf
 placement/casting is covered separately; it does not appear in this trace.

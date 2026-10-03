@@ -32,8 +32,8 @@ LevelDefinition trapRunLevel(
     hardPatterns: [],
     normalPatterns: [
       ChunkPattern(
-        name: 'field_flat',
-        chunkKey: 'field_flat',
+        name: 'field_default_normal_001',
+        chunkKey: 'field_default_normal_001',
         traps: [
           TrapPlacement(
             trapId: id,
@@ -72,7 +72,7 @@ GameCore trapRunCore(
       scenario: LevelPlaytestScenario(
         levelDefinition: level,
         terrainChunks: stagedAuthoredTerrain.chunks.where(
-          (c) => c.chunkKey == 'field_flat',
+          (c) => c.chunkKey == 'field_default_normal_001',
         ),
         seed: trapRunSeed,
         playerCharacter: character,

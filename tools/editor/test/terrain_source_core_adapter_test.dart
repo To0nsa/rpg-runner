@@ -58,9 +58,9 @@ void main() {
 
     final review = TerrainSourceCoreAdapter.review(
       shape: rotated,
-      sourcePath: 'chunks/field_flat.json',
+      sourcePath: 'chunks/field_default_normal_001.json',
       chunkIndex: 0,
-      chunkKey: 'field_flat',
+      chunkKey: 'field_default_normal_001',
       requireCanonical: true,
     );
     final repaired = TerrainSourceCoreAdapter.applyCanonicalVertices(

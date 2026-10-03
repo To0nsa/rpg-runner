@@ -14,13 +14,13 @@ void main() {
     'translates local physics coordinates and rehydrates streamed identity',
     () {
       final catalog = StagedTerrainArtifactCatalog(
-        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
       );
 
       final geometry = builder.build(
         bindings: <StagedTerrainChunkBinding>[
           catalog.bind(
-            chunkKey: 'field_flat',
+            chunkKey: 'field_default_normal_001',
             chunkIndex: 3,
             worldOriginXTicks: 4096,
           ),
@@ -33,7 +33,7 @@ void main() {
       expect(geometry.edges.single.start.xTicks, 4096);
       expect(geometry.edges.single.end.xTicks, 5120);
       expect(geometry.edges.single.id.chunkIndex, 3);
-      expect(geometry.edges.single.id.chunkKey, 'field_flat');
+      expect(geometry.edges.single.id.chunkKey, 'field_default_normal_001');
       expect(geometry.edges.single.id.shapeId, 'ground');
       expect(geometry.edges.single.bounds.minX, 4096);
       expect(geometry.edges.single.bounds.maxX, 5120);
@@ -42,18 +42,18 @@ void main() {
 
   test('keeps repeated chunk selection distinct and canonical', () {
     final catalog = StagedTerrainArtifactCatalog(
-      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
     );
 
     final geometry = builder.build(
       bindings: <StagedTerrainChunkBinding>[
         catalog.bind(
-          chunkKey: 'field_flat',
+          chunkKey: 'field_default_normal_001',
           chunkIndex: 8,
           worldOriginXTicks: 8192,
         ),
         catalog.bind(
-          chunkKey: 'field_flat',
+          chunkKey: 'field_default_normal_001',
           chunkIndex: 2,
           worldOriginXTicks: 2048,
         ),
@@ -113,10 +113,10 @@ void main() {
 
   test('fails closed for duplicate instances and malformed records', () {
     final catalog = StagedTerrainArtifactCatalog(
-      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
     );
     final binding = catalog.bind(
-      chunkKey: 'field_flat',
+      chunkKey: 'field_default_normal_001',
       chunkIndex: 2,
       worldOriginXTicks: 0,
     );

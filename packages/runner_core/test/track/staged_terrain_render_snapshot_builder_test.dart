@@ -14,11 +14,11 @@ void main() {
     'uses collision-backed world vertices with generated triangle indices',
     () {
       final catalog = StagedTerrainArtifactCatalog(
-        artifact: _artifact(_chunk('field_flat')),
+        artifact: _artifact(_chunk('field_default_normal_001')),
       );
       final bindings = <StagedTerrainChunkBinding>[
         catalog.bind(
-          chunkKey: 'field_flat',
+          chunkKey: 'field_default_normal_001',
           chunkIndex: 3,
           worldOriginXTicks: 4096,
         ),
@@ -43,7 +43,7 @@ void main() {
       final edge = render.edges.single;
       expect(edge.id, geometry.edges.single.id);
       expect(edge.id.chunkIndex, 3);
-      expect(edge.id.chunkKey, 'field_flat');
+      expect(edge.id.chunkKey, 'field_default_normal_001');
       expect(edge.id.shapeId, 'ground');
       expect(edge.start.xTicks, 4096);
       expect(edge.end.xTicks, 5120);

@@ -14,88 +14,62 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_06_32x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_06_32x32_platform",
-      "x": 429,
-      "y": 70,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "pixel_fantasy_caves_small_rock_09",
-      "prefabKey": "pixel_fantasy_caves_small_rock_09",
-      "x": 256,
-      "y": 160,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "high_forest_bush_02",
-      "prefabKey": "high_forest_bush_02",
-      "x": 125,
-      "y": 164,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "pixel_fantasy_caves_small_rock_06",
-      "prefabKey": "pixel_fantasy_caves_small_rock_06",
-      "x": 543,
-      "y": 169,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "kauzz_forest_tree_01",
-      "prefabKey": "kauzz_forest_tree_01",
-      "x": 72,
-      "y": 118,
-      "zIndex": 1,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "pixel_fantasy_caves_small_rock_05",
-      "prefabKey": "pixel_fantasy_caves_small_rock_05",
-      "x": 520,
-      "y": 201,
-      "zIndex": 1,
+      "prefabId": "fantasy_environment_tree_01",
+      "prefabKey": "fantasy_environment_tree_01",
+      "x": 113,
+      "y": 71,
+      "zIndex": -21,
       "snapToGrid": false,
       "flipX": true
+    },
+    {
+      "prefabId": "woods_rock_01",
+      "prefabKey": "woods_rock_01",
+      "x": 161,
+      "y": 120,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "dark_forest_ground_platform_06_96x48_platform",
+      "prefabKey": "dark_forest_ground_platform_06_96x48_platform",
+      "x": 324,
+      "y": 205,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 2.0
     }
   ],
   "markers": [],
   "collisionShapes": [
     {
-      "shapeId": "ground_001",
+      "shapeId": "solid_001",
       "collisionMode": "solid",
       "vertices": [
         {
           "x": 0,
-          "y": 224
+          "y": 152
         },
         {
-          "x": 85,
-          "y": 185
+          "x": 228,
+          "y": 152
         },
         {
-          "x": 165,
-          "y": 185
+          "x": 286,
+          "y": 191
         },
         {
-          "x": 195,
-          "y": 165
+          "x": 375,
+          "y": 191
         },
         {
-          "x": 343,
-          "y": 164
-        },
-        {
-          "x": 387,
-          "y": 224
+          "x": 430,
+          "y": 152
         },
         {
           "x": 600,
-          "y": 224
+          "y": 152
         },
         {
           "x": 600,
@@ -108,6 +82,20 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "spike",
+      "x": 333,
+      "y": 200,
+      "trigger": {
+        "offsetX": -160,
+        "offsetY": -44,
+        "width": 210,
+        "height": 64
+      },
+      "windupMs": 300
     }
   ]
 }

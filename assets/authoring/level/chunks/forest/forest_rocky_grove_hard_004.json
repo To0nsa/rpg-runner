@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_004",
   "id": "forest_rocky_grove_hard_004",
-  "revision": 35,
+  "revision": 26,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,88 +14,66 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_tree_02",
-      "prefabKey": "tiny_swords_tree_02",
-      "x": 516,
-      "y": 138,
+      "prefabId": "tiny_swords_ground_platform_02_64x64_platform",
+      "prefabKey": "tiny_swords_ground_platform_02_64x64_platform",
+      "x": 371,
+      "y": 182,
+      "zIndex": -21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "kauzz_forest_tree_03",
+      "prefabKey": "kauzz_forest_tree_03",
+      "x": 272,
+      "y": 120,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
-      "x": 221,
-      "y": 145,
+      "prefabId": "pixel_fantasy_caves_small_rock_01",
+      "prefabKey": "pixel_fantasy_caves_small_rock_01",
+      "x": 172,
+      "y": 155,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_tree_01",
-      "prefabKey": "tiny_swords_tree_01",
-      "x": 70,
-      "y": 153,
+      "prefabId": "tiny_swords_ground_platform_03_32x64_platform",
+      "prefabKey": "tiny_swords_ground_platform_03_32x64_platform",
+      "x": 104,
+      "y": 161,
       "zIndex": 0,
       "snapToGrid": false
-    },
-    {
-      "prefabId": "pixel_fantasy_caves_small_rock_08",
-      "prefabKey": "pixel_fantasy_caves_small_rock_08",
-      "x": 384,
-      "y": 153,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 1.7,
-      "flipX": true
-    },
-    {
-      "prefabId": "dark_forest_herb_05",
-      "prefabKey": "dark_forest_herb_05",
-      "x": 528,
-      "y": 224,
-      "zIndex": 0,
-      "snapToGrid": true,
-      "flipX": true
-    },
-    {
-      "prefabId": "dark_forest_herb_04",
-      "prefabKey": "dark_forest_herb_04",
-      "x": 76,
-      "y": 225,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 0.8,
-      "flipX": true
     }
   ],
-  "markers": [
-    {
-      "markerId": "derf",
-      "x": 376,
-      "y": 51,
-      "chancePercent": 100,
-      "salt": 0,
-      "placement": "obstacleTop"
-    }
-  ],
+  "markers": [],
   "collisionShapes": [
     {
       "shapeId": "ground_001",
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 248,
+          "x": 0,
           "y": 224
         },
         {
-          "x": 600,
+          "x": 181,
           "y": 224
         },
         {
-          "x": 600,
+          "x": 213,
+          "y": 183
+        },
+        {
+          "x": 268,
+          "y": 183
+        },
+        {
+          "x": 268,
           "y": 270
         },
         {
-          "x": 248,
+          "x": 0,
           "y": 270
         }
       ],
@@ -104,51 +82,37 @@
     },
     {
       "shapeId": "solid_001",
-      "collisionMode": "none",
-      "vertices": [
-        {
-          "x": 132,
-          "y": 224
-        },
-        {
-          "x": 248,
-          "y": 224
-        },
-        {
-          "x": 248,
-          "y": 270
-        },
-        {
-          "x": 132,
-          "y": 270
-        }
-      ],
-      "surfaceKind": "ground",
-      "materialKey": "dirt_hole"
-    },
-    {
-      "shapeId": "solid_002",
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 0,
-          "y": 224
+          "x": 463,
+          "y": 183
         },
         {
-          "x": 132,
-          "y": 224
+          "x": 600,
+          "y": 152
         },
         {
-          "x": 132,
+          "x": 600,
           "y": 270
         },
         {
-          "x": 0,
+          "x": 463,
           "y": 270
         }
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "water_1",
+      "x": 268,
+      "y": 183,
+      "width": 195,
+      "height": 87,
+      "materialKey": "biome_water"
     }
   ]
 }

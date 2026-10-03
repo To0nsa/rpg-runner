@@ -8,7 +8,7 @@ void main() {
   test(
     'publishes current selected chunk identities with geometry rebuilds',
     () {
-      const first = ChunkPattern(name: 'first', chunkKey: 'field_flat');
+      const first = ChunkPattern(name: 'first', chunkKey: 'field_default_normal_001');
       const source = ChunkPatternListSource(
         earlyPatterns: <ChunkPattern>[first],
         easyPatterns: <ChunkPattern>[first],
@@ -42,10 +42,10 @@ void main() {
         1800.0,
       ]);
       expect(streamer.activeChunks.map((chunk) => chunk.chunkKey), <String?>[
-        'field_flat',
-        'field_flat',
-        'field_flat',
-        'field_flat',
+        'field_default_normal_001',
+        'field_default_normal_001',
+        'field_default_normal_001',
+        'field_default_normal_001',
       ]);
       expect(streamer.difficultyAtWorldX(599.999), ChunkPatternTier.early);
       expect(streamer.difficultyAtWorldX(600.0), ChunkPatternTier.easy);

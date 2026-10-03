@@ -13,8 +13,8 @@ void main() {
   final flat = LevelTraversalRoute.chunks(
     level: level,
     seed: 7,
-    chunkKeys: List.filled(3, 'field_flat'),
-    continuationChunkKey: 'field_flat',
+    chunkKeys: List.filled(3, 'field_default_normal_001'),
+    continuationChunkKey: 'field_default_normal_001',
   );
 
   for (final enemyId in [EnemyId.grojib, EnemyId.hashash, EnemyId.unocoDemon]) {
@@ -130,10 +130,10 @@ void main() {
       allOf(
         contains('level=field grojib seed=42'),
         contains('no forward progress for 600 ticks'),
-        contains('field_flat'),
+        contains('field_default_normal_001'),
         contains('speedX=0.1'),
         contains('graph current='),
-        contains('route=field_flat -> field_flat -> field_flat'),
+        contains('route=field_default_normal_001 -> field_default_normal_001 -> field_default_normal_001'),
       ),
     );
     expect(harness.visitedChunks, hasLength(1));

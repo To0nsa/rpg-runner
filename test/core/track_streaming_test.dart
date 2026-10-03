@@ -109,7 +109,7 @@ void main() {
     expect(finalChunkIndices.intersection(initialChunkIndices), isEmpty);
     expect(
       finalTerrain.polygons.map((polygon) => polygon.sourceId.chunkKey),
-      everyElement(isIn(['field_flat', 'field_roadside_rescue'])),
+      everyElement(isIn(['field_default_hard_001', 'field_default_hard_002'])),
     );
     expect(
       finalTerrain.polygons.map(
@@ -117,8 +117,8 @@ void main() {
       ),
       everyElement(
         isIn([
-          ('field_flat', 'solid_001'),
-          ('field_roadside_rescue', 'ground'),
+          ('field_default_hard_001', 'solid_001'),
+          ('field_default_hard_002', 'ground'),
         ]),
       ),
     );

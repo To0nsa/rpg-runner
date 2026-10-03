@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_easy_002",
+  "id": "forest_ruin_easy_002",
+  "revision": 73,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "fantasy_environment_tree_01",
+      "prefabKey": "fantasy_environment_tree_01",
+      "x": 272,
+      "y": 128,
+      "zIndex": -21,
+      "snapToGrid": true,
+      "scale": 1.2
+    },
+    {
+      "prefabId": "crystal_world_dead_tree_02",
+      "prefabKey": "crystal_world_dead_tree_02",
+      "x": 526,
+      "y": 161,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_ruin_wall_01",
+      "prefabKey": "ancient_forest_ruin_wall_01",
+      "x": 462,
+      "y": 165,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_statue_01",
+      "prefabKey": "ancient_forest_statue_01",
+      "x": 160,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "high_forest_bush_02",
+      "prefabKey": "high_forest_bush_02",
+      "x": 494,
+      "y": 204,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_ruin_wall_02",
+      "prefabKey": "ancient_forest_ruin_wall_02",
+      "x": 62,
+      "y": 209,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 344,
+      "y": 178,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

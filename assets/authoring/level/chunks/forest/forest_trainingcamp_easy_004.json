@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_trainingcamp_easy_004",
+  "id": "forest_trainingcamp_easy_004",
+  "revision": 26,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "trainingcamp",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "gandalf_hardcore_fruit_tree_01",
+      "prefabKey": "gandalf_hardcore_fruit_tree_01",
+      "x": 261,
+      "y": 53,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.3
+    },
+    {
+      "prefabId": "gandalf_hardcore_large_tent_01",
+      "prefabKey": "gandalf_hardcore_large_tent_01",
+      "x": 240,
+      "y": 123,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "cimetery_statue_01",
+      "prefabKey": "cimetery_statue_01",
+      "x": 368,
+      "y": 145,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.4
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 144,
+          "y": 187
+        },
+        {
+          "x": 429,
+          "y": 187
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

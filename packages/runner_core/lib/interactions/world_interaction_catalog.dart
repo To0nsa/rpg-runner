@@ -48,7 +48,7 @@ abstract final class WorldInteractionCatalog {
   static const bindings = <WorldInteractionBinding>[
     WorldInteractionBinding(
       key: 'forest_regeneration_vasque',
-      chunkKey: 'forest_early_hill_001',
+      chunkKey: 'forest_default_early_008',
       prefabKey: 'tiny_swords_fire_vasque_01',
       shapeId: 'collision_001',
       interactionId: WorldInteractionId.regenerationShrine,

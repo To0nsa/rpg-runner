@@ -59,7 +59,7 @@ void main() {
         StagedTerrainPolygonRenderSnapshot(
           sourceId: TerrainSourceIdentity(
             chunkIndex: 0,
-            chunkKey: 'field_flat',
+            chunkKey: 'field_default_normal_001',
             shapeId: 'ground_001',
           ),
           vertices: <TerrainPoint>[

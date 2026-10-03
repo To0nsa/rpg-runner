@@ -154,7 +154,7 @@ void main() {
   test('normal construction admits current streamed enemy policies', () {
     final pattern = ChunkPattern(
       name: 'all_enemy_policies',
-      chunkKey: 'field_flat',
+      chunkKey: 'field_default_normal_001',
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,

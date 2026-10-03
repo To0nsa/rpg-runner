@@ -76,7 +76,7 @@ Core resolves a default award of 250 points per survivor, with a per-encounter
 override including zero. Chunk Creator exposes this value and targeting policy
 on each rescue group; incomplete groups can be saved while being authored.
 The end screen lists credited survivors and their combined rescue points in a
-separate row, including zero-point rescues. Field's `field_roadside_rescue` chunk
+separate row, including zero-point rescues. Field's `field_default_normal_002` chunk
 places all three allies against a Grojib and a Hashash on a clear, flat route.
 Its trigger starts at X 160; the group inherits the 250-point default, for up to
 750 points. It enters the normal pool and obeys the first-three-chunks enemy

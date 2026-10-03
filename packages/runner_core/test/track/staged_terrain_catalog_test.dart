@@ -95,32 +95,32 @@ void main() {
       final catalog = StagedTerrainArtifactCatalog(
         artifact: _artifact(
           chunks: <StagedTerrainChunkData>[
-            _chunk('field_flat'),
+            _chunk('field_default_normal_001'),
             _chunk('forest_early_00'),
           ],
         ),
       );
 
       final first = catalog.bind(
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
         chunkIndex: 4,
         worldOriginXTicks: 2457600,
       );
       final repeat = catalog.bind(
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
         chunkIndex: 7,
         worldOriginXTicks: 4300800,
       );
       final source = StagedTerrainSourceId(
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
         shapeId: 'ground',
       );
 
-      expect(first.chunk, same(catalog.requireChunk('field_flat')));
+      expect(first.chunk, same(catalog.requireChunk('field_default_normal_001')));
       expect(first.worldOriginXTicks, 2457600);
       expect(first.sourceIdentity(source).chunkIndex, 4);
       expect(repeat.sourceIdentity(source).chunkIndex, 7);
-      expect(first.sourceIdentity(source).chunkKey, 'field_flat');
+      expect(first.sourceIdentity(source).chunkKey, 'field_default_normal_001');
       expect(first.sourceIdentity(source).placementKey, isNull);
     },
   );
@@ -214,11 +214,11 @@ void main() {
   test('fails closed for missing or foreign chunk identities', () {
     final catalog = StagedTerrainArtifactCatalog(
       artifact: _artifact(
-        chunks: <StagedTerrainChunkData>[_chunk('field_flat')],
+        chunks: <StagedTerrainChunkData>[_chunk('field_default_normal_001')],
       ),
     );
     final binding = catalog.bind(
-      chunkKey: 'field_flat',
+      chunkKey: 'field_default_normal_001',
       chunkIndex: 0,
       worldOriginXTicks: 0,
     );
@@ -226,7 +226,7 @@ void main() {
     expect(() => catalog.requireChunk('missing'), throwsStateError);
     expect(
       () => catalog.bind(
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
         chunkIndex: -1,
         worldOriginXTicks: 0,
       ),
@@ -240,7 +240,7 @@ void main() {
     );
     expect(
       () => binding.sourceIdentity(
-        StagedTerrainSourceId(chunkKey: 'field_flat', shapeId: 'missing'),
+        StagedTerrainSourceId(chunkKey: 'field_default_normal_001', shapeId: 'missing'),
       ),
       throwsArgumentError,
     );

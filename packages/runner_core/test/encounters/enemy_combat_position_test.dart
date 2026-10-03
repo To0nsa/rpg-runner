@@ -82,8 +82,8 @@ GameCore _core(EnemyId enemyId, NpcId npcId, int side) => GameCore(
       easyPatterns: const [],
       normalPatterns: [
         ChunkPattern(
-          name: 'field_flat',
-          chunkKey: 'field_flat',
+          name: 'field_default_normal_001',
+          chunkKey: 'field_default_normal_001',
           encounters: [
             EncounterDefinition(
               id: 'combat_position',

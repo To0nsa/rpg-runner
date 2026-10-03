@@ -16,7 +16,7 @@ void main() {
     () {
       const pattern = ChunkPattern(
         name: 'hashash-only',
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
         spawnMarkers: <SpawnMarker>[
           SpawnMarker(
             enemyId: EnemyId.hashash,

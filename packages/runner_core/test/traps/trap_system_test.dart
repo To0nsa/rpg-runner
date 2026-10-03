@@ -405,8 +405,8 @@ void main() {
       index: 0,
       startX: 0,
       endX: 600,
-      patternName: 'field_flat',
-      chunkKey: 'field_flat',
+      patternName: 'field_default_normal_001',
+      chunkKey: 'field_default_normal_001',
       traps: [f.state.placement],
     );
     f.world.traps.states.clear();
@@ -423,7 +423,7 @@ void main() {
     expect(() => snapshot.clear(), throwsUnsupportedError);
     f.world.traps.synchronize(const [], catalog);
     expect(f.world.traps.states, isEmpty);
-    expect(snapshot.single.source.chunkKey, 'field_flat');
+    expect(snapshot.single.source.chunkKey, 'field_default_normal_001');
   });
 }
 
@@ -438,7 +438,7 @@ class _Fixture {
     state = TrapState(
       source: TrapSourceRef(
         trapId: id,
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
         chunkIndex: 0,
         placementOrdinal: 0,
       ),

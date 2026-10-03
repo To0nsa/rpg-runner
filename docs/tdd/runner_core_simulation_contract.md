@@ -432,6 +432,14 @@ The `2026.10.1` release expands the grove pools and simplifies later Forest
 geometry and blocking prefab pockets. Its 60-chunk authored catalog is
 regenerated into both runtime artifacts before client/worker validation.
 
+The current 81-chunk catalog uses Level/group/difficulty/number identities.
+The Rocky Grove hard pool replaces its three older layouts with nine copies of
+the normal layouts. Rekeying the other sources changes deterministic selection
+and generated terrain identities even where geometry is unchanged. Client and
+replay worker artifacts must therefore use the same regenerated catalog in a
+coordinated gameplay compatibility release; old replay content must not be
+interpreted with the new keys.
+
 Core owns occurrence activation, target selection, participant damage credit,
 active chunk containment, survivor section bounds, terminal priority and checked
 rescue awards. Section guard rosters refresh before shared AI selection and do

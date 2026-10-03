@@ -24,8 +24,8 @@ void main() {
           easyPatterns: [],
           normalPatterns: [
             ChunkPattern(
-              name: 'field_flat',
-              chunkKey: 'field_flat',
+              name: 'field_default_normal_001',
+              chunkKey: 'field_default_normal_001',
               spawnMarkers: [
                 SpawnMarker(
                   enemyId: EnemyId.grojib,

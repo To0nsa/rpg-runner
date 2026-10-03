@@ -16,7 +16,7 @@ void main() {
   test(
     'builds collision navigation and render outputs from one geometry object',
     () {
-      const pattern = ChunkPattern(name: 'field', chunkKey: 'field_flat');
+      const pattern = ChunkPattern(name: 'field', chunkKey: 'field_default_normal_001');
       const source = ChunkPatternListSource(
         easyPatterns: <ChunkPattern>[pattern],
         hardPatterns: <ChunkPattern>[pattern],
@@ -30,7 +30,7 @@ void main() {
         noEnemyChunks: 0,
       );
       final catalog = StagedTerrainArtifactCatalog(
-        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
       );
 
       streamer.step(cameraLeft: 0.0, cameraRight: 600.0, spawnEnemy: (_) {});
@@ -126,7 +126,7 @@ void main() {
 }
 
 TrackStreamer _fieldStreamer() {
-  const pattern = ChunkPattern(name: 'field', chunkKey: 'field_flat');
+  const pattern = ChunkPattern(name: 'field', chunkKey: 'field_default_normal_001');
   const source = ChunkPatternListSource(
     easyPatterns: <ChunkPattern>[pattern],
     hardPatterns: <ChunkPattern>[pattern],

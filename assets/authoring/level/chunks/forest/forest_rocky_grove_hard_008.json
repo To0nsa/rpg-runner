@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_008",
   "id": "forest_rocky_grove_hard_008",
-  "revision": 20,
+  "revision": 17,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,34 +14,24 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "fantasy_environment_tree_01",
-      "prefabKey": "fantasy_environment_tree_01",
-      "x": 113,
-      "y": 71,
-      "zIndex": -21,
-      "snapToGrid": false,
-      "flipX": true
-    },
-    {
-      "prefabId": "woods_rock_01",
-      "prefabKey": "woods_rock_01",
-      "x": 161,
-      "y": 120,
+      "prefabId": "tiny_swords_ground_platform_09_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_09_96x32_platform",
+      "x": 302,
+      "y": 134,
       "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 1.5
-    },
-    {
-      "prefabId": "dark_forest_ground_platform_06_96x48_platform",
-      "prefabKey": "dark_forest_ground_platform_06_96x48_platform",
-      "x": 324,
-      "y": 205,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 2.0
+      "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 471,
+      "y": 50,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "solid_001",
@@ -52,27 +42,15 @@
           "y": 152
         },
         {
-          "x": 228,
+          "x": 121,
           "y": 152
         },
         {
-          "x": 286,
-          "y": 191
+          "x": 196,
+          "y": 192
         },
         {
-          "x": 375,
-          "y": 191
-        },
-        {
-          "x": 430,
-          "y": 152
-        },
-        {
-          "x": 600,
-          "y": 152
-        },
-        {
-          "x": 600,
+          "x": 196,
           "y": 270
         },
         {
@@ -82,20 +60,58 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
-    }
-  ],
-  "traps": [
+    },
     {
-      "trapId": "spike",
-      "x": 333,
-      "y": 200,
-      "trigger": {
-        "offsetX": -160,
-        "offsetY": -44,
-        "width": 210,
-        "height": 64
-      },
-      "windupMs": 300
+      "shapeId": "solid_002",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 196,
+          "y": 192
+        },
+        {
+          "x": 414,
+          "y": 192
+        },
+        {
+          "x": 414,
+          "y": 270
+        },
+        {
+          "x": 196,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_003",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 414,
+          "y": 192
+        },
+        {
+          "x": 497,
+          "y": 152
+        },
+        {
+          "x": 600,
+          "y": 152
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 414,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
     }
   ]
 }

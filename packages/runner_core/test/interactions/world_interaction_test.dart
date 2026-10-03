@@ -49,7 +49,7 @@ void main() {
         case 'otherPrefab':
           c.supportEdgeId[0] = TerrainEdgeId(
             chunkIndex: 0,
-            chunkKey: 'forest_early_hill_001',
+            chunkKey: 'forest_default_early_008',
             shapeId: 'collision_001',
             placementKey: 'other',
             localEdgeIndex: 0,
@@ -165,7 +165,7 @@ void main() {
           bindings: [
             const WorldInteractionBinding(
               key: 'missing',
-              chunkKey: 'forest_early_hill_001',
+              chunkKey: 'forest_default_early_008',
               prefabKey: 'missing',
               shapeId: 'collision_001',
               interactionId: WorldInteractionId.regenerationShrine,
@@ -184,7 +184,7 @@ void main() {
 
 ActiveTrackChunkSnapshot _chunk(
   int index, {
-  String key = 'forest_early_hill_001',
+  String key = 'forest_default_early_008',
 }) => ActiveTrackChunkSnapshot(
   index: index,
   startX: index * 600.0,

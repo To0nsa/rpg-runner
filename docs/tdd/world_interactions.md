@@ -11,7 +11,7 @@ consume immutable snapshots. Traps keep their existing attack/cooldown policy.
 manual attachment catalog. Each record identifies a chunk, prefab key, collision
 shape, interaction preset, stable binding key, and visual depth relative to
 terrain. The shipped record selects `tiny_swords_fire_vasque_01` /
-`collision_001` in `forest_early_hill_001`.
+`collision_001` in `forest_default_early_008`.
 
 Without an exact `placementKey`, one matching prefab/shape must exist in the
 chunk's admitted placement lineage. This follows ordinary editor moves and

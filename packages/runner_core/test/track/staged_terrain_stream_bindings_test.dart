@@ -14,7 +14,7 @@ void main() {
   const builder = StagedTerrainStreamBindingBuilder();
 
   test('binds the existing scheduler selection without reselecting chunks', () {
-    const pattern = ChunkPattern(name: 'field', chunkKey: 'field_flat');
+    const pattern = ChunkPattern(name: 'field', chunkKey: 'field_default_normal_001');
     const source = ChunkPatternListSource(
       easyPatterns: <ChunkPattern>[pattern],
       hardPatterns: <ChunkPattern>[pattern],
@@ -28,7 +28,7 @@ void main() {
       noEnemyChunks: 0,
     );
     final catalog = StagedTerrainArtifactCatalog(
-      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+      artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
     );
 
     streamer.step(cameraLeft: 0.0, cameraRight: 600.0, spawnEnemy: (_) {});
@@ -49,7 +49,7 @@ void main() {
     'fails closed for absent keys, mismatched widths, and duplicate indices',
     () {
       final catalog = StagedTerrainArtifactCatalog(
-        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
+        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
       );
       const missingKey = ActiveTrackChunkSnapshot(
         index: 0,
@@ -63,21 +63,21 @@ void main() {
         startX: 0.0,
         endX: 599.0,
         patternName: 'field',
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
       );
       const duplicateA = ActiveTrackChunkSnapshot(
         index: 1,
         startX: 0.0,
         endX: 600.0,
         patternName: 'field',
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
       );
       const duplicateB = ActiveTrackChunkSnapshot(
         index: 1,
         startX: 600.0,
         endX: 1200.0,
         patternName: 'field',
-        chunkKey: 'field_flat',
+        chunkKey: 'field_default_normal_001',
       );
 
       expect(

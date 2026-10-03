@@ -57,6 +57,13 @@ Core pins the accepted Chunk only at index zero; subsequent selection retains
 the normal deterministic schedule. A distinct first section excludes the
 pinned identity from its remaining positions.
 
+The current authored catalog names each source file, `chunkKey`, and `id` as
+`<levelId>_<assemblyGroupId>_<difficulty>_<NNN>`. Numbering starts at `001`
+within each Level, group, and difficulty pool. Group spelling is the authored
+`assemblyGroupId` (for example, `trainingcamp`). Identity edits increment the
+Chunk revision; the Forest opener is `forest_default_early_001` and its Level
+revision advances with the `firstChunkKey` change.
+
 New and Copy collect a display name and allocate stable IDs in the domain;
 Advanced permits explicit overrides. The default background choice makes an
 independent layer copy, with sharing and empty-background choices explicit.

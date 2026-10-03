@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_default_early_001",
+  "id": "forest_default_early_001",
+  "revision": 27,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "gandalf_hardcore_willow_tree_01",
+      "prefabKey": "gandalf_hardcore_willow_tree_01",
+      "x": 386,
+      "y": 100,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.3
+    },
+    {
+      "prefabId": "ancient_forest_lamp_post_01",
+      "prefabKey": "ancient_forest_lamp_post_01",
+      "x": 112,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_bench_01",
+      "prefabKey": "tiny_swords_bench_01",
+      "x": 159,
+      "y": 202,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

@@ -126,7 +126,7 @@ void main() {
   });
 
   test(
-    'field level selects flat and rescue chunks without an authored assembly',
+    'field level selects normal then hard chunks without an authored assembly',
     () {
       final level = LevelRegistry.byId(LevelId.field);
       expect(level.assembly, isNull);
@@ -145,10 +145,20 @@ void main() {
           ),
       ];
 
-      expect(selections.map((selection) => selection.pattern.name).toSet(), {
-        'field_flat',
-        'field_roadside_rescue',
-      });
+      expect(
+        selections
+            .take(level.earlyPatternChunks)
+            .map((selection) => selection.pattern.name)
+            .toSet(),
+        {'field_default_normal_001', 'field_default_normal_002'},
+      );
+      expect(
+        selections
+            .skip(level.earlyPatternChunks)
+            .map((selection) => selection.pattern.name)
+            .toSet(),
+        {'field_default_hard_001', 'field_default_hard_002'},
+      );
       expect(
         selections
             .map((selection) => selection.pattern.assemblyGroupId)
@@ -165,7 +175,10 @@ void main() {
         tuning: const CoreTuning(camera: CameraTuning(), track: TrackTuning()),
         chunkPatternSource: const ChunkPatternListSource(
           normalPatterns: <ChunkPattern>[
-            ChunkPattern(name: 'field_flat', chunkKey: 'field_flat'),
+            ChunkPattern(
+              name: 'field_default_normal_001',
+              chunkKey: 'field_default_normal_001',
+            ),
           ],
           easyPatterns: <ChunkPattern>[],
           hardPatterns: <ChunkPattern>[],
