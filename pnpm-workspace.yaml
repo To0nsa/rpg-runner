@@ -57,6 +57,7 @@ minimumReleaseAgeExclude:
   - firebase@12.18.0
 
 overrides:
+  '@fastify/busboy': 3.2.1
   gaxios@6.7.1>uuid: 11.1.1
   qs: 6.16.0
   teeny-request@9.0.0>uuid: 11.1.1

@@ -22,6 +22,12 @@ Tasks 7. The workspace lockfile contains narrow patched `uuid` overrides for
 two older Storage HTTP helpers; remove those overrides only after their
 upstream dependency ranges accept the patched major.
 
+The workspace also pins Firebase Admin's transitive `@fastify/busboy` to
+`3.2.1`, which fixes the multipart denial-of-service advisories
+[GHSA-xjh9-v7x6-24jw](https://github.com/advisories/GHSA-xjh9-v7x6-24jw) and
+[GHSA-x8mw-p69m-v3mx](https://github.com/advisories/GHSA-x8mw-p69m-v3mx).
+Release preparation checks current production advisories on every run.
+
 ## 2) Shared security model (all callables)
 
 Every callable follows the same auth/authorization pattern:
