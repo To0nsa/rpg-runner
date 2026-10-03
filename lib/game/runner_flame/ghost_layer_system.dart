@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as dart_math;
 
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
@@ -74,6 +75,12 @@ class GhostLayerSystem {
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _snapScratch = Vector2.zero();
   final GhostOutlineCache _outlines = GhostOutlineCache();
+  final Vector2 _playerRenderScale = Vector2.all(
+    runnerPlayerRenderTuning.scale,
+  );
+  final Map<(SpriteAnimSet, double, double), double> _visualRadii = {};
+  final List<CameraSpaceSnappedSpriteAnimation> _ghostImpacts = [];
+  GameStateSnapshot? _indexedPrevious;
 
   DeterministicAnimView? _ghostPlayer;
   int? _ghostPlayerEntityId;
@@ -185,6 +192,12 @@ class GhostLayerSystem {
 
   void _clearGhostViews() {
     _outlines.clear();
+    _visualRadii.clear();
+    _indexedPrevious = null;
+    for (final impact in _ghostImpacts) {
+      impact.removeFromParent();
+    }
+    _ghostImpacts.clear();
     _ghostPlayerEntityId = null;
     _ghostPlayer?.removeFromParent();
     _ghostPlayer = null;
@@ -208,6 +221,9 @@ class GhostLayerSystem {
       _clearGhostViews();
       return;
     }
+    _ghostImpacts.removeWhere(
+      (impact) => impact.isRemoving || impact.isRemoved,
+    );
     final snapshot = _ghostSnapshot;
     final replayBlob = _ghostReplayBlob;
     final playerAnimSet = _ghostPlayerAnimSet;
@@ -216,11 +232,14 @@ class GhostLayerSystem {
       return;
     }
 
-    _prevGhostEntitiesById.clear();
     final prevGhostSnapshot = _ghostPrevSnapshot;
-    if (prevGhostSnapshot != null) {
-      for (final entity in prevGhostSnapshot.entities) {
-        _prevGhostEntitiesById[entity.id] = entity;
+    if (!identical(_indexedPrevious, prevGhostSnapshot)) {
+      _indexedPrevious = prevGhostSnapshot;
+      _prevGhostEntitiesById.clear();
+      if (prevGhostSnapshot != null) {
+        for (final entity in prevGhostSnapshot.entities) {
+          _prevGhostEntitiesById[entity.id] = entity;
+        }
       }
     }
 
@@ -268,6 +287,22 @@ class GhostLayerSystem {
       return;
     }
 
+    final prev = prevById[playerEntity.id] ?? playerEntity;
+    final worldX = math.lerpDouble(prev.pos.x, playerEntity.pos.x, alpha);
+    final worldY = math.lerpDouble(prev.pos.y, playerEntity.pos.y, alpha);
+    if (!_inViewport(
+      worldX,
+      worldY,
+      playerAnimSet,
+      _playerRenderScale,
+      cameraCenter,
+    )) {
+      _ghostPlayer?.removeFromParent();
+      _ghostPlayer = null;
+      _ghostPlayerEntityId = null;
+      return;
+    }
+
     var playerView = _ghostPlayer;
     if (playerView == null) {
       playerView =
@@ -282,9 +317,6 @@ class GhostLayerSystem {
       world.add(playerView);
     }
 
-    final prev = prevById[playerEntity.id] ?? playerEntity;
-    final worldX = math.lerpDouble(prev.pos.x, playerEntity.pos.x, alpha);
-    final worldY = math.lerpDouble(prev.pos.y, playerEntity.pos.y, alpha);
     _snapScratch.setValues(
       math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
       math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
@@ -321,6 +353,18 @@ class GhostLayerSystem {
         continue;
       }
 
+      final prev = prevById[entity.id] ?? entity;
+      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
+      if (!_inViewport(
+        worldX,
+        worldY,
+        entry.animSet,
+        entry.renderScale,
+        cameraCenter,
+      )) {
+        continue;
+      }
       seen.add(entity.id);
       var view = _ghostActors[entity.id];
       if (view == null) {
@@ -332,9 +376,6 @@ class GhostLayerSystem {
         world.add(view);
       }
 
-      final prev = prevById[entity.id] ?? entity;
-      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
-      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
       _snapScratch.setValues(
         math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
         math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
@@ -380,25 +421,37 @@ class GhostLayerSystem {
         continue;
       }
 
+      final spawnTick = _ghostProjectileSpawnTicks.putIfAbsent(
+        entity.id,
+        () => tick,
+      );
+      final prev = prevById[entity.id] ?? entity;
+      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
+      if (!_inViewport(
+        worldX,
+        worldY,
+        entry.animSet,
+        entry.renderScale,
+        cameraCenter,
+      )) {
+        _ghostProjectiles.remove(entity.id)?.removeFromParent();
+        continue;
+      }
       var view = _ghostProjectiles[entity.id];
       if (view == null) {
         view = entry.viewFactory(entry.animSet, entry.renderScale)
           ..priority = priorityGhostEntities
           ..useGhostStyle(_outlines);
         _ghostProjectiles[entity.id] = view;
-        _ghostProjectileSpawnTicks[entity.id] = tick;
         world.add(view);
       }
 
-      final prev = prevById[entity.id] ?? entity;
-      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
-      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
       _snapScratch.setValues(
         math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
         math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
       );
 
-      final spawnTick = _ghostProjectileSpawnTicks[entity.id] ?? tick;
       final startTicks = entry.spawnAnimTicks(controller.tickHz);
       final ageTicks = tick - spawnTick;
       final animOverride =
@@ -425,11 +478,8 @@ class GhostLayerSystem {
       }
     }
 
-    if (_ghostProjectiles.isEmpty) {
-      return;
-    }
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _ghostProjectiles.keys) {
+    for (final id in _ghostProjectileSpawnTicks.keys) {
       if (!seen.contains(id)) {
         toRemove.add(id);
       }
@@ -493,12 +543,21 @@ class GhostLayerSystem {
         continue;
       }
 
+      if (!_inViewport(
+        event.pos.x,
+        event.pos.y,
+        entry.animSet,
+        entry.renderScale,
+        cameraCenter,
+      )) {
+        continue;
+      }
       final hitAnim = entry.animSet.animations[AnimKey.hit];
       if (hitAnim == null) {
         continue;
       }
 
-      final component = CameraSpaceSnappedSpriteAnimation(
+      final component = _GhostImpact(
         animation: hitAnim,
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
@@ -511,6 +570,10 @@ class GhostLayerSystem {
       component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
       component.angle = event.rotationRad;
       component.snapToCamera(cameraCenter);
+      _ghostImpacts.removeWhere(
+        (impact) => impact.isRemoving || impact.isRemoved,
+      );
+      _ghostImpacts.add(component);
       world.add(component);
     }
 
@@ -528,12 +591,21 @@ class GhostLayerSystem {
         continue;
       }
 
+      if (!_inViewport(
+        event.pos.x,
+        event.pos.y,
+        entry.animSet,
+        entry.renderScale,
+        cameraCenter,
+      )) {
+        continue;
+      }
       final hitAnim = entry.animSet.animations[AnimKey.hit];
       if (hitAnim == null) {
         continue;
       }
 
-      final component = CameraSpaceSnappedSpriteAnimation(
+      final component = _GhostImpact(
         animation: hitAnim,
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
@@ -545,6 +617,10 @@ class GhostLayerSystem {
 
       component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
       component.snapToCamera(cameraCenter);
+      _ghostImpacts.removeWhere(
+        (impact) => impact.isRemoving || impact.isRemoved,
+      );
+      _ghostImpacts.add(component);
       world.add(component);
     }
 
@@ -607,6 +683,39 @@ class GhostLayerSystem {
     }
   }
 
+  bool _inViewport(
+    double x,
+    double y,
+    SpriteAnimSet animations,
+    Vector2 scale,
+    Vector2 cameraCenter,
+  ) {
+    final radius = _visualRadii.putIfAbsent((animations, scale.x, scale.y), () {
+      var extentX = 0.0;
+      var extentY = 0.0;
+      for (final anchor in [
+        animations.anchor,
+        ...animations.anchorByKey.values,
+      ]) {
+        extentX = dart_math.max(
+          extentX,
+          dart_math.max(anchor.x.abs(), (1 - anchor.x).abs()),
+        );
+        extentY = dart_math.max(
+          extentY,
+          dart_math.max(anchor.y.abs(), (1 - anchor.y).abs()),
+        );
+      }
+      final dx = (animations.frameSize.x * extentX + 1) * scale.x.abs();
+      final dy = (animations.frameSize.y * extentY + 1) * scale.y.abs();
+      // Enclose every facing/rotation plus outline and camera pixel snapping.
+      return dart_math.sqrt(dx * dx + dy * dy) + 1;
+    });
+    final camera = controller.snapshot.camera;
+    return (x - cameraCenter.x).abs() <= camera.viewWidth / 2 + radius &&
+        (y - cameraCenter.y).abs() <= camera.viewHeight / 2 + radius;
+  }
+
   double _visualCueIntensity01(int intensityBp) {
     if (intensityBp <= 0) {
       return 0.0;
@@ -626,4 +735,22 @@ T _enumByName<T extends Enum>(
     }
   }
   throw ArgumentError.value(raw, fieldName, 'Unsupported enum value.');
+}
+
+/// Effects keep advancing offscreen so their lifetime cannot freeze.
+class _GhostImpact extends CameraSpaceSnappedSpriteAnimation {
+  _GhostImpact({
+    required super.animation,
+    required super.size,
+    required super.worldPosX,
+    required super.worldPosY,
+    required super.anchor,
+    required super.paint,
+    required super.removeOnFinish,
+  });
+
+  @override
+  void render(Canvas canvas) {
+    if (game.camera.canSee(this)) super.render(canvas);
+  }
 }

@@ -193,6 +193,14 @@ closed ghost. Render interpolation never reconsumes an event batch.
   images stay owned by the normal image cache.
 - ghost event cues (projectile hit flashes, visual cue pulses)
 
+Ghost actor views are created/synchronized only when their interpolated visual
+bounds overlap the live camera. Bounds include sprite anchors, scale, rotation,
+outline and pixel snapping; they do not use gameplay collider size. Projectile
+first-seen ticks survive view culling, so re-entry does not restart spawn/spin
+animation. Offscreen hit/impact events do not allocate effects; existing effects
+keep aging but skip offscreen drawing. Ghost clearing also removes its effects.
+Previous-entity lookup is rebuilt only when the previous snapshot changes.
+
 The ghost layer is fail-safe:
 - if required ghost inputs are missing/malformed, layer is cleared or disabled.
 

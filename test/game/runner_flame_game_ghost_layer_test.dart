@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/game/components/sprite_anim/deterministic_anim_view.dart';
 import 'package:runner_core/spell_impacts/spell_impact_id.dart';
 import 'package:rpg_runner/game/replay/ghost_render_frame.dart';
 import 'package:rpg_runner/game/components/player/player_view.dart';
@@ -39,6 +41,144 @@ import '../test_tunings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'viewport culls actors and effects while retaining projectile age',
+    () async {
+      final harness = _buildHarness();
+      addTearDown(harness.dispose);
+      final image = await _singlePixelImage();
+      addTearDown(image.dispose);
+      final images = Images();
+      addTearDown(images.clearCache);
+      final npcs = NpcRenderRegistry();
+      final projectiles = ProjectileRenderRegistry();
+      final impacts = SpellImpactRenderRegistry();
+      await Future.wait([
+        npcs.load(images),
+        projectiles.load(images),
+        impacts.load(images),
+      ]);
+      final world = Component();
+      final layer = GhostLayerSystem(
+        controller: harness.controller,
+        world: world,
+        images: images,
+        enemyRenderRegistry: EnemyRenderRegistry(),
+        npcRenderRegistry: npcs,
+        projectileRenderRegistry: projectiles,
+        spellImpactRenderRegistry: impacts,
+        combatFeedbackTuning: const CombatFeedbackTuning(),
+        ghostRenderListenable: null,
+      );
+      addTearDown(layer.clearViews);
+      final replay = _ghostReplayBlob(levelId: LevelId.field);
+      final animSet = _buildAnimSet(image);
+      GameStateSnapshot snapshot(int tick, double x) => _copySnapshot(
+        harness.controller.snapshot,
+        tick: tick,
+        entities: [
+          _entity(id: 1, kind: EntityKind.player, x: x, y: 0),
+          EntityRenderSnapshot(
+            id: 2,
+            kind: EntityKind.npc,
+            npcId: NpcId.warrior,
+            pos: Vec2(x, 0),
+            facing: Facing.left,
+            anim: AnimKey.idle,
+            grounded: true,
+          ),
+          EntityRenderSnapshot(
+            id: 3,
+            kind: EntityKind.projectile,
+            projectileId: ProjectileId.iceBolt,
+            pos: Vec2(x, 0),
+            facing: Facing.left,
+            anim: AnimKey.idle,
+            grounded: false,
+          ),
+        ],
+      );
+      layer.debugSetGhostRenderStateForTest(
+        snapshot: snapshot(1, 10000),
+        replayBlob: replay,
+        playerAnimSet: animSet,
+        events: [
+          const SpellImpactEvent(
+            tick: 1,
+            impactId: SpellImpactId.fireExplosion,
+            pos: Vec2(10000, 0),
+          ),
+        ],
+      );
+      layer.syncLayer(alpha: 1, cameraCenter: Vector2.zero());
+      layer.flushPendingSpellImpactEvents(cameraCenter: Vector2.zero());
+      expect(layer.debugHasGhostPlayerView, isFalse);
+      expect(layer.debugGhostNpcCount, 0);
+      expect(layer.debugGhostProjectileCount, 0);
+      expect(
+        world.children.whereType<CameraSpaceSnappedSpriteAnimation>(),
+        isEmpty,
+      );
+
+      layer.debugSetGhostRenderStateForTest(
+        snapshot: snapshot(100, 0),
+        prevSnapshot: snapshot(99, 10000),
+        replayBlob: replay,
+        playerAnimSet: animSet,
+      );
+      layer.syncLayer(alpha: 0, cameraCenter: Vector2.zero());
+      expect(layer.debugGhostProjectileCount, 0);
+      layer.syncLayer(alpha: 1, cameraCenter: Vector2.zero());
+      expect(layer.debugHasGhostPlayerView, isTrue);
+      expect(layer.debugGhostNpcCount, 1);
+      expect(layer.debugGhostProjectileCount, 1);
+      expect(
+        world.children.whereType<DeterministicAnimView>().every(
+          (view) => view.current == AnimKey.idle,
+        ),
+        isTrue,
+        reason:
+            'Entering the viewport must not restart projectile spawn animation',
+      );
+      layer.syncLayer(alpha: 1, cameraCenter: Vector2(10000, 0));
+      expect(layer.debugHasGhostPlayerView, isFalse);
+      expect(layer.debugGhostNpcCount, 0);
+      expect(layer.debugGhostProjectileCount, 0);
+    },
+  );
+
+  test(
+    'viewport retains sprites overlapping the edge despite an outside anchor',
+    () async {
+      final harness = _buildHarness();
+      addTearDown(harness.dispose);
+      final image = await _singlePixelImage();
+      addTearDown(image.dispose);
+      final small = _buildAnimSet(image);
+      final large = SpriteAnimSet(
+        animations: small.animations,
+        stepTimeSecondsByKey: small.stepTimeSecondsByKey,
+        oneShotKeys: small.oneShotKeys,
+        frameSize: Vector2(100, 80),
+        anchor: Anchor.bottomRight,
+      );
+      final edge = harness.controller.snapshot.camera.viewWidth / 2;
+      harness.game.debugSetGhostRenderStateForTest(
+        snapshot: _copySnapshot(
+          harness.controller.snapshot,
+          tick: 1,
+          entities: [
+            _entity(id: 1, kind: EntityKind.player, x: edge + 5, y: 0),
+          ],
+        ),
+        replayBlob: _ghostReplayBlob(levelId: LevelId.field),
+        playerAnimSet: large,
+      );
+      harness.game.debugSyncGhostLayerForTest(cameraCenter: Vector2.zero());
+      expect(harness.game.debugHasGhostPlayerView, isTrue);
+    },
+  );
 
   test(
     'atomic feed preserves adjacent ticks and consumes effects once',

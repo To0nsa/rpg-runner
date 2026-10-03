@@ -235,7 +235,11 @@ Running a full second simulation can be expensive.
 
 Mitigations:
 1. **Culling**
-   - GhostWorld doesn’t need to simulate far-off entities if your sim supports spatial activation.
+   - Only ghost rendering is culled against the live camera, with conservative
+     sprite bounds so edges remain visible. The full ghost simulation continues
+     at its recorded tick rate, including offscreen actors and combat.
+   - Projectiles retain animation age when their views leave and re-enter the
+     viewport. Offscreen hit/impact events do not create VFX.
 2. **No audio**
    - GhostWorld produces no audio/haptics.
 3. **Reduced VFX budget**
