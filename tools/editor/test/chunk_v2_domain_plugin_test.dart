@@ -401,6 +401,80 @@ void main() {
     );
   });
 
+  test('platform placement inside render-only terrain commits and remains saveable', () {
+    final plugin = ChunkDomainPlugin();
+    final original = _document([
+      TerrainSourceShapeDef(
+        shapeId: 'ground',
+        vertices: _rectangle(top: 20).vertices,
+        collisionMode: TerrainSourceCollisionMode.none,
+      ),
+    ]);
+    final platform = original.prefabData.prefabs.single.copyWith(
+      kind: PrefabKind.platform,
+      collisionShapes: [
+        TerrainSourceShapeDef(
+          shapeId: 'support',
+          collisionMode: TerrainSourceCollisionMode.oneWay,
+          vertices: const [
+            TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+            TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 0),
+            TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 4),
+            TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 4),
+          ],
+        ),
+      ],
+    );
+    final document = original.copyWith(
+      prefabData: PrefabV3FileData(
+        slices: original.prefabData.slices,
+        prefabs: [platform],
+      ),
+    );
+    final chunk = document.chunks.single;
+    final commit = ChunkV2CompositionCommit(
+      expectedChunkKey: chunk.chunkKey,
+      expectedRevision: chunk.revision,
+      before: ChunkV2CompositionSnapshot.fromChunk(chunk),
+      after: ChunkV2CompositionSnapshot(
+        tileLayers: chunk.tileLayers,
+        markers: chunk.markers,
+        prefabs: const [
+          PlacedPrefabDef(
+            prefabId: 'shrub',
+            prefabKey: 'prefab_shrub',
+            x: 40,
+            y: 30,
+          ),
+        ],
+      ),
+    );
+    final updated = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+        payload: {'chunkKey': chunk.chunkKey, 'commit': commit},
+      ),
+    ) as ChunkV2Document;
+    expect(updated.chunks.single.revision, chunk.revision + 1);
+    expect(updated.chunks.single.prefabs, hasLength(1));
+    expect(updated.chunks.single.collisionShapes, chunk.collisionShapes);
+    expect(
+      plugin
+          .validate(updated)
+          .where((issue) => issue.blocks(AuthoringOperation.save)),
+      isEmpty,
+    );
+    final reloaded = ChunkV2FileCodec.decode(
+      ChunkV2FileCodec.encode(updated.chunks.single),
+      sourcePath: 'chunks/forest_target.json',
+    );
+    expect(
+      ChunkV2FileCodec.encode(reloaded),
+      ChunkV2FileCodec.encode(updated.chunks.single),
+    );
+  });
+
   for (final groundTopHalfPixels in [80, 50]) {
     test(
       'composition accepts obstacle overlaps and preserves revision guards (ground top: $groundTopHalfPixels)',

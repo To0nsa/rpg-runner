@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
+import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_authoring_polygon_signature.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
@@ -19,6 +20,98 @@ const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
+  for (final terrainMode in ['none', 'solid', 'oneWay']) {
+    for (final terrainTop in [10, 20]) {
+      test(
+        'editor and pipeline agree on platform overlap with $terrainMode terrain at $terrainTop',
+        () {
+          final prefabRoot = jsonDecode(_fixture('prefab_defs.json')) as Map;
+          final prefab = (prefabRoot['prefabs'] as List).single as Map;
+          prefab['kind'] = 'platform';
+          ((prefab['collisionShapes'] as List).single as Map)['collisionMode'] =
+              'oneWay';
+          final prefabSource = jsonEncode(prefabRoot);
+          final root = jsonDecode(_fixture('chunk.json')) as Map;
+          // The transformed platform occupies x=58..61, y=19..21. Test both
+          // full containment in visual terrain and a crossing lower boundary.
+          root['collisionShapes'] = [
+            {
+              'shapeId': 'pit_dressing',
+              'collisionMode': terrainMode,
+              'vertices': [
+                for (final (x, y) in [
+                  (0, terrainTop),
+                  (100, terrainTop),
+                  (100, 50),
+                  (0, 50),
+                ])
+                  {'x': x, 'y': y},
+              ],
+            },
+          ];
+          final chunkSource = jsonEncode(root);
+          final chunk = ChunkV2FileCodec.decode(
+            chunkSource,
+            sourcePath: _chunkSourcePath,
+          );
+          final editor = expandChunkV2Collision(
+            chunk: chunk,
+            prefabs: PrefabV3FileCodec.decode(
+              prefabSource,
+              sourcePath: 'prefab_defs.json',
+            ).prefabs,
+            sourcePath: _chunkSourcePath,
+          );
+          PolygonTerrainCompilationResult compile(Map source) =>
+              compilePolygonTerrainSourceText(
+                prefabSourcePath: 'prefab_defs.json',
+                prefabSource: prefabSource,
+                chunkSourcePath: _chunkSourcePath,
+                chunkSource: jsonEncode(source),
+              );
+          final pipeline = compile(root);
+          if (terrainMode != 'none') {
+            expect(editor.expansion, isNull);
+            expect(pipeline.compiled, isNull);
+            expect(
+              editor.issues.map((issue) => issue.code),
+              contains('polygon_area_overlap'),
+            );
+            expect(
+              pipeline.issues.map((issue) => issue.code),
+              contains('polygon_area_overlap'),
+            );
+            return;
+          }
+          expect(editor.issues, isEmpty);
+          expect(pipeline.issues, isEmpty);
+          final expansion = editor.expansion!;
+          final compiled = pipeline.compiled!;
+          expect(expansion.renderOnlyDirectShapeCount, 1);
+          expect(expansion.directShapeCount, 0);
+          expect(expansion.geometry.polygons, hasLength(1));
+          expect(expansion.geometry.edges, hasLength(1));
+          expect(
+            expansion.geometry.edges.single.collisionMode,
+            TerrainCollisionMode.oneWay,
+          );
+          expect(
+            expansion.geometry.canonicalEdgeRecords(),
+            compiled.geometry.canonicalEdgeRecords(),
+          );
+          final platformOnly = compile({...root, 'collisionShapes': []})
+              .compiled!;
+          final terrainOnly = compile({...root, 'prefabs': []}).compiled!;
+          expect(
+            compiled.geometry.canonicalEdgeRecords(),
+            platformOnly.geometry.canonicalEdgeRecords(),
+          );
+          expect(compiled.triangleSignature(), terrainOnly.triangleSignature());
+        },
+      );
+    }
+  }
+
   for (final overlapTarget in [
     'obstacle',
     'solid terrain',

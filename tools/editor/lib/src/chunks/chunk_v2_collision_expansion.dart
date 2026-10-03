@@ -123,6 +123,8 @@ final class ChunkV2CollisionExpansionResult {
 /// anchor. Their Core source anchor is therefore zero; the visual prefab anchor
 /// must not be subtracted a second time. Placement translation remains the
 /// authored anchor position in chunk-local whole pixels.
+/// Direct terrain is reviewed separately from gameplay collision so render-only
+/// shapes can overlap placed platforms without becoming physics blockers.
 ChunkV2CollisionExpansionResult expandChunkV2Collision({
   required ChunkV2FileData chunk,
   required Iterable<PrefabV3Def> prefabs,
@@ -130,7 +132,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   int chunkIndex = 0,
 }) {
   final issues = <ValidationIssue>[];
-  final reviewInputs = <TerrainPolygonInput>[];
+  final directReviewInputs = <TerrainPolygonInput>[];
   final collisionInputs = <TerrainPolygonInput>[];
   final ownerBySourcePath = <String, String>{};
   final placementBySourcePath = <String, String>{};
@@ -160,7 +162,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
         chunkIndex: chunkIndex,
         chunkKey: chunk.chunkKey,
       );
-      reviewInputs.add(input);
+      directReviewInputs.add(input);
       if (shape.collisionMode != TerrainSourceCollisionMode.none) {
         collisionInputs.add(
           TerrainSourceCoreAdapter.toPolygonInput(
@@ -306,7 +308,6 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
           placementKey: placementKey,
           transform: transform,
         );
-        reviewInputs.add(input);
         collisionInputs.add(input);
       } on ArgumentError catch (error) {
         sourceComplete = false;
@@ -325,11 +326,11 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     }
   }
 
-  TerrainGeometry? reviewGeometry;
+  TerrainGeometry? directReviewGeometry;
   TerrainGeometry? geometry;
   try {
-    reviewGeometry = const TerrainCompiler().compile(
-      reviewInputs,
+    directReviewGeometry = const TerrainCompiler().compile(
+      directReviewInputs,
       geometryVersion: 1,
     );
     geometry = const TerrainCompiler().compile(
@@ -358,13 +359,17 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   }
 
   final expandedShapes = <ChunkV2ExpandedPrefabShape>[];
-  if (reviewGeometry != null && geometry != null) {
+  if (directReviewGeometry != null && geometry != null) {
     final maxX = chunk.width * terrainPhysicsTicksPerWorldUnit;
     final maxY = chunk.height * terrainPhysicsTicksPerWorldUnit;
-    final collisionPolygonById = <TerrainSourceIdentity, TerrainPolygon>{
+    final polygonsByIdentity = <TerrainSourceIdentity, TerrainPolygon>{
+      for (final polygon in directReviewGeometry.polygons)
+        polygon.identity: polygon,
       for (final polygon in geometry.polygons) polygon.identity: polygon,
     };
-    for (final polygon in reviewGeometry.polygons) {
+    final polygons = polygonsByIdentity.values.toList()
+      ..sort((left, right) => left.identity.compareTo(right.identity));
+    for (final polygon in polygons) {
       final placementKey = polygon.identity.placementKey;
       for (final vertex in polygon.vertices.asMap().entries) {
         final point = vertex.value;
@@ -402,8 +407,6 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
         );
       }
       if (placementKey == null) continue;
-      final collisionPolygon = collisionPolygonById[polygon.identity];
-      if (collisionPolygon == null) continue;
       final prefab = prefabByPlacementKey[placementKey];
       final placement = placementByKey[placementKey];
       if (prefab == null || placement == null) continue;
@@ -422,15 +425,21 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
               .round(),
           flipX: placement.flipX,
           flipY: placement.flipY,
-          vertices: collisionPolygon.vertices,
-          collisionMode: collisionPolygon.collisionMode,
-          surfaceKind: collisionPolygon.surfaceKind,
-          materialKey: collisionPolygon.materialKey,
+          vertices: polygon.vertices,
+          collisionMode: polygon.collisionMode,
+          surfaceKind: polygon.surfaceKind,
+          materialKey: polygon.materialKey,
         ),
       );
     }
     issues.addAll(
-      reviewGeometry.diagnostics.map(
+      <TerrainDiagnostic>[
+        ...directReviewGeometry.diagnostics,
+        ...geometry.diagnostics.where(
+          (diagnostic) =>
+              placementBySourcePath.containsKey(diagnostic.sourcePath),
+        ),
+      ].map(
         (diagnostic) => _issueFromCore(
           diagnostic,
           ownerKey: ownerBySourcePath[diagnostic.sourcePath] ?? chunk.chunkKey,
@@ -451,7 +460,8 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   }
 
   return ChunkV2CollisionExpansionResult(
-    expansion: geometry == null || reviewGeometry == null || !sourceComplete
+    expansion:
+        geometry == null || directReviewGeometry == null || !sourceComplete
         ? null
         : ChunkV2CollisionExpansion(
             chunkKey: chunk.chunkKey,

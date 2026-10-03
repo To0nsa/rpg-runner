@@ -28,6 +28,10 @@ terrain at z `0` has its roots hidden by the grass and soil.
 - A filled polygon may be solid, one-way, or explicitly visual-only. Designers
   use **No collision (visual only)** for dressing such as a dark pit while the
   absence of collision/support remains what makes that space a gap.
+- A placed one-way platform may overlap visual-only terrain partially or
+  entirely, allowing a landing surface at the bottom of a dressed gap. Only
+  the platform supplies support; the pit dressing stays non-colliding. Give
+  the platform an equal or higher z than the terrain to keep it visible.
 - The bright grass edge is the primary support/readability cue at runner speed.
 - Surface detail must not obscure enemies, pickups, hit effects, or the player.
 - Material changes may alter biome appearance but never change collision. The
@@ -69,8 +73,10 @@ corner handle to make it larger or smaller. Its opposite corner stays fixed,
 its material previews continuously, and release accepts one undoable edit.
 **Escape** cancels the drag. The selected inspector provides **Snap to grid**
 and **Snap to neighbor vertices**; nearby exact corners take priority over the
-grid. Terrain stops at occupied terrain/prefab collision and stays inside the
-chunk. Invalid releases preserve the original and show validation diagnostics.
+grid. Terrain respects the collision overlap rules and stays inside the chunk.
+Visual-only terrain can cover placed platforms and obstacles during drawing,
+resizing, or movement; direct terrain shapes still cannot overlap one another.
+Invalid releases preserve the original and show validation diagnostics.
 
 Pending name or dimension fields must be saved or discarded before dragging;
 Cancel keeps them. The exact rectangle fields refresh after a resize. This

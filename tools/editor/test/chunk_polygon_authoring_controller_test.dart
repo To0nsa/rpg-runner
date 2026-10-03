@@ -24,6 +24,89 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  test('render-only terrain can be drawn over a platform and moved through it with history', () async {
+    final solid = _solidPrefab();
+    final platform = solid.copyWith(
+      kind: PrefabKind.platform,
+      collisionShapes: [
+        TerrainSourceShapeDef(
+          shapeId: solid.collisionShapes.single.shapeId,
+          vertices: solid.collisionShapes.single.vertices,
+          collisionMode: TerrainSourceCollisionMode.oneWay,
+        ),
+      ],
+    );
+    final harness = await _buildHarness(
+      collisionShapes: [],
+      prefabs: [platform],
+      placements: const [
+        PlacedPrefabDef(
+          prefabId: 'rock',
+          prefabKey: 'prefab_rock',
+          x: 70,
+          y: 10,
+        ),
+      ],
+    );
+    final controller = harness.authoring;
+    controller.setNewShapeCollisionMode(TerrainSourceCollisionMode.none);
+    controller.setCreationSnapToNeighborVertices(false);
+    expect(
+      controller.beginCreateRectangle(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(130, 10),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 1,
+      point: const TerrainPolygonScenePoint(170, 50),
+    );
+    expect(controller.commitGesture(1), isTrue);
+    expect(controller.saveDraft(), isTrue);
+    expect(controller.issues, isEmpty);
+    final created = controller.chunk;
+    final dressing = created.collisionShapes.single;
+    expect(dressing.collisionMode, TerrainSourceCollisionMode.none);
+    expect(dressing.vertices, const [
+      TerrainSourceVertexDef(xHalfPixels: 130, yHalfPixels: 10),
+      TerrainSourceVertexDef(xHalfPixels: 170, yHalfPixels: 10),
+      TerrainSourceVertexDef(xHalfPixels: 170, yHalfPixels: 50),
+      TerrainSourceVertexDef(xHalfPixels: 130, yHalfPixels: 50),
+    ]);
+    controller.select(TerrainPolygonSelection.shape(dressing.shapeId));
+    controller.setTool(TerrainPolygonTool.translateShape);
+    expect(
+      controller.beginGesture(
+        pointer: 2,
+        point: const TerrainPolygonScenePoint(130, 10),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 2,
+      point: const TerrainPolygonScenePoint(138, 10),
+    );
+    expect(controller.commitGesture(2), isTrue);
+    expect(
+      controller.chunk.collisionShapes.single.vertices.first.xHalfPixels,
+      138,
+    );
+    expect(controller.chunk.prefabs, created.prefabs);
+    expect(controller.undo(), isTrue);
+    expect(controller.chunk, created);
+    expect(controller.undo(), isTrue);
+    expect(controller.chunk.collisionShapes, isEmpty);
+    expect(controller.redo(), isTrue);
+    expect(controller.redo(), isTrue);
+    final expansion = (harness.session.scene as ChunkV2Scene)
+        .collisionExpansionByChunkKey['forest_target']!
+        .expansion!;
+    expect(expansion.renderOnlyDirectShapeCount, 1);
+    expect(expansion.directShapeCount, 0);
+    expect(expansion.geometry.edges, hasLength(1));
+  });
+
   test(
     'Select resize preserves grab offset and off-grid anchor through history',
     () async {

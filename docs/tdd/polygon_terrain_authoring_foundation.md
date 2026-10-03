@@ -104,13 +104,15 @@ physics mode. `TerrainCollisionMode` therefore remains `solid`/`oneWay` and no
 collision, navigation, support, placement, seam, or blocker consumer needs a
 special-case non-collider.
 
-Chunk validation and generation first map every source shape into an
-authoring-only review input. That pass owns canonical topology, bounds,
-positive-area overlap policy, material references, and normalized loops.
+Chunk validation and generation review direct terrain separately from gameplay
+collision. These passes own canonical topology, bounds, positive-area overlap
+policy, material references, and normalized loops.
 Solid Prefab placements may overlap each other and direct solid terrain;
 direct terrain shapes still cannot overlap each other. Render-only terrain
-may also overlap a placed solid in the review pass without contributing
-gameplay collision. The
+may overlap any placed Prefab, including full containment of a one-way platform,
+without contributing gameplay collision. The editor combines the reviewed
+direct and gameplay polygons by source identity for bounds and placement
+inspection, rather than compiling render-only terrain with placed colliders. The
 pipeline compiles three deliberate products: gameplay `TerrainGeometry` from
 direct collidable shapes plus placed Prefab collision, fill geometry from only
 direct Chunk shapes including `none`, and material-edge geometry from only
@@ -1071,6 +1073,8 @@ union boundary as described below.
 different placement keys within one Chunk, including a placed solid against
 direct terrain's null placement key. Two direct shapes, shapes inside one
 Prefab, and any pair involving a one-way platform retain overlap rejection.
+This collision restriction excludes render-only direct terrain, which may
+overlap a placed platform partially or entirely.
 Editor composition validation, Save, authored Play, and the
 repository generator all consume this same rule without a schema change.
 
@@ -1849,9 +1853,10 @@ Chunk terrain input adds a route-local contact constraint before the shared
 reducer receives each pointer update. Its immutable target set contains current
 direct source loops converted exactly to Core physics ticks and read-only
 expanded prefab loops at their already-quantized transformed coordinates.
-Solid and render-only direct terrain omit placed solid loops from these
-blocking targets because their overlap is accepted; one-way candidates still
-retain all targets. An
+Solid direct terrain omits placed solid loops from these blocking targets
+because their overlap is accepted. Render-only direct terrain omits all placed
+colliders, including one-way platforms; one-way candidates still retain all
+targets. Direct-terrain pairs retain their overlap checks. An
 eight-canvas-pixel radius is converted through the viewport so zoom does not
 change the visual snap affordance. Point placement rejects strict interiors;
 rectangle, vertex, insertion, and whole-shape candidates reject exact

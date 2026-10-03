@@ -288,7 +288,10 @@ maintainability concerns.
   legacy flat-profile/gap parsing belongs to offline migration only
 - solid Prefab placements may overlap each other and direct solid terrain;
   Core owns their exposed collision union. Retain independent source owners
-  and the terrain-to-terrain, within-Prefab, and one-way overlap checks. Editor
+  and the terrain-to-terrain, within-Prefab, and one-way collision overlap checks.
+  Render-only direct terrain may overlap any placed Prefab, including full
+  containment of a one-way platform. Review direct terrain separately from
+  gameplay collision, matching the shared pipeline. Editor
   snapping must not become an alternate runtime collision compiler.
 - keep one-chunk-per-file semantics, explicit `chunkKey` identity edits that
   atomically rekey document ownership, deterministic save-plan output,

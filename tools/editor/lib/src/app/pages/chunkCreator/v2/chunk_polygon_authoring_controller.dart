@@ -967,11 +967,11 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
           scene.collisionExpansionByChunkKey[_chunkKey]?.expansion;
       if (expansion != null) {
         for (final shape in expansion.expandedPrefabShapes) {
-          // Solid terrain unions with placed solids. Render-only terrain is
-          // reviewed as solid but never enters gameplay collision. Neither
-          // should be stopped at an obstacle by the editor's contact helper.
-          if (mode != TerrainSourceCollisionMode.oneWay &&
-              shape.collisionMode == TerrainCollisionMode.solid) {
+          // Render-only terrain may cover any placed collider. Solid terrain
+          // only unions with placed solids; one-way overlap remains blocking.
+          if (mode == TerrainSourceCollisionMode.none ||
+              (mode == TerrainSourceCollisionMode.solid &&
+                  shape.collisionMode == TerrainCollisionMode.solid)) {
             continue;
           }
           targets.add(
