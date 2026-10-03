@@ -192,7 +192,7 @@ Filename derivation:
 
 Note:
 - Extension is always `.replay.json`, even when payload bytes are gzip-compressed.
-- Filenames are 146 ASCII bytes regardless of identifier length, fitting Android
+- Filenames are 147 ASCII bytes regardless of identifier length, fitting Android
   filename limits. Existing Base64-named temporary files are cold misses and
   remain subject to OS temporary-storage cleanup; there is no legacy read path.
 

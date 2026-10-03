@@ -128,7 +128,7 @@ File naming:
 - `ghost_<entryHash>_<versionHash>.replay.json`, using SHA-256 hex digests of
   JSON arrays. The entry hash covers the full board/entry pair; the version hash
   covers board, entry, run session, promoted Storage generation, replay digest,
-  and update timestamp. Names stay at 146 ASCII bytes for real production IDs.
+  and update timestamp. Names stay at 147 ASCII bytes for real production IDs.
 - Prior Base64-named temporary files are cold misses and are left to OS cleanup.
 
 How used:

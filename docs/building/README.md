@@ -22,6 +22,9 @@
   October 3 (Helsinki time). Checks and the exact-image benchmark passed. Two
   issued older sessions were cancelled with owner authorization; live gameplay
   smoke still needs a linked Play Games account.
+  The subsequent [ghost cache client fix](../verification/ghost-cache-client-2026-10-03.md)
+  passed 876 client tests and was published to Hosting and installed on Android;
+  its device launch check is waiting for phone unlock.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

@@ -8,6 +8,20 @@ Signed-in production gameplay smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
+## Client maintenance: ghost cache filenames
+
+The October 3 [ghost cache release](../verification/ghost-cache-client-2026-10-03.md)
+published frozen `8d7d9bdc` through the verified Hosting scope and installed the
+fixed debug APK on the connected Android phone. Compatibility remains `2026.10.3`.
+
+- [x] Focused ghost regressions, full 876-test client gate, and production web build.
+- [x] Verify the live baseline, publish Hosting, and verify the new live artifact.
+- [x] Install the fixed Android app while retaining account and app data.
+- [ ] Unlock the phone and verify the Forest Competitive ghost opens and renders.
+
+No run cancellations or server cutover were needed. This maintenance release
+does not complete the broader signed-in smoke below.
+
 ## Deployed release: 2026.10.3
 
 Authorized October 3, 2026 (Helsinki time). Scope includes Huntress

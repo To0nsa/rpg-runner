@@ -18,6 +18,11 @@ for frozen commit `b5835b8e`, artifacts, cutover checks, and exclusions. The
 [release checklist](../building/rescue_release_operations.md) retains the
 outstanding linked Play Games smoke checks.
 
+The subsequent [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
+published `8d7d9bdc` to Hosting under the same tuple and installed a rebuilt debug
+APK on the connected phone. It required no issuance pause or run cancellation;
+post-fix device playback verification is waiting for phone unlock.
+
 ## Commands
 
 Run from the repository root in Windows PowerShell 5.1 or PowerShell 7:
