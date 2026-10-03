@@ -82,7 +82,7 @@ void main() {
     f.support(tick: 3);
     f.step(3);
     expect(f.world.levelBlessings.snapshots(f.player).single.grantedAtTick, 2);
-    expect(f.world.levelBlessings.healthRegen100.single, 5);
+    expect(f.world.levelBlessings.healthRegen100.single, 10);
   });
 
   for (final hz in [30, 60, 120]) {
@@ -95,8 +95,8 @@ void main() {
         for (var i = 0; i < hz * 10; i++) {
           regen.step(f.world);
         }
-        expect(f.world.health.hp.single, 5050);
-        expect(f.world.mana.mana.single, 5200);
+        expect(f.world.health.hp.single, 5100);
+        expect(f.world.mana.mana.single, 5100);
         expect(f.world.stamina.stamina.single, 5100);
         expect(f.world.health.regenPerSecond100.single, 0);
         f.world.health.hp[0] = 9999;
@@ -123,14 +123,14 @@ void main() {
       for (var i = 0; i < 60; i++) {
         ResourceRegenSystem(tickHz: 60).step(f.world);
       }
-      expect(f.world.health.hp.single, 5005);
+      expect(f.world.health.hp.single, 5010);
       f.world.interactions.synchronize([_chunk(0), _chunk(1)], f.catalog);
       expect(f.world.interactions.states[0].activationTick, 1);
       expect(f.world.interactions.states[1].activationTick, isNull);
       f.support(tick: 100, stateIndex: 1);
       f.step(100);
       expect(f.world.interactions.states[1].activationTick, 100);
-      expect(f.world.levelBlessings.healthRegen100.single, 5);
+      expect(f.world.levelBlessings.healthRegen100.single, 10);
       expect(
         f.world.levelBlessings.snapshots(f.player).single.grantedAtTick,
         1,
@@ -151,7 +151,7 @@ void main() {
     f.world.destroyEntity(f.player);
     expect(f.world.levelBlessings.snapshots(f.player), isEmpty);
     expect(f.world.levelBlessings.snapshots(other).single.grantedAtTick, 2);
-    expect(f.world.levelBlessings.healthRegen100, [5]);
+    expect(f.world.levelBlessings.healthRegen100, [10]);
   });
 
   test(

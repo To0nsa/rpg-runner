@@ -5,7 +5,7 @@ import { assertSupportedGameCompatVersion, currentGameCompatVersion,
   resolveSupportedGameCompatVersions } from "../../src/runs/compatibility.js";
 
 test("gameplay release client, board default and worker share one compatibility", () => {
-  assert.equal(currentGameCompatVersion, "2026.10.3");
+  assert.equal(currentGameCompatVersion, "2026.10.4");
 
   assert.deepEqual([...resolveSupportedGameCompatVersions({})], [currentGameCompatVersion]);
   const client = readFileSync("../lib/ui/state/app/app_state.dart", "utf8");
@@ -18,6 +18,7 @@ test("gameplay release client, board default and worker share one compatibility"
   assert.throws(() => assertSupportedGameCompatVersion("2026.09.10", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.1", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.2", resolveSupportedGameCompatVersions({})));
+  assert.throws(() => assertSupportedGameCompatVersion("2026.10.3", resolveSupportedGameCompatVersions({})));
 
   const provisioning = readFileSync("src/boards/provisioning.ts", "utf8");
   assert.ok(provisioning.includes('defaultScoreVersion = "score-v3"'));

@@ -18,8 +18,8 @@ final class LevelBlessingDefinition {
 
   static LevelBlessingDefinition get(LevelBlessingId id) => switch (id) {
     LevelBlessingId.regeneration => const LevelBlessingDefinition(
-      healthRegen100: 5,
-      manaRegen100: 20,
+      healthRegen100: 10,
+      manaRegen100: 10,
       staminaRegen100: 10,
     ),
   };

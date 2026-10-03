@@ -30,7 +30,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
     expect(find.text('Regeneration increased'), findsOneWidget);
     await show(220);
-    expect(find.text('Regen blessing'), findsOneWidget);
+    expect(find.text('Bénédiction des Dames de la forêt'), findsOneWidget);
     expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
     await show(0, active: false);
     expect(find.byIcon(Icons.local_fire_department), findsNothing);

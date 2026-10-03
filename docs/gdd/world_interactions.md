@@ -8,7 +8,7 @@ jumping underneath, passing overhead, and enemy contact do not light it.
 The fire remains lit after leaving the shrine. Its four supplied frames loop at
 10 frames per second. On the first blessing grant, the HUD shows
 “Regeneration increased” for two seconds of gameplay, followed by a persistent
-“Regen blessing” indicator.
+“Bénédiction des Dames de la forêt” indicator.
 
 ## Blessing
 
@@ -16,18 +16,20 @@ Initial playtest tuning adds these flat rates to existing regeneration:
 
 | Resource | Additional regeneration |
 | --- | --- |
-| Health | 0.05 HP/second |
-| Mana | 0.20 mana/second |
+| Health | 0.10 HP/second |
+| Mana | 0.10 mana/second |
 | Stamina | 0.10 stamina/second |
 
-These are additions, not percentages, and can restore a resource whose base
-regeneration is zero. Resources remain capped at their current maximum.
+These flat additions combine with base and equipment-derived regeneration and
+can restore a resource whose base regeneration is zero. Resources remain capped
+at their current maximum.
 
 The bonus lasts from activation through the remainder of the level attempt.
 It stays active when the shrine is offscreen or its chunk unloads. Repeated
 contact gives no additional bonus. Another instance of the same shrine can
-light independently, but the regeneration blessing does not stack or restart
-its feedback message. Restarting or starting another run clears it.
+light independently, but another grant of this same blessing does not add a
+second bonus or restart its feedback message. Restarting or starting another run
+clears it.
 
 ## Current authoring scope
 

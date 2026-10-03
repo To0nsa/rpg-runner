@@ -8,6 +8,14 @@ Signed-in production gameplay smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
+## Pending source: 2026.10.4 blessing tuning
+
+Source now gives the Forest blessing +0.10 health, mana, and stamina per second
+and labels it “Bénédiction des Dames de la forêt”. Client, Functions defaults,
+and worker use `2026.10.4` because the prior health and mana rates replay
+differently. This source update has not been deployed; production evidence above
+remains `2026.10.3`. A future release requires coordinated cutover.
+
 ## Client maintenance: ghost cache filenames
 
 The October 3 [ghost cache release](../verification/ghost-cache-client-2026-10-03.md)

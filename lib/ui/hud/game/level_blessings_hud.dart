@@ -26,7 +26,7 @@ class LevelBlessingsHud extends StatelessWidget {
         for (final blessing in blessings)
           Semantics(
             label: switch (blessing.id) {
-              LevelBlessingId.regeneration => 'Regeneration blessing: increased health, mana and stamina regeneration until level end',
+              LevelBlessingId.regeneration => 'Bénédiction des Dames de la forêt : régénération de santé, de mana et d’endurance augmentée jusqu’à la fin du niveau',
             },
             child: ExcludeSemantics(
               child: Row(
@@ -43,7 +43,7 @@ class LevelBlessingsHud extends StatelessWidget {
                       LevelBlessingId.regeneration =>
                         tick - blessing.grantedAtTick < tickHz * 2
                             ? 'Regeneration increased'
-                            : 'Regen blessing',
+                            : 'Bénédiction des Dames de la forêt',
                     },
                     style: ui.text.body.copyWith(
                       fontSize: 11,

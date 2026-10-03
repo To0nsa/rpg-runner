@@ -322,13 +322,14 @@ outcomes and is released as game compatibility `2026.09.10`.
 Top-contact world interactions run after death resolution and before resource
 regeneration. They consume final support and grant player-owned level blessings;
 streaming retirement never removes a granted bonus. Current source uses
-`2026.10.3` for this replay-sensitive addition. See [world interactions](world_interactions.md).
+`2026.10.4` with equal 0.10/second health, mana, and stamina bonuses. See
+[world interactions](world_interactions.md).
 
 ## Outputs and consumers
 
 ### Run distance
 
-Current source compatibility is `2026.10.3`, with ranked scoring `score-v3`.
+Current source compatibility is `2026.10.4`, with ranked scoring `score-v3`.
 After world motion and before terminal fall checks, `GameCore` records the
 motion authority's signed accepted player body X displacement in a per-run
 `RunDistanceTracker`. The authority excludes recovery corrections and facing
