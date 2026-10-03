@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 
+import 'package:rpg_runner/game/components/sprite_anim/ghost_outline_cache.dart';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
@@ -55,23 +57,20 @@ void main() {
     image.dispose();
   });
 
-  test(
-    'ghost visual style applies monochrome tint and lowered opacity',
-    () async {
-      final image = await _singlePixelImage();
-      final animSet = buildAnimSet(image);
+  test('ghost visual style applies its tint with shared outlines', () async {
+    final image = await _singlePixelImage();
+    final animSet = buildAnimSet(image);
 
-      final view = DeterministicAnimView(
-        animSet: animSet,
-        visualStyle: RenderVisualStyle.ghost,
-      );
-      view.update(1 / 60.0);
+    final outlines = GhostOutlineCache();
+    addTearDown(outlines.clear);
+    final view = DeterministicAnimView(animSet: animSet)
+      ..useGhostStyle(outlines);
+    view.update(1 / 60.0);
 
-      expect(view.paint.colorFilter, isNotNull);
-      expect(view.opacity, 1.0);
-      image.dispose();
-    },
-  );
+    expect(view.paint.colorFilter, isNotNull);
+    expect(view.opacity, 1.0);
+    image.dispose();
+  });
 }
 
 Future<ui.Image> _singlePixelImage() async {

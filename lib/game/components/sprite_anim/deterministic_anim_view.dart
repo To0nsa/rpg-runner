@@ -11,11 +11,10 @@ import 'package:runner_core/snapshots/enums.dart';
 
 import '../../tuning/combat_feedback_tuning.dart';
 import 'sprite_anim_set.dart';
+import 'ghost_outline_cache.dart';
 import '../../util/math_util.dart' as math;
 
 typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
-
-enum RenderVisualStyle { live, ghost }
 
 class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
   DeterministicAnimView({
@@ -26,7 +25,6 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
     Vector2? renderScale,
     bool respectFacing = true,
     CombatFeedbackTuning feedbackTuning = const CombatFeedbackTuning(),
-    RenderVisualStyle visualStyle = RenderVisualStyle.live,
   }) : _animSet = animSet,
        _availableAnimations = animSet.animations,
        _oneShotKeys = animSet.oneShotKeys,
@@ -34,7 +32,6 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
        _baseScale = renderScale?.clone() ?? Vector2.all(1.0),
        _feedbackTuning = feedbackTuning,
        _respectFacing = respectFacing,
-       _visualStyle = visualStyle,
        super(
          animations: animSet.animations,
          current: initial,
@@ -56,7 +53,7 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
   final Vector2 _baseScale;
   CombatFeedbackTuning _feedbackTuning;
   final bool _respectFacing;
-  RenderVisualStyle _visualStyle;
+  GhostOutlineCache? _ghostOutlines;
   int _statusVisualMask = EntityStatusVisualMask.none;
   double _directHitFlashSeconds = 0.0;
   double _directHitFlashDurationSeconds = 0.0;
@@ -75,9 +72,9 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
     _feedbackTuning = tuning;
   }
 
-  /// Updates render visual style at runtime.
-  void setVisualStyle(RenderVisualStyle visualStyle) {
-    _visualStyle = visualStyle;
+  /// Uses the owning ghost layer's shared outline textures and ghost tint.
+  void useGhostStyle(GhostOutlineCache outlines) {
+    _ghostOutlines = outlines;
   }
 
   /// Sets persistent status visuals for this entity.
@@ -182,38 +179,8 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
 
   @override
   void render(Canvas canvas) {
-    if (_visualStyle != RenderVisualStyle.ghost) {
-      super.render(canvas);
-      return;
-    }
-
-    final originalFilter = paint.colorFilter;
-    final originalOpacity = opacity;
-    paint.colorFilter = const ColorFilter.mode(
-      Color.fromARGB(230, 0, 0, 0),
-      BlendMode.srcATop,
-    );
-    opacity = 1.0;
-
-    const outlineOffsets = <Offset>[
-      Offset(-1.0, -1.0),
-      Offset(-1.0, 0.0),
-      Offset(-1.0, 1.0),
-      Offset(1.0, 0.0),
-      Offset(1.0, -1.0),
-      Offset(1.0, 1.0),
-      Offset(0.0, -1.0),
-      Offset(0.0, 1.0),
-    ];
-    for (final offset in outlineOffsets) {
-      canvas.save();
-      canvas.translate(offset.dx, offset.dy);
-      super.render(canvas);
-      canvas.restore();
-    }
-
-    paint.colorFilter = originalFilter;
-    opacity = originalOpacity;
+    final sprite = animationTicker?.getSprite();
+    if (sprite != null) _ghostOutlines?.render(canvas, sprite, size);
     super.render(canvas);
   }
 
@@ -227,7 +194,7 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
   }
 
   void _applyVisualTint() {
-    if (_visualStyle == RenderVisualStyle.ghost) {
+    if (_ghostOutlines != null) {
       _applyGhostVisualTint();
       return;
     }

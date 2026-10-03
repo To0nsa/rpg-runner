@@ -185,7 +185,12 @@ closed ghost. Render interpolation never reconsumes an event batch.
 
 `RunnerFlameGame` listens to that notifier and maintains a dedicated ghost layer:
 - ghost player/enemy/projectile views
-- ghost-specific visual style (`RenderVisualStyle.ghost`)
+- ghost-specific tint plus a shared, bounded outline texture cache
+  (`GhostOutlineCache`, owned by the ghost layer): eight offset outline draws
+  are rasterized once per sprite frame/component size, then drawn as one texture
+  behind the tinted sprite. The LRU cache retains at most 16 MiB of estimated
+  RGBA pixels and releases generated textures when the layer is cleared. Source
+  images stay owned by the normal image cache.
 - ghost event cues (projectile hit flashes, visual cue pulses)
 
 The ghost layer is fail-safe:

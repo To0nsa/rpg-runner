@@ -22,6 +22,7 @@ import '../components/projectiles/projectile_render_registry.dart';
 import '../components/spell_impacts/spell_impact_render_registry.dart';
 import '../components/sprite_anim/deterministic_anim_view.dart';
 import '../components/sprite_anim/sprite_anim_set.dart';
+import '../components/sprite_anim/ghost_outline_cache.dart';
 import '../game_controller.dart';
 import '../replay/ghost_render_frame.dart';
 import '../tuning/combat_feedback_tuning.dart';
@@ -72,6 +73,7 @@ class GhostLayerSystem {
   final Set<int> _seenIdsScratch = <int>{};
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _snapScratch = Vector2.zero();
+  final GhostOutlineCache _outlines = GhostOutlineCache();
 
   DeterministicAnimView? _ghostPlayer;
   int? _ghostPlayerEntityId;
@@ -182,6 +184,7 @@ class GhostLayerSystem {
   }
 
   void _clearGhostViews() {
+    _outlines.clear();
     _ghostPlayerEntityId = null;
     _ghostPlayer?.removeFromParent();
     _ghostPlayer = null;
@@ -274,7 +277,7 @@ class GhostLayerSystem {
               feedbackTuning: combatFeedbackTuning,
             )
             ..priority = priorityGhostEntities
-            ..setVisualStyle(RenderVisualStyle.ghost);
+            ..useGhostStyle(_outlines);
       _ghostPlayer = playerView;
       world.add(playerView);
     }
@@ -324,7 +327,7 @@ class GhostLayerSystem {
         view = entry.createView()
           ..priority = priorityGhostEntities
           ..setFeedbackTuning(combatFeedbackTuning)
-          ..setVisualStyle(RenderVisualStyle.ghost);
+          ..useGhostStyle(_outlines);
         _ghostActors[entity.id] = view;
         world.add(view);
       }
@@ -381,7 +384,7 @@ class GhostLayerSystem {
       if (view == null) {
         view = entry.viewFactory(entry.animSet, entry.renderScale)
           ..priority = priorityGhostEntities
-          ..setVisualStyle(RenderVisualStyle.ghost);
+          ..useGhostStyle(_outlines);
         _ghostProjectiles[entity.id] = view;
         _ghostProjectileSpawnTicks[entity.id] = tick;
         world.add(view);

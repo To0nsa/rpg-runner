@@ -1,3 +1,5 @@
+import 'package:rpg_runner/game/components/sprite_anim/ghost_outline_cache.dart';
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -13,7 +15,6 @@ import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/util/vec2.dart';
 import 'package:rpg_runner/game/components/npcs/npc_render_registry.dart';
-import 'package:rpg_runner/game/components/sprite_anim/deterministic_anim_view.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/playtest/runner_playtest_appearance.dart';
 
@@ -140,7 +141,9 @@ void main() {
           );
         }
       }
-      view.setVisualStyle(RenderVisualStyle.ghost);
+      final outlines = GhostOutlineCache();
+      addTearDown(outlines.clear);
+      view.useGhostStyle(outlines);
       view.update(0);
       expect(view.paint.colorFilter, isNotNull);
     }
