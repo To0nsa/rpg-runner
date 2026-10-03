@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_enchanted_forest_normal_001",
   "id": "forest_enchanted_forest_normal_001",
-  "revision": 92,
+  "revision": 94,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -50,10 +50,11 @@
     {
       "prefabId": "rune_rocks_rune_a_01",
       "prefabKey": "rune_rocks_rune_a_01",
-      "x": 283,
-      "y": 181,
+      "x": 280,
+      "y": 182,
       "zIndex": 0,
-      "snapToGrid": false
+      "snapToGrid": false,
+      "scale": 1.5
     },
     {
       "prefabId": "green_woods_tree_trunk_07",

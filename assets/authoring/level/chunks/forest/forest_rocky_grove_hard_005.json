@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_005",
   "id": "forest_rocky_grove_hard_005",
-  "revision": 21,
+  "revision": 23,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -96,6 +96,17 @@
         "height": 64
       },
       "windupMs": 300
+    },
+    {
+      "trapId": "spike",
+      "x": 465,
+      "y": 157,
+      "trigger": {
+        "offsetX": -160,
+        "offsetY": -44,
+        "width": 210,
+        "height": 64
+      }
     }
   ]
 }

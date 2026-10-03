@@ -20,7 +20,7 @@
     },
     {
       "levelId": "forest",
-      "revision": 196,
+      "revision": 200,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
@@ -180,6 +180,14 @@
             "difficulty": "normal",
             "minChunkCount": 3,
             "maxChunkCount": 6,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "default_5",
+            "groupId": "rocky_grove",
+            "difficulty": "hard",
+            "minChunkCount": 9,
+            "maxChunkCount": 9,
             "requireDistinctChunks": true
           }
         ]

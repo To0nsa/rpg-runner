@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_009",
   "id": "forest_rocky_grove_hard_009",
-  "revision": 11,
+  "revision": 25,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -45,7 +45,7 @@
     },
     {
       "shapeId": "solid_002",
-      "collisionMode": "none",
+      "collisionMode": "solid",
       "vertices": [
         {
           "x": 197,
@@ -65,7 +65,7 @@
         }
       ],
       "surfaceKind": "ground",
-      "materialKey": "dirt_hole"
+      "materialKey": "grass_dirt"
     },
     {
       "shapeId": "solid_003",
@@ -90,6 +90,65 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 45,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "huntress",
+          "npcId": "huntress",
+          "x": 225,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "huntress2",
+          "npcId": "huntress2",
+          "x": 98,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "warrior",
+          "npcId": "warrior",
+          "x": 279,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "unocoDemon",
+          "x": 524,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "enemy_2",
+          "enemyId": "grojib",
+          "x": 482,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "enemy_3",
+          "enemyId": "hashash",
+          "x": 565,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ]
     }
   ]
 }

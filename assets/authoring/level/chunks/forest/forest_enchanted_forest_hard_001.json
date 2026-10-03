@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_enchanted_forest_hard_001",
   "id": "forest_enchanted_forest_hard_001",
-  "revision": 92,
+  "revision": 213,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,103 +14,153 @@
   "tileLayers": [],
   "prefabs": [
     {
+      "prefabId": "green_woods_tree_trunk_03",
+      "prefabKey": "green_woods_tree_trunk_03",
+      "x": 88,
+      "y": 145,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_trunk_01",
+      "prefabKey": "green_woods_tree_trunk_01",
+      "x": 436,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_menhir_02",
+      "prefabKey": "rune_rocks_menhir_02",
+      "x": 330,
+      "y": 167,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.2
+    },
+    {
+      "prefabId": "rune_rocks_rune_i_01",
+      "prefabKey": "rune_rocks_rune_i_01",
+      "x": 331,
+      "y": 173,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
       "prefabId": "green_woods_tree_trunk_06",
       "prefabKey": "green_woods_tree_trunk_06",
-      "x": 354,
-      "y": 190,
-      "zIndex": -23,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "green_woods_tree_foliage_07",
-      "prefabKey": "green_woods_tree_foliage_07",
-      "x": 353,
-      "y": 93,
-      "zIndex": -22,
-      "snapToGrid": false,
-      "scale": 0.5
-    },
-    {
-      "prefabId": "green_woods_tree_trunk_04",
-      "prefabKey": "green_woods_tree_trunk_04",
-      "x": 109,
-      "y": 141,
-      "zIndex": -21,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "rune_rocks_menhir_05",
-      "prefabKey": "rune_rocks_menhir_05",
-      "x": 283,
-      "y": 185,
-      "zIndex": -21,
-      "snapToGrid": false,
-      "scale": 1.7
-    },
-    {
-      "prefabId": "rune_rocks_rune_a_01",
-      "prefabKey": "rune_rocks_rune_a_01",
-      "x": 283,
-      "y": 181,
+      "x": 539,
+      "y": 191,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "green_woods_tree_trunk_07",
       "prefabKey": "green_woods_tree_trunk_07",
-      "x": 495,
-      "y": 201,
+      "x": 264,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_flower_01",
+      "prefabKey": "crystal_world_pink_flower_01",
+      "x": 83,
+      "y": 211,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "crystal_world_crystal_world_pink_flower_03",
       "prefabKey": "crystal_world_crystal_world_pink_flower_03",
-      "x": 305,
-      "y": 213,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_pink_moss_10",
-      "prefabKey": "crystal_world_pink_moss_10",
-      "x": 519,
+      "x": 465,
       "y": 215,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "crystal_world_pink_moss_07",
-      "prefabKey": "crystal_world_pink_moss_07",
-      "x": 248,
-      "y": 222,
+      "prefabId": "crystal_world_pink_moss_11",
+      "prefabKey": "crystal_world_pink_moss_11",
+      "x": 566,
+      "y": 217,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "green_woods_tree_foliage_01",
-      "prefabKey": "green_woods_tree_foliage_01",
-      "x": 101,
-      "y": 98,
-      "zIndex": 1,
-      "snapToGrid": false,
-      "scale": 1.2
+      "prefabId": "crystal_world_crystal_world_pink_flower_05",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_05",
+      "x": 513,
+      "y": 219,
+      "zIndex": 0,
+      "snapToGrid": false
     },
     {
-      "prefabId": "green_woods_tree_foliage_08",
-      "prefabKey": "green_woods_tree_foliage_08",
-      "x": 493,
-      "y": 114,
+      "prefabId": "green_woods_tree_foliage_07",
+      "prefabKey": "green_woods_tree_foliage_07",
+      "x": 544,
+      "y": 93,
       "zIndex": 1,
       "snapToGrid": false,
       "scale": 0.5
     },
     {
-      "prefabId": "crystal_world_pink_moss_08",
-      "prefabKey": "crystal_world_pink_moss_08",
-      "x": 69,
-      "y": 215,
+      "prefabId": "green_woods_tree_foliage_08",
+      "prefabKey": "green_woods_tree_foliage_08",
+      "x": 262,
+      "y": 111,
       "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 0.5
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_06",
+      "prefabKey": "green_woods_tree_foliage_06",
+      "x": 88,
+      "y": 120,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_03",
+      "prefabKey": "green_woods_tree_foliage_03",
+      "x": 437,
+      "y": 144,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_01",
+      "prefabKey": "crystal_world_pink_moss_01",
+      "x": 327,
+      "y": 145,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_green_crystal_04",
+      "prefabKey": "fantasy_environment_green_crystal_04",
+      "x": 355,
+      "y": 213,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 0.5,
+      "flipX": true
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_03",
+      "prefabKey": "rune_rocks_mossy_rock_03",
+      "x": 285,
+      "y": 202,
+      "zIndex": 2,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_crystal_world_pink_flower_04",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_04",
+      "x": 249,
+      "y": 214,
+      "zIndex": 3,
       "snapToGrid": false
     }
   ],
@@ -145,7 +195,7 @@
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 459,
+          "x": 139,
           "y": 224
         },
         {
@@ -157,31 +207,7 @@
           "y": 270
         },
         {
-          "x": 459,
-          "y": 270
-        }
-      ],
-      "surfaceKind": "ground",
-      "materialKey": "grass_dirt"
-    },
-    {
-      "shapeId": "solid_002",
-      "collisionMode": "solid",
-      "vertices": [
-        {
-          "x": 231,
-          "y": 224
-        },
-        {
-          "x": 384,
-          "y": 224
-        },
-        {
-          "x": 384,
-          "y": 270
-        },
-        {
-          "x": 231,
+          "x": 139,
           "y": 270
         }
       ],
@@ -189,22 +215,49 @@
       "materialKey": "grass_dirt"
     }
   ],
-  "waterRegions": [
+  "encounters": [
     {
-      "id": "water_1",
-      "x": 139,
-      "y": 224,
-      "width": 92,
-      "height": 46,
-      "materialKey": "biome_water"
-    },
-    {
-      "id": "water_2",
-      "x": 384,
-      "y": 224,
-      "width": 75,
-      "height": 46,
-      "materialKey": "biome_water"
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 41,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "huntress",
+          "npcId": "huntress",
+          "x": 205,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "huntress2",
+          "npcId": "huntress2",
+          "x": 158,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "hashash",
+          "x": 532,
+          "facing": "right",
+          "placement": "ground"
+        },
+        {
+          "id": "enemy_2",
+          "enemyId": "grojib",
+          "x": 469,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ]
     }
   ]
 }

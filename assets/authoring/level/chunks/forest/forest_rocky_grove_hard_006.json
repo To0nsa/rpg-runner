@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_006",
   "id": "forest_rocky_grove_hard_006",
-  "revision": 9,
+  "revision": 14,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -59,8 +59,8 @@
   "markers": [
     {
       "markerId": "grojib",
-      "x": 269,
-      "y": 25,
+      "x": 263,
+      "y": 56,
       "chancePercent": 100,
       "salt": 0,
       "placement": "ground"
@@ -102,6 +102,20 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "poison_darts",
+      "x": 124,
+      "y": 151,
+      "facing": "right",
+      "trigger": {
+        "offsetX": 40,
+        "offsetY": -32,
+        "width": 180,
+        "height": 64
+      }
     }
   ]
 }
