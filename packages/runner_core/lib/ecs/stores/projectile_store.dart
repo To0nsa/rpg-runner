@@ -1,3 +1,5 @@
+import '../../combat/combat_geometry.dart';
+import '../../snapshots/enums.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/damage_credit.dart';
 import '../../combat/faction.dart';
@@ -24,6 +26,7 @@ class ProjectileEntityDef {
     this.maxPierceHits = 1,
     this.usePhysics = false,
     this.firstHitTick = 0,
+    this.spawnTick,
     this.targetPolicy = HitTargetPolicy.hostile,
     this.credit = DamageCredit.none,
     this.sourceTrap,
@@ -52,6 +55,7 @@ class ProjectileEntityDef {
 
   /// Environmental launches defer collision until their first moved tick.
   final int firstHitTick;
+  final int? spawnTick;
   final HitTargetPolicy targetPolicy;
   final DamageCredit credit;
   final TrapSourceRef? sourceTrap;
@@ -78,6 +82,10 @@ class ProjectileStore extends SparseSet {
   final List<int> maxPierceHits = <int>[];
   final List<bool> usePhysics = <bool>[];
   final List<int> firstHitTick = <int>[];
+  final List<int?> spawnTick = [];
+  final List<CombatCapsule?> combatCapsule = [];
+  final List<AnimKey> anim = [];
+  final List<int> animFrame = [];
   final List<HitTargetPolicy> targetPolicy = <HitTargetPolicy>[];
   final List<DamageCredit> credit = [];
   final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
@@ -103,6 +111,7 @@ class ProjectileStore extends SparseSet {
     maxPierceHits[i] = def.maxPierceHits;
     usePhysics[i] = def.usePhysics;
     firstHitTick[i] = def.firstHitTick;
+    spawnTick[i] = def.spawnTick;
     targetPolicy[i] = def.targetPolicy;
     credit[i] = def.credit;
     sourceTrap[i] = def.sourceTrap;
@@ -126,6 +135,10 @@ class ProjectileStore extends SparseSet {
     maxPierceHits.add(1);
     usePhysics.add(false);
     firstHitTick.add(0);
+    spawnTick.add(null);
+    combatCapsule.add(null);
+    anim.add(AnimKey.idle);
+    animFrame.add(0);
     targetPolicy.add(HitTargetPolicy.hostile);
     credit.add(DamageCredit.none);
     sourceTrap.add(null);
@@ -149,6 +162,10 @@ class ProjectileStore extends SparseSet {
     maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     usePhysics[removeIndex] = usePhysics[lastIndex];
     firstHitTick[removeIndex] = firstHitTick[lastIndex];
+    spawnTick[removeIndex] = spawnTick[lastIndex];
+    combatCapsule[removeIndex] = combatCapsule[lastIndex];
+    anim[removeIndex] = anim[lastIndex];
+    animFrame[removeIndex] = animFrame[lastIndex];
     targetPolicy[removeIndex] = targetPolicy[lastIndex];
     credit[removeIndex] = credit[lastIndex];
     sourceTrap[removeIndex] = sourceTrap[lastIndex];
@@ -169,6 +186,10 @@ class ProjectileStore extends SparseSet {
     maxPierceHits.removeLast();
     usePhysics.removeLast();
     firstHitTick.removeLast();
+    spawnTick.removeLast();
+    combatCapsule.removeLast();
+    anim.removeLast();
+    animFrame.removeLast();
     targetPolicy.removeLast();
     credit.removeLast();
     sourceTrap.removeLast();

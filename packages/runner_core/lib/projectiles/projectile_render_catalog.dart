@@ -398,6 +398,13 @@ const RenderAnimSetDefinition _waterBoltRenderAnim = RenderAnimSetDefinition(
 class ProjectileRenderCatalog {
   const ProjectileRenderCatalog();
 
+  /// Shared presentation scale used by profile generation and Flame views.
+  static double scaleFor(ProjectileId id) => switch (id) {
+    ProjectileId.npcSpear || ProjectileId.npcArrow => 1.5,
+    ProjectileId.waterBolt => .5,
+    _ => 1.0,
+  };
+
   static const _npcSpear = RenderAnimSetDefinition(
     frameWidth: 60,
     frameHeight: 20,

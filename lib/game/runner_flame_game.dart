@@ -25,12 +25,10 @@ import 'components/sprite_anim/sprite_anim_set.dart';
 import 'components/enemies/enemy_render_registry.dart';
 import 'components/npcs/npc_render_registry.dart';
 
-import 'package:runner_core/npcs/npc_catalog.dart';
-
 import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/spell_impacts/spell_impact_render_registry.dart';
-import 'debug/debug_aabb_overlay.dart';
+import 'debug/combat_capsule_overlay.dart';
 import 'debug/render_debug_flags.dart';
 import 'game_controller.dart';
 import 'input/aim_preview.dart';
@@ -405,7 +403,6 @@ class RunnerFlameGame extends FlameGame {
       prevById: _prevEntitiesById,
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
-      tick: currSnapshot.tick,
     );
     _liveWorldSync.syncCollectibles(
       currSnapshot.entities,
@@ -415,6 +412,8 @@ class RunnerFlameGame extends FlameGame {
     );
 
     _eventFeedback.flushSpellImpactEvents(
+      animationTick: () => controller.snapshot.tick,
+      tickHz: controller.tickHz,
       cameraCenter: _cameraCenterScratch,
       priority: priorityProjectiles,
     );
@@ -442,7 +441,7 @@ class RunnerFlameGame extends FlameGame {
       _liveWorldSync.clearTriggerHitboxes();
     }
 
-    syncDebugAabbOverlays(
+    syncCombatCapsuleOverlays(
       entities: currSnapshot.entities,
       enabled: drawHitboxes,
       parent: world,
@@ -452,59 +451,9 @@ class RunnerFlameGame extends FlameGame {
       include: (entity) =>
           entity.kind == EntityKind.player ||
           entity.kind == EntityKind.enemy ||
-          entity.kind == EntityKind.npc,
+          entity.kind == EntityKind.npc ||
+          entity.kind == EntityKind.projectile,
       prevById: _prevEntitiesById,
-      offsetXFor: (entity) {
-        switch (entity.kind) {
-          case EntityKind.player:
-            final authoredOffsetX = playerCharacter.catalog.colliderOffsetX;
-            final artFacing = playerCharacter.catalog.facing;
-            return entity.facing == artFacing
-                ? authoredOffsetX
-                : -authoredOffsetX;
-          case EntityKind.enemy:
-            final enemyId = entity.enemyId;
-            if (enemyId == null) {
-              return 0.0;
-            }
-            final authoredOffsetX = controller.enemyCatalog
-                .get(enemyId)
-                .collider
-                .offsetX;
-            final artFacing = entity.artFacingDir ?? entity.facing;
-            return entity.facing == artFacing
-                ? authoredOffsetX
-                : -authoredOffsetX;
-          case EntityKind.npc:
-            final id = entity.npcId;
-            if (id == null) return 0.0;
-            final npc = const NpcCatalog().get(id);
-            return entity.facing == npc.artFacing
-                ? npc.collider.offsetX
-                : -npc.collider.offsetX;
-          default:
-            return 0.0;
-        }
-      },
-      offsetYFor: (entity) {
-        switch (entity.kind) {
-          case EntityKind.player:
-            return playerCharacter.catalog.colliderOffsetY;
-          case EntityKind.enemy:
-            final enemyId = entity.enemyId;
-            if (enemyId == null) {
-              return 0.0;
-            }
-            return controller.enemyCatalog.get(enemyId).collider.offsetY;
-          case EntityKind.npc:
-            final id = entity.npcId;
-            return id == null
-                ? 0.0
-                : const NpcCatalog().get(id).collider.offsetY;
-          default:
-            return 0.0;
-        }
-      },
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );

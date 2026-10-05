@@ -103,12 +103,12 @@ replay was finalized before expiry.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
 - The current hard-cutover compatibility tuple is:
-  - current source game compatibility: `2026.10.4`
+  - current source game compatibility: `2026.10.6`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v2`
   - score: `score-v3`
   - ghost: `ghost-v1`
-- This build rejects previous gameplay versions through `2026.10.2` and
+- This build rejects previous gameplay versions through `2026.10.5` and
   `rules-v1` tickets. It owns one connection-aware selector, the
   128-world-unit camera grace rule, difficulty-paced camera targets, and the
   current capsule combat implementation, plus shared player/ground-enemy water
@@ -198,7 +198,7 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 Terminal stats include `rescuedNpcs` and `rescuePoints`. Shared score calculation
 adds the actual resolved rescue awards and uses the ticket's tick rate. Client
 summary score, rescue and gold claims are ignored; gold rules and exactly-once
-settlement remain unchanged. Current source support is game compatibility `2026.10.4`
+settlement remain unchanged. Current source support is game compatibility `2026.10.6`
 and ranked `rules-v2`/`score-v3`/`ghost-v1`, with replay/command format 1. Distance
 tracks furthest accepted horizontal progress from spawn, so retracing ground
 does not add score. HUD, local results and validation call the same Core metre

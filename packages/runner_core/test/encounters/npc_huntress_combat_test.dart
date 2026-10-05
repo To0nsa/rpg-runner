@@ -1,3 +1,5 @@
+import '../test_support/combat_pose.dart';
+
 import 'package:runner_core/combat/ai_target_policy.dart';
 import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/combat/damage_credit.dart';
@@ -265,7 +267,6 @@ class _Harness {
   late final ProjectileLaunchSystem launch;
   final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 7);
   final hits = HitboxDamageSystem();
-  final follow = HitboxFollowOwnerSystem();
   final lifetime = LifetimeSystem();
   final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
   late final int npc, enemy;
@@ -342,7 +343,8 @@ class _Harness {
     if (decide) ai.step(world, currentTick: tick, dtSeconds: 1 / tickHz);
     MeleeStrikeSystem().step(world, currentTick: tick);
     launch.step(world, currentTick: tick);
-    follow.step(world);
+    resolveCombatPoses(world, tick, tickHz: tickHz);
+    HitboxFollowOwnerSystem(tickHz: tickHz).step(world, currentTick: tick);
     grid.rebuild(world);
     hits.step(world, grid, currentTick: tick);
     status.tickExisting(world);

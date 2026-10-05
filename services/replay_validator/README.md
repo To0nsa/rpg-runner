@@ -60,7 +60,7 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts game compatibility `2026.10.2`;
+The validator source accepts game compatibility `2026.10.6`;
 replay/command format `1`, `rules-v2`, `score-v3`, and `ghost-v1` are the
 supported ranked tuple. Rescue encounter outcomes and points are derived from
 replayed Core; provisional client rescue statistics are ignored. Living survivors
@@ -74,9 +74,12 @@ reduction. Huntress now chooses ranged throws or a per-enemy bleeding
 stab/slash sequence. Run distance now tracks furthest accepted horizontal
 progress from spawn and uses Core's shared 25-world-unit metre conversion
 (24 m per full chunk).
-Retracing ground cannot add distance points. This source change has not been
-deployed; historical results keep their recorded values.
-Previous versions, including `2026.10.1`, are rejected
+Retracing ground cannot add distance points. Current source also aligns visible
+combat poses with fitted attack/body/projectile geometry and fixed-tick damage
+windows; see [combat pose geometry](../../docs/tdd/combat_pose_geometry.md).
+Compatibility `2026.10.6` has not been deployed; historical results keep their
+recorded values.
+Previous versions, including `2026.10.4`, are rejected
 before replay. This build does not ship a historical selector, camera simulation,
 or the retired `rules-v1` combat simulator.
 
@@ -85,10 +88,10 @@ September 25; see [release evidence and verification limits](../../docs/archive/
 The matching `2026.09.10` worker, Functions and web client were deployed
 October 1 from frozen `6bfda4c8`; see [release evidence](../../docs/verification/game-compat-2026.09.10-production.md).
 That historical release excluded later projectile/content edits and section guards.
-The latest recorded production release is [2026.10.1 from frozen `0cb94b94`](../../docs/verification/game-compat-2026.10.1-production.md), deployed October 2.
-Source prepares `2026.10.2` and requires its own coordinated cutover. The recorded
-production exact-image benchmark and infrastructure checks passed;
-signed-in gameplay smoke remains outstanding.
+The latest recorded production release is [2026.10.4 from frozen `43e6c841`](../../docs/verification/game-compat-2026.10.4-production.md), deployed October 3.
+Source prepares `2026.10.6` and requires a coordinated cutover. Its exact-image build,
+exact-image benchmark, infrastructure verification, and signed-in gameplay smoke
+remain pending.
 Use the [release checklist](../../docs/building/rescue_release_operations.md)
 for the remaining signed-in smoke check and any future cutover.
 Stop old issuance and let running validation and settlement finish. Any test-run
@@ -143,7 +146,7 @@ firebase deploy --project rpg-runner-d7add `
 
 Then run the checked-in service/queue policy from the repository root.
 For a game compatibility cutover, stop old issuance and drain validation and
-settlement as described above. Deploy matching `2026.10.2`/`score-v3` worker,
+settlement as described above. Deploy matching `2026.10.6`/`score-v3` worker,
 Functions and client artifacts before enabling new issuance. The preceding September 25
 deployment is recorded above.
 

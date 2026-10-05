@@ -65,7 +65,6 @@ class GhostLayerSystem {
       <int, DeterministicAnimView>{};
   final Map<int, DeterministicAnimView> _ghostProjectiles =
       <int, DeterministicAnimView>{};
-  final Map<int, int> _ghostProjectileSpawnTicks = <int, int>{};
   final Map<int, EntityRenderSnapshot> _prevGhostEntitiesById =
       <int, EntityRenderSnapshot>{};
   final List<ProjectileHitEvent> _pendingGhostProjectileHitEvents =
@@ -296,7 +295,6 @@ class GhostLayerSystem {
       view.removeFromParent();
     }
     _ghostProjectiles.clear();
-    _ghostProjectileSpawnTicks.clear();
     _prevGhostEntitiesById.clear();
     _pendingGhostProjectileHitEvents.clear();
     _pendingGhostSpellImpactEvents.clear();
@@ -348,7 +346,6 @@ class GhostLayerSystem {
       prevById: _prevGhostEntitiesById,
       alpha: alpha,
       cameraCenter: cameraCenter,
-      tick: snapshot.tick,
     );
   }
 
@@ -490,7 +487,6 @@ class GhostLayerSystem {
     required Map<int, EntityRenderSnapshot> prevById,
     required double alpha,
     required Vector2 cameraCenter,
-    required int tick,
   }) {
     final seen = _seenIdsScratch..clear();
     for (final entity in entities) {
@@ -504,14 +500,9 @@ class GhostLayerSystem {
           : _projectileRenderRegistry.entryFor(entity.projectileId!);
       if (entry == null) {
         _ghostProjectiles.remove(entity.id)?.removeFromParent();
-        _ghostProjectileSpawnTicks.remove(entity.id);
         continue;
       }
 
-      final spawnTick = _ghostProjectileSpawnTicks.putIfAbsent(
-        entity.id,
-        () => tick,
-      );
       final prev = prevById[entity.id] ?? entity;
       final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
       final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
@@ -539,41 +530,18 @@ class GhostLayerSystem {
         math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
       );
 
-      final startTicks = entry.spawnAnimTicks(controller.tickHz);
-      final ageTicks = tick - spawnTick;
-      final animOverride =
-          startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
-          ? AnimKey.spawn
-          : AnimKey.idle;
-      final overrideAnimFrame = animOverride == AnimKey.spawn ? ageTicks : null;
-
-      view.applySnapshot(
-        entity,
-        tickHz: controller.tickHz,
-        pos: _snapScratch,
-        overrideAnim: animOverride,
-        overrideAnimFrame: overrideAnimFrame,
-      );
+      view.applySnapshot(entity, tickHz: controller.tickHz, pos: _snapScratch);
       view.setStatusVisualMask(entity.statusVisualMask);
-
-      final spinSpeed = entry.spinSpeedRadPerSecond;
-      if (spinSpeed == 0.0) {
-        view.angle = entity.rotationRad;
-      } else {
-        final spinSeconds = (ageTicks.toDouble() + alpha) / controller.tickHz;
-        view.angle = entity.rotationRad + spinSpeed * spinSeconds;
-      }
     }
 
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _ghostProjectileSpawnTicks.keys) {
+    for (final id in _ghostProjectiles.keys) {
       if (!seen.contains(id)) {
         toRemove.add(id);
       }
     }
     for (final id in toRemove) {
       _ghostProjectiles.remove(id)?.removeFromParent();
-      _ghostProjectileSpawnTicks.remove(id);
     }
   }
 
@@ -646,6 +614,9 @@ class GhostLayerSystem {
 
       final component = _GhostImpact(
         animation: hitAnim,
+        animationTick: () => _ghostSnapshot?.tick ?? event.tick,
+        animationStartTick: event.tick,
+        tickHz: controller.tickHz,
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
@@ -694,6 +665,9 @@ class GhostLayerSystem {
 
       final component = _GhostImpact(
         animation: hitAnim,
+        animationTick: () => _ghostSnapshot?.tick ?? event.tick,
+        animationStartTick: event.tick,
+        tickHz: controller.tickHz,
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
@@ -828,6 +802,9 @@ T _enumByName<T extends Enum>(
 class _GhostImpact extends CameraSpaceSnappedSpriteAnimation {
   _GhostImpact({
     required super.animation,
+    super.animationTick,
+    super.animationStartTick,
+    super.tickHz,
     required super.size,
     required super.worldPosX,
     required super.worldPosY,

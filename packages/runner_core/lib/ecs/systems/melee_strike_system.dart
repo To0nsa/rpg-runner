@@ -77,6 +77,8 @@ class MeleeStrikeSystem {
         hitbox,
         HitboxDef(
           owner: strikeer,
+          profile: intents.profile[ii],
+          hitPolicy: intents.hitPolicy[ii],
           credit: damageCreditFor(world, strikeer),
           abilityId: intents.abilityId[ii],
           faction: faction,

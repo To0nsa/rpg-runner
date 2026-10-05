@@ -87,11 +87,11 @@ timers or duplicate gameplay effects.
 
 ## Compatibility and checks
 
-Current source uses game compatibility `2026.10.4`; client, Functions issuance,
-and validator defaults agree. This revision gives the regeneration blessing equal
-flat bonuses of 0.10 health, mana, and stamina per second. The HUD names it
+Game compatibility `2026.10.4` introduced equal flat regeneration bonuses of
+0.10 health, mana, and stamina per second. Current `2026.10.6` source retains
+those rates across the client, Functions issuance defaults, and validator. The HUD names it
 “Bénédiction des Dames de la forêt”. The worker rejects prior gameplay versions,
-including `2026.10.3`, whose health and mana rates differ.
+including `2026.10.4`, because current Core changes combat pose geometry.
 Command/replay encoding is unchanged, and ranked scoring remains `score-v3`.
 Ship matching client, Functions, and worker through the coordinated
 [release workflow](deployment_workflow.md).

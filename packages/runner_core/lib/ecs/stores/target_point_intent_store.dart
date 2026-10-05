@@ -1,3 +1,4 @@
+import '../../combat/combat_geometry.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../events/game_event.dart';
@@ -10,6 +11,8 @@ import '../sparse_set.dart';
 class TargetPointIntentDef {
   const TargetPointIntentDef({
     required this.abilityId,
+    this.profile,
+    this.frameStepTicks = 1,
     required this.slot,
     required this.damage100,
     this.critChanceBp = 0,
@@ -19,8 +22,8 @@ class TargetPointIntentDef {
     required this.cooldownGroupId,
     required this.damageType,
     this.procs = const <WeaponProc>[],
-    required this.halfX,
-    required this.halfY,
+    this.halfX = 0,
+    this.halfY = 1,
     this.hitPolicy = HitPolicy.oncePerTarget,
     this.sourceKind = DeathSourceKind.spellImpact,
     this.impactEffectId = SpellImpactId.unknown,
@@ -34,6 +37,8 @@ class TargetPointIntentDef {
   });
 
   final AbilityKey abilityId;
+  final CombatStrikeProfile? profile;
+  final int frameStepTicks;
   final AbilitySlot slot;
   final int damage100;
   final int critChanceBp;
@@ -59,6 +64,8 @@ class TargetPointIntentDef {
 
 class TargetPointIntentStore extends SparseSet {
   final List<AbilityKey> abilityId = <AbilityKey>[];
+  final List<CombatStrikeProfile?> profile = [];
+  final List<int> frameStepTicks = [];
   final List<AbilitySlot> slot = <AbilitySlot>[];
   final List<int> damage100 = <int>[];
   final List<int> critChanceBp = <int>[];
@@ -92,6 +99,8 @@ class TargetPointIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     abilityId[i] = def.abilityId;
+    profile[i] = def.profile;
+    frameStepTicks[i] = def.frameStepTicks;
     slot[i] = def.slot;
     damage100[i] = def.damage100;
     critChanceBp[i] = def.critChanceBp;
@@ -118,6 +127,8 @@ class TargetPointIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     abilityId.add('derf.fire_explosion');
+    profile.add(null);
+    frameStepTicks.add(1);
     slot.add(AbilitySlot.projectile);
     damage100.add(0);
     critChanceBp.add(0);
@@ -144,6 +155,8 @@ class TargetPointIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     abilityId[removeIndex] = abilityId[lastIndex];
+    profile[removeIndex] = profile[lastIndex];
+    frameStepTicks[removeIndex] = frameStepTicks[lastIndex];
     slot[removeIndex] = slot[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
@@ -167,6 +180,8 @@ class TargetPointIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     abilityId.removeLast();
+    profile.removeLast();
+    frameStepTicks.removeLast();
     slot.removeLast();
     damage100.removeLast();
     critChanceBp.removeLast();

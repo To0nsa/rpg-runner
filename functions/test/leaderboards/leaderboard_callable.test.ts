@@ -114,7 +114,7 @@ test("handleLeaderboardLoadActiveBoardData rejects unauthenticated requests", as
             sessionId: "session_1",
             mode: "competitive",
             levelId: "field",
-            gameCompatVersion: "2026.10.4",
+            gameCompatVersion: "2026.10.6",
 
           },
         },
@@ -135,7 +135,7 @@ test("handleLeaderboardLoadActiveBoardData rejects userId/auth uid mismatch", as
             sessionId: "session_1",
             mode: "competitive",
             levelId: "field",
-            gameCompatVersion: "2026.10.4",
+            gameCompatVersion: "2026.10.6",
 
           },
         },
@@ -156,7 +156,7 @@ test("handleLeaderboardLoadActiveBoardData rejects client authority time", async
             sessionId: "session_1",
             mode: "competitive",
             levelId: "field",
-            gameCompatVersion: "2026.10.4",
+            gameCompatVersion: "2026.10.6",
 
             nowMs: Date.UTC(2099, 0, 1),
           },
@@ -336,7 +336,7 @@ test("load active board data returns manifest + board + my rank", async () => {
         sessionId: "session_1",
         mode: "competitive",
         levelId: "field",
-        gameCompatVersion: "2026.10.4",
+        gameCompatVersion: "2026.10.6",
 
       },
     },
@@ -361,7 +361,7 @@ test("load active board data provisions board when missing", async () => {
         sessionId: "session_1",
         mode: "competitive",
         levelId: "field",
-        gameCompatVersion: "2026.10.4",
+        gameCompatVersion: "2026.10.6",
 
       },
     },
@@ -503,7 +503,7 @@ async function seedManagedActiveBoard(
       rulesetVersion: "rules-v2",
       scoreVersion: "score-v3",
     },
-    gameCompatVersion: "2026.10.4",
+    gameCompatVersion: "2026.10.6",
 
     ghostVersion: "ghost-v1",
     tickHz: 60,

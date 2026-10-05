@@ -16,6 +16,63 @@ import 'capsule_pose_sweep.dart';
 /// filtering, and stable entity-ID order. It never mutates the ECS world.
 class HitResolver {
   final List<int> _candidates = <int>[];
+  final List<({int index, double fraction})> _sweptContacts = [];
+
+  /// Piercing travel contacts ordered by arrival, then stable entity ID.
+  void collectOrderedSweptCapsuleOverlaps({
+    required BroadphaseGrid broadphase,
+    required double ax,
+    required double ay,
+    required double bx,
+    required double by,
+    required double radius,
+    required double deltaX,
+    required double deltaY,
+    required EntityId owner,
+    required Faction sourceFaction,
+    required List<int> outTargetIndices,
+    HitTargetPolicy targetPolicy = HitTargetPolicy.hostile,
+  }) {
+    outTargetIndices.clear();
+    _sweptContacts.clear();
+    if (!_prepareCandidates(
+      broadphase: broadphase,
+      minX: math.min(ax, bx) + math.min(0, deltaX) - radius,
+      minY: math.min(ay, by) + math.min(0, deltaY) - radius,
+      maxX: math.max(ax, bx) + math.max(0, deltaX) + radius,
+      maxY: math.max(ay, by) + math.max(0, deltaY) + radius,
+    )) {
+      return;
+    }
+    final targets = broadphase.targets;
+    for (final i in _candidates) {
+      if (!_isValidTarget(i, broadphase, owner, sourceFaction, targetPolicy)) {
+        continue;
+      }
+      final fraction = capsuleSweepFirstContact(
+        ax: ax,
+        ay: ay,
+        bx: bx,
+        by: by,
+        radius: radius,
+        deltaX: deltaX,
+        deltaY: deltaY,
+        targetAx: targets.capsuleAx[i],
+        targetAy: targets.capsuleAy[i],
+        targetBx: targets.capsuleBx[i],
+        targetBy: targets.capsuleBy[i],
+        targetRadius: targets.capsuleRadius[i],
+      );
+      if (fraction != null) _sweptContacts.add((index: i, fraction: fraction));
+    }
+    _sweptContacts.sort((a, b) {
+      final order = a.fraction.compareTo(b.fraction);
+      return order != 0
+          ? order
+          : targets.entities[a.index].compareTo(targets.entities[b.index]);
+    });
+    outTargetIndices.addAll(_sweptContacts.map((contact) => contact.index));
+  }
 
   /// Collects all target capsules intersecting the supplied attack capsule.
   ///

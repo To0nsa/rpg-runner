@@ -1,3 +1,5 @@
+import '../../combat/combat_pose_catalog.dart';
+
 import 'package:runner_core/combat/damage_type.dart';
 
 import '../../combat/status/status.dart';
@@ -11,10 +13,7 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
     id: 'grojib.strike',
     category: AbilityCategory.melee,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 56.0,
-      sizeY: 32.0,
-      offsetX: 0.0,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.grojibStrike,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     baseDamage: 800,
@@ -29,10 +28,7 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
     id: 'grojib.strike2',
     category: AbilityCategory.melee,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 56.0,
-      sizeY: 32.0,
-      offsetX: 0.0,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.grojibStrike2,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     baseDamage: 1000,

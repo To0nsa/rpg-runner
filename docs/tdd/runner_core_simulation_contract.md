@@ -62,8 +62,8 @@ order; the contract below records the dependencies that must survive changes.
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
 | 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
-| 5 | Collect pickups, rebuild broadphase, and move existing projectiles | Hit detection requires current spatial data; newly spawned projectiles do not move until a later tick. |
-| 6 | Write enemy intents, execute abilities, then position hitboxes | Self abilities resolve before downstream combat so their effects apply deterministically. |
+| 5 | Collect pickups and move existing projectiles | Newly spawned projectiles do not move until a later tick. |
+| 6 | Write enemy intents, execute abilities, resolve combat poses, rebuild broadphase, then position hitboxes | Self abilities apply before combat; damage queries use current visible poses and positions. |
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
 | 8 | Apply queued statuses and visual cues, process deaths, top-contact interactions, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
 
@@ -74,12 +74,16 @@ same-tick rescue and finalizes unresolved groups and stops surviving section
 guards before death freeze or final stats. See [encounter contracts](npc_encounter_contracts.md) for the delivered
 controller, actor integration and streaming-retention contract.
 
-Combat spatial lookup has a two-stage deterministic contract. During phase 5,
-`DamageableTargetCache` requires every live damageable actor to have faction,
-transform, authored collider, and `WorldContactCapsuleStore` state. It resolves
-the facing-aware quantized capsule once and derives the spatial-grid AABB from
-those exact endpoints and radius. Missing capsule state is an invalid world
-composition and fails rather than falling back to a rectangle.
+Combat spatial lookup resolves current vulnerable body poses before rebuilding
+`DamageableTargetCache`. Live damageable actors require faction, transform,
+authored collider, and immutable `WorldContactCapsuleStore` state. The separate
+`CombatHurtboxStore` supplies pose-dependent endpoints and radius; stable poses
+reuse the terrain capsule. The broadphase AABB encloses those exact combat
+endpoints. Missing terrain capsule state remains invalid world composition.
+Animation and collision share phase-aligned pose selection, with a final
+reaction pass that does not advance locomotion twice. See
+[combat pose geometry](combat_pose_geometry.md) for ownership, action timing,
+projectile/impact clocks, and snapshot/debug contracts.
 
 Damage grants post-hit invulnerability immediately, protecting against later
 queued damage in the same tick. Victim-targeted on-hit/on-crit status requests
@@ -322,18 +326,18 @@ outcomes and is released as game compatibility `2026.09.10`.
 Top-contact world interactions run after death resolution and before resource
 regeneration. They consume final support and grant player-owned level blessings;
 streaming retirement never removes a granted bonus. Current source uses
-`2026.10.4` with equal 0.10/second health, mana, and stamina bonuses. See
+`2026.10.6` with equal 0.10/second health, mana, and stamina bonuses. See
 [world interactions](world_interactions.md).
 
 ## Outputs and consumers
 
 ### Run distance
 
-Current source compatibility is `2026.10.4`, with ranked scoring `score-v3`.
+Current source compatibility is `2026.10.6`, with ranked scoring `score-v3`.
 After world motion and before terminal fall checks, `GameCore` records the
 motion authority's signed accepted player body X displacement in a per-run
 `RunDistanceTracker`. The authority excludes recovery corrections and facing
-offset changes. Tick order, movement and command encoding are unchanged.
+offset changes. Distance accounting preserves movement and command encoding.
 
 The tracker starts at zero, sums signed displacement and retains the largest
 nonnegative cumulative value. Therefore backing up does not lose earned progress,

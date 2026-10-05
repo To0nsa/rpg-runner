@@ -1,3 +1,5 @@
+import '../../combat/combat_pose_catalog.dart';
+
 import 'package:runner_core/combat/damage_type.dart';
 
 import '../../snapshots/enums.dart';
@@ -9,10 +11,7 @@ final Map<AbilityKey, AbilityDef> hashashAbilityDefs = <AbilityKey, AbilityDef>{
     id: 'hashash.strike',
     category: AbilityCategory.melee,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 44.0,
-      sizeY: 26.0,
-      offsetX: 2.0,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.hashashStrike,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     baseDamage: 900,
@@ -42,10 +41,7 @@ final Map<AbilityKey, AbilityDef> hashashAbilityDefs = <AbilityKey, AbilityDef>{
     id: 'hashash.ambush',
     category: AbilityCategory.melee,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 52.0,
-      sizeY: 28.0,
-      offsetX: 2.0,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.hashashAmbush,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     baseDamage: 1200,

@@ -1,3 +1,4 @@
+import '../../combat/combat_geometry.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../weapons/weapon_proc.dart';
@@ -7,15 +8,17 @@ import '../sparse_set.dart';
 class MeleeIntentDef {
   const MeleeIntentDef({
     required this.abilityId,
+    this.profile,
+    this.hitPolicy = HitPolicy.oncePerTarget,
     required this.slot,
     required this.damage100,
     this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
-    required this.halfX,
-    required this.halfY,
-    required this.offsetX,
-    required this.offsetY,
+    this.halfX = 0,
+    this.halfY = 1,
+    this.offsetX = 0,
+    this.offsetY = 0,
     required this.dirX,
     required this.dirY,
     required this.commitTick,
@@ -29,6 +32,8 @@ class MeleeIntentDef {
   });
 
   final AbilityKey abilityId;
+  final CombatStrikeProfile? profile;
+  final HitPolicy hitPolicy;
   final AbilitySlot slot;
 
   /// Fixed-point: 100 = 1.0
@@ -74,6 +79,8 @@ class MeleeIntentDef {
 /// Old intents are ignored if `tick` matches current game tick.
 class MeleeIntentStore extends SparseSet {
   final List<AbilityKey?> abilityId = <AbilityKey?>[];
+  final List<CombatStrikeProfile?> profile = [];
+  final List<HitPolicy> hitPolicy = [];
   final List<AbilitySlot> slot = <AbilitySlot>[];
 
   /// Fixed-point: 100 = 1.0
@@ -110,6 +117,8 @@ class MeleeIntentStore extends SparseSet {
     final i = indexOf(entity);
     abilityId[i] = def.abilityId;
     slot[i] = def.slot;
+    profile[i] = def.profile;
+    hitPolicy[i] = def.hitPolicy;
     damage100[i] = def.damage100;
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
@@ -134,6 +143,8 @@ class MeleeIntentStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     abilityId.add(null);
     slot.add(AbilitySlot.primary);
+    profile.add(null);
+    hitPolicy.add(HitPolicy.oncePerTarget);
     damage100.add(0);
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
@@ -158,6 +169,8 @@ class MeleeIntentStore extends SparseSet {
   void onSwapRemove(int removeIndex, int lastIndex) {
     abilityId[removeIndex] = abilityId[lastIndex];
     slot[removeIndex] = slot[lastIndex];
+    profile[removeIndex] = profile[lastIndex];
+    hitPolicy[removeIndex] = hitPolicy[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
@@ -179,6 +192,8 @@ class MeleeIntentStore extends SparseSet {
 
     abilityId.removeLast();
     slot.removeLast();
+    profile.removeLast();
+    hitPolicy.removeLast();
     damage100.removeLast();
     critChanceBp.removeLast();
     damageType.removeLast();

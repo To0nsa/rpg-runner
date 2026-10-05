@@ -1,11 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/game_core.dart';
+
 import '../support/test_level.dart';
+
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/players/player_tuning.dart';
@@ -19,6 +19,44 @@ import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
+  test(
+    'back strike mirrors its own source art and damage behind the player',
+    () {
+      final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+        seed: 1,
+        playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: const BodyDef(isKinematic: true, useGravity: false),
+          ),
+        ),
+      );
+      expect(
+        core
+            .buildSnapshot()
+            .entities
+            .firstWhere((e) => e.kind == EntityKind.player)
+            .combatCapsules,
+        isNotEmpty,
+      );
+      core.applyCommands(const [
+        AimDirCommand(tick: 1, x: -1, y: 0),
+        StrikePressedCommand(tick: 1),
+      ]);
+      for (var i = 0; i < 9; i++) {
+        core.stepOneTick();
+      }
+      final entities = core.buildSnapshot().entities;
+      final player = entities.firstWhere((e) => e.kind == EntityKind.player);
+      final attack = entities.firstWhere((e) => e.kind == EntityKind.trigger);
+      expect(player.anim, AnimKey.backStrike);
+      expect(player.artFacingDir, Facing.left);
+      expect(player.facing, Facing.right);
+      expect(player.rotationRad, closeTo(0, 1e-9));
+      expect(attack.combatCapsules.every((c) => c.maxX < 0), isTrue);
+    },
+  );
+
   test('melee: strike spawns hitbox for active ticks', () {
     final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -73,14 +111,13 @@ void main() {
         .toList();
     expect(hitboxes.length, 1);
     final hitDelivery = ability.hitDelivery as MeleeHitDelivery;
-    final hitboxHalfX = hitDelivery.sizeX * 0.5;
-    final hitboxHalfY = hitDelivery.sizeY * 0.5;
-    final forward =
-        (catalog.colliderMaxHalfExtent * 0.5) +
-        max(hitboxHalfX, hitboxHalfY) +
-        hitDelivery.offsetX;
-    expect(hitboxes.single.pos.x, closeTo(playerX + forward, 1e-9));
+    expect(hitboxes.single.pos.x, closeTo(playerX, 1e-9));
     expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
+    expect(
+      hitboxes.single.combatCapsules.length,
+      hitDelivery.profile.frames[2].length,
+    );
+    expect(hitboxes.single.combatCapsules.first.maxX, lessThan(40));
     expect(
       snapshot.hud.stamina,
       closeTo(initialHud.stamina - abilityTuning.meleeStaminaCost, 1e-9),
@@ -178,13 +215,11 @@ void main() {
         .toList();
     expect(hitboxes.length, 1);
     expect(hitboxes.single.pos.x, closeTo(playerX, 1e-9));
-    final hitDelivery = ability.hitDelivery as MeleeHitDelivery;
-    final hitboxHalfX = hitDelivery.sizeX * 0.5;
-    final hitboxHalfY = hitDelivery.sizeY * 0.5;
-    final forward =
-        (catalog.colliderMaxHalfExtent * 0.5) +
-        max(hitboxHalfX, hitboxHalfY) +
-        hitDelivery.offsetX;
-    expect(hitboxes.single.pos.y, closeTo(playerY - forward, 1e-9));
+    expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
+    final player = snapshot.entities.firstWhere(
+      (e) => e.kind == EntityKind.player,
+    );
+    expect(player.rotationRad, closeTo(-1.5707963267948966, 1e-9));
+    expect(hitboxes.single.combatCapsules.first.minY, lessThan(-30));
   });
 }

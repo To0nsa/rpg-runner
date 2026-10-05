@@ -1,3 +1,5 @@
+import '../../combat/combat_pose_catalog.dart';
+
 import 'package:runner_core/combat/damage_type.dart';
 
 import '../../projectiles/projectile_id.dart';
@@ -27,10 +29,7 @@ final Map<AbilityKey, AbilityDef> unocoAbilityDefs = <AbilityKey, AbilityDef>{
     allowedSlots: {AbilitySlot.primary},
     inputLifecycle: AbilityInputLifecycle.tap,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 56.0,
-      sizeY: 32.0,
-      offsetX: 0.0,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.unocoStrike,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     baseDamage: 800,

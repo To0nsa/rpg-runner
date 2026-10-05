@@ -1,3 +1,4 @@
+import '../../combat/combat_pose_catalog.dart';
 import '../../combat/status/status.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../snapshots/enums.dart';
@@ -16,10 +17,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     targetingModel: TargetingModel.directional,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 32,
-      sizeY: 32,
-      offsetX: 12,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.eloiseStrike,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     // 6 frames @ 0.06s = 0.36s -> ~22 ticks
@@ -41,10 +39,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     targetingModel: TargetingModel.aimedCharge,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 32,
-      sizeY: 32,
-      offsetX: 12,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.eloiseStrike,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     windupTicks: 10,
@@ -92,10 +87,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     targetingModel: TargetingModel.homing,
     inputLifecycle: AbilityInputLifecycle.tap,
     hitDelivery: MeleeHitDelivery(
-      sizeX: 32,
-      sizeY: 32,
-      offsetX: 12,
-      offsetY: 0.0,
+      profile: CombatPoseCatalog.eloiseStrike,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     // Match Sword Strike exactly; only targeting differs.

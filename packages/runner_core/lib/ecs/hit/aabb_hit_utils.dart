@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../combat/faction.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../collider_aabb_utils.dart';
@@ -24,7 +26,8 @@ bool areAllies(Faction a, Faction b) => a == b;
 /// - `HealthStore` (source list)
 /// - `FactionStore` (for friendly-fire filtering)
 /// - `TransformStore` + `ColliderAabbStore` (for non-combat consumers)
-/// - `WorldContactCapsuleStore` (for combat bounds and narrow phase)
+/// - `WorldContactCapsuleStore` (required terrain shape and stable body baseline)
+/// - resolved `CombatHurtboxStore` poses supply current combat bounds when present
 ///
 /// Determinism: preserves `HealthStore.denseEntities` iteration order.
 class DamageableTargetCache {
@@ -115,19 +118,32 @@ class DamageableTargetCache {
           world.transform.posY[ti] +
           world.worldContactCapsule.offsetYTicks[capsuleIndex] / scale;
 
-      // The spatial grid indexes these tight bounds, while combat confirmation
-      // uses the matching capsule values cached beside them.
+      final pi = world.combatHurtbox.tryIndexOf(e);
+      final pose = pi == null ? null : world.combatHurtbox.capsule[pi];
+      final ax = pose == null ? cx : world.transform.posX[ti] + pose.ax;
+      final ay = pose == null
+          ? cy - verticalHalfSegment
+          : world.transform.posY[ti] + pose.ay;
+      final bx = pose == null ? cx : world.transform.posX[ti] + pose.bx;
+      final by = pose == null
+          ? cy + verticalHalfSegment
+          : world.transform.posY[ti] + pose.by;
+      final combatRadius = pose?.radius ?? radius;
+      final minX = math.min(ax, bx) - combatRadius;
+      final maxX = math.max(ax, bx) + combatRadius;
+      final minY = math.min(ay, by) - combatRadius;
+      final maxY = math.max(ay, by) + combatRadius;
       entities.add(e);
       factions.add(world.faction.faction[fi]);
-      centerX.add(cx);
-      centerY.add(cy);
-      halfX.add(radius);
-      halfY.add(radius + verticalHalfSegment);
-      capsuleAx.add(cx);
-      capsuleAy.add(cy - verticalHalfSegment);
-      capsuleBx.add(cx);
-      capsuleBy.add(cy + verticalHalfSegment);
-      capsuleRadius.add(radius);
+      centerX.add((minX + maxX) * 0.5);
+      centerY.add((minY + maxY) * 0.5);
+      halfX.add((maxX - minX) * 0.5);
+      halfY.add((maxY - minY) * 0.5);
+      capsuleAx.add(ax);
+      capsuleAy.add(ay);
+      capsuleBx.add(bx);
+      capsuleBy.add(by);
+      capsuleRadius.add(combatRadius);
     }
   }
 }

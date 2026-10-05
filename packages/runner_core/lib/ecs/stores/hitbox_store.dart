@@ -1,3 +1,4 @@
+import '../../combat/combat_geometry.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/damage_credit.dart';
@@ -18,6 +19,9 @@ enum HitboxAttachment {
 class HitboxDef {
   const HitboxDef({
     required this.owner,
+    this.profile,
+    this.frameStepTicks = 1,
+    this.spawnTick = 0,
     this.abilityId,
     required this.faction,
     required this.damage100,
@@ -28,15 +32,18 @@ class HitboxDef {
     this.sourceKind = DeathSourceKind.meleeHitbox,
     this.attachment = HitboxAttachment.followOwner,
     this.credit = DamageCredit.none,
-    required this.halfX,
-    required this.halfY,
-    required this.offsetX,
-    required this.offsetY,
+    this.halfX = 0,
+    this.halfY = 1,
+    this.offsetX = 0,
+    this.offsetY = 0,
     required this.dirX,
     required this.dirY,
   });
 
   final EntityId owner;
+  final CombatStrikeProfile? profile;
+  final int frameStepTicks;
+  final int spawnTick;
   final AbilityKey? abilityId;
   final Faction faction;
 
@@ -51,6 +58,8 @@ class HitboxDef {
   final DeathSourceKind sourceKind;
   final HitboxAttachment attachment;
   final DamageCredit credit;
+
+  /// Unprofiled low-level capsule half-spine; rounded ends are additional.
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -65,6 +74,10 @@ class HitboxDef {
 /// They are queried by `HitboxDamageSystem`.
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
+  final List<CombatStrikeProfile?> profile = [];
+  final List<int> frameStepTicks = [];
+  final List<int> spawnTick = [];
+  final List<List<CombatCapsule>?> capsules = [];
   final List<AbilityKey?> abilityId = <AbilityKey?>[];
   final List<Faction> faction = <Faction>[];
 
@@ -89,6 +102,10 @@ class HitboxStore extends SparseSet {
     owner[i] = def.owner;
     abilityId[i] = def.abilityId;
     faction[i] = def.faction;
+    profile[i] = def.profile;
+    capsules[i] = def.profile == null ? null : const [];
+    frameStepTicks[i] = def.frameStepTicks;
+    spawnTick[i] = def.spawnTick;
     damage100[i] = def.damage100;
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
@@ -110,6 +127,10 @@ class HitboxStore extends SparseSet {
     owner.add(0);
     abilityId.add(null);
     faction.add(Faction.player);
+    profile.add(null);
+    frameStepTicks.add(1);
+    spawnTick.add(0);
+    capsules.add(null);
     damage100.add(0);
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
@@ -131,6 +152,10 @@ class HitboxStore extends SparseSet {
     owner[removeIndex] = owner[lastIndex];
     abilityId[removeIndex] = abilityId[lastIndex];
     faction[removeIndex] = faction[lastIndex];
+    profile[removeIndex] = profile[lastIndex];
+    frameStepTicks[removeIndex] = frameStepTicks[lastIndex];
+    spawnTick[removeIndex] = spawnTick[lastIndex];
+    capsules[removeIndex] = capsules[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
@@ -149,6 +174,10 @@ class HitboxStore extends SparseSet {
     owner.removeLast();
     abilityId.removeLast();
     faction.removeLast();
+    profile.removeLast();
+    frameStepTicks.removeLast();
+    spawnTick.removeLast();
+    capsules.removeLast();
     damage100.removeLast();
     critChanceBp.removeLast();
     damageType.removeLast();

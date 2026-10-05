@@ -144,7 +144,7 @@ test("handleRunBoardsLoadActive rejects unsupported game compatibility", async (
       rulesetVersion: "rules-v1",
       scoreVersion: "score-v3",
     },
-    gameCompatVersion: "2026.10.4",
+    gameCompatVersion: "2026.10.6",
 
     ghostVersion: "ghost-v1",
     tickHz: 60,
@@ -266,7 +266,7 @@ function validRunSessionPayload(
     clientRequestId: "run_request_1",
     mode: "practice",
     levelId: "field",
-    gameCompatVersion: "2026.10.4",
+    gameCompatVersion: "2026.10.6",
 
     ...overrides,
   };
@@ -280,7 +280,7 @@ function validBoardLoadPayload(
     sessionId: "session_1",
     mode: "competitive",
     levelId: "field",
-    gameCompatVersion: "2026.10.4",
+    gameCompatVersion: "2026.10.6",
 
     ...overrides,
   };

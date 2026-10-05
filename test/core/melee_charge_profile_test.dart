@@ -1,3 +1,4 @@
+import 'package:runner_core/combat/combat_geometry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/abilities/ability_catalog.dart';
@@ -27,10 +28,16 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
         targetingModel: TargetingModel.directional,
         inputLifecycle: AbilityInputLifecycle.holdRelease,
         hitDelivery: MeleeHitDelivery(
-          sizeX: 20,
-          sizeY: 20,
-          offsetX: 0,
-          offsetY: 0,
+          profile: CombatStrikeProfile(
+            timing: ActionFramePolicy(
+              frameCount: 1,
+              activeStart: 0,
+              activeEnd: 1,
+            ),
+            frames: [
+              [CombatCapsule(-10, 0, 10, 0, 10)],
+            ],
+          ),
           hitPolicy: HitPolicy.oncePerTarget,
         ),
         windupTicks: 4,
@@ -104,7 +111,10 @@ void main() {
 
       system.step(world, player: player, currentTick: 100);
       final mi = world.meleeIntent.indexOf(player);
-      return (world.meleeIntent.damage100[mi], world.meleeIntent.halfX[mi]);
+      return (
+        world.meleeIntent.damage100[mi],
+        world.meleeIntent.profile[mi]!.reach,
+      );
     }
 
     final tap = resolveMeleeIntent(chargeTicks: 0);
@@ -112,5 +122,6 @@ void main() {
 
     expect(charged.$1, greaterThan(tap.$1));
     expect(charged.$2, closeTo(tap.$2, 1e-9));
+    expect(charged.$2, 20);
   });
 }

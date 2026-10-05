@@ -16,6 +16,7 @@ This document tracks Eloise mobility/jump abilities from `eloise_ability_defs.da
 - Mobility input preempts combat: on dash/jump press, pending combat intents, buffered input, and active non-mobility ability are cleared.
 - `dash` uses authored `mobilitySpeedX: 550`.
 - `roll` uses authored `mobilitySpeedX: 400` and applies `StatusProfileId.stunOnHit` on mobility contact (`oncePerTarget`).
+- Roll vulnerability and contact stun follow the low visible body pose; terrain support keeps its stable capsule. This does not grant roll invulnerability.
 - Jump execution is handled in `JumpSystem` with coyote + jump-buffer rules.
 
 ## Double Jump Contract

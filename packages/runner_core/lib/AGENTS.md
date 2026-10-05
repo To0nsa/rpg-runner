@@ -53,6 +53,8 @@ Core currently depends on deterministic fixed-tick behavior. Preserve these rule
 - timing should be expressed in ticks or derived tick math, not frame-time drift
 - equal inputs must continue to produce equal snapshots and events
 - tie-breaks must stay stable when iterating entities or resolving conflicts
+- combat poses, flight ages and attack geometry share Core clocks; resolve them before broadphase and never derive collision from render time
+- keep vulnerable body poses separate from immutable terrain/navigation capsules
 
 If you touch a rule that could affect replay stability, document it and add or update tests.
 

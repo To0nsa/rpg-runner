@@ -512,7 +512,7 @@ class _RecordingRunSessionApi implements RunSessionApi {
           userId: 'user_1',
           mode: requestedModes.last,
           levelId: requestedLevels.last,
-          gameCompatVersion: '2026.10.4',
+          gameCompatVersion: '2026.10.6',
         ),
         runSessionId: 'run_session_$createRunSessionCalls',
         expiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,

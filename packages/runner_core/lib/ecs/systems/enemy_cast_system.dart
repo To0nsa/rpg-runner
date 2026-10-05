@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
@@ -428,8 +430,11 @@ class AiCastCommitter {
         cooldownGroupId: cooldownGroupId,
         damageType: payload.damageType,
         procs: payload.procs,
-        halfX: hitDelivery.halfX,
-        halfY: hitDelivery.halfY,
+        profile: hitDelivery.profile,
+        frameStepTicks: math.max(
+          1,
+          (hitDelivery.stepTimeSeconds * tickHz).round(),
+        ),
         hitPolicy: hitDelivery.hitPolicy,
         sourceKind: DeathSourceKind.spellImpact,
         impactEffectId: hitDelivery.impactEffectId,

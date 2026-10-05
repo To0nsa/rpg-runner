@@ -62,6 +62,8 @@ import 'ecs/systems/hashash_teleport_ambush_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/hitbox_follow_owner_system.dart';
+import 'ecs/systems/combat_hurtbox_system.dart';
+import 'ecs/systems/projectile_pose_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/melee_strike_system.dart';
@@ -565,6 +567,7 @@ class GameCore {
       playerDeathStartTick: _playerDeathStartTick,
       playerSpawnStartTick: _playerSpawnStartTick,
     );
+    _combatHurtboxSystem.step(_world);
   }
 
   /// Initializes all ECS systems.
@@ -600,7 +603,12 @@ class GameCore {
     );
 
     // Hitbox management.
-    _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
+    _projectilePoseSystem = ProjectilePoseSystem(tickHz: tickHz);
+    _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem(tickHz: tickHz);
+    _combatHurtboxSystem = CombatHurtboxSystem(
+      tickHz: tickHz,
+      playerRenderAnim: _playerCharacter.renderAnim,
+    );
     _lifetimeSystem = LifetimeSystem();
 
     // Damage pipeline.
@@ -656,6 +664,7 @@ class GameCore {
     _deathDespawnSystem = DeathDespawnSystem();
     _enemyCullSystem = EnemyCullSystem();
     _animSystem = AnimSystem(
+      playerRenderAnim: _playerCharacter.renderAnim,
       tickHz: tickHz,
       enemyCatalog: _enemyCatalog,
       playerMovement: _movement,
@@ -950,6 +959,8 @@ class GameCore {
   late final ProjectileWorldCollisionSystem _projectileWorldCollisionSystem;
   late final BroadphaseGrid _broadphaseGrid;
   late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
+  late final CombatHurtboxSystem _combatHurtboxSystem;
+  late final ProjectilePoseSystem _projectilePoseSystem;
   late final CollectibleSystem _collectibleSystem;
   late final RestorationItemSystem _restorationItemSystem;
   late final LifetimeSystem _lifetimeSystem;
@@ -1689,8 +1700,7 @@ class GameCore {
     );
 
     // ─── Phase 7: Spatial grid rebuild ───
-    // Must happen before hit detection to ensure accurate overlaps.
-    _broadphaseGrid.rebuild(_world);
+    // Resolved in Phase 11 after action commits and pose selection.
 
     // ─── Phase 8: Projectile movement ───
     // Move existing projectiles before spawning new ones.
@@ -1718,8 +1728,20 @@ class GameCore {
     _targetPointImpactSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
-    // Update hitbox transforms to follow their owner entities.
-    _hitboxFollowOwnerSystem.step(_world);
+    // Select visible poses before building combat bounds. The final animation
+    // pass incorporates damage/death without advancing locomotion again.
+    _animSystem.step(
+      _world,
+      player: _player,
+      currentTick: tick,
+      playerDeathPhase: _playerDeathPhase,
+      playerDeathStartTick: _playerDeathStartTick,
+      playerSpawnStartTick: _playerSpawnStartTick,
+    );
+    _combatHurtboxSystem.step(_world);
+    _projectilePoseSystem.step(_world, currentTick: tick);
+    _broadphaseGrid.rebuild(_world);
+    _hitboxFollowOwnerSystem.step(_world, currentTick: tick);
 
     // ─── Phase 12: Hit resolution + mobility impacts ───
     // Detect overlaps and queue damage events.
@@ -1898,7 +1920,9 @@ class GameCore {
       playerDeathPhase: _playerDeathPhase,
       playerDeathStartTick: _playerDeathStartTick,
       playerSpawnStartTick: _playerSpawnStartTick,
+      advanceLocomotion: false,
     );
+    _combatHurtboxSystem.step(_world);
 
     // ─── Phase 17: Cleanup ───
     _lifetimeSystem.step(_world);

@@ -83,10 +83,7 @@ class EnemyMeleeSystem {
         continue;
       }
       if (!world.colliderAabb.has(enemy)) {
-        assert(
-          false,
-          'Enemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
-        );
+        assert(false, 'Enemy melee requires an actor terrain collider.');
         continue;
       }
 
@@ -180,29 +177,16 @@ class AiMeleeCommitter {
     setActorFacing(world, actor, facing);
     final dirX = facing == Facing.right ? 1.0 : -1.0;
 
-    final halfX = hitDelivery.sizeX * 0.5;
-    final halfY = hitDelivery.sizeY * 0.5;
-    final colliderIndex = world.colliderAabb.indexOf(actor);
-    final ownerHalfX = world.colliderAabb.halfX[colliderIndex];
-    final ownerHalfY = world.colliderAabb.halfY[colliderIndex];
-    final maxHalfExtent = max(ownerHalfX, ownerHalfY);
-    final forward =
-        maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
-    final offsetX = dirX * forward;
-    final offsetY = hitDelivery.offsetY;
-
     world.meleeIntent.set(
       actor,
       MeleeIntentDef(
+        profile: hitDelivery.profile,
+        hitPolicy: hitDelivery.hitPolicy,
         abilityId: abilityId,
         slot: AbilitySlot.primary,
         damage100: ability.baseDamage,
         damageType: ability.baseDamageType,
         procs: ability.procs,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
         dirX: dirX,
         dirY: 0.0,
         commitTick: commitTick,

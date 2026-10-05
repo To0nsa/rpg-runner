@@ -75,7 +75,8 @@ class ProjectileHitSystem {
       final pcy = transforms.posY[ti] + colliders.offsetY[ci];
 
       final halfLength = colliders.halfX[ci];
-      final radius = colliders.halfY[ci];
+      final shape = projectiles.combatCapsule[pi];
+      final radius = shape?.radius ?? colliders.halfY[ci];
 
       final dirX = projectiles.dirX[pi];
       final dirY = projectiles.dirY[pi];
@@ -84,10 +85,18 @@ class ProjectileHitSystem {
 
       // Calculate the start (A) and end (B) points of the capsule segment.
       // The segment is centered at (pcx, pcy) and extends halfLength in both directions along (dirX, dirY).
-      final ax = pcx - dirX * halfLength;
-      final ay = pcy - dirY * halfLength;
-      final bx = pcx + dirX * halfLength;
-      final by = pcy + dirY * halfLength;
+      final ax = shape == null
+          ? pcx - dirX * halfLength
+          : transforms.posX[ti] + shape.ax;
+      final ay = shape == null
+          ? pcy - dirY * halfLength
+          : transforms.posY[ti] + shape.ay;
+      final bx = shape == null
+          ? pcx + dirX * halfLength
+          : transforms.posX[ti] + shape.bx;
+      final by = shape == null
+          ? pcy + dirY * halfLength
+          : transforms.posY[ti] + shape.by;
 
       // -- Hit Resolution --
       var owner = projectiles.owner[pi];
@@ -104,15 +113,23 @@ class ProjectileHitSystem {
       final isPiercing = projectiles.pierce[pi];
       final maxPierceHits = projectiles.maxPierceHits[pi];
 
+      final deltaX =
+          transforms.posX[ti] -
+          (projectiles.previousX[pi] ?? transforms.posX[ti]);
+      final deltaY =
+          transforms.posY[ti] -
+          (projectiles.previousY[pi] ?? transforms.posY[ti]);
       if (isPiercing) {
         _overlaps.clear();
-        _resolver.collectOrderedOverlapsCapsule(
+        _resolver.collectOrderedSweptCapsuleOverlaps(
           broadphase: broadphase,
-          ax: ax,
-          ay: ay,
-          bx: bx,
-          by: by,
+          ax: ax - deltaX,
+          ay: ay - deltaY,
+          bx: bx - deltaX,
+          by: by - deltaY,
           radius: radius,
+          deltaX: deltaX,
+          deltaY: deltaY,
           owner: owner,
           sourceFaction: sourceFaction,
           outTargetIndices: _overlaps,
@@ -168,12 +185,6 @@ class ProjectileHitSystem {
         continue;
       }
 
-      final deltaX =
-          transforms.posX[ti] -
-          (projectiles.previousX[pi] ?? transforms.posX[ti]);
-      final deltaY =
-          transforms.posY[ti] -
-          (projectiles.previousY[pi] ?? transforms.posY[ti]);
       final contact = _resolver.firstSweptCapsuleContact(
         broadphase: broadphase,
         ax: ax - deltaX,

@@ -5,6 +5,7 @@
 library;
 
 import '../combat/control_lock.dart';
+import '../combat/combat_geometry.dart';
 import '../enemies/enemy_id.dart';
 import '../npcs/npc_id.dart';
 import '../util/vec2.dart';
@@ -25,6 +26,8 @@ class EntityRenderSnapshot {
     required this.grounded,
     this.artFacingDir,
     this.vel,
+    this.combatCapsules = const [],
+    this.spawnTick,
     this.size,
     this.enemyId,
     this.npcId,
@@ -51,6 +54,10 @@ class EntityRenderSnapshot {
 
   /// Optional world velocity (useful for facing/animation).
   final Vec2? vel;
+
+  /// Exact anchor-relative damage or vulnerable-body capsules, already oriented.
+  final List<CombatCapsule> combatCapsules;
+  final int? spawnTick;
 
   /// Optional full extents in world units (virtual pixels).
   ///

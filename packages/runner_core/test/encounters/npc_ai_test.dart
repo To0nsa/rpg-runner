@@ -1,3 +1,5 @@
+import '../test_support/combat_pose.dart';
+
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/combat/ai_target_policy.dart';
@@ -69,7 +71,8 @@ void main() {
     MeleeStrikeSystem().step(world, currentTick: 22);
     MeleeStrikeSystem().step(world, currentTick: 22);
     expect(world.hitbox.denseEntities, hasLength(1));
-    HitboxFollowOwnerSystem().step(world);
+    resolveCombatPoses(world, 22);
+    HitboxFollowOwnerSystem().step(world, currentTick: 22);
     final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64))
       ..rebuild(world);
     HitboxDamageSystem().step(world, grid, currentTick: 22);

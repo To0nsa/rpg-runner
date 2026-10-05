@@ -1,3 +1,5 @@
+import '../debug/combat_capsule_overlay.dart';
+
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
@@ -62,11 +64,11 @@ class LiveWorldSyncSystem {
       <int, DeterministicAnimView>{};
   final Map<int, DeterministicAnimView> _actors =
       <int, DeterministicAnimView>{};
-  final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
+  final Map<int, CombatCapsuleOverlay> _hitboxes =
+      <int, CombatCapsuleOverlay>{};
   final Map<int, NpcHealthIndicator> _npcHealth = {};
-  final Map<int, RectangleComponent> _actorHitboxes =
-      <int, RectangleComponent>{};
-  final Map<int, int> _projectileSpawnTicks = <int, int>{};
+  final Map<int, CombatCapsuleOverlay> _actorHitboxes =
+      <int, CombatCapsuleOverlay>{};
   final Set<int> _seenIdsScratch = <int>{};
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _snapScratch = Vector2.zero();
@@ -81,7 +83,7 @@ class LiveWorldSyncSystem {
 
   Map<int, DeterministicAnimView> get actorViews => _actors;
 
-  Map<int, RectangleComponent> get actorHitboxes => _actorHitboxes;
+  Map<int, CombatCapsuleOverlay> get actorHitboxes => _actorHitboxes;
 
   Paint get actorHitboxPaint => _actorHitboxPaint;
 
@@ -281,7 +283,6 @@ class LiveWorldSyncSystem {
     required Map<int, EntityRenderSnapshot> prevById,
     required double alpha,
     required Vector2 cameraCenter,
-    required int tick,
   }) {
     final seen = _seenIdsScratch..clear();
 
@@ -301,7 +302,6 @@ class LiveWorldSyncSystem {
           view = entry.viewFactory(entry.animSet, entry.renderScale)
             ..priority = priorityProjectiles;
           _projectileAnimViews[entity.id] = view;
-          _projectileSpawnTicks[entity.id] = tick;
           world.add(view);
         }
 
@@ -313,35 +313,13 @@ class LiveWorldSyncSystem {
           math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
         );
 
-        final spawnTick = _projectileSpawnTicks[entity.id] ?? tick;
-        final startTicks = entry.spawnAnimTicks(controller.tickHz);
-        final ageTicks = tick - spawnTick;
-        final animOverride =
-            startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
-            ? AnimKey.spawn
-            : AnimKey.idle;
-        final overrideAnimFrame = animOverride == AnimKey.spawn
-            ? ageTicks
-            : null;
-
         view.applySnapshot(
           entity,
           tickHz: controller.tickHz,
           pos: _snapScratch,
-          overrideAnim: animOverride,
-          overrideAnimFrame: overrideAnimFrame,
         );
-
-        final spinSpeed = entry.spinSpeedRadPerSecond;
-        if (spinSpeed == 0.0) {
-          view.angle = entity.rotationRad;
-        } else {
-          final spinSeconds = (ageTicks.toDouble() + alpha) / controller.tickHz;
-          view.angle = entity.rotationRad + spinSpeed * spinSeconds;
-        }
       } else {
         _projectileAnimViews.remove(entity.id)?.removeFromParent();
-        _projectileSpawnTicks.remove(entity.id);
       }
     }
 
@@ -356,7 +334,6 @@ class LiveWorldSyncSystem {
     }
     for (final id in toRemove) {
       _projectileAnimViews.remove(id)?.removeFromParent();
-      _projectileSpawnTicks.remove(id);
     }
   }
 
@@ -416,52 +393,18 @@ class LiveWorldSyncSystem {
     required double alpha,
     required Vector2 cameraCenter,
   }) {
-    final seen = _seenIdsScratch..clear();
-
-    for (final entity in entities) {
-      if (entity.kind != EntityKind.trigger) {
-        continue;
-      }
-      seen.add(entity.id);
-
-      var view = _hitboxes[entity.id];
-      if (view == null) {
-        final size = entity.size;
-        view = RectangleComponent(
-          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-          anchor: Anchor.center,
-          paint: _hitboxPaint,
-        )..priority = priorityHitboxes;
-        _hitboxes[entity.id] = view;
-        world.add(view);
-      } else {
-        final size = entity.size;
-        if (size != null) {
-          view.size.setValues(size.x, size.y);
-        }
-      }
-
-      final prev = prevById[entity.id] ?? entity;
-      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
-      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
-      view.position.setValues(
-        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
-        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
-      );
-    }
-
-    if (_hitboxes.isEmpty) {
-      return;
-    }
-    final toRemove = _toRemoveScratch..clear();
-    for (final id in _hitboxes.keys) {
-      if (!seen.contains(id)) {
-        toRemove.add(id);
-      }
-    }
-    for (final id in toRemove) {
-      _hitboxes.remove(id)?.removeFromParent();
-    }
+    syncCombatCapsuleOverlays(
+      entities: entities,
+      enabled: true,
+      parent: world,
+      pool: _hitboxes,
+      priority: priorityHitboxes,
+      paint: _hitboxPaint,
+      prevById: prevById,
+      alpha: alpha,
+      cameraCenter: cameraCenter,
+      include: (e) => e.kind == EntityKind.trigger,
+    );
   }
 
   void clearTriggerHitboxes() {

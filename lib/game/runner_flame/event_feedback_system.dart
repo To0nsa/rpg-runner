@@ -140,6 +140,8 @@ class RunEventFeedbackSystem {
   }
 
   void flushSpellImpactEvents({
+    required int Function() animationTick,
+    required int tickHz,
     required Vector2 cameraCenter,
     required int priority,
   }) {
@@ -160,6 +162,9 @@ class RunEventFeedbackSystem {
 
       final component = CameraSpaceSnappedSpriteAnimation(
         animation: hitAnim,
+        animationTick: animationTick,
+        animationStartTick: event.tick,
+        tickHz: tickHz,
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,

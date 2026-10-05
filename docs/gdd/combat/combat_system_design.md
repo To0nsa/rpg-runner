@@ -343,7 +343,8 @@ See `docs/gdd/combat/status/status_system_design.md`.
 |---|---|
 | `TransformStore` | World position/velocity source for hitbox and projectile overlap checks |
 | `ColliderAabbStore` | Authored collider dimensions plus explicit pickup, culling, spawn-offset, and projectile-terrain AABB behavior |
-| `WorldContactCapsuleStore` | Quantized, facing-aware actor capsule used for exact terrain contact and combat target contact |
+| `WorldContactCapsuleStore` | Immutable, quantized capsule for terrain/navigation and stable body baseline |
+| `CombatHurtboxStore` | Pose-dependent vulnerable body, separate from terrain contact |
 | `CollisionStateStore` | World-collision state used for projectile terrain/wall despawn |
 | `FactionStore` | Friend-or-foe routing for hit filtering (friendly-fire prevention) |
 | `ProjectileStore` | Active projectile damage payload + owner/faction metadata |
@@ -391,28 +392,34 @@ attack capsule --------------------------> exact capsule/capsule confirmation
 ```
 
 The spatial grid is conservative acceleration only. Its AABB is derived from
-the same quantized, facing-aware target capsule used by the narrow phase, so it
+the same resolved body capsule used by the narrow phase, so it
 cannot omit a real contact. An attack that overlaps only an empty corner of
 that rectangle does not land. Capsule tangency does land.
 
-Current damaging shapes are:
+Current damaging shapes follow the visible combat pose:
 
-| Producer | Attack shape | Target shape |
-|---|---|---|
-| Melee/area hitbox | Direction-oriented capsule (`halfX` spine, `halfY` radius) | Upright actor capsule |
-| Projectile | Travel-direction capsule (`halfX` spine, `halfY` radius) | Upright actor capsule |
-| Mobility impact | Source actor's upright capsule | Upright actor capsule |
+| Source | Damage shape | Target shape |
+| --- | --- | --- |
+| Melee | Thin, compound capsules following the active weapon arc | Current vulnerable body capsule |
+| Derf explosion | Fitted impact capsules on explosion poses 2-3 only | Current vulnerable body capsule |
+| Projectile | Fitted opaque flight silhouette, rotated with travel and swept through the tick | Current vulnerable body capsule |
+| Mobility impact | Current source body, including the low roll | Current vulnerable body capsule |
 
-`WorldContactCapsuleStore` is the single player/enemy hurt-shape source. The
-capsule is derived from the existing catalog fields: `halfX` is its radius and
-`halfY - halfX` is its vertical half-spine. The authored horizontal offset is
-mirrored with actor facing. A live damageable actor without this capsule is an
-invalid Core composition; combat does not silently substitute an AABB.
+Stable body poses retain the catalog terrain capsule as their baseline. Rolls,
+leaning attacks and selected air/hit/enemy poses adjust vulnerability without
+changing terrain movement. Hair trails, weapon arcs and wings do not enlarge
+body vulnerability. Shield block and Aegis Riposte still protect from every
+direction and hold the raised guard pose during their active window.
 
-Candidate indices are sorted by stable entity ID before exact confirmation.
-Owner and allied-faction exclusion, hit-once policies, piercing limits,
-mobility hit policies, damage attribution, and queue order remain independent
-of the spatial representation.
+Windup, damage/release, and recovery select their corresponding art poses under
+changes in action speed and tick rate. Grojib plays both complete strips; Unoco
+uses its attack strip as a visible cast cue. Back-strike art mirrors from its
+own left-facing source, and aimed player melee rotates the action pose with its
+committed direction. Fitted player sword reach is about 37 world units rather
+than the old oversized generic capsule. This correction intentionally changes
+which contacts land; costs and payload damage stay unchanged.
+
+See [technical geometry and timing contracts](../../tdd/combat_pose_geometry.md).
 
 ## Combat Tick Order
 
@@ -436,35 +443,40 @@ Combat and combat-adjacent ordering inside `GameCore.stepOneTick`:
 16. `MobilitySystem.step`
 17. `GravitySystem.step`
 18. `TerrainMultiBodyWorldMotionAuthority.step`
-19. `BroadphaseGrid.rebuild`
-20. `ProjectileSystem.step` (moves already-active non-ballistic projectiles)
-21. `EnemyCastSystem.step`
-22. `FlyingEnemyMeleeSystem.step`
-23. `EnemyMeleeSystem.step`
-24. `SelfAbilitySystem.step`
-25. `MeleeStrikeSystem.step`
-26. `ProjectileLaunchSystem.step`
-27. `TargetPointImpactSystem.step`
-28. `HitboxFollowOwnerSystem.step`
-29. `ProjectileHitSystem.step`
-30. `HitboxDamageSystem.step`
-31. `MobilityImpactSystem.step`
-32. `ProjectileWorldCollisionSystem.step`
-33. `EntityVisualCueCoalescer.resetForTick`
-34. `StatusSystem.tickExisting`
-35. `DamageMiddlewareSystem.step`
-36. `DamageSystem.step`
-37. `ReactiveProcSystem.step`
-38. `PlayerImpactFeedbackGate.flushTick`
-39. `StatusSystem.applyQueued`
-40. `EntityVisualCueCoalescer.emit`
-41. `EnemyCullSystem.step`
-42. `EnemyDeathStateSystem.step`
-43. `DeathDespawnSystem.step`
-44. `HealthDespawnSystem.step`
-45. `ResourceRegenSystem.step` (only when player survives combat/death checks)
-46. `AnimSystem.step`
-47. `LifetimeSystem.step`
+19. `ProjectileSystem.step` (moves already-active non-ballistic projectiles)
+20. `EnemyCastSystem.step`
+21. `FlyingEnemyMeleeSystem.step`
+22. `EnemyMeleeSystem.step`
+23. `SelfAbilitySystem.step`
+24. `MeleeStrikeSystem.step`
+25. `ProjectileLaunchSystem.step`
+26. `TargetPointImpactSystem.step`
+27. `AnimSystem.step` (phase-aligned combat poses)
+28. `CombatHurtboxSystem.step`
+29. `ProjectilePoseSystem.step`
+30. `BroadphaseGrid.rebuild`
+31. `HitboxFollowOwnerSystem.step`
+32. `ProjectileHitSystem.step`
+33. `HitboxDamageSystem.step`
+34. `MobilityImpactSystem.step`
+35. `ProjectileWorldCollisionSystem.step`
+36. `TrapSystem.step`
+37. `EntityVisualCueCoalescer.resetForTick`
+38. `StatusSystem.tickExisting`
+39. `DamageMiddlewareSystem.step`
+40. `DamageSystem.step`
+41. `ReactiveProcSystem.step`
+42. `PlayerImpactFeedbackGate.flushTick`
+43. `StatusSystem.applyQueued`
+44. `EntityVisualCueCoalescer.emit`
+45. `EnemyCullSystem.step`
+46. `EnemyDeathStateSystem.step`
+47. `DeathDespawnSystem.step`
+48. `HealthDespawnSystem.step`
+49. `ResourceRegenSystem.step` (only when player survives combat/death checks)
+50. `AnimSystem.step` (final reactions, no second locomotion advance)
+51. `CombatHurtboxSystem.step` (final visible body)
+52. `LifetimeSystem.step`
 
 Notes:
 - Run-ending checks for the terrain fall threshold (`fellIntoGap`) and the

@@ -9,6 +9,8 @@ Abilities requiring `WeaponType.shield` and equippable in `AbilitySlot.secondary
 | `eloise.aegis_riposte` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` | `secondaryWeapon` |
 | `eloise.shield_block` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` | `secondaryWeapon` |
 
+Both abilities protect from every direction and hold the raised shield pose during protection. A front shield overlap is not required.
+
 ## Defensive Shield Abilities
 
 ### `eloise.aegis_riposte`

@@ -48,7 +48,6 @@ class ProjectileRenderEntry {
     this.oneShotKeys = _defaultProjectileOneShotKeys,
     this.loader = loadAnimSetFromDefinition,
     this.viewFactory = _defaultProjectileViewFactory,
-    this.spinSpeedRadPerSecond = 0.0,
   });
 
   final ProjectileId id;
@@ -56,11 +55,9 @@ class ProjectileRenderEntry {
   final Set<AnimKey> oneShotKeys;
   final ProjectileAnimLoader loader;
   final ProjectileViewFactory viewFactory;
-  final double spinSpeedRadPerSecond;
 
   SpriteAnimSet? _animSet;
   bool _hasAssets = true;
-  final Map<int, int> _spawnAnimTicksCache = <int, int>{};
 
   bool get hasAssets => _hasAssets;
 
@@ -74,23 +71,6 @@ class ProjectileRenderEntry {
       throw StateError('ProjectileRenderEntry($id) has not been loaded yet.');
     }
     return value;
-  }
-
-  int spawnAnimTicks(int tickHz) {
-    final cached = _spawnAnimTicksCache[tickHz];
-    if (cached != null) return cached;
-
-    final set = _animSet;
-    if (set == null) return 0;
-    final anim = set.animations[AnimKey.spawn];
-    if (anim == null) return 0;
-    final frameCount = anim.frames.length;
-    if (frameCount <= 1) return 0;
-
-    final ticksPerFrame = set.ticksPerFrameFor(AnimKey.spawn, tickHz);
-    final totalTicks = ticksPerFrame * frameCount;
-    _spawnAnimTicksCache[tickHz] = totalTicks;
-    return totalTicks;
   }
 
   Future<void> load(
@@ -123,47 +103,69 @@ class ProjectileRenderRegistry {
       <ProjectileId, ProjectileRenderEntry>{
         ProjectileId.npcSpear: ProjectileRenderEntry(
           id: ProjectileId.npcSpear,
-          renderScale: Vector2.all(1.5),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.npcSpear),
+          ),
         ),
         ProjectileId.npcArrow: ProjectileRenderEntry(
           id: ProjectileId.npcArrow,
-          renderScale: Vector2.all(1.5),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.npcArrow),
+          ),
         ),
         ProjectileId.poisonDart: ProjectileRenderEntry(
           id: ProjectileId.poisonDart,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.poisonDart),
+          ),
         ),
         ProjectileId.iceBolt: ProjectileRenderEntry(
           id: ProjectileId.iceBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.iceBolt),
+          ),
         ),
         ProjectileId.thunderBolt: ProjectileRenderEntry(
           id: ProjectileId.thunderBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.thunderBolt),
+          ),
         ),
         ProjectileId.fireBolt: ProjectileRenderEntry(
           id: ProjectileId.fireBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.fireBolt),
+          ),
         ),
         ProjectileId.acidBolt: ProjectileRenderEntry(
           id: ProjectileId.acidBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.acidBolt),
+          ),
         ),
         ProjectileId.darkBolt: ProjectileRenderEntry(
           id: ProjectileId.darkBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.darkBolt),
+          ),
         ),
         ProjectileId.earthBolt: ProjectileRenderEntry(
           id: ProjectileId.earthBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.earthBolt),
+          ),
         ),
         ProjectileId.holyBolt: ProjectileRenderEntry(
           id: ProjectileId.holyBolt,
-          renderScale: Vector2.all(1.0),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.holyBolt),
+          ),
         ),
         ProjectileId.waterBolt: ProjectileRenderEntry(
           id: ProjectileId.waterBolt,
-          renderScale: Vector2.all(0.5),
+          renderScale: Vector2.all(
+            ProjectileRenderCatalog.scaleFor(ProjectileId.waterBolt),
+          ),
         ),
       };
 

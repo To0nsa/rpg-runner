@@ -824,27 +824,6 @@ class AbilityActivationSystem {
       ),
     );
 
-    // Resolve hitbox dimensions from the ability.
-    final baseHalfX = hitDelivery.sizeX * 0.5;
-    final baseHalfY = hitDelivery.sizeY * 0.5;
-    final halfX = baseHalfX;
-    final halfY = baseHalfY;
-
-    // Offset: push the hitbox forward from the player collider.
-    var maxHalfExtent = 0.0;
-    if (world.colliderAabb.has(player)) {
-      final aabbi = world.colliderAabb.indexOf(player);
-      final colliderHalfX = world.colliderAabb.halfX[aabbi];
-      final colliderHalfY = world.colliderAabb.halfY[aabbi];
-      maxHalfExtent = colliderHalfX > colliderHalfY
-          ? colliderHalfX
-          : colliderHalfY;
-    }
-    final forward =
-        maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
-    final offsetX = dirX * forward;
-    final offsetY = dirY * forward + hitDelivery.offsetY;
-
     final weaponId = () {
       switch (ability.payloadSource) {
         case AbilityPayloadSource.primaryWeapon:
@@ -939,16 +918,14 @@ class AbilityActivationSystem {
     world.meleeIntent.set(
       player,
       MeleeIntentDef(
+        profile: hitDelivery.profile,
+        hitPolicy: hitDelivery.hitPolicy,
         abilityId: ability.id,
         slot: slot,
         damage100: tunedDamage100,
         critChanceBp: tunedCritChanceBp,
         damageType: payload.damageType,
         procs: payload.procs,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
         dirX: dirX,
         dirY: dirY,
         commitTick: commitTick,

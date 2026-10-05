@@ -304,7 +304,8 @@ class EnemyEngagementSystem {
     final hitDelivery = ability.hitDelivery;
     if (hitDelivery is! MeleeHitDelivery) return 0.0;
     final desired =
-        hitDelivery.sizeX * groundEnemyTuning.engagement.meleeStandOffRatio;
+        hitDelivery.profile.reach *
+        groundEnemyTuning.engagement.meleeStandOffRatio;
     if (desired.isNaN || desired.isInfinite) return 0.0;
     final clampedToRange = desired > groundEnemyTuning.combat.meleeRangeX
         ? groundEnemyTuning.combat.meleeRangeX

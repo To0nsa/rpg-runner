@@ -47,7 +47,7 @@ The replay's optional `clientSummary` includes the two fields only as provisiona
 display evidence. The validator ignores these claims and writes both statistics
 from replayed Core to `ValidatedRun.stats`; gold and settlement idempotency remain
 unchanged. Existing open JSON maps support these additive keys without changing
-replay/command format 1. Current source gameplay compatibility is `2026.10.4`,
+replay/command format 1. Current source gameplay compatibility is `2026.10.6`,
 ranked scoring is `score-v3`, and rules/ghost remain `rules-v2`/`ghost-v1`.
 The distance revision changes no rescue awards; the worker accepts only the
 current gameplay/score pair. See the [deployment workflow](deployment_workflow.md).

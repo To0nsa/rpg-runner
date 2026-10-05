@@ -44,6 +44,7 @@ import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 
 import 'test_spawns.dart';
+
 import 'package:runner_core/ecs/entity_factory.dart';
 
 void main() {
@@ -468,142 +469,135 @@ void main() {
     },
   );
 
-  test(
-    'melee fallback stays latched until one strike commit even if mana regenerates',
-    () {
-      final world = EcsWorld();
+  test('melee fallback stays latched until one strike commit even if mana regenerates', () {
+    final world = EcsWorld();
 
-      final player = EntityFactory(world).createPlayer(
-        posX: 100,
-        posY: 100,
-        velX: 0,
-        velY: 0,
-        facing: Facing.right,
-        grounded: true,
-        body: const BodyDef(isKinematic: true, useGravity: false),
-        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
-        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-        stamina: const StaminaDef(
-          stamina: 0,
-          staminaMax: 0,
-          regenPerSecond100: 0,
-        ),
-      );
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
 
-      final castAbility = AbilityCatalog.shared.resolve(
-        'unoco.fire_bolt_cast',
-      )!;
-      final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
-      final castCost = castAbility.resolveCostForWeaponType(
-        fireBolt.weaponType,
-      );
+    final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
+    final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
+    final castCost = castAbility.resolveCostForWeaponType(fireBolt.weaponType);
 
-      final unocoDemon = spawnUnocoDemon(
-        world,
-        posX: 220,
-        posY: 100,
-        velX: 0,
-        velY: 0,
-        facing: Facing.left,
-        body: const BodyDef(isKinematic: true, useGravity: false),
-        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-        health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
-        mana: ManaDef(
-          mana: castCost.manaCost100 - 100,
-          manaMax: castCost.manaCost100 + 1000,
-          regenPerSecond100: 12000,
-        ),
-        stamina: const StaminaDef(
-          stamina: 0,
-          staminaMax: 0,
-          regenPerSecond100: 0,
-        ),
-      );
-      world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
-      world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.primary, 0);
+    final unocoDemon = spawnUnocoDemon(
+      world,
+      posX: 220,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: ManaDef(
+        mana: castCost.manaCost100 - 100,
+        manaMax: castCost.manaCost100 + 1000,
+        regenPerSecond100: 12000,
+      ),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+    world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+    world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.primary, 0);
 
-      final castSystem = EnemyCastSystem(
-        unocoDemonTuning: UnocoDemonTuningDerived.from(
-          const UnocoDemonTuning(),
-          tickHz: 60,
-        ),
-        enemyCatalog: const EnemyCatalog(),
-        projectiles: const ProjectileCatalog(),
-      );
-      final flyingCombatModeSystem = FlyingEnemyCombatModeSystem(
-        enemyCatalog: const EnemyCatalog(),
-        projectiles: const ProjectileCatalog(),
-      );
-      final flyingMeleeSystem = FlyingEnemyMeleeSystem(
-        unocoDemonTuning: UnocoDemonTuningDerived.from(
-          const UnocoDemonTuning(),
-          tickHz: 60,
-        ),
-        enemyCatalog: const EnemyCatalog(),
-      );
-      final regenSystem = ResourceRegenSystem(tickHz: 60);
+    final castSystem = EnemyCastSystem(
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
+        tickHz: 60,
+      ),
+      enemyCatalog: const EnemyCatalog(),
+      projectiles: const ProjectileCatalog(),
+    );
+    final flyingCombatModeSystem = FlyingEnemyCombatModeSystem(
+      enemyCatalog: const EnemyCatalog(),
+      projectiles: const ProjectileCatalog(),
+    );
+    final flyingMeleeSystem = FlyingEnemyMeleeSystem(
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
+        tickHz: 60,
+      ),
+      enemyCatalog: const EnemyCatalog(),
+    );
+    final regenSystem = ResourceRegenSystem(tickHz: 60);
 
-      flyingCombatModeSystem.step(world);
-      final modeIndex = world.flyingEnemyCombatMode.indexOf(unocoDemon);
-      expect(
-        world.flyingEnemyCombatMode.mode[modeIndex],
-        equals(FlyingEnemyCombatMode.meleeFallback),
-      );
-      expect(
-        world.flyingEnemyCombatMode.requiresFallbackStrike[modeIndex],
-        isTrue,
-      );
+    flyingCombatModeSystem.step(world);
+    final modeIndex = world.flyingEnemyCombatMode.indexOf(unocoDemon);
+    expect(
+      world.flyingEnemyCombatMode.mode[modeIndex],
+      equals(FlyingEnemyCombatMode.meleeFallback),
+    );
+    expect(
+      world.flyingEnemyCombatMode.requiresFallbackStrike[modeIndex],
+      isTrue,
+    );
 
-      // Regen above cast cost before contact.
-      regenSystem.step(world);
-      expect(
-        world.mana.mana[world.mana.indexOf(unocoDemon)],
-        greaterThanOrEqualTo(castCost.manaCost100),
-      );
+    // Regen above cast cost before contact.
+    regenSystem.step(world);
+    expect(
+      world.mana.mana[world.mana.indexOf(unocoDemon)],
+      greaterThanOrEqualTo(castCost.manaCost100),
+    );
 
-      // Still latched to melee fallback until one strike is committed.
-      flyingCombatModeSystem.step(world);
-      castSystem.step(world, player: player, currentTick: 2);
-      flyingMeleeSystem.step(world, player: player, currentTick: 2);
-      expect(
-        world.flyingEnemyCombatMode.mode[modeIndex],
-        equals(FlyingEnemyCombatMode.meleeFallback),
-      );
-      expect(
-        world.projectileIntent.tick[world.projectileIntent.indexOf(unocoDemon)],
-        equals(-1),
-      );
+    // Still latched to melee fallback until one strike is committed.
+    flyingCombatModeSystem.step(world);
+    castSystem.step(world, player: player, currentTick: 2);
+    flyingMeleeSystem.step(world, player: player, currentTick: 2);
+    expect(
+      world.flyingEnemyCombatMode.mode[modeIndex],
+      equals(FlyingEnemyCombatMode.meleeFallback),
+    );
+    expect(
+      world.projectileIntent.tick[world.projectileIntent.indexOf(unocoDemon)],
+      equals(-1),
+    );
 
-      // Move into contact and commit fallback strike.
-      final enemyTransformIndex = world.transform.indexOf(unocoDemon);
-      world.transform.setPosXY(
-        unocoDemon,
-        116.0,
-        world.transform.posY[enemyTransformIndex],
-      );
-      flyingCombatModeSystem.step(world);
-      castSystem.step(world, player: player, currentTick: 3);
-      flyingMeleeSystem.step(world, player: player, currentTick: 3);
-      final meleeIntentIndex = world.meleeIntent.indexOf(unocoDemon);
-      expect(
-        world.meleeIntent.abilityId[meleeIntentIndex],
-        equals('unoco.strike'),
-      );
-      expect(world.meleeIntent.tick[meleeIntentIndex], greaterThan(3));
-      expect(
-        world.flyingEnemyCombatMode.requiresFallbackStrike[modeIndex],
-        isFalse,
-      );
+    // Move into contact and commit fallback strike.
+    final enemyTransformIndex = world.transform.indexOf(unocoDemon);
+    world.transform.setPosXY(
+      unocoDemon,
+      116.0,
+      world.transform.posY[enemyTransformIndex],
+    );
+    flyingCombatModeSystem.step(world);
+    castSystem.step(world, player: player, currentTick: 3);
+    flyingMeleeSystem.step(world, player: player, currentTick: 3);
+    final meleeIntentIndex = world.meleeIntent.indexOf(unocoDemon);
+    expect(
+      world.meleeIntent.abilityId[meleeIntentIndex],
+      equals('unoco.strike'),
+    );
+    expect(world.meleeIntent.tick[meleeIntentIndex], greaterThan(3));
+    expect(
+      world.flyingEnemyCombatMode.requiresFallbackStrike[modeIndex],
+      isFalse,
+    );
 
-      // Latch releases after one committed fallback strike.
-      flyingCombatModeSystem.step(world);
-      expect(
-        world.flyingEnemyCombatMode.mode[modeIndex],
-        equals(FlyingEnemyCombatMode.projectile),
-      );
-    },
-  );
+    // Latch releases after one committed fallback strike.
+    flyingCombatModeSystem.step(world);
+    expect(
+      world.flyingEnemyCombatMode.mode[modeIndex],
+      equals(FlyingEnemyCombatMode.projectile),
+    );
+  });
 
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
@@ -709,7 +703,7 @@ void main() {
 
     final groundEnemy = spawnGroundEnemy(
       world,
-      posX: 120,
+      posX: 143,
       posY: 100,
       velX: 0,
       velY: 0,
@@ -758,7 +752,8 @@ void main() {
     engagement.step(world, player: player, currentTick: 1);
     system.step(world, player: player, currentTick: 1);
     meleeStrike.step(world, currentTick: 1);
-    follow.step(world);
+    resolveCommittedCombatPoses(world, player, 1);
+    follow.step(world, currentTick: 1);
     broadphase.rebuild(world);
     hitboxDamage.step(world, broadphase, currentTick: 1);
     damage.step(world, currentTick: 1);
@@ -770,7 +765,8 @@ void main() {
     final intentIndex = world.meleeIntent.indexOf(groundEnemy);
     expect(world.meleeIntent.tick[intentIndex], equals(hitTick));
     meleeStrike.step(world, currentTick: strikeStartTick);
-    follow.step(world);
+    resolveCommittedCombatPoses(world, player, strikeStartTick);
+    follow.step(world, currentTick: strikeStartTick);
     broadphase.rebuild(world);
     hitboxDamage.step(world, broadphase, currentTick: strikeStartTick);
     damage.step(world, currentTick: strikeStartTick);
@@ -782,7 +778,8 @@ void main() {
       system.step(world, player: player, currentTick: tick);
       expect(world.meleeIntent.tick[intentIndex], equals(hitTick));
       meleeStrike.step(world, currentTick: tick);
-      follow.step(world);
+      resolveCommittedCombatPoses(world, player, tick);
+      follow.step(world, currentTick: tick);
       broadphase.rebuild(world);
       hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
@@ -793,7 +790,8 @@ void main() {
     engagement.step(world, player: player, currentTick: hitTick);
     system.step(world, player: player, currentTick: hitTick);
     meleeStrike.step(world, currentTick: hitTick);
-    follow.step(world);
+    resolveCommittedCombatPoses(world, player, hitTick);
+    follow.step(world, currentTick: hitTick);
     broadphase.rebuild(world);
     hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
@@ -836,7 +834,7 @@ void main() {
 
     final groundEnemy = spawnGroundEnemy(
       world,
-      posX: 120,
+      posX: 143,
       posY: 100,
       velX: 0,
       velY: 0,
@@ -902,7 +900,8 @@ void main() {
       }
 
       meleeStrike.step(world, currentTick: tick);
-      follow.step(world);
+      resolveCommittedCombatPoses(world, player, tick);
+      follow.step(world, currentTick: tick);
       broadphase.rebuild(world);
       hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
@@ -1024,7 +1023,8 @@ void main() {
       }
 
       meleeStrike.step(world, currentTick: tick);
-      follow.step(world);
+      resolveCommittedCombatPoses(world, player, tick);
+      follow.step(world, currentTick: tick);
       broadphase.rebuild(world);
       hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
@@ -1061,7 +1061,7 @@ void main() {
 
     final groundEnemy = spawnGroundEnemy(
       world,
-      posX: 120,
+      posX: 143,
       posY: 100,
       velX: 0,
       velY: 0,
@@ -1134,7 +1134,8 @@ void main() {
       }
 
       meleeStrike.step(world, currentTick: tick);
-      follow.step(world);
+      resolveCommittedCombatPoses(world, player, tick);
+      follow.step(world, currentTick: tick);
       broadphase.rebuild(world);
       hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick, queueStatus: status.queue);

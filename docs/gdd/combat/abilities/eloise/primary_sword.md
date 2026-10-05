@@ -16,7 +16,8 @@ Abilities requiring `WeaponType.oneHandedSword` and equipable in `AbilitySlot.pr
 
 - base damage: `1500`
 - no innate on-hit status proc
-- melee delivery: `32x32`, offset `(12, 0)`, `oncePerTarget`
+- melee delivery: active-pose blade capsules, about 37 world units forward reach, `oncePerTarget`
+- front/back variants and aimed pose rotation share animation and collision timing
 
 ### `eloise.seeker_slash`
 

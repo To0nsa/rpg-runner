@@ -159,7 +159,7 @@ void main() {
 
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.dash));
-        expect(world.animState.animFrame[ai], equals(offset));
+        expect(world.animState.animFrame[ai], equals(0));
       });
 
       test('dash movement ticks alone do not drive dash animation', () {
@@ -232,7 +232,7 @@ void main() {
 
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.strike));
-        expect(world.animState.animFrame[ai], equals(offset));
+        expect(world.animState.animFrame[ai], equals(8));
       });
 
       test(
@@ -263,7 +263,7 @@ void main() {
 
           final ai = world.animState.indexOf(player);
           expect(world.animState.anim[ai], equals(AnimKey.backStrike));
-          expect(world.animState.animFrame[ai], equals(offset));
+          expect(world.animState.animFrame[ai], equals(10));
         },
       );
 
@@ -289,7 +289,7 @@ void main() {
             .resolve('eloise.overcharge_shot')!
             .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
-        expect(world.animState.animFrame[ai], equals(offset));
+        expect(world.animState.animFrame[ai], equals(10));
       });
 
       test('quick shot uses active ability anim and frame', () {
@@ -314,7 +314,7 @@ void main() {
             .resolve('eloise.quick_shot')!
             .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
-        expect(world.animState.animFrame[ai], equals(offset));
+        expect(world.animState.animFrame[ai], equals(10));
       });
 
       test('does not clear active ability when ability id is unknown', () {
@@ -715,7 +715,10 @@ void main() {
 
         final ai = world.animState.indexOf(enemy);
         expect(world.animState.anim[ai], equals(AnimKey.strike));
-        expect(world.animState.animFrame[ai], equals(3)); // 8 - 5
+        expect(
+          world.animState.animFrame[ai],
+          equals(16),
+        ); // First active source pose, frame 4 at four ticks per frame.
       });
 
       test('hit animation on damage', () {

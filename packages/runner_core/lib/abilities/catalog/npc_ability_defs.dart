@@ -1,3 +1,4 @@
+import '../../combat/combat_pose_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
 import '../../weapons/weapon_proc.dart';
@@ -13,10 +14,7 @@ final Map<AbilityKey, AbilityDef> npcAbilityDefs = {
     allowedSlots: {AbilitySlot.primary},
     defaultCost: const AbilityResourceCost(staminaCost100: 400),
     hitDelivery: MeleeHitDelivery(
-      sizeX: 48,
-      sizeY: 38,
-      offsetX: 0,
-      offsetY: -3,
+      profile: CombatPoseCatalog.warriorSlash,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     baseDamage: 400,
@@ -49,10 +47,7 @@ final Map<AbilityKey, AbilityDef> npcAbilityDefs = {
     allowedSlots: {AbilitySlot.primary},
     defaultCost: const AbilityResourceCost(staminaCost100: 400),
     hitDelivery: MeleeHitDelivery(
-      sizeX: 48,
-      sizeY: 20,
-      offsetX: 0,
-      offsetY: -3,
+      profile: CombatPoseCatalog.huntressStab,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     // 3 direct damage plus the existing 3 DPS / 5 second bleed opener.
@@ -78,10 +73,7 @@ final Map<AbilityKey, AbilityDef> npcAbilityDefs = {
     allowedSlots: {AbilitySlot.primary},
     defaultCost: const AbilityResourceCost(staminaCost100: 400),
     hitDelivery: MeleeHitDelivery(
-      sizeX: 48,
-      sizeY: 38,
-      offsetX: 0,
-      offsetY: -3,
+      profile: CombatPoseCatalog.huntressSlash,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     // Match the warrior's repeat melee damage and cadence; bleed is opener-only.

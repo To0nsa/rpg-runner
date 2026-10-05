@@ -1,3 +1,4 @@
+import 'package:runner_core/combat/combat_geometry.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -35,10 +36,16 @@ class MockAbilities extends AbilityCatalog {
         animKey: AnimKey.strike,
         baseDamage: 100,
         hitDelivery: MeleeHitDelivery(
-          sizeX: 10,
-          sizeY: 10,
-          offsetX: 0,
-          offsetY: 0,
+          profile: CombatStrikeProfile(
+            timing: ActionFramePolicy(
+              frameCount: 1,
+              activeStart: 0,
+              activeEnd: 1,
+            ),
+            frames: [
+              [CombatCapsule(-5, 0, 5, 0, 5)],
+            ],
+          ),
           hitPolicy: HitPolicy.oncePerTarget,
         ),
       );
@@ -58,10 +65,16 @@ class MockAbilities extends AbilityCatalog {
         animKey: AnimKey.strike,
         baseDamage: 100,
         hitDelivery: MeleeHitDelivery(
-          sizeX: 10,
-          sizeY: 10,
-          offsetX: 0,
-          offsetY: 0,
+          profile: CombatStrikeProfile(
+            timing: ActionFramePolicy(
+              frameCount: 1,
+              activeStart: 0,
+              activeEnd: 1,
+            ),
+            frames: [
+              [CombatCapsule(-5, 0, 5, 0, 5)],
+            ],
+          ),
           hitPolicy: HitPolicy.oncePerTarget,
         ),
       );
@@ -81,10 +94,16 @@ class MockAbilities extends AbilityCatalog {
         animKey: AnimKey.strike,
         baseDamage: 100,
         hitDelivery: MeleeHitDelivery(
-          sizeX: 10,
-          sizeY: 10,
-          offsetX: 0,
-          offsetY: 0,
+          profile: CombatStrikeProfile(
+            timing: ActionFramePolicy(
+              frameCount: 1,
+              activeStart: 0,
+              activeEnd: 1,
+            ),
+            frames: [
+              [CombatCapsule(-5, 0, 5, 0, 5)],
+            ],
+          ),
           hitPolicy: HitPolicy.oncePerTarget,
         ),
       );

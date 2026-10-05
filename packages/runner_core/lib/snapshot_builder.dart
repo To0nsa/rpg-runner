@@ -21,6 +21,9 @@
 /// - [PlayerHudSnapshot] — Player resource bars, cooldowns, affordability flags.
 library;
 
+import 'combat/combat_geometry.dart';
+import 'ecs/actor_facing.dart';
+
 import 'dart:math';
 
 import 'combat/damage_type.dart';
@@ -521,6 +524,8 @@ class SnapshotBuilder {
 
     return EntityRenderSnapshot(
       id: player,
+      combatCapsules: _hurtCapsules(player),
+      rotationRad: _poseAngle(player),
       kind: EntityKind.player,
       isSwimming: swimming,
       waterImmersion1000: swimIndex == null
@@ -530,12 +535,60 @@ class SnapshotBuilder {
       vel: playerVel,
       size: playerSize,
       facing: playerFacing,
+      artFacingDir: anim == AnimKey.backStrike
+          ? Facing.left
+          : actorArtFacing(world, player),
       anim: anim,
       grounded: onGround,
       animFrame: playerAnimFrame,
       statusVisualMask: _statusVisualMaskForEntity(player),
       controlLockMask: _controlLockMaskForEntity(player),
     );
+  }
+
+  List<CombatCapsule> _hurtCapsules(EntityId entity) {
+    final i = world.combatHurtbox.tryIndexOf(entity);
+    final shape = i == null ? null : world.combatHurtbox.capsule[i];
+    return shape == null ? const [] : [shape];
+  }
+
+  double _poseAngle(EntityId entity) {
+    final i = world.combatHurtbox.tryIndexOf(entity);
+    return i == null ? 0 : world.combatHurtbox.poseAngle[i];
+  }
+
+  List<CombatCapsule> _hitboxCapsules(int i) {
+    final h = world.hitbox;
+    final shapes = h.capsules[i];
+    return shapes == null
+        ? [
+            CombatCapsule(
+              -h.dirX[i] * h.halfX[i],
+              -h.dirY[i] * h.halfX[i],
+              h.dirX[i] * h.halfX[i],
+              h.dirY[i] * h.halfX[i],
+              h.halfY[i],
+            ),
+          ]
+        : List<CombatCapsule>.unmodifiable(shapes);
+  }
+
+  List<CombatCapsule> _projectileCapsules(int i) {
+    final p = world.projectile;
+    final shape = p.combatCapsule[i];
+    if (shape != null) return [shape];
+    final c = world.colliderAabb.tryIndexOf(p.denseEntities[i]);
+    if (c == null) return const [];
+    final half = world.colliderAabb.halfX[c];
+    return [
+      CombatCapsule(
+        -half,
+        0,
+        half,
+        0,
+        world.colliderAabb.halfY[c],
+      ).transformed(angle: atan2(p.dirY[i], p.dirX[i])),
+    ];
   }
 
   int _scaleAbilityTicks(int ticks) {
@@ -781,15 +834,17 @@ class SnapshotBuilder {
         EntityRenderSnapshot(
           id: e,
           kind: EntityKind.projectile,
+          combatCapsules: _projectileCapsules(pi),
+          spawnTick: projectileStore.spawnTick[pi],
           pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
           vel: Vec2(world.transform.velX[ti], world.transform.velY[ti]),
           size: colliderSize,
           projectileId: projectileId,
           facing: facing,
           rotationRad: rotationRad,
-          anim: AnimKey.idle,
+          anim: projectileStore.anim[pi],
           grounded: false,
-          animFrame: tick,
+          animFrame: projectileStore.animFrame[pi],
         ),
       );
     }
@@ -817,6 +872,7 @@ class SnapshotBuilder {
         EntityRenderSnapshot(
           id: e,
           kind: EntityKind.trigger,
+          combatCapsules: _hitboxCapsules(hi),
           pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
           size: size,
           facing: facing,
@@ -962,6 +1018,8 @@ class SnapshotBuilder {
         EntityRenderSnapshot(
           id: e,
           kind: ni == null ? EntityKind.enemy : EntityKind.npc,
+          combatCapsules: _hurtCapsules(e),
+          rotationRad: _poseAngle(e),
           isSwimming: world.swimState.isSwimming(e),
           waterImmersion1000: world.swimState.has(e)
               ? world.swimState.immersion1000[world.swimState.indexOf(e)]

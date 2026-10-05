@@ -1,3 +1,10 @@
+import '../../../combat/combat_geometry.dart';
+import '../../../combat/combat_pose_catalog.dart';
+import '../../../players/characters/eloise.dart';
+import '../../../contracts/render_anim_set_definition.dart';
+
+import 'dart:math' as math;
+
 import '../../../anim/anim_resolver.dart';
 import '../../../abilities/ability_catalog.dart';
 import '../../../abilities/ability_def.dart';
@@ -22,6 +29,7 @@ import '../../world_support_view.dart';
 class AnimSystem {
   AnimSystem({
     required int tickHz,
+    this.playerRenderAnim = eloiseRenderAnim,
     required this.enemyCatalog,
     required MovementTuningDerived playerMovement,
     required AnimTuningDerived playerAnimTuning,
@@ -48,6 +56,8 @@ class AnimSystem {
   final EnemyCatalog enemyCatalog;
   final AbilityResolver abilities;
 
+  final RenderAnimSetDefinition playerRenderAnim;
+  bool _advanceLocomotion = true;
   final int _tickHz;
   final AnimTuningDerived _playerAnimTuning;
   final AnimProfile _playerProfile;
@@ -114,7 +124,9 @@ class AnimSystem {
     DeathPhase playerDeathPhase = DeathPhase.none,
     int playerDeathStartTick = -1,
     int playerSpawnStartTick = 0,
+    bool advanceLocomotion = true,
   }) {
+    _advanceLocomotion = advanceLocomotion;
     _stepPlayer(
       world,
       player: player,
@@ -359,7 +371,7 @@ class AnimSystem {
     final reference = world
         .resolvedMotion
         .locomotionReferenceSpeedTicksPerSecond[motionIndex];
-    if (travel <= 0 || reference <= 0) {
+    if (!_advanceLocomotion || travel <= 0 || reference <= 0) {
       return world.animState.groundedLocomotionPhaseBp[animStateIndex] ~/
           _locomotionPhaseScale;
     }
@@ -387,7 +399,7 @@ class AnimSystem {
       return (anim: null, frame: 0);
     }
 
-    // AnimSystem is render-only: gameplay lifecycle is owned by
+    // Pose selection never mutates ability lifecycle, which is owned by
     // ActiveAbilityPhaseSystem and related gameplay systems.
     if (stunned || hp <= 0 || deathPhase != DeathPhase.none) {
       return (anim: null, frame: 0);
@@ -420,7 +432,34 @@ class AnimSystem {
       ability: def,
     );
 
-    return (anim: actionAnim, frame: elapsed < 0 ? 0 : elapsed);
+    final delivery = def.hitDelivery;
+    var policy =
+        CombatPoseCatalog.timingFor(activeId, actionAnim) ??
+        (delivery is MeleeHitDelivery ? delivery.profile.timing : null);
+    final ei = world.enemy.tryIndexOf(entity);
+    final ni = world.npc.tryIndexOf(entity);
+    final render = ei != null
+        ? enemyCatalog.get(world.enemy.enemyId[ei]).renderAnim
+        : ni != null
+        ? const NpcCatalog().get(world.npc.npcId[ni]).renderAnim
+        : playerRenderAnim;
+    final count = render.frameCountsByKey[actionAnim] ?? 1;
+    policy ??= ActionFramePolicy(
+      frameCount: count,
+      activeStart: 0,
+      activeEnd: count,
+    );
+    final step = math.max(
+      1,
+      ((render.stepTimeSecondsByKey[actionAnim] ?? .1) * _tickHz).round(),
+    );
+    final pose = policy.frameAt(
+      elapsed: elapsed,
+      windup: world.activeAbility.windupTicks[index],
+      active: world.activeAbility.activeTicks[index],
+      recovery: world.activeAbility.recoveryTicks[index],
+    );
+    return (anim: actionAnim, frame: pose * step);
   }
 
   AnimKey _resolveActionAnimKey(

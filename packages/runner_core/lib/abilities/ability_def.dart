@@ -1,3 +1,4 @@
+import '../combat/combat_geometry.dart';
 import '../projectiles/projectile_id.dart';
 import '../spell_impacts/spell_impact_id.dart';
 import '../combat/damage_type.dart';
@@ -98,21 +99,11 @@ abstract class HitDeliveryDef {
   const HitDeliveryDef();
 }
 
-/// Melee hit volume authored in local-space rectangle terms.
+/// Frame-authored damage geometry, separate from the actor's terrain collider.
 class MeleeHitDelivery extends HitDeliveryDef {
-  const MeleeHitDelivery({
-    required this.sizeX,
-    required this.sizeY,
-    required this.offsetX,
-    required this.offsetY,
-    required this.hitPolicy,
-  });
+  const MeleeHitDelivery({required this.profile, required this.hitPolicy});
 
-  /// Dimensions and offset in world units.
-  final double sizeX;
-  final double sizeY;
-  final double offsetX;
-  final double offsetY;
+  final CombatStrikeProfile profile;
   final HitPolicy hitPolicy;
 }
 
@@ -145,20 +136,15 @@ class SelfHitDelivery extends HitDeliveryDef {
 /// world-anchored for their active window.
 class TargetPointHitDelivery extends HitDeliveryDef {
   const TargetPointHitDelivery({
-    required this.halfX,
-    required this.halfY,
+    required this.profile,
+    required this.stepTimeSeconds,
     this.hitPolicy = HitPolicy.oncePerTarget,
     this.impactEffectId = SpellImpactId.unknown,
   });
 
-  /// World-space half extents of the spawned impact hitbox.
-  final double halfX;
-  final double halfY;
-
-  /// Delivery cadence during one activation.
+  final CombatStrikeProfile profile;
+  final double stepTimeSeconds;
   final HitPolicy hitPolicy;
-
-  /// Optional render event id emitted when the impact executes.
   final SpellImpactId impactEffectId;
 }
 

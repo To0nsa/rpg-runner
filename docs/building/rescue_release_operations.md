@@ -2,12 +2,31 @@
 
 Status: `2026.10.4` was deployed October 3, 2026 (Helsinki time) from frozen
 commit `43e6c841`; see [current production evidence](../verification/game-compat-2026.10.4-production.md).
-Signed-in production gameplay smoke remains outstanding. Earlier releases:
+Source now prepares `2026.10.6`; it has not been deployed. Signed-in production
+gameplay smoke for `2026.10.4` remains outstanding. Earlier releases:
 [2026.10.3](../verification/game-compat-2026.10.3-production.md),
 [2026.10.1](../verification/game-compat-2026.10.1-production.md),
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Pending source release: 2026.10.6
+
+This revision includes [combat pose alignment](../tdd/combat_pose_geometry.md): fitted
+body/attack/projectile geometry, shared pose clocks, and delayed visible Derf
+impact damage. It retains `rules-v2`, `score-v3`, `ghost-v1`, and replay/command
+format 1, but changes combat outcomes and requires a coordinated cutover.
+Local tests and native benchmark evidence do not replace the
+strict exact-image container gate or production smoke.
+
+- [ ] Freeze and prepare the source, including the full replay-validator gate
+  and strict exact-image benchmark.
+- [ ] Pause issuance, drain active validation/settlement, and inspect the live
+  baseline before cutover.
+- [ ] Deploy matching Functions, worker, web client, and `2026.10.6` boards;
+  restore issuance only after readiness and retired-version checks pass.
+- [ ] Record production evidence and complete signed-in gameplay, replay,
+  settlement, leaderboard, and ghost smoke.
 
 ## Deployed release: 2026.10.4
 

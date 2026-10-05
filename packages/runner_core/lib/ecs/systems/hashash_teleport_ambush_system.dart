@@ -192,31 +192,18 @@ class HashashTeleportAmbushSystem {
     }
 
     final dirX = facing == Facing.right ? 1.0 : -1.0;
-    final halfX = hitDelivery.sizeX * 0.5;
-    final halfY = hitDelivery.sizeY * 0.5;
-
-    final colliderIndex = world.colliderAabb.indexOf(enemy);
-    final ownerHalfX = world.colliderAabb.halfX[colliderIndex];
-    final ownerHalfY = world.colliderAabb.halfY[colliderIndex];
-    final maxHalfExtent = max(ownerHalfX, ownerHalfY);
-    final forward =
-        maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
-    final offsetX = dirX * forward;
-    final offsetY = hitDelivery.offsetY;
 
     world.meleeIntent.set(
       enemy,
       MeleeIntentDef(
+        profile: hitDelivery.profile,
+        hitPolicy: hitDelivery.hitPolicy,
         abilityId: ability.id,
         slot: AbilitySlot.primary,
         damage100: ability.baseDamage,
         critChanceBp: 0,
         damageType: ability.baseDamageType,
         procs: ability.procs,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
         dirX: dirX,
         dirY: 0.0,
         commitTick: commitTick,

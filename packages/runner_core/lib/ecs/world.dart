@@ -1,4 +1,5 @@
 import 'entity_id.dart';
+import 'stores/combat_hurtbox_store.dart';
 import 'stores/ai_target_store.dart';
 import 'stores/npc_store.dart';
 import 'stores/encounter_member_store.dart';
@@ -189,6 +190,7 @@ class EcsWorld {
   late final WorldContactCapsuleStore worldContactCapsule = _register(
     WorldContactCapsuleStore(),
   );
+  late final CombatHurtboxStore combatHurtbox = _register(CombatHurtboxStore());
 
   /// Final support/contact state written by staged terrain motion.
   late final TerrainContactStateStore terrainContact = _register(

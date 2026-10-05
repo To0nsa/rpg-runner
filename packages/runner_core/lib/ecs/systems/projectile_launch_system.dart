@@ -45,6 +45,7 @@ class ProjectileLaunchSystem {
       spawnProjectileFromCaster(
         world,
         tickHz: tickHz,
+        currentTick: currentTick,
         projectileId: projectileId,
         projectile: projectile,
         faction: factions.faction[fi],

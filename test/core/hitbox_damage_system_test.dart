@@ -91,7 +91,8 @@ void main() {
     for (var tick = 1; tick <= 9; tick += 1) {
       activation.step(world, player: player, currentTick: tick);
       meleeStrike.step(world, currentTick: tick);
-      follow.step(world);
+      resolveCommittedCombatPoses(world, player, tick);
+      follow.step(world, currentTick: tick);
       broadphase.rebuild(world);
       hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
@@ -116,7 +117,8 @@ void main() {
     // Next tick: still overlapping, but should not re-hit the same target.
     activation.step(world, player: player, currentTick: 10);
     meleeStrike.step(world, currentTick: 10);
-    follow.step(world);
+    resolveCommittedCombatPoses(world, player, 10);
+    follow.step(world, currentTick: 10);
     broadphase.rebuild(world);
     hitboxDamage.step(world, broadphase, currentTick: 10);
     damage.step(world, currentTick: 10);

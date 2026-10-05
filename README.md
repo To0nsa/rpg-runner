@@ -20,6 +20,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Animated, authorable water regions with deterministic player and ground-enemy swimming;
   see the [pool authoring guide](docs/gdd/swimming.md)
 - 2 selectable character definitions
+- Pose-aligned combat capsules, shared fixed-tick animation clocks, and exact
+  [combat debug geometry](docs/tdd/combat_pose_geometry.md)
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
 - 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,

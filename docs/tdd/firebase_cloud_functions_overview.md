@@ -307,14 +307,14 @@ Why:
 - Exported in `functions/src/index.ts`.
 - Ensures managed leaderboard boards/windows exist.
 - Uses logic in `functions/src/boards/provisioning.ts`.
-- Defaults new boards to source game compatibility `2026.10.4`, combat
+- Defaults new boards to source game compatibility `2026.10.6`, combat
   `rules-v2`, `score-v3`, and `ghost-v1`. A managed board ID binds mode, level,
   window, ruleset, score, game compatibility, and ghost version, so rollout
   partitions can coexist without sharing leaderboard/ghost descendants.
 - Active-board and run-session callables accept only the compatibility
   allowlist resolved from `RUN_SUPPORTED_GAME_COMPAT_VERSIONS`. The default is
-  `2026.10.4` only. The [coordinated release](deployment_workflow.md) removed
-  the temporary cutover override before restoring issuance. Historical labels
+  `2026.10.6` only. The next coordinated cutover must remove any temporary
+  compatibility override before restoring issuance. Historical labels
   cannot execute on the current worker.
 - The read-only production inventory groups active sessions by game
   compatibility and reports their valid minimum/maximum expiry timestamps. It

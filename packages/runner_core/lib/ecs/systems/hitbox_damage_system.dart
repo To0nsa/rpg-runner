@@ -1,3 +1,4 @@
+import '../../combat/combat_geometry.dart';
 import '../../combat/damage.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../abilities/ability_def.dart';
@@ -24,6 +25,7 @@ class HitboxDamageSystem {
 
   /// Reused buffer to store indices of overlapping entities each frame.
   final List<int> _overlaps = <int>[];
+  final Set<int> _union = <int>{};
 
   /// Executes the system logic.
   ///
@@ -51,6 +53,11 @@ class HitboxDamageSystem {
       // This prevents "machine gun" damage from a lingering sword swing.
       final hitPolicy = hitboxes.hitPolicy[hi];
       if (hitPolicy != HitPolicy.everyTick && !world.hitOnce.has(hb)) continue;
+
+      if (hitPolicy == HitPolicy.once &&
+          world.hitOnce.count[world.hitOnce.indexOf(hb)] > 0) {
+        continue;
+      }
 
       final hbTi = world.transform.indexOf(hb);
       final hbCx = world.transform.posX[hbTi];
@@ -86,16 +93,31 @@ class HitboxDamageSystem {
 
       // Query the spatial grid, then confirm attack capsule versus target
       // capsule and apply faction filtering.
-      _resolver.collectOrderedOverlapsCapsule(
-        broadphase: broadphase,
-        ax: ax,
-        ay: ay,
-        bx: bx,
-        by: by,
-        radius: hbHalfY,
-        owner: owner,
-        sourceFaction: sourceFaction,
-        outTargetIndices: _overlaps,
+      final capsules =
+          hitboxes.capsules[hi] ??
+          [CombatCapsule(ax - hbCx, ay - hbCy, bx - hbCx, by - hbCy, hbHalfY)];
+      final union = _union..clear();
+      for (final capsule in capsules) {
+        _resolver.collectOrderedOverlapsCapsule(
+          broadphase: broadphase,
+          ax: hbCx + capsule.ax,
+          ay: hbCy + capsule.ay,
+          bx: hbCx + capsule.bx,
+          by: hbCy + capsule.by,
+          radius: capsule.radius,
+          owner: owner,
+          sourceFaction: sourceFaction,
+          outTargetIndices: _overlaps,
+        );
+        union.addAll(_overlaps);
+      }
+      _overlaps
+        ..clear()
+        ..addAll(union);
+      _overlaps.sort(
+        (a, b) => broadphase.targets.entities[a].compareTo(
+          broadphase.targets.entities[b],
+        ),
       );
       if (_overlaps.isEmpty) continue;
 
@@ -151,6 +173,7 @@ class HitboxDamageSystem {
             sourceEnemyId: enemyId,
           ),
         );
+        if (hitPolicy == HitPolicy.once) break;
       }
     }
   }

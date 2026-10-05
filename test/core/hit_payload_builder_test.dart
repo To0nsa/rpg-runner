@@ -1,3 +1,4 @@
+import 'package:runner_core/combat/combat_geometry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
@@ -10,10 +11,12 @@ final AbilityDef _testAbility = AbilityDef(
   allowedSlots: {AbilitySlot.primary},
   targetingModel: TargetingModel.directional,
   hitDelivery: MeleeHitDelivery(
-    sizeX: 20,
-    sizeY: 20,
-    offsetX: 0,
-    offsetY: 0,
+    profile: CombatStrikeProfile(
+      timing: ActionFramePolicy(frameCount: 1, activeStart: 0, activeEnd: 1),
+      frames: [
+        [CombatCapsule(-10, 0, 10, 0, 10)],
+      ],
+    ),
     hitPolicy: HitPolicy.oncePerTarget,
   ),
   payloadSource: AbilityPayloadSource.primaryWeapon,

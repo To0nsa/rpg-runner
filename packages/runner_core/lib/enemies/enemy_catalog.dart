@@ -99,6 +99,7 @@ const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.stun: _unocoAnimStunFrames,
   AnimKey.run: _unocoAnimMoveFrames,
   AnimKey.strike: _unocoAnimStrikeFrames,
+  AnimKey.cast: _unocoAnimStrikeFrames,
   AnimKey.hit: _unocoAnimHitFrames,
   AnimKey.death: _unocoAnimDeathFrames,
 };
@@ -108,6 +109,7 @@ const Map<AnimKey, double> _unocoAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.stun: _unocoAnimStunStepSeconds,
   AnimKey.run: _unocoAnimMoveStepSeconds,
   AnimKey.strike: _unocoAnimStrikeStepSeconds,
+  AnimKey.cast: _unocoAnimStrikeStepSeconds,
   AnimKey.hit: _unocoAnimHitStepSeconds,
   AnimKey.death: _unocoAnimDeathStepSeconds,
 };
@@ -117,6 +119,7 @@ const Map<AnimKey, String> _unocoAnimSourcesByKey = <AnimKey, String>{
   AnimKey.stun: 'entities/enemies/unoco/stun.png',
   AnimKey.run: 'entities/enemies/unoco/flying.png',
   AnimKey.strike: 'entities/enemies/unoco/strike.png',
+  AnimKey.cast: 'entities/enemies/unoco/strike.png',
   AnimKey.hit: 'entities/enemies/unoco/hit.png',
   AnimKey.death: 'entities/enemies/unoco/death.png',
 };
@@ -131,6 +134,7 @@ const RenderAnimSetDefinition _unocoRenderAnim = RenderAnimSetDefinition(
 );
 
 const AnimProfile _unocoAnimProfile = AnimProfile(
+  supportsCast: true,
   minMoveSpeed: 1.0,
   runSpeedThresholdX: 0.0,
   supportsWalk: false,

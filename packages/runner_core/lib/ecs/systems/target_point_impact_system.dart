@@ -44,6 +44,9 @@ class TargetPointImpactSystem {
         hitbox,
         HitboxDef(
           owner: caster,
+          profile: intents.profile[ii],
+          spawnTick: currentTick,
+          frameStepTicks: intents.frameStepTicks[ii],
           credit: damageCreditFor(world, caster),
           abilityId: intents.abilityId[ii],
           faction: factions.faction[fi],
@@ -67,7 +70,11 @@ class TargetPointImpactSystem {
       }
       world.lifetime.add(
         hitbox,
-        LifetimeDef(ticksLeft: max(1, intents.activeTicks[ii])),
+        LifetimeDef(
+          ticksLeft: intents.profile[ii] == null
+              ? max(1, intents.activeTicks[ii])
+              : intents.profile[ii]!.frames.length * intents.frameStepTicks[ii],
+        ),
       );
 
       if (intents.impactEffectId[ii] != SpellImpactId.unknown) {

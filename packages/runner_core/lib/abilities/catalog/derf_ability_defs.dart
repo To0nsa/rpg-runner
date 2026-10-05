@@ -1,3 +1,5 @@
+import '../../combat/combat_pose_catalog.dart';
+
 import 'package:runner_core/combat/damage_type.dart';
 
 import '../../snapshots/enums.dart';
@@ -12,15 +14,15 @@ final Map<AbilityKey, AbilityDef> derfAbilityDefs = <AbilityKey, AbilityDef>{
     targetingModel: TargetingModel.aimed,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
     hitDelivery: TargetPointHitDelivery(
-      halfX: 24.0,
-      halfY: 24.0,
+      profile: CombatPoseCatalog.fireExplosion,
+      stepTimeSeconds: .05,
       hitPolicy: HitPolicy.oncePerTarget,
       impactEffectId: SpellImpactId.fireExplosion,
     ),
     defaultCost: AbilityResourceCost(manaCost100: 2400),
     // Cast row authored active at frame 5 (1-based).
     windupTicks: 20,
-    // Explosion authored active on frames 3-4 (1-based).
+    // Caster release pose; the impact owns its separate damage timeline.
     activeTicks: 8,
     recoveryTicks: 16,
     cooldownTicks: 120,

@@ -43,6 +43,7 @@ const _dirEps2 = 1e-12;
 EntityId spawnProjectileFromCaster(
   EcsWorld world, {
   required int tickHz,
+  int? currentTick,
   required ProjectileId projectileId,
   required ProjectileItemDef projectile,
   required Faction faction,
@@ -95,6 +96,7 @@ EntityId spawnProjectileFromCaster(
     entity,
     ProjectileEntityDef(
       projectileId: projectileId,
+      spawnTick: currentTick,
       faction: faction,
       owner: owner,
       credit: damageCreditFor(world, owner),

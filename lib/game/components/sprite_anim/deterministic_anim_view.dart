@@ -135,6 +135,7 @@ class DeterministicAnimView extends SpriteAnimationGroupComponent<AnimKey> {
       );
     }
 
+    angle = e.rotationRad;
     var next = overrideAnim ?? e.anim;
     if (_fallbackResolver != null) {
       next = _fallbackResolver(next);

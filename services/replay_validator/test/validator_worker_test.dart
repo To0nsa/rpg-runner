@@ -454,8 +454,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.10.4',
-
+        gameCompatVersion: '2026.10.6',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -655,6 +654,7 @@ void main() {
       '2026.10.1',
       '2026.10.2',
       '2026.10.3',
+      '2026.10.4',
       '2099.01.0',
     ]) {
       test(
@@ -1726,7 +1726,7 @@ ValidatorRunSession _session({
   String? storageGeneration = '123',
   String? ticketRunSessionId,
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.10.4',
+  String gameCompatVersion = '2026.10.6',
 
   String? rulesetVersion,
   String? scoreVersion,

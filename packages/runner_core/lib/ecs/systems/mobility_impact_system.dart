@@ -75,13 +75,18 @@ class MobilityImpactSystem {
       final sourceHalfSegment =
           capsules.verticalHalfSegmentTicks[sourceCapsuleIndex] / scale;
 
+      final hi = world.combatHurtbox.tryIndexOf(source);
+      final hurt = hi == null ? null : world.combatHurtbox.capsule[hi];
+      final x = transforms.posX[sourceTransformIndex];
+      final y = transforms.posY[sourceTransformIndex];
       _resolver.collectOrderedOverlapsCapsule(
         broadphase: broadphase,
-        ax: sourceCenterX,
-        ay: sourceCenterY - sourceHalfSegment,
-        bx: sourceCenterX,
-        by: sourceCenterY + sourceHalfSegment,
-        radius: capsules.radiusTicks[sourceCapsuleIndex] / scale,
+        ax: hurt == null ? sourceCenterX : x + hurt.ax,
+        ay: hurt == null ? sourceCenterY - sourceHalfSegment : y + hurt.ay,
+        bx: hurt == null ? sourceCenterX : x + hurt.bx,
+        by: hurt == null ? sourceCenterY + sourceHalfSegment : y + hurt.by,
+        radius:
+            hurt?.radius ?? capsules.radiusTicks[sourceCapsuleIndex] / scale,
         owner: source,
         sourceFaction: factions.faction[sourceFactionIndex],
         outTargetIndices: _overlaps,
