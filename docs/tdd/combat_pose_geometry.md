@@ -87,6 +87,10 @@ and rounded ends. Actor/projectile outlines and compound attack overlays share
 snapshot position interpolation with their views. AABB placeholders are no
 longer used for live combat debug shapes.
 
+`RenderDebugFlags.drawActorHitboxes` is enabled by default for local debug/profile
+inspection. The existing release-mode gate suppresses these overlays. Set the
+flag to `false` to hide them; changing its initializer requires a hot restart.
+
 Guard protection remains omnidirectional by owner instruction. It is damage
 middleware, not a front-shield collision volume. Geometry does not introduce
 roll invulnerability or directional guarding.
