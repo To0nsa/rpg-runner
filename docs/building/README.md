@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed combat hitbox alignment](../archive/2026-10-05/building/combat_hitbox_alignment.md):
+  reviewed combat poses, shared timing, and exact debug geometry pass local
+  validation; see [verification](../verification/combat-hitbox-alignment.md).
+
 - [Completed Forest content drift repair](../archive/2026-10-02/building/forest_content_drift_repair.md):
   current-source generation and all traversal checks pass on the dedicated
   branch; see [verification](../verification/forest-content-drift-repair.md).

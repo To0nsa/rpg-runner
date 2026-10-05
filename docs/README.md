@@ -4,6 +4,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
 - [Current implementation plans](building/README.md): NPC rescue production smoke.
+- [Combat hitbox alignment](verification/combat-hitbox-alignment.md): player,
+  NPC and enemy combat poses share deterministic collision/render timing;
+  validated locally for source `2026.10.6`, awaiting a coordinated release.
 - [NPC section guards](verification/npc-section-guards.md): implemented and locally
   validated on a dedicated branch; deployed in `2026.10.1`.
 - [Forest content repair](verification/forest-content-drift-repair.md): generated
