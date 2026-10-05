@@ -102,10 +102,11 @@ validated results.
 `2026.10.3` adds replay-sensitive top-contact regeneration shrines while
 retaining the `score-v3` distance rule and the same wire formats.
 `2026.10.4` retunes that blessing to +0.10 health, mana, and stamina per second;
-`2026.10.6` aligns combat geometry and damage windows with source poses.
-See [combat pose geometry](combat_pose_geometry.md). The worker rejects prior
-gameplay versions rather than replaying their different combat outcomes with
-the current Core.
+`2026.10.6` prevents coins and restoration gems from spawning across authored
+non-collidable terrain intervals and aligns combat geometry and damage windows
+with source poses. See [combat pose geometry](combat_pose_geometry.md). The
+worker rejects prior gameplay versions rather than replaying their different
+resource placement or combat outcomes with the current Core.
 `score-v3` retains 5 points per metre and isolates the changed distance points
 from historical boards. Wire fields are unchanged; saved results keep their
 original values. Compatibility labels do not select historical Core implementations.

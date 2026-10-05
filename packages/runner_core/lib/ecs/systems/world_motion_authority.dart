@@ -282,6 +282,8 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     required TerrainTraversalProfile playerProfile,
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     Iterable<TerrainSurfaceGraphBuildProfile>? groundEnemyGraphProfiles,
+    Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
+        const <TerrainItemSpawnExclusionRange>[],
   }) {
     final grojib = enemyCatalog.terrainContactProfile(EnemyId.grojib);
     final hashash = enemyCatalog.terrainContactProfile(EnemyId.hashash);
@@ -300,6 +302,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       grojibProfile: grojib,
       hashashProfile: hashash,
       unocoProfile: unoco,
+      itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     );
     return TerrainMultiBodyWorldMotionAuthority._(
       publication: publication,
@@ -329,6 +332,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final publication = _TerrainAuthorityPublication.fromRuntimeBundle(
       runtimeBundle: candidate.runtimeBundle,
       terrainRenderSnapshot: candidate.renderSnapshot,
+      itemSpawnExclusionRanges: candidate.itemSpawnExclusionRanges,
       waterRegions: candidate.waterRegions,
       playerProfile: playerProfile,
       grojibProfile: grojib,
@@ -452,6 +456,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final replacement = _TerrainAuthorityPublication.fromRuntimeBundle(
       runtimeBundle: candidate.runtimeBundle,
       terrainRenderSnapshot: candidate.renderSnapshot,
+      itemSpawnExclusionRanges: candidate.itemSpawnExclusionRanges,
       waterRegions: candidate.waterRegions,
       playerProfile: _playerProfile,
       grojibProfile: _grojibProfile,
@@ -1828,6 +1833,8 @@ final class _TerrainAuthorityPublication {
     required EnemyTerrainContactProfile grojibProfile,
     required EnemyTerrainContactProfile hashashProfile,
     required EnemyTerrainContactProfile unocoProfile,
+    Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
+        const <TerrainItemSpawnExclusionRange>[],
   }) {
     final bundle = TerrainRuntimeBundle.build(
       geometry: geometry,
@@ -1839,12 +1846,15 @@ final class _TerrainAuthorityPublication {
       grojibProfile: grojibProfile,
       hashashProfile: hashashProfile,
       unocoProfile: unocoProfile,
+      itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     );
   }
 
   factory _TerrainAuthorityPublication.fromRuntimeBundle({
     required TerrainRuntimeBundle runtimeBundle,
     StagedTerrainRenderSnapshot? terrainRenderSnapshot,
+    Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
+        const <TerrainItemSpawnExclusionRange>[],
     List<WaterRegion> waterRegions = const [],
     required TerrainTraversalProfile playerProfile,
     required EnemyTerrainContactProfile grojibProfile,
@@ -1896,6 +1906,7 @@ final class _TerrainAuthorityPublication {
       placementQuery: placementQuery,
       spawnPlacementResolver: TerrainSpawnPlacementResolver(
         placementQuery: placementQuery,
+        itemSpawnExclusionRanges: itemSpawnExclusionRanges,
       ),
       flightSurfaceBuffer: bundle.surfaceIndex.createQueryBuffer(),
       ballisticProjectileSystem: TerrainBallisticProjectileSystem(

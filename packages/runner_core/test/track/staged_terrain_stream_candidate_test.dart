@@ -16,7 +16,10 @@ void main() {
   test(
     'builds collision navigation and render outputs from one geometry object',
     () {
-      const pattern = ChunkPattern(name: 'field', chunkKey: 'field_default_normal_001');
+      const pattern = ChunkPattern(
+        name: 'field',
+        chunkKey: 'field_default_normal_001',
+      );
       const source = ChunkPatternListSource(
         easyPatterns: <ChunkPattern>[pattern],
         hardPatterns: <ChunkPattern>[pattern],
@@ -30,7 +33,9 @@ void main() {
         noEnemyChunks: 0,
       );
       final catalog = StagedTerrainArtifactCatalog(
-        artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_default_normal_001')]),
+        artifact: _artifact(<StagedTerrainChunkData>[
+          _chunk('field_default_normal_001'),
+        ]),
       );
 
       streamer.step(cameraLeft: 0.0, cameraRight: 600.0, spawnEnemy: (_) {});
@@ -123,10 +128,40 @@ void main() {
       );
     },
   );
+
+  test('publishes pickup exclusions for non-collidable terrain', () {
+    final chunk = _chunkWithNoCollision('field_hole');
+    final catalog = StagedTerrainArtifactCatalog(
+      artifact: _artifact(<StagedTerrainChunkData>[chunk]),
+    );
+    final binding = catalog.bind(
+      chunkKey: chunk.chunkKey,
+      chunkIndex: 3,
+      worldOriginXTicks: 4096,
+    );
+
+    final candidate = const StagedTerrainStreamCandidateBuilder()
+        .buildFromBindings(
+          bindings: <StagedTerrainChunkBinding>[binding],
+          geometryVersion: 9,
+          groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+        );
+
+    final exclusion = candidate.itemSpawnExclusionRanges.single;
+    expect(exclusion.minXTicks, 5120);
+    expect(exclusion.maxXTicks, 7168);
+    expect(
+      candidate.withGeometryVersion(10).itemSpawnExclusionRanges,
+      same(candidate.itemSpawnExclusionRanges),
+    );
+  });
 }
 
 TrackStreamer _fieldStreamer() {
-  const pattern = ChunkPattern(name: 'field', chunkKey: 'field_default_normal_001');
+  const pattern = ChunkPattern(
+    name: 'field',
+    chunkKey: 'field_default_normal_001',
+  );
   const source = ChunkPatternListSource(
     easyPatterns: <ChunkPattern>[pattern],
     hardPatterns: <ChunkPattern>[pattern],
@@ -189,3 +224,59 @@ StagedTerrainChunkData _chunk(String chunkKey) => StagedTerrainChunkData(
   triangles: const <StagedTerrainTriangleData>[],
   placementLineage: const <StagedTerrainPlacementLineageData>[],
 );
+
+StagedTerrainChunkData _chunkWithNoCollision(String chunkKey) {
+  final sourceId = StagedTerrainSourceId(
+    chunkKey: chunkKey,
+    shapeId: 'dirt_hole',
+  );
+  return StagedTerrainChunkData(
+    chunkKey: chunkKey,
+    id: chunkKey,
+    revision: 1,
+    status: 'active',
+    levelId: 'field',
+    tileSize: 16,
+    width: 600,
+    height: 270,
+    difficulty: 'normal',
+    assemblyGroupId: 'default',
+    authoringPolygonSignature: _digest,
+    sourceSignature: _digest,
+    edgeSignature: _digest,
+    renderEdgeSignature: _digest,
+    placementSignature: _digest,
+    triangleSignature: _digest,
+    polygons: <StagedTerrainPolygonData>[
+      StagedTerrainPolygonData(
+        sourcePath:
+            'assets/authoring/level/chunks/$chunkKey.json#direct=dirt_hole',
+        id: sourceId,
+        sourceVertices: const <StagedTerrainPoint>[
+          StagedTerrainPoint(2, 4),
+          StagedTerrainPoint(6, 4),
+          StagedTerrainPoint(6, 8),
+        ],
+        vertices: const <StagedTerrainPoint>[
+          StagedTerrainPoint(1024, 2048),
+          StagedTerrainPoint(3072, 2048),
+          StagedTerrainPoint(3072, 4096),
+        ],
+        collisionMode: StagedTerrainCollisionMode.none,
+        surfaceKind: 'ground',
+        materialKey: 'dirt_hole',
+      ),
+    ],
+    edges: const <StagedTerrainEdgeData>[],
+    renderEdges: const <StagedTerrainEdgeData>[],
+    triangles: <StagedTerrainTriangleData>[
+      StagedTerrainTriangleData(
+        sourceId: sourceId,
+        first: 0,
+        second: 1,
+        third: 2,
+      ),
+    ],
+    placementLineage: const <StagedTerrainPlacementLineageData>[],
+  );
+}

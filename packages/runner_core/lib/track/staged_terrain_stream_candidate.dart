@@ -5,9 +5,11 @@ import '../terrain/water_region.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../navigation/terrain_runtime_bundle.dart';
+import '../navigation/terrain_spawn_placement.dart';
 import '../navigation/types/terrain_surface_graph.dart';
 import '../snapshots/staged_terrain_render_snapshot.dart';
 import 'staged_terrain_catalog.dart';
+import 'staged_terrain_data.dart';
 import 'staged_terrain_render_snapshot_builder.dart';
 import 'staged_terrain_runtime_bundle.dart';
 import 'staged_terrain_stream_bindings.dart';
@@ -30,6 +32,7 @@ final class StagedTerrainStreamCandidate {
     required this.geometry,
     required this.runtimeBundle,
     required this.renderSnapshot,
+    required this.itemSpawnExclusionRanges,
     required this.waterRegions,
   });
 
@@ -44,6 +47,9 @@ final class StagedTerrainStreamCandidate {
 
   /// Direct Chunk terrain fills and boundaries paired with [geometry].
   final StagedTerrainRenderSnapshot renderSnapshot;
+
+  /// Horizontal masks derived from direct non-collidable terrain polygons.
+  final List<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges;
 
   /// Fluid query volumes published atomically with collision and rendering.
   final List<WaterRegion> waterRegions;
@@ -60,6 +66,7 @@ final class StagedTerrainStreamCandidate {
       bindings: bindings,
       geometry: bundle.geometry,
       runtimeBundle: bundle,
+      itemSpawnExclusionRanges: itemSpawnExclusionRanges,
       waterRegions: waterRegions,
       renderSnapshot: StagedTerrainRenderSnapshot(
         geometryVersion: geometryVersion,
@@ -136,6 +143,15 @@ final class StagedTerrainStreamCandidateBuilder {
       bindings: bindings,
       geometry: geometry,
     );
+    final itemSpawnExclusionRanges =
+        List<TerrainItemSpawnExclusionRange>.unmodifiable(
+          <TerrainItemSpawnExclusionRange>[
+            for (final binding in bindings)
+              for (final polygon in binding.chunk.polygons)
+                if (polygon.collisionMode == StagedTerrainCollisionMode.none)
+                  _itemSpawnExclusionRange(binding, polygon),
+          ],
+        );
     final waterRegions = List<WaterRegion>.unmodifiable([
       for (final binding in bindings)
         for (final data in binding.chunk.waterRegions)
@@ -167,7 +183,24 @@ final class StagedTerrainStreamCandidateBuilder {
       geometry: geometry,
       runtimeBundle: runtimeBundle,
       renderSnapshot: renderSnapshot,
+      itemSpawnExclusionRanges: itemSpawnExclusionRanges,
       waterRegions: waterRegions,
     );
   }
+}
+
+TerrainItemSpawnExclusionRange _itemSpawnExclusionRange(
+  StagedTerrainChunkBinding binding,
+  StagedTerrainPolygonData polygon,
+) {
+  var minX = polygon.vertices.first.xTicks;
+  var maxX = minX;
+  for (final vertex in polygon.vertices.skip(1)) {
+    minX = vertex.xTicks < minX ? vertex.xTicks : minX;
+    maxX = vertex.xTicks > maxX ? vertex.xTicks : maxX;
+  }
+  return TerrainItemSpawnExclusionRange(
+    minXTicks: minX + binding.worldOriginXTicks,
+    maxXTicks: maxX + binding.worldOriginXTicks,
+  );
 }

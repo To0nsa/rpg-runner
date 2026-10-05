@@ -12,11 +12,13 @@ and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.0
 
 ## Pending source release: 2026.10.6
 
-This revision includes [combat pose alignment](../tdd/combat_pose_geometry.md): fitted
+This revision prevents coins and restoration gems from spawning where their
+margin-expanded footprint overlaps authored non-collidable terrain. It retains
+`rules-v2`, `score-v3`, `ghost-v1`, and replay/command format 1, but changes
+deterministic pickup placement and therefore requires a coordinated cutover.
+It also includes [combat pose alignment](../tdd/combat_pose_geometry.md): fitted
 body/attack/projectile geometry, shared pose clocks, and delayed visible Derf
-impact damage. It retains `rules-v2`, `score-v3`, `ghost-v1`, and replay/command
-format 1, but changes combat outcomes and requires a coordinated cutover.
-Local tests and native benchmark evidence do not replace the
+impact damage. Local tests and native benchmark evidence do not replace the
 strict exact-image container gate or production smoke.
 
 - [ ] Freeze and prepare the source, including the full replay-validator gate

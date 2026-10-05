@@ -821,6 +821,9 @@ highest upward surface at candidate X, then require:
 - exact segment `yAt(x)` with the existing `10 px` vertical clearance
 - no intersection between any relevant terrain and the complete
   margin-expanded upright item AABB
+- no overlap between the margin-expanded item footprint and a direct authored
+  `collisionMode: none` terrain interval; this prevents lower collision from
+  attracting pickups through visual holes
 
 Support eligibility and AABB clearance are independent. A steep walkable ramp
 can therefore reject a candidate when the uphill side would clip the upright

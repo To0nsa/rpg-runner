@@ -202,7 +202,9 @@ settlement remain unchanged. Current source support is game compatibility `2026.
 and ranked `rules-v2`/`score-v3`/`ghost-v1`, with replay/command format 1. Distance
 tracks furthest accepted horizontal progress from spawn, so retracing ground
 does not add score. HUD, local results and validation call the same Core metre
-conversion; the worker has no independent scale. Previous gameplay versions,
+conversion; the worker has no independent scale. Non-collidable authored terrain
+also excludes procedural pickup footprints before replayed spawn commitment.
+Previous gameplay versions,
 `score-v1` and `score-v2` are rejected before replay. Follow the
 [pre-live release checklist](../building/rescue_release_operations.md) when deploying.
 

@@ -517,6 +517,34 @@ void main() {
       expect(harness.world.transform.posY[transform], 282);
     });
 
+    for (final itemKind in TerrainSpawnItemKind.values) {
+      test('${itemKind.name} rejects non-collidable terrain footprints', () {
+        final fixture = _fixture(
+          <TerrainPolygonInput>[_rectangle('floor', 0, 300, 500, 500)],
+          itemSpawnExclusionRanges: <TerrainItemSpawnExclusionRange>[
+            TerrainItemSpawnExclusionRange(
+              minXTicks: _ticks(140),
+              maxXTicks: _ticks(160),
+            ),
+          ],
+        );
+
+        final blocked = _itemPlacement(
+          fixture,
+          x: 131,
+          profile: _itemProfile(itemKind: itemKind),
+        );
+        final clear = _itemPlacement(
+          fixture,
+          x: 120,
+          profile: _itemProfile(itemKind: itemKind),
+        );
+
+        expect(blocked.validity, TerrainPlacementValidity.blockedClearance);
+        expect(clear.accepted, isTrue);
+      });
+    }
+
     test('canonical results ignore polygon input order', () {
       expect(
         buildTerrainSpawnPlacementSignature(reverseInputOrder: true),
@@ -547,7 +575,11 @@ typedef _PlacementFixture = ({
 
 typedef _SpawnHarness = ({EcsWorld world, SpawnService service});
 
-_PlacementFixture _fixture(List<TerrainPolygonInput> inputs) {
+_PlacementFixture _fixture(
+  List<TerrainPolygonInput> inputs, {
+  Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
+      const <TerrainItemSpawnExclusionRange>[],
+}) {
   final geometry = _compile(inputs);
   final surfaceSet = const TerrainSurfaceExtractor().extract(geometry);
   return (
@@ -559,6 +591,7 @@ _PlacementFixture _fixture(List<TerrainPolygonInput> inputs) {
         terrainIndex: TerrainEdgeIndex(edges: geometry.edges),
         surfaceIndex: TerrainSurfaceSpatialIndex(surfaceSet: surfaceSet),
       ),
+      itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     ),
   );
 }
@@ -633,15 +666,17 @@ TerrainSpawnPlacementResult _itemPlacement(
   ),
 );
 
-TerrainItemSpawnPlacementProfile _itemProfile({double supportClearance = 10}) =>
-    TerrainItemSpawnPlacementProfile.fromWorld(
-      itemKind: TerrainSpawnItemKind.collectible,
-      width: 16,
-      height: 16,
-      supportClearance: supportClearance,
-      noSpawnMargin: 2,
-      traversalProfile: _playerArchetype().terrainTraversalProfile,
-    );
+TerrainItemSpawnPlacementProfile _itemProfile({
+  double supportClearance = 10,
+  TerrainSpawnItemKind itemKind = TerrainSpawnItemKind.collectible,
+}) => TerrainItemSpawnPlacementProfile.fromWorld(
+  itemKind: itemKind,
+  width: 16,
+  height: 16,
+  supportClearance: supportClearance,
+  noSpawnMargin: 2,
+  traversalProfile: _playerArchetype().terrainTraversalProfile,
+);
 
 _SpawnHarness _spawnHarness({
   required int seed,

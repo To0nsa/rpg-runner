@@ -289,8 +289,13 @@ draws, salts, snapping, spacing, and attempt limits are unchanged. The terrain
 authority validates each already-created candidate through a mutation-free
 placement request that consumes no RNG. Terrain rejection consumes the existing
 marker request or item attempt and never draws a replacement.
-Therefore an invalid placement cannot shift any later marker roll or candidate
-sequence.
+Direct authored `collisionMode: none` polygons publish horizontal procedural-item
+exclusion intervals beside the collision bundle. A coin or restoration gem is
+rejected when its margin-expanded footprint overlaps one, preventing lower
+collision from attracting the pickup through a visual hole. This deterministic
+placement change is included in game compatibility `2026.10.6`;
+count/candidate RNG and attempt consumption remain unchanged. An invalid placement cannot
+shift any later marker roll or candidate sequence.
 
 Player death may enter a death-animation freeze: only animation advances until
 the terminal `RunEndedEvent` is emitted. Any terminal end freezes normal
@@ -325,8 +330,9 @@ outcomes and is released as game compatibility `2026.09.10`.
 
 Top-contact world interactions run after death resolution and before resource
 regeneration. They consume final support and grant player-owned level blessings;
-streaming retirement never removes a granted bonus. Current source uses
-`2026.10.6` with equal 0.10/second health, mana, and stamina bonuses. See
+streaming retirement never removes a granted bonus. The blessing shipped in
+`2026.10.4` with equal 0.10/second health, mana, and stamina bonuses; current
+`2026.10.6` source retains those rates. See
 [world interactions](world_interactions.md).
 
 ## Outputs and consumers

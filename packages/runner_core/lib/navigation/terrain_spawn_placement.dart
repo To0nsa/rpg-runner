@@ -47,6 +47,43 @@ enum TerrainSpawnItemKind {
   restoration,
 }
 
+/// Horizontal world interval where procedural items cannot be placed.
+///
+/// Coordinates use authoritative 1/1024-world-unit physics ticks. Streamed
+/// terrain derives these intervals from direct authored polygons whose
+/// collision mode is `none`, preventing a lower surface from attracting an
+/// item through a visual hole.
+final class TerrainItemSpawnExclusionRange {
+  /// Creates one non-empty exclusion interval.
+  factory TerrainItemSpawnExclusionRange({
+    required int minXTicks,
+    required int maxXTicks,
+  }) {
+    if (minXTicks >= maxXTicks) {
+      throw ArgumentError('Item spawn exclusion ranges must be non-empty.');
+    }
+    return TerrainItemSpawnExclusionRange._(
+      minXTicks: minXTicks,
+      maxXTicks: maxXTicks,
+    );
+  }
+
+  const TerrainItemSpawnExclusionRange._({
+    required this.minXTicks,
+    required this.maxXTicks,
+  });
+
+  /// Inclusive left boundary in physics ticks.
+  final int minXTicks;
+
+  /// Inclusive right boundary in physics ticks.
+  final int maxXTicks;
+
+  /// Whether an open item footprint overlaps this interval.
+  bool overlapsFootprint(int minX, int maxX) =>
+      minX < maxXTicks && maxX > minXTicks;
+}
+
 /// Explicit shape and terrain policy used by one spawn placement request.
 sealed class TerrainSpawnPlacementProfile {
   const TerrainSpawnPlacementProfile();
@@ -414,11 +451,19 @@ final class TerrainSpawnPlacementResolver {
       );
 
   /// Creates a resolver over one immutable geometry/surface publication.
-  TerrainSpawnPlacementResolver({required TerrainPlacementQuery placementQuery})
-    : _placementQuery = placementQuery,
-      _terrainBuffer = placementQuery.terrainIndex.createQueryBuffer();
+  TerrainSpawnPlacementResolver({
+    required TerrainPlacementQuery placementQuery,
+    Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
+        const <TerrainItemSpawnExclusionRange>[],
+  }) : _placementQuery = placementQuery,
+       _itemSpawnExclusionRanges =
+           List<TerrainItemSpawnExclusionRange>.unmodifiable(
+             itemSpawnExclusionRanges,
+           ),
+       _terrainBuffer = placementQuery.terrainIndex.createQueryBuffer();
 
   final TerrainPlacementQuery _placementQuery;
+  final List<TerrainItemSpawnExclusionRange> _itemSpawnExclusionRanges;
   final TerrainQueryBuffer _terrainBuffer;
 
   /// Resolves [request] without mutating ECS state or consuming random values.
@@ -523,6 +568,21 @@ final class TerrainSpawnPlacementResolver {
         support: support,
       );
     }
+    final centerX = request.desiredBodyCenter.xTicks;
+    final footprintHalfWidth =
+        profile.halfWidthTicks + profile.noSpawnMarginTicks;
+    if (_itemSpawnExclusionRanges.any(
+      (range) => range.overlapsFootprint(
+        centerX - footprintHalfWidth,
+        centerX + footprintHalfWidth,
+      ),
+    )) {
+      return _failure(
+        request,
+        TerrainPlacementValidity.blockedClearance,
+        support: support,
+      );
+    }
     if (support.dxTicks < profile.minimumSupportSpanTicks) {
       return _failure(
         request,
@@ -531,7 +591,6 @@ final class TerrainSpawnPlacementResolver {
       );
     }
 
-    final centerX = request.desiredBodyCenter.xTicks;
     final supportInset = _divideCeil(profile.minimumSupportSpanTicks, 2);
     if (centerX < support.xMinTicks + supportInset ||
         centerX > support.xMaxTicks - supportInset) {

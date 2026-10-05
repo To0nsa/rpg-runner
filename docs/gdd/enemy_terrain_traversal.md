@@ -157,7 +157,9 @@ Coins and restoration gems may rest on solid terrain or the top of a one-way
 platform that Éloïse can traverse, including slopes through `60°`. A candidate
 needs at least `20 px` of horizontal support and enough room for the complete
 upright pickup, including its existing visual/collision margin and vertical
-gap above the surface.
+gap above the surface. That complete horizontal footprint must also avoid
+authored non-collidable terrain, so coins and restoration gems cannot appear
+over a dirt hole by settling onto lower collision beneath it.
 
 Pickups remain upright; they do not rotate to match a ramp. Consequently, a
 very steep but walkable ramp can reject a candidate if the uphill side of the
