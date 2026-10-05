@@ -36,7 +36,13 @@ function Invoke-ReleaseComponent {
         Set-Content -LiteralPath (Join-Path $LogDirectory "slow-tests-$ShardIndex.json") -Encoding utf8
     }
     "client-build" {
-      Invoke-ReleaseCommand flutter @("build", "web", "--release", "--no-pub") $Root $log | Out-Null
+      $defines = Get-Content -Raw -LiteralPath (Join-Path $Root "web/production_defines.json") | ConvertFrom-Json
+      $siteKey = $defines.PSObject.Properties["FIREBASE_APP_CHECK_WEB_SITE_KEY"]
+      if (-not $siteKey -or $siteKey.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($siteKey.Value)) {
+        throw "Production web configuration requires FIREBASE_APP_CHECK_WEB_SITE_KEY."
+      }
+      Invoke-ReleaseCommand flutter @("build", "web", "--release", "--no-pub",
+        "--dart-define-from-file=web/production_defines.json") $Root $log | Out-Null
     }
     "validator-checks" {
       $directory = Join-Path $Root "services/replay_validator"

@@ -28,7 +28,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $root $relative) -Destination $target
   }
   $contract = Get-ReleaseContract $fixture "test-project"
-  Assert-True ($contract.gameCompatVersion -and $contract.scoreVersion -eq "score-v2") "current release tuple aligns"
+  Assert-True ($contract.gameCompatVersion -and $contract.scoreVersion -eq "score-v3") "current release tuple aligns"
 
   $clientPath = Join-Path $fixture "lib/ui/state/app/app_state.dart"
   $originalClient = Get-Content -Raw -LiteralPath $clientPath

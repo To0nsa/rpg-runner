@@ -16,6 +16,9 @@ checklist before changing this workflow.
   Verify the healthy revision serving all traffic, not the desired template.
 - Keep successful preparation bound to source/toolchain/artifact evidence.
   Production stage checkpoints must never outlive their matching artifacts.
+- Release web builds must include web/production_defines.json and reject a
+  missing or empty App Check site key. This domain-restricted key is public;
+  credentials and debug tokens must never enter that file.
 - Keep component input dependencies and CI recipes aligned. A cache hit must
   verify artifact bytes; partial client shards and failed/fork/PR CI runs are
   not complete release evidence. Never cache the current npm advisory audit.

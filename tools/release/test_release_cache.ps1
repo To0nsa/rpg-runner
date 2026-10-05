@@ -88,9 +88,21 @@ try {
   }
   $cache = Join-Path $fixture '.tmp/cache'
   $logs = Join-Path $fixture '.tmp/logs'
+  $webDefinesPath = Join-Path $fixture 'web/production_defines.json'
+  $webDefines = '{"FIREBASE_APP_CHECK_WEB_SITE_KEY":"public-test-key"}'
+  $webDefines | Set-Content -LiteralPath $webDefinesPath
   $components = @('functions-checks','functions-build','client-checks','client-build')
   $items = @(Invoke-ReleasePreparation $fixture $cache $components $logs)
   Assert-CacheTest ($items.Count -eq 4 -and @($global:cacheTrace | Where-Object { $_ -like 'flutter test *' }).Count -eq 1) 'first preparation runs real recipes once'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -like 'flutter build web*--dart-define-from-file=web/production_defines.json' }).Count -eq 1) 'release web build includes its public App Check configuration'
+  $webInput = Get-ReleaseComponentInputs $fixture 'client-build'
+  '{"FIREBASE_APP_CHECK_WEB_SITE_KEY":"rotated-public-test-key"}' | Set-Content -LiteralPath $webDefinesPath
+  Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-build') -ne $webInput) 'App Check key changes invalidate cached web builds'
+  foreach ($invalidDefines in @('{}', '{"FIREBASE_APP_CHECK_WEB_SITE_KEY":" "}')) {
+    $invalidDefines | Set-Content -LiteralPath $webDefinesPath
+    Assert-CacheThrows { Invoke-ReleaseComponent $fixture 'client-build' $logs } 'requires FIREBASE_APP_CHECK_WEB_SITE_KEY' 'missing or empty App Check configuration blocks the web build'
+  }
+  $webDefines | Set-Content -LiteralPath $webDefinesPath
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart pub get --enforce-lockfile' }).Count -eq 1) 'client checks resolve independent worker fixtures without validator checks'
   $global:cacheTrace.Clear()
   # These absolute paths are both verified beneath the isolated fixture.

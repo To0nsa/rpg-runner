@@ -99,6 +99,13 @@ separate task-specific gates. Production npm advisories are checked on every
 backend/coordinated preparation, including cache hits, because advisories can
 change without source changes.
 
+The web build passes `--dart-define-from-file=web/production_defines.json`.
+This tracked public configuration supplies the domain-restricted reCAPTCHA
+Enterprise App Check site key; missing or empty keys block the build. Its bytes
+participate in client source and component hashes, including CI reuse. Never
+put credentials or App Check debug tokens in this file. Release startup retains
+its required-key guard.
+
 A coordinated preparation requires these components:
 
 - Functions emulator tests and the production TypeScript build.

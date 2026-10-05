@@ -56,6 +56,15 @@ flutter pub get
 flutter run
 ```
 
+Production web builds require the public, domain-restricted App Check key:
+
+```bash
+flutter build web --release --dart-define-from-file=web/production_defines.json
+```
+
+The [release workflow](docs/tdd/deployment_workflow.md) passes this configuration
+automatically and includes it in artifact-cache validation.
+
 Startup preserves the 1.8-second studio splash and a minimum two-second game
 loader. Initialization and player-data failures remain on the loader with an
 explicit retry; the hub opens only after bootstrap and required name setup.

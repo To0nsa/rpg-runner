@@ -85,8 +85,9 @@ adapters.
 
 The production web provider is a score-based reCAPTCHA Enterprise key limited
 to the Firebase Hosting `web.app` and `firebaseapp.com` domains. The public
-site key is supplied with `--dart-define=FIREBASE_APP_CHECK_WEB_SITE_KEY=...`
-during the release build and is not stored as a repository secret. Firebase
+site key is supplied by the tracked `web/production_defines.json` through
+`--dart-define-from-file` during the release build. This public configuration
+contains no credentials or debug tokens. Firebase
 App Check exchanges its assessment for a one-hour App Check token.
 
 ## Request bounds
