@@ -6,7 +6,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Current implementation plans](building/README.md): NPC rescue production smoke.
 - [Combat hitbox alignment](verification/combat-hitbox-alignment.md): player,
   NPC and enemy combat poses share deterministic collision/render timing;
-  validated locally for source `2026.10.6`, awaiting a coordinated release.
+  validated locally and deployed in compatibility `2026.10.6`.
 - [NPC section guards](verification/npc-section-guards.md): implemented and locally
   validated on a dedicated branch; deployed in `2026.10.1`.
 - [Forest content repair](verification/forest-content-drift-repair.md): generated
@@ -16,8 +16,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
 - [Run distance and scoring](gdd/06_score.md#23-distance-means-furthest-progress): deployed in `2026.10.3`/`score-v3`, with furthest progress and 24 metres per full chunk.
 - [Earlier ghost cache client release](verification/ghost-cache-client-2026-10-03.md): ghost cache filename fix `8d7d9bdc` published to Hosting and installed on the connected Android phone; 876 client tests passed. Ghost launch, cache reuse, and rendering were verified on the phone.
-- [Latest coordinated production release](verification/game-compat-2026.10.4-production.md): frozen `43e6c841` deployed October 3 (Helsinki time) as `2026.10.4`/`score-v3`; release repairs, local preparation, strict image benchmark, and live infrastructure checks passed. Signed-in smoke remains open.
-- [Release checklist](building/rescue_release_operations.md#deployed-release-2026104): `2026.10.4` includes blessing/NPC tuning, current Forest content and startup/ghost-loading improvements.
+- [Latest coordinated production release](verification/game-compat-2026.10.6-production.md): frozen `6802fa0e` deployed October 6 (Helsinki time) as `2026.10.6`/`score-v3`; preparation, strict image benchmark, and live infrastructure checks passed. Signed-in Android smoke and browser file-I/O support remain unverified.
+- [Release checklist](building/rescue_release_operations.md#deployed-release-2026106): `2026.10.6` includes combat pose alignment, pickup placement fixes, and repaired App Check web build configuration.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.

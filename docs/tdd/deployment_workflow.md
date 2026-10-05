@@ -9,12 +9,13 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.4`, with equal Forest
-blessing regeneration, 37-HP allied NPCs, the nine-chunk Forest hard finale,
-and current startup/ghost-loading improvements. Its ranked tuple is `rules-v2`, `score-v3`,
-and `ghost-v1`; replay and command formats remain 1. See the
-[October 3 production evidence](../verification/game-compat-2026.10.4-production.md)
-for frozen commit `43e6c841`, repairs, artifacts, cutover checks, and exclusions. The
+The current production release is gameplay `2026.10.6`, with combat pose
+alignment, visible Derf impact timing, pickup exclusion from non-collidable
+terrain, and repaired web App Check build configuration. Its ranked tuple is
+`rules-v2`, `score-v3`, and `ghost-v1`; replay and command formats remain 1.
+See the [October 6 production evidence](../verification/game-compat-2026.10.6-production.md)
+for frozen commit `6802fa0e`, artifacts, cutover checks, and the remaining
+browser service-initialization limitation. The
 [release checklist](../building/rescue_release_operations.md) retains the
 outstanding linked Play Games smoke checks.
 

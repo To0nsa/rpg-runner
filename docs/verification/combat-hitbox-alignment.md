@@ -88,8 +88,10 @@ Windows x64, Dart 3.13.1, `dirty: true`, and the pre-commit base revision.
 Each of the three levels replays 36,000 ticks at 60 Hz with deterministic
 outcomes and passes the time/throughput gates. The fixture has no enemy stream;
 it verifies compiled replay/terrain throughput rather than combat stress load.
-The strict exact-image one-CPU/512-MiB container gate, production cutover and
-signed-in gameplay/replay/settlement/leaderboard/ghost smoke remain release work.
+The subsequent [October 6 production release](game-compat-2026.10.6-production.md)
+passed the strict exact-image one-CPU/512-MiB gate and deployed the matching
+source. Signed-in gameplay/replay/settlement/leaderboard/ghost smoke remains
+outstanding; the local evidence above does not establish those outcomes.
 
 See the [technical contract](../tdd/combat_pose_geometry.md),
 [gameplay design](../gdd/combat/combat_system_design.md),

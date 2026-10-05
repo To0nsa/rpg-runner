@@ -77,8 +77,9 @@ progress from spawn and uses Core's shared 25-world-unit metre conversion
 Retracing ground cannot add distance points. Current source also aligns visible
 combat poses with fitted attack/body/projectile geometry and fixed-tick damage
 windows; see [combat pose geometry](../../docs/tdd/combat_pose_geometry.md).
-Compatibility `2026.10.6` has not been deployed; historical results keep their
-recorded values.
+Compatibility `2026.10.6` was deployed October 6, 2026 (Helsinki time); see
+[production evidence](../../docs/verification/game-compat-2026.10.6-production.md).
+Historical results keep their recorded values.
 Previous versions, including `2026.10.4`, are rejected
 before replay. This build does not ship a historical selector, camera simulation,
 or the retired `rules-v1` combat simulator.

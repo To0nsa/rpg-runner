@@ -1,16 +1,16 @@
 # Rescue release operations
 
-Status: `2026.10.4` was deployed October 3, 2026 (Helsinki time) from frozen
-commit `43e6c841`; see [current production evidence](../verification/game-compat-2026.10.4-production.md).
-Source now prepares `2026.10.6`; it has not been deployed. Signed-in production
-gameplay smoke for `2026.10.4` remains outstanding. Earlier releases:
+Status: `2026.10.6` was deployed October 6, 2026 (Helsinki time) from frozen
+commit `6802fa0e`; see [current production evidence](../verification/game-compat-2026.10.6-production.md).
+Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.4](../verification/game-compat-2026.10.4-production.md),
 [2026.10.3](../verification/game-compat-2026.10.3-production.md),
 [2026.10.1](../verification/game-compat-2026.10.1-production.md),
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-## Pending source release: 2026.10.6
+## Deployed release: 2026.10.6
 
 This revision prevents coins and restoration gems from spawning where their
 margin-expanded footprint overlaps authored non-collidable terrain. It retains
@@ -18,17 +18,25 @@ margin-expanded footprint overlaps authored non-collidable terrain. It retains
 deterministic pickup placement and therefore requires a coordinated cutover.
 It also includes [combat pose alignment](../tdd/combat_pose_geometry.md): fitted
 body/attack/projectile geometry, shared pose clocks, and delayed visible Derf
-impact damage. Local tests and native benchmark evidence do not replace the
-strict exact-image container gate or production smoke.
+impact damage. Frozen preparation and the strict exact-image benchmark passed;
+matching Functions, worker, web artifacts, and all six boards are deployed.
+Both queues and issuance are restored. No runs required cancellation.
 
-- [ ] Freeze and prepare the source, including the full replay-validator gate
+- [x] Freeze and prepare the source, including the full replay-validator gate
   and strict exact-image benchmark.
-- [ ] Pause issuance, drain active validation/settlement, and inspect the live
+- [x] Pause issuance, drain active validation/settlement, and inspect the live
   baseline before cutover.
-- [ ] Deploy matching Functions, worker, web client, and `2026.10.6` boards;
-  restore issuance only after readiness and retired-version checks pass.
-- [ ] Record production evidence and complete signed-in gameplay, replay,
+- [x] Deploy matching Functions, worker, web client, and `2026.10.6` boards;
+  restore issuance after board/artifact readiness and local compatibility gates.
+- [x] Record production evidence and the verified baseline.
+- [ ] Complete signed-in gameplay, replay,
   settlement, leaderboard, and ghost smoke.
+- [ ] Confirm live retired-version rejection with a linked Play Games account.
+
+The web build now includes its public App Check key and live attestation passed.
+Fresh browser service initialization still fails on unsupported file I/O
+(`_Namespace`); browser gameplay and signed-in service bootstrap are unverified.
+No native package was built or installed in this release.
 
 ## Deployed release: 2026.10.4
 
