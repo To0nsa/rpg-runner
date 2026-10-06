@@ -47,6 +47,9 @@ import 'viewport/viewport_metrics.dart';
 /// Start never waits on pending ghost asset or terrain work. A bounded native
 /// worker computes ghost ticks ahead; only presentation follows the live tick.
 ///
+/// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
+/// resumes lifecycle-paused play while preserving manual pauses and ready state.
+///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.
 class RunnerGameWidget extends StatefulWidget {
@@ -199,15 +202,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final runLoaded = _session.isReady;
     final uiState = _buildUiState(runLoaded: runLoaded);
     if (state == AppLifecycleState.resumed) {
-      if (_pausedByLifecycle && uiState.started && !uiState.gameOver) {
-        _pausedByLifecycle = false;
+      final resumeRun = _pausedByLifecycle && uiState.canRun;
+      _pausedByLifecycle = false;
+      if (resumeRun) {
         _controller.setPaused(false);
       }
       return;
     }
 
-    // Only mark lifecycle-paused if we were actually running.
-    _pausedByLifecycle = uiState.isRunning;
+    // Later background transitions see an already paused run; retain ownership
+    // until resume instead of replacing it with that paused snapshot.
+    _pausedByLifecycle = _pausedByLifecycle || uiState.isRunning;
     _controller.setPaused(true);
     _clearInputs();
   }

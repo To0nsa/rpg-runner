@@ -159,6 +159,10 @@ These are full-screen overlays that temporarily override normal HUD to express t
 * Minimal dim + optional pause menu later.
 * Must visually confirm paused state.
 * While paused, game input is ignored (controls disabled) but HUD can remain visible or dimmed. 
+* Leaving the app pauses a playing run. Returning resumes it automatically;
+  a manual pause or **Tap to start** state remains paused.
+* Held movement and abilities are cleared when leaving the app. Players press
+  them again after returning; background time does not advance the run.
 
 ### 4.3 Game Over
 

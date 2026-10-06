@@ -56,6 +56,16 @@ Ghost playback/outline preparation failures remain optional and disable the ghos
 A failure to retrieve the selected ghost artifact during remote preflight still
 fails that request; it is not silently converted into a different race.
 
+## Lifecycle pause and resume
+
+RunnerGameWidget pauses the controller and clears held gameplay inputs whenever
+the app leaves the resumed lifecycle. If the run was playing, it retains that
+resume intent through every subsequent inactive, hidden, or paused notification.
+Returning to resumed consumes the intent and unpauses only a started, unfinished
+run. A manual pause, exit confirmation, or pre-start ready state stays paused.
+Background time does not advance simulation ticks, and movement/ability holds
+must be pressed again after returning.
+
 ## Asset loading and performance
 
 UiAssetLifecycle owns menu previews only. The former whole-catalog Flutter
@@ -77,4 +87,6 @@ Focused tests cover both readiness completion orders, required failures, first-t
 recording, world and recorder retry, late completion after exit, duplicate preflight
 requests, cancellation during selection/ticket retrieval, hub/leaderboard routing,
 recorder file-open errors, ghost readiness/cleanup, and existing terrain-render
-readiness. Gameplay generation, authority, and replay compatibility are unchanged.
+readiness. Lifecycle regressions cover the full background/return sequence,
+frozen ticks, cleared movement input, manual pauses, and pre-start readiness.
+Gameplay generation, authority, and replay compatibility are unchanged.

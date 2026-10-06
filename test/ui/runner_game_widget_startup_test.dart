@@ -47,6 +47,65 @@ void main() {
     expect(recorder.closed, isTrue);
   });
 
+  testWidgets('running game resumes after the full background lifecycle', (
+    tester,
+  ) async {
+    final recorder = _Recorder();
+    final session = await _readySession(tester, recorder);
+    await tester.tap(find.text('Tap to start'));
+    await tester.pump(const Duration(milliseconds: 40));
+    session.input.setMoveAxis(1);
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(recorder.frames.last.moveAxis, 1);
+
+    final pausedTick = session.controller.tick;
+    _background(tester);
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(session.controller.snapshot.paused, isTrue);
+    expect(session.controller.tick, pausedTick);
+
+    _resume(tester);
+    expect(session.controller.snapshot.paused, isFalse);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(session.controller.tick, greaterThan(pausedTick));
+    expect(recorder.frames.last.moveAxis, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('manual pause survives backgrounding and resume', (tester) async {
+    final session = await _readySession(tester, _Recorder());
+    await tester.tap(find.text('Tap to start'));
+    await tester.pump(const Duration(milliseconds: 40));
+    await tester.tap(find.byTooltip('Pause'));
+    await tester.pump();
+    final pausedTick = session.controller.tick;
+
+    _background(tester);
+    _resume(tester);
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(session.controller.snapshot.paused, isTrue);
+    expect(session.controller.tick, pausedTick);
+    expect(find.byTooltip('Play'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('backgrounding before Start keeps the ready game at tick zero', (
+    tester,
+  ) async {
+    final session = await _readySession(tester, _Recorder());
+    _background(tester);
+    _resume(tester);
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(session.controller.snapshot.paused, isTrue);
+    expect(session.controller.tick, 0);
+    expect(find.text('Tap to start'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   for (final failWorld in [true, false]) {
     testWidgets('startup failure retries at tick zero (world: $failWorld)', (
       tester,
@@ -161,6 +220,43 @@ Widget _app(RunnerRunSession Function(RunStartDescriptor) create) =>
         ),
       ),
     );
+
+Future<RunnerRunSession> _readySession(
+  WidgetTester tester,
+  _Recorder recorder,
+) async {
+  late RunnerRunSession session;
+  await tester.pumpWidget(
+    _app((descriptor) {
+      return session = RunnerRunSession(
+        descriptor: descriptor,
+        createRecorder: (_) async => recorder,
+      );
+    }),
+  );
+  await _until(tester, () => session.isReady);
+  return session;
+}
+
+void _background(WidgetTester tester) {
+  for (final state in const [
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
+
+void _resume(WidgetTester tester) {
+  for (final state in const [
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
 
 Future<void> _until(WidgetTester tester, bool Function() ready) async {
   for (var i = 0; i < 800 && !ready(); i++) {
