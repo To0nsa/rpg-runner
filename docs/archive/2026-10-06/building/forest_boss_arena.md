@@ -18,9 +18,12 @@ Existing Forest authoring edits in the main worktree remain untouched.
 - [x] TDD, GDD and focused implementation regressions.
 - [x] Final analyzers, generated freshness, Core/pipeline/editor/client/worker checks.
 - [x] Seeded traversal matrix and compiled worker benchmark.
-- [ ] Render review, final diff review and branch commits.
+- [x] Render review, final diff review and branch commits.
 
-Completed targeted evidence: strict source tests pass; entrance/confinement at
-30/60/90 Hz passes for both characters; both characters defeat the boss through
-real Core combat and resume scrolling. Final checks are still in progress.
+Implementation delivered in `1c350b0e6`. Final Core validation passes 929 tests;
+the client Core suite passes 495, shared pipeline 91, worker/boss replay 90,
+editor 8, Flame 11, render review 3 and backend emulator 7. Both characters
+defeat the boss through real Core combat and resume scrolling. Generation and
+asset manifests are fresh; local compiled benchmark gates pass with a documented
+Forest-bot limitation. See `docs/verification/forest_boss_arena.md` for evidence.
 No production deployment is authorized by this implementation request.
