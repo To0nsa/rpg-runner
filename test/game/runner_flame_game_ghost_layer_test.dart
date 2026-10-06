@@ -278,6 +278,13 @@ void main() {
           impactId: SpellImpactId.fireExplosion,
           pos: const Vec2(20, 20),
         ),
+        SpellImpactEvent(
+          tick: 6,
+          impactId: SpellImpactId.holyBlessing,
+          pos: const Vec2(30, 44),
+          followEntityId: 101,
+          followOffset: const Vec2(0, 24),
+        ),
       ];
       final frame = GhostRenderFrame(
         replayBlob: replay,
@@ -310,8 +317,12 @@ void main() {
       layer.flushPendingSpellImpactEvents(cameraCenter: Vector2.zero());
       expect(
         world.children.whereType<CameraSpaceSnappedSpriteAnimation>(),
-        hasLength(1),
+        hasLength(2),
       );
+      final blessing = world.children
+          .whereType<CameraSpaceSnappedSpriteAnimation>()
+          .singleWhere((view) => view.worldPosY == 44);
+      expect(blessing.position, Vector2(20, 44));
       feed.value = GhostRenderFrame(
         replayBlob: replay,
         previous: current,
@@ -323,8 +334,10 @@ void main() {
       expect(world.children.whereType<PlayerView>().single.position.x, 40);
       expect(
         world.children.whereType<CameraSpaceSnappedSpriteAnimation>(),
-        hasLength(1),
+        hasLength(2),
       );
+      blessing.snapToCamera(Vector2.zero());
+      expect(blessing.position, Vector2(40, 44));
       feed.value = null;
       expect(layer.debugHasGhostPlayerView, isFalse);
     },

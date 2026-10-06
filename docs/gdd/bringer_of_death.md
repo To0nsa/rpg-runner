@@ -47,7 +47,18 @@ Outside enemies and NPCs cannot interfere during the arena. Player health, mana,
 stamina, equipment and cooldowns carry into and out of the fight. Regeneration
 and the run clock continue; this is an encounter hold, not a whole-game pause.
 The exit stays closed until Bringer is defeated and his death presentation
-finishes. Running then continues into the next Forest section.
+finishes. The Dames de la forêt then bless the surviving player, instantly
+restoring 60% of maximum health, mana and stamina, capped at each maximum.
+For example, 20 HP out of 100 becomes 80 HP; 70 becomes 100.
+The calculation uses the player's current equipment-adjusted maxima.
+
+The golden Holy VFX 02 animation rises around the player's feet and follows
+movement. “Bénédiction des Dames de la forêt” identifies the reward on the HUD.
+The effect lasts sixteen frames, about 0.8 seconds at 60 Hz, without another
+control hold: running resumes into the next Forest section while it plays.
+Pause freezes the animation and message. This is a one-time victory restore,
+separate from the shrine's persistent regeneration bonus; existing bonuses
+remain active. A dead player receives no blessing.
 
 Defeating Bringer awards 1000 points once. Arena time earns no survival-time
 points, so delaying the fight cannot farm score. Distance remains furthest

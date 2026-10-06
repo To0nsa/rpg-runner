@@ -7,6 +7,8 @@ import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/death_state_store.dart';
+import 'package:runner_core/enemies/death_behavior.dart';
 import 'package:runner_core/ecs/systems/control_lock_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
@@ -171,6 +173,46 @@ void main() {
     expect(f.world.createEntity(), f.boss);
     f.prepare(75);
     expect(f.system.cameraStopX, isNull);
+  });
+
+  test('victory callback requires the recorded death strip deadline and fires once', () {
+    final f = _Fixture()..enter();
+    f.prepare(2);
+    f.prepare(74);
+    f.world.health.hp[f.world.health.indexOf(f.boss!)] = 0;
+    f.system.resolve(f.world, playerDead: false);
+    f.world.deathState.add(
+      f.boss!,
+      const DeathStateDef(
+        phase: DeathPhase.deathAnim,
+        deathStartTick: 74,
+        despawnTick: 80,
+      ),
+    );
+    f.prepare(75);
+    expect(f.completed, isEmpty);
+    f.world.destroyEntity(f.boss!);
+    f.prepare(80);
+    expect(f.completed, [0]);
+    f.prepare(81);
+    expect(f.completed, [0]);
+    final early = _Fixture()..enter();
+    early.prepare(2);
+    early.prepare(74);
+    early.world.health.hp[early.world.health.indexOf(early.boss!)] = 0;
+    early.system.resolve(early.world, playerDead: false);
+    early.world.deathState.add(
+      early.boss!,
+      const DeathStateDef(
+        phase: DeathPhase.deathAnim,
+        deathStartTick: 74,
+        despawnTick: 80,
+      ),
+    );
+    early.prepare(75);
+    early.world.destroyEntity(early.boss!);
+    early.prepare(76);
+    expect(early.completed, isEmpty);
   });
 
   test(
@@ -576,6 +618,7 @@ class _Fixture {
   late final ActiveTrackChunkSnapshot chunk;
   int? boss;
   int spawns = 0;
+  final List<int> completed = [];
   void enter() =>
       system.afterCamera(world, player: player, camera: _camera(300), tick: 1);
   void prepare(int tick) {
@@ -583,6 +626,7 @@ class _Fixture {
       world,
       player: player,
       tick: tick,
+      onVictoryReady: completed.add,
       spawn: (chunk, tick) {
         spawns++;
         final a = const EnemyCatalog().get(EnemyId.bringerOfDeath);

@@ -38,6 +38,7 @@ import 'input/aim_preview.dart';
 import 'input/runner_input_router.dart';
 import 'runner_flame/camera_shake_controller.dart';
 import 'feedback/boss_entrance_feedback.dart';
+import 'feedback/followed_spell_impact_position.dart';
 import 'runner_flame/boss_entrance_camera_feedback.dart';
 import 'runner_flame/event_feedback_system.dart';
 import 'runner_flame/ghost_layer_system.dart';
@@ -451,6 +452,12 @@ class RunnerFlameGame extends FlameGame {
       tickHz: controller.tickHz,
       cameraCenter: _cameraCenterScratch,
       priority: priorityProjectiles,
+      followedPosition: (event) => followedSpellImpactPosition(
+        event,
+        entities: controller.snapshot.entities,
+        previousById: _prevEntitiesById,
+        alpha: controller.alpha,
+      ),
     );
 
     _ghostLayer.syncLayer(alpha: alpha, cameraCenter: _cameraCenterScratch);

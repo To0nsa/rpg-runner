@@ -7,6 +7,7 @@ import '../ecs/collider_aabb_utils.dart';
 import '../ecs/systems/ability_interrupt.dart';
 import '../ecs/world.dart';
 import '../enemies/enemy_catalog.dart';
+import '../enemies/death_behavior.dart';
 import '../snapshots/boss_arena_snapshot.dart';
 import '../snapshots/enums.dart';
 import '../track/track_streamer.dart';
@@ -54,11 +55,14 @@ final class BossArenaSystem {
   }
 
   /// Spawn before motion preparation, after the full arena was framed last tick.
+  /// [onVictoryReady] receives the streamed occurrence only after its verified
+  /// death-strip deadline; the caller still owns living-player eligibility.
   void prepare(
     EcsWorld world, {
     required EntityId player,
     required int tick,
     required EntityId? Function(ActiveTrackChunkSnapshot chunk, int tick) spawn,
+    void Function(int occurrence)? onVictoryReady,
   }) {
     final arena = _current;
     if (arena == null) return;
@@ -97,9 +101,20 @@ final class BossArenaSystem {
     }
     if (arena.phase == BossArenaPhase.defeated &&
         !_isRequiredBoss(world, arena)) {
+      if (arena.deathAnimationEndTick >= 0 &&
+          tick >= arena.deathAnimationEndTick) {
+        onVictoryReady?.call(arena.chunk.index);
+      }
       _release(world, player);
       arena.retained = false;
       _current = null;
+    }
+    if (arena.phase == BossArenaPhase.defeated &&
+        _isRequiredBoss(world, arena)) {
+      final di = world.deathState.tryIndexOf(arena.boss!);
+      if (di != null && world.deathState.phase[di] == DeathPhase.deathAnim) {
+        arena.deathAnimationEndTick = world.deathState.despawnTick[di];
+      }
     }
   }
 
@@ -329,6 +344,7 @@ final class _Arena {
   EntityId? boss;
   int introductionStartTick = -1;
   int introductionTicks = 0;
+  int deathAnimationEndTick = -1;
   double get cameraCenterX => (chunk.startX + chunk.endX) / 2;
   double get minX => chunk.startX + chunk.bossArena!.minX;
   double get maxX => chunk.startX + chunk.bossArena!.maxX;

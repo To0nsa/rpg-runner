@@ -101,6 +101,7 @@ flutter:
     - assets/images/entities/collectibles/
     - assets/images/entities/effects/battle_animations/
     - assets/images/entities/effects/battle_animations/nod_good_enough/
+    - assets/images/entities/effects/blessings/
     - assets/images/entities/effects/elemental_portals/
     - assets/images/entities/effects/world_interactions/
     - assets/images/entities/enemies/arcane_archer/

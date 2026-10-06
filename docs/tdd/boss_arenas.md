@@ -78,6 +78,42 @@ interpolating from the preceding runner frame. Core's framing remains locked
 while render-only entrance shake adds a small visual offset. Purple boundary
 cues and the boss HUD are presentation only.
 
+## Victory blessing
+
+When the required boss is positively defeated, the arena records the normal
+death state's despawn deadline. Once the actor is gone and that deadline has
+passed, it requests a reward keyed by the streamed chunk occurrence. Early or
+unverified cleanup cannot grant the reward. Arena release keeps its existing
+timing; it does not wait for the blessing effect.
+
+`BossVictoryBlessingSystem` owns reward eligibility and deduplication,
+independently of enemy identity. Its default definition names the Dames de la
+forêt and restores 6,000 basis points (60%) of each current maximum: health,
+mana and stamina. The shared `ResourceRestoration.restorePercent` helper also
+serves restoration pickups. It rounds down in the pool's integer units and caps
+at the current maximum, preserving equipment, regeneration rates and fractional
+regeneration accumulators. This instant restore is separate from the persistent
+shrine blessing in [world interactions](world_interactions.md).
+
+The request is resolved after damage, enemy death/despawn and health cleanup in
+phase 14, before world interactions and passive regeneration. A missing, dead or
+dying player consumes the occurrence without a grant: the blessing cannot rescue
+a fatal tick. A successful grant emits one `SpellImpactEvent` and exposes
+`GameStateSnapshot.bossVictoryBlessing` for the duration of the effect.
+The HUD names “Bénédiction des Dames de la forêt” and the three restored pools.
+There is no extra control lock or score-time exclusion.
+
+`SpellImpactId.holyBlessing` uses the unchanged supplied Holy VFX 02 sheet at
+`assets/images/entities/effects/blessings/holy_02.png`: sixteen 48-by-48 cells,
+0.05 seconds per frame, bottom-center pivot and 2x render scale.
+Its quantized duration is 32/48/80 ticks at 30/60/90 Hz. Both the notice and the
+one-shot sample Core ticks, so pause freezes their clocks.
+The event attaches to the player's collider foot using `followEntityId` and
+`followOffset`; its original world position remains the fallback.
+Live and ghost rendering share the attachment interpolation helper and preserve
+the original event start tick while the player moves. The registry owns loading
+and captured editor Play automatically includes its runtime image.
+
 ## Reusable entrance feedback
 
 `BossArenaSnapshot.entrance` exposes the existing `startTick` and quantized
@@ -159,6 +195,9 @@ Play still require shared terrain readiness and unique candidate selection.
 Targeted tests cover entrance timing, both characters at three tick rates,
 confinement, real combat clears, release, entity recycling, invalid removal,
 scoring, exact source rectangles, authoring round trips and validator replay.
+Victory tests cover once-per-occurrence restoration, full and uneven resource
+pools, fatal-player exclusion, death-strip completion, movement during the effect,
+Core-clock pause/expiry, and direct/worker replay equivalence.
 The level pursuit matrix covers existing mobile enemies through Forest's full
 finite assembly and 32 chunks of Field/new_level. Bringer is deliberately
 excluded from route-wide pursuit because its actual movement domain is the

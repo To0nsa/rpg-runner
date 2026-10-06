@@ -3,6 +3,8 @@ import 'package:flame/game.dart';
 
 import '../util/math_util.dart' as math;
 
+import 'package:runner_core/util/vec2.dart';
+
 class CameraSpaceSnappedSpriteAnimation extends SpriteAnimationComponent
     with HasGameReference<FlameGame> {
   CameraSpaceSnappedSpriteAnimation({
@@ -13,6 +15,7 @@ class CameraSpaceSnappedSpriteAnimation extends SpriteAnimationComponent
     this.animationTick,
     this.animationStartTick = 0,
     this.tickHz = 60,
+    this.worldPosition,
     Anchor anchor = Anchor.center,
     super.paint,
     super.removeOnFinish = false,
@@ -22,14 +25,24 @@ class CameraSpaceSnappedSpriteAnimation extends SpriteAnimationComponent
 
   final double worldPosX;
   final double worldPosY;
+
+  /// Optional attachment sampled read-only; the launch position is its fallback.
+  final Vec2? Function()? worldPosition;
   final int Function()? animationTick;
   final int animationStartTick;
   final int tickHz;
 
   void snapToCamera(Vector2 cameraCenter) {
+    final attached = worldPosition?.call();
     position.setValues(
-      math.snapWorldToPixelsInCameraSpace1d(worldPosX, cameraCenter.x),
-      math.snapWorldToPixelsInCameraSpace1d(worldPosY, cameraCenter.y),
+      math.snapWorldToPixelsInCameraSpace1d(
+        attached?.x ?? worldPosX,
+        cameraCenter.x,
+      ),
+      math.snapWorldToPixelsInCameraSpace1d(
+        attached?.y ?? worldPosY,
+        cameraCenter.y,
+      ),
     );
   }
 

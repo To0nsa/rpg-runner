@@ -1,8 +1,8 @@
 part of 'game_event.dart';
 
-/// Emitted when a non-projectile spell impact executes.
+/// A Core-timed one-shot effect, including non-damaging blessings.
 ///
-/// Used by the renderer to spawn one-shot impact VFX at a world position.
+/// Render attachment never participates in collision or reward resolution.
 class SpellImpactEvent extends GameEvent {
   const SpellImpactEvent({
     required this.tick,
@@ -10,6 +10,8 @@ class SpellImpactEvent extends GameEvent {
     required this.pos,
     this.sourceEnemyId,
     this.abilityId,
+    this.followEntityId,
+    this.followOffset = Vec2.zero,
   });
 
   /// Simulation tick when the impact occurred.
@@ -17,6 +19,10 @@ class SpellImpactEvent extends GameEvent {
 
   final SpellImpactId impactId;
   final Vec2 pos;
+
+  /// Optional visual attachment; [pos] remains the fallback if it disappears.
+  final int? followEntityId;
+  final Vec2 followOffset;
 
   /// Optional source enemy metadata for UI/debug purposes.
   final EnemyId? sourceEnemyId;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
+import 'package:runner_core/snapshots/boss_victory_blessing_snapshot.dart';
 
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
@@ -14,21 +15,29 @@ class BossArenaHud extends StatelessWidget {
     animation: controller,
     builder: (context, _) {
       final arena = controller.snapshot.bossArena;
-      if (arena == null) return const SizedBox.shrink();
+      final blessing = controller.snapshot.bossVictoryBlessing;
+      if (arena == null && blessing == null) return const SizedBox.shrink();
       final ui = context.ui;
-      final caption = switch (arena.phase) {
-        BossArenaPhase.introduction => 'Bringer of Death awakens',
-        BossArenaPhase.defeated => 'Boss defeated · exit opening',
-        BossArenaPhase.failed => 'Encounter ended',
-        _ => 'Bringer of Death',
-      };
+      final caption = blessing != null
+          ? switch (blessing.id) {
+              BossVictoryBlessingId.forestLadies =>
+                'Bénédiction des Dames de la forêt',
+            }
+          : switch (arena!.phase) {
+              BossArenaPhase.introduction => 'Bringer of Death awakens',
+              BossArenaPhase.defeated => 'Boss defeated · exit opening',
+              BossArenaPhase.failed => 'Encounter ended',
+              _ => 'Bringer of Death',
+            };
       return IgnorePointer(
         child: Align(
           alignment: Alignment.topCenter,
           child: Padding(
             padding: const EdgeInsets.only(top: 46),
             child: Semantics(
-              label: '$caption, ${arena.hp100 ~/ 100} health',
+              label: blessing == null
+                  ? '$caption, ${arena!.hp100 ~/ 100} health'
+                  : '$caption, ${blessing.restorationBp ~/ 100} percent health, mana and stamina restored',
               child: Container(
                 width: 220,
                 padding: EdgeInsets.all(ui.space.xs),
@@ -47,12 +56,21 @@ class BossArenaHud extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: ui.space.xxs),
-                    LinearProgressIndicator(
-                      value: (arena.hp100 / arena.hpMax100).clamp(0, 1),
-                      color: const Color(0xFFB886E8),
-                      backgroundColor: const Color(0xFF34243E),
-                      minHeight: 6,
-                    ),
+                    if (blessing != null)
+                      Text(
+                        '+${blessing.restorationBp ~/ 100} % santé · mana · endurance',
+                        textAlign: TextAlign.center,
+                        style: ui.text.body.copyWith(
+                          color: const Color(0xFFFFE599),
+                        ),
+                      )
+                    else
+                      LinearProgressIndicator(
+                        value: (arena!.hp100 / arena.hpMax100).clamp(0, 1),
+                        color: const Color(0xFFB886E8),
+                        backgroundColor: const Color(0xFF34243E),
+                        minHeight: 6,
+                      ),
                   ],
                 ),
               ),

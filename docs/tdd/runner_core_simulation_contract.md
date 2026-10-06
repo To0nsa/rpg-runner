@@ -347,6 +347,16 @@ streaming retirement never removes a granted bonus. The blessing shipped in
 `2026.10.6` source retains those rates. See
 [world interactions](world_interactions.md).
 
+Boss victory requests are resolved at the end of phase 14, after damage and
+death/despawn cleanup, before those world interactions and passive regeneration.
+Only a verified completed boss death strip requests a grant. The living-player
+check precedes the shared percentage restore, so it cannot reverse fatal damage.
+One streamed arena occurrence grants once; its Core-timed notice survives arena
+release and pauses with the simulation. The default restores 60% of current
+maximum health, mana and stamina, capped at those maxima, without changing
+regeneration state. This is part of the unreleased `2026.10.8` boss feature.
+See [boss arena contracts](boss_arenas.md).
+
 ## Outputs and consumers
 
 ### Run distance

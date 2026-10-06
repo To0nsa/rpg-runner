@@ -81,6 +81,48 @@ worker readiness.
 
 ## Visual review and remaining release work
 
+### Dames de la forêt victory blessing, October 7
+
+After a verified boss death-strip completion, a surviving player receives one
+instant restore of 60% of current maximum health, mana and stamina, rounded down
+in fixed-point units and capped at each maximum. The reusable reward system
+deduplicates streamed arena occurrences, preserves the shrine's regeneration
+modifier and cannot revive a player killed on the reward tick. Arena release
+and ordinary controls continue while the Holy effect follows the player's feet.
+
+The supplied 768-by-48 Holy VFX 02 strip is copied unchanged to the runtime
+blessing registry: sixteen 48-by-48 frames at 0.05 seconds, bottom-center anchor,
+2x scale. Source and runtime SHA-256 both equal
+`e6642c00f42ae4889fffc39b18ec4260decc2cbccfdb1617f15c1b3eb1d3fb8a`.
+The Core-timed HUD names “Bénédiction des Dames de la forêt”.
+The effect and message use 32/48/80 ticks at 30/60/90 Hz; pause freezes both.
+Captured editor Play includes the image through the shared registry asset list.
+
+Local follow-up checks:
+
+- Complete Core suite: **973 passed**.
+- Complete app Core integration suite: **495 passed**; affected Flame and HUD
+  checks: **24 passed**, including the final four render tests rerun after
+  correcting the test's component-mount wait.
+- Worker boss replay suites: **12 passed**. Six new Forest victory cases cover
+  both characters at 30/60/90 Hz and match all three restored resource pools,
+  notice start/duration, player position and run distance.
+- Analysis of Core, Game, the boss HUD and affected app/worker tests: **no issues**.
+- Generated sources remain fresh: **82 chunks, 3 levels, 3 parallax themes and
+  3 terrain materials**. The new asset directory is in the generated manifest.
+- Compiled worker strict gate: **36,000 ticks per level**, equal replay outcomes,
+  Forest **1.743 s**, Field **1.572 s**, new-level **1.572 s**. Forest's benchmark
+  still stalls around 332 units with geometry version 1; real boss combat is
+  covered by the focused integration and replay cases.
+
+The frame review samples Holy frames 0, 3, 6, 9, 12 and 15 over the actual player
+at runtime scale. It confirms the feet anchor, full beam, particles and empty
+last frame. Live effect tests cover movement without clock restart, Core-clock
+pause and removal at completion; ghost tests cover attachment interpolation and
+single event consumption. No manual device playtest or deployment was performed.
+
+![Holy blessing frame review](assets/boss_blessing_review.png)
+
 ### Grounded combat and shared knockback, October 7
 
 Bringer's catalog disables intentional jumps and swim strokes in both graph

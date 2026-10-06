@@ -114,6 +114,15 @@ fullStripTicks = frameCountsByKey[key] * ticksPerFrame
 This prevents fractional frame steps from leaving a completed strip on its last
 frame after its Core lifecycle window should have ended.
 
+One-shot spell effects use the event's Core start tick with the same integer
+frame selection. Optional `SpellImpactEvent.followEntityId` and `followOffset`
+attach a visual to an interpolated entity position without restarting its clock;
+the original event position is the fallback if the entity disappears.
+Live and ghost layers share this read-only position calculation.
+The boss victory Holy strip and HUD notice both last sixteen quantized frames:
+32/48/80 ticks at 30/60/90 Hz. They freeze on pause; renderer elapsed time cannot
+advance the reward or effect. [Boss arenas](boss_arenas.md) owns grant eligibility.
+
 `PickupRenderCatalog` supplies the gold collectible's
 `entities/collectibles/gold_spin.png` strip: seven 25x25 frames, centered at
 `(12.5, 12.5)`, looping at 0.1 seconds per frame to match the asset pack preview.

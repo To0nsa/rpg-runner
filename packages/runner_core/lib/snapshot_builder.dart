@@ -22,6 +22,7 @@
 library;
 
 import 'snapshots/boss_arena_snapshot.dart';
+import 'snapshots/boss_victory_blessing_snapshot.dart';
 
 import 'combat/combat_geometry.dart';
 import 'ecs/actor_facing.dart';
@@ -170,6 +171,7 @@ class SnapshotBuilder {
     List<TrapSnapshot> traps = const [],
     List<WorldInteractionSnapshot> interactions = const [],
     BossArenaSnapshot? bossArena,
+    BossVictoryBlessingSnapshot? bossVictoryBlessing,
   }) {
     // ─── Query player component indices ───
     final onGround = WorldSupportView(world).isGrounded(player);
@@ -421,6 +423,7 @@ class SnapshotBuilder {
       paused: paused,
       gameOver: gameOver,
       bossArena: bossArena,
+      bossVictoryBlessing: bossVictoryBlessing,
       camera: camera,
       hud: PlayerHudSnapshot(
         hp: fromFixed100(world.health.hp[hi]),

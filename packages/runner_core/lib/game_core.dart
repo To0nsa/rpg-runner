@@ -18,6 +18,7 @@ import 'dart:math';
 
 import 'camera/autoscroll_camera.dart';
 import 'bosses/boss_arena_system.dart';
+import 'bosses/boss_victory_blessing_system.dart';
 import 'bosses/boss_arena_spawn_adapter.dart';
 import 'ecs/systems/bringer_combat_system.dart';
 import 'scoring/run_distance.dart';
@@ -974,6 +975,8 @@ class GameCore {
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageMiddlewareSystem _damageMiddlewareSystem;
   late final DamageSystem _damageSystem;
+  late final BossVictoryBlessingSystem _bossVictoryBlessing =
+      BossVictoryBlessingSystem(tickHz: tickHz);
   late final KnockbackSystem _knockbackSystem = KnockbackSystem(tickHz: tickHz);
   late final NpcDeathStateSystem _npcDeathStateSystem = NpcDeathStateSystem(
     tickHz: _movement.tickHz,
@@ -1594,6 +1597,7 @@ class GameCore {
       player: _player,
       tick: tick,
       spawn: _bossArenaSpawns.spawn,
+      onVictoryReady: _bossVictoryBlessing.request,
     );
     if (_bossArenas.failed) {
       _endRun(RunEndReason.bossEncounterFailed);
@@ -1955,6 +1959,13 @@ class GameCore {
     _npcDeathStateSystem.step(_world, currentTick: tick);
     _deathDespawnSystem.step(_world, currentTick: tick);
     _healthDespawnSystem.step(_world, player: _player);
+    // A victory restore must not rescue a player killed by this tick's damage.
+    _bossVictoryBlessing.step(
+      _world,
+      player: _player,
+      tick: tick,
+      emit: _events.add,
+    );
     if (_isPlayerDead()) _killedEnemiesScratch.remove(EnemyId.bringerOfDeath);
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
@@ -2235,6 +2246,7 @@ class GameCore {
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     _encounters.endRun(_world, tick: tick);
     _bossArenas.endRun(_world, _player);
+    _bossVictoryBlessing.endRun();
     _flushEncounterOutcomes();
     gameOver = true;
     paused = true;
@@ -2540,6 +2552,7 @@ class GameCore {
       traps: _world.traps.buildSnapshots(),
       interactions: _world.interactions.buildSnapshots(),
       bossArena: _bossArenas.snapshot(_world),
+      bossVictoryBlessing: _bossVictoryBlessing.snapshot(tick),
       stagedTerrainRenderSnapshot:
           _worldMotionAuthority.terrainRenderSnapshot ??
           _stagedTerrainCandidate?.renderSnapshot,

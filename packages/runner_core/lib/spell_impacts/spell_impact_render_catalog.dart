@@ -65,6 +65,16 @@ class SpellImpactRenderCatalog {
         );
       case SpellImpactId.fireExplosion:
         return _fireExplosionRenderAnim;
+      case SpellImpactId.holyBlessing:
+        return const RenderAnimSetDefinition(
+          frameWidth: 48,
+          frameHeight: 48,
+          anchorPoint: Vec2(24, 48),
+          sourcesByKey: {AnimKey.hit: 'entities/effects/blessings/holy_02.png'},
+          gridColumnsByKey: {AnimKey.hit: 16},
+          frameCountsByKey: {AnimKey.hit: 16},
+          stepTimeSecondsByKey: {AnimKey.hit: .05},
+        );
     }
   }
 }

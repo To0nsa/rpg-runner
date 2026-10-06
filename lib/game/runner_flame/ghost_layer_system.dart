@@ -15,6 +15,7 @@ import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import '../components/camera_space_snapped_sprite_animation.dart';
+import '../feedback/followed_spell_impact_position.dart';
 import '../components/player/player_animations.dart';
 import '../components/player/player_view.dart';
 import '../components/enemies/enemy_render_registry.dart';
@@ -88,6 +89,7 @@ class GhostLayerSystem {
   int? _ghostPlayerEntityId;
   ActorFrameSnapshot? _ghostPrevSnapshot;
   ActorFrameSnapshot? _ghostSnapshot;
+  double _effectAlpha = 0;
   ReplayBlobV1? _ghostReplayBlob;
   SpriteAnimSet? _ghostPlayerAnimSet;
   Future<void>? _animationPreparation;
@@ -302,6 +304,7 @@ class GhostLayerSystem {
   }
 
   void syncLayer({required double alpha, required Vector2 cameraCenter}) {
+    _effectAlpha = alpha;
     if (_ghostLayerDisabled) {
       _clearGhostViews();
       return;
@@ -671,6 +674,14 @@ class GhostLayerSystem {
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
+        worldPosition: event.followEntityId == null
+            ? null
+            : () => followedSpellImpactPosition(
+                event,
+                entities: _ghostSnapshot?.entities ?? const [],
+                previousById: _prevGhostEntitiesById,
+                alpha: _effectAlpha,
+              ),
         anchor: entry.animSet.anchorFor(AnimKey.hit),
         paint: Paint()..filterQuality = FilterQuality.none,
         removeOnFinish: true,
@@ -805,6 +816,7 @@ class _GhostImpact extends CameraSpaceSnappedSpriteAnimation {
     super.animationTick,
     super.animationStartTick,
     super.tickHz,
+    super.worldPosition,
     required super.size,
     required super.worldPosX,
     required super.worldPosY,
