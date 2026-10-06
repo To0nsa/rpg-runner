@@ -163,6 +163,7 @@ flutter:
     - assets/images/level/atlases/autumn_trees/
     - assets/images/level/atlases/castle/
     - assets/images/level/atlases/cimetery/
+    - assets/images/level/atlases/country_village/
     - assets/images/level/atlases/crystal_world/
     - assets/images/level/atlases/dark_forest/
     - assets/images/level/atlases/fantasy_environment/
@@ -188,6 +189,7 @@ flutter:
     - assets/images/level/atlases/woods/
     - assets/images/parallax/ancient_forest/
     - assets/images/parallax/cave/
+    - assets/images/parallax/country_village/
     - assets/images/parallax/dark_forest/
     - assets/images/parallax/dead_forest/
     - assets/images/parallax/field/
