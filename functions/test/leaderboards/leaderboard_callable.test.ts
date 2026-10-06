@@ -11,6 +11,9 @@ import {
 } from "../../src/leaderboards/callable_handlers.js";
 
 import { currentGameCompatVersion } from "../../src/runs/compatibility.js";
+import { resolveBoardProvisioningConfig } from "../../src/boards/provisioning.js";
+
+const currentScoreVersion = resolveBoardProvisioningConfig({}).scoreVersion;
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -503,7 +506,7 @@ async function seedManagedActiveBoard(
       levelId: args.levelId,
       windowId: args.windowId,
       rulesetVersion: "rules-v2",
-      scoreVersion: "score-v3",
+      scoreVersion: currentScoreVersion,
     },
     gameCompatVersion: currentGameCompatVersion,
 

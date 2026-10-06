@@ -21,6 +21,15 @@ See [technical contracts](../tdd/boss_arenas.md) and
 
 ## Local validation
 
+The October 7 merge into `master` preserves the newer Forest authoring and
+release fixes from `2026.10.7`, adds the arena metadata, and regenerates the
+current **80-chunk** catalog. All **139 focused boss/traversal checks** pass;
+Functions compiles. Frozen preparation exposed five stale backend assertions
+whose current-board fixtures still used `score-v3`. The fixture-only follow-up
+uses the exported provisioning defaults and explicitly rejects retired
+`2026.10.7`; its **30 focused emulator checks** pass. Full coordinated release
+preparation and production cutover evidence are recorded separately.
+
 - Core `dart test test --concurrency=4`: **929 passed**, including the 18 boss
   tests and seeded traversal matrix.
 - App-owned `flutter test --no-pub test/core`: **495 passed**.
