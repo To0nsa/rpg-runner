@@ -4,6 +4,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
 - [Current implementation plans](building/README.md): NPC rescue production smoke.
+- [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
+  lifecycle/input fixes, event-retention cleanup, full local checks and 18
+  mixed-input replay cases pass. Final authoring, release and device smoke remain.
 - [Combat hitbox alignment](verification/combat-hitbox-alignment.md): player,
   NPC and enemy combat poses share deterministic collision/render timing;
   validated locally and deployed in compatibility `2026.10.6`.
