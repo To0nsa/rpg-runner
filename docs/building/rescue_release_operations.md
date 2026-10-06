@@ -38,12 +38,19 @@ terrain artifacts belong in the same client/worker preparation. See
   The regenerated lockfile passes supply-chain policies and the October 6
   production dependency audit reports no known vulnerabilities. Full release
   preparation must run against this dependency revision.
+- [x] Repair the Windows authored-trap compilation budget. This check compiles
+  three isolated real-worker fixtures, and its five-minute timeout triggered
+  fixture teardown while a compiler still needed its package configuration.
+  Windows now allows 15 minutes; other platforms retain five. All three trap
+  assertions passed the isolated recheck in 201 seconds. The strict final-image
+  throughput gate is unchanged.
 - [ ] Prepare and benchmark matching client/worker/backend artifacts. Backend
   valid-request fixtures now use the exported current compatibility; retired
   `2026.10.6` remains explicitly rejected. The first frozen preparation exposed
   these stale fixtures before any production mutation.
 - [x] Owner authorized coordinated production deployment on October 6, 2026.
-  Cancellation of active tickets still requires separate authorization.
+  Owner also authorized cancellation of active runs if necessary; recheck
+  unsubmitted-ticket and replay/reward evidence before applying it.
 - [ ] Record live issuance, replay, settlement and ghost verification.
 
 The October 6 read-only inventory still found three issued `2026.10.6` sessions,

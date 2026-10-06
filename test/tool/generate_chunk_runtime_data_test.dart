@@ -87,6 +87,8 @@ void main() {
       reason: 'Excluded source still needs structural validation.',
     );
   });
+  // Three isolated worker compilations need more wall time on Windows; this
+  // budget covers compilation, while container throughput has its own gate.
   test('trap source generates compilable typed placements without terrain drift', () async {
     final root = await Directory.systemTemp.createTemp('trap_generator_');
     addTearDown(() => root.deleteSync(recursive: true));
@@ -153,7 +155,7 @@ void main() {
       final worker = await _runGeneratedTrapWorker(root.path, id);
       expect(worker.exitCode, 0, reason: '${worker.stdout}\n${worker.stderr}');
     }
-  }, timeout: const Timeout(Duration(minutes: 5)));
+  }, timeout: Timeout(Duration(minutes: Platform.isWindows ? 15 : 5)));
   test(
     'machine reports exact included/excluded source and content freshness',
     () async {
