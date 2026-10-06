@@ -76,6 +76,7 @@ class HitPayloadBuilder {
       critChanceBp: finalCritChanceBp,
       damageType: finalDamageType,
       procs: finalProcs,
+      knockback: ability.knockback,
       sourceId: source,
       abilityId: ability.id,
     );

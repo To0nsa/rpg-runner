@@ -111,12 +111,23 @@ reverse-order spawn rectangles. The body anchor is `(104, 68)`; the immutable
 terrain capsule and vulnerable body remain separate from the scythe's attack
 capsules. Committed attack art cannot be replaced by ordinary hit reactions.
 
-Scythe Sweep commits facing and uses reviewed blade capsules. Death Pillar
-captures the selected target's collider center on commit and never follows later
+Scythe Sweep commits facing and uses reviewed blade capsules. Both attacks
+use the same attack executors as ordinary enemies. The catalog terrain profile's
+`canJump` capability is false for Bringer: its surface graph publishes walk/drop
+edges without jump edges, and shared locomotion rejects upward launch requests
+and swim strokes. Other grounded enemies retain jumping. Gravity and collision
+support remain authoritative; the boss is not pinned to a fixed Y coordinate.
+
+Death Pillar captures the selected target's collider center on commit and never follows later
 movement. Its first six effect frames are harmless telegraph; later pillar frames
 use a world-anchored capsule and one hit per target. Both actions share cooldown
 group zero. Stun immunity prevents indefinite interruption; other damage and
 status rules remain ordinary Core behavior.
+
+Both attacks configure the shared [post-damage knockback](combat_knockback.md).
+Damage acceptance owns the effect; neither the boss AI nor arena lifecycle pushes
+the player directly. The existing terrain controller resolves supported travel,
+platform departure, walls and full-capsule confinement.
 
 ## Scoring and replay
 

@@ -166,6 +166,9 @@ class HitboxDamageSystem {
             critChanceBp: hitboxes.critChanceBp[hi],
             damageType: hitboxes.damageType[hi],
             procs: hitboxes.procs[hi],
+            knockback: hitboxes.knockback[hi]?.resolve(
+              world.transform.posX[world.transform.indexOf(target)],
+            ),
             source: owner,
             sourceMeleeAbilityId: hitboxes.abilityId[hi],
             credit: hitboxes.credit[hi],

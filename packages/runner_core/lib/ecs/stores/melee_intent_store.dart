@@ -1,6 +1,7 @@
 import '../../combat/combat_geometry.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
 import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -15,6 +16,7 @@ class MeleeIntentDef {
     this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.knockback,
     this.halfX = 0,
     this.halfY = 1,
     this.offsetX = 0,
@@ -43,6 +45,7 @@ class MeleeIntentDef {
   final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final KnockbackDef? knockback;
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -88,6 +91,7 @@ class MeleeIntentStore extends SparseSet {
   final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<KnockbackDef?> knockback = [];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
@@ -123,6 +127,7 @@ class MeleeIntentStore extends SparseSet {
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    knockback[i] = def.knockback;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
@@ -149,6 +154,7 @@ class MeleeIntentStore extends SparseSet {
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
+    knockback.add(null);
     halfX.add(0.0);
     halfY.add(0.0);
     offsetX.add(0.0);
@@ -175,6 +181,7 @@ class MeleeIntentStore extends SparseSet {
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    knockback[removeIndex] = knockback[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
@@ -198,6 +205,7 @@ class MeleeIntentStore extends SparseSet {
     critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    knockback.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     offsetX.removeLast();

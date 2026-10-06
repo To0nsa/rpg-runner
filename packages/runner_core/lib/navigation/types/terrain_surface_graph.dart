@@ -26,6 +26,7 @@ class TerrainSurfaceGraphBuildProfile {
     required int locomotionSpeedTicksPerSecond,
     required JumpReachabilityTemplate jumpTemplate,
     int simulationTicksPerSecond = 60,
+    bool canJump = true,
   }) {
     if (profileKey.isEmpty) {
       throw ArgumentError.value(profileKey, 'profileKey', 'Must not be empty.');
@@ -108,6 +109,7 @@ class TerrainSurfaceGraphBuildProfile {
       locomotionSpeedTicksPerSecond: locomotionSpeedTicksPerSecond,
       jumpTemplate: jumpTemplate,
       simulationTicksPerSecond: simulationTicksPerSecond,
+      canJump: canJump,
     );
   }
 
@@ -122,6 +124,7 @@ class TerrainSurfaceGraphBuildProfile {
     required this.locomotionSpeedTicksPerSecond,
     required this.jumpTemplate,
     required this.simulationTicksPerSecond,
+    required this.canJump,
   });
 
   final String profileKey;
@@ -142,6 +145,9 @@ class TerrainSurfaceGraphBuildProfile {
 
   /// Fixed simulation frequency used only to estimate integer travel ticks.
   final int simulationTicksPerSecond;
+
+  /// Whether this graph may publish intentional jump transitions.
+  final bool canJump;
 
   /// Resolves the body-relative capsule offset for a signed walk direction.
   TerrainPlacementCapsule capsuleForDirection(int directionX) {
@@ -396,6 +402,7 @@ class TerrainSurfaceGraph {
         traversal.stepHeightTicks.toString(),
         traversal.snapDistanceTicks.toString(),
         traversal.oneWaySupportEnabled ? '1' : '0',
+        buildProfile.canJump ? '1' : '0',
       ]),
     ];
     for (var nodeIndex = 0; nodeIndex < surfaces.length; nodeIndex += 1) {

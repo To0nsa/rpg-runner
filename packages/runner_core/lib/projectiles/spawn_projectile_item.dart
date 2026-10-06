@@ -4,6 +4,7 @@ library;
 import 'dart:math';
 
 import '../combat/damage_type.dart';
+import '../combat/knockback.dart';
 import '../combat/faction.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/combat_eligibility.dart';
@@ -58,6 +59,7 @@ EntityId spawnProjectileFromCaster(
   required int critChanceBp,
   required DamageType damageType,
   List<WeaponProc> procs = const <WeaponProc>[],
+  KnockbackDef? knockback,
   bool pierce = false,
   int maxPierceHits = 1,
   required bool ballistic,
@@ -101,6 +103,13 @@ EntityId spawnProjectileFromCaster(
       critChanceBp: critChanceBp,
       damageType: damageType,
       procs: procs,
+      knockback: knockback == null
+          ? null
+          : KnockbackSource(
+              effect: knockback,
+              originX: casterX,
+              fallbackDirectionX: dir.x < 0 ? -1 : 1,
+            ),
       pierce: pierce,
       maxPierceHits: resolvedMaxPierceHits,
       usePhysics: ballistic,

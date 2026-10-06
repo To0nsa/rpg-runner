@@ -1182,7 +1182,9 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final groundedEnemy =
         !isPlayer &&
         scratch.motionKind == EnemyTerrainMotionKind.groundedDynamic;
-    final mode = scratch.canGround
+    final mode = world.knockback.has(entity) && beganGrounded
+        ? TerrainMotionMode.groundedHorizontal
+        : scratch.canGround
         ? dashing && world.terrainContact.mobilityStartedGrounded[contactIndex]
               ? TerrainMotionMode.groundedSurface
               : beganGrounded

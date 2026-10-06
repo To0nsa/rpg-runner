@@ -45,6 +45,33 @@ GameCore _core(int hz) => GameCore(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test('accepted pillar damage and bounded shove replay at $hz Hz', () {
+      final direct = _core(hz), replay = _core(hz);
+      final initialX = direct.playerPosX;
+      final initialHp = direct.buildSnapshot().hud.hp;
+      var minimumX = initialX;
+      final ticks = hz * 5;
+      for (var i = 0; i < ticks; i++) {
+        direct.applyCommands(const []);
+        direct.stepOneTick();
+        if (direct.playerPosX < minimumX) minimumX = direct.playerPosX;
+      }
+      expect(direct.buildSnapshot().hud.hp, lessThan(initialHp));
+      expect(minimumX, lessThan(initialX));
+      final result = runReplaySimulation(
+        core: replay,
+        totalTicks: ticks,
+        commandStream: const [],
+      );
+      expect(result.runEnded, isNull);
+      expect(replay.playerPosX, direct.playerPosX);
+      expect(replay.playerPosY, direct.playerPosY);
+      expect(replay.buildSnapshot().hud.hp, direct.buildSnapshot().hud.hp);
+      expect(
+        replay.buildSnapshot().bossArena?.phase,
+        direct.buildSnapshot().bossArena?.phase,
+      );
+    });
     test('boss entrance, combat clear and score replay at $hz Hz', () {
       final direct = _core(hz), replay = _core(hz);
       final frames = <ReplayCommandFrameV1>[];

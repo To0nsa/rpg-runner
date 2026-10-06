@@ -92,13 +92,15 @@ class TerrainSurfaceGraphBuilder {
           row: row,
         );
       }
-      _addJumpEdges(
-        sourceIndex: sourceIndex,
-        source: source,
-        profile: profile,
-        eligibility: eligibility,
-        row: row,
-      );
+      if (profile.canJump) {
+        _addJumpEdges(
+          sourceIndex: sourceIndex,
+          source: source,
+          profile: profile,
+          eligibility: eligibility,
+          row: row,
+        );
+      }
       if (source.startIsLedge) {
         _addDropEdge(
           sourceIndex: sourceIndex,

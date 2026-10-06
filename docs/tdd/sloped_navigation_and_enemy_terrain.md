@@ -84,11 +84,17 @@ offset = collider.offset
 | Hashash | grounded dynamic | `(14, 7.5, -1/7)` | `60°`, 4 px step/snap, solid + one-way, ceiling ignore |
 | Unoco Demon | flying dynamic | `(8.125, 0.5, 0/2)` | solids on every side, no gravity/support/helpers, ignores one-way |
 | Derf | grounded dynamic | `(11.5, 12.75, 0/7)` | support up to `45°`; stationary caster, then twisted pursuit |
+| Bringer of Death | grounded dynamic | `(12, 15, 0/-3)` | `45°`, 4 px step/snap, solid + one-way, ceiling ignore; no intentional jump |
 
 Grounded enemy authored speed means constant distance along a support. The
 profile records that semantic explicitly. A later intent producer converts
 speed to the support tangent before the one terrain solve; the neutral
 `TerrainTraversalProfile` speed points are not Éloïse's incline curve.
+
+The catalog terrain profile also owns `canJump`. Bringer sets it false: shared
+graph building omits jump edges and locomotion rejects jump/stroke requests.
+Walk, drop, gravity and support rules remain available. Both sides must consume
+that capability when adding another grounded archetype.
 
 Unoco's traversal object can classify blocking solid normals, but
 `EnemyTerrainMotionKind.flyingDynamic` is the final authority that forbids
@@ -332,7 +338,8 @@ Walk distance is the source surface length. This matches the accepted constant
 distance-along-surface runtime interpretation and makes steeper surfaces cost
 their actual length rather than horizontal projection. CSR rows sort first by
 canonical destination edge ID and then by kind/points/direction. The
-`nav-graphs-v1` records include profile integer inputs, node eligibility, CSR
+`nav-graphs-v1` records include profile integer inputs (including the trailing
+`canJump` flag), node eligibility, CSR
 offsets, edge kind/points/ticks/distance/cost, and exact surface IDs. Publication
 version remains a runtime invalidation field rather than content-signature
 input, matching `nav-surfaces-v1`.

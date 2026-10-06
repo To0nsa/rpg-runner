@@ -18,7 +18,9 @@ so the apparition remains visible. This reusable boss-entrance feedback follows
 the entrance clock and does not extend the control hold.
 
 Bringer has 120 HP and no passive health regeneration. He pursues on the ground
-with the existing navigation capabilities. This first fight has one phase and
+without jumping or upward swim strokes. He cannot climb the raised platform;
+Death Pillar reaches a player who stays there. Walking, gravity and terrain
+support still apply. This first fight has one phase and
 two attacks:
 
 | Attack | Readable threat | Response window |
@@ -27,6 +29,16 @@ two attacks:
 | Death Pillar | Cast at the player's captured position, then six harmless ring frames before the pillar; 7 base dark damage | Leave the marked position; the spell also threatens the raised platform |
 
 Those timings use 60 Hz authoring ticks and are scaled to the run's tick rate.
+Both attacks push a damaged, surviving player horizontally away from the attack's
+caster origin. The shared effect targets 112 world units over about 0.28 seconds
+(9 ticks at 30 Hz, 17 at 60 Hz, 26 at 90 Hz). The platform spans 96 units, so the
+shove exceeds its half-width and clears it from the tested center and end positions.
+Movement input and dash cannot cancel the shove; ordinary jumping and attacks
+remain available. Walls and arena boundaries stop it. Fully prevented damage does
+not push; Death Pillar retains its existing rule of bypassing ordinary guard.
+Other bosses and attacks can opt into the same
+[damage effect](../tdd/combat_knockback.md) with their own distance and duration.
+
 The entrance lasts the complete ten-frame spawn strip, about 1.17 seconds at
 60 Hz. Ordinary light hits cannot stun-lock the boss. Incoming damage and other
 status rules continue normally; the boss has no special damage resistance.

@@ -48,6 +48,7 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_middleware_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/knockback_system.dart';
 import 'ecs/systems/active_ability_phase_system.dart';
 import 'ecs/systems/ability_charge_tracking_system.dart';
 import 'ecs/systems/death_despawn_system.dart';
@@ -631,6 +632,7 @@ class GameCore {
     );
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
+      tickHz: tickHz,
       rngSeed: seed,
       statsResolver: _statsResolver,
       statsCache: _resolvedStatsCache,
@@ -972,6 +974,7 @@ class GameCore {
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageMiddlewareSystem _damageMiddlewareSystem;
   late final DamageSystem _damageSystem;
+  late final KnockbackSystem _knockbackSystem = KnockbackSystem(tickHz: tickHz);
   late final NpcDeathStateSystem _npcDeathStateSystem = NpcDeathStateSystem(
     tickHz: _movement.tickHz,
   );
@@ -1689,6 +1692,9 @@ class GameCore {
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
     );
     _mobilitySystem.step(_world, _movement, currentTick: tick);
+    // Accepted damage from the preceding tick overrides horizontal control;
+    // gravity and the terrain controller still own falling and containment.
+    _knockbackSystem.step(_world, currentTick: tick);
     _projectileSystem.capturePhysicsPositions(_world);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
     final distanceDelta = _worldMotionAuthority.step(

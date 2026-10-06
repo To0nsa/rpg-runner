@@ -189,6 +189,7 @@ class AiMeleeCommitter {
         damage100: ability.baseDamage,
         damageType: ability.baseDamageType,
         procs: ability.procs,
+        knockback: ability.knockback,
         dirX: dirX,
         dirY: 0.0,
         commitTick: commitTick,

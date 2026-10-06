@@ -1,6 +1,7 @@
 import '../../combat/combat_geometry.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
 import '../../combat/damage_credit.dart';
 import '../../combat/faction.dart';
 import '../../events/game_event.dart';
@@ -28,6 +29,7 @@ class HitboxDef {
     this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.knockback,
     this.hitPolicy = HitPolicy.oncePerTarget,
     this.sourceKind = DeathSourceKind.meleeHitbox,
     this.attachment = HitboxAttachment.followOwner,
@@ -54,6 +56,7 @@ class HitboxDef {
   final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final KnockbackSource? knockback;
   final HitPolicy hitPolicy;
   final DeathSourceKind sourceKind;
   final HitboxAttachment attachment;
@@ -86,6 +89,7 @@ class HitboxStore extends SparseSet {
   final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<KnockbackSource?> knockback = [];
   final List<HitPolicy> hitPolicy = <HitPolicy>[];
   final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
   final List<HitboxAttachment> attachment = <HitboxAttachment>[];
@@ -110,6 +114,7 @@ class HitboxStore extends SparseSet {
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    knockback[i] = def.knockback;
     hitPolicy[i] = def.hitPolicy;
     sourceKind[i] = def.sourceKind;
     attachment[i] = def.attachment;
@@ -135,6 +140,7 @@ class HitboxStore extends SparseSet {
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
+    knockback.add(null);
     hitPolicy.add(HitPolicy.oncePerTarget);
     sourceKind.add(DeathSourceKind.meleeHitbox);
     attachment.add(HitboxAttachment.followOwner);
@@ -160,6 +166,7 @@ class HitboxStore extends SparseSet {
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    knockback[removeIndex] = knockback[lastIndex];
     hitPolicy[removeIndex] = hitPolicy[lastIndex];
     sourceKind[removeIndex] = sourceKind[lastIndex];
     attachment[removeIndex] = attachment[lastIndex];
@@ -182,6 +189,7 @@ class HitboxStore extends SparseSet {
     critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    knockback.removeLast();
     hitPolicy.removeLast();
     sourceKind.removeLast();
     attachment.removeLast();

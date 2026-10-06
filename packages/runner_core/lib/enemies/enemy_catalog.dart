@@ -46,6 +46,7 @@ const ColliderAabbDef _bringerCollider = ColliderAabbDef(
 final EnemyTerrainContactProfile _bringerTerrainProfile =
     createGroundedEnemyTerrainProfile(
       capsule: WorldContactCapsuleDef.fromAabb(_bringerCollider),
+      canJump: false,
       maxWalkableSlopeDegrees: 45,
       minimumSupportUpComponent: 724,
     );

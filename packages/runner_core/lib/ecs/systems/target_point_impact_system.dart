@@ -8,6 +8,9 @@ import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../stores/target_point_intent_store.dart';
 import '../world.dart';
+import '../actor_facing.dart';
+import '../../snapshots/enums.dart';
+import '../../combat/knockback.dart';
 import '../combat_eligibility.dart';
 
 /// Executes [TargetPointIntentStore] intents by spawning world-anchored hitboxes.
@@ -32,6 +35,8 @@ class TargetPointImpactSystem {
       final fi = factions.tryIndexOf(caster);
       if (fi == null) continue;
 
+      final casterTi = world.transform.tryIndexOf(caster);
+      if (casterTi == null) continue;
       final hitbox = world.createEntity();
       world.transform.add(
         hitbox,
@@ -54,6 +59,15 @@ class TargetPointImpactSystem {
           critChanceBp: intents.critChanceBp[ii],
           damageType: intents.damageType[ii],
           procs: intents.procs[ii],
+          knockback: intents.knockback[ii] == null
+              ? null
+              : KnockbackSource(
+                  effect: intents.knockback[ii]!,
+                  originX: world.transform.posX[casterTi],
+                  fallbackDirectionX: actorFacing(world, caster) == Facing.left
+                      ? -1
+                      : 1,
+                ),
           hitPolicy: intents.hitPolicy[ii],
           sourceKind: intents.sourceKind[ii],
           attachment: HitboxAttachment.worldAnchor,

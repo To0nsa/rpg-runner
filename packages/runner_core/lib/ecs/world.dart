@@ -68,6 +68,7 @@ import 'stores/status/vulnerable_store.dart';
 import 'stores/status/weaken_store.dart';
 import 'stores/control_lock_store.dart';
 import 'stores/damage_queue_store.dart';
+import 'stores/knockback_store.dart';
 import 'stores/parry_consume_store.dart';
 import 'stores/riposte_store.dart';
 import 'stores/projectile_item_origin_store.dart';
@@ -145,6 +146,8 @@ class EcsWorld {
 
   /// World-level damage request queue (shared across systems).
   final DamageQueueStore damageQueue = DamageQueueStore();
+
+  late final KnockbackStore knockback = _register(KnockbackStore());
 
   /// World-level post-damage queue for reactive proc resolution.
   final ReactiveDamageEventQueueStore reactiveDamageEventQueue =

@@ -1,6 +1,7 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
 import '../../combat/control_lock.dart';
+import '../../enemies/enemy_catalog.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../snapshots/enums.dart';
 import '../../terrain/swimming_tuning.dart';
@@ -15,11 +16,21 @@ import '../world_support_view.dart';
 
 /// Applies movement for ground enemies based on nav + engagement intents.
 class GroundEnemyLocomotionSystem {
-  GroundEnemyLocomotionSystem({required this.groundEnemyTuning});
+  GroundEnemyLocomotionSystem({
+    required this.groundEnemyTuning,
+    this.enemyCatalog = const EnemyCatalog(),
+  });
 
   final GroundEnemyTuningDerived groundEnemyTuning;
+  final EnemyCatalog enemyCatalog;
 
   final _ActiveJumpTraversal _activeJumpScratch = _ActiveJumpTraversal();
+
+  bool _canJump(EcsWorld world, EntityId actor) {
+    final i = world.enemy.tryIndexOf(actor);
+    return i == null ||
+        enemyCatalog.terrainContactProfile(world.enemy.enemyId[i]).canJump;
+  }
 
   /// Applies locomotion for all ground enemies.
   void step(
@@ -231,6 +242,7 @@ class GroundEnemyLocomotionSystem {
       world.transform.velY[enemyTi] = 0;
     }
     if (centerY <= targetY + SwimmingTuning.enemyDepthSlack ||
+        !_canJump(world, enemy) ||
         currentTick < world.swimState.nextStrokeTick[swimIndex] ||
         world.controlLock.isLocked(enemy, LockFlag.jump, currentTick)) {
       return;
@@ -297,7 +309,9 @@ class GroundEnemyLocomotionSystem {
       navIntentIndex: navIntentIndex,
       ex: ex,
       desiredX: desiredX,
-      jumpNow: navIntent.jumpNow[navIntentIndex],
+      jumpNow:
+          navIntent.jumpNow[navIntentIndex] &&
+          _canJump(world, world.enemy.denseEntities[enemyIndex]),
       hasPlan: navIntent.hasPlan[navIntentIndex],
       commitMoveDirX: navIntent.commitMoveDirX[navIntentIndex],
       hasSafeSurface: navIntent.hasSafeSurface[navIntentIndex],
@@ -337,6 +351,7 @@ class GroundEnemyLocomotionSystem {
     required double dtSeconds,
     required double targetX,
   }) {
+    jumpNow = jumpNow && _canJump(world, actor);
     final tuning = groundEnemyTuning;
     final enemy = actor;
     final terrainGrounded = grounded && world.terrainContact.has(enemy);

@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage.dart';
+import '../../combat/knockback.dart';
 import '../../combat/damage_credit.dart';
 import '../../combat/damage_type.dart';
 import '../../enemies/enemy_id.dart';
@@ -32,6 +33,7 @@ class DamageQueueStore {
   final List<TrapSourceRef?> sourceTrap = <TrapSourceRef?>[];
   final List<int> flags = <int>[];
   final List<DamageCredit> credit = [];
+  final List<KnockbackHit?> knockback = [];
 
   int get length => target.length;
 
@@ -55,6 +57,7 @@ class DamageQueueStore {
     sourceTrap.add(request.sourceTrap);
     flags.add(0);
     credit.add(request.credit);
+    knockback.add(request.knockback);
     return index;
   }
 
@@ -76,5 +79,6 @@ class DamageQueueStore {
     sourceTrap.clear();
     flags.clear();
     credit.clear();
+    knockback.clear();
   }
 }

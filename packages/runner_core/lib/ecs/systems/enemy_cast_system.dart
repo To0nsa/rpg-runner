@@ -456,6 +456,7 @@ class AiCastCommitter {
         maxPierceHits: 1,
         damageType: payload.damageType,
         procs: payload.procs,
+        knockback: payload.knockback,
         ballistic: projectile.ballistic,
         gravityScale: projectile.gravityScale,
         dirX: dirX,
@@ -504,6 +505,7 @@ class AiCastCommitter {
         cooldownGroupId: cooldownGroupId,
         damageType: payload.damageType,
         procs: payload.procs,
+        knockback: payload.knockback,
         profile: hitDelivery.profile,
         frameStepTicks: math.max(
           1,

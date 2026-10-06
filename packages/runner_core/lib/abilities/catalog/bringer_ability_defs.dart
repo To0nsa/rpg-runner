@@ -1,5 +1,6 @@
 import '../../combat/combat_pose_catalog.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
 import '../../snapshots/enums.dart';
 import '../../spell_impacts/spell_impact_id.dart';
 import '../ability_def.dart';
@@ -21,6 +22,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     cooldownGroupId: 0,
     animKey: AnimKey.strike,
     baseDamage: 800,
+    knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: DamageType.physical,
   ),
   'bringer.death_pillar': AbilityDef(
@@ -41,6 +43,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     cooldownGroupId: 0,
     animKey: AnimKey.cast,
     baseDamage: 700,
+    knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: DamageType.dark,
   ),
 };

@@ -2,12 +2,15 @@ import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../combat/damage.dart';
+import '../../combat/knockback.dart';
+import '../../snapshots/enums.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
 import '../collider_aabb_utils.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
+import '../actor_facing.dart';
 import '../combat_eligibility.dart';
 
 /// Applies authored mobility contact impacts while mobility abilities are active.
@@ -117,6 +120,14 @@ class MobilityImpactSystem {
               critChanceBp: impact.critChanceBp,
               damageType: impact.damageType,
               procs: impact.procs,
+              knockback: ability.knockback == null
+                  ? null
+                  : KnockbackSource(
+                      effect: ability.knockback!,
+                      originX: transforms.posX[sourceTransformIndex],
+                      fallbackDirectionX:
+                          actorFacing(world, source) == Facing.left ? -1 : 1,
+                    ).resolve(transforms.posX[transforms.indexOf(target)]),
               source: source,
               credit: damageCreditFor(world, source),
               sourceKind: DeathSourceKind.meleeHitbox,

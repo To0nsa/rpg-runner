@@ -81,6 +81,52 @@ worker readiness.
 
 ## Visual review and remaining release work
 
+### Grounded combat and shared knockback, October 7
+
+Bringer's catalog disables intentional jumps and swim strokes in both graph
+planning and locomotion. Both attacks now author the reusable accepted-damage
+shove: 112 world units over 0.28 seconds, quantized to 9/17/26 ticks at
+30/60/90 Hz. The actual platform is 96 units wide. No boss identity is used by
+the damage, knockback state or motion systems. Shared payloads also carry the
+effect for other melee, projectile, target-point and mobility damage.
+
+The actual Forest platform tests cover both characters, X positions 175, 215
+and 255, and all three tick rates: **18 expulsion cases pass** while Bringer
+stays grounded. Opposing input cannot cancel the push. Separate scythe hits
+push both characters, ordinary enemies retain their jumps, and collision tests
+stop shoves at real walls and full-capsule arena bounds. Accepted partial guard,
+full block, resistance, invulnerability, lifecycle recycling, body caps and
+mobility/gravity cleanup have focused regressions.
+
+Final local checks:
+
+- Full Core suite: **960 passed**. Final shared shove suite: **9 passed** after
+  adding the mobility-cleanup regression; production code was unchanged.
+- Complete app Core integration suite: **495 passed**.
+- Complete validator suite: **192 passed**. Final boss replay suite: **6 passed**,
+  including three added damaging-pillar/push cases and three real combat clears.
+- Core and changed replay-test analysis: **no issues**.
+- Generated sources are fresh: **82 chunks, 3 levels, 3 parallax themes and
+  3 terrain materials**. The focused traversal/harness matrix also passed
+  **68 tests** before the full Core run: Forest's finite assembly and 32-chunk
+  Field/new-level prefixes for seeds 7/42/2026 and the four ordinary enemies.
+  Bringer remains excluded from route pursuit and is tested inside its arena.
+- The worker executable compiled and its strict **36,000 ticks per level**
+  local gate passed: Forest **2.491 s**, Field **2.749 s**, new-level **1.541 s**.
+  Identical replay outcomes were confirmed. Forest's benchmark bot still stalls
+  around 332 units at geometry version 1; it does not measure the boss encounter.
+
+The reviewed graph golden now includes the explicit `canJump` profile flag and
+removes Bringer's jump edges: `f10b00eb4f424af10cd022e7abbc28bab919cb89a5a95d19cc2faf2a11533193`.
+The dependent run digest is
+`bcdcd09080dde8513aa752daa0205ef82da72fba5a321dde54e131d01b5f6590`.
+Surface geometry's digest is unchanged. Ordinary movement controls and traversal
+retain their catalog limits; no failing route was skipped or teleported.
+
+These results are local Windows evidence. The prepared compatibility remains
+`2026.10.8`/`score-v4`; no merge, deployment, live replay submission, container
+verification or manual device feel review was performed for this follow-up.
+
 ### Reusable entrance feedback follow-up
 
 The later entrance-feedback change exposes Core's existing entrance timing and

@@ -67,7 +67,7 @@ order; the contract below records the dependencies that must survive changes.
 | --- | --- | --- |
 | 1 | Stream/cull track, obtain the complete staged candidate, publish terrain, place captured ambient actors/items, activate swept encounter triggers, and prepare motion | Encounter rosters preflight completely before actor creation. An exact prepared selection may replace synchronous construction; consumers never observe mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
-| 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
+| 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, knockback, gravity, and collision | All AI consumers share the selected identity; accepted-hit knockback overrides horizontal control before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
 | 5 | Collect pickups and move existing projectiles | Newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, resolve combat poses, rebuild broadphase, then position hitboxes | Self abilities apply before combat; damage queries use current visible poses and positions. |
@@ -123,6 +123,11 @@ ordering and owner/faction filters, then confirms attack capsule versus target
 capsule. Tangency is inclusive; overlap limited to an enclosing AABB corner is
 not a hit. This shape change does not move a phase or change hit-once,
 piercing, status, or damage-queue ordering.
+
+Accepted positive damage can schedule [shared knockback](combat_knockback.md)
+for the next phase-3 motion solve. The effect overrides horizontal intent after
+mobility, uses existing supported/airborne terrain modes, and never directly
+writes positions. Blocking and invulnerability resolve before the effect begins.
 
 Nonpiercing projectiles resolve the first contact along their previous-to-current
 position sweep, with stable entity ID breaking equal-contact ties. The capsule

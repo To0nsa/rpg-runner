@@ -206,6 +206,44 @@ void main() {
     PlayerCharacterRegistry.eloise,
     PlayerCharacterRegistry.eloiseWip,
   ]) {
+    test(
+      '${character.id.name} scythe damage uses shared shove against movement input',
+      () {
+        final core = _core(character: character);
+        while (core.buildSnapshot().bossArena?.phase != BossArenaPhase.combat &&
+            core.tick < 300) {
+          _step(core);
+        }
+        final boss = core.buildSnapshot().entities.singleWhere(
+          (e) => e.enemyId == EnemyId.bringerOfDeath,
+        );
+        core.setPlayerPosXYUnsafeForTest(boss.pos.x - 60, core.playerPosY);
+        core.setPlayerVelXY(0, 0);
+        final initialHp = core.buildSnapshot().hud.hp;
+        var damaged = false;
+        for (var i = 0; i < 360 && !core.gameOver; i++) {
+          _step(core);
+          if (core.buildSnapshot().hud.hp < initialHp) {
+            expect(
+              core
+                  .buildSnapshot()
+                  .entities
+                  .singleWhere((e) => e.enemyId == EnemyId.bringerOfDeath)
+                  .anim,
+              AnimKey.strike,
+            );
+            damaged = true;
+            break;
+          }
+        }
+        expect(damaged, isTrue);
+        final hitX = core.playerPosX;
+        for (var i = 0; i < 17; i++) {
+          _step(core, axis: 1);
+        }
+        expect(hitX - core.playerPosX, closeTo(112, .1));
+      },
+    );
     for (final hz in [30, 60, 90]) {
       test(
         '${character.id.name} $hz Hz holds through entrance then permits bounded combat',
@@ -331,6 +369,78 @@ void main() {
     PlayerCharacterRegistry.eloise,
     PlayerCharacterRegistry.eloiseWip,
   ]) {
+    for (final hz in [30, 60, 90]) {
+      for (final platformX in [175.0, 215.0, 255.0]) {
+        test(
+          '${character.id.name} pillar expels platform camper x=$platformX at $hz Hz while boss stays grounded',
+          () {
+            final core = _platformCore(character: character, hz: hz);
+            while (core.buildSnapshot().bossArena?.phase !=
+                    BossArenaPhase.combat &&
+                core.tick < hz * 5) {
+              _step(core);
+            }
+            expect(
+              core.buildSnapshot().bossArena?.phase,
+              BossArenaPhase.combat,
+            );
+            final bossY = core
+                .buildSnapshot()
+                .entities
+                .singleWhere((e) => e.enemyId == EnemyId.bringerOfDeath)
+                .pos
+                .y;
+            // The authored platform top is 133; the arena floor is 224.
+            core.setPlayerPosXYUnsafeForTest(platformX, core.playerPosY - 91);
+            core.setPlayerVelXY(0, 0);
+            _step(core);
+            expect(core.playerGrounded, isTrue);
+            final initialX = core.playerPosX;
+            final initialY = core.playerPosY;
+            final initialHp = core.buildSnapshot().hud.hp;
+            var damaged = false;
+            for (var i = 0; i < hz * 8 && !core.gameOver; i++) {
+              _step(core);
+              final boss = core.buildSnapshot().entities.singleWhere(
+                (e) => e.enemyId == EnemyId.bringerOfDeath,
+              );
+              expect(boss.pos.y, closeTo(bossY, .002));
+              if (core.buildSnapshot().hud.hp < initialHp) {
+                damaged = true;
+                break;
+              }
+            }
+            expect(
+              damaged,
+              isTrue,
+              reason: 'Pillar must actually hit the platform.',
+            );
+            _step(core);
+            final direction = (core.playerPosX - initialX).sign;
+            final trace = <String>[];
+            expect(direction, isNot(0));
+            for (var i = 0; i < (hz * .28).ceil() - 1; i++) {
+              _step(core, axis: -direction);
+              final debug = core.buildTerrainPlayerDebugSnapshot()!;
+              trace.add(
+                '${core.tick} x=${core.playerPosX} y=${core.playerPosY} req=${debug.requestedXTicks} res=${debug.resolvedXTicks} diag=${debug.diagnostic} contacts=${debug.blockingContacts.map((c) => c.edgeId.canonicalKey)}',
+              );
+            }
+            expect(
+              (core.playerPosX - initialX).abs(),
+              closeTo(112, .1),
+              reason: trace.join('\n'),
+            );
+            expect(
+              (core.playerPosX - initialX).abs(),
+              greaterThanOrEqualTo(48),
+            );
+            expect(core.playerPosY, greaterThan(initialY + 1));
+            expect(core.gameOver, isFalse);
+          },
+        );
+      }
+    }
     test(
       '${character.id.name} defeats the boss through real combat and resumes scrolling',
       () {
@@ -377,6 +487,30 @@ void main() {
 
 CameraState _camera(double x) =>
     CameraState(centerX: x, targetX: x, centerY: 135, targetY: 135, speedX: 0);
+
+GameCore _platformCore({
+  required PlayerCharacterDefinition character,
+  required int hz,
+}) => GameCore(
+  seed: 7,
+  tickHz: hz,
+  playerCharacter: character,
+  levelDefinition: LevelRegistry.byId(LevelId.forest).copyWith(
+    noEnemyChunks: 0,
+    earlyPatternChunks: 0,
+    easyPatternChunks: 10,
+    clearAssembly: true,
+    clearFirstChunkKey: true,
+    chunkPatternSource: ChunkPatternListSource(
+      easyPatterns: [
+        forestEasyPatterns.singleWhere(
+          (p) => p.chunkKey == 'forest_boss_easy_001',
+        ),
+      ],
+      normalPatterns: const [],
+    ),
+  ),
+);
 
 GameCore _core({PlayerCharacterDefinition? character, int hz = 60}) => GameCore(
   seed: 7,

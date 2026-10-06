@@ -10,6 +10,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Combat hitbox alignment](verification/combat-hitbox-alignment.md): player,
   NPC and enemy combat poses share deterministic collision/render timing;
   validated locally and deployed in compatibility `2026.10.6`.
+- [Combat knockback](tdd/combat_knockback.md): reusable accepted-damage shoves;
+  Bringer's grounded combat and platform expulsion are prepared on the boss branch.
 - [NPC section guards](verification/npc-section-guards.md): implemented and locally
   validated on a dedicated branch; deployed in `2026.10.1`.
 - [Forest content repair](verification/forest-content-drift-repair.md): generated

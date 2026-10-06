@@ -51,6 +51,12 @@ so recycled entity IDs cannot inherit encounter ownership. See
 [boss arena contracts](../../../docs/tdd/boss_arenas.md); renderer timers never
 advance these phases. Bringer is excluded from ambient and rescue rosters.
 
+Attack knockback is authored through ability payloads and accepted by damage,
+with lifecycle state in `KnockbackStore` and horizontal motion composed by
+`KnockbackSystem` before gravity/terrain. Never implement a boss-only push or
+teleport to bypass collision. Planning and locomotion both obey the enemy terrain
+profile's `canJump` capability. See [combat knockback](../../../docs/tdd/combat_knockback.md).
+
 ## Determinism Rules
 
 Core currently depends on deterministic fixed-tick behavior. Preserve these rules:

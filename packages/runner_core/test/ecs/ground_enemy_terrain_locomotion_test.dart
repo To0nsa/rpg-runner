@@ -4,10 +4,14 @@ import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/combat/control_lock.dart';
+import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/combat/knockback.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/systems/anim/anim_system.dart';
 import 'package:runner_core/ecs/systems/enemy_death_state_system.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/ecs/systems/knockback_system.dart';
 import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
 import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
@@ -318,6 +322,25 @@ void main() {
       expect(wall.enemyGrounded, isTrue);
     });
 
+    test('Bringer ignores jump requests while retaining floor motion', () {
+      final harness = _Harness.create(
+        enemyId: EnemyId.bringerOfDeath,
+        geometry: _flatTerrain,
+        enemyX: 100,
+        enemySupportY: 300,
+        playerX: 650,
+      );
+      harness.settle();
+      final startY = harness.enemyY;
+      for (var i = 0; i < 30; i++) {
+        harness.step(targetX: 650, jumpNow: true, commitMoveDirX: 1);
+        expect(harness.enemyGrounded, isTrue);
+        expect(harness.enemyY, startY);
+        expect(harness.enemyVelY, 0);
+      }
+      expect(harness.enemyX, greaterThan(100));
+    });
+
     test('jump launch leaves support and stays world-space for the tick', () {
       final harness = _Harness.create(
         enemyId: EnemyId.grojib,
@@ -338,6 +361,62 @@ void main() {
       expect(harness.enemyVelX, greaterThan(0));
       expect(harness.enemyVelY, lessThan(0));
     });
+
+    test(
+      'generic post-damage shove stops at a wall and full-capsule arena bounds',
+      () {
+        for (final bounded in [false, true]) {
+          final harness = _Harness.create(
+            enemyId: EnemyId.grojib,
+            geometry: bounded ? _flatTerrain : _floorAndWallTerrain,
+            enemyX: 280,
+            enemySupportY: 300,
+            playerX: 650,
+          );
+          harness.settle();
+          if (bounded) {
+            harness.world.actorMotionBounds.add(
+              harness.enemy,
+              TerrainHorizontalBounds(
+                minXTicks: 200 * terrainPhysicsTicksPerWorldUnit,
+                maxXTicks: 340 * terrainPhysicsTicksPerWorldUnit,
+              ),
+            );
+          }
+          harness.world.damageQueue.add(
+            DamageRequest(
+              target: harness.enemy,
+              amount100: 100,
+              knockback: const KnockbackHit(
+                effect: KnockbackDef(distance: 112, durationSeconds: .28),
+                directionX: 1,
+              ),
+            ),
+          );
+          DamageSystem(
+            invulnerabilityTicksOnHit: 0,
+            rngSeed: 1,
+          ).step(harness.world, currentTick: harness.tick);
+          var blocked = false;
+          for (var i = 0; i < 17; i++) {
+            harness.step(targetX: 200);
+            blocked |= harness.hitRight;
+            expect(harness.motionMode, TerrainMotionMode.groundedHorizontal);
+          }
+          final ci = harness.world.worldContactCapsule.indexOf(harness.enemy);
+          final right =
+              harness.enemyX +
+              (harness.world.worldContactCapsule.offsetXTicks[ci] +
+                      harness.world.worldContactCapsule.radiusTicks[ci]) /
+                  terrainPhysicsTicksPerWorldUnit;
+          expect(right, lessThanOrEqualTo(bounded ? 340 : 400));
+          expect(harness.enemyX, greaterThan(280));
+          expect(harness.enemyVelX, 0);
+          expect(harness.enemyGrounded, isTrue);
+          if (!bounded) expect(blocked, isTrue);
+        }
+      },
+    );
 
     test('enemy walk phase advances from resolved support distance', () {
       final harness = _Harness.create(
@@ -635,6 +714,7 @@ final class _Harness {
       dtSeconds: movement.dtSeconds,
       currentTick: _tick,
     );
+    const KnockbackSystem(tickHz: 60).step(world, currentTick: _tick);
     _gravity.step(world, movement, physics: const PhysicsTuning());
     authority.step(
       world,
