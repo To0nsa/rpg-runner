@@ -759,6 +759,7 @@ class GameCore {
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
       projectiles: _projectiles,
+      physics: _physicsTuning,
       abilities: abilityCatalog,
     );
     _flyingEnemyMeleeSystem = FlyingEnemyMeleeSystem(
@@ -996,6 +997,8 @@ class GameCore {
   late final _npcAiSystem = NpcAiSystem(
     tickHz: tickHz,
     locomotion: _groundEnemyLocomotionSystem,
+    projectiles: _projectiles,
+    physics: _physicsTuning,
   );
   late FlyingEnemyCombatModeSystem _flyingEnemyCombatModeSystem;
   late FlyingEnemyLocomotionSystem _flyingEnemyLocomotionSystem;

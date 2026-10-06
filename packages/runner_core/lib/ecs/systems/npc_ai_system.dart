@@ -4,6 +4,7 @@ import '../../abilities/ability_def.dart';
 import '../../combat/ai_cast_aim_policy.dart';
 import '../../npcs/npc_catalog.dart';
 import '../../projectiles/projectile_catalog.dart';
+import '../../tuning/physics_tuning.dart';
 import '../combat_target.dart';
 import '../world.dart';
 import '../world_support_view.dart';
@@ -17,10 +18,13 @@ final class NpcAiSystem {
     required int tickHz,
     required this.locomotion,
     this.catalog = const NpcCatalog(),
+    ProjectileCatalog projectiles = const ProjectileCatalog(),
+    PhysicsTuning physics = const PhysicsTuning(),
   }) : melee = AiMeleeCommitter(tickHz: tickHz),
        casts = AiCastCommitter(
          tickHz: tickHz,
-         projectiles: const ProjectileCatalog(),
+         projectiles: projectiles,
+         physics: physics,
        );
   final GroundEnemyLocomotionSystem locomotion;
   final NpcCatalog catalog;

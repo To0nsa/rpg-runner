@@ -67,6 +67,14 @@ least 192), excluding translucent glow, and subtract the end radius from the
 shaft length. NPC spear/arrow profiles also follow their changing thickness.
 The existing poison dart retains its trap-authored capsule.
 
+Huntress spears and trap darts now share ballistic spawning, gravity and terrain
+collision through Core's existing motion authority. Projectile direction tracks
+current velocity, so snapshots rotate art and damage geometry along the arc.
+Spear aim is solved at commitment against the level's gravity; darts launch
+horizontally with lighter gravity. Both end on impact with a six-second fallback
+for gaps. This source behavior requires the next coordinated compatibility
+release after deployed `2026.10.6`.
+
 Regenerate after changing flight art, anchors, source-frame layout, or scale:
 
 ```powershell

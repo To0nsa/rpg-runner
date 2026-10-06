@@ -14,9 +14,12 @@ abstract final class TrapCatalog {
   };
   static TrapDefinition get(TrapId id) => _definitions[id]!;
 
-  /// Straight, nonpiercing dart defaults: readable travel and bounded lifetime.
+  /// Horizontal launch speed in world pixels/second keeps nearby darts readable.
   static const double dartSpeed = 340;
-  static const double dartLifetimeSeconds = 3;
+  /// Light downward acceleration preserves the launcher's close-range path.
+  static const double dartGravityScale = .15;
+  /// Seconds: terrain impacts normally end flight; gaps retain bounded cleanup.
+  static const double dartLifetimeSeconds = 6;
   static const int dartDamage100 = 100;
   static const double dartHalfLength = 4.5;
   static const double dartRadius = 2.5;

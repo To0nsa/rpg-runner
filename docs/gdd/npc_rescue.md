@@ -27,6 +27,11 @@ are current catalog values. NPC attacks use stamina, cooldowns and the same
 damage/status rules as other combat actors. NPC damage is allied damage and
 does not count as player participation. NPC death does not add an enemy kill.
 
+Huntress throws spears at 420 world pixels/second along a low gravity arc, using
+half of the level's gravity. Her aim leads moving enemies and compensates for
+the drop. Spears end on a target or terrain impact; a six-second limit cleans
+up throws into deep gaps. Huntress 2 arrows retain their straight flight.
+
 Huntress throws at distant opponents and uses melee within 52 horizontal world
 pixels when their vertical origins differ by at most 27 pixels. Her first
 successful stab against each enemy applies the existing physical bleed; later

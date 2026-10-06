@@ -13,8 +13,10 @@ import '../../events/game_event.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../projectiles/projectile_item_def.dart';
 import '../../projectiles/projectile_id.dart';
+import '../../projectiles/ballistic_aim.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
+import '../../tuning/physics_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../../util/target_prediction.dart';
@@ -29,6 +31,15 @@ import '../stores/target_point_intent_store.dart';
 import '../world.dart';
 import 'ai_ability_commit.dart';
 
+typedef _CastAim = ({
+  double x,
+  double y,
+  double dirX,
+  double dirY,
+  DamageType? weaponDamageType,
+  List<WeaponProc> weaponProcs,
+});
+
 /// Handles enemy cast decisions and writes execution intents.
 class EnemyCastSystem {
   EnemyCastSystem({
@@ -36,9 +47,11 @@ class EnemyCastSystem {
     required this.enemyCatalog,
     required this.projectiles,
     this.abilities = AbilityCatalog.shared,
+    PhysicsTuning physics = const PhysicsTuning(),
   }) : committer = AiCastCommitter(
          tickHz: unocoDemonTuning.tickHz,
          projectiles: projectiles,
+         physics: physics,
          minTravelLeadSeconds:
              unocoDemonTuning.base.unocoDemonAimLeadMinSeconds,
          maxTravelLeadSeconds:
@@ -124,16 +137,20 @@ class EnemyCastSystem {
   }
 }
 
-/// Shares autonomous cast gates, timing, payloads and intents across actor roles.
+/// Shares cast gates, timing, payloads and gravity-aware aiming across actors.
+/// [physics] must match the motion authority's level tuning. Unreachable
+/// ballistic shots are rejected before spending resources or starting cooldowns.
 class AiCastCommitter {
   const AiCastCommitter({
     required this.tickHz,
     required this.projectiles,
+    this.physics = const PhysicsTuning(),
     this.minTravelLeadSeconds = .08,
     this.maxTravelLeadSeconds = .4,
   });
   final int tickHz;
   final ProjectileCatalog projectiles;
+  final PhysicsTuning physics;
   final double minTravelLeadSeconds;
   final double maxTravelLeadSeconds;
 
@@ -201,17 +218,25 @@ class AiCastCommitter {
       targetVelX: targetVelX,
       targetVelY: targetVelY,
       windupTicks: windupTicks,
+      originOffset: castAbility.hitDelivery is ProjectileHitDelivery
+          ? resolveCasterProjectileOriginOffset(
+              world,
+              actor,
+              authoredCasterOffset: casterOriginOffset,
+            )
+          : 0,
     );
-    final aimX = resolvedAim.$1;
-    final aimY = resolvedAim.$2;
+    if (resolvedAim == null) return false;
+    final aimX = resolvedAim.x;
+    final aimY = resolvedAim.y;
     _faceActorTowardX(world, actor: actor, targetX: aimX, sourceX: sourceX);
 
     final payload = _buildPayload(
       world,
       source: actor,
       ability: castAbility,
-      weaponDamageType: resolvedAim.$3,
-      weaponProcs: resolvedAim.$4,
+      weaponDamageType: resolvedAim.weaponDamageType,
+      weaponProcs: resolvedAim.weaponProcs,
     );
 
     final hitDelivery = castAbility.hitDelivery;
@@ -232,10 +257,8 @@ class AiCastCommitter {
         casterOriginOffsetY: casterOriginOffsetY,
         payload: payload,
         commitCost: castCost,
-        targetX: aimX,
-        targetY: aimY,
-        sourceX: sourceX,
-        sourceY: sourceY + casterOriginOffsetY,
+        dirX: resolvedAim.dirX,
+        dirY: resolvedAim.dirY,
         commitTick: commitTick,
         executeTick: executeTick,
         windupTicks: windupTicks,
@@ -290,7 +313,7 @@ class AiCastCommitter {
     return true;
   }
 
-  (double, double, DamageType?, List<WeaponProc>) _resolveAimPoint({
+  _CastAim? _resolveAimPoint({
     required AbilityDef castAbility,
     required AiCastAimPolicy castTargetPolicy,
     required double sourceX,
@@ -300,6 +323,7 @@ class AiCastCommitter {
     required double targetVelX,
     required double targetVelY,
     required int windupTicks,
+    required double originOffset,
   }) {
     final hitDelivery = castAbility.hitDelivery;
     DamageType? weaponDamageType;
@@ -313,6 +337,44 @@ class AiCastCommitter {
       travelSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
       weaponDamageType = projectile.damageType;
       weaponProcs = projectile.procs;
+      if (projectile.ballistic) {
+        final predict =
+            castTargetPolicy == AiCastAimPolicy.predictedTargetCenter;
+        final aim = solveBallisticAim(
+          sourceX: sourceX,
+          sourceY: sourceY,
+          targetX: targetX,
+          targetY: targetY,
+          targetVelX: predict ? targetVelX : 0,
+          targetVelY: predict ? targetVelY : 0,
+          windupSeconds: predict ? _ticksToSeconds(windupTicks) : 0,
+          speed: projectile.speedUnitsPerSecond,
+          gravityY: physics.gravityY * projectile.gravityScale,
+          tickHz: tickHz,
+          maxFlightSeconds:
+              ((projectile.lifetimeSeconds * tickHz).ceil() - 1) / tickHz,
+          originOffset: originOffset,
+        );
+        if (aim == null) return null;
+        return (
+          x:
+              targetX +
+              (predict
+                  ? targetVelX *
+                        (_ticksToSeconds(windupTicks) + aim.flightSeconds)
+                  : 0),
+          y:
+              targetY +
+              (predict
+                  ? targetVelY *
+                        (_ticksToSeconds(windupTicks) + aim.flightSeconds)
+                  : 0),
+          dirX: aim.dirX,
+          dirY: aim.dirY,
+          weaponDamageType: weaponDamageType,
+          weaponProcs: weaponProcs,
+        );
+      }
     }
 
     var leadSeconds = 0.0;
@@ -337,7 +399,14 @@ class AiCastCommitter {
       targetVelY: targetVelY,
       leadSeconds: leadSeconds,
     );
-    return (predicted.$1, predicted.$2, weaponDamageType, weaponProcs);
+    return (
+      x: predicted.$1,
+      y: predicted.$2,
+      dirX: predicted.$1 - sourceX,
+      dirY: predicted.$2 - sourceY,
+      weaponDamageType: weaponDamageType,
+      weaponProcs: weaponProcs,
+    );
   }
 
   void _writeProjectileIntent(
@@ -348,10 +417,8 @@ class AiCastCommitter {
     required double casterOriginOffsetY,
     required HitPayload payload,
     required AbilityResourceCost commitCost,
-    required double targetX,
-    required double targetY,
-    required double sourceX,
-    required double sourceY,
+    required double dirX,
+    required double dirY,
     required int commitTick,
     required int executeTick,
     required int windupTicks,
@@ -384,8 +451,8 @@ class AiCastCommitter {
         procs: payload.procs,
         ballistic: projectile.ballistic,
         gravityScale: projectile.gravityScale,
-        dirX: targetX - sourceX,
-        dirY: targetY - sourceY,
+        dirX: dirX,
+        dirY: dirY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
         originOffset: originOffset,

@@ -132,11 +132,14 @@ by the larger radius. Source validation bounds that complete conservative sweep.
 Frame transitions into nonharmful art do not repeat the prior pose's damage.
 
 Darts use the common projectile motion, nearest swept hit, damage, status and
-lifetime systems. The trap spawn adapter gives them environmental targeting,
-the placement's impact damage (default 1 HP Poison), speed 340 units/second and
-three seconds of travel. Spawn copies damage so later launcher retirement cannot
-change a live projectile. Contact traps also read the placement's damage.
-They have no physical terrain body. A dart created on T first hits on T+1,
+lifetime systems through the reusable `spawnProjectile` registration helper.
+The trap adapter supplies environmental targeting, placement impact damage
+(default 1 HP Poison), a horizontal 340-pixel/second launch and gravity scale
+0.15. Darts have physical bodies and use the existing ballistic terrain sweep;
+terrain impact despawns them that tick. A six-second lifetime is fallback
+cleanup for deep gaps. Spawn copies damage so launcher retirement cannot change
+a live projectile. Contact traps also read the placement's damage.
+A dart created on T first hits on T+1,
 including actors overlapping its muzzle; ordinary projectiles retain their
 existing launch-tick eligibility. Ownerless projectile source zero is converted
 to null damage attribution. The launcher cannot create a second live dart.
@@ -174,7 +177,7 @@ and saved-item cards as the other Chunk domains. Catalog selection does not arm
 placement; the explicit Place in scene action does. Scene tools live above the
 canvas and snapping controls stay with creation or editing. Facing mirrors the
 catalog art/damage preview while retaining the saved trigger. A frame slider
-projects exact catalog poses, damage capsules and dart muzzle/path; blue
+projects exact catalog poses, damage capsules and dart muzzle/launch direction; blue
 rectangles are authoring-only activation triggers. Trap and prefab art share
 sorted Z-index partitions on either side of terrain; prefabs draw first at an
 equal depth. Those partitions share a borrowed image cache rather than decoding

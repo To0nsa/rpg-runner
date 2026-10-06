@@ -355,6 +355,18 @@ offset places each launch at its reviewed release height; ordinary casts retain
 their zero-offset behavior. Rescue cancels an unreleased intent, while detached
 projectiles retain ordinary collision and lifetime behavior.
 
+Huntress spears use ballistic flight at 420 world pixels/second and gravity
+scale 0.5; arrows remain straight. `solveBallisticAim` is the reusable pure-Core
+intercept solver. It includes committed windup, moving-target lead, directional
+muzzle offset and gravity-before-motion timing, and selects the earliest low
+arc. Unreachable solutions reject before costs/cooldowns. `GameCore` supplies
+the same level physics and projectile catalog to AI and flight. Shared
+`spawnProjectile` registration adds ballistic velocity, gravity and terrain
+collision state for both actor shots and environmental darts. Terrain impact
+ends flight; the spear's six-second lifetime bounds missed throws into gaps.
+These source changes require a new coordinated compatibility release after
+deployed `2026.10.6`.
+
 ## Combat ownership and survivor lifecycle
 
 `DamageCredit` is captured when attacks are created and carried through hitboxes,

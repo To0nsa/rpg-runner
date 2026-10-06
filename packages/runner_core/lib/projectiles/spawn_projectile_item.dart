@@ -7,9 +7,7 @@ import '../combat/damage_type.dart';
 import '../combat/faction.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/combat_eligibility.dart';
-import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
-import '../ecs/stores/lifetime_store.dart';
 import '../ecs/stores/projectile_item_origin_store.dart';
 import '../ecs/stores/projectile_store.dart';
 import '../ecs/world.dart';
@@ -17,6 +15,7 @@ import '../projectiles/projectile_item_def.dart';
 import '../projectiles/projectile_id.dart';
 import '../util/tick_math.dart';
 import '../weapons/weapon_proc.dart';
+import 'spawn_projectile.dart';
 
 const _dirEps2 = 1e-12;
 
@@ -79,22 +78,17 @@ EntityId spawnProjectileFromCaster(
   final originX = casterX + dir.x * originOffset;
   final originY = casterY + dir.y * originOffset;
 
-  final entity = world.createEntity();
-
-  final initialVelX = ballistic ? dir.x * speedUnitsPerSecond : 0.0;
-  final initialVelY = ballistic ? dir.y * speedUnitsPerSecond : 0.0;
-
-  world.transform.add(
-    entity,
-    posX: originX,
-    posY: originY,
-    velX: initialVelX,
-    velY: initialVelY,
-  );
-
-  world.projectile.add(
-    entity,
-    ProjectileEntityDef(
+  final entity = spawnProjectile(
+    world,
+    x: originX,
+    y: originY,
+    gravityScale: gravityScale,
+    lifetimeTicks: ticksFromSecondsCeil(projectile.lifetimeSeconds, tickHz),
+    collider: ColliderAabbDef(
+      halfX: projectile.colliderSizeX * 0.5,
+      halfY: projectile.colliderSizeY * 0.5,
+    ),
+    projectile: ProjectileEntityDef(
       projectileId: projectileId,
       spawnTick: currentTick,
       faction: faction,
@@ -113,40 +107,10 @@ EntityId spawnProjectileFromCaster(
     ),
   );
 
-  world.hitOnce.add(entity);
-
   world.projectileOrigin.add(
     entity,
     ProjectileOriginDef(projectileId: projectileId),
   );
-
-  world.lifetime.add(
-    entity,
-    LifetimeDef(
-      ticksLeft: ticksFromSecondsCeil(projectile.lifetimeSeconds, tickHz),
-    ),
-  );
-
-  world.colliderAabb.add(
-    entity,
-    ColliderAabbDef(
-      halfX: projectile.colliderSizeX * 0.5,
-      halfY: projectile.colliderSizeY * 0.5,
-    ),
-  );
-
-  if (ballistic) {
-    world.body.add(
-      entity,
-      BodyDef(
-        isKinematic: false,
-        useGravity: true,
-        gravityScale: gravityScale,
-        sideMask: BodyDef.sideLeft | BodyDef.sideRight,
-      ),
-    );
-    world.collision.add(entity);
-  }
 
   return entity;
 }

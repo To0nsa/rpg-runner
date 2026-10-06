@@ -4,10 +4,10 @@ import '../combat/hit_target_policy.dart';
 import '../combat/status/status.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/stores/collider_aabb_store.dart';
-import '../ecs/stores/lifetime_store.dart';
 import '../ecs/stores/projectile_store.dart';
 import '../ecs/world.dart';
 import '../projectiles/projectile_id.dart';
+import '../projectiles/spawn_projectile.dart';
 import '../weapons/weapon_proc.dart';
 import 'trap_catalog.dart';
 import 'trap_placement.dart';
@@ -24,17 +24,18 @@ EntityId spawnTrapDart(
   required int tickHz,
   int damage100 = TrapCatalog.dartDamage100,
 }) {
-  final entity = world.createEntity();
-  world.transform.add(
-    entity,
-    posX: x,
-    posY: y,
-    velX: directionX * TrapCatalog.dartSpeed,
-    velY: 0,
-  );
-  world.projectile.add(
-    entity,
-    ProjectileEntityDef(
+  // Cleanup runs on the spawn tick, before the first eligible motion tick.
+  return spawnProjectile(
+    world,
+    x: x,
+    y: y,
+    gravityScale: TrapCatalog.dartGravityScale,
+    lifetimeTicks: (TrapCatalog.dartLifetimeSeconds * tickHz).ceil() + 1,
+    collider: const ColliderAabbDef(
+      halfX: TrapCatalog.dartHalfLength,
+      halfY: TrapCatalog.dartRadius,
+    ),
+    projectile: ProjectileEntityDef(
       projectileId: ProjectileId.poisonDart,
       faction: Faction.player,
       owner: 0,
@@ -43,6 +44,8 @@ EntityId spawnTrapDart(
       firstHitTick: tick + 1,
       dirX: directionX,
       dirY: 0,
+      spawnTick: tick,
+      usePhysics: true,
       speedUnitsPerSecond: TrapCatalog.dartSpeed,
       damage100: damage100,
       damageType: DamageType.poison,
@@ -54,19 +57,4 @@ EntityId spawnTrapDart(
       ],
     ),
   );
-  world.colliderAabb.add(
-    entity,
-    const ColliderAabbDef(
-      halfX: TrapCatalog.dartHalfLength,
-      halfY: TrapCatalog.dartRadius,
-    ),
-  );
-  // Cleanup runs on the spawn tick, before the first eligible motion tick.
-  world.lifetime.add(
-    entity,
-    LifetimeDef(
-      ticksLeft: (TrapCatalog.dartLifetimeSeconds * tickHz).ceil() + 1,
-    ),
-  );
-  return entity;
 }

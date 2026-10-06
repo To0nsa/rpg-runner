@@ -25,7 +25,11 @@ class ProjectileCatalog {
           id: ProjectileId.npcSpear,
           weaponType: WeaponType.spear,
           speedUnitsPerSecond: 420,
-          lifetimeSeconds: 1.4,
+          // Seconds: allow missed throws to land; bound flight across deep gaps.
+          lifetimeSeconds: 6,
+          ballistic: true,
+          // Half of level gravity gives a visible arc within the 260px AI range.
+          gravityScale: .5,
           colliderSizeX: 55.5,
           colliderSizeY: 7.5,
         );

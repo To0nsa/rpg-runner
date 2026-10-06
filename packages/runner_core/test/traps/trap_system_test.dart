@@ -13,6 +13,10 @@ import 'package:runner_core/ecs/systems/damage_system.dart';
 import 'package:runner_core/ecs/systems/lifetime_system.dart';
 import 'package:runner_core/ecs/systems/projectile_hit_system.dart';
 import 'package:runner_core/ecs/systems/projectile_system.dart';
+import 'package:runner_core/ecs/systems/gravity_system.dart';
+import 'package:runner_core/ecs/systems/terrain_ballistic_projectile_system.dart';
+import 'package:runner_core/collision/terrain/terrain_edge_index.dart';
+import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:runner_core/ecs/systems/trap_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/players/player_tuning.dart';
@@ -266,13 +270,19 @@ void main() {
         final source = f.state.source;
         f.world.traps.synchronize(const [], null); // Launcher culled.
         expect(f.world.projectile.has(dart), isTrue);
-        ProjectileSystem().step(
-          f.world,
-          MovementTuningDerived.from(const MovementTuning(), tickHz: 60),
+        final movement = MovementTuningDerived.from(
+          const MovementTuning(),
+          tickHz: 60,
         );
+        ProjectileSystem().capturePhysicsPositions(f.world);
+        GravitySystem().step(f.world, movement, physics: const PhysicsTuning());
+        TerrainBallisticProjectileSystem(
+          edgeIndex: TerrainEdgeIndex(edges: const []),
+        ).step(f.world, movement);
+        ProjectileSystem().step(f.world, movement);
         expect(
           f.world.transform.posX[f.world.transform.indexOf(dart)],
-          closeTo(200 + (22 + 340 / 60) * sign, 1e-10),
+          closeTo(200 + (22 + 340 / 60) * sign, 1 / 1024),
         );
         hit.step(f.world, f.grid, currentTick: 31);
         expect(f.world.damageQueue.target, [victim]);
@@ -297,7 +307,11 @@ void main() {
       f.step(156);
       expect(f.state.phase, TrapPhase.waitingForClear);
       final lifetime = LifetimeSystem();
-      for (var tick = 0; tick < 180; tick++) {
+      for (
+        var tick = 0;
+        tick < (TrapCatalog.dartLifetimeSeconds * 60).ceil();
+        tick++
+      ) {
         lifetime.step(f.world);
       }
       expect(f.world.projectile.has(dart), isTrue);
