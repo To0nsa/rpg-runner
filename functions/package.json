@@ -16,10 +16,10 @@
     "test:compiled": "node --test \"lib_test/test/**/*.test.js\""
   },
   "dependencies": {
-    "@google-cloud/storage": "^8.0.1",
-    "@google-cloud/tasks": "^7.0.0",
-    "firebase-admin": "^14.3.0",
-    "firebase-functions": "^7.3.2"
+    "@google-cloud/storage": "8.0.1",
+    "@google-cloud/tasks": "7.0.0",
+    "firebase-admin": "14.3.0",
+    "firebase-functions": "7.3.2"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",
@@ -27,5 +27,16 @@
     "firebase": "12.18.0",
     "firebase-tools": "15.28.1",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "@fastify/busboy": "3.2.2",
+    "gaxios@6.7.1": {
+      "uuid": "11.1.1"
+    },
+    "proxy-addr": "2.0.8",
+    "qs": "6.16.0",
+    "teeny-request@9.0.0": {
+      "uuid": "11.1.1"
+    }
   }
 }

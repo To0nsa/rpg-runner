@@ -33,6 +33,21 @@ trust-subnet fix in
 [GHSA-jqcg-44mw-7w3h](https://github.com/advisories/GHSA-jqcg-44mw-7w3h).
 Release preparation checks current production advisories on every run.
 
+Firebase uploads the `functions/` source directory, which excludes the root
+pnpm workspace files. The cloud build uses npm against the uploaded manifest;
+see [deployment dependency installation](https://docs.cloud.google.com/run/docs/runtimes/nodejs-dependencies).
+The four production SDK dependencies use exact manifest versions matching the
+validated workspace baseline: Storage `8.0.1`, Tasks `7.0.0`, Firebase Admin
+`14.3.0`, and Firebase Functions `7.3.2`. Compatible transitive ranges still
+resolve during the cloud build.
+Runtime security pins therefore also live in `functions/package.json` as
+[npm overrides](https://docs.npmjs.com/cli/configuring-npm/package-json/).
+Keep their package versions and scoped parent selectors aligned with
+`pnpm-workspace.yaml`, which remains authoritative for local workspace installs.
+When changing these pins, verify an isolated production npm resolution/audit in
+addition to the workspace audit. Do not install npm into the local Functions
+workspace or introduce a second checked-in dependency lockfile.
+
 ## 2) Shared security model (all callables)
 
 Every callable follows the same auth/authorization pattern:

@@ -29,6 +29,11 @@ Current domains:
 - do not hand-edit generated output in `functions/lib/**`
 - do not hand-edit generated test output in `functions/lib_test/**`
 - keep `package.json`, `tsconfig.json`, and callable exports aligned when the backend surface changes
+- keep runtime security overrides aligned between root `pnpm-workspace.yaml`
+  and `functions/package.json`: Firebase uploads only `functions/`, and its npm
+  build does not receive the workspace overrides. Verify changed pins with an
+  isolated production npm resolution/audit as well as the local pnpm audit;
+  never run npm installation inside this pnpm workspace or add a second lockfile.
 
 If you change source files, the expected follow-up is a build.
 

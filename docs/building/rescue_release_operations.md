@@ -37,7 +37,11 @@ terrain artifacts belong in the same client/worker preparation. See
   [`@fastify/busboy`](https://github.com/advisories/GHSA-gxm5-99cw-xjw9) to `3.2.2`.
   The regenerated lockfile passes supply-chain policies and the October 6
   production dependency audit reports no known vulnerabilities. Full release
-  preparation must run against this dependency revision.
+  preparation must run against this dependency revision. The deployed Functions
+  manifest also mirrors the workspace security overrides and pins the four
+  production SDK versions to the tested baseline. An isolated cloud-style npm
+  production resolution confirms both patched versions and reports zero known
+  vulnerabilities; see [dependency ownership](../tdd/firebase_cloud_functions_overview.md).
 - [x] Repair the Windows authored-trap compilation budget. This check compiles
   three isolated real-worker fixtures, and its five-minute timeout triggered
   fixture teardown while a compiler still needed its package configuration.
