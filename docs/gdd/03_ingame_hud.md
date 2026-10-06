@@ -163,6 +163,8 @@ These are full-screen overlays that temporarily override normal HUD to express t
   a manual pause or **Tap to start** state remains paused.
 * Held movement and abilities are cleared when leaving the app. Players press
   them again after returning; background time does not advance the run.
+* Pausing cancels actions queued before the next gameplay tick. A jump, attack,
+  or aimed release pressed immediately before pause does not fire on resume.
 
 ### 4.3 Game Over
 

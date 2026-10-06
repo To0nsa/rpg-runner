@@ -66,6 +66,14 @@ run. A manual pause, exit confirmation, or pre-start ready state stays paused.
 Background time does not advance simulation ticks, and movement/ability holds
 must be pressed again after returning.
 
+Pause, lifecycle, focus-loss, restart, and exit cancellation discard every
+unapplied movement, aim, hold starts, and action presses through RunnerInputRouter
+before scheduling releases for its current held ability slots. Already queued
+hold releases survive, including a previous slot during an unapplied switch.
+Movement/aim scheduling and commit-time aim protection reset with that queue.
+A queued tap or aimed release cannot fire on resume, while releases for holds
+already applied to Core survive cancellation.
+
 ## Asset loading and performance
 
 UiAssetLifecycle owns menu previews only. The former whole-catalog Flutter

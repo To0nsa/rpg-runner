@@ -9,8 +9,9 @@ import 'runner_input_router.dart';
 /// The dispatcher calls this once when an action lifecycle begins and retains
 /// the result until release or cancellation, so a mid-hold snapshot update
 /// cannot change the meaning of the matching end edge.
-typedef RunnerActionInputModeResolver =
-    AbilityInputMode Function(RunnerGameplayAction action);
+typedef RunnerActionInputModeResolver = AbilityInputMode Function(
+  RunnerGameplayAction action,
+);
 
 /// Converts device-neutral gameplay actions into router operations.
 ///
@@ -160,7 +161,7 @@ final class RunnerSemanticActionDispatcher {
     }
   }
 
-  /// Neutralizes every gameplay input and pumps the neutral continuous state.
+  /// Neutralizes every gameplay input and discards unapplied action presses.
   ///
   /// The operation is idempotent and releases all supported ability slots even
   /// if adapter-local bookkeeping missed an earlier transition.
@@ -172,17 +173,7 @@ final class RunnerSemanticActionDispatcher {
     _endedBeforeCommitModes.clear();
     _committedActions.clear();
 
-    _input.setMoveAxis(0);
-    _input.clearAimDir();
-    for (final slot in const <AbilitySlot>[
-      AbilitySlot.primary,
-      AbilitySlot.secondary,
-      AbilitySlot.projectile,
-      AbilitySlot.mobility,
-    ]) {
-      _input.endAbilitySlotHold(slot);
-    }
-    _input.pumpHeldInputs();
+    _input.cancelAll();
   }
 
   /// Pumps continuous movement and aim through the low-level router.

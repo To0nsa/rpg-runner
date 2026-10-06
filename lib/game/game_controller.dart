@@ -125,6 +125,21 @@ class GameController extends ChangeNotifier {
     enqueue(factory(tick + inputLead));
   }
 
+  /// Cancels unapplied input while retaining explicit ability-hold releases.
+  ///
+  /// Releases may stop holds already latched in Core, including a previous slot
+  /// whose replacement has not executed yet. The router also releases its local
+  /// current hold after cancellation. Neither operation advances Core.
+  void cancelPendingInput() {
+    _inputsByTick.removeWhere((_, frame) {
+      final releases =
+          frame.abilitySlotHeldChangedMask & ~frame.abilitySlotHeldValueMask;
+      frame.reset();
+      frame.abilitySlotHeldChangedMask = releases;
+      return releases == 0;
+    });
+  }
+
   /// Registers a callback to observe transient [GameEvent]s.
   ///
   /// Register before advancing play; earlier events are not retained or replayed.

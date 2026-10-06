@@ -12,6 +12,86 @@ import '../../support/test_level.dart';
 import '../../test_tunings.dart';
 
 void main() {
+  test('pause cancellation discards queued taps before the next tick', () {
+    final harness = _InputHarness();
+    for (final action in const [
+      RunnerGameplayAction.jump,
+      RunnerGameplayAction.primary,
+      RunnerGameplayAction.secondary,
+      RunnerGameplayAction.projectile,
+      RunnerGameplayAction.spell,
+      RunnerGameplayAction.mobility,
+    ]) {
+      harness.dispatcher.triggerAction(action);
+    }
+    harness.controller.setPaused(true);
+    harness.dispatcher.cancelAll();
+    harness.controller.setPaused(false);
+    expect(harness.advance().pressedMask, 0);
+  });
+
+  test(
+    'cancellation preserves old-slot releases during an unapplied switch',
+    () {
+      final harness = _InputHarness(
+        modes: const {
+          RunnerGameplayAction.primary: AbilityInputMode.holdMaintain,
+          RunnerGameplayAction.secondary: AbilityInputMode.holdMaintain,
+        },
+      );
+      harness.dispatcher.beginAction(RunnerGameplayAction.primary);
+      expect(
+        harness.advance().abilitySlotHeldValueMask,
+        1 << AbilitySlot.primary.index,
+      );
+      harness.dispatcher.beginAction(RunnerGameplayAction.secondary);
+      harness.dispatcher.cancelAll();
+      harness.dispatcher.cancelAll();
+      final canceled = harness.advance();
+      expect(
+        canceled.abilitySlotHeldChangedMask,
+        (1 << AbilitySlot.primary.index) | (1 << AbilitySlot.secondary.index),
+      );
+      expect(canceled.abilitySlotHeldValueMask, 0);
+      expect(canceled.pressedMask, 0);
+    },
+  );
+
+  test(
+    'pause cancellation drops an aimed release and allows a fresh press',
+    () {
+      final harness = _InputHarness(
+        modes: const {
+          RunnerGameplayAction.projectile: AbilityInputMode.holdAimRelease,
+        },
+      );
+      harness.dispatcher.beginAction(RunnerGameplayAction.projectile);
+      harness.advance();
+      harness.dispatcher.setAimDir(0, -1);
+      harness.dispatcher.releaseAction(RunnerGameplayAction.projectile);
+      harness.controller.setPaused(true);
+      harness.dispatcher.cancelAll();
+      harness.dispatcher.cancelAll();
+      harness.controller.setPaused(false);
+      final resumed = harness.advance();
+      expect(resumed.pressedMask, 0);
+      expect(resumed.aimDirX, isNull);
+      expect(resumed.aimDirY, isNull);
+      expect(resumed.abilitySlotHeldValueMask, 0);
+
+      harness.dispatcher.beginAction(RunnerGameplayAction.moveRight);
+      harness.dispatcher.beginAction(RunnerGameplayAction.projectile);
+      harness.dispatcher.setAimDir(1, 0);
+      harness.dispatcher.pumpHeldInputs();
+      expect(harness.advance().moveAxis, 1);
+      harness.dispatcher.releaseAction(RunnerGameplayAction.projectile);
+      final fresh = harness.advance();
+      expect(fresh.projectilePressed, isTrue);
+      expect(fresh.aimDirX, 1);
+      expect(fresh.aimDirY, 0);
+    },
+  );
+
   test('tap actions emit every one-shot command without pressed state', () {
     final harness = _InputHarness();
 

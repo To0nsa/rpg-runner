@@ -92,6 +92,28 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('backgrounding drops a jump queued before the next tick', (
+    tester,
+  ) async {
+    final recorder = _Recorder();
+    final session = await _readySession(tester, recorder);
+    await tester.tap(find.text('Tap to start'));
+    await tester.pump(const Duration(milliseconds: 40));
+    final tickBeforePause = session.controller.tick;
+    session.input.pressJump();
+    _background(tester);
+    _resume(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 40));
+    final resumedFrames = recorder.frames.where(
+      (frame) => frame.tick > tickBeforePause,
+    );
+    expect(resumedFrames, isNotEmpty);
+    expect(resumedFrames.every((frame) => !frame.jumpPressed), isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('backgrounding before Start keeps the ready game at tick zero', (
     tester,
   ) async {

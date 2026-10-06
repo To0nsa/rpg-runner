@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/commands/command.dart';
+
 import '../game_controller.dart';
 import 'aim_quantizer.dart';
 
@@ -75,6 +76,28 @@ class RunnerInputRouter {
   /// Called when the player releases the aim input. Subsequent [pumpHeldInputs]
   /// calls will schedule [ClearAimDirCommand] for upcoming ticks.
   void clearAimDir() => _aim.clear();
+
+  /// Cancels buffered presses, movement, aim, and all supported ability holds.
+  ///
+  /// Clears unapplied commits before scheduling explicit hold releases, so an
+  /// action queued just before pause or focus loss cannot execute on resume.
+  /// Repeated cancellation retains those releases; fresh input reschedules from
+  /// the current tick without using the discarded buffering window.
+  void cancelAll() {
+    controller.cancelPendingInput();
+    _moveAxis = 0;
+    _lastScheduledAxis = 0;
+    _axisScheduledThroughTick = controller.tick;
+    _aim.reset();
+    for (final slot in const [
+      AbilitySlot.primary,
+      AbilitySlot.secondary,
+      AbilitySlot.projectile,
+      AbilitySlot.mobility,
+    ]) {
+      endAbilitySlotHold(slot);
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Edge-triggered (one-shot) input methods
@@ -408,6 +431,15 @@ class _AimInputChannel {
     isSet = false;
     x = 0;
     y = 0;
+  }
+
+  void reset() {
+    clear();
+    _lastScheduledSet = false;
+    _lastScheduledX = 0;
+    _lastScheduledY = 0;
+    _scheduledThroughTick = 0;
+    _clearBlockedThroughTick = 0;
   }
 
   /// Prevents `Clear...Command` from being scheduled up to and including [tick].
