@@ -78,10 +78,10 @@ consume `EnemyArchetype.previewAnimKey`.
 
 ## Compatibility and checks
 
-This deterministic gameplay change requires compatibility `2026.10.7` and a
-coordinated client/Functions/worker release. Replay format, command encoding,
-score rules and board wire shape are unchanged. Source preparation does not
-mean production has been cut over.
+This deterministic gameplay change uses compatibility `2026.10.7`, deployed
+October 7, 2026 through the coordinated client/Functions/worker release; see
+[production evidence](../verification/game-compat-2026.10.7-production.md).
+Replay format, command encoding, score rules and board wire shape are unchanged.
 
 Phase tests cover 30/60/120 Hz, camera boundaries, cast cancellation, released
 effects, health/identity, longer locks and entity cleanup. Combat/render tests

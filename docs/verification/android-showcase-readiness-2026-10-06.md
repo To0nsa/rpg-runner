@@ -2,8 +2,10 @@
 
 Verified locally October 6, 2026. Baseline: `4c7eb46a`.
 Follow-up fixes: `bdded54f` and `add5757c`.
-The owner deferred release until level authoring is finished. No production
-deployment, native installation, run cancellation, or account reset occurred.
+The owner deferred release until level authoring was finished. This local review
+performed no production deployment, native installation, run cancellation or
+account reset. The finalized coordinated release subsequently deployed October 7;
+see [production evidence](game-compat-2026.10.7-production.md).
 
 ## Fixed behavior
 
@@ -89,19 +91,16 @@ spawn-marker, rescue, rendering, or mobile-performance behavior over that route.
 
 ## Remaining showcase gates
 
-Authoring files changed throughout this review and were deliberately left alone.
-These gameplay results cover the checked-in generated runtime, not the owner's
-unfinished chunk/prefab edits. Regenerate and revalidate the finalized sources
-before a release; retain any newly failing seeds as regressions.
+Authoring files changed throughout this local review and were deliberately left
+alone. Finalized authoring was subsequently regenerated, terrain blockers were
+repaired and all 85 traversal/control cases passed with failing routes retained
+as regressions. Frozen `ffd6475f` was deployed under compatibility `2026.10.7`
+to matching Functions, worker and Hosting; see the
+[October 7 production evidence](game-compat-2026.10.7-production.md). That release
+does not establish the device acceptance checks below.
 
-The latest recorded production release is frozen `6802fa0e` under `2026.10.6`.
-Later NPC/combat/projectile changes are newer than that release while the source
-still uses its compatibility version. Follow the coordinated release workflow
-with a new matching version after authoring is complete; this local review does
-not establish matching live client/worker deployment.
-
-No Android device was connected. After the finalized coordinated release,
-verify the actual showcase phone/tablet: cold signed-in startup, repeated starts
+No Android device was connected during this review. Following the coordinated
+release, verify the actual showcase phone/tablet: cold signed-in startup, repeated starts
 and restarts, multitouch combat/aim, hard-chunk and rescue playthroughs,
 background/return, sustained frame rate/temperature, replay acceptance,
 settlement, leaderboard updates, and ghost playback. Automated tests do not

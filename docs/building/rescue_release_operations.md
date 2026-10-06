@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.6` was deployed October 6, 2026 (Helsinki time) from frozen
-commit `6802fa0e`; see [current production evidence](../verification/game-compat-2026.10.6-production.md).
+Status: `2026.10.7` was deployed October 7, 2026 (Helsinki time) from frozen
+commit `ffd6475f`; see [current production evidence](../verification/game-compat-2026.10.7-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.6](../verification/game-compat-2026.10.6-production.md),
 [2026.10.4](../verification/game-compat-2026.10.4-production.md),
 [2026.10.3](../verification/game-compat-2026.10.3-production.md),
 [2026.10.1](../verification/game-compat-2026.10.1-production.md),
@@ -10,13 +11,13 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-## Prepared source: 2026.10.7
+## Deployed release: 2026.10.7
 
 Derf now keeps explosions in its normal stationary caster phase, transforms on
 first body visibility, then pursues with tentacle melee only. The same entity,
 health and terrain capsule survive transformation. Source compatibility is
-updated in the client, Functions and replay worker; production remains on
-2026.10.6. See [Derf contracts](../tdd/derf_transformation.md).
+updated in the deployed client, Functions and replay worker.
+See [Derf contracts](../tdd/derf_transformation.md).
 
 This source also includes the expanded Forest hard assembly, easy boss-themed
 terrain chunk, revised hard collision/spawns/traps/rescue placements, and removal
@@ -37,7 +38,7 @@ terrain artifacts belong in the same client/worker preparation. See
   [`@fastify/busboy`](https://github.com/advisories/GHSA-gxm5-99cw-xjw9) to `3.2.2`.
   The regenerated lockfile passes supply-chain policies and the October 6
   production dependency audit reports no known vulnerabilities. Full release
-  preparation must run against this dependency revision. The deployed Functions
+  preparation passed against this dependency revision. The deployed Functions
   manifest also mirrors the workspace security overrides and pins the four
   production SDK versions to the tested baseline. An isolated cloud-style npm
   production resolution confirms both patched versions and reports zero known
@@ -54,21 +55,34 @@ terrain artifacts belong in the same client/worker preparation. See
 - [x] Align the encounter preflight regression with grounded Derf: valid
   ground placement now succeeds, while a Derf body extending beyond the chunk
   still rejects the complete group. The focused encounter-source suite passes.
-  Current preparation also passes 1,102 client tests, 928 Core tests, 44
-  protocol tests and the web build; final content/terrain/freshness gates remain.
-- [ ] Prepare and benchmark matching client/worker/backend artifacts. Backend
+  Preparation also passes 1,102 client tests, 928 Core tests, 44 protocol tests,
+  81 content-pipeline tests, 25 terrain-material tests, generated freshness and
+  the web build. Matching cached validator evidence includes 188 tests and the
+  compiled AOT protocol-rejection probe.
+- [x] Prepare and benchmark matching client/worker/backend artifacts. Backend
   valid-request fixtures now use the exported current compatibility; retired
   `2026.10.6` remains explicitly rejected. The first frozen preparation exposed
   these stale fixtures before any production mutation.
 - [x] Owner authorized coordinated production deployment on October 6, 2026.
-  Owner also authorized cancellation of active runs if necessary; recheck
-  unsubmitted-ticket and replay/reward evidence before applying it.
-- [ ] Record live issuance, replay, settlement and ghost verification.
+  Owner also authorized cancellation of active runs if necessary.
+  Unsubmitted-ticket and replay/reward evidence was rechecked before applying it.
+- [x] Pause issuance and drain validation/settlement. Three unsubmitted
+  `2026.10.6` tickets were cancelled atomically with records retained. No profile,
+  reward or validated-run data was reset.
+- [x] Deploy matching Functions, worker and Hosting; verify the live web hash,
+  Ready worker and all six boards; restore both queues and matching issuance.
+- [x] Record production evidence and the verified baseline.
+- [ ] Complete linked Play Games issuance, replay, settlement, leaderboard,
+  ghost and live retired-version smoke.
 
-The October 6 read-only inventory still found three issued `2026.10.6` sessions,
-with no pending or quarantined reward settlement. Production cutover needs a
-fresh drain check after preparation and image verification; these observations
-do not authorize cancellation or establish readiness for immediate cutover.
+The strict exact-image benchmark passed all nine gates. The clean cutover
+inventory had zero active sessions and all 187 grants settled. The verified
+baseline was saved at `2026-10-06T22:02:38.7071214Z` (October 7 in Helsinki).
+The final inventory later observed two accepted new-version validations with
+settled rewards and one issued new-version ticket; ordinary traffic was retained.
+This passive evidence does not complete the controlled signed-in smoke above.
+No native package was built or installed. The earlier browser file-I/O bootstrap
+limitation remains; this release verified live bundle identity, not browser play.
 
 ## Deployed release: 2026.10.6
 
