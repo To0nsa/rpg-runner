@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/level_definition_generation.dart' as level_source;
 
 void main() {
+  // Keep cold compilation subprocesses within their fixture lifetime on Windows.
   test('encounter source generates complete immutable rosters and exact reward overrides', () async {
     final root = await Directory.systemTemp.createTemp('encounter_generator_');
     addTearDown(() => root.deleteSync(recursive: true));
@@ -86,7 +87,7 @@ void main() {
       isNot(0),
       reason: 'Excluded source still needs structural validation.',
     );
-  });
+  }, timeout: Timeout(Duration(minutes: Platform.isWindows ? 6 : 2)));
   // Three isolated worker compilations need more wall time on Windows; this
   // budget covers compilation, while container throughput has its own gate.
   test('trap source generates compilable typed placements without terrain drift', () async {

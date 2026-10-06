@@ -47,7 +47,10 @@ terrain artifacts belong in the same client/worker preparation. See
   fixture teardown while a compiler still needed its package configuration.
   Windows now allows 15 minutes; other platforms retain five. All three trap
   assertions passed the isolated recheck in 201 seconds. The strict final-image
-  throughput gate is unchanged.
+  throughput gate is unchanged. The encounter compiler fixture has the same
+  Windows allowance (six minutes versus the usual two); its immutable-roster,
+  reward and excluded-source checks passed the isolated recheck in 65 seconds.
+  The final pinned backend also passes all 212 emulator tests and its build.
 - [ ] Prepare and benchmark matching client/worker/backend artifacts. Backend
   valid-request fixtures now use the exported current compatibility; retired
   `2026.10.6` remains explicitly rejected. The first frozen preparation exposed
