@@ -16,11 +16,11 @@ can still change sides with its evade-and-ambush teleport.
 
 | NPC | Health | Attack | Damage | Attack range |
 | --- | ---: | --- | ---: | ---: |
-| Warrior | 37 | Sword slash | 4 | 52 |
-| Huntress | 37 | Thrown spear | 4.5 | 260 |
-| Huntress | 37 | Opening stab + bleed | 3 + 3/sec for 5 sec | 52 |
-| Huntress | 37 | Follow-up slash | 4 | 52 |
-| Huntress 2 | 37 | Bow | 3 | 320 |
+| Warrior | 25 | Sword slash | 4 | 52 |
+| Huntress | 25 | Thrown spear | 4.5 | 260 |
+| Huntress | 25 | Opening stab + bleed | 3 + 3/sec for 5 sec | 52 |
+| Huntress | 25 | Follow-up slash | 4 | 52 |
+| Huntress 2 | 25 | Bow | 3 | 320 |
 
 Health and damage above are display units; distances are world pixels. These
 are current catalog values. NPC attacks use stamina, cooldowns and the same

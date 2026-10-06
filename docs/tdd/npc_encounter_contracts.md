@@ -268,6 +268,10 @@ checks the complete mirrored capsule against the same interval.
 enemies while retaining a separate `NpcId`, allied faction, facing and bounds.
 It adds neither player input nor an enemy score identity. All three catalogs
 define reviewed sprite anchors, torso capsules, terrain profiles and resources.
+Every NPC starts with 25 HP and a 25 HP maximum (`2500` in Core hundredths),
+with no passive health regeneration. This source tuning changes deterministic
+combat and requires a new coordinated client/worker compatibility release
+after deployed `2026.10.6`.
 The warrior uses its four-frame sword attack; Huntress uses the seven-frame
 spear throw and Huntress 2 the six-frame bow attack. At 60 Hz, their release
 ticks are respectively 12, 36 and 12.

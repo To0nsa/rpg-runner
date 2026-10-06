@@ -1,5 +1,4 @@
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/npcs/npc_catalog.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
 import 'package:runner_core/encounters/encounter_instance.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -29,7 +28,8 @@ void main() {
         expect(actor.kind, EntityKind.npc);
         expect(actor.enemyId, isNull);
         expect(actor.artFacingDir, Facing.right);
-        expect(actor.npcHealth!.hp100, const NpcCatalog().get(id).health.hp);
+        expect(actor.npcHealth!.hp100, 2500);
+        expect(actor.npcHealth!.maxHp100, 2500);
         expect(actor.npcHealth!.protected, isFalse);
         expect(actor.size!.y, 54);
         expect(actor.animFrame, isNotNull);
