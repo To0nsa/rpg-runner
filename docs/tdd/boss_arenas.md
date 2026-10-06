@@ -74,9 +74,33 @@ the required enemy identity. Streamed instance indices prevent reactivation;
 retired arena records are discarded without restoring a completed occurrence.
 
 The first held Flame frame uses the authoritative arena camera rather than
-interpolating from the preceding runner frame. Entrance camera shake is omitted
-so the complete arena is visible when entrance feedback appears. Purple boundary
+interpolating from the preceding runner frame. Core's framing remains locked
+while render-only entrance shake adds a small visual offset. Purple boundary
 cues and the boss HUD are presentation only.
+
+## Reusable entrance feedback
+
+`BossArenaSnapshot.entrance` exposes the existing `startTick` and quantized
+`durationTicks` after boss creation; it is absent before creation and outside
+introduction. This presentation contract is independent of enemy identity and
+does not change entrance duration or replay commands.
+
+`BossEntranceFeedbackFrame` samples that clock into three evenly spaced pulses
+at zero, one-third and two-thirds of the entrance. Each black border pulse uses
+the same 340 ms cubic fade and edge geometry as player impact feedback.
+`ScreenBorderVignette` owns the shared painter and semantic styles: crimson for
+player impact, black for boss entrance. It leaves the center clear and ignores
+pointer input. An older player-impact border remains mounted but hidden during
+introduction so it cannot replay when combat begins.
+
+`BossEntranceCameraFeedback` applies moderate shakes using the existing camera
+shake controller and clears the sequence at combat release. The run-owned
+`BossEntranceHapticsBinding` maps the same pulse keys to medium platform impact
+cues. Consumers deduplicate by entrance start tick and pulse index, retain
+deduplication across pause/resume, and dispose the haptics subscription before
+run restart or exit. There are no widget timers advancing encounter phases,
+fabricated player-hit events, or boss-specific IDs/assets in these modules.
+The same adapters apply to future bosses exposing their entrance timing.
 
 ## Combat and animation
 

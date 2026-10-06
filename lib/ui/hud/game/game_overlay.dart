@@ -18,6 +18,7 @@ import 'top_left_hud_overlay.dart';
 import 'top_right_hud_overlay.dart';
 import 'aim_cancel_button_overlay.dart';
 import 'player_impact_border_overlay.dart';
+import 'boss_entrance_border_overlay.dart';
 
 class GameOverlay extends StatelessWidget {
   const GameOverlay({
@@ -204,7 +205,13 @@ class GameOverlay extends StatelessWidget {
           showExitButton: showExitButton,
           onExit: onExit,
         ),
-        PlayerImpactBorderOverlay(triggerSignal: playerImpactFeedbackSignal),
+        Offstage(
+          offstage: controller.snapshot.bossArena?.playerHeld ?? false,
+          child: PlayerImpactBorderOverlay(
+            triggerSignal: playerImpactFeedbackSignal,
+          ),
+        ),
+        BossEntranceBorderOverlay(controller: controller),
       ],
     );
   }

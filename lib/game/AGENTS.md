@@ -51,6 +51,9 @@ Rules:
 - interpolate between known snapshots
 - keep interpolation/render math read-only
 - derive render-only effects from snapshots or events, not from hidden state machines
+- keep boss entrance timing in `BossArenaSnapshot.entrance`; sample the shared
+  `feedback/boss_entrance_feedback.dart` envelope for camera and screen feedback
+  instead of checking boss IDs or fabricating player-hit events
 - if you need new render data, add it through a Core contract intentionally
 
 ## Input Bridge Rules

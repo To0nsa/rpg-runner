@@ -8,6 +8,7 @@ enum UiHapticsCue {
   holdAbilityTimedOut,
   holdAbilityStaminaDepleted,
   playerHit,
+  bossEntrancePulse,
 }
 
 /// Relative haptic intensity.

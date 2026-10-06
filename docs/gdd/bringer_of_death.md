@@ -12,6 +12,11 @@ reconstitutes from purple smoke. Both actors are protected during this entrance.
 After the entrance, ordinary controls return and purple barriers contain the
 fight. A named boss health bar shows introduction, combat and defeat feedback.
 
+During the smoke entrance, three black edge pulses accompany three moderate
+camera shakes and device haptic pulses where supported. The center stays clear
+so the apparition remains visible. This reusable boss-entrance feedback follows
+the entrance clock and does not extend the control hold.
+
 Bringer has 120 HP and no passive health regeneration. He pursues on the ground
 with the existing navigation capabilities. This first fight has one phase and
 two attacks:

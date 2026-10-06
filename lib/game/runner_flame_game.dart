@@ -37,6 +37,8 @@ import 'game_controller.dart';
 import 'input/aim_preview.dart';
 import 'input/runner_input_router.dart';
 import 'runner_flame/camera_shake_controller.dart';
+import 'feedback/boss_entrance_feedback.dart';
+import 'runner_flame/boss_entrance_camera_feedback.dart';
 import 'runner_flame/event_feedback_system.dart';
 import 'runner_flame/ghost_layer_system.dart';
 import 'replay/ghost_render_frame.dart';
@@ -182,6 +184,7 @@ class RunnerFlameGame extends FlameGame {
       <int, EntityRenderSnapshot>{};
 
   final CameraShakeController _cameraShake = CameraShakeController();
+  final _bossEntranceCameraFeedback = BossEntranceCameraFeedback();
   final Vector2 _cameraBaseCenterScratch = Vector2.zero();
   final Vector2 _cameraShakeOffsetScratch = Vector2.zero();
   final Vector2 _cameraCenterScratch = Vector2.zero();
@@ -370,7 +373,22 @@ class RunnerFlameGame extends FlameGame {
       );
     }
     _cameraShake.sample(dt, _cameraShakeOffsetScratch);
-    if (currSnapshot.bossArena?.playerHeld ?? false) {
+    final entranceFeedback = BossEntranceFeedbackFrame.sample(
+      arena: currSnapshot.bossArena,
+      tick: currSnapshot.tick,
+      tickHz: controller.tickHz,
+    );
+    if (entranceFeedback.active) {
+      _bossEntranceCameraFeedback.sample(
+        entranceFeedback,
+        currSnapshot.paused ? 0 : dt,
+        _cameraShakeOffsetScratch,
+      );
+    } else {
+      _bossEntranceCameraFeedback.reset();
+    }
+    if ((currSnapshot.bossArena?.playerHeld ?? false) &&
+        !entranceFeedback.active) {
       _cameraShakeOffsetScratch.setZero();
     }
     _cameraCenterScratch.setValues(

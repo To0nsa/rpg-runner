@@ -81,6 +81,30 @@ worker readiness.
 
 ## Visual review and remaining release work
 
+### Reusable entrance feedback follow-up
+
+The later entrance-feedback change exposes Core's existing entrance timing and
+adds shared presentation modules with no enemy ID, sprite or Bringer dependency.
+Three black border pulses, moderate camera shakes and medium haptic cues share
+that clock. The original red player-impact border uses the same painter. Pause
+does not duplicate cues, and run disposal/restart removes the haptics listener.
+The player hold and combat/replay outcomes are unchanged.
+
+Final follow-up checks: **48 focused Flutter tests**, **18 Core boss tests** and
+**3 actual-combat validator replay tests** passed. Analysis of affected client,
+Core and test files has no issues. Tests cover a second arbitrary boss identity
+with a different entrance duration, all three tick rates, separate shake pulses,
+pause/resume, teardown, center transparency, red/black pixels, preserved player
+impact fade, pointer passthrough, and run/Flame/controller integration.
+
+The reviewed comparison below shows the shared red style on the left and black
+entrance style on the right at peak intensity. Physical device haptics were not
+manually tested; the platform adapter and dispatch counts were validated locally.
+
+![Shared red and black screen border review](assets/boss_entrance_border_review.png)
+
+### Initial sprite review
+
 The image below reviews entrance, sweep, cast and death (top to bottom), sampling
 frames 0, 3, 6 and the final clamped frame. The wrapped strips and reversed smoke
 sequence loaded correctly and were visually inspected.

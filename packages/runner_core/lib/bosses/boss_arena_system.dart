@@ -222,6 +222,12 @@ final class BossArenaSystem {
     return BossArenaSnapshot(
       id: arena.chunk.bossArena!.id,
       phase: arena.phase,
+      entrance: arena.phase == BossArenaPhase.introduction && arena.boss != null
+          ? BossEntranceSnapshot(
+              startTick: arena.introductionStartTick,
+              durationTicks: arena.introductionTicks,
+            )
+          : null,
       minX: arena.minX,
       maxX: arena.maxX,
       hp100: arena.phase == BossArenaPhase.defeated
