@@ -10,6 +10,9 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
+
+import 'components/boss_arena_barriers.dart';
+
 import 'package:run_protocol/replay_blob.dart';
 
 import 'components/aim_ray.dart';
@@ -34,6 +37,9 @@ import 'game_controller.dart';
 import 'input/aim_preview.dart';
 import 'input/runner_input_router.dart';
 import 'runner_flame/camera_shake_controller.dart';
+import 'feedback/boss_entrance_feedback.dart';
+import 'feedback/followed_spell_impact_position.dart';
+import 'runner_flame/boss_entrance_camera_feedback.dart';
 import 'runner_flame/event_feedback_system.dart';
 import 'runner_flame/ghost_layer_system.dart';
 import 'replay/ghost_render_frame.dart';
@@ -126,6 +132,8 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
 
+  final _bossArenaBarriers = BossArenaBarriers();
+
   /// Atomic replay snapshots and events; null disables ghost rendering.
   final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
 
@@ -177,6 +185,7 @@ class RunnerFlameGame extends FlameGame {
       <int, EntityRenderSnapshot>{};
 
   final CameraShakeController _cameraShake = CameraShakeController();
+  final _bossEntranceCameraFeedback = BossEntranceCameraFeedback();
   final Vector2 _cameraBaseCenterScratch = Vector2.zero();
   final Vector2 _cameraShakeOffsetScratch = Vector2.zero();
   final Vector2 _cameraCenterScratch = Vector2.zero();
@@ -212,6 +221,7 @@ class RunnerFlameGame extends FlameGame {
   Future<void> _loadWorld() async {
     await super.onLoad();
     if (_removed) return;
+    await world.add(_bossArenaBarriers);
     _ghostLayer.attachListeners();
 
     assert(() {
@@ -335,6 +345,7 @@ class RunnerFlameGame extends FlameGame {
 
     final prevSnapshot = controller.prevSnapshot;
     final currSnapshot = controller.snapshot;
+    _bossArenaBarriers.arena = currSnapshot.bossArena;
     final alpha = controller.alpha;
     _applyRenderTheme(currSnapshot.visualThemeId);
 
@@ -355,7 +366,32 @@ class RunnerFlameGame extends FlameGame {
         alpha,
       ),
     );
+    // Intro feedback must show the complete arena on its first held frame.
+    if (currSnapshot.bossArena != null) {
+      _cameraBaseCenterScratch.setValues(
+        currSnapshot.camera.centerX,
+        currSnapshot.camera.centerY,
+      );
+    }
     _cameraShake.sample(dt, _cameraShakeOffsetScratch);
+    final entranceFeedback = BossEntranceFeedbackFrame.sample(
+      arena: currSnapshot.bossArena,
+      tick: currSnapshot.tick,
+      tickHz: controller.tickHz,
+    );
+    if (entranceFeedback.active) {
+      _bossEntranceCameraFeedback.sample(
+        entranceFeedback,
+        currSnapshot.paused ? 0 : dt,
+        _cameraShakeOffsetScratch,
+      );
+    } else {
+      _bossEntranceCameraFeedback.reset();
+    }
+    if ((currSnapshot.bossArena?.playerHeld ?? false) &&
+        !entranceFeedback.active) {
+      _cameraShakeOffsetScratch.setZero();
+    }
     _cameraCenterScratch.setValues(
       _cameraBaseCenterScratch.x + _cameraShakeOffsetScratch.x,
       _cameraBaseCenterScratch.y + _cameraShakeOffsetScratch.y,
@@ -416,6 +452,12 @@ class RunnerFlameGame extends FlameGame {
       tickHz: controller.tickHz,
       cameraCenter: _cameraCenterScratch,
       priority: priorityProjectiles,
+      followedPosition: (event) => followedSpellImpactPosition(
+        event,
+        entities: controller.snapshot.entities,
+        previousById: _prevEntitiesById,
+        alpha: controller.alpha,
+      ),
     );
 
     _ghostLayer.syncLayer(alpha: alpha, cameraCenter: _cameraCenterScratch);

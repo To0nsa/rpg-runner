@@ -4,6 +4,7 @@ import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_id.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/deterministic_rng.dart';
@@ -35,6 +36,7 @@ class EnemyEngagementSystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      if (enemies.enemyId[ei] == EnemyId.bringerOfDeath) continue;
       final target = combatTarget(world, enemy, player);
       if (target == null) continue;
       final targetX = world.transform.posX[world.transform.indexOf(target)];

@@ -1,7 +1,8 @@
 import 'package:meta/meta.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
-    show encounterDefinitionsToJson;
+    show encounterDefinitionsToJson, bossArenaToJson;
 import 'package:runner_core/encounters/encounter_definition.dart';
+import 'package:runner_core/bosses/boss_arena_definition.dart';
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 
@@ -39,6 +40,7 @@ final class ChunkV2FileData {
     Iterable<WaterRegionData> waterRegions = const [],
     Iterable<TrapPlacement> traps = const [],
     Iterable<EncounterDefinition> encounters = const [],
+    this.bossArena,
   }) : encounters = List.unmodifiable(encounters),
        traps = List<TrapPlacement>.unmodifiable(traps),
        waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
@@ -82,6 +84,7 @@ final class ChunkV2FileData {
 
   /// Complete chunk-owned rescue groups, independent of ambient markers.
   final List<EncounterDefinition> encounters;
+  final BossArenaDefinition? bossArena;
 
   ChunkV2FileData copyWith({
     String? chunkKey,
@@ -103,6 +106,8 @@ final class ChunkV2FileData {
     Iterable<WaterRegionData>? waterRegions,
     Iterable<TrapPlacement>? traps,
     Iterable<EncounterDefinition>? encounters,
+    BossArenaDefinition? bossArena,
+    bool clearBossArena = false,
   }) => ChunkV2FileData(
     chunkKey: chunkKey ?? this.chunkKey,
     id: id ?? this.id,
@@ -123,6 +128,7 @@ final class ChunkV2FileData {
     waterRegions: waterRegions ?? this.waterRegions,
     traps: traps ?? this.traps,
     encounters: encounters ?? this.encounters,
+    bossArena: clearBossArena ? null : bossArena ?? this.bossArena,
   );
 
   Map<String, Object> toJson() => <String, Object>{
@@ -148,6 +154,7 @@ final class ChunkV2FileData {
     if (waterRegions.isNotEmpty)
       'waterRegions': waterRegions.map((water) => water.toJson()).toList(),
     if (traps.isNotEmpty) 'traps': traps.map((trap) => trap.toJson()).toList(),
+    if (bossArena != null) 'bossArena': bossArenaToJson(bossArena!),
     if (encounters.isNotEmpty)
       'encounters': encounterDefinitionsToJson(encounters),
   };

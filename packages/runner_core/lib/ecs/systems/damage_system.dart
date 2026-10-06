@@ -11,6 +11,7 @@ import '../../util/deterministic_rng.dart';
 import '../../util/fixed_math.dart';
 import '../../weapons/weapon_proc.dart';
 import 'ability_interrupt.dart';
+import 'knockback_system.dart';
 import '../entity_id.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
@@ -41,6 +42,7 @@ class DamageSystem {
   DamageSystem({
     required this.invulnerabilityTicksOnHit,
     required int rngSeed,
+    this.tickHz = 60,
     CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
     ResolvedStatsCache? statsCache,
     this.forcedInterruptPolicy = ForcedInterruptPolicy.defaultPolicy,
@@ -49,6 +51,7 @@ class DamageSystem {
 
   /// Number of ticks an entity is invulnerable after taking damage.
   final int invulnerabilityTicksOnHit;
+  final int tickHz;
   final ResolvedStatsCache _statsCache;
   final ForcedInterruptPolicy forcedInterruptPolicy;
 
@@ -177,6 +180,16 @@ class DamageSystem {
           credit: queue.credit[i],
         );
         _interruptOnDamageTaken(world, target);
+        final knockback = queue.knockback[i];
+        if (knockback != null && nextHp > 0) {
+          KnockbackSystem.queueAfterDamage(
+            world,
+            target: target,
+            hit: knockback,
+            currentTick: currentTick,
+            tickHz: tickHz,
+          );
+        }
 
         final li = lastDamage.tryIndexOf(target);
         if (li != null) {

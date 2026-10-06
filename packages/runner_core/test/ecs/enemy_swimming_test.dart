@@ -25,7 +25,9 @@ import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
-  for (final enemyId in groundNavigatingEnemyIds) {
+  // This harness exercises ordinary pursuit engagement through an open pool.
+  // Bringer's dry arena uses its own combat controller and confinement tests.
+  for (final enemyId in [EnemyId.grojib, EnemyId.hashash, EnemyId.derf]) {
     for (final direction in [-1, 1]) {
       test('$enemyId enters, swims across and exits toward $direction', () {
         final harness = _Harness(enemyId, direction: direction);

@@ -8,6 +8,7 @@ import 'polygon_terrain_render.dart';
 import 'polygon_terrain_source.dart';
 import 'polygon_tile_source.dart';
 import 'encounter_readiness.dart';
+import 'boss_arena_readiness.dart';
 
 const int _gridSnap = 16;
 
@@ -117,6 +118,15 @@ PolygonTerrainRuntimeChunkResult materializePolygonTerrainRuntimeChunk({
   final issues = <PolygonTerrainGenerationIssue>[];
   if (requireEncounterReadiness) {
     issues.addAll(
+      validateBossArenaReadiness(
+        arena: compiled.chunk.bossArena,
+        geometry: compiled.geometry,
+        groundTopY: groundTopY,
+        sourcePath: sourcePath,
+        chunkKey: compiled.chunk.chunkKey,
+      ),
+    );
+    issues.addAll(
       validateEncounterReadiness(
         encounters: compiled.chunk.encounters,
         geometry: compiled.geometry,
@@ -209,6 +219,7 @@ PolygonTerrainRuntimeChunkResult materializePolygonTerrainRuntimeChunk({
         visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(sprites),
         spawnMarkers: List<SpawnMarker>.unmodifiable(markers),
         encounters: compiled.chunk.encounters,
+        bossArena: compiled.chunk.bossArena,
         traps: List.unmodifiable([
           for (final trap in compiled.chunk.traps)
             trap.copyWith(

@@ -2,6 +2,7 @@ import '../combat/combat_geometry.dart';
 import '../projectiles/projectile_id.dart';
 import '../spell_impacts/spell_impact_id.dart';
 import '../combat/damage_type.dart';
+import '../combat/knockback.dart';
 import '../combat/status/status.dart';
 import '../snapshots/enums.dart';
 import '../weapons/weapon_proc.dart';
@@ -388,6 +389,7 @@ class AbilityDef {
     this.payloadSource = AbilityPayloadSource.none,
     this.baseDamage = 0,
     this.baseDamageType = DamageType.physical,
+    this.knockback,
     List<WeaponProc> procs = const <WeaponProc>[],
     required this.windupTicks,
     required this.activeTicks,
@@ -700,6 +702,9 @@ class AbilityDef {
   /// Base damage type (element) for this ability.
   /// Explicitly defined in authored data.
   final DamageType baseDamageType;
+
+  /// Optional post-damage shove shared by every damaging delivery.
+  final KnockbackDef? knockback;
 
   /// Returns the effective cooldown group for this ability.
   ///

@@ -256,6 +256,7 @@ TerrainBodyDisposition terrainBodyDisposition(
       case EnemyId.grojib:
       case EnemyId.hashash:
       case EnemyId.derf:
+      case EnemyId.bringerOfDeath:
         return TerrainBodyDisposition.terrainGroundedEnemy;
       case EnemyId.unocoDemon:
         return TerrainBodyDisposition.terrainFlyingEnemy;
@@ -287,6 +288,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final hashash = enemyCatalog.terrainContactProfile(EnemyId.hashash);
     final unoco = enemyCatalog.terrainContactProfile(EnemyId.unocoDemon);
     final derf = enemyCatalog.terrainContactProfile(EnemyId.derf);
+    final bringer = enemyCatalog.terrainContactProfile(EnemyId.bringerOfDeath);
     final graphProfiles = List<TerrainSurfaceGraphBuildProfile>.unmodifiable(
       groundEnemyGraphProfiles ??
           buildDefaultGroundEnemyTerrainGraphProfiles(
@@ -301,6 +303,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       hashashProfile: hashash,
       unocoProfile: unoco,
       derfProfile: derf,
+      bringerProfile: bringer,
       itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     );
     return TerrainMultiBodyWorldMotionAuthority._(
@@ -311,6 +314,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       hashashProfile: hashash,
       unocoProfile: unoco,
       derfProfile: derf,
+      bringerProfile: bringer,
     );
   }
 
@@ -327,6 +331,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final hashash = enemyCatalog.terrainContactProfile(EnemyId.hashash);
     final unoco = enemyCatalog.terrainContactProfile(EnemyId.unocoDemon);
     final derf = enemyCatalog.terrainContactProfile(EnemyId.derf);
+    final bringer = enemyCatalog.terrainContactProfile(EnemyId.bringerOfDeath);
     final graphProfiles = candidate.runtimeBundle.graphProfiles;
     final publication = _TerrainAuthorityPublication.fromRuntimeBundle(
       runtimeBundle: candidate.runtimeBundle,
@@ -338,6 +343,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       hashashProfile: hashash,
       unocoProfile: unoco,
       derfProfile: derf,
+      bringerProfile: bringer,
     );
     return TerrainMultiBodyWorldMotionAuthority._(
       publication: publication,
@@ -347,6 +353,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       hashashProfile: hashash,
       unocoProfile: unoco,
       derfProfile: derf,
+      bringerProfile: bringer,
     );
   }
 
@@ -358,13 +365,15 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     required EnemyTerrainContactProfile hashashProfile,
     required EnemyTerrainContactProfile unocoProfile,
     required EnemyTerrainContactProfile derfProfile,
+    required EnemyTerrainContactProfile bringerProfile,
   }) : _publication = publication,
        _graphProfiles = graphProfiles,
        _playerProfile = playerProfile,
        _grojibProfile = grojibProfile,
        _hashashProfile = hashashProfile,
        _unocoProfile = unocoProfile,
-       _derfProfile = derfProfile;
+       _derfProfile = derfProfile,
+       _bringerProfile = bringerProfile;
 
   _TerrainAuthorityPublication _publication;
   _TerrainAuthorityPublication? _pendingPublication;
@@ -376,6 +385,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   final EnemyTerrainContactProfile _hashashProfile;
   final EnemyTerrainContactProfile _unocoProfile;
   final EnemyTerrainContactProfile _derfProfile;
+  final EnemyTerrainContactProfile _bringerProfile;
   final List<EntityId> _orderedBodies = <EntityId>[];
   int _preparedTick = -1;
   int _integratedTick = -1;
@@ -394,6 +404,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   _TerrainMotionScratch get _hashashScratch => _publication.hashashScratch;
   _TerrainMotionScratch get _unocoScratch => _publication.unocoScratch;
   _TerrainMotionScratch get _derfScratch => _publication.derfScratch;
+  _TerrainMotionScratch get _bringerScratch => _publication.bringerScratch;
   TerrainBallisticProjectileSystem get _ballisticProjectileSystem =>
       _publication.ballisticProjectileSystem;
 
@@ -434,6 +445,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       hashashProfile: _hashashProfile,
       unocoProfile: _unocoProfile,
       derfProfile: _derfProfile,
+      bringerProfile: _bringerProfile,
     );
     _pendingPublication = replacement;
   }
@@ -465,6 +477,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       hashashProfile: _hashashProfile,
       unocoProfile: _unocoProfile,
       derfProfile: _derfProfile,
+      bringerProfile: _bringerProfile,
     );
     _pendingPublication = replacement;
   }
@@ -1169,7 +1182,9 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final groundedEnemy =
         !isPlayer &&
         scratch.motionKind == EnemyTerrainMotionKind.groundedDynamic;
-    final mode = scratch.canGround
+    final mode = world.knockback.has(entity) && beganGrounded
+        ? TerrainMotionMode.groundedHorizontal
+        : scratch.canGround
         ? dashing && world.terrainContact.mobilityStartedGrounded[contactIndex]
               ? TerrainMotionMode.groundedSurface
               : beganGrounded
@@ -1201,18 +1216,25 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         world.terrainContact.hasLastValidBodyPosition[contactIndex];
     final result = scratch.result;
     final npcIndex = world.npc.tryIndexOf(entity);
+    final arenaBoundsIndex = world.actorMotionBounds.tryIndexOf(entity);
+    final frozen =
+        world.arenaSuspension.has(entity) ||
+        (arenaBoundsIndex != null &&
+            world.actorMotionBounds.frozen[arenaBoundsIndex]);
     scratch.controller.moveAtValues(
       centerXTicks: startCapsuleCenterX,
       centerYTicks: startCapsuleCenterY,
       radiusTicks: world.worldContactCapsule.radiusTicks[capsuleIndex],
       verticalHalfSegmentTicks:
           world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex],
-      displacementXTicks: requestDisplacementX,
-      displacementYTicks: requestDisplacementY,
-      gravityYTicks: gravityDisplacementY,
+      displacementXTicks: frozen ? 0 : requestDisplacementX,
+      displacementYTicks: frozen ? 0 : requestDisplacementY,
+      gravityYTicks: frozen ? 0 : gravityDisplacementY,
       surfaceDirectionSign: surfaceDirectionSign,
       mode: mode,
-      horizontalBounds: npcIndex == null
+      horizontalBounds: arenaBoundsIndex != null
+          ? world.actorMotionBounds.bounds[arenaBoundsIndex]
+          : npcIndex == null
           ? null
           : world.npc.movementBounds[npcIndex],
       beganGrounded: beganGrounded,
@@ -1643,6 +1665,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     EnemyId.hashash => _hashashProfile,
     EnemyId.unocoDemon => _unocoProfile,
     EnemyId.derf => _derfProfile,
+    EnemyId.bringerOfDeath => _bringerProfile,
   };
 
   EnemyTerrainContactProfile? _actorTerrainProfile(
@@ -1672,6 +1695,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       EnemyId.hashash => _hashashScratch,
       EnemyId.unocoDemon => _unocoScratch,
       EnemyId.derf => _derfScratch,
+      EnemyId.bringerOfDeath => _bringerScratch,
     };
   }
 
@@ -1784,6 +1808,7 @@ final class _TerrainAuthorityPublication {
     required EnemyTerrainContactProfile hashashProfile,
     required EnemyTerrainContactProfile unocoProfile,
     required EnemyTerrainContactProfile derfProfile,
+    required EnemyTerrainContactProfile bringerProfile,
     Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
         const <TerrainItemSpawnExclusionRange>[],
   }) {
@@ -1798,6 +1823,7 @@ final class _TerrainAuthorityPublication {
       hashashProfile: hashashProfile,
       unocoProfile: unocoProfile,
       derfProfile: derfProfile,
+      bringerProfile: bringerProfile,
       itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     );
   }
@@ -1813,6 +1839,7 @@ final class _TerrainAuthorityPublication {
     required EnemyTerrainContactProfile hashashProfile,
     required EnemyTerrainContactProfile unocoProfile,
     required EnemyTerrainContactProfile derfProfile,
+    required EnemyTerrainContactProfile bringerProfile,
   }) {
     if (terrainRenderSnapshot != null &&
         terrainRenderSnapshot.geometryVersion != runtimeBundle.version) {
@@ -1879,6 +1906,10 @@ final class _TerrainAuthorityPublication {
       ),
       unocoScratch: scratchFor(unocoProfile.traversal, unocoProfile.motionKind),
       derfScratch: scratchFor(derfProfile.traversal, derfProfile.motionKind),
+      bringerScratch: scratchFor(
+        bringerProfile.traversal,
+        bringerProfile.motionKind,
+      ),
       npcScratch: Map.unmodifiable({
         for (final id in NpcCatalog.supportedIds)
           id: scratchFor(
@@ -1904,6 +1935,7 @@ final class _TerrainAuthorityPublication {
     required this.hashashScratch,
     required this.unocoScratch,
     required this.derfScratch,
+    required this.bringerScratch,
     required this.npcScratch,
   });
 
@@ -1921,6 +1953,7 @@ final class _TerrainAuthorityPublication {
   final _TerrainMotionScratch hashashScratch;
   final _TerrainMotionScratch unocoScratch;
   final _TerrainMotionScratch derfScratch;
+  final _TerrainMotionScratch bringerScratch;
   final Map<NpcId, _TerrainMotionScratch> npcScratch;
 }
 

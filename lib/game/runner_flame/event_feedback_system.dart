@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/util/vec2.dart';
 
 import '../components/camera_space_snapped_sprite_animation.dart';
 import '../components/player/player_view.dart';
@@ -144,6 +145,7 @@ class RunEventFeedbackSystem {
     required int tickHz,
     required Vector2 cameraCenter,
     required int priority,
+    Vec2? Function(SpellImpactEvent event)? followedPosition,
   }) {
     if (_pendingSpellImpactEvents.isEmpty) {
       return;
@@ -168,6 +170,9 @@ class RunEventFeedbackSystem {
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
+        worldPosition: event.followEntityId == null || followedPosition == null
+            ? null
+            : () => followedPosition(event),
         anchor: entry.animSet.anchorFor(AnimKey.hit),
         paint: Paint()..filterQuality = FilterQuality.none,
         removeOnFinish: true,

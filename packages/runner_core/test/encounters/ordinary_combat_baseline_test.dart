@@ -129,7 +129,16 @@ void main() {
       core.drainEvents();
     }
     final digest = sha256.convert(utf8.encode(trace.toString())).toString();
-    expect(seenEnemies, containsAll(EnemyId.values.map((id) => id.name)));
+    // The ordinary roster excludes the arena-owned boss; its trace is tested separately.
+    expect(
+      seenEnemies,
+      containsAll([
+        EnemyId.unocoDemon.name,
+        EnemyId.grojib.name,
+        EnemyId.hashash.name,
+        EnemyId.derf.name,
+      ]),
+    );
     expect(transformedDerfs, isNotEmpty);
     expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));

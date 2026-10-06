@@ -101,10 +101,12 @@ flutter:
     - assets/images/entities/collectibles/
     - assets/images/entities/effects/battle_animations/
     - assets/images/entities/effects/battle_animations/nod_good_enough/
+    - assets/images/entities/effects/blessings/
     - assets/images/entities/effects/elemental_portals/
     - assets/images/entities/effects/world_interactions/
     - assets/images/entities/enemies/arcane_archer/
     - assets/images/entities/enemies/brain_mole_monarch/
+    - assets/images/entities/enemies/bringer_of_death/
     - assets/images/entities/enemies/cacodaemon/
     - assets/images/entities/enemies/derf/
     - assets/images/entities/enemies/ferret/

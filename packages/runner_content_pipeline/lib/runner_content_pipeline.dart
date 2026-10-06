@@ -13,4 +13,5 @@ export 'src/polygon_tile_source.dart';
 export 'src/water_region_source.dart';
 export 'src/trap_placement_source.dart';
 export 'src/encounter_source.dart';
+export 'src/boss_arena_source.dart';
 export 'src/encounter_readiness.dart';

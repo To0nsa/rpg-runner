@@ -1,9 +1,8 @@
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
-import '../stores/restoration_item_store.dart';
 import '../../tuning/restoration_item_tuning.dart';
-import '../../util/fixed_math.dart';
+import '../resource_restoration.dart';
 
 /// Handles the lifecycle and collision of restoration pickups (Health/Mana/Stamina potions).
 ///
@@ -100,9 +99,9 @@ class RestorationItemSystem {
             (cy + hy) > pMinY;
 
         if (overlaps) {
-          _applyRestore(
+          ResourceRestoration.restorePercent(
             world,
-            player: player,
+            entity: player,
             stat: items.stat[ii],
             percentBp: tuning.restorePercentBp,
           );
@@ -114,52 +113,6 @@ class RestorationItemSystem {
     // Process all despawns in batch at the end of the frame.
     for (final e in _toDespawn) {
       world.destroyEntity(e);
-    }
-  }
-
-  /// RESTORES a specific stat on the target [player].
-  ///
-  /// - [percent]: Percentage of MAX value to restore (0.0 to 1.0).
-  /// - Scales based on the player's Max HP/Mana/Stamina.
-  /// - Clamps to Max value (prevents overhealing).
-  void _applyRestore(
-    EcsWorld world, {
-    required EntityId player,
-    required RestorationStat stat,
-    required int percentBp,
-  }) {
-    // Note: We use min/max checks to ensure we don't overheal or divide by zero.
-    switch (stat) {
-      case RestorationStat.health:
-        final index = world.health.tryIndexOf(player);
-        if (index != null) {
-          final max = world.health.hpMax[index];
-          if (max > 0) {
-            final restore = (max * percentBp) ~/ bpScale;
-            final next = world.health.hp[index] + restore;
-            world.health.hp[index] = next > max ? max : next;
-          }
-        }
-      case RestorationStat.mana:
-        final index = world.mana.tryIndexOf(player);
-        if (index != null) {
-          final max = world.mana.manaMax[index];
-          if (max > 0) {
-            final restore = (max * percentBp) ~/ bpScale;
-            final next = world.mana.mana[index] + restore;
-            world.mana.mana[index] = next > max ? max : next;
-          }
-        }
-      case RestorationStat.stamina:
-        final index = world.stamina.tryIndexOf(player);
-        if (index != null) {
-          final max = world.stamina.staminaMax[index];
-          if (max > 0) {
-            final restore = (max * percentBp) ~/ bpScale;
-            final next = world.stamina.stamina[index] + restore;
-            world.stamina.stamina[index] = next > max ? max : next;
-          }
-        }
     }
   }
 }

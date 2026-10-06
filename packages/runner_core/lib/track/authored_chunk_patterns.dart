@@ -7,6 +7,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../bosses/boss_arena_definition.dart';
 import '../combat/ai_target_policy.dart';
 import '../encounters/encounter_definition.dart';
 import '../npcs/npc_id.dart';
@@ -820,7 +821,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
   ChunkPattern(
     name: 'forest_boss_easy_001',
     chunkKey: 'forest_boss_easy_001',
-    assemblyGroupId: 'boss',
+    assemblyGroupId: 'boss_bringer_of_death',
     visualSprites: const <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -909,6 +910,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
     ],
     spawnMarkers: const <SpawnMarker>[
     ],
+    bossArena: BossArenaDefinition(id: 'forest_bringer_of_death', enemyId: EnemyId.bringerOfDeath, spawnX: 440.0, minX: 24.0, maxX: 576.0),
   ),
   ChunkPattern(
     name: 'forest_enchanted_forest_easy_001',

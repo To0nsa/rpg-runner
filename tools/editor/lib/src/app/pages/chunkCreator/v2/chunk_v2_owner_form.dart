@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:runner_core/bosses/boss_arena_definition.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
@@ -21,6 +24,7 @@ final class ChunkV2OwnerFormValue {
     required this.assemblyGroupId,
     required Iterable<String> tags,
     required this.groundBandZIndex,
+    this.bossArena,
   }) : tags = List<String>.unmodifiable(tags);
 
   final String chunkKey;
@@ -30,6 +34,7 @@ final class ChunkV2OwnerFormValue {
   final String assemblyGroupId;
   final List<String> tags;
   final int groundBandZIndex;
+  final BossArenaDefinition? bossArena;
 }
 
 typedef ChunkV2OwnerFormSubmit = FutureOr<bool> Function(
@@ -81,6 +86,12 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   late String _difficulty;
   late String _assemblyGroupId;
   String? _submissionError;
+  late bool _bossEnabled;
+  late final TextEditingController _bossId;
+  late final TextEditingController _bossSpawnX;
+  late final TextEditingController _bossMinX;
+  late final TextEditingController _bossMaxX;
+  late final List<String> _initialBossFields;
   bool _reportedDirty = false;
 
   bool get isDirty =>
@@ -90,7 +101,15 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
       _difficulty != _initialDifficulty ||
       _assemblyGroupId != _initialAssemblyGroupId ||
       _tagsController.text != _initialTags ||
-      _groundBandZIndexController.text != _initialGroundBandZIndex;
+      _groundBandZIndexController.text != _initialGroundBandZIndex ||
+      _bossEnabled != (widget.chunk.bossArena != null) ||
+      [
+            _bossId.text,
+            _bossSpawnX.text,
+            _bossMinX.text,
+            _bossMaxX.text,
+          ].join('|') !=
+          _initialBossFields.join('|');
 
   @override
   void initState() {
@@ -108,6 +127,26 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     _groundBandZIndexController = TextEditingController(
       text: chunk.groundBandZIndex.toString(),
     );
+    final arena = chunk.bossArena;
+    _bossEnabled = arena != null;
+    _bossId = TextEditingController(
+      text: arena?.id ?? 'bringer_of_death_arena',
+    );
+    _bossSpawnX = TextEditingController(
+      text: (arena?.spawnX ?? 440).toInt().toString(),
+    );
+    _bossMinX = TextEditingController(
+      text: (arena?.minX ?? 24).toInt().toString(),
+    );
+    _bossMaxX = TextEditingController(
+      text: (arena?.maxX ?? 576).toInt().toString(),
+    );
+    _initialBossFields = [
+      _bossId.text,
+      _bossSpawnX.text,
+      _bossMinX.text,
+      _bossMaxX.text,
+    ];
     _initialStatus = _status;
     _initialLevelId = _levelId;
     _initialDifficulty = _difficulty;
@@ -118,6 +157,10 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
       _chunkKeyController,
       _tagsController,
       _groundBandZIndexController,
+      _bossId,
+      _bossSpawnX,
+      _bossMinX,
+      _bossMaxX,
     ]) {
       controller.addListener(_handleFieldChanged);
     }
@@ -129,6 +172,10 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
       _chunkKeyController,
       _tagsController,
       _groundBandZIndexController,
+      _bossId,
+      _bossSpawnX,
+      _bossMinX,
+      _bossMaxX,
     ]) {
       controller
         ..removeListener(_handleFieldChanged)
@@ -140,6 +187,22 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   /// Validates and submits the captured fields without closing on rejection.
   Future<bool> submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return false;
+    BossArenaDefinition? arena;
+    if (_bossEnabled) {
+      try {
+        arena = BossArenaDefinition(
+          id: _bossId.text.trim(),
+          enemyId: EnemyId.bringerOfDeath,
+          spawnX: int.parse(_bossSpawnX.text).toDouble(),
+          minX: int.parse(_bossMinX.text).toDouble(),
+          maxX: int.parse(_bossMaxX.text).toDouble(),
+        );
+        arena.validateForChunk(widget.chunk.width, widget.chunk.height);
+      } on Object catch (error) {
+        setState(() => _submissionError = error.toString());
+        return false;
+      }
+    }
     final accepted = await widget.onSubmit(
       ChunkV2OwnerFormValue(
         chunkKey: _chunkKeyController.text,
@@ -149,6 +212,7 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
         assemblyGroupId: _assemblyGroupId,
         tags: _canonicalTags(_tagsController.text.split(',')),
         groundBandZIndex: int.parse(_groundBandZIndexController.text.trim()),
+        bossArena: arena,
       ),
     );
     if (!accepted && mounted) {
@@ -303,6 +367,38 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
                 ? 'Enter a whole number.'
                 : null,
           ),
+          const SizedBox(height: 12),
+          CheckboxListTile(
+            key: const ValueKey('chunk_boss_arena_enabled'),
+            title: const Text('Mandatory boss arena'),
+            subtitle: const Text(
+              'Bringer of Death · full-screen entrance and combat',
+            ),
+            value: _bossEnabled,
+            onChanged: (value) {
+              setState(() => _bossEnabled = value ?? false);
+              _handleFieldChanged();
+            },
+          ),
+          if (_bossEnabled) ...[
+            TextFormField(
+              controller: _bossId,
+              decoration: const InputDecoration(labelText: 'Encounter ID'),
+            ),
+            for (final entry in [
+              (_bossSpawnX, 'Boss spawn X'),
+              (_bossMinX, 'Left combat boundary'),
+              (_bossMaxX, 'Right combat boundary'),
+            ])
+              TextFormField(
+                controller: entry.$1,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: entry.$2),
+                validator: (value) => int.tryParse(value ?? '') == null
+                    ? 'Enter a whole pixel coordinate.'
+                    : null,
+              ),
+          ],
           if (_submissionError != null) ...<Widget>[
             const SizedBox(height: 12),
             Text(

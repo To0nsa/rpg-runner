@@ -114,6 +114,15 @@ fullStripTicks = frameCountsByKey[key] * ticksPerFrame
 This prevents fractional frame steps from leaving a completed strip on its last
 frame after its Core lifecycle window should have ended.
 
+One-shot spell effects use the event's Core start tick with the same integer
+frame selection. Optional `SpellImpactEvent.followEntityId` and `followOffset`
+attach a visual to an interpolated entity position without restarting its clock;
+the original event position is the fallback if the entity disappears.
+Live and ghost layers share this read-only position calculation.
+The boss victory Holy strip and HUD notice both last sixteen quantized frames:
+32/48/80 ticks at 30/60/90 Hz. They freeze on pause; renderer elapsed time cannot
+advance the reward or effect. [Boss arenas](boss_arenas.md) owns grant eligibility.
+
 `PickupRenderCatalog` supplies the gold collectible's
 `entities/collectibles/gold_spin.png` strip: seven 25x25 frames, centered at
 `(12.5, 12.5)`, looping at 0.1 seconds per frame to match the asset pack preview.
@@ -196,3 +205,11 @@ When animation behavior looks wrong, check in this order:
 5. Render set contains that key in `sourcesByKey`, `frameCountsByKey`, and `stepTimeSecondsByKey`.
 6. Compare the committed runtime action timing (`totalTicks`, or the current
    hold window plus recovery) vs `fullStripTicks` for that key.
+
+## Boss entrance and committed attack art
+
+Bringer's catalog uses explicit reversed source rectangles for its spawn strip,
+including frames that wrap across sheet rows. Core holds the arena for the
+quantized duration of that strip; render loading never controls release.
+Committed Bringer actions retain their attack animation through ordinary hit
+reactions so telegraphs remain visible. See [boss arena contracts](boss_arenas.md).

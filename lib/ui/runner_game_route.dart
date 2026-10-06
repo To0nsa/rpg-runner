@@ -26,6 +26,8 @@ import 'state/ownership/selection_state.dart';
 /// after closing the previous attempt. HUD and controls appear only when ready.
 /// Ghost precomputation never advances live gameplay; its run-owned worker and
 /// render preparation are released when the route closes.
+/// Mandatory boss arenas keep this route and its run session alive while Core
+/// holds entrance controls and later resumes normal running after the fight.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,

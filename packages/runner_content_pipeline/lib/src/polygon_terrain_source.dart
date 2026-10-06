@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
+import 'package:runner_core/bosses/boss_arena_definition.dart';
+
+import 'boss_arena_source.dart';
 
 import 'encounter_source.dart';
 
@@ -216,6 +219,7 @@ final class PolygonTerrainChunkSource {
     Iterable<WaterRegionData> waterRegions = const [],
     Iterable<TrapPlacement> traps = const [],
     Iterable<EncounterDefinition> encounters = const [],
+    this.bossArena,
   }) : encounters = List<EncounterDefinition>.unmodifiable(encounters),
        traps = List<TrapPlacement>.unmodifiable(traps),
        waterRegions = List<WaterRegionData>.unmodifiable(waterRegions),
@@ -246,6 +250,7 @@ final class PolygonTerrainChunkSource {
   final List<WaterRegionData> waterRegions;
   final List<TrapPlacement> traps;
   final List<EncounterDefinition> encounters;
+  final BossArenaDefinition? bossArena;
 
   List<PolygonTerrainPlacementSelection> placementSelections() {
     final counts = <String, int>{};
@@ -495,6 +500,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       'waterRegions',
       'traps',
       'encounters',
+      'bossArena',
     },
     required: const {
       'schemaVersion',
@@ -661,7 +667,37 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
     }
   }
 
+  if (markerOrder.any((m) => m.markerId == 'bringerOfDeath')) {
+    throw FormatException(
+      '$sourcePath: bosses require a bossArena definition, not ambient markers.',
+    );
+  }
+  bool hasPlacements(String key) {
+    if (!root.containsKey(key)) return false;
+    final value = root[key];
+    if (value is! List) {
+      throw FormatException('$sourcePath.$key must be an array.');
+    }
+    return value.isNotEmpty;
+  }
+
+  if (root.containsKey('bossArena') &&
+      (markers.isNotEmpty ||
+          hasPlacements('encounters') ||
+          hasPlacements('traps'))) {
+    throw FormatException(
+      '$sourcePath: boss arenas cannot contain ambient markers, rescues or traps.',
+    );
+  }
   return PolygonTerrainChunkSource(
+    bossArena: root.containsKey('bossArena')
+        ? decodeBossArena(
+            root['bossArena'],
+            sourcePath: '$sourcePath.bossArena',
+            chunkWidth: root['width'] as int,
+            chunkHeight: root['height'] as int,
+          )
+        : null,
     encounters: decodeEncounterDefinitions(
       root.containsKey('encounters') ? root['encounters'] : const [],
       sourcePath: '$sourcePath.encounters',

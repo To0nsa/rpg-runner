@@ -1,6 +1,7 @@
 import '../../combat/combat_geometry.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
 import '../../events/game_event.dart';
 import '../../spell_impacts/spell_impact_id.dart';
 import '../../weapons/weapon_proc.dart';
@@ -22,6 +23,7 @@ class TargetPointIntentDef {
     required this.cooldownGroupId,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.knockback,
     this.halfX = 0,
     this.halfY = 1,
     this.hitPolicy = HitPolicy.oncePerTarget,
@@ -48,6 +50,7 @@ class TargetPointIntentDef {
   final int cooldownGroupId;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final KnockbackDef? knockback;
   final double halfX;
   final double halfY;
   final HitPolicy hitPolicy;
@@ -75,6 +78,7 @@ class TargetPointIntentStore extends SparseSet {
   final List<int> cooldownGroupId = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<KnockbackDef?> knockback = [];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<HitPolicy> hitPolicy = <HitPolicy>[];
@@ -110,6 +114,7 @@ class TargetPointIntentStore extends SparseSet {
     cooldownGroupId[i] = def.cooldownGroupId;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    knockback[i] = def.knockback;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     hitPolicy[i] = def.hitPolicy;
@@ -138,6 +143,7 @@ class TargetPointIntentStore extends SparseSet {
     cooldownGroupId.add(0);
     damageType.add(DamageType.fire);
     procs.add(const <WeaponProc>[]);
+    knockback.add(null);
     halfX.add(0.0);
     halfY.add(0.0);
     hitPolicy.add(HitPolicy.oncePerTarget);
@@ -166,6 +172,7 @@ class TargetPointIntentStore extends SparseSet {
     cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    knockback[removeIndex] = knockback[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     hitPolicy[removeIndex] = hitPolicy[lastIndex];
@@ -191,6 +198,7 @@ class TargetPointIntentStore extends SparseSet {
     cooldownGroupId.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    knockback.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     hitPolicy.removeLast();

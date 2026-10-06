@@ -106,6 +106,9 @@ The run route is a UI-owned assembly of lower layers:
 - `RunStartPreparation` coordinates hub, leaderboard, and restart preflight through AppState
 - `RunnerGameRoute` scopes orientation and system UI behavior for embedded or routed runs
 - HUD and controls read snapshots and send input through the existing router/controller path
+- boss entrance haptics use the run-owned binding under `haptics/`; dispose it
+  before replacing or disposing its controller, and retain pulse deduplication
+  across pause/resume
 
 Do not push menu or backend concerns down into `lib/game/`. Do not bypass the run widget and assemble ad-hoc game routes in random pages.
 

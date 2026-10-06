@@ -32,9 +32,12 @@ An entrance platform in `forest_rocky_grove_hard_004` supplies a foothold
 before its enlarged rock for the existing ground-enemy movement limits.
 Its water gap remains open.
 
-The `2026.10.7` source revision inserts one easy boss-themed chunk between the
-last easy grove section and the easy enchanted forest. It provides terrain and
-scenery; no boss actor or encounter is authored there yet.
+The `2026.10.8` source revision activates the easy boss chunk between the
+last easy grove section and the easy enchanted forest. Its dedicated
+`boss_bringer_of_death` assembly group contains one mandatory Bringer of Death
+arena. The authored terrain and scenery from `2026.10.7` are retained; see
+[the boss encounter](bringer_of_death.md) for framing, combat and the victory
+blessing.
 
 Forest's hard progression now alternates five distinct Rocky Grove sections of
 3–6 chunks with one enchanted-forest chunk, all five remaining hard ruin chunks,

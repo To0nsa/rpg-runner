@@ -16,6 +16,9 @@ enum EnemyId {
 
   /// A perched cultist that transforms on first visibility, then pursues in melee.
   derf,
+
+  /// Arena-exclusive first boss; append to preserve existing ordinal identities.
+  bringerOfDeath,
 }
 
 /// Enemy types that use the surface-navigation stack for grounded traversal.
@@ -23,4 +26,5 @@ const List<EnemyId> groundNavigatingEnemyIds = <EnemyId>[
   EnemyId.grojib,
   EnemyId.hashash,
   EnemyId.derf,
+  EnemyId.bringerOfDeath,
 ];

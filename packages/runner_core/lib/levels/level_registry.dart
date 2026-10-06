@@ -122,8 +122,8 @@ class LevelRegistry {
                 requireDistinctChunks: true,
               ),
               LevelAssemblySegment(
-                segmentId: 'rocky_grove_5',
-                groupId: 'boss',
+                segmentId: 'bringer_of_death_arena',
+                groupId: 'boss_bringer_of_death',
                 difficulty: ChunkPatternTier.easy,
                 minChunkCount: 1,
                 maxChunkCount: 1,

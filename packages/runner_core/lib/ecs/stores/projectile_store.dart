@@ -1,6 +1,7 @@
 import '../../combat/combat_geometry.dart';
 import '../../snapshots/enums.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
 import '../../combat/damage_credit.dart';
 import '../../combat/faction.dart';
 import '../../combat/hit_target_policy.dart';
@@ -22,6 +23,7 @@ class ProjectileEntityDef {
     this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.knockback,
     this.pierce = false,
     this.maxPierceHits = 1,
     this.usePhysics = false,
@@ -46,6 +48,7 @@ class ProjectileEntityDef {
   final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final KnockbackSource? knockback;
   final bool pierce;
   final int maxPierceHits;
 
@@ -78,6 +81,7 @@ class ProjectileStore extends SparseSet {
   final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<KnockbackSource?> knockback = [];
   final List<bool> pierce = <bool>[];
   final List<int> maxPierceHits = <int>[];
   final List<bool> usePhysics = <bool>[];
@@ -107,6 +111,7 @@ class ProjectileStore extends SparseSet {
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    knockback[i] = def.knockback;
     pierce[i] = def.pierce;
     maxPierceHits[i] = def.maxPierceHits;
     usePhysics[i] = def.usePhysics;
@@ -131,6 +136,7 @@ class ProjectileStore extends SparseSet {
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
+    knockback.add(null);
     pierce.add(false);
     maxPierceHits.add(1);
     usePhysics.add(false);
@@ -158,6 +164,7 @@ class ProjectileStore extends SparseSet {
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    knockback[removeIndex] = knockback[lastIndex];
     pierce[removeIndex] = pierce[lastIndex];
     maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     usePhysics[removeIndex] = usePhysics[lastIndex];
@@ -182,6 +189,7 @@ class ProjectileStore extends SparseSet {
     critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    knockback.removeLast();
     pierce.removeLast();
     maxPierceHits.removeLast();
     usePhysics.removeLast();

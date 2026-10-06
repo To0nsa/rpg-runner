@@ -260,6 +260,7 @@ TerrainSurfaceGraphBuildProfile _buildGroundEnemyProfile({
     supportRequirement: const TerrainSupportRequirement.groundedEnemyRuntime(),
     locomotionSpeedTicksPerSecond: locomotionSpeedTicksPerSecond,
     jumpTemplate: jumpTemplate,
+    canJump: terrain.canJump,
     simulationTicksPerSecond: simulationTicksPerSecond,
   );
 }

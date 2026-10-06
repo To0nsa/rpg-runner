@@ -926,6 +926,7 @@ class AbilityActivationSystem {
         critChanceBp: tunedCritChanceBp,
         damageType: payload.damageType,
         procs: payload.procs,
+        knockback: payload.knockback,
         dirX: dirX,
         dirY: dirY,
         commitTick: commitTick,
@@ -1194,6 +1195,7 @@ class AbilityActivationSystem {
         cooldownGroupId: cooldownGroupId,
         damageType: payload.damageType,
         procs: payload.procs,
+        knockback: payload.knockback,
         ballistic: ballistic,
         gravityScale: gravityScale,
         speedScaleBp: chargeTuning.speedScaleBp,
@@ -1431,6 +1433,7 @@ class AbilityActivationSystem {
     for (var i = 0; i < targets.length; i += 1) {
       final target = targets[i];
       if (target == source ||
+          world.arenaSuspension.has(target) ||
           world.health.hp[i] <= 0 ||
           world.deathState.has(target)) {
         continue;

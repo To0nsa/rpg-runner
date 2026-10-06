@@ -33,6 +33,7 @@ class EnemyTerrainContactProfile {
     required EnemyTerrainLocomotionKind locomotionKind,
     required WorldContactCapsuleDef capsule,
     required TerrainTraversalProfile traversal,
+    bool canJump = true,
   }) {
     switch (motionKind) {
       case EnemyTerrainMotionKind.groundedDynamic:
@@ -65,6 +66,7 @@ class EnemyTerrainContactProfile {
       locomotionKind: locomotionKind,
       capsule: capsule,
       traversal: traversal,
+      canJump: canJump && motionKind == EnemyTerrainMotionKind.groundedDynamic,
     );
   }
 
@@ -73,6 +75,7 @@ class EnemyTerrainContactProfile {
     required this.locomotionKind,
     required this.capsule,
     required this.traversal,
+    required this.canJump,
   });
 
   /// Dynamic, flying, or explicit-placement participation rule.
@@ -86,6 +89,9 @@ class EnemyTerrainContactProfile {
 
   /// Collision masks, support limit, gravity, step, and snap policy.
   final TerrainTraversalProfile traversal;
+
+  /// Intentional upward launches allowed by both planning and locomotion.
+  final bool canJump;
 
   /// Whether final eligible floor contact may become authoritative support.
   bool get canGround => motionKind == EnemyTerrainMotionKind.groundedDynamic;
@@ -101,6 +107,7 @@ EnemyTerrainContactProfile createGroundedEnemyTerrainProfile({
   required WorldContactCapsuleDef capsule,
   required int maxWalkableSlopeDegrees,
   required int minimumSupportUpComponent,
+  bool canJump = true,
 }) {
   final maxAngleUnits =
       maxWalkableSlopeDegrees * terrainSlopeAngleUnitsPerDegree;
@@ -108,6 +115,7 @@ EnemyTerrainContactProfile createGroundedEnemyTerrainProfile({
     motionKind: EnemyTerrainMotionKind.groundedDynamic,
     locomotionKind: EnemyTerrainLocomotionKind.constantSurfaceDistance,
     capsule: capsule,
+    canJump: canJump,
     traversal: TerrainTraversalProfile(
       enabled: true,
       isKinematic: false,

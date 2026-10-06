@@ -33,6 +33,20 @@ class AbilityChargeStateStore extends SparseSet {
     addEntity(entity);
   }
 
+  /// Discards precharged and released progress while preserving held input.
+  /// Cinematic holds refresh this origin so charge starts again after release.
+  void resetProgress(EntityId entity, {required int currentTick}) {
+    final i = tryIndexOf(entity);
+    if (i == null) return;
+    for (final slot in AbilitySlot.values) {
+      final offset = _slotOffset(i, slot);
+      holdStartTickBySlot[offset] = currentTick;
+      currentHoldTicksBySlot[offset] = 0;
+      releasedHoldTicksBySlot[offset] = 0;
+      releasedTickBySlot[offset] = -1;
+    }
+  }
+
   bool slotHeld(EntityId entity, AbilitySlot slot) {
     if (!has(entity)) return false;
     final denseIndex = indexOf(entity);

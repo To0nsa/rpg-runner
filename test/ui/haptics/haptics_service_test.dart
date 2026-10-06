@@ -13,10 +13,11 @@ void main() {
     haptics.trigger(UiHapticsCue.chargeFullTierReached);
     haptics.trigger(UiHapticsCue.holdAbilityStaminaDepleted);
     haptics.trigger(UiHapticsCue.holdAbilityTimedOut);
+    haptics.trigger(UiHapticsCue.bossEntrancePulse);
 
     expect(
       driver.calls,
-      equals(<String>['selection', 'light', 'medium', 'heavy']),
+      equals(<String>['selection', 'light', 'medium', 'heavy', 'medium']),
     );
   });
 

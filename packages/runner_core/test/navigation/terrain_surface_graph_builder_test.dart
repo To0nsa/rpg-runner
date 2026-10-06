@@ -8,6 +8,7 @@ import 'package:runner_core/collision/terrain/terrain_traversal_profile.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/navigation/terrain_placement_query.dart';
+import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
 import 'package:runner_core/navigation/terrain_surface_extractor.dart';
 import 'package:runner_core/navigation/terrain_surface_graph_builder.dart';
 import 'package:runner_core/navigation/terrain_surface_spatial_index.dart';
@@ -20,6 +21,33 @@ import '../fixtures/slopes_golden_fixture.dart';
 
 void main() {
   group('shared profile graph views', () {
+    test(
+      'catalog no-jump profile omits jumps and preserves ordinary jumps',
+      () {
+        final fixture = _fixture(buildSlopesGoldenInputs());
+        final graphs = {
+          for (final profile in buildDefaultGroundEnemyTerrainGraphProfiles())
+            profile.profileKey: fixture.builder.build(profile),
+        };
+        final boss = graphs[EnemyId.bringerOfDeath.name]!;
+        expect(boss.buildProfile.canJump, isFalse);
+        expect(
+          boss.edges.where((e) => e.kind == TerrainSurfaceEdgeKind.jump),
+          isEmpty,
+        );
+        expect(
+          boss.edges.where((e) => e.kind == TerrainSurfaceEdgeKind.walk),
+          isNotEmpty,
+        );
+        final grojib = graphs[EnemyId.grojib.name]!;
+        expect(grojib.buildProfile.canJump, isTrue);
+        expect(
+          grojib.edges.where((e) => e.kind == TerrainSurfaceEdgeKind.jump),
+          isNotEmpty,
+        );
+      },
+    );
+
     test('retain identical nodes while eligibility and edges differ', () {
       final fixture = _fixture(buildSlopesGoldenInputs());
       final grojib = fixture.builder.build(_profile(EnemyId.grojib));

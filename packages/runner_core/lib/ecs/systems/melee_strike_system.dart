@@ -1,6 +1,7 @@
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
+import '../../combat/knockback.dart';
 import '../combat_eligibility.dart';
 
 /// Processes requests to perform melee strikes.
@@ -86,6 +87,13 @@ class MeleeStrikeSystem {
           critChanceBp: intents.critChanceBp[ii],
           damageType: intents.damageType[ii],
           procs: intents.procs[ii],
+          knockback: intents.knockback[ii] == null
+              ? null
+              : KnockbackSource(
+                  effect: intents.knockback[ii]!,
+                  originX: world.transform.posX[strikeerTi],
+                  fallbackDirectionX: intents.dirX[ii] < 0 ? -1 : 1,
+                ),
           halfX: intents.halfX[ii],
           halfY: intents.halfY[ii],
           offsetX: intents.offsetX[ii],

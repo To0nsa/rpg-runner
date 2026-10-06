@@ -13,6 +13,9 @@ enum RunEndReason {
 
   /// User manually exited the run.
   gaveUp,
+
+  /// A mandatory boss was lost without a valid combat defeat.
+  bossEncounterFailed,
 }
 
 /// Identifies the category of damage source that caused death.
@@ -57,6 +60,7 @@ class RunEndStats {
     required this.enemyKillCounts,
     this.rescuedNpcs = 0,
     this.rescuePoints = 0,
+    this.excludedScoreTicks = 0,
   });
 
   /// Total count of collectibles picked up.
@@ -70,6 +74,9 @@ class RunEndStats {
 
   /// Sum of resolved encounter awards; values may differ between encounters.
   final int rescuePoints;
+
+  /// Arena ticks excluded from survival scoring; run duration still uses tick.
+  final int excludedScoreTicks;
 
   /// Kill counts per enemy type.
   ///

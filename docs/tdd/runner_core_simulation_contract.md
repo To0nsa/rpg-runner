@@ -50,6 +50,13 @@ commands once the run is paused or ended.
 The replay validator and ghost playback map each replay frame to its matching
 simulation tick. Neither consumer may reinterpret a command's tick.
 
+Boss arenas retain the same Core run and fixed clock. Full camera framing
+precedes the entrance hold, and the terrain controller enforces both confinement
+and temporary motion freeze. Required boss spawning and placement happen before
+motion preparation; outside actor isolation happens before AI/actions. Defeat
+resolves after damage/fatal culls and before death cleanup, with player loss taking
+precedence. See [boss arena contracts](boss_arenas.md).
+
 ## Tick ordering
 
 `GameCore.stepOneTick` ordering is gameplay behavior, not an implementation
@@ -60,7 +67,7 @@ order; the contract below records the dependencies that must survive changes.
 | --- | --- | --- |
 | 1 | Stream/cull track, obtain the complete staged candidate, publish terrain, place captured ambient actors/items, activate swept encounter triggers, and prepare motion | Encounter rosters preflight completely before actor creation. An exact prepared selection may replace synchronous construction; consumers never observe mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
-| 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, gravity, and collision | All AI consumers share the selected identity; intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
+| 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, knockback, gravity, and collision | All AI consumers share the selected identity; accepted-hit knockback overrides horizontal control before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
 | 5 | Collect pickups and move existing projectiles | Newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, resolve combat poses, rebuild broadphase, then position hitboxes | Self abilities apply before combat; damage queries use current visible poses and positions. |
@@ -116,6 +123,11 @@ ordering and owner/faction filters, then confirms attack capsule versus target
 capsule. Tangency is inclusive; overlap limited to an enclosing AABB corner is
 not a hit. This shape change does not move a phase or change hit-once,
 piercing, status, or damage-queue ordering.
+
+Accepted positive damage can schedule [shared knockback](combat_knockback.md)
+for the next phase-3 motion solve. The effect overrides horizontal intent after
+mobility, uses existing supported/airborne terrain modes, and never directly
+writes positions. Blocking and invulnerability resolve before the effect begins.
 
 Nonpiercing projectiles resolve the first contact along their previous-to-current
 position sweep, with stable entity ID breaking equal-contact ties. The capsule
@@ -334,6 +346,16 @@ streaming retirement never removes a granted bonus. The blessing shipped in
 `2026.10.4` with equal 0.10/second health, mana, and stamina bonuses; current
 `2026.10.6` source retains those rates. See
 [world interactions](world_interactions.md).
+
+Boss victory requests are resolved at the end of phase 14, after damage and
+death/despawn cleanup, before those world interactions and passive regeneration.
+Only a verified completed boss death strip requests a grant. The living-player
+check precedes the shared percentage restore, so it cannot reverse fatal damage.
+One streamed arena occurrence grants once; its Core-timed notice survives arena
+release and pauses with the simulation. The default restores 60% of current
+maximum health, mana and stamina, capped at those maxima, without changing
+regeneration state. This is part of the unreleased `2026.10.8` boss feature.
+See [boss arena contracts](boss_arenas.md).
 
 ## Outputs and consumers
 

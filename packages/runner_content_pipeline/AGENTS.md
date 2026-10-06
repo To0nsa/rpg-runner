@@ -26,6 +26,11 @@ Incomplete roles are saveable source; validate readiness for the exact runtime
 pool before publishing playable content. Do not duplicate placement rules in
 the editor or generator, or encode encounter identities as polygon lineage.
 
+Optional Chunk-v2 `bossArena` data is a separate mandatory objective. Keep its
+strict whole-pixel decoding, exact viewport dimensions, shared Core full-body
+placement and single-candidate assembly group validation aligned with captured
+Play and normal runs. Bosses are not ambient markers or rescue participants.
+
 Repository generation validates all source schemas, identities and individual
 geometry even for excluded levels. The separate runtime batch contains only
 active chunks of included levels and must pass scheduler/seam readiness. Keep

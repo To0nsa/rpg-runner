@@ -85,6 +85,11 @@ HUD blessing snapshots retain grant ticks: the initial two-second message and
 persistent indicator use simulation time, so pause and remount do not create
 timers or duplicate gameplay effects.
 
+The [boss victory blessing](boss_arenas.md#victory-blessing) shares the Dames de
+la forêt attribution but has separate state: it restores 60% of current resource
+maxima once after a completed boss death strip and plays Holy VFX 02.
+It neither grants nor replaces this shrine's persistent regeneration modifier.
+
 ## Compatibility and checks
 
 Game compatibility `2026.10.4` introduced equal flat regeneration bonuses of

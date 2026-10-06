@@ -61,6 +61,7 @@ class ProjectileLaunchSystem {
         critChanceBp: intents.critChanceBp[ii],
         damageType: intents.damageType[ii],
         procs: intents.procs[ii],
+        knockback: intents.knockback[ii],
         pierce: intents.pierce[ii],
         maxPierceHits: intents.maxPierceHits[ii],
         ballistic: intents.ballistic[ii],

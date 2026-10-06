@@ -13,7 +13,13 @@ const _scenarios = [
   (levelId: LevelId.new_level, chunkCount: 32),
 ];
 const _seeds = [7, 42, 2026];
-const _mobileEnemies = EnemyId.values;
+// Arena bosses are confined; boss_arena_test covers their actual combat bounds.
+const _mobileEnemies = [
+  EnemyId.unocoDemon,
+  EnemyId.grojib,
+  EnemyId.hashash,
+  EnemyId.derf,
+];
 
 void main() {
   test('every compiled level has an explicit traversal scenario', () {

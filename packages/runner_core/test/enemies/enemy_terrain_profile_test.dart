@@ -13,7 +13,7 @@ void main() {
       for (final id in EnemyId.values) catalog.terrainContactProfile(id),
     ];
 
-    expect(EnemyId.values, hasLength(4));
+    expect(EnemyId.values, hasLength(5));
     expect(profiles, hasLength(EnemyId.values.length));
     for (var index = 0; index < EnemyId.values.length; index += 1) {
       expect(
@@ -55,6 +55,12 @@ void main() {
             spine: 12.75,
             offsetX: 0.0,
             offsetY: 7.0,
+          ),
+          EnemyId.bringerOfDeath: (
+            radius: 12.0,
+            spine: 15.0,
+            offsetX: 0.0,
+            offsetY: -3.0,
           ),
         };
     final bodyCenter = TerrainPoint.fromWorld(100, 200);

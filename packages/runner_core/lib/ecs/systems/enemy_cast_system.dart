@@ -9,6 +9,7 @@ import '../../combat/damage_type.dart';
 import '../../combat/hit_payload.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_id.dart';
 import '../../events/game_event.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../projectiles/projectile_item_def.dart';
@@ -74,6 +75,7 @@ class EnemyCastSystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      if (enemies.enemyId[ei] == EnemyId.bringerOfDeath) continue;
       final target = combatTarget(world, enemy, player);
       if (target == null) continue;
       final targetTi = world.transform.indexOf(target);
@@ -454,6 +456,7 @@ class AiCastCommitter {
         maxPierceHits: 1,
         damageType: payload.damageType,
         procs: payload.procs,
+        knockback: payload.knockback,
         ballistic: projectile.ballistic,
         gravityScale: projectile.gravityScale,
         dirX: dirX,
@@ -502,6 +505,7 @@ class AiCastCommitter {
         cooldownGroupId: cooldownGroupId,
         damageType: payload.damageType,
         procs: payload.procs,
+        knockback: payload.knockback,
         profile: hitDelivery.profile,
         frameStepTicks: math.max(
           1,

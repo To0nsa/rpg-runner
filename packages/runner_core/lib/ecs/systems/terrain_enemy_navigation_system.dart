@@ -105,7 +105,8 @@ final class TerrainEnemyNavigationSystem {
       var graph = switch (enemyId) {
         EnemyId.grojib ||
         EnemyId.hashash ||
-        EnemyId.derf => bundle.groundEnemyGraph(enemyId!),
+        EnemyId.derf ||
+        EnemyId.bringerOfDeath => bundle.groundEnemyGraph(enemyId!),
         EnemyId.unocoDemon => null,
         null =>
           bundle.graphPublication[npcNavigationProfileKey(

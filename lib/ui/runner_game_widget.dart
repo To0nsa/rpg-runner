@@ -25,6 +25,7 @@ import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
+import 'haptics/boss_entrance_haptics_binding.dart';
 import 'runner_game_ui_state.dart';
 import 'run/runner_run_session.dart';
 import 'run/run_start_preparation.dart';
@@ -49,6 +50,8 @@ import 'viewport/viewport_metrics.dart';
 ///
 /// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
 /// resumes lifecycle-paused play while preserving manual pauses and ready state.
+/// Boss entrances hold controls within the active Core run; the replay clock
+/// continues, and defeating the boss restores ordinary route progression.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.
@@ -133,6 +136,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   static const Duration _steadySubmissionPollInterval = Duration(seconds: 5);
 
   final UiHaptics _haptics = const UiHapticsService();
+  late BossEntranceHapticsBinding _bossEntranceHaptics;
   bool _pausedByLifecycle = false;
   bool _started = false;
   bool _exitConfirmOpen = false;
@@ -645,6 +649,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _restartWithDescriptor(RunStartDescriptor descriptor) {
+    _bossEntranceHaptics.dispose();
     final oldSession = _session;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
     final oldForceAimCancelSignal = _forceAimCancelSignal;
@@ -731,6 +736,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         RunnerRunSession(descriptor: _descriptor);
     _controller.addEventListener(_handleGameEvent);
     _controller.addListener(_onControllerTick);
+    _bossEntranceHaptics = BossEntranceHapticsBinding(
+      controller: _controller,
+      haptics: _haptics,
+    );
     _actions = RunnerSemanticActionDispatcher(
       input: _session.input,
       resolveInputMode: _resolveInputMode,
@@ -768,6 +777,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _disposeGame() {
+    _bossEntranceHaptics.dispose();
     _stopSubmissionStatusPolling();
     _clearInputs();
     _controller.removeEventListener(_handleGameEvent);

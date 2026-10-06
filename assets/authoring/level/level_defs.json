@@ -20,10 +20,10 @@
     },
     {
       "levelId": "forest",
-      "revision": 246,
+      "revision": 247,
       "displayName": "Forest",
       "visualThemeId": "forest",
-      "chunkThemeGroups": ["default", "boss", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
+      "chunkThemeGroups": ["default", "boss_bringer_of_death", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
       "firstChunkKey": "forest_default_early_001",
       "cameraCenterY": 135,
       "groundTopY": 224,
@@ -103,8 +103,8 @@
             "requireDistinctChunks": true
           },
           {
-            "segmentId": "rocky_grove_5",
-            "groupId": "boss",
+            "segmentId": "bringer_of_death_arena",
+            "groupId": "boss_bringer_of_death",
             "difficulty": "easy",
             "minChunkCount": 1,
             "maxChunkCount": 1,

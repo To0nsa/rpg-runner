@@ -8,6 +8,14 @@ class CameraShakeController {
   double _amplitudePixels = 0.0;
   double _seedPhase = 0.0;
 
+  /// Cancels a visual sequence immediately instead of carrying it into combat.
+  void reset() {
+    _elapsedSeconds = 0;
+    _durationSeconds = 0;
+    _amplitudePixels = 0;
+    _seedPhase = 0;
+  }
+
   void trigger({required double intensity01}) {
     final clamped = intensity01.clamp(0.0, 1.0);
     if (clamped <= 0.0) {

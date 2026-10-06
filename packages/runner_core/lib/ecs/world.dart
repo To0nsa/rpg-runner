@@ -1,5 +1,8 @@
 import 'entity_id.dart';
 import 'stores/combat_hurtbox_store.dart';
+import 'stores/actor_motion_bounds_store.dart';
+import 'stores/arena_suspension_store.dart';
+import 'stores/arena_protection_store.dart';
 import 'stores/ai_target_store.dart';
 import 'stores/npc_store.dart';
 import 'stores/encounter_member_store.dart';
@@ -65,6 +68,7 @@ import 'stores/status/vulnerable_store.dart';
 import 'stores/status/weaken_store.dart';
 import 'stores/control_lock_store.dart';
 import 'stores/damage_queue_store.dart';
+import 'stores/knockback_store.dart';
 import 'stores/parry_consume_store.dart';
 import 'stores/riposte_store.dart';
 import 'stores/projectile_item_origin_store.dart';
@@ -106,6 +110,16 @@ class EcsWorld {
     LevelBlessingStore(),
   );
   late final AiTargetStore aiTarget = _register(AiTargetStore());
+  late final ArenaSuspensionStore arenaSuspension = _register(
+    ArenaSuspensionStore(),
+  );
+
+  late final ArenaProtectionStore arenaProtection = _register(
+    ArenaProtectionStore(),
+  );
+  late final ActorMotionBoundsStore actorMotionBounds = _register(
+    ActorMotionBoundsStore(),
+  );
   late final DerfPhaseStore derfPhase = _register(DerfPhaseStore());
   late final NpcStore npc = _register(NpcStore());
   late final EncounterMemberStore encounterMember = _register(
@@ -132,6 +146,8 @@ class EcsWorld {
 
   /// World-level damage request queue (shared across systems).
   final DamageQueueStore damageQueue = DamageQueueStore();
+
+  late final KnockbackStore knockback = _register(KnockbackStore());
 
   /// World-level post-damage queue for reactive proc resolution.
   final ReactiveDamageEventQueueStore reactiveDamageEventQueue =

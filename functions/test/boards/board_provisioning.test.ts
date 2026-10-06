@@ -39,7 +39,7 @@ const config: BoardProvisioningConfig = {
   gameCompatVersion: currentGameCompatVersion,
 
   rulesetVersion: "rules-v2",
-  scoreVersion: "score-v3",
+  scoreVersion: "score-v4",
   ghostVersion: "ghost-v1",
   tickHz: 60,
   seedNamespace: "tests-board-seed",
@@ -56,7 +56,7 @@ after(async () => {
 
 test("default provisioning config issues current combat and distance scoring", () => {
   assert.equal(resolveBoardProvisioningConfig({}).rulesetVersion, "rules-v2");
-  assert.equal(resolveBoardProvisioningConfig({}).scoreVersion, "score-v3");
+  assert.equal(resolveBoardProvisioningConfig({}).scoreVersion, "score-v4");
 });
 
 test("ensureManagedLeaderboardBoards provisions competitive all-levels and weekly featured-level", async () => {
@@ -244,7 +244,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    `board_competitive_2026_03_field_rules_v2_score_v3_${currentGameCompatVersion.replaceAll(".", "_")}_ghost_v1`,
+    `board_competitive_2026_03_field_rules_v2_score_v4_${currentGameCompatVersion.replaceAll(".", "_")}_ghost_v1`,
   );
 
   const boards = await db.collection("leaderboard_boards").get();

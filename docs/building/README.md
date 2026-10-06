@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed Forest boss arena](../archive/2026-10-06/building/forest_boss_arena.md):
+  implemented and locally validated on `feature/forest-boss-arena`; see
+  [verification](../verification/forest_boss_arena.md). Production deployment is separate.
+
 - [Completed combat hitbox alignment](../archive/2026-10-05/building/combat_hitbox_alignment.md):
   reviewed combat poses, shared timing, and exact debug geometry pass local
   validation; see [verification](../verification/combat-hitbox-alignment.md).

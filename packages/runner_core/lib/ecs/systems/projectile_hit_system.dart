@@ -262,6 +262,9 @@ class ProjectileHitSystem {
         critChanceBp: projectiles.critChanceBp[projectileStoreIndex],
         damageType: projectiles.damageType[projectileStoreIndex],
         procs: projectiles.procs[projectileStoreIndex],
+        knockback: projectiles.knockback[projectileStoreIndex]?.resolve(
+          world.transform.posX[world.transform.indexOf(target)],
+        ),
         source: owner == 0 ? null : owner,
         credit: projectiles.credit[projectileStoreIndex],
         sourceKind: DeathSourceKind.projectile,

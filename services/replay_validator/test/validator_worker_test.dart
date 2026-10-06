@@ -454,7 +454,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.10.7',
+        gameCompatVersion: '2026.10.8',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -517,7 +517,7 @@ void main() {
         levelId: 'field',
         windowId: '2026-07',
         rulesetVersion: 'rules-v2',
-        scoreVersion: 'score-v3',
+        scoreVersion: 'score-v4',
       );
       final replayBlob = ReplayBlobV1.withComputedDigest(
         runSessionId: 'run_ranked_board_deleted',
@@ -1726,7 +1726,7 @@ ValidatorRunSession _session({
   String? storageGeneration = '123',
   String? ticketRunSessionId,
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.10.7',
+  String gameCompatVersion = '2026.10.8',
 
   String? rulesetVersion,
   String? scoreVersion,
@@ -1745,7 +1745,7 @@ ValidatorRunSession _session({
           levelId: 'field',
           windowId: '2026-07',
           rulesetVersion: rulesetVersion ?? 'rules-v2',
-          scoreVersion: scoreVersion ?? 'score-v3',
+          scoreVersion: scoreVersion ?? 'score-v4',
         )
       : null;
   return ValidatorRunSession(
@@ -1761,7 +1761,7 @@ ValidatorRunSession _session({
       tickHz: tickHz,
       gameCompatVersion: gameCompatVersion,
       rulesetVersion: mode.requiresBoard ? rulesetVersion ?? 'rules-v2' : null,
-      scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v3' : null,
+      scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v4' : null,
       ghostVersion: mode.requiresBoard ? ghostVersion ?? 'ghost-v1' : null,
       boardOpensAtMs: mode.requiresBoard
           ? boardOpensAtMs ?? issuedAtMs - 1

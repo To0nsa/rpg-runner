@@ -75,6 +75,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
   required int tickHz,
   int rescuedNpcs = 0,
   int rescuePoints = 0,
+  int excludedScoreTicks = 0,
 }) {
   if (rescuedNpcs < 0 ||
       rescuedNpcs > EncounterLimits.maxExactScore ||
@@ -93,7 +94,10 @@ RunScoreBreakdown buildRunScoreBreakdown({
   }
   // Convert internal units to player-facing values.
   final meters = distanceUnitsToMeters(distanceUnits);
-  final timeSeconds = tickHz <= 0 ? 0 : tick ~/ tickHz;
+  if (excludedScoreTicks < 0 || excludedScoreTicks > tick) {
+    throw ArgumentError('Excluded score ticks must fit the completed run.');
+  }
+  final timeSeconds = tickHz <= 0 ? 0 : (tick - excludedScoreTicks) ~/ tickHz;
 
   final rows = <RunScoreRow>[
     RunScoreRow(
@@ -166,5 +170,7 @@ int _enemyKillScore(ScoreTuning tuning, EnemyId enemyId) {
       return tuning.groundEnemyKillScore;
     case EnemyId.unocoDemon:
       return tuning.unocoDemonKillScore;
+    case EnemyId.bringerOfDeath:
+      return tuning.bossKillScore;
   }
 }

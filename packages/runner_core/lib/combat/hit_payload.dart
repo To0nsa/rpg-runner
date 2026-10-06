@@ -3,6 +3,7 @@ import '../ecs/entity_id.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/weapon_proc.dart';
 import 'damage_type.dart';
+import 'knockback.dart';
 
 /// Resolved payload for a damaging action.
 ///
@@ -23,6 +24,7 @@ class HitPayload {
     required this.sourceId,
     this.abilityId,
     this.weaponId,
+    this.knockback,
   });
 
   /// Final calculated damage in fixed-point units (100 = 1.0 visual damage).
@@ -47,4 +49,5 @@ class HitPayload {
   // Debugging / Logging
   final AbilityKey? abilityId;
   final WeaponId? weaponId;
+  final KnockbackDef? knockback;
 }

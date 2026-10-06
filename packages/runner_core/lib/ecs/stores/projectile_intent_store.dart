@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
@@ -20,6 +21,7 @@ class ProjectileIntentDef {
     required this.maxPierceHits,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.knockback,
     required this.ballistic,
     required this.gravityScale,
     this.speedScaleBp = 10000,
@@ -49,6 +51,7 @@ class ProjectileIntentDef {
   final int maxPierceHits;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final KnockbackDef? knockback;
   final bool ballistic;
   final double gravityScale;
   final int speedScaleBp;
@@ -83,6 +86,7 @@ class ProjectileIntentStore extends SparseSet {
   final List<int> maxPierceHits = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<KnockbackDef?> knockback = [];
   final List<bool> ballistic = <bool>[];
   final List<double> gravityScale = <double>[];
   final List<int> speedScaleBp = <int>[];
@@ -122,6 +126,7 @@ class ProjectileIntentStore extends SparseSet {
     maxPierceHits[i] = def.maxPierceHits;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    knockback[i] = def.knockback;
     ballistic[i] = def.ballistic;
     gravityScale[i] = def.gravityScale;
     speedScaleBp[i] = def.speedScaleBp;
@@ -153,6 +158,7 @@ class ProjectileIntentStore extends SparseSet {
     maxPierceHits.add(1);
     damageType.add(DamageType.ice);
     procs.add(const <WeaponProc>[]);
+    knockback.add(null);
     ballistic.add(false);
     gravityScale.add(1.0);
     speedScaleBp.add(10000);
@@ -184,6 +190,7 @@ class ProjectileIntentStore extends SparseSet {
     maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    knockback[removeIndex] = knockback[lastIndex];
     ballistic[removeIndex] = ballistic[lastIndex];
     gravityScale[removeIndex] = gravityScale[lastIndex];
     speedScaleBp[removeIndex] = speedScaleBp[lastIndex];
@@ -212,6 +219,7 @@ class ProjectileIntentStore extends SparseSet {
     maxPierceHits.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    knockback.removeLast();
     ballistic.removeLast();
     gravityScale.removeLast();
     speedScaleBp.removeLast();

@@ -103,6 +103,13 @@ Enemy kill values (current):
 
 - `Grojib`, `Hashash`, `Derf` → `ScoreTuning.groundEnemyKillScore` (default 100)
 - `UnocoDemon`  → `ScoreTuning.unocoDemonKillScore` (default 150)
+- `Bringer of Death` → `ScoreTuning.bossKillScore` (default 1000, once per defeat)
+
+Prepared `score-v4` excludes `RunEndStats.excludedScoreTicks` from survival points:
+`s = (tick - excludedScoreTicks) ~/ tickHz`. Arena entrance, combat and corpse
+presentation do not reward stalling; complete run duration still uses `tick`.
+Existing `score-v3` records retain their original scores and board partitions.
+See [Bringer gameplay](bringer_of_death.md).
 
 ### 3.3 Quantization (important gameplay implication)
 
