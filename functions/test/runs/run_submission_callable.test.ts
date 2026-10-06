@@ -19,6 +19,8 @@ import {
   type RunSubmissionDependencies,
 } from "../../src/runs/submission_store.js";
 
+import { currentGameCompatVersion } from "../../src/runs/compatibility.js";
+
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
   throw new Error(
@@ -825,7 +827,7 @@ async function createPracticeRunSession(
     uid: ownerUid,
     mode: "practice",
     levelId: "field",
-    gameCompatVersion: "2026.10.6",
+    gameCompatVersion: currentGameCompatVersion,
 
   });
   return String(result.runTicket.runSessionId);

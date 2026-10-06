@@ -17,6 +17,8 @@ import {
   resolveWeeklyWindow,
 } from "../../src/boards/windowing.js";
 
+import { currentGameCompatVersion } from "../../src/runs/compatibility.js";
+
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
   throw new Error(
@@ -34,7 +36,7 @@ const db = getFirestore(app);
 const config: BoardProvisioningConfig = {
   competitiveLevelIds: ["field", "forest"],
   weeklyLevelId: "field",
-  gameCompatVersion: "2026.10.6",
+  gameCompatVersion: currentGameCompatVersion,
 
   rulesetVersion: "rules-v2",
   scoreVersion: "score-v3",
@@ -242,7 +244,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    "board_competitive_2026_03_field_rules_v2_score_v3_2026_10_6_ghost_v1",
+    `board_competitive_2026_03_field_rules_v2_score_v3_${currentGameCompatVersion.replaceAll(".", "_")}_ghost_v1`,
   );
 
   const boards = await db.collection("leaderboard_boards").get();
@@ -311,7 +313,7 @@ async function assertBoardExists(args: {
   const doc = snapshot.docs[0]!;
   assert.equal(doc.get("status"), "active");
   assert.equal(doc.get("tickHz"), 60);
-  assert.equal(doc.get("gameCompatVersion"), "2026.10.6");
+  assert.equal(doc.get("gameCompatVersion"), currentGameCompatVersion);
 
   assert.equal(doc.get("boardKey.mode"), args.mode);
   assert.equal(doc.get("boardKey.levelId"), args.levelId);

@@ -16,6 +16,8 @@ import {
 } from "../../src/ownership/firestore_paths.js";
 import { createRunSession } from "../../src/runs/store.js";
 
+import { currentGameCompatVersion } from "../../src/runs/compatibility.js";
+
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
   throw new Error(
@@ -52,7 +54,7 @@ test("createRunSession issues boardless practice ticket from canonical selection
     uid,
     mode: "practice",
     levelId: "field",
-    gameCompatVersion: "2026.10.6",
+    gameCompatVersion: currentGameCompatVersion,
 
   });
   const ticket = result.runTicket;
@@ -99,7 +101,7 @@ test("createRunSession is idempotent for a bounded client request ID", async () 
     clientRequestId: "run_request_idempotent_1",
     mode: "practice" as const,
     levelId: "field",
-    gameCompatVersion: "2026.10.6",
+    gameCompatVersion: currentGameCompatVersion,
 
     nowMs: Date.UTC(2026, 2, 12, 12, 0, 0, 0),
   };
@@ -135,7 +137,7 @@ test("active session enforcement is atomic when a measured limit is configured",
       clientRequestId: "run_active_limit_1",
       mode: "practice",
       levelId: "field",
-      gameCompatVersion: "2026.10.6",
+      gameCompatVersion: currentGameCompatVersion,
 
     });
     await assert.rejects(
@@ -146,7 +148,7 @@ test("active session enforcement is atomic when a measured limit is configured",
           clientRequestId: "run_active_limit_2",
           mode: "practice",
           levelId: "field",
-          gameCompatVersion: "2026.10.6",
+          gameCompatVersion: currentGameCompatVersion,
 
         }),
       (error: { code?: string }) => error.code === "resource-exhausted",
@@ -160,7 +162,7 @@ test("active session enforcement is atomic when a measured limit is configured",
 
 test("createRunSession provisions missing ranked board and persists run ticket context", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
-  const gameCompatVersion = "2026.10.6";
+  const gameCompatVersion = currentGameCompatVersion;
 
 
   await loadOrCreateCanonicalState({ db, uid });
@@ -208,7 +210,7 @@ test("loadActiveBoardManifest rejects disabled board for current window", async 
       rulesetVersion: "rules-v2",
       scoreVersion: "score-v3",
     },
-    gameCompatVersion: "2026.10.6",
+    gameCompatVersion: currentGameCompatVersion,
 
     ghostVersion: "ghost-v1",
     tickHz: 60,
@@ -224,7 +226,7 @@ test("loadActiveBoardManifest rejects disabled board for current window", async 
         db,
         mode: "competitive",
         levelId: "field",
-        gameCompatVersion: "2026.10.6",
+        gameCompatVersion: currentGameCompatVersion,
 
         nowMs,
       }),
@@ -237,7 +239,7 @@ test("loadActiveBoardManifest rejects disabled board for current window", async 
 test("createRunSession binds competitive ticket to active monthly board", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
   const window = resolveCompetitiveWindow(nowMs);
-  const gameCompatVersion = "2026.10.6";
+  const gameCompatVersion = currentGameCompatVersion;
 
 
   await loadOrCreateCanonicalState({ db, uid });
@@ -338,7 +340,7 @@ test("createRunSession binds competitive ticket to active monthly board", async 
 test("createRunSession binds weekly ticket to active weekly board", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
   const window = resolveWeeklyWindow(nowMs);
-  const gameCompatVersion = "2026.10.6";
+  const gameCompatVersion = currentGameCompatVersion;
 
 
   await loadOrCreateCanonicalState({ db, uid });
@@ -412,7 +414,7 @@ test("createRunSession rejects stale level mismatch between request and canonica
         uid,
         mode: "practice",
         levelId: "forest",
-        gameCompatVersion: "2026.10.6",
+        gameCompatVersion: currentGameCompatVersion,
 
       }),
     (error: { code?: string; message?: string }) =>
@@ -441,7 +443,7 @@ test("createRunSession rejects mode mismatch between request and canonical selec
         uid,
         mode: "practice",
         levelId: "field",
-        gameCompatVersion: "2026.10.6",
+        gameCompatVersion: currentGameCompatVersion,
 
       }),
     (error: { code?: string; message?: string }) =>
@@ -484,7 +486,7 @@ test("createRunSession rejects canonical loadout containing unowned content", as
         uid,
         mode: "practice",
         levelId: "field",
-        gameCompatVersion: "2026.10.6",
+        gameCompatVersion: currentGameCompatVersion,
 
       }),
     (error: { code?: string; message?: string }) =>
@@ -522,7 +524,7 @@ test("resolveWeeklyWindow rolls at UTC week boundary", () => {
 test("createRunSession resolves board by month window across rollover", async () => {
   const marchLastMs = Date.UTC(2026, 2, 31, 23, 59, 59, 999);
   const aprilFirstMs = Date.UTC(2026, 3, 1, 0, 0, 0, 0);
-  const gameCompatVersion = "2026.10.6";
+  const gameCompatVersion = currentGameCompatVersion;
 
 
   await loadOrCreateCanonicalState({ db, uid });
@@ -613,7 +615,7 @@ test("createRunSession resolves board by month window across rollover", async ()
 test("createRunSession resolves weekly board by week window across rollover", async () => {
   const sundayEndMs = Date.UTC(2026, 2, 15, 23, 59, 59, 999);
   const mondayStartMs = Date.UTC(2026, 2, 16, 0, 0, 0, 0);
-  const gameCompatVersion = "2026.10.6";
+  const gameCompatVersion = currentGameCompatVersion;
 
 
   await loadOrCreateCanonicalState({ db, uid });

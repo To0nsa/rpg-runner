@@ -38,8 +38,12 @@ terrain artifacts belong in the same client/worker preparation. See
   The regenerated lockfile passes supply-chain policies and the October 6
   production dependency audit reports no known vulnerabilities. Full release
   preparation must run against this dependency revision.
-- [ ] Prepare and benchmark matching client/worker/backend artifacts.
-- [ ] Obtain release authorization for coordinated production cutover.
+- [ ] Prepare and benchmark matching client/worker/backend artifacts. Backend
+  valid-request fixtures now use the exported current compatibility; retired
+  `2026.10.6` remains explicitly rejected. The first frozen preparation exposed
+  these stale fixtures before any production mutation.
+- [x] Owner authorized coordinated production deployment on October 6, 2026.
+  Cancellation of active tickets still requires separate authorization.
 - [ ] Record live issuance, replay, settlement and ghost verification.
 
 The October 6 read-only inventory still found three issued `2026.10.6` sessions,
