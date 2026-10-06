@@ -196,3 +196,11 @@ When animation behavior looks wrong, check in this order:
 5. Render set contains that key in `sourcesByKey`, `frameCountsByKey`, and `stepTimeSecondsByKey`.
 6. Compare the committed runtime action timing (`totalTicks`, or the current
    hold window plus recovery) vs `fullStripTicks` for that key.
+
+## Boss entrance and committed attack art
+
+Bringer's catalog uses explicit reversed source rectangles for its spawn strip,
+including frames that wrap across sheet rows. Core holds the arena for the
+quantized duration of that strip; render loading never controls release.
+Committed Bringer actions retain their attack animation through ordinary hit
+reactions so telegraphs remain visible. See [boss arena contracts](boss_arenas.md).

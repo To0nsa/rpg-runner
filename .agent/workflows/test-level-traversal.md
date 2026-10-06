@@ -57,6 +57,10 @@ failures. Derf traversal starts already transformed, preserving continuous
 movement and actual catalog limits; separate tests cover the caster phase,
 first visibility, transformation and combat.
 
+Bringer of Death is confined to its authored arena and is excluded from route-wide
+pursuit. `packages/runner_core/test/bosses/boss_arena_test.dart` exercises its
+actual confinement, both characters, entrance, combat and exit transitions.
+
 ## Adapt the test to a level
 
 1. Add the generated `LevelId` to `_scenarios`. Use `chunkCount: null` only for

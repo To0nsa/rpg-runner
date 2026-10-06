@@ -6,6 +6,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../bosses/boss_arena_definition.dart';
 import '../encounters/encounter_definition.dart';
 import '../traps/trap_placement.dart';
 import '../tuning/track_tuning.dart';
@@ -80,6 +81,7 @@ class ActiveTrackChunkSnapshot {
     required this.chunkKey,
     this.traps = const [],
     this.encounters = const [],
+    this.bossArena,
     this.assembly,
   });
 
@@ -101,6 +103,7 @@ class ActiveTrackChunkSnapshot {
   /// Immutable canonical placements from this exact selected pattern.
   final List<TrapPlacement> traps;
   final List<EncounterDefinition> encounters;
+  final BossArenaDefinition? bossArena;
 
   /// Exact selected Flow occurrence; null for automatic/standalone chunks.
   final ChunkAssemblySelection? assembly;
@@ -240,6 +243,7 @@ class TrackStreamer {
             chunkKey: pattern.chunkKey,
             assembly: selection.assembly,
             traps: List<TrapPlacement>.unmodifiable(pattern.traps),
+            bossArena: pattern.bossArena,
             encounters: List<EncounterDefinition>.unmodifiable(
               pattern.encounters,
             ),
@@ -329,6 +333,7 @@ class TrackStreamer {
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
           traps: List<TrapPlacement>.unmodifiable(pattern.traps),
+          bossArena: pattern.bossArena,
           encounters: List<EncounterDefinition>.unmodifiable(
             pattern.encounters,
           ),
@@ -379,6 +384,7 @@ class TrackStreamer {
             assembly: c.assembly,
             traps: c.traps,
             encounters: c.encounters,
+            bossArena: c.bossArena,
           ),
         );
       }
@@ -504,6 +510,7 @@ class _ActiveChunk {
     required this.visualSprites,
     required this.traps,
     required this.encounters,
+    this.bossArena,
     this.pendingHashashSpawns = 0,
   });
 
@@ -530,6 +537,7 @@ class _ActiveChunk {
   final List<ChunkVisualSpriteWorld> visualSprites;
   final List<TrapPlacement> traps;
   final List<EncounterDefinition> encounters;
+  final BossArenaDefinition? bossArena;
 
   /// Deferred hashash spawns that should trigger when this chunk is camera-right.
   int pendingHashashSpawns;

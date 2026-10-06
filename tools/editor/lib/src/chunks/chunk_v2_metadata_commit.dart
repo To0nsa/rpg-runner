@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/bosses/boss_arena_definition.dart';
 
 import '../domain/authoring_types.dart';
 import 'chunk_domain_models.dart';
@@ -17,6 +18,7 @@ final class ChunkV2MetadataSnapshot {
     required this.assemblyGroupId,
     required Iterable<String> tags,
     required this.groundBandZIndex,
+    this.bossArena,
   }) : tags = List<String>.unmodifiable(tags);
 
   factory ChunkV2MetadataSnapshot.fromChunk(ChunkV2FileData chunk) =>
@@ -27,6 +29,7 @@ final class ChunkV2MetadataSnapshot {
         assemblyGroupId: chunk.assemblyGroupId,
         tags: chunk.tags,
         groundBandZIndex: chunk.groundBandZIndex,
+        bossArena: chunk.bossArena,
       );
 
   final String status;
@@ -35,6 +38,7 @@ final class ChunkV2MetadataSnapshot {
   final String assemblyGroupId;
   final List<String> tags;
   final int groundBandZIndex;
+  final BossArenaDefinition? bossArena;
 
   @override
   bool operator ==(Object other) =>
@@ -45,7 +49,8 @@ final class ChunkV2MetadataSnapshot {
           difficulty == other.difficulty &&
           assemblyGroupId == other.assemblyGroupId &&
           _stringListsEqual(tags, other.tags) &&
-          groundBandZIndex == other.groundBandZIndex;
+          groundBandZIndex == other.groundBandZIndex &&
+          bossArena == other.bossArena;
 
   @override
   int get hashCode => Object.hash(
@@ -55,6 +60,7 @@ final class ChunkV2MetadataSnapshot {
     assemblyGroupId,
     Object.hashAll(tags),
     groundBandZIndex,
+    bossArena,
   );
 }
 
@@ -186,6 +192,8 @@ final class ChunkV2MetadataCommitPolicy {
         assemblyGroupId: after.assemblyGroupId,
         tags: after.tags,
         groundBandZIndex: after.groundBandZIndex,
+        bossArena: after.bossArena,
+        clearBossArena: after.bossArena == null,
       ),
       accepted: true,
       changed: true,

@@ -10,6 +10,9 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
+
+import 'components/boss_arena_barriers.dart';
+
 import 'package:run_protocol/replay_blob.dart';
 
 import 'components/aim_ray.dart';
@@ -126,6 +129,8 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
 
+  final _bossArenaBarriers = BossArenaBarriers();
+
   /// Atomic replay snapshots and events; null disables ghost rendering.
   final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
 
@@ -212,6 +217,7 @@ class RunnerFlameGame extends FlameGame {
   Future<void> _loadWorld() async {
     await super.onLoad();
     if (_removed) return;
+    await world.add(_bossArenaBarriers);
     _ghostLayer.attachListeners();
 
     assert(() {
@@ -335,6 +341,7 @@ class RunnerFlameGame extends FlameGame {
 
     final prevSnapshot = controller.prevSnapshot;
     final currSnapshot = controller.snapshot;
+    _bossArenaBarriers.arena = currSnapshot.bossArena;
     final alpha = controller.alpha;
     _applyRenderTheme(currSnapshot.visualThemeId);
 
@@ -355,7 +362,17 @@ class RunnerFlameGame extends FlameGame {
         alpha,
       ),
     );
+    // Intro feedback must show the complete arena on its first held frame.
+    if (currSnapshot.bossArena != null) {
+      _cameraBaseCenterScratch.setValues(
+        currSnapshot.camera.centerX,
+        currSnapshot.camera.centerY,
+      );
+    }
     _cameraShake.sample(dt, _cameraShakeOffsetScratch);
+    if (currSnapshot.bossArena?.playerHeld ?? false) {
+      _cameraShakeOffsetScratch.setZero();
+    }
     _cameraCenterScratch.setValues(
       _cameraBaseCenterScratch.x + _cameraShakeOffsetScratch.x,
       _cameraBaseCenterScratch.y + _cameraShakeOffsetScratch.y,

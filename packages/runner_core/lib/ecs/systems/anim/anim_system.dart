@@ -298,7 +298,13 @@ class AnimSystem {
       velX: common.velX,
       velY: common.velY,
       lastDamageTick: common.lastDamageTick,
-      hitAnimTicks: hitAnimTicks,
+      hitAnimTicks:
+          world.enemy.has(e) &&
+              world.enemy.enemyId[world.enemy.indexOf(e)] ==
+                  EnemyId.bringerOfDeath &&
+              world.activeAbility.hasActiveAbility(e)
+          ? 0
+          : hitAnimTicks,
       spawnStartTick: spawnStartTick,
       spawnAnimTicks: spawnAnimTicks,
       stunLocked: common.stunLocked,

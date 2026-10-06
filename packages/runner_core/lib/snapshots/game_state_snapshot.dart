@@ -4,6 +4,8 @@
 /// contract between Core and the Flame/Flutter layer—treat as read-only.
 library;
 
+import 'boss_arena_snapshot.dart';
+
 import '../levels/level_identity.dart';
 import 'camera_snapshot.dart';
 import 'entity_render_snapshot.dart';
@@ -35,6 +37,7 @@ class GameStateSnapshot {
     this.stagedTerrainRenderSnapshot,
     this.traps = const [],
     this.interactions = const [],
+    this.bossArena,
   });
 
   /// Current simulation tick.
@@ -77,6 +80,7 @@ class GameStateSnapshot {
   final List<StaticPrefabSpriteSnapshot> staticPrefabSprites;
   final List<TrapSnapshot> traps;
   final List<WorldInteractionSnapshot> interactions;
+  final BossArenaSnapshot? bossArena;
 
   /// Compiler-owned terrain fill data published with the active terrain bundle.
   ///

@@ -22,8 +22,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - 2 selectable character definitions
 - Pose-aligned combat capsules, shared fixed-tick animation clocks, and exact
   [combat debug geometry](docs/tdd/combat_pose_geometry.md)
-- 24 authored abilities (mobility, melee, ranged, defense, utility)
-- 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)
+- Authored abilities (mobility, melee, ranged, defense, utility)
+- 5 enemy archetypes: ground chaser, ambusher, flying demon, transforming cultist,
+  and Bringer of Death in a mandatory [Forest boss arena](docs/gdd/bringer_of_death.md)
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
   surviving section guards and Huntress throw/stab/slash combat,
   editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring

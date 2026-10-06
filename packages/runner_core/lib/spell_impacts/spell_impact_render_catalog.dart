@@ -50,6 +50,19 @@ class SpellImpactRenderCatalog {
           'id',
           'SpellImpactId.unknown has no render catalog entry.',
         );
+      case SpellImpactId.deathPillar:
+        return const RenderAnimSetDefinition(
+          frameWidth: 140,
+          frameHeight: 93,
+          anchorPoint: Vec2(70, 56),
+          sourcesByKey: {
+            AnimKey.hit: 'entities/enemies/bringer_of_death/sheet.png',
+          },
+          rowByKey: {AnimKey.hit: 6},
+          gridColumnsByKey: {AnimKey.hit: 8},
+          frameCountsByKey: {AnimKey.hit: 16},
+          stepTimeSecondsByKey: {AnimKey.hit: .08},
+        );
       case SpellImpactId.fireExplosion:
         return _fireExplosionRenderAnim;
     }

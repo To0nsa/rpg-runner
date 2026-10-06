@@ -44,6 +44,7 @@ class HashashTeleportAmbushSystem {
     final teleport = world.hashashTeleport;
     for (var i = 0; i < teleport.denseEntities.length; i += 1) {
       final enemy = teleport.denseEntities[i];
+      if (world.arenaSuspension.has(enemy)) continue;
       if (world.deathState.has(enemy)) {
         teleport.phase[i] = HashashTeleportPhase.idle;
         teleport.phaseEndTick[i] = -1;

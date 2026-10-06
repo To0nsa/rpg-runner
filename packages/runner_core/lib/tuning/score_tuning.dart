@@ -10,10 +10,12 @@ class ScoreTuning {
     this.distanceScorePerMeter = 5,
     this.groundEnemyKillScore = 100,
     this.unocoDemonKillScore = 150,
+    this.bossKillScore = 1000,
   }) : assert(timeScorePerSecond >= 0),
        assert(distanceScorePerMeter >= 0),
        assert(groundEnemyKillScore >= 0),
-       assert(unocoDemonKillScore >= 0);
+       assert(unocoDemonKillScore >= 0),
+       assert(bossKillScore >= 0);
 
   /// Points per real-time second survived (implemented deterministically via tickHz).
   final int timeScorePerSecond;
@@ -24,4 +26,7 @@ class ScoreTuning {
   /// Points for killing an enemy (by type).
   final int groundEnemyKillScore;
   final int unocoDemonKillScore;
+
+  /// Fixed first-boss defeat award; fight duration never increases this value.
+  final int bossKillScore;
 }

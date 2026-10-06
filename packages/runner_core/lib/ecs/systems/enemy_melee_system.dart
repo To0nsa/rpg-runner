@@ -4,6 +4,7 @@ import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/ability_timing.dart';
@@ -54,6 +55,7 @@ class EnemyMeleeSystem {
         continue;
       }
 
+      if (world.enemy.enemyId[enemyIndex] == EnemyId.bringerOfDeath) continue;
       final archetype = enemyCatalog.get(world.enemy.enemyId[enemyIndex]);
       final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
       if (primaryMeleeAbilityId == null) continue;

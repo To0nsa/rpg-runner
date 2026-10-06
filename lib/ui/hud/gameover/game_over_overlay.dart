@@ -106,6 +106,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       enemyKillCounts: event.stats.enemyKillCounts,
       rescuedNpcs: event.stats.rescuedNpcs,
       rescuePoints: event.stats.rescuePoints,
+      excludedScoreTicks: event.stats.excludedScoreTicks,
       tuning: widget.scoreTuning,
       tickHz: widget.tickHz,
     );
@@ -552,6 +553,8 @@ class _GameOverOverlayState extends State<GameOverOverlay>
 String? _buildSubtitleDeathReason(RunEndedEvent? event) {
   if (event == null) return null;
   switch (event.reason) {
+    case RunEndReason.bossEncounterFailed:
+      return 'Boss encounter failed';
     case RunEndReason.gaveUp:
       return 'You gave up the run.';
     case RunEndReason.fellBehindCamera:
@@ -638,6 +641,8 @@ String _enemyName(EnemyId id) {
       return 'Hashash';
     case EnemyId.derf:
       return 'Derf';
+    case EnemyId.bringerOfDeath:
+      return 'Bringer of Death';
   }
 }
 

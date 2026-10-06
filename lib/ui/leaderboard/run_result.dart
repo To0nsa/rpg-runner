@@ -97,6 +97,7 @@ RunResult buildRunResult({
     enemyKillCounts: event.stats.enemyKillCounts,
     rescuedNpcs: event.stats.rescuedNpcs,
     rescuePoints: event.stats.rescuePoints,
+    excludedScoreTicks: event.stats.excludedScoreTicks,
     tuning: scoreTuning,
     tickHz: tickHz,
   );

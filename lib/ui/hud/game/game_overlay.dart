@@ -6,10 +6,13 @@ import '../../../game/input/aim_preview.dart';
 import '../../../game/input/runner_gameplay_action.dart';
 import '../../../game/input/runner_semantic_action_dispatcher.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
+
 import 'package:runner_core/abilities/ability_def.dart';
+
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';
 import 'ready_overlay.dart';
+import 'boss_arena_hud.dart';
 import 'top_center_hud_overlay.dart';
 import 'top_left_hud_overlay.dart';
 import 'top_right_hud_overlay.dart';
@@ -190,6 +193,7 @@ class GameOverlay extends StatelessWidget {
           onStart: onStart,
           onTogglePause: onTogglePause,
         ),
+        BossArenaHud(controller: controller),
         AimCancelButtonOverlay(
           projectileAimPreview: projectileAimPreview,
           meleeAimPreview: meleeAimPreview,

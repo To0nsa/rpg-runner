@@ -60,9 +60,12 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts game compatibility `2026.10.6`;
-replay/command format `1`, `rules-v2`, `score-v3`, and `ghost-v1` are the
-supported ranked tuple. Rescue encounter outcomes and points are derived from
+The validator source accepts prepared game compatibility `2026.10.8`;
+replay/command format `1`, `rules-v2`, `score-v4`, and `ghost-v1` are the
+supported ranked tuple. This source includes mandatory boss arenas, whose
+entrance, defeat credit and excluded survival-score ticks are replayed through
+Core. The matching client/Functions/worker release is not deployed by this change.
+Rescue encounter outcomes and points are derived from
 replayed Core; provisional client rescue statistics are ignored. Living survivors
 continue fighting within their Flow section occurrence, with immutable rescue
 awards and deterministic guard rosters. This includes

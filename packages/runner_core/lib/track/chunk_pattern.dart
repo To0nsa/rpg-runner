@@ -4,6 +4,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../bosses/boss_arena_definition.dart';
 import '../encounters/encounter_definition.dart';
 import '../traps/trap_placement.dart';
 
@@ -19,6 +20,7 @@ class ChunkPattern {
     this.visualSprites = const <ChunkVisualSpriteRel>[],
     this.traps = const <TrapPlacement>[],
     this.encounters = const <EncounterDefinition>[],
+    this.bossArena,
   });
 
   /// Human-readable identifier for debugging/logging.
@@ -44,6 +46,9 @@ class ChunkPattern {
 
   /// Complete required groups, activated independently of ambient spawn rolls.
   final List<EncounterDefinition> encounters;
+
+  /// Mandatory arena lifecycle, independent of rescue objectives.
+  final BossArenaDefinition? bossArena;
 }
 
 /// Default chunk assembly group used when source omits explicit sequencing.

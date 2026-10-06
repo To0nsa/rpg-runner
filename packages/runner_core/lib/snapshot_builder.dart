@@ -21,6 +21,8 @@
 /// - [PlayerHudSnapshot] — Player resource bars, cooldowns, affordability flags.
 library;
 
+import 'snapshots/boss_arena_snapshot.dart';
+
 import 'combat/combat_geometry.dart';
 import 'ecs/actor_facing.dart';
 
@@ -167,6 +169,7 @@ class SnapshotBuilder {
     StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot,
     List<TrapSnapshot> traps = const [],
     List<WorldInteractionSnapshot> interactions = const [],
+    BossArenaSnapshot? bossArena,
   }) {
     // ─── Query player component indices ───
     final onGround = WorldSupportView(world).isGrounded(player);
@@ -417,6 +420,7 @@ class SnapshotBuilder {
       distance: distance,
       paused: paused,
       gameOver: gameOver,
+      bossArena: bossArena,
       camera: camera,
       hud: PlayerHudSnapshot(
         hp: fromFixed100(world.health.hp[hi]),
@@ -984,7 +988,7 @@ class SnapshotBuilder {
     final animStore = world.animState;
 
     for (final e in [...enemies.denseEntities, ...npcs.denseEntities]) {
-      if (!world.transform.has(e)) continue;
+      if (!world.transform.has(e) || world.arenaSuspension.has(e)) continue;
       final ti = world.transform.indexOf(e);
       final ei = enemies.tryIndexOf(e);
       final ni = npcs.tryIndexOf(e);

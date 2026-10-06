@@ -3956,6 +3956,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       assemblyGroupId: edit.assemblyGroupId,
       tags: edit.tags,
       groundBandZIndex: edit.groundBandZIndex,
+      bossArena: edit.bossArena,
     );
     if (chunk.chunkKey == edit.chunkKey &&
         chunk.id == edit.chunkKey &&

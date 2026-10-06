@@ -229,6 +229,27 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
             isRuntimeEligibleChunkStatus(item.source.status),
       )
       .toList();
+  for (final item in runtimeSources.where((i) => i.source.bossArena != null)) {
+    final boss = item.source;
+    if (runtimeSources
+            .where(
+              (i) =>
+                  i.source.levelId == boss.levelId &&
+                  i.source.assemblyGroupId == boss.assemblyGroupId,
+            )
+            .length !=
+        1) {
+      issues.add(
+        _issue(
+          code: 'boss_arena_pool_ambiguous',
+          message:
+              'Boss arena group ${boss.assemblyGroupId} must contain exactly one active chunk.',
+          sourcePath: item.sourcePath,
+          ownerKey: boss.chunkKey,
+        ),
+      );
+    }
+  }
   final scheduler = enumerateTerrainAuthoringReachability(
     connections: {
       for (final chunk in compiled)

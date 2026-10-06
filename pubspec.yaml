@@ -105,6 +105,7 @@ flutter:
     - assets/images/entities/effects/world_interactions/
     - assets/images/entities/enemies/arcane_archer/
     - assets/images/entities/enemies/brain_mole_monarch/
+    - assets/images/entities/enemies/bringer_of_death/
     - assets/images/entities/enemies/cacodaemon/
     - assets/images/entities/enemies/derf/
     - assets/images/entities/enemies/ferret/

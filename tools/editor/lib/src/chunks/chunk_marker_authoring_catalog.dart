@@ -45,7 +45,8 @@ final List<ChunkMarkerEnemyCatalogEntry> chunkMarkerEnemyCatalog =
     List<ChunkMarkerEnemyCatalogEntry>.unmodifiable(() {
       const catalog = EnemyCatalog();
       final entries = <ChunkMarkerEnemyCatalogEntry>[
-        for (final enemyId in EnemyId.values) _entryFor(catalog, enemyId),
+        for (final enemyId in EnemyId.values)
+          if (enemyId != EnemyId.bringerOfDeath) _entryFor(catalog, enemyId),
       ];
       entries.sort((left, right) => left.markerId.compareTo(right.markerId));
       return entries;
@@ -105,4 +106,5 @@ String _enemyDisplayName(EnemyId enemyId) => switch (enemyId) {
   EnemyId.grojib => 'Grojib',
   EnemyId.hashash => 'Hashash',
   EnemyId.derf => 'Derf',
+  EnemyId.bringerOfDeath => 'Bringer of Death',
 };

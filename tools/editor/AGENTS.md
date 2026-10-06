@@ -267,6 +267,11 @@ maintainability concerns.
 
 ### Chunk Domain
 
+- boss arenas are owner metadata edited through the existing optimistic metadata
+  command and Save path. Preserve their data across composition/history changes;
+  use the shared boss decoder and Core placement for Build/Play readiness. Do not
+  expose arena-only bosses in ambient marker or rescue enemy catalogs.
+
 - encounter participants are owned by a group in one chunk; edit them through
   the existing composition command and stable group/member IDs. Shared pipeline
   decoding/readiness owns validation, and Core owns terrain placement evidence.

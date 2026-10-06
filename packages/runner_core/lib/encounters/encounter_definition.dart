@@ -111,6 +111,11 @@ final class EncounterDefinition {
        enemies = List.unmodifiable(enemies) {
     _validateId(id);
     if (name.trim().isEmpty) throw ArgumentError.value(name, 'name');
+    if (this.enemies.any((enemy) => enemy.enemyId == EnemyId.bringerOfDeath)) {
+      throw ArgumentError(
+        'Bosses require their own arena, outside rescue rosters.',
+      );
+    }
     if (pointsPerNpc != null) EncounterLimits.validatePoints(pointsPerNpc!);
     if (this.npcs.length > EncounterLimits.maxNpcsPerEncounter ||
         this.enemies.length > EncounterLimits.maxEnemiesPerEncounter) {

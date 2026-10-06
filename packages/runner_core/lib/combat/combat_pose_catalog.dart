@@ -171,6 +171,54 @@ abstract final class CombatPoseCatalog {
       [],
     ],
   );
+  static const bringerScythe = CombatStrikeProfile(
+    artFacing: Facing.left,
+    timing: ActionFramePolicy(frameCount: 10, activeStart: 4, activeEnd: 7),
+    frames: [
+      [],
+      [],
+      [],
+      [],
+      [
+        CombatCapsule(-12, -20, -65, -27, 6),
+        CombatCapsule(-65, -27, -86, -7, 7),
+      ],
+      [
+        CombatCapsule(-18, -24, -76, -17, 7),
+        CombatCapsule(-76, -17, -80, 8, 7),
+      ],
+      [CombatCapsule(-24, -18, -69, 6, 6)],
+      [],
+      [],
+      [],
+    ],
+  );
+  static const bringerPillar = CombatStrikeProfile(
+    timing: ActionFramePolicy(frameCount: 16, activeStart: 6, activeEnd: 12),
+    frames: [
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [CombatCapsule(0, -20, 0, 24, 10)],
+      [CombatCapsule(0, -20, 0, 24, 10)],
+      [CombatCapsule(0, -20, 0, 24, 10)],
+      [CombatCapsule(0, -20, 0, 24, 10)],
+      [CombatCapsule(0, -20, 0, 24, 10)],
+      [CombatCapsule(0, -20, 0, 24, 10)],
+      [],
+      [],
+      [],
+      [],
+    ],
+  );
+  static const bringerCast = ActionFramePolicy(
+    frameCount: 9,
+    activeStart: 5,
+    activeEnd: 6,
+  );
   static const fireExplosion = CombatStrikeProfile(
     timing: ActionFramePolicy(frameCount: 16, activeStart: 2, activeEnd: 4),
     frames: [
@@ -247,6 +295,8 @@ abstract final class CombatPoseCatalog {
         'unoco.strike' => unocoStrike.timing,
         'unoco.fire_bolt_cast' => unocoCast,
         'derf.fire_explosion' => derfCast,
+        'bringer.scythe_sweep' => bringerScythe.timing,
+        'bringer.death_pillar' => bringerCast,
         _ => null,
       };
 }

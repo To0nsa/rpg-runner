@@ -7,6 +7,7 @@
 library;
 
 import '../enemies/enemy_id.dart';
+import '../bosses/boss_arena_definition.dart';
 import '../combat/ai_target_policy.dart';
 import '../encounters/encounter_definition.dart';
 import '../npcs/npc_id.dart';
@@ -817,6 +818,100 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
 ];
 
 final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
+  ChunkPattern(
+    name: 'forest_boss_easy_001',
+    chunkKey: 'forest_boss_easy_001',
+    assemblyGroupId: 'boss_bringer_of_death',
+    visualSprites: const <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/tiny_swords/ground.png',
+        srcX: 0,
+        srcY: 448,
+        srcWidth: 96,
+        srcHeight: 32,
+        x: 167.0,
+        y: 133.0,
+        width: 96.0,
+        height: 32.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
+        srcX: 576,
+        srcY: 832,
+        srcWidth: 96,
+        srcHeight: 128,
+        x: 19.0,
+        y: 97.0,
+        width: 96.0,
+        height: 128.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
+        srcX: 464,
+        srcY: 848,
+        srcWidth: 80,
+        srcHeight: 128,
+        x: 379.0,
+        y: 101.0,
+        width: 80.0,
+        height: 128.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/high_forest/props_and_terrain.png',
+        srcX: 272,
+        srcY: 48,
+        srcWidth: 128,
+        srcHeight: 48,
+        x: 325.0,
+        y: 176.0,
+        width: 128.0,
+        height: 48.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 416,
+        srcY: 504,
+        srcWidth: 104,
+        srcHeight: 32,
+        x: 269.0,
+        y: 205.0,
+        width: 104.0,
+        height: 32.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 336,
+        srcY: 280,
+        srcWidth: 128,
+        srcHeight: 32,
+        x: 405.0,
+        y: 207.0,
+        width: 128.0,
+        height: 32.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/atlases/dark_forest/trees.png',
+        srcX: 0,
+        srcY: 264,
+        srcWidth: 152,
+        srcHeight: 32,
+        x: 323.0,
+        y: 208.0,
+        width: 152.0,
+        height: 32.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: const <SpawnMarker>[
+    ],
+    bossArena: BossArenaDefinition(id: 'forest_bringer_of_death', enemyId: EnemyId.bringerOfDeath, spawnX: 440.0, minX: 24.0, maxX: 576.0),
+  ),
   ChunkPattern(
     name: 'forest_enchanted_forest_easy_001',
     chunkKey: 'forest_enchanted_forest_easy_001',

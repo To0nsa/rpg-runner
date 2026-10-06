@@ -49,6 +49,8 @@ import 'viewport/viewport_metrics.dart';
 ///
 /// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
 /// resumes lifecycle-paused play while preserving manual pauses and ready state.
+/// Boss entrances hold controls within the active Core run; the replay clock
+/// continues, and defeating the boss restores ordinary route progression.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen.

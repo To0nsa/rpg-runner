@@ -3,6 +3,7 @@ import 'package:runner_content_pipeline/runner_content_pipeline.dart'
         decodeWaterRegions,
         decodeTrapPlacements,
         decodeEncounterDefinitions,
+        decodeBossArena,
         encounterDefinitionsToJson;
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
@@ -50,6 +51,7 @@ abstract final class ChunkV2FileCodec {
         'waterRegions',
         'traps',
         'encounters',
+        'bossArena',
       },
       required: const <String>{
         'schemaVersion',
@@ -176,6 +178,14 @@ abstract final class ChunkV2FileCodec {
             )
           : 0,
       collisionShapes: collisionShapes,
+      bossArena: root.containsKey('bossArena')
+          ? decodeBossArena(
+              root['bossArena'],
+              sourcePath: '$sourcePath.bossArena',
+              chunkWidth: root['width'] as int,
+              chunkHeight: root['height'] as int,
+            )
+          : null,
       encounters: decodeEncounterDefinitions(
         root.containsKey('encounters') ? root['encounters'] : const [],
         sourcePath: '$sourcePath.encounters',

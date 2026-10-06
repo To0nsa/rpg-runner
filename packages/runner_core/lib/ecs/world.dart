@@ -1,5 +1,8 @@
 import 'entity_id.dart';
 import 'stores/combat_hurtbox_store.dart';
+import 'stores/actor_motion_bounds_store.dart';
+import 'stores/arena_suspension_store.dart';
+import 'stores/arena_protection_store.dart';
 import 'stores/ai_target_store.dart';
 import 'stores/npc_store.dart';
 import 'stores/encounter_member_store.dart';
@@ -106,6 +109,16 @@ class EcsWorld {
     LevelBlessingStore(),
   );
   late final AiTargetStore aiTarget = _register(AiTargetStore());
+  late final ArenaSuspensionStore arenaSuspension = _register(
+    ArenaSuspensionStore(),
+  );
+
+  late final ArenaProtectionStore arenaProtection = _register(
+    ArenaProtectionStore(),
+  );
+  late final ActorMotionBoundsStore actorMotionBounds = _register(
+    ActorMotionBoundsStore(),
+  );
   late final DerfPhaseStore derfPhase = _register(DerfPhaseStore());
   late final NpcStore npc = _register(NpcStore());
   late final EncounterMemberStore encounterMember = _register(

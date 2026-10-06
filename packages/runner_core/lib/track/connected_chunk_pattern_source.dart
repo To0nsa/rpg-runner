@@ -78,6 +78,16 @@ final class ConnectedChunkPatternSource extends ChunkPatternSource {
         );
       }
     }
+    for (final boss in patterns.values.where((p) => p.bossArena != null)) {
+      if (patterns.values
+              .where((p) => p.assemblyGroupId == boss.assemblyGroupId)
+              .length !=
+          1) {
+        throw ArgumentError(
+          'Boss arena group ${boss.assemblyGroupId} must have one candidate.',
+        );
+      }
+    }
     final assembly = level.assembly;
     return ConnectedChunkPatternSource(
       schedule: TerrainConnectionSchedule.build(

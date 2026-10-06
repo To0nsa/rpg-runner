@@ -668,6 +668,7 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
   final hasEncounters = chunks.any(
     (chunk) => chunk.pattern.encounters.isNotEmpty,
   );
+  final hasBossArenas = chunks.any((chunk) => chunk.pattern.bossArena != null);
   final hasAnySpawnMarkers = chunks.any(
     (chunk) => chunk.spawnMarkers.isNotEmpty,
   );
@@ -680,8 +681,11 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
     ..writeln('/// - assets/authoring/level/tile_defs.json')
     ..writeln('library;')
     ..writeln();
-  if (hasAnySpawnMarkers || hasEncounters) {
+  if (hasAnySpawnMarkers || hasEncounters || hasBossArenas) {
     buffer.writeln("import '../enemies/enemy_id.dart';");
+  }
+  if (hasBossArenas) {
+    buffer.writeln("import '../bosses/boss_arena_definition.dart';");
   }
   if (hasEncounters) {
     buffer
@@ -756,11 +760,12 @@ void _writePatternList(
   String variableName,
   List<_ChunkExportData> chunks,
 ) {
-  final hasEncounters = chunks.any(
-    (chunk) => chunk.pattern.encounters.isNotEmpty,
+  final requiresRuntimeInitialization = chunks.any(
+    (chunk) =>
+        chunk.pattern.encounters.isNotEmpty || chunk.pattern.bossArena != null,
   );
   buffer.writeln(
-    '${hasEncounters ? 'final' : 'const'} List<ChunkPattern> $variableName = ${hasEncounters ? 'List.unmodifiable(' : ''}<ChunkPattern>[',
+    '${requiresRuntimeInitialization ? 'final' : 'const'} List<ChunkPattern> $variableName = ${requiresRuntimeInitialization ? 'List.unmodifiable(' : ''}<ChunkPattern>[',
   );
   for (final chunk in chunks) {
     buffer
@@ -770,7 +775,7 @@ void _writePatternList(
       ..writeln("    assemblyGroupId: '${_escape(chunk.assemblyGroupId)}',");
 
     buffer.writeln(
-      '    visualSprites: ${hasEncounters ? 'const ' : ''}<ChunkVisualSpriteRel>[',
+      '    visualSprites: ${requiresRuntimeInitialization ? 'const ' : ''}<ChunkVisualSpriteRel>[',
     );
     for (final sprite in chunk.visualSprites) {
       buffer
@@ -796,7 +801,7 @@ void _writePatternList(
     buffer.writeln('    ],');
 
     buffer.writeln(
-      '    spawnMarkers: ${hasEncounters ? 'const ' : ''}<SpawnMarker>[',
+      '    spawnMarkers: ${requiresRuntimeInitialization ? 'const ' : ''}<SpawnMarker>[',
     );
     for (final marker in chunk.spawnMarkers) {
       buffer.writeln(
@@ -806,7 +811,7 @@ void _writePatternList(
     buffer.writeln('    ],');
     if (chunk.pattern.traps.isNotEmpty) {
       buffer.writeln(
-        '    traps: ${hasEncounters ? 'const ' : ''}<TrapPlacement>[',
+        '    traps: ${requiresRuntimeInitialization ? 'const ' : ''}<TrapPlacement>[',
       );
       for (final trap in chunk.pattern.traps) {
         final rect = trap.trigger;
@@ -826,6 +831,12 @@ void _writePatternList(
         buffer.writeln('      ),');
       }
       buffer.writeln('    ],');
+    }
+    final arena = chunk.pattern.bossArena;
+    if (arena != null) {
+      buffer.writeln(
+        "    bossArena: BossArenaDefinition(id: '${_escape(arena.id)}', enemyId: EnemyId.${arena.enemyId.name}, spawnX: ${arena.spawnX}, minX: ${arena.minX}, maxX: ${arena.maxX}),",
+      );
     }
     if (chunk.pattern.encounters.isNotEmpty) {
       buffer.writeln(
@@ -870,7 +881,7 @@ void _writePatternList(
     }
     buffer.writeln('  ),');
   }
-  buffer.writeln(hasEncounters ? ']);' : '];');
+  buffer.writeln(requiresRuntimeInitialization ? ']);' : '];');
 }
 
 String _enemyEnum(EnemyId enemyId) => 'EnemyId.${enemyId.name}';

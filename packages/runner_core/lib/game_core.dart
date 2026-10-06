@@ -17,6 +17,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'camera/autoscroll_camera.dart';
+import 'bosses/boss_arena_system.dart';
+import 'bosses/boss_arena_spawn_adapter.dart';
+import 'ecs/systems/bringer_combat_system.dart';
 import 'scoring/run_distance.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
@@ -973,6 +976,16 @@ class GameCore {
     tickHz: _movement.tickHz,
   );
   final EncounterSystem _encounters = EncounterSystem();
+  late final _bossArenas = BossArenaSystem(tickHz: tickHz);
+  late final _bossArenaSpawns = BossArenaSpawnAdapter(
+    motion: _worldMotionAuthority,
+    spawns: _spawnService,
+    groundTopY: _levelDefinition.groundTopY,
+  );
+  late final _bringerCombat = BringerCombatSystem(
+    tickHz: tickHz,
+    castCommitter: _enemyCastSystem.committer,
+  );
   List<ActiveTrackChunkSnapshot>? _registeredEncounterChunks;
   late final _encounterSpawnAdapter = EncounterSpawnAdapter(
     world: _world,
@@ -1531,6 +1544,7 @@ class GameCore {
         playerDeathStartTick: _playerDeathStartTick,
         playerSpawnStartTick: _playerSpawnStartTick,
       );
+      _bossArenas.countScoreTick(tick);
       _deathAnimTicksLeft -= 1;
       if (_deathAnimTicksLeft <= 0) {
         _endRun(
@@ -1571,6 +1585,17 @@ class GameCore {
       spawn: (occurrence) =>
           _encounterSpawnAdapter.spawn(occurrence, tick: tick),
     );
+    _bossArenas.synchronize(_trackManager.activeChunks, _camera.right());
+    _bossArenas.prepare(
+      _world,
+      player: _player,
+      tick: tick,
+      spawn: _bossArenaSpawns.spawn,
+    );
+    if (_bossArenas.failed) {
+      _endRun(RunEndReason.bossEncounterFailed);
+      return;
+    }
     _worldMotionAuthority.prepareTick(
       _world,
       player: _player,
@@ -1603,6 +1628,7 @@ class GameCore {
     );
 
     // ─── Phase 3: AI, input, and movement ───
+    _bossArenas.control(_world, player: _player, tick: tick);
     // Visibility gates must lock newly spawned Derfs before navigation/combat.
     _derfTransformationSystem.step(
       _world,
@@ -1632,6 +1658,7 @@ class GameCore {
       waterRegions: waterRegions,
     );
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
+    _bringerCombat.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);
     _npcAiSystem.step(
       _world,
@@ -1687,9 +1714,17 @@ class GameCore {
       dtSeconds: _movement.dtSeconds,
       playerRightX: _playerRightX(),
       playerY: _playerYOrNull(),
+      stopAtCenterX: _bossArenas.cameraStopX,
+      stopAtCenterY: _bossArenas.cameraStopX == null ? null : virtualHeight / 2,
       targetSpeedX: _cameraTuning.targetSpeedXFor(
         _trackManager.difficultyAtWorldX(_camera.state.centerX),
       ),
+    );
+    _bossArenas.afterCamera(
+      _world,
+      player: _player,
+      camera: _camera.state,
+      tick: tick,
     );
     final cameraLeft = _camera.left();
     _derfTransformationSystem.step(
@@ -1700,7 +1735,8 @@ class GameCore {
       cameraRight: _camera.right(),
       cameraBottom: _camera.bottom(),
     );
-    if (_checkFellBehindCamera(cameraLeft: cameraLeft)) {
+    if (!_bossArenas.arenaFramed &&
+        _checkFellBehindCamera(cameraLeft: cameraLeft)) {
       _endRun(RunEndReason.fellBehindCamera);
       return;
     }
@@ -1751,6 +1787,8 @@ class GameCore {
     _meleeStrikeSystem.step(_world, currentTick: tick);
     _projectileLaunchSystem.step(_world, currentTick: tick);
     _targetPointImpactSystem.step(_world, currentTick: tick);
+
+    _bossArenas.protectCombat(_world, _player);
 
     // ─── Phase 11: Hitbox positioning ───
     // Select visible poses before building combat bounds. The final animation
@@ -1887,7 +1925,9 @@ class GameCore {
       cameraLeft: cameraLeft,
       groundTopY: effectiveGroundTopY,
       tuning: _trackTuning,
-      retainForEncounter: (entity) => _encounters.retainsActor(_world, entity),
+      retainForEncounter: (entity) =>
+          _encounters.retainsActor(_world, entity) ||
+          _bossArenas.retainsActor(entity),
     );
     _encounters.resolve(
       _world,
@@ -1896,6 +1936,11 @@ class GameCore {
       runEnded: _isPlayerDead(),
     );
     _flushEncounterOutcomes();
+    _bossArenas.resolve(_world, playerDead: _isPlayerDead());
+    if (_bossArenas.failed && !_isPlayerDead()) {
+      _endRun(RunEndReason.bossEncounterFailed);
+      return;
+    }
     _enemyDeathStateSystem.step(
       _world,
       currentTick: tick,
@@ -1904,6 +1949,7 @@ class GameCore {
     _npcDeathStateSystem.step(_world, currentTick: tick);
     _deathDespawnSystem.step(_world, currentTick: tick);
     _healthDespawnSystem.step(_world, player: _player);
+    if (_isPlayerDead()) _killedEnemiesScratch.remove(EnemyId.bringerOfDeath);
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
     }
@@ -1967,7 +2013,8 @@ class GameCore {
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: enemyRequests.add,
-      retainChunk: _encounters.retainsChunk,
+      retainChunk: (index) =>
+          _encounters.retainsChunk(index) || _bossArenas.retainsChunk(index),
     );
     if (result.selectionChanged) {
       _replaceStagedTerrainCandidate(_trackManager.activeChunks);
@@ -2140,6 +2187,8 @@ class GameCore {
         : supportPoint.yTicks / terrainPhysicsTicksPerWorldUnit;
 
     switch (enemyId) {
+      case EnemyId.bringerOfDeath:
+        throw StateError('Bosses must be spawned by their owning arena.');
       case EnemyId.unocoDemon:
         _spawnService.spawnUnocoDemon(
           spawnX: bodyX,
@@ -2179,6 +2228,7 @@ class GameCore {
   /// After this call, [gameOver] is true and [stepOneTick] will no-op.
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     _encounters.endRun(_world, tick: tick);
+    _bossArenas.endRun(_world, _player);
     _flushEncounterOutcomes();
     gameOver = true;
     paused = true;
@@ -2221,6 +2271,7 @@ class GameCore {
     enemyKillCounts: List<int>.unmodifiable(_enemyKillCounts),
     rescuedNpcs: _encounters.rescuedNpcs,
     rescuePoints: _encounters.rescuePoints,
+    excludedScoreTicks: _bossArenas.excludedScoreTicks,
   );
 
   /// Checks if the player's HP has reached zero.
@@ -2482,6 +2533,7 @@ class GameCore {
       staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
       traps: _world.traps.buildSnapshots(),
       interactions: _world.interactions.buildSnapshots(),
+      bossArena: _bossArenas.snapshot(_world),
       stagedTerrainRenderSnapshot:
           _worldMotionAuthority.terrainRenderSnapshot ??
           _stagedTerrainCandidate?.renderSnapshot,

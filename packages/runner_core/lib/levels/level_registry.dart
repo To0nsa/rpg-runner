@@ -122,6 +122,14 @@ class LevelRegistry {
                 requireDistinctChunks: true,
               ),
               LevelAssemblySegment(
+                segmentId: 'bringer_of_death_arena',
+                groupId: 'boss_bringer_of_death',
+                difficulty: ChunkPatternTier.easy,
+                minChunkCount: 1,
+                maxChunkCount: 1,
+                requireDistinctChunks: true,
+              ),
+              LevelAssemblySegment(
                 segmentId: 'default_3',
                 groupId: 'enchanted_forest',
                 difficulty: ChunkPatternTier.easy,

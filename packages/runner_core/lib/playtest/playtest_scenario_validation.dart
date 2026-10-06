@@ -1,6 +1,8 @@
 /// Shared admission primitives for the two explicit authored playtest scopes.
 library;
 
+import '../bosses/boss_arena_placement.dart';
+
 import '../collision/terrain/terrain_authoring_scheduler.dart';
 import '../collision/terrain/terrain_boundary_signature.dart';
 import '../levels/level_assembly.dart';
@@ -66,6 +68,7 @@ ChunkPattern immutablePlaytestPattern(ChunkPattern source) => ChunkPattern(
   visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(source.visualSprites),
   traps: List<TrapPlacement>.unmodifiable(source.traps),
   encounters: List.unmodifiable(source.encounters),
+  bossArena: source.bossArena,
 );
 
 /// Typed tooling inputs must pass the same complete-roster placement as runtime.
@@ -74,7 +77,7 @@ void validatePlaytestEncounters(
   StagedTerrainChunkData terrain,
   LevelDefinition level,
 ) {
-  if (pattern.encounters.isEmpty) return;
+  if (pattern.encounters.isEmpty && pattern.bossArena == null) return;
   try {
     if (pattern.encounters.length > EncounterLimits.maxEncountersPerChunk ||
         pattern.encounters.map((e) => e.id).toSet().length !=
@@ -95,6 +98,19 @@ void validatePlaytestEncounters(
       geometryVersion: 0,
     );
     final resolver = TerrainSpawnPlacementResolver.forGeometry(geometry);
+    final arena = pattern.bossArena;
+    if (arena != null) {
+      arena.validateForChunk(terrain.width, terrain.height);
+      if (resolveBossArenaPlacement(
+            arena: arena,
+            startX: 0,
+            groundTopY: level.groundTopY,
+            resolve: resolver.resolve,
+          ) ==
+          null) {
+        throw ArgumentError('Boss arena ${arena.id} has invalid placement.');
+      }
+    }
     for (final encounter in pattern.encounters) {
       if (encounter.trigger.y < 0 ||
           encounter.trigger.y + encounter.trigger.height > terrain.height) {

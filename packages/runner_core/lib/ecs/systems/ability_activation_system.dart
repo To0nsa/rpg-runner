@@ -1431,6 +1431,7 @@ class AbilityActivationSystem {
     for (var i = 0; i < targets.length; i += 1) {
       final target = targets[i];
       if (target == source ||
+          world.arenaSuspension.has(target) ||
           world.health.hp[i] <= 0 ||
           world.deathState.has(target)) {
         continue;

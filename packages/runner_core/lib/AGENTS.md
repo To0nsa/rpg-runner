@@ -44,6 +44,13 @@ Important files to understand before editing:
 
 Treat `GameCore.stepOneTick()` ordering as a behavior contract, not incidental implementation detail.
 
+Mandatory boss arenas live in `bosses/`; they own framing, introduction, combat
+confinement, retention and release. Reuse terrain motion and committed-action
+executors. Arena protection and suspension must be lifecycle-registered stores
+so recycled entity IDs cannot inherit encounter ownership. See
+[boss arena contracts](../../../docs/tdd/boss_arenas.md); renderer timers never
+advance these phases. Bringer is excluded from ambient and rescue rosters.
+
 ## Determinism Rules
 
 Core currently depends on deterministic fixed-tick behavior. Preserve these rules:

@@ -92,11 +92,16 @@ class AutoscrollCamera {
   ///
   /// [targetSpeedX] overrides the baseline target for the current tick. Speed
   /// still approaches it through the configured acceleration.
+  ///
+  /// [stopAtCenterX] frames a mandatory arena exactly, clearing forward momentum.
+  /// [stopAtCenterY] fixes its vertical framing once that horizontal stop is reached.
   void updateTick({
     required double dtSeconds,
     required double? playerRightX,
     required double? playerY,
     double? targetSpeedX,
+    double? stopAtCenterX,
+    double? stopAtCenterY,
   }) {
     final t = _tuning;
     final resolvedTargetSpeedX = targetSpeedX ?? t.targetSpeedX;
@@ -148,6 +153,18 @@ class AutoscrollCamera {
     if (centerX < _state.centerX) centerX = _state.centerX;
     if (targetX < _state.targetX) targetX = _state.targetX;
 
+    // Stop on the exact framing tick, clearing the forward target and momentum.
+    // Clamping only speed leaves the player-follow target advancing the arena.
+    if (stopAtCenterX != null) {
+      if (!stopAtCenterX.isFinite || stopAtCenterX < _state.centerX) {
+        throw ArgumentError('Arena camera stop must be finite and ahead.');
+      }
+      if (centerX >= stopAtCenterX) {
+        centerX = stopAtCenterX;
+        targetX = stopAtCenterX;
+        speedX = 0;
+      }
+    }
     var targetY = _state.targetY;
     var centerY = _state.centerY;
     if (t.verticalMode == CameraVerticalMode.followPlayer && playerY != null) {
@@ -168,6 +185,13 @@ class AutoscrollCamera {
       centerY = centerY + (targetY - centerY) * alphaCenterY;
     }
 
+    if (stopAtCenterY != null && centerX == stopAtCenterX) {
+      if (!stopAtCenterY.isFinite) {
+        throw ArgumentError('Arena camera Y must be finite.');
+      }
+      centerY = stopAtCenterY;
+      targetY = stopAtCenterY;
+    }
     _state = _state.copyWith(
       centerX: centerX,
       targetX: targetX,

@@ -1,5 +1,7 @@
 # Current Implementation Plans
 
+- [Forest boss arena](forest_boss_arena.md): implementation complete; final validation and branch review in progress.
+
 - [Completed combat hitbox alignment](../archive/2026-10-05/building/combat_hitbox_alignment.md):
   reviewed combat poses, shared timing, and exact debug geometry pass local
   validation; see [verification](../verification/combat-hitbox-alignment.md).
