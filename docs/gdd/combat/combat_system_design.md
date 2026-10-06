@@ -28,6 +28,11 @@ End-to-end combat sequence (authoritative runtime path):
    statuses.
 7. `StatusSystem.applyQueued` applies final queued status/purge effects for the tick.
 
+Enemy and allied NPC melee animations remain upright when they turn during an
+attack. Their body and weapon shapes mirror horizontally with their facing.
+Player melee continues to rotate with the committed aim direction, including
+front and back strikes.
+
 ## Data Primitives
 
 ### Damage and Combat IDs

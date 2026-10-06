@@ -1,9 +1,10 @@
 # Combat pose geometry
 
-Implemented for source compatibility `2026.10.6`. Core owns combat geometry and
-its fixed-tick pose selection; Flame reads snapshots. Runtime collision never
-loads images. Replay/command format 1, `rules-v2`, `score-v3`, and `ghost-v1`
-remain unchanged. This revision requires the coordinated release workflow.
+The base implementation shipped in compatibility `2026.10.6`. Core owns combat
+geometry and its fixed-tick pose selection; Flame reads snapshots. Runtime
+collision never loads images. Replay/command format 1, `rules-v2`, `score-v3`,
+and `ghost-v1` remain unchanged. This revision requires the coordinated release
+workflow.
 
 ## Geometry ownership
 
@@ -20,6 +21,13 @@ Coordinates include presentation scale and use the catalog sprite anchor.
 Player back-strike art faces left; its snapshot and geometry mirror together.
 Aimed player melee rotates the complete action pose around that anchor, using
 the committed direction. Horizontal front/back attacks remain upright.
+
+Enemy and allied NPC melee poses stay upright and mirror with current facing.
+They do not use player aim rotation: locomotion can change their facing after
+attack commitment, and rotating the old direction against the new facing would
+invert both the sprite and its combat capsules. This source correction affects
+combat outcomes when an autonomous actor turns during a strike, so it requires
+a coordinated client/worker compatibility release after deployed `2026.10.6`.
 
 `WorldContactCapsuleStore` remains the immutable, quantized terrain/navigation
 shape. `CombatHurtboxStore` is the separately resolved vulnerable body. Roll,
