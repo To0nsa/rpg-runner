@@ -94,7 +94,8 @@ simulation loop. Follow
 [the level traversal workflow](../../.agent/workflows/test-level-traversal.md)
 for generated freshness, capability limits, focused reproductions and cases
 that need an adapted target/spawn policy. Keep harness control tests passing
-when adapting it. Stationary enemies need placement tests, not traversal goals.
+when adapting it. Derf traversal starts already transformed; retain separate
+phase, casting and placement tests.
 
 ## Documentation and workflows
 

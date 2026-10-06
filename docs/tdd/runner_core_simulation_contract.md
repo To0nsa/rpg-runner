@@ -538,3 +538,11 @@ Normal Core binds authored chunk pools to compiled terrain with
 continuations, spawn rules, seeded salts and bounded cursor are specified in
 [chunk connections](chunk_connections.md). Level Play and replay consume the same
 Core rules. This selection change is versioned as game compatibility 2026.09.0.
+
+## Derf lifecycle
+
+[Derf transformation](derf_transformation.md) is Core-owned and replayed. Phase
+locks run before AI and visibility is checked again after camera movement.
+Normal Derf retains explosions; transformation cancels pending casts; twisted
+Derf uses grounded pursuit and tentacle melee. This requires compatibility
+`2026.10.7` with matching client, Functions and worker artifacts.

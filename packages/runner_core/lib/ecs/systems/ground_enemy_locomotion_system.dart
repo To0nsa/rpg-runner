@@ -125,7 +125,8 @@ class GroundEnemyLocomotionSystem {
           (world.transform.posY[targetTi] - world.transform.posY[enemyTi])
                   .abs() <=
               world.colliderAabb.halfY[world.colliderAabb.indexOf(enemy)] &&
-          (targetX - ex).abs() <= groundEnemyTuning.combat.meleeRangeX) {
+          (targetX - ex).abs() <=
+              world.engagementIntent.meleeRangeX[engagementIndex]) {
         _stopLocomotion(world, enemy, enemyTi, world.terrainContact.has(enemy));
         if (targetX != ex) {
           setActorFacing(

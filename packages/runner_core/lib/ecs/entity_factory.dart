@@ -203,7 +203,7 @@ class EntityFactory {
         const FlyingEnemyCombatModeDef(mode: FlyingEnemyCombatMode.projectile),
       );
     }
-    if (enemyId == EnemyId.grojib || enemyId == EnemyId.hashash) {
+    if (groundNavigatingEnemyIds.contains(enemyId)) {
       world.swimState.add(id);
       world.surfaceNav.add(id);
       world.groundEnemyChaseOffset.add(
@@ -222,6 +222,7 @@ class EntityFactory {
         ),
       );
     }
+    if (enemyId == EnemyId.derf) world.derfPhase.add(id);
     return id;
   }
 

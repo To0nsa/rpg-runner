@@ -1,13 +1,11 @@
 import '../../combat/combat_pose_catalog.dart';
-
-import 'package:runner_core/combat/damage_type.dart';
-
+import '../../combat/damage_type.dart';
 import '../../snapshots/enums.dart';
 import '../../spell_impacts/spell_impact_id.dart';
 import '../ability_def.dart';
 
-/// Derf-authored abilities.
-final Map<AbilityKey, AbilityDef> derfAbilityDefs = <AbilityKey, AbilityDef>{
+/// Normal Derf casts explosions; twisted Derf uses the extended tentacle.
+final Map<AbilityKey, AbilityDef> derfAbilityDefs = {
   'derf.fire_explosion': AbilityDef(
     id: 'derf.fire_explosion',
     category: AbilityCategory.ranged,
@@ -29,5 +27,21 @@ final Map<AbilityKey, AbilityDef> derfAbilityDefs = <AbilityKey, AbilityDef>{
     animKey: AnimKey.cast,
     baseDamage: 700,
     baseDamageType: DamageType.fire,
+  ),
+  'derf.tentacle_strike': AbilityDef(
+    id: 'derf.tentacle_strike',
+    category: AbilityCategory.melee,
+    hitDelivery: MeleeHitDelivery(
+      profile: CombatPoseCatalog.derfTentacle,
+      hitPolicy: HitPolicy.oncePerTarget,
+    ),
+    // At 60 Hz: 300 ms telegraph, 200 ms extension, 200 ms retraction.
+    windupTicks: 18,
+    activeTicks: 12,
+    recoveryTicks: 12,
+    cooldownTicks: 60,
+    animKey: AnimKey.strike,
+    baseDamage: 800,
+    baseDamageType: DamageType.physical,
   ),
 };

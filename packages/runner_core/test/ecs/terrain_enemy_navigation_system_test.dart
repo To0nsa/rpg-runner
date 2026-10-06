@@ -164,7 +164,7 @@ void main() {
       expect(world.navIntent.desiredX[nav], 150);
     },
   );
-  test('ground pursuit derives stationary enemy support without adding dynamic contacts', () {
+  test('ground pursuit derives synthetic kinematic target support without dynamic contacts', () {
     final bundle = TerrainRuntimeBundle.build(
       geometry: _floorGeometry(version: 1),
       groundEnemyProfiles: [
@@ -233,6 +233,9 @@ void main() {
     );
     world.worldContactCapsule.add(target, contact.capsule);
     world.terrainTraversalProfile.add(target, contact.traversal);
+    world.enemy.removeEntity(target);
+    world.derfPhase.removeEntity(target);
+    world.body.isKinematic[world.body.indexOf(target)] = true;
     world.aiTarget.configure(
       attacker,
       targetPolicy: AiTargetPolicy.nearestOpponent,

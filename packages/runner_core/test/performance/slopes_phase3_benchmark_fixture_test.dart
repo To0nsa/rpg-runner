@@ -115,14 +115,14 @@ void main() {
       );
       final harness = SlopesPhase3MixedEnemyHarness.build(geometry);
 
-      expect(harness.groundEnemies, hasLength(16));
+      expect(harness.groundEnemies, hasLength(20));
       expect(harness.flyingEnemies, hasLength(4));
       expect(harness.derfs, hasLength(4));
       for (var tick = 0; tick < 120; tick += 1) {
         harness.runTick();
       }
 
-      expect(harness.lastIntegratedBodyCount, 20);
+      expect(harness.lastIntegratedBodyCount, 24);
       expect(
         harness.maxContactIterations,
         lessThanOrEqualTo(terrainMaxBlockingContacts),

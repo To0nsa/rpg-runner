@@ -42,7 +42,7 @@ evidence is useful. Do not check transient logs into source control.
 
 The matrix in
 [`level_enemy_traversal_test.dart`](../../packages/runner_core/test/navigation/level_enemy_traversal_test.dart)
-declares each compiled level, seeds `7`, `42`, `2026`, and Grojib, Hashash, Unoco.
+declares each compiled level, seeds `7`, `42`, `2026`, and Grojib, Hashash, Derf, Unoco.
 A coverage assertion fails when a compiled level lacks an explicit scenario.
 
 | Level | Tested route |
@@ -51,11 +51,11 @@ A coverage assertion fails when a compiled level lacks an explicit scenario.
 | Field | First 32 production-selected chunks |
 | `new_level` | First 32 production-selected chunks, including its difficulty ramp |
 
-This is 27 seeded pursuit cases. Three flat controls check the harness, and
+This is 36 seeded pursuit cases. Four flat controls check the harness, and
 negative controls verify blocked finishes, stall, kill-plane, and total-budget
-failures. Derf is
-stationary and is deliberately rejected by the movement harness; retain its
-separate placement/clearance and combat coverage.
+failures. Derf traversal starts already transformed, preserving continuous
+movement and actual catalog limits; separate tests cover the caster phase,
+first visibility, transformation and combat.
 
 ## Adapt the test to a level
 
@@ -68,7 +68,7 @@ separate placement/clearance and combat coverage.
    combinations. Three seeds do not enumerate every chunk or legal seam.
    Preserve a problematic exact sequence as a focused regression when needed.
 3. Confirm which enemies should traverse the route. The current helper supports
-   Grojib, Hashash and Unoco using their real catalog capsules, slope limits,
+   Grojib, Hashash, Derf and Unoco using their real catalog capsules, slope limits,
    level tuning, gravity, water behavior and locomotion. Adding another movement
    family requires wiring its production systems and a flat control first.
 4. Check whether the default chase target suits the level. Intermediate targets

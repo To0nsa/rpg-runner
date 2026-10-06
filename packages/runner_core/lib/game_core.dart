@@ -6,6 +6,7 @@
 /// contract lives in `docs/tdd/runner_core_simulation_contract.md`.
 library;
 
+import 'ecs/systems/derf_transformation_system.dart';
 import 'npcs/npc_navigation_profiles.dart';
 import 'ecs/systems/npc_ai_system.dart';
 import 'ecs/systems/npc_guard_system.dart';
@@ -371,8 +372,8 @@ class GameCore {
       resources: _resourceTuning,
     ).archetype;
     _groundEnemyJumpTemplatesById = <EnemyId, JumpReachabilityTemplate>{
-      EnemyId.grojib: _buildGroundEnemyJumpTemplate(EnemyId.grojib),
-      EnemyId.hashash: _buildGroundEnemyJumpTemplate(EnemyId.hashash),
+      for (final id in groundNavigatingEnemyIds)
+        id: _buildGroundEnemyJumpTemplate(id),
     };
     _groundEnemyTerrainGraphProfiles = [
       ...buildGroundEnemyTerrainGraphProfiles(
@@ -991,6 +992,10 @@ class GameCore {
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
   late final TerrainEnemyNavigationSystem _terrainEnemyNavigationSystem;
+  late final _derfTransformationSystem = DerfTransformationSystem(
+    tickHz: tickHz,
+    enemyCatalog: _enemyCatalog,
+  );
   late EnemyEngagementSystem _enemyEngagementSystem;
   late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
@@ -1598,6 +1603,15 @@ class GameCore {
     );
 
     // ─── Phase 3: AI, input, and movement ───
+    // Visibility gates must lock newly spawned Derfs before navigation/combat.
+    _derfTransformationSystem.step(
+      _world,
+      currentTick: tick,
+      cameraLeft: _camera.left(),
+      cameraTop: _camera.top(),
+      cameraRight: _camera.right(),
+      cameraBottom: _camera.bottom(),
+    );
     // Guard membership uses the published world before the shared target selection.
     _npcGuardSystem.step(_world);
     // Every AI consumer shares this identity; movement may update its position.
@@ -1678,6 +1692,14 @@ class GameCore {
       ),
     );
     final cameraLeft = _camera.left();
+    _derfTransformationSystem.step(
+      _world,
+      currentTick: tick,
+      cameraLeft: cameraLeft,
+      cameraTop: _camera.top(),
+      cameraRight: _camera.right(),
+      cameraBottom: _camera.bottom(),
+    );
     if (_checkFellBehindCamera(cameraLeft: cameraLeft)) {
       _endRun(RunEndReason.fellBehindCamera);
       return;

@@ -16,7 +16,7 @@ order before applying the delivery's hit policy. Overlapping arc segments
 cannot duplicate damage, even under `everyTick`.
 
 `CombatPoseCatalog` holds the player directional variants, Warrior and Huntress
-melee, Grojib's two strikes, Hashash strike/ambush, Unoco strike, and Derf impact.
+melee, Grojib's two strikes, Hashash strike/ambush, Unoco strike, and Derf tentacle/impact.
 Coordinates include presentation scale and use the catalog sprite anchor.
 Player back-strike art faces left; its snapshot and geometry mirror together.
 Aimed player melee rotates the complete action pose around that anchor, using
@@ -88,7 +88,7 @@ remain separate from their visual damage silhouettes. Ordinary and piercing
 travel use swept capsules; piercing contacts sort by arrival fraction, then
 entity ID, and retain target deduplication.
 
-Derf's explosion owns its 16-pose timeline at 0.05 seconds per pose. Only poses
+Normal Derf's explosion owns its 16-pose timeline at 0.05 seconds per pose. Only poses
 2 and 3 damage, beginning six ticks after release at 60 Hz. Blank/startup and
 dissipation poses are harmless. The hitbox remains world-anchored and dedupes
 across the entire effect. Live and ghost impact visuals use simulation tick age
@@ -110,3 +110,7 @@ these overlays. Changing its initializer requires a hot restart.
 Guard protection remains omnidirectional by owner instruction. It is damage
 middleware, not a front-shield collision volume. Geometry does not introduce
 roll invulnerability or directional guarding.
+
+Derf transforms on first body visibility, cancels pending casts, then uses a
+seven-pose tentacle strike with active indices `[3, 5)`. Its caster and twisted
+art share the same world pivot; see [Derf transformation](derf_transformation.md).

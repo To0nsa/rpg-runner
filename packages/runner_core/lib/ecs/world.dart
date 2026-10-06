@@ -32,6 +32,7 @@ import 'stores/active_ability_state_store.dart';
 import 'stores/ability_charge_state_store.dart';
 import 'stores/ability_input_buffer_store.dart';
 import 'stores/enemies/enemy_store.dart';
+import 'stores/enemies/derf_phase_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/enemies/engagement_intent_store.dart';
 import 'stores/enemies/melee_combo_store.dart';
@@ -105,6 +106,7 @@ class EcsWorld {
     LevelBlessingStore(),
   );
   late final AiTargetStore aiTarget = _register(AiTargetStore());
+  late final DerfPhaseStore derfPhase = _register(DerfPhaseStore());
   late final NpcStore npc = _register(NpcStore());
   late final EncounterMemberStore encounterMember = _register(
     EncounterMemberStore(),

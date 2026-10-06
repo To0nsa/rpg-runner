@@ -17,7 +17,7 @@ death rules still apply; water never makes falling below the kill plane safe.
 
 ## Enemies in water
 
-Grojib and Hashash swim automatically at the same immersion thresholds as the
+Grojib, Hashash and twisted Derf swim automatically at the same immersion thresholds as the
 player. Their horizontal target speed is 80% of their own normal speed, with
 the same slower acceleration, coasting and sinking as the player. Status and
 combat movement modifiers still apply, so they can remain faster swimmers than
@@ -37,8 +37,8 @@ collision, then land navigation resumes. Walls still block movement: this is
 not an underwater maze pathfinder. Author reachable bank exits near water
 height and test both directions with both enemies.
 
-Unoco continues flying through water without swimming penalties. Derf stays
-stationary. Enemies reuse existing jump/fall animations and the shared water
+Unoco continues flying through water without swimming penalties. Normal Derf
+stays stationary; twisted Derf uses grounded-enemy swimming pursuit. Enemies reuse existing jump/fall animations and the shared water
 foreground tint; there are no new swimming sprite sheets.
 
 ## Create a pool

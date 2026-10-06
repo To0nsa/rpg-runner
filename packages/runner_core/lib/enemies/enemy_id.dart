@@ -14,7 +14,7 @@ enum EnemyId {
   /// A nimble ground assassin that chases and jumps with the surface navigator.
   hashash,
 
-  /// A stationary caster perched on obstacle tops.
+  /// A perched cultist that transforms on first visibility, then pursues in melee.
   derf,
 }
 
@@ -22,4 +22,5 @@ enum EnemyId {
 const List<EnemyId> groundNavigatingEnemyIds = <EnemyId>[
   EnemyId.grojib,
   EnemyId.hashash,
+  EnemyId.derf,
 ];

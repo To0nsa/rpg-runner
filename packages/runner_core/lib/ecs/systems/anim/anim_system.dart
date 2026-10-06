@@ -1,3 +1,4 @@
+import '../../stores/enemies/derf_phase_store.dart';
 import '../../../combat/combat_geometry.dart';
 import '../../../combat/combat_pose_catalog.dart';
 import '../../../players/characters/eloise.dart';
@@ -266,6 +267,18 @@ class AnimSystem {
         ? configuredSpawnAnimTicks
         : world.spawnState.animTicks[spawnIndex];
 
+    final derf = world.derfPhase.tryIndexOf(e);
+    if (derf != null &&
+        world.derfPhase.phase[derf] == DerfPhase.transforming &&
+        common.hp > 0 &&
+        deathPhase == DeathPhase.none) {
+      // Reactions cannot restart or cut short the awakening strip; death wins.
+      animStore.anim[ai] = AnimKey.transform;
+      animStore.animFrame[ai] =
+          currentTick - world.derfPhase.transformationStartTick[derf];
+      return;
+    }
+
     // Phase 6: Active Action Layer (Enemies)
     final activeAction = _resolveActiveAction(
       world,
@@ -295,7 +308,19 @@ class AnimSystem {
     );
 
     final result = AnimResolver.resolve(profile, signals);
-    animStore.anim[ai] = result.anim;
+    animStore.anim[ai] =
+        derf != null && world.derfPhase.phase[derf] == DerfPhase.caster
+        ? switch (result.anim) {
+            AnimKey.idle ||
+            AnimKey.walk ||
+            AnimKey.run ||
+            AnimKey.jump ||
+            AnimKey.fall => AnimKey.casterIdle,
+            AnimKey.hit || AnimKey.stun => AnimKey.casterHit,
+            AnimKey.death => AnimKey.casterDeath,
+            _ => result.anim,
+          }
+        : result.anim;
     animStore.animFrame[ai] = usesSurfaceDistance
         ? _terrainLocomotionAnimFrame(
             world,

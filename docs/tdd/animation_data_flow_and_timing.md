@@ -47,11 +47,17 @@ Important: render does not decide gameplay phase. It only displays what Core alr
 
 `AnimResolver.resolve` priority is:
 
-1. Stun
-2. Death
+1. Death (including falling to ground before the death strip)
+2. Stun
 3. Hit react
 4. Active action (ability-driven key/frame)
 5. Locomotion (jump/fall, spawn, idle, dash, walk, run)
+
+Death takes precedence over retained living-actor stun locks. Derf's
+`AnimSystem` phase selection holds `transform` for its Core start-tick window
+while alive, then returns to this resolver. Normal-form idle/hit/death keys map
+to caster art; twisted movement and melee use the wider sheet. See
+[Derf transformation](derf_transformation.md).
 
 Frame-origin policy:
 

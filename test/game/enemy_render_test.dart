@@ -16,6 +16,48 @@ import 'package:runner_core/util/vec2.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('Derf caster and twisted art share a pivot and transformation is tick-driven', () async {
+    final images = Images();
+    addTearDown(images.clearCache);
+    final registry = EnemyRenderRegistry();
+    await registry.load(images);
+    final entry = registry.entryFor(EnemyId.derf)!;
+    final view = entry.createView();
+    await view.onLoad();
+    final animations = entry.animSet.animations;
+    expect(animations[AnimKey.cast]!.frames, hasLength(10));
+    expect(animations[AnimKey.transform]!.frames, hasLength(12));
+    expect(animations[AnimKey.strike]!.frames, hasLength(7));
+    expect(animations[AnimKey.cast]!.frames.first.sprite.srcSize.x, 91);
+    expect(animations[AnimKey.transform]!.frames.first.sprite.srcSize.x, 91);
+    for (final (key, frameTicks, expectedFrame) in [
+      (AnimKey.casterIdle, 0, 0),
+      (AnimKey.transform, 55, 11),
+      (AnimKey.transform, 500, 11),
+      (AnimKey.cast, 20, 4),
+      (AnimKey.strike, 18, 3),
+    ]) {
+      view.applySnapshot(
+        EntityRenderSnapshot(
+          id: 1,
+          kind: EntityKind.enemy,
+          enemyId: EnemyId.derf,
+          pos: const Vec2(0, 0),
+          facing: Facing.left,
+          artFacingDir: Facing.left,
+          anim: key,
+          animFrame: frameTicks,
+          grounded: true,
+        ),
+        tickHz: 60,
+      );
+      expect(view.animationTicker!.currentIndex, expectedFrame);
+      expect(view.anchor.x, 72 / 91);
+      expect(view.anchor.y, .5);
+      view.update(1);
+      expect(view.animationTicker!.currentIndex, expectedFrame);
+    }
+  });
 
   test(
     'real enemy strikes stay upright after turning in live and ghost views',
@@ -33,6 +75,7 @@ void main() {
         (EnemyId.grojib, 'grojib.strike', 4),
         (EnemyId.hashash, 'hashash.strike', 8),
         (EnemyId.unocoDemon, 'unoco.strike', 6),
+        (EnemyId.derf, 'derf.tentacle_strike', 3),
       ];
       for (var row = 0; row < attacks.length; row++) {
         final (id, abilityId, frame) = attacks[row];
@@ -112,7 +155,7 @@ void main() {
       }
       final picture = recorder.endRecording();
       addTearDown(picture.dispose);
-      final image = await picture.toImage(800, 470);
+      final image = await picture.toImage(800, 620);
       addTearDown(image.dispose);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       final output = File('build/test/enemy_attack_orientation.png');

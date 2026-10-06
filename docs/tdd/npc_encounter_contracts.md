@@ -426,8 +426,8 @@ identity during the tick. Already committed aim, execute ticks, costs, cooldowns
 and active ability phases remain owned by their existing execution systems.
 
 Terrain prediction is cached per target for the current tick and per traversal
-profile for the current published bundle. Ground-mounted kinematic targets
-such as Derf lack dynamic contact records; their actual pose is queried against
+profile for the current published bundle. Stationary synthetic kinematic targets
+may lack dynamic contact records; their actual pose is queried against
 the same terrain placement/support contract and admitted only within collision
 skin of resolved support. This supplies target support without moving the target
 or adding a dynamic contact store. `SurfaceNavStateStore.targetEntity`

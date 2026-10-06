@@ -11,6 +11,7 @@ import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/collision/terrain/terrain_traversal_profile.dart';
 import 'package:runner_core/collision/terrain/upright_capsule.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/stores/enemies/derf_phase_store.dart';
 import 'package:runner_core/ecs/systems/flying_enemy_locomotion_system.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
 import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
@@ -655,7 +656,10 @@ final class SlopesPhase3MixedEnemyHarness {
     }
     for (var index = 0; index < 4; index += 1) {
       flyingEnemies.add(spawn(EnemyId.unocoDemon, 1000 + index * 100, 350));
-      derfs.add(spawn(EnemyId.derf, 900 + index * 80, 500));
+      final derf = spawn(EnemyId.derf, 900 + index * 80, 500);
+      world.derfPhase.phase[world.derfPhase.indexOf(derf)] = DerfPhase.twisted;
+      derfs.add(derf);
+      groundEnemies.add(derf);
     }
     final authority = TerrainMultiBodyWorldMotionAuthority(
       geometry: geometry,

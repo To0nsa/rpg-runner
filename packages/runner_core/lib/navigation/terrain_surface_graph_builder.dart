@@ -1,8 +1,11 @@
 import '../collision/terrain/capsule_segment_kernel.dart';
+import '../collision/terrain/terrain_capsule_controller.dart';
 import '../collision/terrain/terrain_contact_policy.dart';
 import '../collision/terrain/terrain_edge.dart';
 import '../collision/terrain/terrain_edge_id.dart';
 import '../collision/terrain/terrain_numeric.dart';
+import '../collision/terrain/terrain_motion_request.dart';
+import '../collision/terrain/terrain_traversal_profile.dart';
 import '../collision/terrain/terrain_query_buffer.dart';
 import 'terrain_placement_query.dart';
 import 'terrain_surface_query_buffer.dart';
@@ -27,6 +30,10 @@ class TerrainSurfaceGraphBuilder {
   final CapsuleSweepHit _bestHit = CapsuleSweepHit();
   final CapsuleSweepHit _bestSupportHit = CapsuleSweepHit();
   final TerrainContactDecision _scratchDecision = TerrainContactDecision();
+  final Map<TerrainTraversalProfile, TerrainCapsuleController>
+  _landingControllers = {};
+  final TerrainCapsuleMotionResult _landingMotion =
+      TerrainCapsuleMotionResult();
 
   TerrainSurfaceSet get surfaceSet => placementQuery.surfaceIndex.surfaceSet;
 
@@ -410,6 +417,7 @@ class TerrainSurfaceGraphBuilder {
             supportRequirement: profile.supportRequirement,
           );
           if (targetRange == null) continue;
+          final descendsAlongTravel = target.dyTicks * directionX > 0;
           final landings = _jumpLandingCandidates(
             takeoffCenter: takeoffCenter,
             directionX: directionX,
@@ -427,8 +435,26 @@ class TerrainSurfaceGraphBuilder {
               landingTick: landing.tick,
               capsule: capsule,
               profile: profile,
+              requireGroundedLanding: descendsAlongTravel,
             );
             if (contact == null || contact.supportId != target.id) continue;
+            // Execution derives cruise speed from the published contact point
+            // and tick count. That shortened trajectory must itself land;
+            // validating only the original candidate can change a face landing
+            // into a corner graze when the edge is consumed by locomotion.
+            final executingLanding = !descendsAlongTravel
+                ? contact
+                : _sweepJumpTrajectory(
+                    sourceId: source.id,
+                    targetId: target.id,
+                    takeoffCenter: takeoffCenter,
+                    landingCenterX: contact.capsuleCenterXTicks,
+                    landingTick: contact.tick,
+                    capsule: capsule,
+                    profile: profile,
+                    requireGroundedLanding: true,
+                  );
+            if (executingLanding == null) continue;
             final exactLanding = _placeOnSurface(
               surface: target,
               desiredCapsuleXTicks: contact.capsuleCenterXTicks,
@@ -552,6 +578,7 @@ class TerrainSurfaceGraphBuilder {
     required int landingTick,
     required TerrainPlacementCapsule capsule,
     required TerrainSurfaceGraphBuildProfile profile,
+    bool requireGroundedLanding = false,
   }) {
     var previousX = takeoffCenter.xTicks;
     var previousY = takeoffCenter.yTicks;
@@ -586,6 +613,34 @@ class TerrainSurfaceGraphBuilder {
             contact.edgeId == sourceId ||
             contact.edgeId != targetId) {
           return null;
+        }
+        // A support sweep can merely graze a rounded corner and slide back
+        // into the air. Admit a landing only when the production controller
+        // finishes this contact tick grounded on the intended finite surface.
+        if (requireGroundedLanding) {
+          final controller = _landingControllers.putIfAbsent(
+            profile.traversalProfile,
+            () => TerrainCapsuleController(
+              geometry: placementQuery.geometry,
+              index: placementQuery.terrainIndex,
+              profile: profile.traversalProfile,
+            ),
+          );
+          controller.moveAtValues(
+            centerXTicks: previousX,
+            centerYTicks: previousY,
+            radiusTicks: capsule.radiusTicks,
+            verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
+            displacementXTicks: currentX - previousX,
+            displacementYTicks: currentY - previousY,
+            mode: TerrainMotionMode.worldSpace,
+            beganGrounded: false,
+            out: _landingMotion,
+          );
+          if (!_landingMotion.grounded ||
+              _landingMotion.supportEdgeId != targetId) {
+            return null;
+          }
         }
         return _TrajectoryLanding(
           supportId: contact.edgeId,

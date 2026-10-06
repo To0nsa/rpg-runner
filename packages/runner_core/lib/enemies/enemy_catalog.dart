@@ -60,8 +60,10 @@ final EnemyTerrainContactProfile _hashashTerrainProfile =
       minimumSupportUpComponent: 512,
     );
 final EnemyTerrainContactProfile _derfTerrainProfile =
-    createKinematicEnemyTerrainProfile(
+    createGroundedEnemyTerrainProfile(
       capsule: WorldContactCapsuleDef.fromAabb(_derfCollider),
+      maxWalkableSlopeDegrees: 45,
+      minimumSupportUpComponent: 724,
     );
 
 // -----------------------------------------------------------------------------
@@ -404,76 +406,87 @@ const AnimProfile _hashashAnimProfile = AnimProfile(
 );
 
 // -----------------------------------------------------------------------------
-// Derf (stationary caster) render animation sheet definitions (authoring-time)
-// -----------------------------------------------------------------------------
-
-const int _derfAnimFrameWidth = 45;
-const int _derfAnimFrameHeight = 42;
-const String _derfAnimSpriteSheetPath = 'entities/enemies/derf/derf.png';
-
-const int _derfAnimIdleFrames = 6;
-const int _derfAnimCastFrames = 10;
-const int _derfAnimHitFrames = 3;
-const int _derfAnimDeathFrames = 12;
-
-const double _derfAnimIdleStepSeconds = 0.10;
-const double _derfAnimCastStepSeconds = 0.08;
-const double _derfAnimHitStepSeconds = 0.10;
-const double _derfAnimDeathStepSeconds = 0.10;
-
-const double _derfHitAnimSeconds = _derfAnimHitFrames * _derfAnimHitStepSeconds;
-const double _derfDeathAnimSeconds =
-    _derfAnimDeathFrames * _derfAnimDeathStepSeconds;
-
-const Map<AnimKey, String> _derfAnimSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: _derfAnimSpriteSheetPath,
-  AnimKey.run: _derfAnimSpriteSheetPath,
-  AnimKey.cast: _derfAnimSpriteSheetPath,
-  AnimKey.hit: _derfAnimSpriteSheetPath,
-  AnimKey.death: _derfAnimSpriteSheetPath,
-};
-
-const Map<AnimKey, int> _derfAnimRowByKey = <AnimKey, int>{
-  AnimKey.idle: 0,
-  AnimKey.run: 0,
-  AnimKey.cast: 2,
-  AnimKey.hit: 5,
-  AnimKey.death: 6,
-};
-
-const Map<AnimKey, int> _derfAnimFrameCountsByKey = <AnimKey, int>{
-  AnimKey.idle: _derfAnimIdleFrames,
-  AnimKey.run: _derfAnimIdleFrames,
-  AnimKey.cast: _derfAnimCastFrames,
-  AnimKey.hit: _derfAnimHitFrames,
-  AnimKey.death: _derfAnimDeathFrames,
-};
-
-const Map<AnimKey, double> _derfAnimStepTimeSecondsByKey = <AnimKey, double>{
-  AnimKey.idle: _derfAnimIdleStepSeconds,
-  AnimKey.run: _derfAnimIdleStepSeconds,
-  AnimKey.cast: _derfAnimCastStepSeconds,
-  AnimKey.hit: _derfAnimHitStepSeconds,
-  AnimKey.death: _derfAnimDeathStepSeconds,
-};
-
+// Derf's wider cells retain the original body's world pivot at (72, 21).
+const String _derfCasterSheet = 'entities/enemies/derf/caster_sheet.png';
+const String _derfSheet = 'entities/enemies/derf/twisted_cultist.png';
 const RenderAnimSetDefinition _derfRenderAnim = RenderAnimSetDefinition(
-  frameWidth: _derfAnimFrameWidth,
-  frameHeight: _derfAnimFrameHeight,
-  anchorPoint: Vec2(28.0, 21.0),
-  sourcesByKey: _derfAnimSourcesByKey,
-  rowByKey: _derfAnimRowByKey,
-  frameCountsByKey: _derfAnimFrameCountsByKey,
-  stepTimeSecondsByKey: _derfAnimStepTimeSecondsByKey,
+  frameWidth: 91,
+  frameHeight: 42,
+  anchorPoint: Vec2(72, 21),
+  sourcesByKey: {
+    AnimKey.casterIdle: _derfCasterSheet,
+    AnimKey.casterHit: _derfCasterSheet,
+    AnimKey.casterDeath: _derfCasterSheet,
+    AnimKey.transform: _derfSheet,
+    AnimKey.idle: _derfSheet,
+    AnimKey.walk: _derfSheet,
+    AnimKey.run: _derfSheet,
+    AnimKey.strike: _derfSheet,
+    AnimKey.cast: _derfCasterSheet,
+    AnimKey.hit: _derfSheet,
+    AnimKey.stun: _derfSheet,
+    AnimKey.death: _derfSheet,
+    AnimKey.jump: _derfSheet,
+    AnimKey.fall: _derfSheet,
+  },
+  rowByKey: {
+    AnimKey.casterIdle: 0,
+    AnimKey.casterHit: 5,
+    AnimKey.casterDeath: 6,
+    AnimKey.transform: 10,
+    AnimKey.idle: 1,
+    AnimKey.walk: 3,
+    AnimKey.run: 3,
+    AnimKey.strike: 4,
+    AnimKey.cast: 2,
+    AnimKey.hit: 5,
+    AnimKey.stun: 5,
+    AnimKey.death: 6,
+    AnimKey.jump: 7,
+    AnimKey.fall: 9,
+  },
+  frameCountsByKey: {
+    AnimKey.casterIdle: 6,
+    AnimKey.casterHit: 3,
+    AnimKey.casterDeath: 12,
+    AnimKey.transform: 12,
+    AnimKey.idle: 6,
+    AnimKey.walk: 8,
+    AnimKey.run: 8,
+    AnimKey.strike: 7,
+    AnimKey.cast: 10,
+    AnimKey.hit: 3,
+    AnimKey.stun: 3,
+    AnimKey.death: 12,
+    AnimKey.jump: 3,
+    AnimKey.fall: 3,
+  },
+  stepTimeSecondsByKey: {
+    AnimKey.casterIdle: .1,
+    AnimKey.casterHit: .1,
+    AnimKey.casterDeath: .1,
+    AnimKey.transform: .08,
+    AnimKey.idle: .1,
+    AnimKey.walk: .08,
+    AnimKey.run: .08,
+    AnimKey.strike: .1,
+    AnimKey.cast: .08,
+    AnimKey.hit: .1,
+    AnimKey.stun: .1,
+    AnimKey.death: .1,
+    AnimKey.jump: .1,
+    AnimKey.fall: .1,
+  },
+);
+const AnimProfile _derfAnimProfile = AnimProfile(
+  minMoveSpeed: 1,
+  runSpeedThresholdX: 120,
+  supportsStun: true,
+  supportsCast: true,
 );
 
-const AnimProfile _derfAnimProfile = AnimProfile(
-  minMoveSpeed: 1.0,
-  runSpeedThresholdX: 120.0,
-  supportsJumpFall: false,
-  supportsCast: true,
-  supportsStun: false,
-);
+/// Whether a ground melee enemy engages at close range or its authored reach.
+enum EnemyMeleeRangePolicy { closeRange, weaponReach }
 
 /// When enemy decisions update their facing toward the selected combat target.
 enum EnemyFacingPolicy {
@@ -501,7 +514,9 @@ class EnemyArchetype {
     this.primaryCastAbilityId,
     this.castOriginOffset,
     this.castTargetPolicy = AiCastAimPolicy.predictedTargetCenter,
+    this.previewAnimKey = AnimKey.idle,
     this.facingPolicy = EnemyFacingPolicy.movementDriven,
+    this.meleeRangePolicy = EnemyMeleeRangePolicy.closeRange,
     this.primaryMeleeAbilityId,
     this.comboMeleeAbilityId,
     this.artFacingDir = Facing.left,
@@ -556,8 +571,14 @@ class EnemyArchetype {
   /// Target selection policy used by enemy cast systems.
   final AiCastAimPolicy castTargetPolicy;
 
-  /// Facing update policy for this archetype.
+  /// Catalog-owned pose used by static authoring previews.
+  final AnimKey previewAnimKey;
+
+  /// Facing updates for the caster phase; melee commits own their facing.
   final EnemyFacingPolicy facingPolicy;
+
+  /// Source of horizontal melee engagement range; geometry owns weapon reach.
+  final EnemyMeleeRangePolicy meleeRangePolicy;
 
   /// Optional primary melee ability for this enemy.
   ///
@@ -677,10 +698,11 @@ class EnemyCatalog {
       case EnemyId.derf:
         return const EnemyArchetype(
           body: BodyDef(
-            isKinematic: true,
-            useGravity: false,
-            gravityScale: 0.0,
-            sideMask: BodyDef.sideNone,
+            isKinematic: false,
+            useGravity: true,
+            ignoreCeilings: true,
+            gravityScale: 1,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
           collider: _derfCollider,
           health: HealthDef(hp: 2200, hpMax: 2200, regenPerSecond100: 40),
@@ -689,12 +711,14 @@ class EnemyCatalog {
           renderAnim: _derfRenderAnim,
           renderScale: 1.5,
           animProfile: _derfAnimProfile,
-          hitAnimSeconds: _derfHitAnimSeconds,
-          deathAnimSeconds: _derfDeathAnimSeconds,
-          deathBehavior: DeathBehavior.instant,
+          hitAnimSeconds: .3,
+          deathAnimSeconds: 1.2,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'derf.tentacle_strike',
           primaryCastAbilityId: 'derf.fire_explosion',
-          castTargetPolicy: AiCastAimPolicy.predictedTargetCenter,
+          previewAnimKey: AnimKey.casterIdle,
           facingPolicy: EnemyFacingPolicy.facePlayerAlways,
+          meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
           resistance: DamageResistanceDef(fireBp: -3000, iceBp: 2000),

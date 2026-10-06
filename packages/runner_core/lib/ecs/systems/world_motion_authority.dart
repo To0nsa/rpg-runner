@@ -190,7 +190,6 @@ enum TerrainBodyDisposition {
   terrainGroundedEnemy,
   terrainGroundedNpc,
   terrainFlyingEnemy,
-  kinematicPlacementEnemy,
   terrainBallisticProjectile,
   disabledIgnored,
   otherKinematicIgnored,
@@ -256,11 +255,10 @@ TerrainBodyDisposition terrainBodyDisposition(
     switch (world.enemy.enemyId[enemyIndex]) {
       case EnemyId.grojib:
       case EnemyId.hashash:
+      case EnemyId.derf:
         return TerrainBodyDisposition.terrainGroundedEnemy;
       case EnemyId.unocoDemon:
         return TerrainBodyDisposition.terrainFlyingEnemy;
-      case EnemyId.derf:
-        return TerrainBodyDisposition.kinematicPlacementEnemy;
     }
   }
   if (world.body.isKinematic[bodyIndex]) {
@@ -302,6 +300,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       grojibProfile: grojib,
       hashashProfile: hashash,
       unocoProfile: unoco,
+      derfProfile: derf,
       itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     );
     return TerrainMultiBodyWorldMotionAuthority._(
@@ -338,6 +337,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       grojibProfile: grojib,
       hashashProfile: hashash,
       unocoProfile: unoco,
+      derfProfile: derf,
     );
     return TerrainMultiBodyWorldMotionAuthority._(
       publication: publication,
@@ -393,6 +393,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   _TerrainMotionScratch get _grojibScratch => _publication.grojibScratch;
   _TerrainMotionScratch get _hashashScratch => _publication.hashashScratch;
   _TerrainMotionScratch get _unocoScratch => _publication.unocoScratch;
+  _TerrainMotionScratch get _derfScratch => _publication.derfScratch;
   TerrainBallisticProjectileSystem get _ballisticProjectileSystem =>
       _publication.ballisticProjectileSystem;
 
@@ -432,6 +433,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       grojibProfile: _grojibProfile,
       hashashProfile: _hashashProfile,
       unocoProfile: _unocoProfile,
+      derfProfile: _derfProfile,
     );
     _pendingPublication = replacement;
   }
@@ -462,6 +464,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       grojibProfile: _grojibProfile,
       hashashProfile: _hashashProfile,
       unocoProfile: _unocoProfile,
+      derfProfile: _derfProfile,
     );
     _pendingPublication = replacement;
   }
@@ -615,12 +618,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
 
     for (final entity in _orderedBodies) {
       final scratch = _dynamicScratchFor(world, entity, player: player);
-      if (scratch == null) {
-        if (_isKinematicPlacementEnemy(world, entity)) {
-          world.collision.resetTick(entity);
-        }
-        continue;
-      }
+      if (scratch == null) continue;
       _invalidateStaleNavigation(world, entity);
       world.terrainContact.beginTick(
         entity,
@@ -1513,28 +1511,20 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       if (profile != null) {
         _requireActorBaseStores(world, entity);
         final bodyIndex = world.body.indexOf(entity);
-        if (profile.motionKind == EnemyTerrainMotionKind.kinematicPlacement) {
-          if (!world.body.isKinematic[bodyIndex]) {
-            throw TerrainBodyStoreError(
-              entity: entity,
-              reason: 'kinematic-placement policy has a dynamic body',
-            );
-          }
-          _requireKinematicTerrainStores(
-            world,
+        if (world.body.enabled[bodyIndex] &&
+            world.body.isKinematic[bodyIndex]) {
+          throw TerrainBodyStoreError(
             entity: entity,
-            expected: profile,
-            allowAbsent: allowInitialization,
-          );
-        } else {
-          _requireDynamicTerrainStores(
-            world,
-            entity: entity,
-            expectedProfile: profile.traversal,
-            expectedCapsule: profile.capsule,
-            allowAbsent: allowInitialization,
+            reason: 'grounded and flying terrain actors require dynamic bodies',
           );
         }
+        _requireDynamicTerrainStores(
+          world,
+          entity: entity,
+          expectedProfile: profile.traversal,
+          expectedCapsule: profile.capsule,
+          allowAbsent: allowInitialization,
+        );
         continue;
       }
 
@@ -1604,38 +1594,6 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     );
   }
 
-  void _requireKinematicTerrainStores(
-    EcsWorld world, {
-    required EntityId entity,
-    required EnemyTerrainContactProfile expected,
-    required bool allowAbsent,
-  }) {
-    final hasCapsule = world.worldContactCapsule.has(entity);
-    final hasProfile = world.terrainTraversalProfile.has(entity);
-    final hasContact = world.terrainContact.has(entity);
-    final hasResolved = world.resolvedMotion.has(entity);
-    final count =
-        (hasCapsule ? 1 : 0) +
-        (hasProfile ? 1 : 0) +
-        (hasContact ? 1 : 0) +
-        (hasResolved ? 1 : 0);
-    if (count == 0 && allowAbsent) return;
-    if (!hasCapsule || !hasProfile || hasContact || hasResolved) {
-      throw TerrainBodyStoreError(
-        entity: entity,
-        reason: count == 0
-            ? 'kinematic placement stores were not initialized during prepareTick'
-            : 'kinematic placement requires capsule/profile stores only',
-      );
-    }
-    _validateAttachedPolicy(
-      world,
-      entity: entity,
-      expectedProfile: expected.traversal,
-      expectedCapsule: expected.capsule,
-    );
-  }
-
   void _validateAttachedPolicy(
     EcsWorld world, {
     required EntityId entity,
@@ -1675,10 +1633,8 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       if (profile == null || world.worldContactCapsule.has(entity)) continue;
       world.worldContactCapsule.add(entity, profile.capsule);
       world.terrainTraversalProfile.add(entity, profile.traversal);
-      if (profile.motionKind != EnemyTerrainMotionKind.kinematicPlacement) {
-        world.terrainContact.add(entity);
-        world.resolvedMotion.add(entity);
-      }
+      world.terrainContact.add(entity);
+      world.resolvedMotion.add(entity);
     }
   }
 
@@ -1715,14 +1671,8 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       EnemyId.grojib => _grojibScratch,
       EnemyId.hashash => _hashashScratch,
       EnemyId.unocoDemon => _unocoScratch,
-      EnemyId.derf => null,
+      EnemyId.derf => _derfScratch,
     };
-  }
-
-  bool _isKinematicPlacementEnemy(EcsWorld world, EntityId entity) {
-    final enemyIndex = world.enemy.tryIndexOf(entity);
-    return enemyIndex != null &&
-        world.enemy.enemyId[enemyIndex] == EnemyId.derf;
   }
 
   void _reinitializePlacementHistory(
@@ -1833,6 +1783,7 @@ final class _TerrainAuthorityPublication {
     required EnemyTerrainContactProfile grojibProfile,
     required EnemyTerrainContactProfile hashashProfile,
     required EnemyTerrainContactProfile unocoProfile,
+    required EnemyTerrainContactProfile derfProfile,
     Iterable<TerrainItemSpawnExclusionRange> itemSpawnExclusionRanges =
         const <TerrainItemSpawnExclusionRange>[],
   }) {
@@ -1846,6 +1797,7 @@ final class _TerrainAuthorityPublication {
       grojibProfile: grojibProfile,
       hashashProfile: hashashProfile,
       unocoProfile: unocoProfile,
+      derfProfile: derfProfile,
       itemSpawnExclusionRanges: itemSpawnExclusionRanges,
     );
   }
@@ -1860,6 +1812,7 @@ final class _TerrainAuthorityPublication {
     required EnemyTerrainContactProfile grojibProfile,
     required EnemyTerrainContactProfile hashashProfile,
     required EnemyTerrainContactProfile unocoProfile,
+    required EnemyTerrainContactProfile derfProfile,
   }) {
     if (terrainRenderSnapshot != null &&
         terrainRenderSnapshot.geometryVersion != runtimeBundle.version) {
@@ -1925,6 +1878,7 @@ final class _TerrainAuthorityPublication {
         hashashProfile.motionKind,
       ),
       unocoScratch: scratchFor(unocoProfile.traversal, unocoProfile.motionKind),
+      derfScratch: scratchFor(derfProfile.traversal, derfProfile.motionKind),
       npcScratch: Map.unmodifiable({
         for (final id in NpcCatalog.supportedIds)
           id: scratchFor(
@@ -1949,6 +1903,7 @@ final class _TerrainAuthorityPublication {
     required this.grojibScratch,
     required this.hashashScratch,
     required this.unocoScratch,
+    required this.derfScratch,
     required this.npcScratch,
   });
 
@@ -1965,6 +1920,7 @@ final class _TerrainAuthorityPublication {
   final _TerrainMotionScratch grojibScratch;
   final _TerrainMotionScratch hashashScratch;
   final _TerrainMotionScratch unocoScratch;
+  final _TerrainMotionScratch derfScratch;
   final Map<NpcId, _TerrainMotionScratch> npcScratch;
 }
 

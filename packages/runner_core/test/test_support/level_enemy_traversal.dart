@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/stores/enemies/derf_phase_store.dart';
 import 'package:runner_core/ecs/systems/enemy_engagement_system.dart';
 import 'package:runner_core/ecs/systems/flying_enemy_locomotion_system.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
@@ -36,7 +39,7 @@ import 'package:test/test.dart';
 
 const _tickHz = 60;
 
-/// Registers real-motion pursuit checks; stationary enemies are not supported.
+/// Registers continuous pursuit checks using each catalog movement profile.
 ///
 /// Omit [chunkCount] only for a non-looping authored assembly. All other routes
 /// need an explicit finite horizon. Each seed shares immutable terrain between
@@ -271,17 +274,6 @@ class EnemyTraversalHarness {
     this.ticksPerChunk = 30 * _tickHz,
     this.arrivalDistance = 128,
   }) {
-    if (![
-      EnemyId.grojib,
-      EnemyId.hashash,
-      EnemyId.unocoDemon,
-    ].contains(enemyId)) {
-      throw ArgumentError.value(
-        enemyId,
-        'enemyId',
-        'Requires a supported mobile enemy; Derf is stationary.',
-      );
-    }
     if (stallTicks <= 0 ||
         ticksPerChunk <= 0 ||
         !arrivalDistance.isFinite ||
@@ -346,6 +338,10 @@ class EnemyTraversalHarness {
       mana: archetype.mana,
       stamina: archetype.stamina,
     );
+    if (enemyId == EnemyId.derf) {
+      // Traversal starts after awakening; lifecycle/casting have separate tests.
+      world.derfPhase.phase[world.derfPhase.indexOf(enemy)] = DerfPhase.twisted;
+    }
     final tuning = GroundEnemyTuningDerived.from(
       level.tuning.groundEnemy,
       tickHz: _tickHz,
@@ -515,9 +511,18 @@ class EnemyTraversalHarness {
     // Keep the target far enough beyond the finish for real stand-off behavior.
     // Backward placement probes may never pull it back onto the tested route.
     final flying = level.tuning.unocoDemon;
+    final archetype = const EnemyCatalog().get(enemyId);
+    final delivery = AbilityCatalog.shared
+        .resolve(archetype.primaryMeleeAbilityId ?? '')
+        ?.hitDelivery;
+    final groundStandOff =
+        archetype.meleeRangePolicy == EnemyMeleeRangePolicy.weaponReach &&
+            delivery is MeleeHitDelivery
+        ? delivery.profile.reach
+        : level.tuning.groundEnemy.combat.meleeRangeX;
     final standOff = enemyId == EnemyId.unocoDemon
         ? flying.unocoDemonDesiredRangeMax + flying.unocoDemonHoldSlack
-        : level.tuning.groundEnemy.combat.meleeRangeX;
+        : groundStandOff;
     final minimumX = finishX + math.max(arrivalDistance, standOff) + 32;
     _placeTarget(
       math.max(finishX + route.width / 2, minimumX),
@@ -583,9 +588,7 @@ class EnemyTraversalHarness {
           ),
         );
         if (candidate.isValid && enemyId != EnemyId.unocoDemon) {
-          final profile = enemyId == EnemyId.grojib
-              ? bundle.grojibGraph.buildProfile
-              : bundle.hashashGraph.buildProfile;
+          final profile = bundle.groundEnemyGraph(enemyId).buildProfile;
           final enemyPlacement = query.resolveGrounded(
             TerrainGroundPlacementRequest(
               desiredBodyCenterXTicks: candidate.bodyCenter!.xTicks,
@@ -673,9 +676,7 @@ class EnemyTraversalHarness {
     final ni = world.surfaceNav.tryIndexOf(enemy);
     if (ni == null) return '';
     final state = world.surfaceNav.terrainState[ni];
-    final graph = enemyId == EnemyId.grojib
-        ? authority.terrainRuntimeBundle.grojibGraph
-        : authority.terrainRuntimeBundle.hashashGraph;
+    final graph = authority.terrainRuntimeBundle.groundEnemyGraph(enemyId);
     final reached = <int>{};
     final queue = <int>[
       if (state.currentSurfaceIndex >= 0) state.currentSurfaceIndex,
@@ -709,9 +710,7 @@ class EnemyTraversalHarness {
       return;
     }
     final state = world.surfaceNav.terrainState[ni];
-    final graph = enemyId == EnemyId.grojib
-        ? authority.terrainRuntimeBundle.grojibGraph
-        : authority.terrainRuntimeBundle.hashashGraph;
+    final graph = authority.terrainRuntimeBundle.groundEnemyGraph(enemyId);
     final edgeIndex = state.activeEdgeIndex >= 0
         ? state.activeEdgeIndex
         : state.pathCursor < state.pathEdges.length

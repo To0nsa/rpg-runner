@@ -29,6 +29,76 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'support/combat_test_support.dart';
 
 void main() {
+  for (final facing in Facing.values) {
+    test(
+      'Derf tentacle hits its extension once, with no excess reach: $facing',
+      () {
+        final world = EcsWorld();
+        final a = const EnemyCatalog().get(EnemyId.derf);
+        final owner = EntityFactory(world).createEnemy(
+          enemyId: EnemyId.derf,
+          posX: 0,
+          posY: 0,
+          velX: 0,
+          velY: 0,
+          facing: facing,
+          artFacing: a.artFacingDir,
+          body: a.body,
+          collider: a.collider,
+          health: a.health,
+          mana: a.mana,
+          stamina: a.stamina,
+        );
+        final sign = facing == Facing.right ? 1 : -1;
+        final near = _player(world);
+        world.transform.setPosXY(near, 80 * sign.toDouble(), 0);
+        final far = _player(world);
+        world.transform.setPosXY(far, 125 * sign.toDouble(), 0);
+        final below = _player(world);
+        world.transform.setPosXY(below, 80 * sign.toDouble(), 26);
+        attachMissingCombatCapsules(world);
+        world.activeAbility.set(
+          owner,
+          id: 'derf.tentacle_strike',
+          slot: AbilitySlot.primary,
+          commitTick: 0,
+          windupTicks: 18,
+          activeTicks: 12,
+          recoveryTicks: 12,
+          facingDir: facing,
+        );
+        final box = world.createEntity();
+        world.transform.add(box, posX: 0, posY: 0, velX: 0, velY: 0);
+        world.hitbox.add(
+          box,
+          HitboxDef(
+            owner: owner,
+            profile: CombatPoseCatalog.derfTentacle,
+            abilityId: 'derf.tentacle_strike',
+            faction: Faction.enemy,
+            damage100: 800,
+            damageType: DamageType.physical,
+            dirX: sign.toDouble(),
+            dirY: 0,
+          ),
+        );
+        world.hitOnce.add(box);
+        final ai = world.animState.indexOf(owner);
+        for (var frame = 0; frame < 7; frame++) {
+          world.animState.anim[ai] = AnimKey.strike;
+          world.animState.animFrame[ai] = frame * 6;
+          HitboxFollowOwnerSystem().step(world, currentTick: frame * 6);
+          HitboxDamageSystem().step(
+            world,
+            _grid(world),
+            currentTick: frame * 6,
+          );
+          expect(world.damageQueue.length, frame < 3 ? 0 : 1);
+        }
+        expect(world.damageQueue.target.single, near);
+      },
+    );
+  }
   final abilities = [
     'eloise.bloodletter_slash',
     'eloise.bloodletter_cleave',
@@ -41,6 +111,7 @@ void main() {
     'hashash.strike',
     'hashash.ambush',
     'unoco.strike',
+    'derf.tentacle_strike',
   ];
   for (final id in abilities) {
     for (final hz in [30, 60, 120]) {

@@ -10,6 +10,18 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
+## Prepared source: 2026.10.7
+
+Derf now keeps explosions in its normal stationary caster phase, transforms on
+first body visibility, then pursues with tentacle melee only. The same entity,
+health and terrain capsule survive transformation. Source compatibility is
+updated in the client, Functions and replay worker; production remains on
+2026.10.6. See [Derf contracts](../tdd/derf_transformation.md).
+
+- [ ] Prepare and benchmark matching client/worker/backend artifacts.
+- [ ] Obtain release authorization for coordinated production cutover.
+- [ ] Record live issuance, replay, settlement and ghost verification.
+
 ## Deployed release: 2026.10.6
 
 This revision prevents coins and restoration gems from spawning where their

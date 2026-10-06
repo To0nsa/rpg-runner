@@ -38,13 +38,12 @@ final class TerrainRuntimeBundle {
       }
       byKey[profile.profileKey] = profile;
     }
-    final grojibProfile = byKey[EnemyId.grojib.name];
-    final hashashProfile = byKey[EnemyId.hashash.name];
-    if (grojibProfile == null || hashashProfile == null) {
-      throw ArgumentError(
-        'Terrain runtime publication requires Grojib and Hashash '
-        'graph profiles.',
-      );
+    for (final id in groundNavigatingEnemyIds) {
+      if (!byKey.containsKey(id.name)) {
+        throw ArgumentError(
+          'Terrain publication requires the ${id.name} graph profile.',
+        );
+      }
     }
 
     final edgeIndex = TerrainEdgeIndex(edges: geometry.edges);
@@ -109,7 +108,7 @@ final class TerrainRuntimeBundle {
   /// Navigation broadphase built over the exact [surfaceSet] instance.
   final TerrainSurfaceSpatialIndex surfaceIndex;
 
-  /// Grojib and Hashash graph views sharing [surfaceSet].
+  /// Grounded enemy and allied actor graph views sharing [surfaceSet].
   final TerrainSurfaceGraphPublication graphPublication;
 
   /// Canonically ordered profile inputs retained for deterministic rebuilds.
@@ -117,6 +116,9 @@ final class TerrainRuntimeBundle {
 
   /// Shared runtime version used by collision, support, and graph consumers.
   int get version => geometry.version;
+
+  /// Graph built for this enemy's immutable terrain capsule and movement limits.
+  TerrainSurfaceGraph groundEnemyGraph(EnemyId id) => graphPublication[id.name];
 
   TerrainSurfaceGraph get grojibGraph => graphPublication[EnemyId.grojib.name];
 
@@ -151,11 +153,11 @@ final class TerrainRuntimeBundle {
   /// Version-independent signature of the shared navigation node set.
   String surfaceSignature() => surfaceSet.signature();
 
-  /// Version-independent signature of both profile graph views.
+  /// Version-independent signature of every profile graph view.
   String graphSignature() => graphPublication.signature();
 }
 
-/// Builds the two canonical ground-enemy graph profiles from runtime tuning.
+/// Builds the catalog ground-enemy graph profiles from runtime tuning.
 ///
 /// The supplied jump templates are the catalog/tuning-derived templates shared
 /// by normal locomotion and replay validation.
@@ -170,7 +172,7 @@ List<TerrainSurfaceGraphBuildProfile> buildGroundEnemyTerrainGraphProfiles({
   }
   return List<TerrainSurfaceGraphBuildProfile>.unmodifiable(
     <TerrainSurfaceGraphBuildProfile>[
-      for (final enemyId in const <EnemyId>[EnemyId.grojib, EnemyId.hashash])
+      for (final enemyId in groundNavigatingEnemyIds)
         _buildGroundEnemyProfile(
           enemyId: enemyId,
           enemyCatalog: enemyCatalog,
@@ -203,7 +205,7 @@ buildDefaultGroundEnemyTerrainGraphProfiles({
       : (2 * locomotion.jumpSpeed.abs()) / physics.gravityY;
   final maxAirTicks = (baseAirSeconds * 1.5 * tickHz).ceil();
   final templates = <EnemyId, JumpReachabilityTemplate>{};
-  for (final enemyId in const <EnemyId>[EnemyId.grojib, EnemyId.hashash]) {
+  for (final enemyId in groundNavigatingEnemyIds) {
     final terrain = enemyCatalog.terrainContactProfile(enemyId);
     final capsule = terrain.capsule;
     templates[enemyId] = JumpReachabilityTemplate.build(

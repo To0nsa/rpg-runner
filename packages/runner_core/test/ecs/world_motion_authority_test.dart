@@ -364,9 +364,7 @@ void main() {
         );
         final distance = _stepAuthority(harness, currentTick: 1);
 
-        final dynamicEnemyCount = enemyIds
-            .where((id) => id != EnemyId.derf)
-            .length;
+        final dynamicEnemyCount = enemyIds.length;
         expect(
           harness.authority.lastIntegratedBodyCount,
           1 + dynamicEnemyCount,
@@ -383,9 +381,9 @@ void main() {
           final id = enemyIds[index];
           expect(harness.world.worldContactCapsule.has(enemy), isTrue);
           expect(harness.world.terrainTraversalProfile.has(enemy), isTrue);
+          expect(harness.world.terrainContact.has(enemy), isTrue);
+          expect(harness.world.resolvedMotion.has(enemy), isTrue);
           if (id == EnemyId.derf) {
-            expect(harness.world.terrainContact.has(enemy), isFalse);
-            expect(harness.world.resolvedMotion.has(enemy), isFalse);
             expect(
               harness.world.transform.posX[harness.world.transform.indexOf(
                 enemy,
@@ -748,6 +746,7 @@ void main() {
       );
       harness.world.body.isKinematic[harness.world.body.indexOf(kinematic)] =
           true;
+      harness.world.enemy.removeEntity(kinematic);
       final dying = _spawnEnemy(harness.world, EnemyId.grojib, x: 210);
       harness.world.deathState.add(
         dying,
@@ -777,8 +776,15 @@ void main() {
       );
       _stepAuthority(harness, currentTick: 1);
 
-      expect(harness.authority.lastIntegratedBodyCount, 3);
-      for (final entity in <int>[disabled, kinematic]) {
+      expect(harness.authority.lastIntegratedBodyCount, 4);
+      expect(harness.world.terrainContact.has(kinematic), isFalse);
+      expect(
+        harness.world.transform.posX[harness.world.transform.indexOf(
+          kinematic,
+        )],
+        170,
+      );
+      for (final entity in <int>[disabled]) {
         final resolvedIndex = harness.world.resolvedMotion.indexOf(entity);
         expect(harness.world.resolvedMotion.resolvedXTicks[resolvedIndex], 0);
         expect(
@@ -793,7 +799,24 @@ void main() {
       );
       expect(harness.world.terrainContact.has(dying), isTrue);
       expect(harness.world.worldContactCapsule.has(derf), isTrue);
-      expect(harness.world.terrainContact.has(derf), isFalse);
+      expect(harness.world.terrainContact.has(derf), isTrue);
+    });
+
+    test('enabled catalog terrain actors reject a kinematic body', () {
+      for (final id in EnemyId.values) {
+        final harness = _terrainHarness();
+        final enemy = _spawnEnemy(harness.world, id, x: 200);
+        harness.world.body.isKinematic[harness.world.body.indexOf(enemy)] =
+            true;
+        expect(
+          () => harness.authority.prepareTick(
+            harness.world,
+            player: harness.player,
+            currentTick: 1,
+          ),
+          throwsA(isA<TerrainBodyStoreError>()),
+        );
+      }
     });
 
     test('inactive enemies cannot change player motion or distance', () {
@@ -934,7 +957,7 @@ void main() {
 
       final grojib = enemy(EnemyId.grojib);
       final unoco = enemy(EnemyId.unocoDemon);
-      final derf = enemy(EnemyId.derf, kinematic: true);
+      final derf = enemy(EnemyId.derf);
       final hashash = enemy(EnemyId.hashash);
       final projectile = world.createEntity();
       world.body.add(projectile, const BodyDef());
@@ -963,7 +986,7 @@ void main() {
       );
       expect(
         terrainBodyDisposition(world, entity: derf, terrainPlayer: player),
-        TerrainBodyDisposition.kinematicPlacementEnemy,
+        TerrainBodyDisposition.terrainGroundedEnemy,
       );
       expect(
         terrainBodyDisposition(world, entity: hashash, terrainPlayer: player),

@@ -50,9 +50,11 @@ void main(List<String> args) {
   final extractionAndIndex = _measureOperation(
     runs: config.rebuildRuns,
     warmup: config.rebuildWarmup,
-    operation: () => buildSlopesPhase3SurfaceStack(
-      representativeSlope.geometry,
-    ).surfaceSet.surfaces.length,
+    operation: () =>
+        buildSlopesPhase3SurfaceStack(representativeSlope.geometry)
+            .surfaceSet
+            .surfaces
+            .length,
   );
   final grojibGraphBuilder = TerrainSurfaceGraphBuilder(
     placementQuery: representativeSlope.stack.placementQuery,
@@ -252,7 +254,7 @@ void main(List<String> args) {
         hardQueries.bufferResizeDelta == 0 && predictorResizeDelta == 0,
     'bounded_loops': boundedLoops,
     'no_candidate_path_edge_truncation': noTruncation,
-    'mixed_enemy_dynamic_body_count': slopeMixed.lastIntegratedBodyCount == 20,
+    'mixed_enemy_dynamic_body_count': slopeMixed.lastIntegratedBodyCount == 24,
   };
   final passed = gates.values.every((value) => value);
   final slopeIndex = representativeSlope.bundle.edgeIndex;
@@ -724,7 +726,7 @@ _MixedMeasurement _measureMixedEnemyTicks({
   required int measuredTicks,
 }) {
   final timings = List<int>.filled(runs * measuredTicks, 0);
-  final candidates = List<int>.filled(runs * measuredTicks * 20, 0);
+  final candidates = List<int>.filled(runs * measuredTicks * 24, 0);
   var lastIntegratedBodyCount = 0;
   var maxContactIterations = 0;
   var maxRecoveryIterations = 0;

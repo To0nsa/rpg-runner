@@ -31,7 +31,7 @@ immutable water list publishes atomically with the terrain runtime bundle and
 render snapshot. Version rebinding and prepared/captured Play preserve those
 same records. Water is never looked up from repository files during a run.
 
-Players, Grojib and Hashash receive a registered `SwimStateStore` at spawn.
+Players, Grojib, Hashash and Derf receive a registered `SwimStateStore` at spawn.
 `WaterImmersionSystem` classifies the capsule centre column after Hashash
 teleport placement and before enemy navigation, ability activation, movement
 and gravity, then refreshes it after terrain motion. Authored capsule offsets
@@ -59,7 +59,8 @@ and control rules remain owned by their existing systems.
 Snapshots expose `isSwimming` and `waterImmersion1000`. HUD affordability uses
 stroke timing and ground-jump costs, and disables mobility while swimming.
 Enemy snapshots expose the same immersion fields, and existing jump/fall clips
-remain in use. Unoco, Derf, pickups and projectiles have no swimming state.
+remain in use. Unoco, pickups and projectiles have no swimming state. Derf phase locks prevent
+normal-form propulsion; the twisted phase uses shared pursuit.
 
 ### Ground enemy pursuit
 

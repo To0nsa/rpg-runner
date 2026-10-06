@@ -25,6 +25,7 @@ import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../actor_facing.dart';
 import '../combat_target.dart';
+import '../stores/enemies/derf_phase_store.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
 import '../stores/target_point_intent_store.dart';
@@ -85,6 +86,10 @@ class EnemyCastSystem {
         fallbackY: world.transform.posY[targetTi],
       );
       if (world.deathState.has(enemy)) continue;
+      final derf = world.derfPhase.tryIndexOf(enemy);
+      if (derf != null && world.derfPhase.phase[derf] != DerfPhase.caster) {
+        continue;
+      }
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 

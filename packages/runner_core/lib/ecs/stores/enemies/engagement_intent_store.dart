@@ -3,6 +3,9 @@ import '../../sparse_set.dart';
 
 /// Engagement intent for melee enemies (desired slot + movement modifiers).
 class EngagementIntentStore extends SparseSet {
+  /// Resolved horizontal attack range, shared by engagement and locomotion.
+  final List<double> meleeRangeX = [];
+
   /// Desired target X for locomotion when not following a nav plan.
   final List<double> desiredTargetX = <double>[];
 
@@ -17,6 +20,7 @@ class EngagementIntentStore extends SparseSet {
 
   void add(EntityId entity) {
     final i = addEntity(entity);
+    meleeRangeX[i] = 0;
     desiredTargetX[i] = 0.0;
     arrivalSlowRadiusX[i] = 0.0;
     stateSpeedMul[i] = 1.0;
@@ -25,6 +29,7 @@ class EngagementIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
+    meleeRangeX.add(0);
     desiredTargetX.add(0.0);
     arrivalSlowRadiusX.add(0.0);
     stateSpeedMul.add(1.0);
@@ -33,11 +38,13 @@ class EngagementIntentStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
+    meleeRangeX[removeIndex] = meleeRangeX[lastIndex];
     desiredTargetX[removeIndex] = desiredTargetX[lastIndex];
     arrivalSlowRadiusX[removeIndex] = arrivalSlowRadiusX[lastIndex];
     stateSpeedMul[removeIndex] = stateSpeedMul[lastIndex];
     speedScale[removeIndex] = speedScale[lastIndex];
 
+    meleeRangeX.removeLast();
     desiredTargetX.removeLast();
     arrivalSlowRadiusX.removeLast();
     stateSpeedMul.removeLast();

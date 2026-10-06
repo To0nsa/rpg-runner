@@ -32,6 +32,10 @@ enum AnimKey {
   teleportOut,
   ambush,
   strike2,
+  casterIdle,
+  transform,
+  casterHit,
+  casterDeath,
 }
 
 /// Broad entity classification for rendering and (future) networking.

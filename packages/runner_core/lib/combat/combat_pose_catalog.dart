@@ -158,6 +158,19 @@ abstract final class CombatPoseCatalog {
     ],
   );
 
+  static const derfTentacle = CombatStrikeProfile(
+    artFacing: Facing.left,
+    timing: ActionFramePolicy(frameCount: 7, activeStart: 3, activeEnd: 5),
+    frames: [
+      [],
+      [],
+      [],
+      [CombatCapsule(-26, -9, -102, -9, 3)],
+      [CombatCapsule(-27, -9, -104, -9, 3)],
+      [],
+      [],
+    ],
+  );
   static const fireExplosion = CombatStrikeProfile(
     timing: ActionFramePolicy(frameCount: 16, activeStart: 2, activeEnd: 4),
     frames: [

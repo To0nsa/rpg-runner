@@ -28,6 +28,11 @@ void main() {
       expect(unoco.renderAnim.frameWidth, 81);
       expect(unoco.renderAnim.frameHeight, 71);
       expect(unoco.renderScale, 0.5);
+      final derf = chunkMarkerEnemyCatalogEntryFor('derf')!;
+      expect(derf.motionKind, EnemyTerrainMotionKind.groundedDynamic);
+      expect(derf.previewSourcePath, 'entities/enemies/derf/caster_sheet.png');
+      expect(derf.previewRow, 0);
+      expect(derf.renderAnim.frameWidth, 91);
 
       expect(
         chunkMarkerDefaultPlacementFor('derf'),

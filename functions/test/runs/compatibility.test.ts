@@ -5,7 +5,7 @@ import { assertSupportedGameCompatVersion, currentGameCompatVersion,
   resolveSupportedGameCompatVersions } from "../../src/runs/compatibility.js";
 
 test("gameplay release client, board default and worker share one compatibility", () => {
-  assert.equal(currentGameCompatVersion, "2026.10.6");
+  assert.equal(currentGameCompatVersion, "2026.10.7");
 
   assert.deepEqual([...resolveSupportedGameCompatVersions({})], [currentGameCompatVersion]);
   const client = readFileSync("../lib/ui/state/app/app_state.dart", "utf8");

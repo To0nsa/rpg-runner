@@ -119,7 +119,17 @@ class EnemyEngagementSystem {
         primaryMeleeAbilityId: primaryMeleeAbilityId,
       );
       final preferredMeleeAbility = abilities.resolve(preferredMeleeAbilityId);
-      final meleeStandOffX = _resolveMeleeStandOffX(preferredMeleeAbility);
+      final delivery = preferredMeleeAbility?.hitDelivery;
+      final meleeRangeX =
+          archetype.meleeRangePolicy == EnemyMeleeRangePolicy.weaponReach &&
+              delivery is MeleeHitDelivery
+          ? delivery.profile.reach
+          : groundEnemyTuning.combat.meleeRangeX;
+      world.engagementIntent.meleeRangeX[engagementIndex] = meleeRangeX;
+      final meleeStandOffX = _resolveMeleeStandOffX(
+        preferredMeleeAbility,
+        meleeRangeX,
+      );
       final currentStrikeTiming = strikeAbilityId == null
           ? null
           : _resolveMeleeTiming(
@@ -135,8 +145,7 @@ class EnemyEngagementSystem {
       final distToTargetX = dxToTarget.abs();
       final sideNow = dxToTarget >= 0 ? -1 : 1;
       final collapseDistX =
-          groundEnemyTuning.combat.meleeRangeX +
-          groundEnemyTuning.locomotion.stopDistanceX;
+          meleeRangeX + groundEnemyTuning.locomotion.stopDistanceX;
 
       final meleeOffsetMaxX = groundEnemyTuning.navigation.chaseOffsetMeleeX
           .abs();
@@ -150,7 +159,7 @@ class EnemyEngagementSystem {
       }
 
       final engageEnterDist =
-          groundEnemyTuning.combat.meleeRangeX +
+          meleeRangeX +
           groundEnemyTuning.locomotion.stopDistanceX +
           groundEnemyTuning.engagement.meleeEngageBufferX;
       final engageExitDist =
@@ -193,8 +202,7 @@ class EnemyEngagementSystem {
                 enemy,
                 cooldownGroupId,
               );
-              final inMeleeRange =
-                  distToTargetX <= groundEnemyTuning.combat.meleeRangeX;
+              final inMeleeRange = distToTargetX <= meleeRangeX;
               if (cooldownReady && inMeleeRange) {
                 state = MeleeEngagementState.strike;
                 ticksLeft = selectedTiming.totalTicks;
@@ -299,7 +307,7 @@ class EnemyEngagementSystem {
     );
   }
 
-  double _resolveMeleeStandOffX(AbilityDef? ability) {
+  double _resolveMeleeStandOffX(AbilityDef? ability, double meleeRangeX) {
     if (ability == null) return 0.0;
     final hitDelivery = ability.hitDelivery;
     if (hitDelivery is! MeleeHitDelivery) return 0.0;
@@ -307,9 +315,7 @@ class EnemyEngagementSystem {
         hitDelivery.profile.reach *
         groundEnemyTuning.engagement.meleeStandOffRatio;
     if (desired.isNaN || desired.isInfinite) return 0.0;
-    final clampedToRange = desired > groundEnemyTuning.combat.meleeRangeX
-        ? groundEnemyTuning.combat.meleeRangeX
-        : desired;
+    final clampedToRange = desired > meleeRangeX ? meleeRangeX : desired;
     return clampedToRange < 0.0 ? 0.0 : clampedToRange;
   }
 

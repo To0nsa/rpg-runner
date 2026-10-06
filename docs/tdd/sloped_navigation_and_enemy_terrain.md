@@ -14,7 +14,7 @@ implemented in `runner_core`:
   selected world-motion authority
 - Unoco hover consumes the highest local solid surface below its footprint and
   uses the same authority for swept contact and bounded clearance steering
-- Derf obstacle-top markers consume the common query as kinematic placement
+- Derf obstacle-top markers consume the common query as grounded placement
   with same-support clamp, absolute perch span, and stable diagnostics
 - every normal enemy marker and procedural item uses one typed
   placement request/result boundary without changing marker or item RNG order
@@ -83,7 +83,7 @@ offset = collider.offset
 | Grojib | grounded dynamic | `(19.5, 5.5, -4/18)` | `45°`, 4 px step/snap, solid + one-way, ceiling ignore |
 | Hashash | grounded dynamic | `(14, 7.5, -1/7)` | `60°`, 4 px step/snap, solid + one-way, ceiling ignore |
 | Unoco Demon | flying dynamic | `(8.125, 0.5, 0/2)` | solids on every side, no gravity/support/helpers, ignores one-way |
-| Derf | kinematic placement | `(11.5, 12.75, 0/7)` | clearance-only, solid support up to `15°`, no per-tick integration |
+| Derf | grounded dynamic | `(11.5, 12.75, 0/7)` | support up to `45°`; stationary caster, then twisted pursuit |
 
 Grounded enemy authored speed means constant distance along a support. The
 profile records that semantic explicitly. A later intent producer converts
@@ -92,8 +92,8 @@ speed to the support tangent before the one terrain solve; the neutral
 
 Unoco's traversal object can classify blocking solid normals, but
 `EnemyTerrainMotionKind.flyingDynamic` is the final authority that forbids
-grounded state. Derf's traversal object exists for common clearance and slope
-eligibility queries, not dynamic motion.
+grounded state. Derf uses the grounded policy in every form; its phase gates
+autonomous movement. See [Derf transformation](derf_transformation.md).
 
 Facing mirrors only capsule `offsetX`. Radius, vertical spine, `offsetY`, and
 derived AABB extents remain unchanged. Actor combat uses the capsule as its
@@ -299,8 +299,14 @@ sidedness, slope support classification, and the profile's ceiling/left/right
 wall masks. Equal-time contacts are handled as a manifold: any enabled wall or
 ceiling rejects the arc; support candidates prefer the smallest world Y and
 then canonical edge ID. A jump succeeds only when the first accepted support
-is its eligible intended destination and an exact placement at the impact X is
-valid. This blocks walls, finite endpoints, ceilings when enabled, sloped
+is its eligible intended destination and exact placement at the impact X is
+valid. Descending-slope landings additionally replay the landing tick through
+the production capsule controller, requiring grounded support there, and
+recheck the trajectory at the speed implied by the published impact point and
+tick count. Shortening the candidate to its contact point must not turn a
+supported descent into a rounded-corner graze. Controller scratch is reused by
+traversal profile within each immutable geometry build.
+This blocks walls, finite endpoints, ceilings when enabled, sloped
 undersides, narrow/ineligible supports, and intermediate terrain without
 discrete-tick tunneling.
 
@@ -452,9 +458,8 @@ a rectangle collision path.
 
 Before mutating tick state, `prepareTick` builds a reusable ascending-entity-ID
 body view and preflights the whole view. Known enemies with no terrain stores
-receive their catalog capsule and traversal profile. Grojib, Hashash, and Unoco
-also receive contact and resolved-motion stores; Derf receives only the two
-kinematic placement stores. Any partial topology, wrong profile/capsule,
+receive their catalog capsule, traversal profile, contact and resolved-motion
+stores. Derf has the same complete dynamic topology in every form. Any partial topology, wrong profile/capsule,
 unknown enabled dynamic body, or enabled ballistic projectile fails before
 support state or transforms are changed.
 
@@ -468,9 +473,9 @@ granting another integration path.
 
 One controller, traversal cache, and mutable result scratch is retained for
 each of the player, Grojib, Hashash, and Unoco profiles. `step` visits enabled
-dynamic actors in the same ascending entity order. Grojib and Hashash may
+dynamic actors in the same ascending entity order. Grojib, Hashash and Derf may
 publish eligible support; Unoco is constrained by solid contacts but never
-publishes grounding; Derf and other kinematic bodies are not integrated. Final
+publishes grounding; other kinematic bodies are not integrated. Final
 transforms are written before terrain contact, legacy collision compatibility,
 and resolved-motion values. Only accepted positive player X progression is
 returned to the run-distance accumulator.
@@ -493,10 +498,10 @@ returns:
 
 - `TerrainGeometry` and its `TerrainEdgeIndex`
 - one actor-neutral `TerrainSurfaceSet` and its spatial index
-- Grojib and Hashash `TerrainSurfaceGraph` views inside one validated graph
+- Grojib, Hashash and Derf `TerrainSurfaceGraph` views inside one validated graph
   publication
 
-The surface index and both graph views reference the exact same surface-set
+The surface index and every graph view reference the exact same surface-set
 instance. Geometry, surface, index, and graph versions all equal the bundle
 version. The graph profiles derive from the same catalog traversal/capsule
 policies and jump templates already supplied to the legacy `TrackManager`;
@@ -523,7 +528,7 @@ than reaching a controller from another version.
 `nav-surfaces-v1` and `nav-graphs-v1` are content signatures, not runtime cache
 keys. They deliberately ignore bundle version, so a no-op rebuild at a higher
 version has identical signatures while still invalidating version-local state.
-Adding or culling a surface requires both graph views from the new shared set,
+Adding or culling a surface requires every graph view from the new shared set,
 so removed nodes and adjacency cannot survive publication. Interactive runs may
 prepare that exact complete publication before the selection becomes active.
 
@@ -641,54 +646,25 @@ preview uses retained scratch and introduces no RNG, teleport, phasing, graph,
 or second integration path. Cast/melee timing, target policy, world-space
 origins, facing, cooldown, and projectile behavior remain outside this solve.
 
-## Derf Kinematic Placement
+## Derf Placement and Awakening
 
-Derf remains a `kinematicPlacement` actor. It receives its catalog-derived
-capsule and traversal profile during terrain preparation but never enters the
-dynamic-body controller loop, acquires support, receives gravity, or gains a
-second transform writer. Placement happens only when an authored spawn marker
-is processed.
+Derf uses the grounded dynamic capsule/controller in every phase. Authored
+obstacle-top markers select their exact solid support through the shared
+placement query, retaining a 32-unit minimum perch span and nearest-point
+same-support clamping. Missing, one-way, over-45-degree, narrow or obstructed
+intended obstacle supports fail without substituting another surface.
 
-`SpawnEnemyRequest` retains the authored `SpawnPlacementMode` without resolving
-it against a second rectangle model. Terrain authority accepts Derf only when
-an `obstacleTop` marker selects a solid upward polygon surface whose lineage is
-a placed Prefab or whose authored `surfaceKind` is `obstacle`. An ordinary
-ground/highest-surface fallback is terminally rejected.
-
-`resolveSpawnPlacement` receives the Derf enemy profile and first binds
-requested body X/support Y to one canonical upward solid `TerrainEdgeId`. It
-then calls `TerrainPlacementQuery` with:
-
-- Derf's facing-resolved catalog capsule and inclusive `15°` traversal profile
-- full capsule-diameter foothold
-- independent `32 px` minimum total horizontal support span
-- complete solid clearance with one-way terrain ignored
-- exact intended edge and nearest-point same-edge clamp enabled
-- current geometry version
-
-The absolute perch span is separate from foothold width. It reserves half the
-span at either edge, so an exactly 32-pixel support has one valid center at its
-midpoint; wider supports retain a continuous clamped center interval. Missing,
-one-way, over-limit, under-width, headroom-blocked, or wall-blocked supports do
-not trigger another surface search.
-
-Every attempt returns the common `terrain-spawn-placement-v1` diagnostic with
-the profile, source-selection mode, validity, geometry version, requested and
-accepted body point, intended/support/blocker IDs, slope, and clamp bit.
-`GameCore.lastSpawnPlacementDiagnostic` retains the latest record for tests and
-authoring/debug consumers and creates Derf only for a valid result. Placement
-changes neither face-player casting, predicted-player-center targeting,
-world-space impact/origin semantics, upright rendering, nor instant death
-behavior.
-
-No current production Chunk authors a Derf `obstacleTop` marker. Forest now
-retains only `forest_early_flat`, so this placement path remains implemented
-and test-covered but is dormant until a future authored Chunk supplies a valid
-obstacle and marker.
+The normal caster is held stationary by AI locks. First camera-body overlap
+starts transformation and cancels a pending cast; released explosions retain
+their normal lifetime. Twisted Derf pursues through its own catalog-derived
+navigation graph and attacks with authored tentacle geometry. The body shape,
+health and entity identity remain stable. See
+[Derf transformation and combat](derf_transformation.md) for timing, assets,
+phase ordering and compatibility.
 
 ## Grounded Enemy Terrain Locomotion
 
-Grojib and Hashash consume prepared terrain support in normal construction.
+Grojib, Hashash and Derf consume prepared terrain support in normal construction.
 `WorldSupportView` is the single read boundary for navigation, locomotion,
 animation, render snapshots, and ground-impact death. It exposes retained prior
 support before integration and final `TerrainContactStateStore` support after
@@ -855,6 +831,11 @@ terrain-graph cutover deliberately remained later-phase work; normal authored
 levels could not yet select this bundle. Phases 5 and 6 subsequently completed
 that direct cutover without changing this historical benchmark reference.
 
+The current mixed fixture retains the `8/8/4/4` roster and starts its four Derfs
+already twisted. It now integrates 24 dynamic enemies, including 20 grounded
+actors, and its candidate/contact metrics and buffers account for all 24. The
+historical timing report below predates this Derf change.
+
 The accepted July 28 report on Windows `10.0.26200` with Dart `3.11.5` records
 Grojib/Hashash graph-build p99 of `2.713/1.803 ms`, combined-bundle p99 of
 `6.971 ms`, hard 5,120-edge index p99 of `8.079 ms`, supported-ground and
@@ -992,7 +973,7 @@ one-way pass-through, support suppression, and repeated bounded wall-detour
 routes without tangent oscillation, relocation, phasing, or new RNG. Existing
 Unoco steering and attack tests retain combat-mode, timing, target, origin, and
 facing coverage.
-Derf placement tests cover flat, exact-`15°`, just-over-limit, exact-32-pixel,
+Derf placement tests cover flat, exact-`45°`, just-over-limit, exact-32-pixel,
 just-under-width, blocked headroom, adjacent wall, both-direction same-support
 clamp, terminal absent/fallback rejection, stable diagnostics, streamed spawn
 accept/skip behavior, upright art, and unchanged cast target/timing/facing.

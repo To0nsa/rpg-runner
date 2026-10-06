@@ -63,6 +63,8 @@ void main() {
     final seenEnemies = <String>{};
     final strikeFacings = <int, Facing>{};
     var strikeTurns = 0;
+    final transformedDerfs = <int>{};
+    var sawDerfStrike = false;
     for (var tick = 1; tick <= 1800 && !core.gameOver; tick++) {
       core.applyCommands([
         MoveAxisCommand(tick: tick, axis: 1),
@@ -104,6 +106,15 @@ void main() {
       for (final e in s.entities) {
         if (e.enemyId == null) continue;
         seenEnemies.add(e.enemyId!.name);
+        if (e.enemyId == EnemyId.derf) {
+          if (e.anim == AnimKey.transform) {
+            transformedDerfs.add(e.id);
+          }
+          sawDerfStrike |= e.anim == AnimKey.strike;
+          if (transformedDerfs.contains(e.id)) {
+            expect(e.anim, isNot(AnimKey.cast));
+          }
+        }
         expect(e.rotationRad, 0, reason: 'tick=$tick enemy=${e.enemyId}');
         if (e.anim == AnimKey.strike) {
           final previousFacing = strikeFacings[e.id];
@@ -118,11 +129,13 @@ void main() {
       core.drainEvents();
     }
     final digest = sha256.convert(utf8.encode(trace.toString())).toString();
-    expect(seenEnemies, containsAll(['grojib', 'hashash', 'unocoDemon']));
+    expect(seenEnemies, containsAll(EnemyId.values.map((id) => id.name)));
+    expect(transformedDerfs, isNotEmpty);
+    expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));
     expect(
       digest,
-      '4f5fe523c50337101358c6c89b5379ad998dbcb0581fb5b82722a1dba91be01b',
+      '9669158bbd76a858fb347798510037d93db7f2c9f6ea3ca4eb4723b7e8d22ec2',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

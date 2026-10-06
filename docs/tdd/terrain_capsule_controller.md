@@ -12,8 +12,8 @@ single world-motion authority for every `GameCore` construction.
 
 The authority is immutable after Core construction. It is not level data,
 saved data, replay data, UI state, or remote configuration. Core integrates the
-player, Grojib, Hashash, and Unoco through explicit
-profiles, keeps Derf kinematic, and rejects unsupported dynamic or ballistic
+player, Grojib, Hashash, Derf and Unoco through explicit
+profiles, and rejects unsupported dynamic or ballistic
 bodies rather than falling back to rectangle collision. Grounded-enemy and
 Unoco terrain locomotion plus the shared terrain-safe enemy/item placement
 boundary. Normal streamed content is admitted from generated artifacts and
@@ -261,9 +261,9 @@ authored.
 
 The Phase 3 harness now attaches and dispatches the catalog-owned policies:
 
-- Grojib and Hashash are grounded dynamic capsules
+- Grojib, Hashash and Derf are grounded dynamic capsules; Derf's phase gates
+  autonomous movement until awakening completes
 - Unoco Demon is a support-free flying capsule blocked by solid terrain
-- Derf receives its capsule/profile but remains excluded from per-tick motion
 - ballistic projectiles retain their authored AABB rather than borrowing an
   actor capsule. A continuous AABB/finite-edge SAT sweep runs in the same
   world-motion phase after gravity, respects solid/one-way sidedness, writes

@@ -17,7 +17,7 @@ void main() {
     continuationChunkKey: 'field_default_normal_001',
   );
 
-  for (final enemyId in [EnemyId.grojib, EnemyId.hashash, EnemyId.unocoDemon]) {
+  for (final enemyId in EnemyId.values) {
     test('flat control ${enemyId.name} crosses every seam', () {
       final harness = EnemyTraversalHarness(flat, enemyId);
       expect(harness.traverse(), isNull);
@@ -29,7 +29,7 @@ void main() {
   }
 
   final finishCatalog = levelTraversalFinishCatalog();
-  for (final enemyId in [EnemyId.grojib, EnemyId.hashash, EnemyId.unocoDemon]) {
+  for (final enemyId in EnemyId.values) {
     test('${enemyId.name} crosses the clear single-chunk finish', () {
       final route = LevelTraversalRoute.chunks(
         level: level,
@@ -101,16 +101,6 @@ void main() {
     );
   });
 
-  test(
-    'stationary enemies cannot accidentally count as traversal coverage',
-    () {
-      expect(
-        () => EnemyTraversalHarness(flat, EnemyId.derf),
-        throwsArgumentError,
-      );
-    },
-  );
-
   test('insufficient movement fails with reproducible stall evidence', () {
     final slowRoute = LevelTraversalRoute.chunks(
       level: level.copyWith(
@@ -133,7 +123,9 @@ void main() {
         contains('field_default_normal_001'),
         contains('speedX=0.1'),
         contains('graph current='),
-        contains('route=field_default_normal_001 -> field_default_normal_001 -> field_default_normal_001'),
+        contains(
+          'route=field_default_normal_001 -> field_default_normal_001 -> field_default_normal_001',
+        ),
       ),
     );
     expect(harness.visitedChunks, hasLength(1));

@@ -66,6 +66,38 @@ void main() {
       expect(result.animFrame, 0);
     });
 
+    test('death lifecycle overrides retained stun locks', () {
+      for (final phase in [DeathPhase.none, DeathPhase.deathAnim]) {
+        final result = AnimResolver.resolve(
+          profile,
+          AnimSignals.enemy(
+            tick: 50,
+            hp: 0,
+            deathPhase: phase,
+            deathStartTick: 40,
+            stunLocked: true,
+            stunStartTick: 45,
+          ),
+        );
+        expect(result.anim, AnimKey.death);
+        expect(result.animFrame, 10);
+      }
+      final falling = AnimResolver.resolve(
+        profile,
+        AnimSignals.enemy(
+          tick: 50,
+          hp: 0,
+          deathPhase: DeathPhase.fallingUntilGround,
+          grounded: false,
+          velY: 10,
+          stunLocked: true,
+          stunStartTick: 45,
+        ),
+      );
+      expect(falling.anim, AnimKey.fall);
+      expect(falling.animFrame, 50);
+    });
+
     test('unknown active-action key falls through to locomotion', () {
       final result = AnimResolver.resolve(
         profile,

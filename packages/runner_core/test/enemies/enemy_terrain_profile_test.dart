@@ -119,8 +119,9 @@ void main() {
   test('grounded profiles freeze slope, helper, and collision policy', () {
     final grojib = catalog.terrainContactProfile(EnemyId.grojib);
     final hashash = catalog.terrainContactProfile(EnemyId.hashash);
+    final derf = catalog.terrainContactProfile(EnemyId.derf);
 
-    for (final profile in <EnemyTerrainContactProfile>[grojib, hashash]) {
+    for (final profile in <EnemyTerrainContactProfile>[grojib, hashash, derf]) {
       expect(profile.motionKind, EnemyTerrainMotionKind.groundedDynamic);
       expect(profile.canGround, isTrue);
       expect(
@@ -152,15 +153,19 @@ void main() {
     );
     expect(grojib.traversal.minimumSupportUpComponent, 724);
     expect(
+      derf.traversal.maxWalkableSlopeAngleUnits,
+      45 * terrainSlopeAngleUnitsPerDegree,
+    );
+    expect(derf.traversal.minimumSupportUpComponent, 724);
+    expect(
       hashash.traversal.maxWalkableSlopeAngleUnits,
       60 * terrainSlopeAngleUnitsPerDegree,
     );
     expect(hashash.traversal.minimumSupportUpComponent, 512);
   });
 
-  test('flying and kinematic profiles cannot acquire dynamic support', () {
+  test('flying profiles cannot acquire dynamic support', () {
     final unoco = catalog.terrainContactProfile(EnemyId.unocoDemon);
-    final derf = catalog.terrainContactProfile(EnemyId.derf);
 
     expect(unoco.motionKind, EnemyTerrainMotionKind.flyingDynamic);
     expect(unoco.canGround, isFalse);
@@ -170,18 +175,6 @@ void main() {
     expect(unoco.traversal.oneWaySupportEnabled, isFalse);
     expect(unoco.traversal.stepHeightTicks, 0);
     expect(unoco.traversal.snapDistanceTicks, 0);
-
-    expect(derf.motionKind, EnemyTerrainMotionKind.kinematicPlacement);
-    expect(derf.canGround, isFalse);
-    expect(derf.traversal.isKinematic, isTrue);
-    expect(derf.traversal.useGravity, isFalse);
-    expect(derf.traversal.collideCeilings, isTrue);
-    expect(derf.traversal.oneWaySupportEnabled, isFalse);
-    expect(
-      derf.traversal.maxWalkableSlopeAngleUnits,
-      15 * terrainSlopeAngleUnitsPerDegree,
-    );
-    expect(derf.traversal.minimumSupportUpComponent, 989);
   });
 
   test('profile construction rejects invalid authoring and role mixtures', () {

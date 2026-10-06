@@ -103,9 +103,10 @@ final class TerrainEnemyNavigationSystem {
           ? null
           : world.enemy.enemyId[enemyIndex];
       var graph = switch (enemyId) {
-        EnemyId.grojib => bundle.grojibGraph,
-        EnemyId.hashash => bundle.hashashGraph,
-        EnemyId.unocoDemon || EnemyId.derf => null,
+        EnemyId.grojib ||
+        EnemyId.hashash ||
+        EnemyId.derf => bundle.groundEnemyGraph(enemyId!),
+        EnemyId.unocoDemon => null,
         null =>
           bundle.graphPublication[npcNavigationProfileKey(
             world.npc.npcId[npcIndex!],

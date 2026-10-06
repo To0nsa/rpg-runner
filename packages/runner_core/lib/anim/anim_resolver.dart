@@ -193,8 +193,8 @@ class AnimResolver {
   /// Resolves the current animation based on the provided profile and signals.
   ///
   /// Priority Order:
-  /// 1. Stun (if stun locked)
-  /// 2. Death (if dying or dead)
+  /// 1. Death (if dying or dead)
+  /// 2. Stun (if stun locked)
   /// 3. Hit React (if taking damage)
   /// 4. Active Action (manual overrides from abilities)
   /// 5. Movement (Jump/Fall > Spawn > Idle > Dash > Walk > Run)
@@ -213,15 +213,7 @@ class AnimResolver {
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < signals.hitAnimTicks;
 
-    // 1. Stun
-    if (profile.supportsStun && signals.stunLocked) {
-      return AnimResult(
-        anim: profile.stunAnimKey,
-        animFrame: _frameFromTick(tick, signals.stunStartTick),
-      );
-    }
-
-    // 2. Death
+    // 1. Death takes precedence over locks retained from a living actor.
     if (signals.deathPhase == DeathPhase.deathAnim) {
       return AnimResult(
         anim: profile.deathAnimKey,
@@ -246,6 +238,14 @@ class AnimResolver {
       return AnimResult(
         anim: profile.deathAnimKey,
         animFrame: _frameFromTick(tick, signals.deathStartTick),
+      );
+    }
+
+    // 2. Stun
+    if (profile.supportsStun && signals.stunLocked) {
+      return AnimResult(
+        anim: profile.stunAnimKey,
+        animFrame: _frameFromTick(tick, signals.stunStartTick),
       );
     }
 

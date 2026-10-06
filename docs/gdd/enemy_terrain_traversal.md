@@ -3,7 +3,7 @@
 ## Status
 
 Grojib and Hashash slope traversal, Hashash terrain-safe ambush placement,
-Unoco flying-terrain traversal, Derf terrain-safe obstacle-top placement, and
+Unoco flying-terrain traversal, Derf awakening and grounded pursuit, and
 shared terrain-safe enemy/item spawning are implemented on the polygon-terrain
 authority used by repository-backed Field and Forest runs. Replay validation
 constructs the same Core path. Current Forest content includes slopes, rocks,
@@ -11,7 +11,7 @@ platforms and pools; these rules apply to the generated authored terrain.
 
 ## Grounded Enemy Rules
 
-Grojib and Hashash remain upright grounded enemies. Slopes change the path they
+Grojib, Hashash and twisted Derf remain upright grounded enemies. Slopes change the path they
 follow, not their combat size, facing rules, attack origins, or melee spacing.
 
 | Enemy | Maximum walkable slope | Step up | Ground snap | Speed on slopes |
@@ -75,15 +75,16 @@ records the geometry adjustments tested on its captured authored build. The
 [October 2 follow-up](../verification/forest-content-drift-repair.md) verifies
 current generated Forest content and the placement correction described above.
 
-The deterministic traversal regression covers Grojib, Hashash and Unoco on
+The deterministic traversal regression covers Grojib, Hashash, Derf and Unoco on
 Forest seeds 7, 42 and 2026 through the first complete authored sequence,
 requiring the enemy to cross the actual boundary after its last chunk. A chase
 target on continuation terrain beyond that boundary accommodates enemy
 stand-off without accepting an unfinished route. It
 isolates movement from combat, damage, despawning and Hashash teleporting.
-Derf remains stationary and is excluded from traversal expectations.
+Already-transformed Derf is included with its own actual movement profile;
+phase activation and combat have separate tests.
 
-Grojib and Hashash also use [swimming pursuit](swimming.md#enemies-in-water)
+Grojib, Hashash and twisted Derf also use [swimming pursuit](swimming.md#enemies-in-water)
 inside authored pools, including the 20% speed penalty and bank-exit strokes.
 Swimming suspends their land graph commitments until they return to terrain.
 
@@ -110,28 +111,18 @@ cannot phase or relocate through terrain. After the short detour it returns to
 ordinary hover/combat steering; its attack ranges, projectile/melee timing,
 aiming policy, attack origins, cooldowns, and facing behavior are unchanged.
 
-## Derf Placement Rules
+## Derf Placement and Transformation
 
-Derf remains stationary after spawning; slope support does not turn it into a
-walking or falling enemy. An obstacle-top marker may place Derf only when its
-intended solid support:
+Derf starts as a stationary explosion caster. First body visibility starts his
+one-time transformation; afterward he chases and attacks only with his tentacle.
+An already-released explosion finishes its effect. See [Derf](derf.md) for the
+player-facing timing and combat rules.
 
-- is no steeper than `15°`, inclusive
-- provides at least `32 px` of total horizontal span
-- has room for Derf's complete upright capsule
-
-If a marker lies too close to an edge, it moves to the nearest valid point on
-that same support. It never moves to another ledge, a lower surface, the
-highest unrelated terrain, or ordinary ground. An absent, one-way, steep,
-narrow, or obstructed intended perch skips the spawn.
-
-The support does not rotate Derf, its art, aim, or cast origin. It continues to
-face the player, target the predicted player center, cast from its existing
-world-space origin, and die instantly when killed.
-
-No current production Chunk requests a Derf encounter. Forest retains only its
-flat early Chunk with no enemy markers. The obstacle-top rule remains the
-authoring contract for a future Chunk that reintroduces a Derf perch.
+Obstacle-top markers still require their intended solid support, at least
+32 units of span and full capsule clearance, with same-support edge clamping.
+The grounded profile supports up to 45 degrees. No missing or invalid perch
+may substitute an unrelated lower surface. Ground contact and gravity remain
+active in both forms.
 
 ## Enemy Spawn Rules
 

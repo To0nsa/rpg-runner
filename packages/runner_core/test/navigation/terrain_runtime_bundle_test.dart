@@ -113,7 +113,7 @@ void main() {
       );
       expect(
         bundle.graphPublication.graphs.map((graph) => graph.profileKey),
-        <String>[EnemyId.grojib.name, EnemyId.hashash.name],
+        <String>[EnemyId.derf.name, EnemyId.grojib.name, EnemyId.hashash.name],
       );
     });
 

@@ -1,4 +1,5 @@
 import 'package:runner_core/combat/ai_cast_aim_policy.dart';
+import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
@@ -24,13 +25,14 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/flying_enemy_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Derf kinematic terrain placement', () {
-    test('accepts flat and inclusive 15-degree solid obstacle tops', () {
+  group('Derf grounded terrain placement', () {
+    test('accepts flat and inclusive 45-degree solid obstacle tops', () {
       final flat = _resolve(
         _geometry(<TerrainPolygonInput>[_platform('flat', 0, 300, 100, 400)]),
         x: 50,
@@ -38,15 +40,15 @@ void main() {
       );
       final atLimit = _resolve(
         _geometry(<TerrainPolygonInput>[
-          _polygon('slope-15', <(double, double)>[
+          _polygon('slope-45', <(double, double)>[
             (0, 300),
-            (112, 270),
+            (112, 188),
             (112, 400),
             (0, 400),
           ]),
         ]),
         x: 56,
-        supportY: 285,
+        supportY: 244,
       );
 
       expect(flat.accepted, isTrue);
@@ -54,23 +56,23 @@ void main() {
       expect(atLimit.accepted, isTrue);
       expect(
         atLimit.absoluteSlopeAngleUnits,
-        lessThanOrEqualTo(15 * terrainSlopeAngleUnitsPerDegree),
+        lessThanOrEqualTo(45 * terrainSlopeAngleUnitsPerDegree),
       );
       expect(_bodyX(atLimit), 56);
     });
 
-    test('rejects support just over the 15-degree profile limit', () {
+    test('rejects support just over the 45-degree profile limit', () {
       final result = _resolve(
         _geometry(<TerrainPolygonInput>[
-          _polygon('slope-over-15', <(double, double)>[
+          _polygon('slope-over-45', <(double, double)>[
             (0, 300),
-            (112, 269),
+            (112, 187),
             (112, 400),
             (0, 400),
           ]),
         ]),
         x: 56,
-        supportY: 284.5,
+        supportY: 243.5,
       );
 
       expect(result.accepted, isFalse);
@@ -194,13 +196,13 @@ void main() {
         _geometry(<TerrainPolygonInput>[
           _polygon('gentle-slope', <(double, double)>[
             (0, 300),
-            (112, 270),
+            (112, 188),
             (112, 400),
             (0, 400),
           ]),
         ]),
         x: 56,
-        supportY: 285,
+        supportY: 244,
       );
       final flatPlacement = _resolve(
         _geometry(<TerrainPolygonInput>[_platform('flat', 0, 300, 112, 400)]),
@@ -219,13 +221,102 @@ void main() {
       expect(slope.executeTick, flat.executeTick);
       expect(slope.activeFacing, flat.activeFacing);
       final archetype = const EnemyCatalog().get(EnemyId.derf);
-      expect(archetype.deathBehavior, DeathBehavior.instant);
+      expect(archetype.deathBehavior, DeathBehavior.groundImpactThenDeath);
       expect(archetype.castTargetPolicy, AiCastAimPolicy.predictedTargetCenter);
       expect(archetype.facingPolicy, EnemyFacingPolicy.facePlayerAlways);
     },
   );
 
   group('Derf streamed terrain placement', () {
+    test('first visible snapshot transforms, then deterministically pursues and hits', () {
+      const spawnX = virtualWidth + 12.0;
+      const pattern = ChunkPattern(
+        name: 'derf-awakening',
+        spawnMarkers: [
+          SpawnMarker(
+            enemyId: EnemyId.derf,
+            x: spawnX,
+            chancePercent: 100,
+            salt: 1,
+            placement: SpawnPlacementMode.ground,
+          ),
+        ],
+      );
+      GameCore create() => GameCore.terrainMotionHarness(
+        seed: 7,
+        levelDefinition: _streamedLevel(
+          pattern,
+          camera: const CameraTuning(fallBehindGraceDistance: 10000),
+        ),
+        playerCharacter: eloiseCharacter,
+        terrainGeometry: _geometry([
+          _platform('ground', 0, 300, 3000, 600, surfaceKind: 'ground'),
+        ]),
+      );
+      final a = create();
+      final b = create();
+      addTearDown(a.stopTerrainPreparation);
+      addTearDown(b.stopTerrainPreparation);
+      var firstVisibleTick = -1;
+      var firstTwistedTick = -1;
+      var sawCastBeforeVisibility = false;
+      var sawStrike = false;
+      var hitPlayer = false;
+      int? derfId;
+      final initialHp = a.buildSnapshot().hud.hp;
+      for (var i = 0; i < 400; i++) {
+        a.stepOneTick();
+        b.stepOneTick();
+        final s = a.buildSnapshot();
+        final replay = b.buildSnapshot();
+        expect(s.camera.centerX, replay.camera.centerX);
+        expect(s.hud.hp, replay.hud.hp);
+        expect(
+          s.entities
+              .map(
+                (e) => '${e.id}:${e.pos.x}:${e.pos.y}:${e.anim}:${e.animFrame}',
+              )
+              .toList(),
+          replay.entities
+              .map(
+                (e) => '${e.id}:${e.pos.x}:${e.pos.y}:${e.anim}:${e.animFrame}',
+              )
+              .toList(),
+        );
+        final derf = s.entities.singleWhere((e) => e.enemyId == EnemyId.derf);
+        derfId ??= derf.id;
+        expect(derf.id, derfId);
+        final visible = derf.pos.x - 11.5 < s.camera.right;
+        if (!visible && firstVisibleTick < 0) {
+          sawCastBeforeVisibility |= derf.anim == AnimKey.cast;
+          expect(derf.pos.x, spawnX);
+          continue;
+        }
+        if (firstVisibleTick < 0) {
+          firstVisibleTick = s.tick;
+          expect(derf.anim, AnimKey.transform);
+          expect(derf.animFrame, 0);
+        }
+        expect(derf.anim, isNot(AnimKey.cast));
+        if (derf.anim == AnimKey.transform) {
+          expect(derf.pos.x, spawnX);
+        } else {
+          firstTwistedTick = firstTwistedTick < 0 ? s.tick : firstTwistedTick;
+          sawStrike |= derf.anim == AnimKey.strike;
+        }
+        if (s.hud.hp < initialHp) {
+          expect(derf.pos.x, lessThan(spawnX - 100));
+          hitPlayer = true;
+          break;
+        }
+      }
+      expect(sawCastBeforeVisibility, isTrue);
+      expect(firstVisibleTick, greaterThan(0));
+      expect(firstTwistedTick - firstVisibleTick, 60);
+      expect(sawStrike, isTrue);
+      expect(hitPlayer, isTrue);
+    });
+
     test('spawns a resolved obstacle marker at the same-support clamp', () {
       const pattern = ChunkPattern(
         name: 'derf-valid-obstacle',
@@ -457,15 +548,19 @@ TerrainPolygonInput _polygon(
   surfaceKind: surfaceKind,
 );
 
-LevelDefinition _streamedLevel(ChunkPattern pattern) => LevelDefinition(
+LevelDefinition _streamedLevel(
+  ChunkPattern pattern, {
+  CameraTuning camera = const CameraTuning(),
+}) => LevelDefinition(
   id: LevelId.field,
   chunkPatternSource: ChunkPatternListSource(
     easyPatterns: <ChunkPattern>[pattern],
     hardPatterns: <ChunkPattern>[pattern],
   ),
   groundTopY: 300,
-  tuning: const CoreTuning(
-    track: TrackTuning(
+  tuning: CoreTuning(
+    camera: camera,
+    track: const TrackTuning(
       enabled: true,
       chunkWidth: 2048,
       spawnAheadMargin: 0,

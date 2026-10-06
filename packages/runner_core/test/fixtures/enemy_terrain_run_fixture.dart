@@ -6,6 +6,7 @@ import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/stores/enemies/derf_phase_store.dart';
 import 'package:runner_core/ecs/stores/enemies/hashash_teleport_state_store.dart';
 import 'package:runner_core/ecs/systems/enemy_cast_system.dart';
 import 'package:runner_core/ecs/systems/enemy_cull_system.dart';
@@ -858,27 +859,27 @@ EnemyTerrainScenarioSignatureInput _scenarioE10(bool reverse) {
   );
   final gentle = _resolveDerfPlacement(
     _compile(<TerrainPolygonInput>[
-      _polygon('derf-15', const <(double, double)>[
+      _polygon('derf-45', const <(double, double)>[
         (0, 300),
-        (112, 270),
+        (112, 188),
         (112, 400),
         (0, 400),
       ]),
     ], reverse: reverse),
     x: 56,
-    supportY: 285,
+    supportY: 244,
   );
   final steep = _resolveDerfPlacement(
     _compile(<TerrainPolygonInput>[
-      _polygon('derf-over-15', const <(double, double)>[
+      _polygon('derf-over-45', const <(double, double)>[
         (0, 300),
-        (112, 269),
+        (112, 187),
         (112, 400),
         (0, 400),
       ]),
     ], reverse: reverse),
     x: 56,
-    supportY: 284.5,
+    supportY: 243.5,
   );
   _ensure(flat.accepted && gentle.accepted, 'SG-E10 valid perch rejected');
   _ensure(!steep.accepted, 'SG-E10 invalid perch accepted');
@@ -1159,10 +1160,10 @@ EnemyTerrainScenarioSignatureInput _scenarioE13(bool reverse) {
   ], reverse: reverse);
   final mixed = _MixedEnemyHarness.create(geometry: geometry);
   mixed.run(90);
-  _ensure(mixed.groundEnemyCount == 16, 'SG-E13 ground count changed');
+  _ensure(mixed.groundEnemyCount == 20, 'SG-E13 ground count changed');
   _ensure(mixed.flyingEnemyCount == 4, 'SG-E13 flying count changed');
   _ensure(mixed.derfCount == 4, 'SG-E13 Derf count changed');
-  _ensure(mixed.lastIntegratedBodyCount == 20, 'SG-E13 dispatch count changed');
+  _ensure(mixed.lastIntegratedBodyCount == 24, 'SG-E13 dispatch count changed');
   return _scenario(
     id: 'SG-E13',
     fixture: 'representative-mixed-enemies-v1',
@@ -1836,7 +1837,10 @@ final class _MixedEnemyHarness {
     }
     for (var index = 0; index < 4; index += 1) {
       flyingEnemies.add(spawn(EnemyId.unocoDemon, 300 + index * 100, 350));
-      derfs.add(spawn(EnemyId.derf, 900 + index * 80, 500));
+      final derf = spawn(EnemyId.derf, 900 + index * 80, 500);
+      world.derfPhase.phase[world.derfPhase.indexOf(derf)] = DerfPhase.twisted;
+      derfs.add(derf);
+      groundEnemies.add(derf);
     }
     final authority = TerrainMultiBodyWorldMotionAuthority(
       geometry: geometry,
@@ -1933,7 +1937,7 @@ final class _MixedEnemyHarness {
 
   List<EnemyTerrainCheckpointSignatureRecord> checkpoints() =>
       <EnemyTerrainCheckpointSignatureRecord>[
-        for (final enemy in <int>[...groundEnemies, ...flyingEnemies, ...derfs])
+        for (final enemy in <int>[...groundEnemies, ...flyingEnemies])
           _checkpoint(world, enemy: enemy, tick: tick),
       ];
 }

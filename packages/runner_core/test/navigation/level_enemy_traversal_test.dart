@@ -13,8 +13,7 @@ const _scenarios = [
   (levelId: LevelId.new_level, chunkCount: 32),
 ];
 const _seeds = [7, 42, 2026];
-// Derf is stationary; its spawn/clearance behavior has separate tests.
-const _mobileEnemies = [EnemyId.grojib, EnemyId.hashash, EnemyId.unocoDemon];
+const _mobileEnemies = EnemyId.values;
 
 void main() {
   test('every compiled level has an explicit traversal scenario', () {
@@ -60,6 +59,24 @@ void main() {
       enemyIds: _mobileEnemies,
     );
   }
+
+  test('Derf lands on the descending grove slope before its gap', () {
+    final route = LevelTraversalRoute.chunks(
+      level: LevelRegistry.byId(LevelId.forest),
+      seed: 42,
+      chunkKeys: [
+        'forest_default_early_001',
+        'forest_rocky_grove_normal_005',
+        'forest_rocky_grove_normal_008',
+        'forest_rocky_grove_hard_006',
+      ],
+      continuationChunkKey: 'forest_rocky_grove_hard_003',
+    );
+    final harness = EnemyTraversalHarness(route, EnemyId.derf);
+    expect(harness.traverse(), isNull);
+    expect(harness.enemyX, greaterThanOrEqualTo(harness.finishX));
+    expect(harness.visitedChunks, containsAll([0, 1, 2, 3]));
+  });
 
   for (final enemy in [EnemyId.grojib, EnemyId.hashash]) {
     test('hard grove rock foothold preserves pursuit for ${enemy.name}', () {

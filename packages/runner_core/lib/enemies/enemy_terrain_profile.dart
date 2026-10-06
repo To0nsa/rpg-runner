@@ -9,9 +9,6 @@ enum EnemyTerrainMotionKind {
 
   /// Freely steered actor blocked by solids without becoming grounded.
   flyingDynamic,
-
-  /// Stationary actor validated only when explicitly placed or moved.
-  kinematicPlacement,
 }
 
 /// How authored locomotion speed is interpreted on eligible supports.
@@ -60,18 +57,6 @@ class EnemyTerrainContactProfile {
           throw ArgumentError(
             'Flying enemy terrain profiles must be dynamic, gravity-free, '
             'support-free, and ignore one-way terrain.',
-          );
-        }
-      case EnemyTerrainMotionKind.kinematicPlacement:
-        if (!traversal.isKinematic ||
-            traversal.useGravity ||
-            traversal.groundedMobilityHelpersEnabled ||
-            traversal.stepHeightTicks != 0 ||
-            traversal.snapDistanceTicks != 0 ||
-            locomotionKind != EnemyTerrainLocomotionKind.none) {
-          throw ArgumentError(
-            'Kinematic enemy terrain profiles may only participate in '
-            'explicit placement queries.',
           );
         }
     }
@@ -184,43 +169,6 @@ EnemyTerrainContactProfile createFlyingEnemyTerrainProfile({
       ),
       TerrainSlopeSpeedPoint(
         angleUnits: 90 * terrainSlopeAngleUnitsPerDegree,
-        uphillMultiplierBp: 10000,
-        downhillMultiplierBp: 10000,
-      ),
-    ],
-  ),
-);
-
-/// Builds the frozen Derf clearance-only placement policy.
-EnemyTerrainContactProfile createKinematicEnemyTerrainProfile({
-  required WorldContactCapsuleDef capsule,
-}) => EnemyTerrainContactProfile(
-  motionKind: EnemyTerrainMotionKind.kinematicPlacement,
-  locomotionKind: EnemyTerrainLocomotionKind.none,
-  capsule: capsule,
-  traversal: TerrainTraversalProfile(
-    enabled: true,
-    isKinematic: true,
-    useGravity: false,
-    gravityScaleBp: 0,
-    collideCeilings: true,
-    collideLeftWalls: true,
-    collideRightWalls: true,
-    maxWalkableSlopeAngleUnits: 15 * terrainSlopeAngleUnitsPerDegree,
-    minimumSupportUpComponent: 989,
-    stepHeightTicks: 0,
-    snapDistanceTicks: 0,
-    oneWaySupportEnabled: false,
-    dropThroughEnabled: false,
-    groundedMobilityHelpersEnabled: false,
-    slopeSpeedPoints: const <TerrainSlopeSpeedPoint>[
-      TerrainSlopeSpeedPoint(
-        angleUnits: 0,
-        uphillMultiplierBp: 10000,
-        downhillMultiplierBp: 10000,
-      ),
-      TerrainSlopeSpeedPoint(
-        angleUnits: 15 * terrainSlopeAngleUnitsPerDegree,
         uphillMultiplierBp: 10000,
         downhillMultiplierBp: 10000,
       ),

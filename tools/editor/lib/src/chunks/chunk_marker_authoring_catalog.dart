@@ -17,6 +17,7 @@ final class ChunkMarkerEnemyCatalogEntry {
     required this.motionKind,
     required this.renderAnim,
     required this.renderScale,
+    this.previewAnimKey = AnimKey.idle,
   });
 
   final EnemyId enemyId;
@@ -24,18 +25,19 @@ final class ChunkMarkerEnemyCatalogEntry {
   final EnemyTerrainMotionKind motionKind;
   final RenderAnimSetDefinition renderAnim;
   final double renderScale;
+  final AnimKey previewAnimKey;
 
   String get markerId => enemyId.name;
 
   String get roleLabel => chunkMarkerEnemyRoleLabel(motionKind);
 
-  String? get previewSourcePath => renderAnim.sourcesByKey[AnimKey.idle];
+  String? get previewSourcePath => renderAnim.sourcesByKey[previewAnimKey];
 
-  int get previewRow => renderAnim.rowByKey[AnimKey.idle] ?? 0;
+  int get previewRow => renderAnim.rowByKey[previewAnimKey] ?? 0;
 
-  int get previewStartFrame => renderAnim.frameStartByKey[AnimKey.idle] ?? 0;
+  int get previewStartFrame => renderAnim.frameStartByKey[previewAnimKey] ?? 0;
 
-  int? get previewGridColumns => renderAnim.gridColumnsByKey[AnimKey.idle];
+  int? get previewGridColumns => renderAnim.gridColumnsByKey[previewAnimKey];
 }
 
 /// Canonically ordered Core enemies supported by current marker authoring.
@@ -64,7 +66,7 @@ ChunkMarkerEnemyCatalogEntry? chunkMarkerEnemyCatalogEntryFor(String markerId) {
 
 /// Returns the creation-only placement default for one exact Core enemy ID.
 ///
-/// Derf is authored as an obstacle-top kinematic perch. Unknown IDs retain the
+/// Derf starts as an obstacle-top caster before awakening. Unknown IDs retain the
 /// general ground default so this presentation policy never expands identity
 /// acceptance.
 String chunkMarkerDefaultPlacementFor(String markerId) =>
@@ -77,7 +79,6 @@ String chunkMarkerEnemyRoleLabel(EnemyTerrainMotionKind motionKind) =>
     switch (motionKind) {
       EnemyTerrainMotionKind.groundedDynamic => 'Ground',
       EnemyTerrainMotionKind.flyingDynamic => 'Flying',
-      EnemyTerrainMotionKind.kinematicPlacement => 'Perched',
     };
 
 /// Placement queries supported by current Chunk marker authoring.
@@ -95,6 +96,7 @@ ChunkMarkerEnemyCatalogEntry _entryFor(EnemyCatalog catalog, EnemyId enemyId) {
     motionKind: catalog.terrainContactProfile(enemyId).motionKind,
     renderAnim: archetype.renderAnim,
     renderScale: archetype.renderScale,
+    previewAnimKey: archetype.previewAnimKey,
   );
 }
 

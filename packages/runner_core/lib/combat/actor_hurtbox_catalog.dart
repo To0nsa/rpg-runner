@@ -69,6 +69,8 @@ abstract final class ActorHurtboxCatalog {
           3 + (frame.isOdd ? 1 : 0),
           8,
         ),
+        EnemyId.derf when key == AnimKey.strike && (frame == 3 || frame == 4) =>
+          const CombatCapsule(-10, -3, -1, 20, 10),
         EnemyId.derf when key == AnimKey.cast => const CombatCapsule(
           0,
           -6,

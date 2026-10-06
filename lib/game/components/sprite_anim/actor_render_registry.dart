@@ -27,6 +27,9 @@ class ActorRenderEntry {
       images,
       renderAnim: renderAnim,
       oneShotKeys: const {
+        AnimKey.transform,
+        AnimKey.casterHit,
+        AnimKey.casterDeath,
         AnimKey.strike,
         AnimKey.cast,
         AnimKey.backStrike,

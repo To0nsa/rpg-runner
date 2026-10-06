@@ -165,7 +165,7 @@ final class TerrainEnemySpawnPlacementProfile
   /// Catalog identity that owns the shape and terrain policy.
   final EnemyId enemyId;
 
-  /// Whether placement is grounded, flying-clearance, or kinematic-only.
+  /// Whether placement is grounded or flying-clearance.
   @override
   final EnemyTerrainMotionKind motionKind;
 
@@ -504,13 +504,6 @@ final class TerrainSpawnPlacementResolver {
     final isDerf =
         profile is TerrainEnemySpawnPlacementProfile &&
         profile.enemyId == EnemyId.derf;
-    if (profile.motionKind == EnemyTerrainMotionKind.kinematicPlacement &&
-        (!isDerf ||
-            request.supportSelection !=
-                TerrainSpawnSupportSelection.obstacleTop)) {
-      return _failure(request, TerrainPlacementValidity.profileIneligible);
-    }
-
     final support = _selectSupport(request, request.desiredBodyCenter.xTicks);
     if (support == null) {
       return _failure(
@@ -539,9 +532,7 @@ final class TerrainSpawnPlacementResolver {
         minimumSupportSpanTicks: isDerf ? derfMinimumSupportSpanTicks : 0,
         intendedSupportEdgeId: support.id,
         allowSameSupportClamp: request.allowSameSupportClamp,
-        oneWayClearancePolicy: isDerf
-            ? TerrainOneWayClearancePolicy.ignore
-            : TerrainOneWayClearancePolicy.useTraversalProfile,
+        oneWayClearancePolicy: TerrainOneWayClearancePolicy.useTraversalProfile,
         expectedGeometryVersion: _placementQuery.geometry.version,
       ),
     );
