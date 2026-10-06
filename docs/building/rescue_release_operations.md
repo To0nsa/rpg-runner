@@ -51,6 +51,11 @@ terrain artifacts belong in the same client/worker preparation. See
   Windows allowance (six minutes versus the usual two); its immutable-roster,
   reward and excluded-source checks passed the isolated recheck in 65 seconds.
   The final pinned backend also passes all 212 emulator tests and its build.
+- [x] Align the encounter preflight regression with grounded Derf: valid
+  ground placement now succeeds, while a Derf body extending beyond the chunk
+  still rejects the complete group. The focused encounter-source suite passes.
+  Current preparation also passes 1,102 client tests, 928 Core tests, 44
+  protocol tests and the web build; final content/terrain/freshness gates remain.
 - [ ] Prepare and benchmark matching client/worker/backend artifacts. Backend
   valid-request fixtures now use the exported current compatibility; retired
   `2026.10.6` remains explicitly rejected. The first frozen preparation exposed

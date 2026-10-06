@@ -133,9 +133,18 @@ void main() {
     expect(result.issues.single.elementId, 'roadside_rescue');
   });
   test('required support and full-body bounds fail the complete group', () {
+    final groundedDerf = _source();
+    _encounter(groundedDerf)['enemies'][0]['enemyId'] = 'derf';
+    final groundedResult = _compile(groundedDerf);
+    expect(groundedResult.issues, isEmpty);
+    expect(groundedResult.chunk, isNotNull);
+
     for (final mutate in <void Function(Map<String, dynamic>)>[
       (e) => e['npcs'][0]['x'] = 1,
-      (e) => e['enemies'][0]['enemyId'] = 'derf',
+      (e) {
+        e['enemies'][0]['enemyId'] = 'derf';
+        e['enemies'][0]['x'] = 1;
+      },
       (e) => e['enemies'][0]['placement'] = 'obstacleTop',
     ]) {
       final source = _source();
