@@ -5,7 +5,7 @@
 // - Queues tick-stamped input commands
 // - Runs a fixed-tick simulation loop using an accumulator
 // - Exposes (`prevSnapshot`, `snapshot`, `alpha`) for render interpolation
-// - Buffers transient `GameEvent`s for Render/UI to consume
+// - Dispatches transient `GameEvent`s to Render/UI listeners
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -69,13 +69,9 @@ class GameController extends ChangeNotifier {
   /// Fallback input frame for ticks with no buffered commands.
   final TickInputFrame _frameScratch = TickInputFrame();
 
-  /// Buffered transient events produced by the core.
-  final List<GameEvent> _events = <GameEvent>[];
-
   /// Optional event listeners (render/UI side-effects).
   ///
-  /// Listeners are invoked for every event emitted by Core, before events are
-  /// buffered into [_events].
+  /// Each Core event is dispatched synchronously without retaining a run history.
   final List<GameEventListener> _eventListeners = <GameEventListener>[];
 
   /// Optional observers of canonical applied command frames.
@@ -87,7 +83,7 @@ class GameController extends ChangeNotifier {
 
   /// The most recent [RunEndedEvent], if any.
   ///
-  /// Stored separately so UI can access it after events are drained.
+  /// Retained for terminal UI after transient callbacks complete.
   RunEndedEvent? lastRunEndedEvent;
 
   late GameStateSnapshot _prev;
@@ -129,18 +125,9 @@ class GameController extends ChangeNotifier {
     enqueue(factory(tick + inputLead));
   }
 
-  /// Drains and clears all buffered transient events.
-  List<GameEvent> drainEvents() {
-    if (_events.isEmpty) return const <GameEvent>[];
-    final drained = List<GameEvent>.unmodifiable(_events);
-    _events.clear();
-    return drained;
-  }
-
   /// Registers a callback to observe transient [GameEvent]s.
   ///
-  /// This is useful for render-only effects (e.g. death animations) that should
-  /// not require draining the shared event buffer.
+  /// Register before advancing play; earlier events are not retained or replayed.
   void addEventListener(GameEventListener listener) {
     if (_eventListeners.contains(listener)) return;
     _eventListeners.add(listener);
@@ -177,7 +164,6 @@ class GameController extends ChangeNotifier {
   /// What it does:
   /// - pauses the core
   /// - clears queued commands (prevents "stuck input" on next mount)
-  /// - clears buffered transient events
   /// - resets interpolation state (accumulator + snapshots)
   void shutdown() {
     _isShutdown = true;
@@ -190,7 +176,6 @@ class GameController extends ChangeNotifier {
 
     // Kill transient buffers so nothing leaks across sessions.
     _inputsByTick.clear();
-    _events.clear();
 
     // Make snapshots consistent with the paused state.
     _curr = _core.buildSnapshot();
@@ -268,7 +253,7 @@ class GameController extends ChangeNotifier {
     }
   }
 
-  /// Drains events from the core and buffers them for UI consumption.
+  /// Drains Core events and dispatches them to the live UI/render subscribers.
   ///
   /// Also captures [RunEndedEvent] into [lastRunEndedEvent] for easy access.
   void _collectCoreEvents() {
@@ -282,9 +267,6 @@ class GameController extends ChangeNotifier {
           listener(event);
         }
       }
-    }
-    if (newEvents.isNotEmpty) {
-      _events.addAll(newEvents);
     }
   }
 

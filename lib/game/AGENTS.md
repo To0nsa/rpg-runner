@@ -27,7 +27,7 @@ If a change affects the actual rules of the game, it probably belongs in `packag
 
 ## Current Important Files
 
-- `lib/game/game_controller.dart`: owns `GameCore`, fixed-tick stepping, snapshot history, and event buffering
+- `lib/game/game_controller.dart`: owns `GameCore`, fixed-tick stepping, snapshot history, and transient event dispatch
 - `lib/game/runner_flame_game.dart`: main Flame scene and render synchronization
 - `lib/game/input/runner_input_router.dart`: converts held/edge inputs into upcoming tick commands
 - `lib/game/tick_input_frame.dart`: buffered input frame representation
@@ -126,7 +126,7 @@ Bad fits for `lib/game/`:
 
 When `lib/game/` changes, verify the relevant behavior:
 
-- controller stepping and event buffering
+- controller stepping and transient event dispatch
 - input scheduling edge cases
 - render registry wiring
 - widget or integration tests for route-level run behavior when needed

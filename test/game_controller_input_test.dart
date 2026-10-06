@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:run_protocol/replay_blob.dart';
 
@@ -12,6 +13,66 @@ import 'package:rpg_runner/game/game_controller.dart';
 import 'test_tunings.dart';
 
 void main() {
+  test(
+    'Core events reach each subscriber once and retain the terminal result',
+    () {
+      final level = testFieldLevel(tuning: noAutoscrollTuning);
+      final core = GameCore(
+        levelDefinition: level,
+        playerCharacter: testPlayerCharacter,
+        seed: 42,
+      );
+      final reference = GameCore(
+        levelDefinition: level,
+        playerCharacter: testPlayerCharacter,
+        seed: 42,
+      );
+      final controller = GameController(core: core);
+      addTearDown(controller.dispose);
+      final first = <GameEvent>[];
+      final second = <GameEvent>[];
+      final expected = <GameEvent>[];
+      controller.addEventListener(first.add);
+      controller.addEventListener(second.add);
+
+      for (var tick = 1; tick <= 240 && !core.gameOver; tick++) {
+        final commands = <Command>[
+          MoveAxisCommand(tick: tick, axis: 1),
+          if (tick % 30 == 0) JumpPressedCommand(tick: tick),
+          if (tick % 45 == 0) StrikePressedCommand(tick: tick),
+          if (tick % 60 == 0) ProjectilePressedCommand(tick: tick),
+        ];
+        for (final command in commands) {
+          controller.enqueue(command);
+        }
+        controller.advanceFrame(1 / controller.tickHz);
+        reference.applyCommands(commands);
+        reference.stepOneTick();
+        expected.addAll(reference.drainEvents());
+      }
+      controller.giveUp();
+      reference.giveUp();
+      expected.addAll(reference.drainEvents());
+
+      expect(first, second);
+      expect(
+        first.map((event) => event.runtimeType),
+        expected.map((event) => event.runtimeType),
+      );
+      final ended = first.whereType<RunEndedEvent>().single;
+      final expectedEnd = expected.whereType<RunEndedEvent>().single;
+      expect(controller.lastRunEndedEvent, same(ended));
+      expect(ended.tick, expectedEnd.tick);
+      expect(ended.reason, expectedEnd.reason);
+      expect(ended.distance, expectedEnd.distance);
+      final eventCount = first.length;
+      controller.advanceFrame(1);
+      controller.giveUp();
+      expect(first, hasLength(eventCount));
+      expect(second, hasLength(eventCount));
+    },
+  );
+
   for (final shutdownFirst in [false, true]) {
     test('closed controller cannot restart terrain preparation '
         '(shutdown first: $shutdownFirst)', () async {

@@ -382,6 +382,13 @@ events through `GameCore.drainEvents`.
 - `RunEndedEvent` is the terminal gameplay result used by client flow and
   replay validation.
 
+GameController drains Core events after each stepped tick or manual give-up and
+dispatches them synchronously to registered UI/render listeners. It retains only
+the latest RunEndedEvent for terminal presentation, not an undrained copy of the
+run's transient feedback. Render effects own their bounded pending queues and
+flush them during scene synchronization. Subscribers register before play;
+controller event dispatch has no polling queue or history replay.
+
 Streaming-enabled normal and replay construction expose the selected staged
 candidate's `StagedTerrainRenderSnapshot` and use its matching collision,
 support, placement, and graph bundle. The snapshot renders direct Chunk
