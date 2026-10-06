@@ -12672,7 +12672,7 @@
     {
       "prefabKey": "rune_rocks_menhir_02",
       "id": "rune_rocks_menhir_02",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -12681,7 +12681,74 @@
       },
       "anchorXPx": 24,
       "anchorYPx": 48,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -17,
+              "y": 5
+            },
+            {
+              "x": -16,
+              "y": -22
+            },
+            {
+              "x": -14,
+              "y": -24
+            },
+            {
+              "x": -13,
+              "y": -29
+            },
+            {
+              "x": -11,
+              "y": -31
+            },
+            {
+              "x": -4,
+              "y": -31
+            },
+            {
+              "x": 0,
+              "y": -27
+            },
+            {
+              "x": 2,
+              "y": -21
+            },
+            {
+              "x": 18,
+              "y": -6
+            },
+            {
+              "x": 20,
+              "y": 2
+            },
+            {
+              "x": 20,
+              "y": 32
+            },
+            {
+              "x": 19,
+              "y": 46
+            },
+            {
+              "x": 17,
+              "y": 48
+            },
+            {
+              "x": -14,
+              "y": 48
+            },
+            {
+              "x": -17,
+              "y": 45
+            }
+          ]
+        }
+      ],
       "tags": [
         "props",
         "rune_rocks"

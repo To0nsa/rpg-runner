@@ -457,13 +457,23 @@ The `2026.10.1` release expands the grove pools and simplifies later Forest
 geometry and blocking prefab pockets. Its 60-chunk authored catalog is
 regenerated into both runtime artifacts before client/worker validation.
 
-The current 81-chunk catalog uses Level/group/difficulty/number identities.
+The current 80-chunk catalog uses Level/group/difficulty/number identities.
 The Rocky Grove hard pool replaces its three older layouts with nine copies of
 the normal layouts. Rekeying the other sources changes deterministic selection
 and generated terrain identities even where geometry is unchanged. Client and
 replay worker artifacts must therefore use the same regenerated catalog in a
 coordinated gameplay compatibility release; old replay content must not be
 interpreted with the new keys.
+
+The `2026.10.7` authored revision adds `forest_boss_easy_001`, removes
+`forest_ruin_hard_006` and `forest_ruin_hard_007`, and expands Forest's hard
+assembly across grove, enchanted forest, ruin, training-camp and woodcamp
+sections. Updated collision, enemy markers, traps and rescue placements are
+materialized into `authored_chunk_patterns.dart` and `staged_authored_terrain.dart`;
+`level_registry.dart` carries the new assembly. All three artifacts must be
+regenerated from the same saved sources before client and worker preparation.
+The existing prepared `2026.10.7` compatibility tuple includes this revision and
+the Derf changes; production remains on `2026.10.6` until coordinated cutover.
 
 Core owns occurrence activation, target selection, participant damage credit,
 active chunk containment, survivor section bounds, terminal priority and checked

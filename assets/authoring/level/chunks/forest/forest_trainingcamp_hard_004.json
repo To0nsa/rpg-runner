@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_trainingcamp_hard_004",
   "id": "forest_trainingcamp_hard_004",
-  "revision": 84,
+  "revision": 99,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -25,8 +25,8 @@
     {
       "prefabId": "gandalf_hardcore_large_tent_01",
       "prefabKey": "gandalf_hardcore_large_tent_01",
-      "x": 368,
-      "y": 123,
+      "x": 336,
+      "y": 128,
       "zIndex": 0,
       "snapToGrid": true
     },
@@ -34,7 +34,7 @@
       "prefabId": "cimetery_statue_01",
       "prefabKey": "cimetery_statue_01",
       "x": 224,
-      "y": 145,
+      "y": 144,
       "zIndex": 0,
       "snapToGrid": true,
       "scale": 0.4
@@ -46,15 +46,6 @@
       "y": 202,
       "zIndex": 0,
       "snapToGrid": false
-    },
-    {
-      "prefabId": "rune_rocks_mossy_rock_04",
-      "prefabKey": "rune_rocks_mossy_rock_04",
-      "x": 28,
-      "y": 210,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "flipX": true
     }
   ],
   "markers": [],

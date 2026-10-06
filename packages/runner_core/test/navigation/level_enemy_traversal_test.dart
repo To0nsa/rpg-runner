@@ -60,6 +60,104 @@ void main() {
     );
   }
 
+  for (final regression in [
+    (
+      seed: 7,
+      previous: 'forest_trainingcamp_hard_001',
+      next: 'forest_trainingcamp_hard_004',
+    ),
+    (
+      seed: 42,
+      previous: 'forest_trainingcamp_hard_002',
+      next: 'forest_trainingcamp_hard_004',
+    ),
+    (seed: 42, previous: 'forest_ruin_hard_001', next: 'forest_ruin_hard_005'),
+    (
+      seed: 2026,
+      previous: 'forest_rocky_grove_hard_009',
+      next: 'forest_ruin_hard_005',
+    ),
+  ]) {
+    for (final enemy in [EnemyId.grojib, EnemyId.hashash, EnemyId.derf]) {
+      test('hard obstacle clearance after ${regression.previous} reaches '
+          '${regression.next} exit for ${enemy.name}', () {
+        final route = LevelTraversalRoute.chunks(
+          level: LevelRegistry.byId(LevelId.forest),
+          seed: regression.seed,
+          chunkKeys: [
+            'forest_default_early_001',
+            regression.previous,
+            regression.next,
+          ],
+          continuationChunkKey: 'forest_rocky_grove_hard_003',
+        );
+        final harness = EnemyTraversalHarness(route, enemy);
+        expect(harness.traverse(), isNull);
+        expect(harness.enemyX, greaterThanOrEqualTo(harness.finishX));
+        expect(harness.visitedChunks, containsAll([0, 1, 2]));
+      });
+    }
+  }
+
+  for (final regression in [
+    (
+      seed: 7,
+      name: 'hard camp and grove foothold',
+      keys: [
+        'forest_default_early_001',
+        'forest_rocky_grove_hard_007',
+        'forest_rocky_grove_hard_006',
+        'forest_trainingcamp_hard_001',
+        'forest_trainingcamp_hard_004',
+        'forest_trainingcamp_hard_003',
+        'forest_trainingcamp_hard_002',
+        'forest_rocky_grove_hard_007',
+        'forest_rocky_grove_hard_008',
+      ],
+      continuation: 'forest_rocky_grove_hard_005',
+    ),
+    (
+      seed: 42,
+      name: 'hard ruin into grove gap',
+      keys: [
+        'forest_default_early_001',
+        'forest_ruin_hard_005',
+        'forest_rocky_grove_hard_002',
+        'forest_rocky_grove_hard_003',
+      ],
+      continuation: 'forest_rocky_grove_hard_004',
+    ),
+    (
+      seed: 2026,
+      name: 'hard woodcamp entrance rock',
+      keys: [
+        'forest_default_early_001',
+        'forest_woodcamp_hard_003',
+        'forest_woodcamp_hard_002',
+        'forest_woodcamp_hard_001',
+      ],
+      continuation: 'forest_rocky_grove_hard_002',
+    ),
+  ]) {
+    for (final enemy in [EnemyId.grojib, EnemyId.hashash, EnemyId.derf]) {
+      test('${regression.name} preserves continuous ${enemy.name} pursuit', () {
+        final route = LevelTraversalRoute.chunks(
+          level: LevelRegistry.byId(LevelId.forest),
+          seed: regression.seed,
+          chunkKeys: regression.keys,
+          continuationChunkKey: regression.continuation,
+        );
+        final harness = EnemyTraversalHarness(route, enemy);
+        expect(harness.traverse(), isNull);
+        expect(harness.enemyX, greaterThanOrEqualTo(harness.finishX));
+        expect(
+          harness.visitedChunks,
+          containsAll(List.generate(regression.keys.length, (index) => index)),
+        );
+      });
+    }
+  }
+
   test('Derf lands on the descending grove slope before its gap', () {
     final route = LevelTraversalRoute.chunks(
       level: LevelRegistry.byId(LevelId.forest),

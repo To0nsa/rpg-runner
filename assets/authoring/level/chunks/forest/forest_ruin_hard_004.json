@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_hard_004",
   "id": "forest_ruin_hard_004",
-  "revision": 41,
+  "revision": 47,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -114,6 +114,18 @@
     }
   ],
   "traps": [
+    {
+      "trapId": "poison_darts",
+      "x": 195,
+      "y": 95,
+      "facing": "right",
+      "trigger": {
+        "offsetX": 13,
+        "offsetY": -54,
+        "width": 96,
+        "height": 86
+      }
+    },
     {
       "trapId": "swinging_axe",
       "x": 479,

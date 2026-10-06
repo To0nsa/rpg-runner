@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_trainingcamp_hard_003",
   "id": "forest_trainingcamp_hard_003",
-  "revision": 54,
+  "revision": 56,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -13,14 +13,6 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [
-    {
-      "prefabId": "tiny_swords_ground_platform_08_32x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_08_32x32_platform",
-      "x": 119,
-      "y": 225,
-      "zIndex": -21,
-      "snapToGrid": false
-    },
     {
       "prefabId": "grimstone_platformer_32x32_tree_02",
       "prefabKey": "grimstone_platformer_32x32_tree_02",
@@ -56,7 +48,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 404,
+      "y": 197,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

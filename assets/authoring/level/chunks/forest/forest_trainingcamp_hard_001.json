@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_trainingcamp_hard_001",
   "id": "forest_trainingcamp_hard_001",
-  "revision": 76,
+  "revision": 77,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -60,7 +60,16 @@
       "snapToGrid": true
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 442,
+      "y": 62,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",

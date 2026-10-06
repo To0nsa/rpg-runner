@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_002",
   "id": "forest_rocky_grove_hard_002",
-  "revision": 46,
+  "revision": 47,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -42,6 +42,14 @@
       "prefabKey": "pixel_fantasy_caves_small_rock_06",
       "x": 540,
       "y": 169,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 408,
+      "y": 192,
       "zIndex": 0,
       "snapToGrid": false
     },

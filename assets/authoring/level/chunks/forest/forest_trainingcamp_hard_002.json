@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_trainingcamp_hard_002",
   "id": "forest_trainingcamp_hard_002",
-  "revision": 65,
+  "revision": 71,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -18,7 +18,7 @@
       "prefabKey": "pixel_fantasy_caves_tree_01",
       "x": 435,
       "y": 144,
-      "zIndex": 0,
+      "zIndex": -24,
       "snapToGrid": false
     },
     {
@@ -66,7 +66,7 @@
     {
       "prefabId": "tiny_swords_anvil_01",
       "prefabKey": "tiny_swords_anvil_01",
-      "x": 231,
+      "x": 215,
       "y": 209,
       "zIndex": 0,
       "snapToGrid": false
@@ -92,8 +92,8 @@
   "markers": [
     {
       "markerId": "derf",
-      "x": 354,
-      "y": 95,
+      "x": 348,
+      "y": 73,
       "chancePercent": 100,
       "salt": 0,
       "placement": "obstacleTop"
@@ -123,6 +123,20 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "traps": [
+    {
+      "trapId": "poison_darts",
+      "x": 356,
+      "y": 142,
+      "facing": "right",
+      "trigger": {
+        "offsetX": 40,
+        "offsetY": -32,
+        "width": 180,
+        "height": 64
+      }
     }
   ]
 }

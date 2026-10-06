@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_woodcamp_hard_003",
   "id": "forest_woodcamp_hard_003",
-  "revision": 7,
+  "revision": 17,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -13,6 +13,14 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [
+    {
+      "prefabId": "woods_clothline_01",
+      "prefabKey": "woods_clothline_01",
+      "x": 528,
+      "y": 192,
+      "zIndex": -21,
+      "snapToGrid": true
+    },
     {
       "prefabId": "tiny_swords_tree_01",
       "prefabKey": "tiny_swords_tree_01",
@@ -30,12 +38,14 @@
       "snapToGrid": true
     },
     {
-      "prefabId": "woods_clothline_01",
-      "prefabKey": "woods_clothline_01",
-      "x": 496,
-      "y": 192,
+      "prefabId": "woods_tent_02",
+      "prefabKey": "woods_tent_02",
+      "x": 481,
+      "y": 199,
       "zIndex": 0,
-      "snapToGrid": true
+      "snapToGrid": false,
+      "scale": 1.5,
+      "flipX": true
     },
     {
       "prefabId": "woods_tent_01",
@@ -48,19 +58,9 @@
       "flipX": true
     },
     {
-      "prefabId": "woods_tent_02",
-      "prefabKey": "woods_tent_02",
-      "x": 352,
-      "y": 200,
-      "zIndex": 0,
-      "snapToGrid": true,
-      "scale": 1.5,
-      "flipX": true
-    },
-    {
       "prefabId": "tiny_swords_firecamp_01",
       "prefabKey": "tiny_swords_firecamp_01",
-      "x": 224,
+      "x": 272,
       "y": 208,
       "zIndex": 0,
       "snapToGrid": true
@@ -68,7 +68,7 @@
     {
       "prefabId": "woods_table_food_01",
       "prefabKey": "woods_table_food_01",
-      "x": 363,
+      "x": 482,
       "y": 208,
       "zIndex": 0,
       "snapToGrid": false
@@ -108,6 +108,37 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "encounter",
+      "name": "Rescue encounter",
+      "trigger": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 270
+      },
+      "targetPolicy": "preferEncounterNpcs",
+      "npcs": [
+        {
+          "id": "warrior",
+          "npcId": "warrior",
+          "x": 196,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ],
+      "enemies": [
+        {
+          "id": "enemy",
+          "enemyId": "grojib",
+          "x": 341,
+          "facing": "right",
+          "placement": "ground"
+        }
+      ]
     }
   ]
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_hard_002",
   "id": "forest_ruin_hard_002",
-  "revision": 17,
+  "revision": 31,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -32,16 +32,16 @@
     {
       "prefabId": "ancient_forest_ruin_arch_01",
       "prefabKey": "ancient_forest_ruin_arch_01",
-      "x": 415,
-      "y": 142,
+      "x": 414,
+      "y": 139,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "rune_rocks_mossy_rock_03",
       "prefabKey": "rune_rocks_mossy_rock_03",
-      "x": 263,
-      "y": 181,
+      "x": 219,
+      "y": 179,
       "zIndex": 0,
       "snapToGrid": false
     },
@@ -78,11 +78,7 @@
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 0,
-          "y": 224
-        },
-        {
-          "x": 141,
+          "x": 309,
           "y": 203
         },
         {
@@ -95,6 +91,58 @@
         },
         {
           "x": 600,
+          "y": 270
+        },
+        {
+          "x": 309,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 247,
+          "y": 203
+        },
+        {
+          "x": 309,
+          "y": 203
+        },
+        {
+          "x": 309,
+          "y": 270
+        },
+        {
+          "x": 247,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 162,
+          "y": 203
+        },
+        {
+          "x": 247,
+          "y": 203
+        },
+        {
+          "x": 247,
           "y": 270
         },
         {

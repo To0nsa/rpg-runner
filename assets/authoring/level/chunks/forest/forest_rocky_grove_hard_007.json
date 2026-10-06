@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_007",
   "id": "forest_rocky_grove_hard_007",
-  "revision": 12,
+  "revision": 13,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,10 +14,10 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
-      "x": 373,
-      "y": 252,
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 341,
+      "y": 224,
       "zIndex": 0,
       "snapToGrid": false
     }

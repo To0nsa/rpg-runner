@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_woodcamp_hard_002",
   "id": "forest_woodcamp_hard_002",
-  "revision": 43,
+  "revision": 46,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,10 +14,10 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
-      "x": 271,
-      "y": 118,
+      "prefabId": "tiny_swords_ground_platform_07_32x96_platform",
+      "prefabKey": "tiny_swords_ground_platform_07_32x96_platform",
+      "x": 251,
+      "y": 132,
       "zIndex": 0,
       "snapToGrid": false
     },

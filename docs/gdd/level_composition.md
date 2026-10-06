@@ -16,11 +16,11 @@ Prefab changes remove obstructing terrain pockets. Their authored solid
 placements and generated collision/sprite records ship together to the client
 and replay worker; scoring rules remain unchanged.
 
-The hard chunk catalog includes copies of all 24 normal chunks across Field,
-Forest and New Level. These copies retain their source layouts and encounters,
-with distinct chunk keys and hard difficulty. The original normal chunks remain
-available for normal sections. Rocky Grove's hard pool contains the nine copied
-normal layouts; its three older hard layouts have been removed.
+The hard chunk catalog was seeded with copies of all 24 normal chunks across
+Field, Forest and New Level, with distinct chunk keys and hard difficulty.
+The original normal chunks remain available for normal sections. Subsequent
+authoring revisions change hard layouts independently. Rocky Grove's hard pool
+contains nine layouts; its three older hard layouts have been removed.
 
 The `2026.10.4` Forest assembly ends with nine distinct Rocky Grove hard
 chunks, then repeats that final section with a fresh selection. The hard
@@ -31,6 +31,36 @@ geometry or the nine-chunk section length.
 An entrance platform in `forest_rocky_grove_hard_004` supplies a foothold
 before its enlarged rock for the existing ground-enemy movement limits.
 Its water gap remains open.
+
+The `2026.10.7` source revision inserts one easy boss-themed chunk between the
+last easy grove section and the easy enchanted forest. It provides terrain and
+scenery; no boss actor or encounter is authored there yet.
+
+Forest's hard progression now alternates five distinct Rocky Grove sections of
+3–6 chunks with one enchanted-forest chunk, all five remaining hard ruin chunks,
+all four hard training-camp chunks, and all three hard woodcamp chunks, in that
+order. The final 3–6-chunk grove section repeats with a fresh distinct selection.
+The two removed hard ruin chunks are absent from the runtime catalog.
+
+Revised hard layouts add a Hashash in the ruins, Unoco and Grojib in the training
+camp, and a warrior/Grojib rescue encounter in the woodcamp. The revised grove,
+ruin and training-camp layouts include swinging-axe, poison-dart and spike traps.
+Hard terrain, water gaps, footholds and scenery placements are updated together;
+the menhir prefab now has solid collision. These changes affect replay outcomes
+and ship with matching regenerated client and replay-worker content.
+
+The hard ruin statue uses its native size and ground-aligned placement so ground
+enemies can clear its first jump. Hard training-camp repairs restore the wider
+entrance landing, move the statue 32 units right, remove the small entrance rock
+that trapped Grojib against its neighbor, and restore the lower neighboring rock.
+The other camp's anvil moves 16 units left to open the crate approach. The hard
+woodcamp's entrance rock uses 60% scale with its base at ground level.
+
+Hard grove chunk 002 gains a 96-unit foothold over its gap. Chunk 007's foothold
+is widened to 96 units, raised 28 units and moved 32 units left so Derf lands on
+its flat surface. These repairs preserve the existing enemy jump, speed and
+collision limits. Exact incoming transitions remain traversal regressions
+alongside the complete seeded Forest assembly.
 
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.

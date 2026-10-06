@@ -18,6 +18,19 @@ health and terrain capsule survive transformation. Source compatibility is
 updated in the client, Functions and replay worker; production remains on
 2026.10.6. See [Derf contracts](../tdd/derf_transformation.md).
 
+This source also includes the expanded Forest hard assembly, easy boss-themed
+terrain chunk, revised hard collision/spawns/traps/rescue placements, and removal
+of two hard ruin chunks. The authored sources and generated level, chunk and
+terrain artifacts belong in the same client/worker preparation. See
+[level composition](../gdd/level_composition.md) and
+[the Core content contract](../tdd/runner_core_simulation_contract.md#authored-content-and-generated-outputs).
+
+- [x] Regenerate the 80-chunk catalog and confirm dry-run freshness. All 85
+  traversal/control checks pass: seeds 7, 42 and 2026 across all four enemies,
+  complete Forest assemblies of 108, 108 and 104 chunks, and 32-chunk Field/New
+  Level prefixes. Retain the exact obstacle/foothold regression routes. These
+  pursuit checks exclude authored spawns, combat, player, camera and rendering
+  acceptance; see [traversal scope](../../.agent/workflows/test-level-traversal.md).
 - [ ] Prepare and benchmark matching client/worker/backend artifacts.
 - [ ] Obtain release authorization for coordinated production cutover.
 - [ ] Record live issuance, replay, settlement and ghost verification.
