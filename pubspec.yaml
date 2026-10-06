@@ -103,7 +103,6 @@ flutter:
     - assets/images/entities/effects/battle_animations/nod_good_enough/
     - assets/images/entities/effects/elemental_portals/
     - assets/images/entities/effects/world_interactions/
-    - assets/images/entities/enemies/
     - assets/images/entities/enemies/arcane_archer/
     - assets/images/entities/enemies/brain_mole_monarch/
     - assets/images/entities/enemies/cacodaemon/
