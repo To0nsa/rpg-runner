@@ -23,9 +23,14 @@ two older Storage HTTP helpers; remove those overrides only after their
 upstream dependency ranges accept the patched major.
 
 The workspace also pins Firebase Admin's transitive `@fastify/busboy` to
-`3.2.1`, which fixes the multipart denial-of-service advisories
+`3.2.2`, which fixes the multipart denial-of-service advisories
 [GHSA-xjh9-v7x6-24jw](https://github.com/advisories/GHSA-xjh9-v7x6-24jw) and
 [GHSA-x8mw-p69m-v3mx](https://github.com/advisories/GHSA-x8mw-p69m-v3mx).
+It also includes the multipart parameter CRLF fix in
+[GHSA-gxm5-99cw-xjw9](https://github.com/advisories/GHSA-gxm5-99cw-xjw9).
+Express's transitive `proxy-addr` is pinned to `2.0.8` for the IPv4-mapped IPv6
+trust-subnet fix in
+[GHSA-jqcg-44mw-7w3h](https://github.com/advisories/GHSA-jqcg-44mw-7w3h).
 Release preparation checks current production advisories on every run.
 
 ## 2) Shared security model (all callables)

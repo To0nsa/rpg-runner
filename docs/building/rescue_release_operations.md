@@ -31,9 +31,21 @@ terrain artifacts belong in the same client/worker preparation. See
   Level prefixes. Retain the exact obstacle/foothold regression routes. These
   pursuit checks exclude authored spawns, combat, player, camera and rendering
   acceptance; see [traversal scope](../../.agent/workflows/test-level-traversal.md).
+- [x] Resolve the production dependency audit blockers: pin Express's
+  [`proxy-addr`](https://github.com/advisories/GHSA-jqcg-44mw-7w3h) to `2.0.8`
+  and Firebase Admin's
+  [`@fastify/busboy`](https://github.com/advisories/GHSA-gxm5-99cw-xjw9) to `3.2.2`.
+  The regenerated lockfile passes supply-chain policies and the October 6
+  production dependency audit reports no known vulnerabilities. Full release
+  preparation must run against this dependency revision.
 - [ ] Prepare and benchmark matching client/worker/backend artifacts.
 - [ ] Obtain release authorization for coordinated production cutover.
 - [ ] Record live issuance, replay, settlement and ghost verification.
+
+The October 6 read-only inventory still found three issued `2026.10.6` sessions,
+with no pending or quarantined reward settlement. Production cutover needs a
+fresh drain check after preparation and image verification; these observations
+do not authorize cancellation or establish readiness for immediate cutover.
 
 ## Deployed release: 2026.10.6
 
