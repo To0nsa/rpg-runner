@@ -33,6 +33,7 @@ import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.d
 import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
+import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
@@ -2368,6 +2369,167 @@ void main() {
     expect(markerInlineEditor, findsNothing);
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
+
+  testWidgets(
+    'decoration rotation previews, cancels, applies, undoes and saves',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final tree = PrefabV3Def(
+        prefabKey: 'prefab_tree',
+        id: 'tree',
+        revision: 1,
+        status: PrefabStatus.active,
+        kind: PrefabKind.decoration,
+        visualSource: const PrefabVisualSource.atlasSlice('tree_slice'),
+        anchorXPx: 8,
+        anchorYPx: 12,
+        collisionShapes: [],
+        tags: [],
+      );
+      final harness = await _buildHarness(additionalPrefabs: [tree]);
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!({ChunkSceneDomain.prefabs});
+      await tester.pump();
+      await _openSection(
+        tester,
+        toggleKey: 'chunk_prefab_catalog_section_toggle',
+        bodyKey: 'chunk_prefab_catalog_grid',
+      );
+      final card = find.byKey(
+        const ValueKey<String>('chunk_prefab_catalog_card_prefab_tree'),
+      );
+      await tester.ensureVisible(card);
+      await tester.tap(card);
+      await tester.pump();
+      final angleField = find.byKey(
+        const ValueKey<String>(
+          'chunk_prefab_selected_transform_rotation_field',
+        ),
+      );
+      Future<void> setAngle(String degrees) async {
+        await tester.ensureVisible(angleField);
+        await tester.enterText(angleField, degrees);
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pump();
+      }
+
+      await setAngle('30');
+      final surfaceFinder = find.byKey(
+        const ValueKey<String>('chunk_scene_surface'),
+      );
+      final surface = tester.widget<ChunkSceneSurface>(
+        find.ancestor(
+          of: surfaceFinder,
+          matching: find.byType(ChunkSceneSurface),
+        ),
+      );
+      final point =
+          tester.getTopLeft(surfaceFinder) +
+          surface.transform.origin +
+          const Offset(64, 32) * surface.transform.zoom;
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('chunk_prefab_tool_place')),
+          )
+          .onSelected!(true);
+      await tester.pump();
+      final gesture = await tester.startGesture(point);
+      await gesture.up();
+      await tester.pump();
+      PlacedPrefabDef placed() => _chunk(
+        harness.session,
+        'forest_chunk',
+      ).prefabs.singleWhere((p) => p.prefabKey == tree.prefabKey);
+      expect(placed().rotationDegrees, 30);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('chunk_prefab_tool_select')),
+          )
+          .onSelected!(true);
+      await tester.pump();
+      await tester.tapAt(point);
+      await tester.pump();
+      await setAngle('120');
+      expect(placed().rotationDegrees, 30);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_prefab_gesture_preview')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_prefab_selected_transform_cancel'),
+        ),
+      );
+      await tester.pump();
+      expect(placed().rotationDegrees, 30);
+      await setAngle('120');
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_prefab_selected_transform_apply'),
+        ),
+      );
+      await tester.pump();
+      expect(placed().rotationDegrees, 120);
+      expect((placed().x, placed().y), (64, 32));
+      expect(_chunk(harness.session, 'forest_chunk').revision, 6);
+      harness.session.undo();
+      await tester.pump();
+      expect(placed().rotationDegrees, 30);
+      harness.session.redo();
+      await tester.pump();
+      expect(placed().rotationDegrees, 120);
+      final current = harness.session.document! as ChunkV2Document;
+      final document = current.copyWith(
+        sourcePathByChunkKey: {
+          for (final entry in current.sourcePathByChunkKey.entries)
+            entry.key: 'assets/authoring/level/${entry.value}',
+        },
+      );
+      // Use real store export with the captured baselines; the UI harness only
+      // supplies repository loading, so persisted bytes are verified separately.
+      for (final entry in document.baselineContentsByChunkKey.entries) {
+        final file = File(
+          p.join(harness.root.path, document.sourcePathByChunkKey[entry.key]!),
+        );
+        file.parent.createSync(recursive: true);
+        file.writeAsStringSync(entry.value);
+      }
+      final saved = await ChunkDomainPlugin().exportToRepo(
+        EditorWorkspace(rootPath: harness.root.path),
+        document: document,
+      );
+      expect(saved.applied, isTrue, reason: saved.message);
+      final source = File(
+        p.join(
+          harness.root.path,
+          ChunkStore().canonicalV2SourcePath(
+            _chunk(harness.session, 'forest_chunk'),
+          ),
+        ),
+      ).readAsStringSync();
+      expect(
+        ChunkV2FileCodec.decode(source).prefabs
+            .singleWhere((p) => p.prefabKey == tree.prefabKey)
+            .rotationDegrees,
+        120,
+      );
+    },
+  );
 
   testWidgets('direct prefab placement previews locally and commits once', (
     tester,

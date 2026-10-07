@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show prefabSupportsCenterRotation;
+
+import 'chunk_prefab_rotation_control.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
@@ -8,31 +12,37 @@ import '../../../../chunks/chunk_v2_composition_semantics.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../prefabs/models/models.dart';
 
-/// Scale and reflection values shared by placement forms and scene tools.
+/// Scale, reflections and center rotation shared by forms and scene tools.
 @immutable
 final class ChunkPrefabTransformValue {
   const ChunkPrefabTransformValue({
     this.scale = defaultPrefabPlacementScale,
     this.flipX = false,
     this.flipY = false,
+    this.rotationDegrees = 0,
   });
 
   final double scale;
   final bool flipX;
   final bool flipY;
 
+  /// Canonical clockwise degrees in [0, 360) about the whole visual center.
+  final double rotationDegrees;
+
   ChunkPrefabTransformValue copyWith({
     double? scale,
     bool? flipX,
     bool? flipY,
+    double? rotationDegrees,
   }) => ChunkPrefabTransformValue(
     scale: scale ?? this.scale,
     flipX: flipX ?? this.flipX,
     flipY: flipY ?? this.flipY,
+    rotationDegrees: rotationDegrees ?? this.rotationDegrees,
   );
 }
 
-/// Shared exact-contact scale and reflection controls for one Prefab.
+/// Shared placement controls; center rotation appears only for decorations.
 class ChunkPrefabTransformControls extends StatelessWidget {
   const ChunkPrefabTransformControls({
     super.key,
@@ -70,6 +80,28 @@ class ChunkPrefabTransformControls extends StatelessWidget {
       enabled: enabled,
       onChanged: (scale) => onChanged(value.copyWith(scale: scale)),
     );
+    final rotation =
+        prefabSupportsCenterRotation(
+          kind: prefab.kind.jsonValue,
+          collisionShapeCount: prefab.collisionShapes.length,
+        )
+        ? ChunkPrefabRotationControl(
+            fieldKeyPrefix: fieldKeyPrefix,
+            value: value.rotationDegrees,
+            enabled: enabled,
+            onChanged: (degrees) =>
+                onChanged(value.copyWith(rotationDegrees: degrees)),
+          )
+        : value.rotationDegrees != 0
+        ? TextButton.icon(
+            key: ValueKey<String>('${fieldKeyPrefix}_rotation_reset'),
+            onPressed: enabled
+                ? () => onChanged(value.copyWith(rotationDegrees: 0))
+                : null,
+            icon: const Icon(Icons.restart_alt),
+            label: const Text('Clear unsupported rotation'),
+          )
+        : null;
     if (compact) {
       return Wrap(
         spacing: 8,
@@ -77,6 +109,7 @@ class ChunkPrefabTransformControls extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           SizedBox(width: 290, child: scale),
+          if (rotation != null) SizedBox(width: 300, child: rotation),
           FilterChip(
             key: ValueKey<String>('${fieldKeyPrefix}_flip_x_field'),
             avatar: const Icon(Icons.flip, size: 18),
@@ -104,6 +137,7 @@ class ChunkPrefabTransformControls extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         scale,
+        if (rotation != null) ...[const SizedBox(height: 10), rotation],
         const SizedBox(height: 4),
         CheckboxListTile(
           key: ValueKey<String>('${fieldKeyPrefix}_flip_x_field'),
@@ -142,7 +176,8 @@ class ChunkPrefabTransformControls extends StatelessWidget {
 /// Edits one prefab placement without owning persistence or modal navigation.
 ///
 /// The surrounding catalog owns Prefab selection; changing that selection does
-/// not reset coordinates, z-index, grid preference, or reflection. Scale alone
+/// not reset coordinates, z-index, grid preference, or reflection. Rotation
+/// resets to zero if the next owner does not support it. Scale
 /// reconciles to the nearest exact-contact option when the new collision owner
 /// cannot use the retained value. Submitted coordinates use the Chunk whole-
 /// pixel policy before the candidate is returned to the caller.
@@ -186,6 +221,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
   late bool _snapToGrid;
   late bool _flipX;
   late bool _flipY;
+  late double _rotationDegrees;
 
   @override
   void initState() {
@@ -202,6 +238,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
     _snapToGrid = placement?.snapToGrid ?? defaultNewPrefabPlacementSnapToGrid;
     _flipX = placement?.flipX ?? false;
     _flipY = placement?.flipY ?? false;
+    _rotationDegrees = placement?.rotationDegrees ?? 0;
     final requestedScale = placement?.scale ?? defaultPrefabPlacementScale;
     _scale = placement == null
         ? ChunkPrefabSurfaceSnap.preferredCompatibleScale(
@@ -216,6 +253,12 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
   void didUpdateWidget(covariant ChunkV2PlacementForm oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.prefab.prefabKey == widget.prefab.prefabKey) return;
+    if (!prefabSupportsCenterRotation(
+      kind: widget.prefab.kind.jsonValue,
+      collisionShapeCount: widget.prefab.collisionShapes.length,
+    )) {
+      _rotationDegrees = 0;
+    }
     _scale = ChunkPrefabSurfaceSnap.preferredCompatibleScale(
       widget.prefab,
       flipY: _flipY,
@@ -297,6 +340,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
               scale: _scale,
               flipX: _flipX,
               flipY: _flipY,
+              rotationDegrees: _rotationDegrees,
             ),
             fieldKeyPrefix: widget.fieldKeyPrefix,
             enabled: widget.enabled,
@@ -304,6 +348,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
               _scale = value.scale;
               _flipX = value.flipX;
               _flipY = value.flipY;
+              _rotationDegrees = value.rotationDegrees;
             }),
           ),
           const SizedBox(height: 4),
@@ -358,6 +403,7 @@ class _ChunkV2PlacementFormState extends State<ChunkV2PlacementForm> {
       scale: _scale,
       flipX: _flipX,
       flipY: _flipY,
+      rotationDegrees: _rotationDegrees,
     );
   }
 

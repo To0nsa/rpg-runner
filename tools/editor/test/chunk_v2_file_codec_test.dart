@@ -11,6 +11,53 @@ import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
+  test(
+    'rotation round-trips and sorts colocated records through both decoders',
+    () {
+      const original = PlacedPrefabDef(
+        prefabId: 'fern',
+        prefabKey: 'fern',
+        x: 100,
+        y: 120,
+      );
+      final source = ChunkV2FileCodec.encode(
+        _data(
+          prefabs: [
+            original.copyWith(rotationDegrees: 270),
+            original.copyWith(rotationDegrees: 22.5),
+            original,
+          ],
+        ),
+      );
+      final decoded = ChunkV2FileCodec.decode(source);
+      expect(decoded.prefabs.map((p) => p.rotationDegrees), [0, 22.5, 270]);
+      expect(
+        decodePolygonTerrainChunk(
+          source,
+          sourcePath: 'chunk.json',
+        ).placements.map((p) => p.rotationDegrees),
+        [0, 22.5, 270],
+      );
+      expect(ChunkV2FileCodec.encode(decoded), source);
+      expect(original.toJson(), isNot(contains('rotationDegrees')));
+      for (final bad in [null, '90', true, -1, 360]) {
+        final json = jsonDecode(source) as Map<String, dynamic>;
+        json['prefabs'][0]['rotationDegrees'] = bad;
+        expect(
+          () => ChunkV2FileCodec.decode(jsonEncode(json)),
+          throwsFormatException,
+        );
+        expect(
+          () => decodePolygonTerrainChunk(
+            jsonEncode(json),
+            sourcePath: 'chunk.json',
+          ),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+
   test('trap export and pipeline share canonical immutable placements', () {
     const a = TrapPlacement(
       trapId: TrapId.spike,

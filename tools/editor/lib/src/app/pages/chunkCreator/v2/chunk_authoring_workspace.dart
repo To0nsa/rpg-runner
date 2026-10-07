@@ -36,6 +36,8 @@ import 'dart:math' as math;
 import '../chunk_creator_location.dart';
 
 import 'package:flutter/material.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show prefabSupportsCenterRotation;
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
@@ -4747,6 +4749,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 scale: prefabTransform.scale,
                 flipX: prefabTransform.flipX,
                 flipY: prefabTransform.flipY,
+                rotationDegrees: prefabTransform.rotationDegrees,
               );
               if (began) _sceneCoordinator.clearSelection();
             });
@@ -5272,6 +5275,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             scale: draft.candidate.scale,
             flipX: draft.candidate.flipX,
             flipY: draft.candidate.flipY,
+            rotationDegrees: draft.candidate.rotationDegrees,
           )
         : selection == null
         ? _effectivePlaceTransform(prefab)
@@ -5279,6 +5283,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             scale: selection.prefab.scale,
             flipX: selection.prefab.flipX,
             flipY: selection.prefab.flipY,
+            rotationDegrees: selection.prefab.rotationDegrees,
           );
     final transformControlsEnabled =
         !(_authoring?.hasActiveOperation ?? false) &&
@@ -5350,6 +5355,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   ChunkPrefabTransformValue _effectivePlaceTransform(PrefabV3Def prefab) =>
       _prefabPlaceTransform.copyWith(
+        rotationDegrees:
+            prefabSupportsCenterRotation(
+              kind: prefab.kind.jsonValue,
+              collisionShapeCount: prefab.collisionShapes.length,
+            )
+            ? _prefabPlaceTransform.rotationDegrees
+            : 0,
         scale: ChunkPrefabSurfaceSnap.preferredCompatibleScale(
           prefab,
           flipY: _prefabPlaceTransform.flipY,
@@ -5401,6 +5413,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       scale: value.scale,
       flipX: value.flipX,
       flipY: value.flipY,
+      rotationDegrees: value.rotationDegrees,
     );
     if (_samePrefabTransform(candidate, selection.prefab)) {
       setState(() => _prefabTransformDraft = null);
@@ -5523,6 +5536,7 @@ bool _samePrefabTransform(PlacedPrefabDef left, PlacedPrefabDef right) =>
     left.scale == right.scale &&
     left.flipX == right.flipX &&
     left.flipY == right.flipY &&
+    left.rotationDegrees == right.rotationDegrees &&
     left.y == right.y;
 
 TerrainSourceShapeDef? _findShape(

@@ -31,7 +31,8 @@ bool chunkPrefabsEqual(PlacedPrefabDef left, PlacedPrefabDef right) =>
     left.snapToGrid == right.snapToGrid &&
     left.scale == right.scale &&
     left.flipX == right.flipX &&
-    left.flipY == right.flipY;
+    left.flipY == right.flipY &&
+    left.rotationDegrees == right.rotationDegrees;
 
 /// Returns whether two enemy marker records are semantically equal.
 bool chunkMarkersEqual(PlacedMarkerDef left, PlacedMarkerDef right) =>

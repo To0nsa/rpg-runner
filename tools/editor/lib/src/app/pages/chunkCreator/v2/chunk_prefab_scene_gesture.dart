@@ -67,6 +67,7 @@ final class ChunkPrefabSceneGesture {
     double? scale,
     bool flipX = false,
     bool flipY = false,
+    double rotationDegrees = 0,
   }) {
     if (hasActiveOperation) return false;
     _pointer = pointer;
@@ -101,6 +102,7 @@ final class ChunkPrefabSceneGesture {
                 : defaultPrefabPlacementScale),
         flipX: flipX,
         flipY: flipY,
+        rotationDegrees: rotationDegrees,
       ),
       worldPoint,
     );

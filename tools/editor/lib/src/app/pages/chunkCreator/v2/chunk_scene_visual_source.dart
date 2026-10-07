@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show rotatePrefabVisualPoint;
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
@@ -16,7 +18,7 @@ import '../../shared/terrain_polygon_scene_painter.dart';
 ///
 /// Placement order is deterministic and follows the chunk's z-index contract.
 /// Source tiles remain prefab-local so the canvas can apply the placed anchor,
-/// scale, and flips without changing authored prefab data.
+/// scale, flips and center rotation without changing authored prefab data.
 @immutable
 final class ChunkSceneVisualProjection {
   ChunkSceneVisualProjection({
@@ -73,7 +75,7 @@ final class ChunkSceneVisualProjection {
 
   ChunkScenePlacedVisual? hitTestPrefab(Offset worldPoint) {
     for (final placement in placements.reversed) {
-      if (placement.worldBounds.contains(worldPoint)) return placement;
+      if (placement.containsWorldPoint(worldPoint)) return placement;
     }
     return null;
   }
@@ -97,6 +99,25 @@ final class ChunkScenePlacedVisual {
   final Rect worldBounds;
 
   int get zIndex => placement.zIndex;
+
+  /// Reflected and scaled bounds before rotation; their center is the pivot.
+  Rect get unrotatedWorldBounds =>
+      _unrotatedWorldBounds(placement, visualSource);
+
+  /// Tests the oriented visual rectangle, excluding empty corners of its AABB.
+  bool containsWorldPoint(Offset point) {
+    if (!worldBounds.contains(point)) return false;
+    if (placement.rotationDegrees == 0) return true;
+    final bounds = unrotatedWorldBounds;
+    final unrotated = rotatePrefabVisualPoint(
+      x: point.dx,
+      y: point.dy,
+      centerX: bounds.center.dx,
+      centerY: bounds.center.dy,
+      degrees: -placement.rotationDegrees,
+    );
+    return bounds.contains(Offset(unrotated.x, unrotated.y));
+  }
 }
 
 /// Paints a z-index partition of [ChunkSceneVisualProjection] on the canvas.
@@ -225,7 +246,7 @@ final class _ChunkSceneVisualSourcePainter extends CustomPainter {
     if (visualSource == null ||
         visualSource.tiles.isEmpty ||
         visualSource.visualBoundsPx.isEmpty) {
-      _paintWithPlacementFlip(canvas, placedVisual, () {
+      _paintWithPlacementTransform(canvas, placedVisual, () {
         canvas.drawRect(
           _canvasRect(_fallbackRect(visualSource), placedVisual.placement),
           Paint()..color = _fallbackColor(placedVisual).withValues(alpha: 0.5),
@@ -240,7 +261,7 @@ final class _ChunkSceneVisualSourcePainter extends CustomPainter {
       return;
     }
 
-    _paintWithPlacementFlip(canvas, placedVisual, () {
+    _paintWithPlacementTransform(canvas, placedVisual, () {
       for (final tile in visualSource.tiles) {
         final destination = _canvasRect(
           tile.destinationRectPx,
@@ -272,13 +293,15 @@ final class _ChunkSceneVisualSourcePainter extends CustomPainter {
     });
   }
 
-  void _paintWithPlacementFlip(
+  void _paintWithPlacementTransform(
     Canvas canvas,
     ChunkScenePlacedVisual placedVisual,
     VoidCallback paint,
   ) {
     final placement = placedVisual.placement;
-    if (!placement.flipX && !placement.flipY) {
+    if (!placement.flipX &&
+        !placement.flipY &&
+        placement.rotationDegrees == 0) {
       paint();
       return;
     }
@@ -287,6 +310,13 @@ final class _ChunkSceneVisualSourcePainter extends CustomPainter {
       transform.origin.dy + placement.y * transform.zoom,
     );
     canvas.save();
+    if (placement.rotationDegrees != 0) {
+      final center = placedVisual.unrotatedWorldBounds.center;
+      final pivot = transform.origin + center * transform.zoom;
+      canvas.translate(pivot.dx, pivot.dy);
+      canvas.rotate(placement.rotationDegrees * math.pi / 180);
+      canvas.translate(-pivot.dx, -pivot.dy);
+    }
     canvas.translate(anchor.dx, anchor.dy);
     canvas.scale(placement.flipX ? -1 : 1, placement.flipY ? -1 : 1);
     canvas.translate(-anchor.dx, -anchor.dy);
@@ -351,6 +381,32 @@ int _comparePlacedVisuals(
 }
 
 Rect _worldBounds(
+  PlacedPrefabDef placement,
+  PrefabPolygonVisualProjection? visualSource,
+) {
+  final bounds = _unrotatedWorldBounds(placement, visualSource);
+  if (placement.rotationDegrees == 0) return bounds;
+  final corners =
+      [bounds.topLeft, bounds.topRight, bounds.bottomLeft, bounds.bottomRight]
+          .map(
+            (point) => rotatePrefabVisualPoint(
+              x: point.dx,
+              y: point.dy,
+              centerX: bounds.center.dx,
+              centerY: bounds.center.dy,
+              degrees: placement.rotationDegrees,
+            ),
+          )
+          .toList();
+  return Rect.fromLTRB(
+    corners.map((p) => p.x).reduce(math.min),
+    corners.map((p) => p.y).reduce(math.min),
+    corners.map((p) => p.x).reduce(math.max),
+    corners.map((p) => p.y).reduce(math.max),
+  );
+}
+
+Rect _unrotatedWorldBounds(
   PlacedPrefabDef placement,
   PrefabPolygonVisualProjection? visualSource,
 ) {

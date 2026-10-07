@@ -1,3 +1,5 @@
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show isCanonicalPrefabRotationDegrees, prefabSupportsCenterRotation;
 import 'package:meta/meta.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
@@ -241,6 +243,24 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     }
 
     final prefab = candidates.single;
+    if (!isCanonicalPrefabRotationDegrees(placement.rotationDegrees) ||
+        (placement.rotationDegrees != 0 &&
+            !prefabSupportsCenterRotation(
+              kind: prefab.kind.jsonValue,
+              collisionShapeCount: prefab.collisionShapes.length,
+            ))) {
+      sourceComplete = false;
+      issues.add(
+        _errorIssue(
+          code: 'invalid_prefab_placement_rotation',
+          message: 'Rotation requires a canonical angle and a collision-free decoration.',
+          sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
+          placementKey: placementKey,
+        ),
+      );
+      continue;
+    }
     if (capacityCheckedPrefabKeys.add(prefab.prefabKey)) {
       final prefabPath = '$sourcePath#prefab=${prefab.prefabKey}';
       final shapeCapacityIssue = prefabShapeSoftTargetIssue(

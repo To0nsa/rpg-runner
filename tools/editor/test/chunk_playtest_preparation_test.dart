@@ -15,6 +15,8 @@ import 'package:runner_core/traps/trap_geometry.dart';
 import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
+import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -43,6 +45,55 @@ void main() {
           .chunkKey,
       workspaceRoot: workspaceRoot,
     );
+  });
+
+  test('unsaved decoration rotation reaches Play and Core snapshots', () async {
+    final decoration = repositoryDocument.prefabData.prefabs.firstWhere(
+      (p) => p.kind == PrefabKind.decoration,
+    );
+    final chunk = repositoryDocument.chunks.singleWhere(
+      (c) => c.chunkKey == captured.selectedChunkKey,
+    );
+    final rotated = chunk.copyWith(
+      prefabs: [
+        ...chunk.prefabs,
+        PlacedPrefabDef(
+          prefabId: decoration.id,
+          prefabKey: decoration.prefabKey,
+          x: 80,
+          y: 100,
+          scale: 0.7,
+          flipX: true,
+          rotationDegrees: 22.5,
+        ),
+      ],
+    );
+    final input = await captureChunkPlaytestPreparationInput(
+      document: repositoryDocument.copyWith(
+        chunks: [
+          for (final c in repositoryDocument.chunks)
+            c.chunkKey == chunk.chunkKey ? rotated : c,
+        ],
+      ),
+      selectedChunkKey: chunk.chunkKey,
+      workspaceRoot: workspaceRoot,
+    );
+    expect(input.fingerprint, isNot(captured.fingerprint));
+    final prepared = preparePlaytest(input);
+    expect(prepared.issues, isEmpty);
+    final scenario = prepared.scenario! as ChunkPlaytestScenario;
+    expect(
+      scenario.draftPattern.visualSprites.where(
+        (s) => s.rotationDegrees == 22.5,
+      ),
+      isNotEmpty,
+    );
+    final core = GameCore.chunkPlaytest(scenario: scenario);
+    final sprites = core.buildSnapshot().staticPrefabSprites.where(
+      (s) => s.rotationDegrees == 22.5,
+    );
+    expect(sprites, isNotEmpty);
+    expect(sprites.every((s) => s.flipX), isTrue);
   });
 
   test(

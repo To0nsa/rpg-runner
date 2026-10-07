@@ -729,7 +729,8 @@ decoded-image cache. Pressing Enter selects the first filtered result. Its
 stable-key selection is route-local and shared by both the canvas Place tool
 and inline creation form; it never creates a pending source change by itself.
 The selected-prefab strip directly below the Prefabs tools exposes Scale,
-Flip X, and Flip Y. With no placed instance selected, those route-local values
+Flip X, Flip Y, and decoration-only **Rotation (°)**. With no placed instance
+selected, those route-local values
 configure the next Place ghost. With an existing placement selected, changes
 hide the accepted visual and render a synchronized scene replacement until
 **Apply transform** submits one validated composition command or **Cancel**
@@ -772,6 +773,19 @@ incompatible scale remains selected when its placement opens so an old value is
 never silently rewritten. Prefabs with no collision or no lowest horizontal
 edge retain the full visual-scale range. Surface snap changes no Prefab/Chunk
 schema and never weakens the final positive-area overlap validator.
+
+Collision-free decorations also have a rotation field and a one-degree slider
+in the selected-prefab strip, creation form, and existing-placement form. Enter
+any finite clockwise angle, including decimals or negative values; confirmation
+wraps it to 0–359.999… degrees (for example, -90° becomes 270°). The pivot is the
+center of the complete visual bounds after scale and flips, including every tile
+in a module. Changing rotation keeps that center and the placement X/Y fixed.
+Selection follows the rotated rectangle. Use **Apply transform** (or the form's
+**Apply**), then **Save**; Cancel and Undo/Redo follow the existing placement flow.
+Unsaved accepted rotation also appears in **Play**. Obstacles and platforms do
+not offer rotation, and imported nonzero rotation on them blocks Save/Build/Play.
+Existing placements default to 0°. A saved rotation whose Prefab no longer
+supports it offers **Clear unsupported rotation** for an explicit repair.
 
 The Markers domain likewise provides Select, Place, and Move tools. Its
 foldable **Enemy library** searches Core enemy name, stable ID, and authoritative

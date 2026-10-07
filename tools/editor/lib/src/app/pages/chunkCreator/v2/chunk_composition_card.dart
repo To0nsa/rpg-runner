@@ -335,7 +335,8 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                             'z=${selection.prefab.zIndex} · '
                             'scale=${selection.prefab.scale.toStringAsFixed(1)} · '
                             '${selection.prefab.snapToGrid ? 'snap' : 'free'} · '
-                            '${_flipLabel(selection.prefab)}',
+                            '${_flipLabel(selection.prefab)}'
+                            '${selection.prefab.rotationDegrees == 0 ? '' : ' · ${selection.prefab.rotationDegrees}°'}',
                           ),
                         ),
                       ),

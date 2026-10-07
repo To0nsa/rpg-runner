@@ -87,6 +87,7 @@ class PlacedPrefabDef {
     this.scale = defaultPrefabPlacementScale,
     this.flipX = false,
     this.flipY = false,
+    this.rotationDegrees = 0,
   });
 
   final String prefabId;
@@ -98,6 +99,10 @@ class PlacedPrefabDef {
   final double scale;
   final bool flipX;
   final bool flipY;
+
+  /// Clockwise visual-only degrees in [0, 360), about the complete visual center.
+  /// Nonzero values require a collision-free decoration owner.
+  final double rotationDegrees;
 
   String get resolvedPrefabRef => prefabKey.isNotEmpty ? prefabKey : prefabId;
 
@@ -111,6 +116,7 @@ class PlacedPrefabDef {
     double? scale,
     bool? flipX,
     bool? flipY,
+    double? rotationDegrees,
   }) {
     return PlacedPrefabDef(
       prefabId: prefabId ?? this.prefabId,
@@ -122,6 +128,7 @@ class PlacedPrefabDef {
       scale: scale ?? this.scale,
       flipX: flipX ?? this.flipX,
       flipY: flipY ?? this.flipY,
+      rotationDegrees: rotationDegrees ?? this.rotationDegrees,
     );
   }
 
@@ -137,6 +144,7 @@ class PlacedPrefabDef {
         'scale': _canonicalPrefabPlacementScale(scale),
       if (flipX) 'flipX': true,
       if (flipY) 'flipY': true,
+      if (rotationDegrees != 0) 'rotationDegrees': rotationDegrees,
     };
     return json;
   }
@@ -160,6 +168,7 @@ class PlacedPrefabDef {
       ),
       flipX: _boolOrDefault(json['flipX'], fallback: false),
       flipY: _boolOrDefault(json['flipY'], fallback: false),
+      rotationDegrees: _doubleOrDefault(json['rotationDegrees'], fallback: 0),
     );
   }
 }
@@ -197,6 +206,8 @@ int comparePlacedPrefabsDeterministic(PlacedPrefabDef a, PlacedPrefabDef b) {
   if (flipYCompare != 0) {
     return flipYCompare;
   }
+  final rotationCompare = a.rotationDegrees.compareTo(b.rotationDegrees);
+  if (rotationCompare != 0) return rotationCompare;
   return a.prefabId.compareTo(b.prefabId);
 }
 

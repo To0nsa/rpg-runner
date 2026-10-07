@@ -10,6 +10,61 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
   test(
+    'rotation is admitted only for collision-free decoration placements',
+    () {
+      for (final kind in [
+        PrefabKind.decoration,
+        PrefabKind.obstacle,
+        PrefabKind.platform,
+      ]) {
+        final result = expandChunkV2Collision(
+          chunk: _chunk(
+            placements: const [
+              PlacedPrefabDef(
+                prefabId: 'rock',
+                prefabKey: 'prefab_rock',
+                x: 20,
+                y: 30,
+                rotationDegrees: 45,
+              ),
+            ],
+          ),
+          prefabs: [_prefab(shapes: []).copyWith(kind: kind)],
+          sourcePath: 'chunk.json',
+        );
+        if (kind == PrefabKind.decoration) {
+          expect(result.hasBlockingIssues, isFalse);
+        } else {
+          expect(
+            result.issues.single.code,
+            'invalid_prefab_placement_rotation',
+          );
+          expect(result.hasBlockingIssues, isTrue);
+        }
+      }
+      final collidingDecoration = expandChunkV2Collision(
+        chunk: _chunk(
+          placements: const [
+            PlacedPrefabDef(
+              prefabId: 'rock',
+              prefabKey: 'prefab_rock',
+              x: 20,
+              y: 30,
+              rotationDegrees: 45,
+            ),
+          ],
+        ),
+        prefabs: [_prefab().copyWith(kind: PrefabKind.decoration)],
+        sourcePath: 'chunk.json',
+      );
+      expect(
+        collidingDecoration.issues.single.code,
+        'invalid_prefab_placement_rotation',
+      );
+    },
+  );
+
+  test(
     'separate overlapping obstacle placements compile one exposed boundary',
     () {
       final prefab = _prefab(

@@ -7,103 +7,29 @@ import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
-  test('projects placed chunk art in visual stack order', () {
-    final projection = ChunkSceneVisualProjection.fromChunk(
-      chunk: ChunkV2FileData(
-        chunkKey: 'forest_preview',
-        id: 'forest_preview',
-        revision: 1,
-        status: chunkStatusActive,
-        levelId: 'forest',
-        tileSize: 16,
-        width: 600,
-        height: 270,
-        difficulty: chunkDifficultyNormal,
-        assemblyGroupId: defaultChunkAssemblyGroupId,
-        tags: const <String>[],
-        tileLayers: const <TileLayerDef>[],
-        prefabs: const <PlacedPrefabDef>[
-          PlacedPrefabDef(
-            prefabId: 'missing',
-            prefabKey: 'missing',
-            x: 15,
-            y: 20,
-            zIndex: -1,
-          ),
-          PlacedPrefabDef(
-            prefabId: 'platform',
-            prefabKey: 'platform',
-            x: 80,
-            y: 120,
-            zIndex: 0,
-          ),
-          PlacedPrefabDef(
-            prefabId: 'tree',
-            prefabKey: 'tree',
-            x: 240,
-            y: 180,
-            zIndex: 2,
-            scale: 0.5,
-            flipX: true,
-          ),
-        ],
-        markers: const <PlacedMarkerDef>[],
-        groundBandZIndex: 0,
-        collisionShapes: const [],
-      ),
-      prefabData: PrefabV3FileData(
-        slices: const <AtlasSliceDef>[
-          AtlasSliceDef(
-            id: 'tree_slice',
-            sourceImagePath: 'assets/tree.png',
-            x: 4,
-            y: 8,
-            width: 40,
-            height: 60,
-          ),
-        ],
-        prefabs: <PrefabV3Def>[
-          _prefab(
-            prefabKey: 'tree',
-            visualSource: const PrefabVisualSource.atlasSlice('tree_slice'),
-            anchorXPx: 12,
-            anchorYPx: 50,
-          ),
-          _prefab(
-            prefabKey: 'platform',
-            visualSource: const PrefabVisualSource.platformModule('ledge'),
-            anchorXPx: 8,
-            anchorYPx: 16,
-          ),
-        ],
-      ),
-      tileData: PrefabTileFileData(
-        tileSlices: const <AtlasSliceDef>[
-          AtlasSliceDef(
-            id: 'grass',
-            sourceImagePath: 'assets/grass.png',
-            x: 0,
-            y: 0,
-            width: 16,
-            height: 16,
-          ),
-        ],
-        platformModules: const <TileModuleDef>[
-          TileModuleDef(
-            id: 'ledge',
-            tileSize: 16,
-            cells: <TileModuleCellDef>[
-              TileModuleCellDef(sliceId: 'grass', gridX: 0, gridY: 0),
-              TileModuleCellDef(sliceId: 'grass', gridX: 1, gridY: 0),
-            ],
-          ),
-        ],
-      ),
-      visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
-        'tree': PrefabV3VisualBounds(widthPx: 40, heightPx: 60),
-        'platform': PrefabV3VisualBounds(widthPx: 32, heightPx: 16),
-      },
+  test('rotation keeps the visual center and selects its oriented bounds', () {
+    final baseline = _projection().placements.last;
+    final rightAngle = _projection(rotationDegrees: 90).placements.last;
+    expect(
+      (rightAngle.worldBounds.center - baseline.worldBounds.center).distance,
+      closeTo(0, 1e-9),
     );
+    expect(rightAngle.worldBounds.width, closeTo(30, 1e-9));
+    expect(rightAngle.worldBounds.height, closeTo(20, 1e-9));
+    final projection = _projection(rotationDegrees: 45);
+    final rotated = projection.placements.last;
+    expect(projection.hitTestPrefab(rotated.worldBounds.center), same(rotated));
+    expect(
+      projection.hitTestPrefab(
+        rotated.worldBounds.topLeft + const Offset(0.1, 0.1),
+      ),
+      isNull,
+    );
+    expect(projection.hitTestPrefab(const Offset(245, 170)), same(rotated));
+  });
+
+  test('projects placed chunk art in visual stack order', () {
+    final projection = _projection();
 
     expect(
       projection.placements.map((placement) => placement.placement.prefabKey),
@@ -174,3 +100,102 @@ PrefabV3Def _prefab({
   collisionShapes: const [],
   tags: const <String>[],
 );
+
+ChunkSceneVisualProjection _projection({double rotationDegrees = 0}) =>
+    ChunkSceneVisualProjection.fromChunk(
+      chunk: ChunkV2FileData(
+        chunkKey: 'forest_preview',
+        id: 'forest_preview',
+        revision: 1,
+        status: chunkStatusActive,
+        levelId: 'forest',
+        tileSize: 16,
+        width: 600,
+        height: 270,
+        difficulty: chunkDifficultyNormal,
+        assemblyGroupId: defaultChunkAssemblyGroupId,
+        tags: const <String>[],
+        tileLayers: const <TileLayerDef>[],
+        prefabs: <PlacedPrefabDef>[
+          const PlacedPrefabDef(
+            prefabId: 'missing',
+            prefabKey: 'missing',
+            x: 15,
+            y: 20,
+            zIndex: -1,
+          ),
+          const PlacedPrefabDef(
+            prefabId: 'platform',
+            prefabKey: 'platform',
+            x: 80,
+            y: 120,
+            zIndex: 0,
+          ),
+          PlacedPrefabDef(
+            prefabId: 'tree',
+            prefabKey: 'tree',
+            x: 240,
+            y: 180,
+            zIndex: 2,
+            scale: 0.5,
+            flipX: true,
+            rotationDegrees: rotationDegrees,
+          ),
+        ],
+        markers: const <PlacedMarkerDef>[],
+        groundBandZIndex: 0,
+        collisionShapes: const [],
+      ),
+      prefabData: PrefabV3FileData(
+        slices: const <AtlasSliceDef>[
+          AtlasSliceDef(
+            id: 'tree_slice',
+            sourceImagePath: 'assets/tree.png',
+            x: 4,
+            y: 8,
+            width: 40,
+            height: 60,
+          ),
+        ],
+        prefabs: <PrefabV3Def>[
+          _prefab(
+            prefabKey: 'tree',
+            visualSource: const PrefabVisualSource.atlasSlice('tree_slice'),
+            anchorXPx: 12,
+            anchorYPx: 50,
+          ),
+          _prefab(
+            prefabKey: 'platform',
+            visualSource: const PrefabVisualSource.platformModule('ledge'),
+            anchorXPx: 8,
+            anchorYPx: 16,
+          ),
+        ],
+      ),
+      tileData: PrefabTileFileData(
+        tileSlices: const <AtlasSliceDef>[
+          AtlasSliceDef(
+            id: 'grass',
+            sourceImagePath: 'assets/grass.png',
+            x: 0,
+            y: 0,
+            width: 16,
+            height: 16,
+          ),
+        ],
+        platformModules: const <TileModuleDef>[
+          TileModuleDef(
+            id: 'ledge',
+            tileSize: 16,
+            cells: <TileModuleCellDef>[
+              TileModuleCellDef(sliceId: 'grass', gridX: 0, gridY: 0),
+              TileModuleCellDef(sliceId: 'grass', gridX: 1, gridY: 0),
+            ],
+          ),
+        ],
+      ),
+      visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
+        'tree': PrefabV3VisualBounds(widthPx: 40, heightPx: 60),
+        'platform': PrefabV3VisualBounds(widthPx: 32, heightPx: 16),
+      },
+    );

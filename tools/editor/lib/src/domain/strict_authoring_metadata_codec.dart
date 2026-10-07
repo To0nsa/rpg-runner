@@ -1,3 +1,6 @@
+import 'package:runner_content_pipeline/runner_content_pipeline.dart'
+    show decodePrefabRotationDegrees;
+
 import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
 import 'strict_authoring_json.dart';
@@ -144,6 +147,7 @@ abstract final class PolygonAuthoringMetadataCodec {
         'scale',
         'flipX',
         'flipY',
+        'rotationDegrees',
       },
       required: const <String>{'prefabId', 'x', 'y', 'zIndex', 'snapToGrid'},
     );
@@ -186,6 +190,12 @@ abstract final class PolygonAuthoringMetadataCodec {
               sourcePath: '$sourcePath.flipY',
             )
           : false,
+      rotationDegrees: json.containsKey('rotationDegrees')
+          ? decodePrefabRotationDegrees(
+              json['rotationDegrees'],
+              sourcePath: '$sourcePath.rotationDegrees',
+            )
+          : 0,
     );
   }
 
@@ -233,12 +243,15 @@ abstract final class PolygonAuthoringMetadataCodec {
         json['salt'],
         sourcePath: '$sourcePath.salt',
       ),
-      placement:
-          StrictAuthoringJson.enumString(json['placement'], const <String>{
-            markerPlacementGround,
-            markerPlacementHighestSurfaceAtX,
-            markerPlacementObstacleTop,
-          }, sourcePath: '$sourcePath.placement'),
+      placement: StrictAuthoringJson.enumString(
+        json['placement'],
+        const <String>{
+          markerPlacementGround,
+          markerPlacementHighestSurfaceAtX,
+          markerPlacementObstacleTop,
+        },
+        sourcePath: '$sourcePath.placement',
+      ),
     );
   }
 }
