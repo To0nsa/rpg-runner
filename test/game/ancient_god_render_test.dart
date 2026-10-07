@@ -8,7 +8,9 @@ import 'package:rpg_runner/game/components/enemies/enemy_render_registry.dart';
 import 'package:rpg_runner/game/components/projectiles/projectile_render_registry.dart';
 import 'package:rpg_runner/game/components/spell_impacts/spell_impact_render_registry.dart';
 import 'package:rpg_runner/game/components/sprite_anim/composite_frame_sprite.dart';
-import 'package:runner_core/combat/ancient_god_pose_catalog.dart';
+import 'package:runner_core/combat/voidborn_goddess_pose_catalog.dart';
+import 'package:runner_core/combat/shoggoth_pose_catalog.dart';
+import 'package:runner_core/combat/void_tentacle_pose_catalog.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -85,14 +87,14 @@ void main() {
         (
           EnemyId.voidbornGoddess,
           AnimKey.strike,
-          AncientGodPoseCatalog.goddessClaws,
+          VoidbornGoddessPoseCatalog.goddessClaws,
         ),
-        (EnemyId.shoggoth, AnimKey.strike, AncientGodPoseCatalog.shoggothSweep),
-        (EnemyId.shoggoth, AnimKey.strike2, AncientGodPoseCatalog.shoggothSpin),
+        (EnemyId.shoggoth, AnimKey.strike, ShoggothPoseCatalog.shoggothSweep),
+        (EnemyId.shoggoth, AnimKey.strike2, ShoggothPoseCatalog.shoggothSpin),
         (
           EnemyId.voidTentacle,
           AnimKey.strike,
-          AncientGodPoseCatalog.tentacleLash,
+          VoidTentaclePoseCatalog.tentacleLash,
         ),
       ];
       for (var row = 0; row < panels.length; row++) {

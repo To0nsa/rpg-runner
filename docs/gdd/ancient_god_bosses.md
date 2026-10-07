@@ -3,6 +3,8 @@
 Voidborn Goddess, Shoggoth and Voidcaller are implemented as reusable mandatory
 arena bosses. Their kits use the supplied sprite sheets and demonstration video
 as visual references; the damage, timing and AI below are gameplay defaults.
+The [video](https://www.youtube.com/watch?v=0rPsM1DjEuc) demonstrates all three
+kits; its animation showcase does not specify damage or combat balance.
 They are available in Chunk Creator's **Mandatory boss arena → Boss** selector.
 No production level placement changes accompany this addition. Source targets
 gameplay compatibility `2026.10.9`; coordinated deployment remains pending.

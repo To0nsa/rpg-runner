@@ -280,20 +280,20 @@ class AnimSystem {
       return;
     }
 
-    final ancient = world.ancientBoss.tryIndexOf(e);
+    final ancient = world.bossCombat.tryIndexOf(e);
     final active = world.activeAbility.tryIndexOf(e);
     if (ancient != null &&
         active != null &&
         common.hp > 0 &&
         deathPhase == DeathPhase.none &&
         world.activeAbility.abilityId[active] ==
-            world.ancientBoss.utilityAbility[ancient] &&
+            world.bossCombat.utilityAbility[ancient] &&
         abilities
-                .resolve(world.ancientBoss.utilityAbility[ancient] ?? '')
+                .resolve(world.bossCombat.utilityAbility[ancient] ?? '')
                 ?.hitDelivery
             is BossTeleportDelivery &&
         world.activeAbility.startTick[active] ==
-            world.ancientBoss.utilityStartTick[ancient]) {
+            world.bossCombat.utilityStartTick[ancient]) {
       final elapsed = currentTick - world.activeAbility.startTick[active];
       final windup = world.activeAbility.windupTicks[active];
       animStore.anim[ai] = elapsed < windup

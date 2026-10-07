@@ -1,6 +1,10 @@
 import '../snapshots/enums.dart';
 import 'combat_geometry.dart';
-import 'ancient_god_pose_catalog.dart';
+import 'voidborn_goddess_pose_catalog.dart';
+import 'shoggoth_pose_catalog.dart';
+import 'voidcaller_pose_catalog.dart';
+import 'shoggoth_minion_pose_catalog.dart';
+import 'void_tentacle_pose_catalog.dart';
 
 /// Reviewed source-art damage poses at runtime presentation scale. Coordinates
 /// are relative to catalog sprite anchors; blade arcs use multiple thin capsules
@@ -299,52 +303,12 @@ abstract final class CombatPoseCatalog {
         'unoco.fire_bolt_cast' => unocoCast,
         'derf.fire_explosion' => derfCast,
         'bringer.scythe_sweep' => bringerScythe.timing,
-        'goddess.claw_combo' => AncientGodPoseCatalog.goddessClaws.timing,
-        'goddess.orb' => const ActionFramePolicy(
-          frameCount: 11,
-          activeStart: 8,
-          activeEnd: 9,
-        ),
-        'goddess.eruption' => const ActionFramePolicy(
-          frameCount: 36,
-          activeStart: 26,
-          activeEnd: 27,
-        ),
-        'shoggoth.tentacle_sweep' => AncientGodPoseCatalog.shoggothSweep.timing,
-        'shoggoth.spinning_charge' => AncientGodPoseCatalog.shoggothSpin.timing,
-        'shoggoth.orb' => const ActionFramePolicy(
-          frameCount: 11,
-          activeStart: 8,
-          activeEnd: 9,
-        ),
-        'shoggoth.summon' => const ActionFramePolicy(
-          frameCount: 9,
-          activeStart: 7,
-          activeEnd: 8,
-        ),
-        'voidcaller.vertical_beam' => const ActionFramePolicy(
-          frameCount: 17,
-          activeStart: 10,
-          activeEnd: 11,
-        ),
-        'voidcaller.diagonal_beam' => const ActionFramePolicy(
-          frameCount: 17,
-          activeStart: 10,
-          activeEnd: 11,
-        ),
-        'voidcaller.claw' => const ActionFramePolicy(
-          frameCount: 10,
-          activeStart: 6,
-          activeEnd: 7,
-        ),
-        'voidcaller.summon' => const ActionFramePolicy(
-          frameCount: 17,
-          activeStart: 10,
-          activeEnd: 11,
-        ),
-        'shoggoth_minion.bite' => AncientGodPoseCatalog.minionBite.timing,
-        'void_tentacle.lash' => AncientGodPoseCatalog.tentacleLash.timing,
         'bringer.death_pillar' => bringerCast,
-        _ => null,
+        _ =>
+          VoidbornGoddessPoseCatalog.timingFor(abilityId) ??
+              ShoggothPoseCatalog.timingFor(abilityId) ??
+              VoidcallerPoseCatalog.timingFor(abilityId) ??
+              ShoggothMinionPoseCatalog.timingFor(abilityId) ??
+              VoidTentaclePoseCatalog.timingFor(abilityId),
       };
 }

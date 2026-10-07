@@ -17,7 +17,11 @@ import 'death_behavior.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'enemy_id.dart';
-import 'ancient_god_render_catalog.dart';
+import 'voidborn_goddess_render_catalog.dart';
+import 'shoggoth_render_catalog.dart';
+import 'voidcaller_render_catalog.dart';
+import 'shoggoth_minion_render_catalog.dart';
+import 'void_tentacle_render_catalog.dart';
 import 'enemy_terrain_profile.dart';
 
 const ColliderAabbDef _voidbornGoddessCollider = ColliderAabbDef(
@@ -883,7 +887,7 @@ class EnemyCatalog {
           health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
-          renderAnim: AncientGodRenderCatalog.goddess,
+          renderAnim: VoidbornGoddessRenderCatalog.actor,
           renderScale: 1.5,
           animProfile: AnimProfile(
             supportsCast: true,
@@ -917,7 +921,7 @@ class EnemyCatalog {
           health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
-          renderAnim: AncientGodRenderCatalog.shoggoth,
+          renderAnim: ShoggothRenderCatalog.actor,
           renderScale: 1.5,
           animProfile: AnimProfile(
             supportsCast: true,
@@ -951,7 +955,7 @@ class EnemyCatalog {
           health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
-          renderAnim: AncientGodRenderCatalog.voidcaller,
+          renderAnim: VoidcallerRenderCatalog.actor,
           renderScale: 1.5,
           animProfile: AnimProfile(
             supportsCast: true,
@@ -985,7 +989,7 @@ class EnemyCatalog {
           health: HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
-          renderAnim: AncientGodRenderCatalog.minion,
+          renderAnim: ShoggothMinionRenderCatalog.actor,
           renderScale: 1.5,
           animProfile: AnimProfile(
             supportsCast: true,
@@ -1019,7 +1023,7 @@ class EnemyCatalog {
           health: HealthDef(hp: 1600, hpMax: 1600, regenPerSecond100: 0),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
-          renderAnim: AncientGodRenderCatalog.tentacle,
+          renderAnim: VoidTentacleRenderCatalog.actor,
           renderScale: 1.5,
           animProfile: AnimProfile(
             supportsCast: true,

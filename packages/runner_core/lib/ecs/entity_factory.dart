@@ -223,7 +223,9 @@ class EntityFactory {
       );
     }
     if (enemyId == EnemyId.derf) world.derfPhase.add(id);
-    if (enemyId.isBoss && enemyId != EnemyId.bringerOfDeath) world.ancientBoss.addEntity(id);
+    if (enemyId.isBoss && enemyId != EnemyId.bringerOfDeath) {
+      world.bossCombat.addEntity(id);
+    }
     return id;
   }
 

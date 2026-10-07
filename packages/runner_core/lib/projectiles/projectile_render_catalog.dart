@@ -1,3 +1,6 @@
+import '../enemies/voidborn_goddess_render_catalog.dart';
+import '../enemies/shoggoth_render_catalog.dart';
+import '../enemies/voidcaller_render_catalog.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
@@ -472,60 +475,11 @@ class ProjectileRenderCatalog {
       case ProjectileId.npcSpear:
         return _npcSpear;
       case ProjectileId.goddessOrb:
-        return const RenderAnimSetDefinition(
-          frameWidth: 138,
-          frameHeight: 93,
-          anchorPoint: Vec2(69, 45),
-          sourcesByKey: {
-            AnimKey.spawn: 'entities/enemies/ancient_god_pack/voidborn_goddess/sprite_sheet.png',
-            AnimKey.idle: 'entities/enemies/ancient_god_pack/voidborn_goddess/sprite_sheet.png',
-            AnimKey.hit: 'entities/enemies/ancient_god_pack/voidborn_goddess/sprite_sheet.png',
-          },
-          rowByKey: {AnimKey.spawn: 9, AnimKey.idle: 10, AnimKey.hit: 11},
-          frameCountsByKey: {AnimKey.spawn: 3, AnimKey.idle: 8, AnimKey.hit: 6},
-          stepTimeSecondsByKey: {
-            AnimKey.spawn: .08,
-            AnimKey.idle: .08,
-            AnimKey.hit: .08,
-          },
-        );
+        return VoidbornGoddessRenderCatalog.orb;
       case ProjectileId.shoggothOrb:
-        return const RenderAnimSetDefinition(
-          frameWidth: 149,
-          frameHeight: 114,
-          anchorPoint: Vec2(61, 66),
-          sourcesByKey: {
-            AnimKey.idle:
-                'entities/enemies/ancient_god_pack/shoggoth/sprite_sheet.png',
-            AnimKey.hit:
-                'entities/enemies/ancient_god_pack/shoggoth/sprite_sheet.png',
-          },
-          rowByKey: {AnimKey.idle: 7, AnimKey.hit: 8},
-          frameCountsByKey: {AnimKey.idle: 6, AnimKey.hit: 5},
-          stepTimeSecondsByKey: {AnimKey.idle: .08, AnimKey.hit: .08},
-        );
+        return ShoggothRenderCatalog.orb;
       case ProjectileId.voidClaw:
-        return const RenderAnimSetDefinition(
-          frameWidth: 171,
-          frameHeight: 136,
-          anchorPoint: Vec2(78, 119),
-          sourcesByKey: {
-            AnimKey.spawn:
-                'entities/enemies/ancient_god_pack/voidcaller/sprite_sheet.png',
-            AnimKey.idle:
-                'entities/enemies/ancient_god_pack/voidcaller/sprite_sheet.png',
-            AnimKey.hit:
-                'entities/enemies/ancient_god_pack/voidcaller/sprite_sheet.png',
-          },
-          rowByKey: {AnimKey.spawn: 15, AnimKey.idle: 15, AnimKey.hit: 15},
-          frameStartByKey: {AnimKey.idle: 2, AnimKey.hit: 5},
-          frameCountsByKey: {AnimKey.spawn: 2, AnimKey.idle: 3, AnimKey.hit: 3},
-          stepTimeSecondsByKey: {
-            AnimKey.spawn: .08,
-            AnimKey.idle: .08,
-            AnimKey.hit: .08,
-          },
-        );
+        return VoidcallerRenderCatalog.claw;
       case ProjectileId.npcArrow:
         return _npcArrow;
     }

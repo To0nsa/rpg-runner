@@ -30,7 +30,8 @@ active candidate across the level's pools. Forest reserves one easy
 `BossArenaSystem` owns occurrence registration, entrance, confinement, terminal
 outcomes and retention. `BossArenaSpawnAdapter` admits the required actor after
 the matching terrain has been published. `BringerCombatSystem` chooses actions;
-`AncientGodCombatSystem` chooses the other three bosses' actions. Ordinary
+each of the other three bosses has its own combat system and content catalogs.
+Generic utility execution is shared without sharing attack selection. Ordinary
 melee/cast committers and execution systems retain damage authority.
 Flame and Flutter display snapshots and cannot advance the encounter.
 

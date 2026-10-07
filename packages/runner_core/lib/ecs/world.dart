@@ -77,7 +77,7 @@ import 'stores/reactive_proc_cooldown_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/spawn_state_store.dart';
-import 'stores/ancient_boss_state_store.dart';
+import 'stores/boss_combat_state_store.dart';
 import 'stores/boss_summon_store.dart';
 import 'stores/target_point_intent_store.dart';
 import 'stores/transform_store.dart';
@@ -379,11 +379,12 @@ class EcsWorld {
   /// Per-entity animation state computed by [AnimSystem].
   late final AnimStateStore animState = _register(AnimStateStore());
 
-  /// Per-entity spawn animation timing state.
-  late final AncientBossStateStore ancientBoss = _register(
-    AncientBossStateStore(),
+  /// Decision/utility state is actor-owned and cleared before entity ID reuse.
+  late final BossCombatStateStore bossCombat = _register(
+    BossCombatStateStore(),
   );
   late final BossSummonStore bossSummon = _register(BossSummonStore());
+  /// Per-entity spawn animation timing state.
   late final SpawnStateStore spawnState = _register(SpawnStateStore());
 
   /// Tracks the currently active ability for animation purposes.
@@ -455,7 +456,7 @@ class EcsWorld {
     }
     // Remove ownership before recycling an arena actor ID. Summon attacks must
     // never become attacks owned by an unrelated actor reusing the same ID.
-    if (ancientBoss.has(entity)) {
+    if (bossCombat.has(entity)) {
       for (final child in bossSummon.denseEntities.toList()) {
         if (bossSummon.owner[bossSummon.indexOf(child)] == entity) {
           destroyEntity(child);

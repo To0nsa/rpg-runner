@@ -53,6 +53,9 @@ advance these phases. All `EnemyId.isArenaOnly` actors (required bosses and
 their summons) are excluded from ambient and rescue rosters. Summon ownership
 must cascade cleanup before owner IDs are recycled; see
 [Ancient God contracts](../../../docs/tdd/ancient_god_bosses.md).
+Keep boss attack selection and owned ability/render/pose definitions in separate
+boss modules. Shared combat/utility machinery must not branch on a concrete boss
+identity; global catalogs provide lookup and GameCore wires explicit phases.
 
 Attack knockback is authored through ability payloads and accepted by damage,
 with lifecycle state in `KnockbackStore` and horizontal motion composed by

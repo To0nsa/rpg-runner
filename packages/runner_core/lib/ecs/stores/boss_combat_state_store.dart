@@ -1,7 +1,8 @@
 import '../sparse_set.dart';
 
-/// Encounter lifecycle state removed automatically when its entity is destroyed.
-class AncientBossStateStore extends SparseSet {
+/// Per-entity decision and committed utility state, cleared before ID recycling.
+/// Concrete boss systems own sequence/cooldown policy; utilities own execution.
+class BossCombatStateStore extends SparseSet {
   final List<int> actionIndex = [];
   final List<int> nextTeleportTick = [];
   final List<String?> utilityAbility = [];

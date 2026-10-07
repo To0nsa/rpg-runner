@@ -257,7 +257,7 @@ void main() {
     () {
       final world = EcsWorld(seed: 7);
       final boss = world.createEntity();
-      world.ancientBoss.addEntity(boss);
+      world.bossCombat.addEntity(boss);
       final summon = world.createEntity();
       final si = world.bossSummon.addEntity(summon);
       world.bossSummon.owner[si] = boss;
@@ -293,7 +293,7 @@ void main() {
       expect(world.isEntityAlive(projectile), isFalse);
       expect(world.isEntityAlive(hitbox), isFalse);
       expect(world.createEntity(), boss);
-      expect(world.ancientBoss.has(boss), isFalse);
+      expect(world.bossCombat.has(boss), isFalse);
     },
   );
 }
