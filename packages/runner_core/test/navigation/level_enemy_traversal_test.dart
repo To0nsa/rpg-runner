@@ -108,6 +108,30 @@ void main() {
   for (final regression in [
     (
       seed: 7,
+      name: 'normal camp crate approach after boss sequence',
+      keys: [
+        'forest_default_early_001',
+        'forest_trainingcamp_normal_001',
+        'forest_trainingcamp_normal_004',
+        'forest_trainingcamp_normal_003',
+        'forest_trainingcamp_normal_002',
+      ],
+      continuation: 'forest_rocky_grove_normal_007',
+    ),
+    (
+      seed: 7,
+      name: 'normal grove into hard gap after boss sequence',
+      keys: [
+        'forest_default_early_001',
+        'forest_rocky_grove_normal_001',
+        'forest_rocky_grove_normal_007',
+        'forest_rocky_grove_normal_008',
+        'forest_rocky_grove_hard_008',
+      ],
+      continuation: 'forest_rocky_grove_hard_009',
+    ),
+    (
+      seed: 7,
       name: 'hard camp and grove foothold',
       keys: [
         'forest_default_early_001',
@@ -206,7 +230,8 @@ void main() {
       level: LevelRegistry.byId(LevelId.forest),
       seed: 2026,
       chunkKeys: ['forest_default_early_001', 'forest_rocky_grove_hard_007'],
-      continuationChunkKey: 'forest_rocky_grove_hard_008',
+      // Hard 008 now has a wide midpoint foothold; keep a real gap control.
+      continuationChunkKey: 'forest_rocky_grove_normal_009',
     );
     final harness = EnemyTraversalHarness(route, EnemyId.unocoDemon);
     expect(harness.traverse(), isNull);

@@ -6,8 +6,12 @@ as visual references; the damage, timing and AI below are gameplay defaults.
 The [video](https://www.youtube.com/watch?v=0rPsM1DjEuc) demonstrates all three
 kits; its animation showcase does not specify damage or combat balance.
 They are available in Chunk Creator's **Mandatory boss arena → Boss** selector.
-No production level placement changes accompany this addition. Source targets
-gameplay compatibility `2026.10.9`; coordinated deployment remains pending.
+Forest places one easy arena for each boss immediately after Bringer of Death:
+**Bringer → Voidborn Goddess → Shoggoth → Voidcaller → enchanted forest**.
+Each new room reuses the existing 600-by-270 Forest arena terrain and scenery,
+with its own chunk, arena identity and mandatory assembly group. Each victory
+restores 20% of maximum health, mana and stamina, capped at the resource maximum.
+Source targets gameplay compatibility `2026.10.9`; coordinated deployment remains pending.
 
 All three share Bringer of Death's **1.5x sprite scale**, 120 HP, no passive
 health regeneration and stun immunity. Source frame dimensions differ, so their

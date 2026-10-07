@@ -4,7 +4,11 @@ This source addition implements `voidbornGoddess`, `shoggoth`, `voidcaller`,
 `shoggothMinion` and `voidTentacle` in Core, rendering and the editor. Existing
 enemy/projectile/impact enum ordinals are preserved by appending identities.
 Bosses are selected through the existing five-field chunk-v2 `bossArena`
-contract; production authored chunks and assemblies are unchanged. The shared
+contract. Forest's assembly places three dedicated one-chunk easy sections
+after Bringer: `forest_voidborn_goddess_easy_001`, `forest_shoggoth_easy_001`,
+then `forest_voidcaller_easy_001`, before the existing enchanted forest.
+Each uses an independent arena ID and a single-candidate assembly group;
+the shared lifecycle releases one encounter before activating the next. The shared
 wire payloads and replay command encoding remain unchanged. Client and replay
 worker must consume the same Core in the pending `2026.10.9` release.
 
@@ -150,6 +154,16 @@ arena actors are not claimed as route-wide pursuers. The route matrix retains
 Field and `new_level` 32-chunk horizons and one full finite Forest assembly,
 seeds 7/42/2026, Grojib/Hashash/Derf/Unoco. It does not replace spawn, combat,
 render performance or full-run checks.
+
+The consecutive Forest arena test uses both real character loadouts and normal
+committed combat to defeat all four bosses without resetting resources or
+teleporting between rooms. It checks four introductions, blessings, summon
+cleanup and the exit into the ordinary section. Production-selector checks
+retain seeds 7/42/2026 and verify the exact four-room order once per assembly.
+Their Forest horizons are 114/105/116 chunks. New seed-7 transitions also retain
+focused navigation regressions for the normal camp crate approach and the hard
+grove gap; their authored foothold/clearance repairs leave actor capabilities
+unchanged.
 
 Navigation/run goldens now include nine grounded graph profiles. Review against
 an isolated HEAD copy confirmed identical terrain surfaces and original four

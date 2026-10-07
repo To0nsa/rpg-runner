@@ -38,7 +38,16 @@ The review found and corrected two issues:
 
 These corrections intentionally change combat geometry within `2026.10.9`.
 All actors/effects retain the same 1.5x art scale as Bringer. Source PNGs and
-licenses remain unchanged. No production boss-placement changes were made.
+licenses remain unchanged. The owner subsequently requested three Forest chunks
+before deployment. Dedicated easy sections now place Goddess, Shoggoth and
+Voidcaller immediately after Bringer, before the existing enchanted forest.
+Their terrain/scenery reuse the authored Bringer room. Generation adds exactly
+three chunks (80 → 83). Before route repairs, comparison confirmed all 80 prior
+generated terrain records were identical. The new seeded routes exposed two
+existing obstructions: normal camp 002's anvil/crate spacing and hard grove
+008's narrow irregular gap platform. The anvil moves 16 units left; a 96-unit
+platform replaces the 32-unit foothold and rises 28 units. Enemy limits and
+test tolerances are unchanged; exact incoming sequences remain regressions.
 
 ## Local evidence
 
@@ -54,6 +63,18 @@ licenses remain unchanged. No production boss-placement changes were made.
   preview was rendered and visually reviewed again.
 - Editor source round-trip and stale-source rejection: pass with separate files.
 - Projectile/beam generators and asset manifest: current.
+- Both characters clear the four authored Forest arenas continuously using
+  normal resources and committed combat: four introductions, victories,
+  blessings, summon cleanup and exit into the ordinary section.
+- Production selector verifies consecutive unique boss rooms at seeds 7/42/2026;
+  full Forest horizons are 114/105/116 chunks, with Field/New Level at 32.
+  All 36 seeded pursuit cases pass. The combined 124-case arena/navigation/
+  signature checks pass after updating the midpoint-gap control's continuation
+  to normal grove 009, since the repaired hard grove 008 now supports its midpoint.
+  The final control was rerun separately; no movement capability was widened.
+- Release checks found stale blank-image fixture bounds and the previous 60%
+  HUD expectation. Catalog-derived source bounds and the current 20% expectation
+  correct them; all ten affected rendering/playtest/HUD cases pass.
 
 The canonical release preparation still performs the complete client, Core,
 shared-package, Functions and validator gates on a frozen commit. Its production

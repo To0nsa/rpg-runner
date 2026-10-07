@@ -34,7 +34,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   [production and local verification](verification/forest_boss_arena.md).
 - [Ancient God gameplay](gdd/ancient_god_bosses.md) and [implementation](tdd/ancient_god_bosses.md):
   three additional selectable arena bosses, owned summons and composed spell art
-  at Bringer's 1.5x scale; implemented in source, with production placement unchanged.
+  at Bringer's 1.5x scale; source places three consecutive Forest arenas after Bringer.
   [Separation and visual audit](verification/ancient-god-bosses-2026-10-07.md)
   records independent boss ownership, video review and collision corrections.
 - [Derf transformation](tdd/derf_transformation.md) and [Derf gameplay](gdd/derf.md): normal-form explosions, first-visibility transformation, then ground pursuit and tentacle melee; deployed in `2026.10.7`.

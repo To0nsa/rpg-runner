@@ -7,6 +7,12 @@ compatibility `2026.10.8` and score partition `score-v4`; see the
 Source tuning and the additional [Ancient God bosses](ancient_god_bosses.md)
 now target `2026.10.9`; the coordinated release remains pending.
 
+The `2026.10.9` Forest assembly follows Bringer with one easy chunk each for
+Voidborn Goddess, Shoggoth and Voidcaller, in that order, then continues into
+the enchanted forest. Dedicated single-candidate groups make all four arenas
+mandatory and consecutive. Boss behavior depends on actor identity and arena
+bounds, not a particular chunk key.
+
 ## Ownership and authored contract
 
 Chunk-v2 has an optional `bossArena` object with exactly five fields:

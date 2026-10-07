@@ -39,6 +39,19 @@ arena. The authored terrain and scenery from `2026.10.7` are retained; see
 [the boss encounter](bringer_of_death.md) for framing, combat and the victory
 blessing.
 
+The `2026.10.9` source adds three consecutive easy arenas immediately after
+Bringer of Death: Voidborn Goddess, Shoggoth, then Voidcaller. Each dedicated
+assembly group selects exactly one room, so seeds preserve this order before
+the existing easy enchanted forest. The three new rooms reuse Bringer's Forest
+terrain and scenery with independent encounter identities. Each easy boss
+victory restores 20% of maximum health, mana and stamina; see
+[Ancient God bosses](ancient_god_bosses.md).
+
+The new seeded routes exposed two older clearance problems. Normal training
+camp 002 now shares the hard variant's 16-unit-left anvil position to open the
+crate approach. Hard Rocky Grove 008 uses a 96-unit-wide gap foothold raised
+28 units, preserving open gaps on both sides and existing movement limits.
+
 Forest's hard progression now alternates five distinct Rocky Grove sections of
 3–6 chunks with one enchanted-forest chunk, all five remaining hard ruin chunks,
 all four hard training-camp chunks, and all three hard woodcamp chunks, in that

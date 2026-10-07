@@ -20,10 +20,10 @@
     },
     {
       "levelId": "forest",
-      "revision": 247,
+      "revision": 248,
       "displayName": "Forest",
       "visualThemeId": "forest",
-      "chunkThemeGroups": ["default", "boss_bringer_of_death", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
+      "chunkThemeGroups": ["default", "boss_bringer_of_death", "boss_shoggoth", "boss_voidborn_goddess", "boss_voidcaller", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
       "firstChunkKey": "forest_default_early_001",
       "cameraCenterY": 135,
       "groundTopY": 224,
@@ -105,6 +105,30 @@
           {
             "segmentId": "bringer_of_death_arena",
             "groupId": "boss_bringer_of_death",
+            "difficulty": "easy",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "voidborn_goddess_arena",
+            "groupId": "boss_voidborn_goddess",
+            "difficulty": "easy",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "shoggoth_arena",
+            "groupId": "boss_shoggoth",
+            "difficulty": "easy",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "voidcaller_arena",
+            "groupId": "boss_voidcaller",
             "difficulty": "easy",
             "minChunkCount": 1,
             "maxChunkCount": 1,

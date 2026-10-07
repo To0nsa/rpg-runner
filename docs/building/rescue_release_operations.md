@@ -18,8 +18,9 @@ restoration from easy-chunk victory blessings.
 The death column's bottom and damage now anchor to the captured floor/platform.
 This release also includes the independent Voidborn Goddess, Shoggoth and
 Voidcaller implementations, their owned summons, and the video-audited diagonal
-beam/spin collision corrections. They are available to author in the editor;
-production level placements are unchanged. The owner authorized the release and
+beam/spin collision corrections. Three new easy Forest chunks place Goddess,
+Shoggoth and Voidcaller immediately after Bringer, before the enchanted forest.
+The owner authorized the release and
 cancellation of active runs if necessary on October 7. See
 [boss audit and release evidence](../verification/ancient-god-bosses-2026-10-07.md).
 Production remains `2026.10.8`; this tuning still needs coordinated preparation,

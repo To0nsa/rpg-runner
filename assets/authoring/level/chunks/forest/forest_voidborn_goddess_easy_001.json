@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_voidborn_goddess_easy_001",
+  "id": "forest_voidborn_goddess_easy_001",
+  "revision": 1,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "boss_voidborn_goddess",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 215,
+      "y": 149,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_dead_tree_02",
+      "prefabKey": "crystal_world_dead_tree_02",
+      "x": 67,
+      "y": 161,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_dead_tree_01",
+      "prefabKey": "crystal_world_dead_tree_01",
+      "x": 419,
+      "y": 165,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "high_forest_bush_02",
+      "prefabKey": "high_forest_bush_02",
+      "x": 389,
+      "y": 200,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "dark_forest_herb_05",
+      "prefabKey": "dark_forest_herb_05",
+      "x": 321,
+      "y": 221,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "dark_forest_herb_03",
+      "prefabKey": "dark_forest_herb_03",
+      "x": 469,
+      "y": 223,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "dark_forest_herb_01",
+      "prefabKey": "dark_forest_herb_01",
+      "x": 399,
+      "y": 224,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "bossArena": {
+    "id": "forest_voidborn_goddess",
+    "enemyId": "voidbornGoddess",
+    "spawnX": 440,
+    "minX": 24,
+    "maxX": 576
+  }
+}
