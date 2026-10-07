@@ -104,6 +104,10 @@ flutter:
     - assets/images/entities/effects/blessings/
     - assets/images/entities/effects/elemental_portals/
     - assets/images/entities/effects/world_interactions/
+    - assets/images/entities/enemies/ancient_god_pack/
+    - assets/images/entities/enemies/ancient_god_pack/shoggoth/
+    - assets/images/entities/enemies/ancient_god_pack/voidborn_goddess/
+    - assets/images/entities/enemies/ancient_god_pack/voidcaller/
     - assets/images/entities/enemies/arcane_archer/
     - assets/images/entities/enemies/brain_mole_monarch/
     - assets/images/entities/enemies/bringer_of_death/
