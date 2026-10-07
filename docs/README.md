@@ -20,8 +20,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
 - [Run distance and scoring](gdd/06_score.md#23-distance-means-furthest-progress): deployed in `2026.10.3`/`score-v3`, with furthest progress and 24 metres per full chunk.
 - [Earlier ghost cache client release](verification/ghost-cache-client-2026-10-03.md): ghost cache filename fix `8d7d9bdc` published to Hosting and installed on the connected Android phone; 876 client tests passed. Ghost launch, cache reuse, and rendering were verified on the phone.
-- [Latest coordinated production release](verification/forest_boss_arena.md#production-release-2026108): frozen `18d00737` deployed October 7 (Helsinki time) as `2026.10.8`/`score-v4`; preparation, strict image benchmark and live infrastructure checks passed. No runs required cancellation. Signed-in gameplay smoke and browser file-I/O support remain unverified.
-- [Release checklist](building/rescue_release_operations.md#deployed-release-2026108): `2026.10.8` adds the mandatory Forest boss, reusable entrance feedback, grounded attacks with shared knockback, and the Dames de la forêt victory blessing.
+- [Latest coordinated production release](verification/ancient-god-bosses-2026-10-07.md#production-release): frozen `8b0062d4` deployed October 7 (Helsinki time) as `2026.10.9`/`score-v4`; preparation, strict image benchmark and live infrastructure checks passed. Three reviewed old-version runs were cancelled. Signed-in gameplay smoke remains unverified; the pre-existing browser startup failure persists.
+- [Release checklist](building/rescue_release_operations.md#deployed-release-2026109): `2026.10.9` adds independent Ancient God bosses and three consecutive Forest arenas after Bringer, with 1.5x scale and 20% easy-boss victory restoration.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.
@@ -34,7 +34,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   [production and local verification](verification/forest_boss_arena.md).
 - [Ancient God gameplay](gdd/ancient_god_bosses.md) and [implementation](tdd/ancient_god_bosses.md):
   three additional selectable arena bosses, owned summons and composed spell art
-  at Bringer's 1.5x scale; source places three consecutive Forest arenas after Bringer.
+  at Bringer's 1.5x scale; deployed in three consecutive Forest arenas after Bringer.
   [Separation and visual audit](verification/ancient-god-bosses-2026-10-07.md)
   records independent boss ownership, video review and collision corrections.
 - [Derf transformation](tdd/derf_transformation.md) and [Derf gameplay](gdd/derf.md): normal-form explosions, first-visibility transformation, then ground pursuit and tentacle melee; deployed in `2026.10.7`.

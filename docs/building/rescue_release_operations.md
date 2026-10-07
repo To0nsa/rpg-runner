@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.8` was deployed October 7, 2026 (Helsinki time) from frozen
-commit `18d00737`; see [current production evidence](../verification/forest_boss_arena.md#production-release-2026108).
+Status: `2026.10.9` was deployed October 7, 2026 (Helsinki time) from frozen
+commit `8b0062d4`; see [current production evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.8](../verification/forest_boss_arena.md#production-release-2026108),
 [2026.10.7](../verification/game-compat-2026.10.7-production.md),
 [2026.10.6](../verification/game-compat-2026.10.6-production.md),
 [2026.10.4](../verification/game-compat-2026.10.4-production.md),
@@ -12,7 +13,9 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-Source now targets `2026.10.9` for the [Bringer tuning](../gdd/bringer_of_death.md):
+## Deployed release: 2026.10.9
+
+The release includes the [Bringer tuning](../gdd/bringer_of_death.md):
 1.5x boss/column size, faster attacks, 20% faster pursuit and 20% resource
 restoration from easy-chunk victory blessings.
 The death column's bottom and damage now anchor to the captured floor/platform.
@@ -23,16 +26,26 @@ Shoggoth and Voidcaller immediately after Bringer, before the enchanted forest.
 The owner authorized the release and
 cancellation of active runs if necessary on October 7. See
 [boss audit and release evidence](../verification/ancient-god-bosses-2026-10-07.md).
-Production remains `2026.10.8`; this tuning still needs coordinated preparation,
-drain and cutover through `tools/release/release.ps1` before matching issuance
-resumes.
+- [x] Audit the video, separate each boss's content/AI, correct beam/spin geometry,
+  and validate all four consecutive authored arenas with both characters.
+- [x] Freeze `8b0062d4`; pass client/Core/Functions/worker/shared-package checks,
+  current dependency audit, generated freshness and the production web build.
+- [x] Build and strictly benchmark the immutable worker image at one CPU / 512 MiB.
+- [x] Pause issuance; cancel two unsubmitted tickets and one expired empty upload
+  under owner authorization. Preserve all 196 validated runs and settled grants.
+- [x] Deploy Functions, worker and Hosting; verify six boards and exact live web
+  bytes; restore queues and matching issuance at 20:52 UTC on October 7.
+- [x] Record production evidence and the verified baseline.
+- [ ] Complete linked Play Games gameplay/replay/settlement/leaderboard/ghost and
+  live retired-version smoke. The browser's existing `_Namespace` service-startup
+  error persists; no native package was installed by this release.
 
 ## Deployed release: 2026.10.8
 
 The mandatory Forest boss, purple entrance with shared black vignette/shake/haptic
 feedback, grounded attacks with shared 112-unit knockback, fixed boss scoring,
 and the Dames de la forêt 60% victory resource restore are deployed.
-The current 80-chunk Forest catalog preserves the newer authoring from 2026.10.7.
+That release's 80-chunk runtime catalog preserves the newer authoring from 2026.10.7.
 The ranked partition is now `score-v4`; replay/command and ghost formats remain 1.
 
 - [x] Merge the feature into master, preserve newer authoring/release fixes and

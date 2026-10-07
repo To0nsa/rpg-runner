@@ -11,7 +11,8 @@ Forest places one easy arena for each boss immediately after Bringer of Death:
 Each new room reuses the existing 600-by-270 Forest arena terrain and scenery,
 with its own chunk, arena identity and mandatory assembly group. Each victory
 restores 20% of maximum health, mana and stamina, capped at the resource maximum.
-Source targets gameplay compatibility `2026.10.9`; coordinated deployment remains pending.
+These encounters are deployed in gameplay compatibility `2026.10.9`; see the
+[release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 
 All three share Bringer of Death's **1.5x sprite scale**, 120 HP, no passive
 health regeneration and stun immunity. Source frame dimensions differ, so their

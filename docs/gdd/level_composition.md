@@ -39,7 +39,7 @@ arena. The authored terrain and scenery from `2026.10.7` are retained; see
 [the boss encounter](bringer_of_death.md) for framing, combat and the victory
 blessing.
 
-The `2026.10.9` source adds three consecutive easy arenas immediately after
+The `2026.10.9` release adds three consecutive easy arenas immediately after
 Bringer of Death: Voidborn Goddess, Shoggoth, then Voidcaller. Each dedicated
 assembly group selects exactly one room, so seeds preserve this order before
 the existing easy enchanted forest. The three new rooms reuse Bringer's Forest

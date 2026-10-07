@@ -1,11 +1,13 @@
 # Bringer of Death
 
 Bringer of Death is Forest's first mandatory boss, fought in
-`forest_boss_easy_001` between the easy rocky-grove and enchanted-forest sections.
+`forest_boss_easy_001` after the easy rocky-grove section. It is followed by
+Voidborn Goddess, Shoggoth and Voidcaller, then the enchanted forest.
 The original encounter is deployed as gameplay `2026.10.8` with `score-v4`; see the
 [production evidence](../verification/forest_boss_arena.md#production-release-2026108).
-The tuning below is implemented in source for `2026.10.9` and awaits a coordinated
-client, Functions and replay-worker release.
+The tuning below and the three following boss rooms are deployed in `2026.10.9`
+across the client, Functions and replay worker; see the
+[latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 
 The 600-by-270 arena fills one gameplay viewport. Its flat floor and raised
 one-way platform give the player room to reposition. Once the entire arena is

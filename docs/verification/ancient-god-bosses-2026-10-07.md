@@ -76,13 +76,92 @@ test tolerances are unchanged; exact incoming sequences remain regressions.
   HUD expectation. Catalog-derived source bounds and the current 20% expectation
   correct them; all ten affected rendering/playtest/HUD cases pass.
 
-The canonical release preparation still performs the complete client, Core,
-shared-package, Functions and validator gates on a frozen commit. Its production
-evidence will be recorded below after cutover. Device gameplay, authenticated
-Play Games smoke and production replay acceptance must be distinguished from
-local tests and infrastructure readiness.
+The canonical release preparation passed on frozen commit `8b0062d4`:
+
+| Gate | Passing tests |
+| --- | ---: |
+| Client unit/widget suite | 1,128 |
+| Core | 1,127 |
+| Functions, Firestore emulator | 212 |
+| Replay worker | 203 |
+| Shared protocol | 44 |
+| Content pipeline | 98 |
+| Terrain materials | 25 |
+
+Analysis, compiled AOT protocol rejection, generated-content freshness and the
+production web build passed. The fresh production dependency audit found no
+known vulnerabilities. Functions checks/build reused the matching successful
+component evidence from earlier in this same audit; other components ran on
+the final frozen checkout. Device gameplay and authenticated production replay
+acceptance remain separate from these local tests and infrastructure checks.
 
 ## Production release
 
-Preparation and cutover pending. The preflight Inspect succeeded against the
-existing deployment; no production mutation has occurred at this checkpoint.
+Deployed October 7, 2026, via `tools/release/release.ps1` in coordinated scope.
+The live tuple is `2026.10.9` / `rules-v2` / `score-v4` / `ghost-v1`; replay and
+command formats remain 1.
+
+- Frozen source: `8b0062d403acd180c9a7d2a04cab0425cfbd2498`.
+- Source digest: `2c81850739548ad42d4064509482316704525a0bed99ea832965659745d772ee`.
+- Cloud Build: `35eecbf7-c0ce-4acf-9a95-d1abf38573d8`, successful.
+- Worker image: `europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator@sha256:5840d990c3b400043cc55fde0a8623659cc2924fbff6480e9079f49fa8c4228b`.
+- Worker revision: `replay-validator-00050-5dm`, healthy, serving 100% of traffic.
+- Resumed issuer: `runsessioncreate-00047-vnm`, healthy, serving 100% of traffic;
+  direct serving-revision inspection confirms the temporary pause gate is absent.
+- Live [Hosting](https://rpg-runner-d7add.web.app) `main.dart.js` SHA-256:
+  `9f422b2192d44d17055f46964c1eb671f97065292e3e722bfa3a49eb6421c18d`.
+  Downloaded production bytes exactly match the frozen build.
+
+The final container passed the strict 36,000-tick benchmark under one CPU and
+512 MiB: Forest 1.554 seconds, Field 1.813 seconds, New Level 1.939 seconds, with
+deterministic outcomes. This existing benchmark workload is not a full Forest
+campaign or a device boss-combat performance claim; Forest's benchmark final
+distance is 331.75 units. The authored boss sequence and complete route coverage
+are established by the separate tests above.
+
+| Stage | October 7 UTC |
+| --- | --- |
+| Preparation complete | 20:34:58 |
+| Issuance paused | 20:40:22 |
+| Authorized cancellations committed | 20:40:39 |
+| Backend verified | 20:45:01 |
+| Worker deployed | 20:46:59 |
+| Hosting deployed | 20:47:24 |
+| Issuance restored | 20:52:10 |
+| Final inventory | 20:52:58 |
+| Serving issuer verified | 20:54:45 |
+
+The owner explicitly authorized cancellation when necessary. A fresh read-only
+review identified two issued `2026.10.8` tickets and one abandoned upload whose
+lease expired at 13:14:50 UTC. The upload had no Storage object, finalized replay,
+provisional summary, validation result or reward grant. After verifying paused
+issuance, a Firestore transaction rechecked identities, states, update times,
+absent validation/reward evidence and the missing replay object, then marked
+only those three sessions cancelled. Records and expired upload metadata remain;
+profiles, validated runs, rewards and Storage objects were not altered.
+The reviewed candidate-set SHA-256 is
+`68dc7cc2e3f913cb4536274dbccff8e0ca0f5789df29808d0f17210617b184d8`.
+
+The final inventory has zero active sessions, 196 accepted validated runs and
+196 settled grants, with no stale or quarantined settlement. Both queues are
+`RUNNING`; all six expected current/next boards exist. The canonical workflow
+verified matching live artifacts, IAM/queue configuration and saved the verified
+production baseline. The new version has no controlled post-cutover accepted
+replay in this evidence window.
+
+Evidence remains under the frozen checkout's
+`.tmp/releases/rpg-runner-d7add/2c81850739548ad42d4064509482316704525a0bed99ea832965659745d772ee/`,
+including release state, component logs/cache references, Cloud Build result,
+live inventory, service/queue/scheduler snapshots and operator receipts.
+
+### Remaining verification
+
+The browser was checked before and after deployment. Both builds show
+`App bootstrap (services) failed: Unsupported operation: _Namespace` and the
+unsupported-services screen. This pre-existing browser initialization failure
+blocks a signed-in gameplay smoke in the available browser. Linked Play Games
+gameplay, new-version replay acceptance, once-only settlement, leaderboard/ghost
+publication and live retired-version request rejection remain unverified end to
+end. No native package was installed during this release. The release checklist
+stays open for these checks; local tests and live infrastructure evidence do not
+stand in for them.

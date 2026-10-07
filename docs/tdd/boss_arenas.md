@@ -4,8 +4,9 @@ Forest's `forest_boss_easy_001` contains the first mandatory boss encounter,
 Bringer of Death. The original implementation is deployed with gameplay
 compatibility `2026.10.8` and score partition `score-v4`; see the
 [production evidence](../verification/forest_boss_arena.md#production-release-2026108).
-Source tuning and the additional [Ancient God bosses](ancient_god_bosses.md)
-now target `2026.10.9`; the coordinated release remains pending.
+The tuning and additional [Ancient God bosses](ancient_god_bosses.md) are deployed
+in `2026.10.9`; see the
+[latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 
 The `2026.10.9` Forest assembly follows Bringer with one easy chunk each for
 Voidborn Goddess, Shoggoth and Voidcaller, in that order, then continues into
@@ -231,8 +232,9 @@ Functions, client and worker compatibility defaults move together to
 `2026.10.9` for this replay-sensitive tuning; previous gameplay tickets are
 rejected by the new worker. Board/worker score defaults remain `score-v4`.
 The earlier `2026.10.8` coordinated release verified matching artifacts and
-drained validation/settlement before restoring issuance. The new tuning requires
-the same coordinated release policy before production issuance.
+drained validation/settlement before restoring issuance. The `2026.10.9` release
+followed the same coordinated policy, cancelling three reviewed unsubmitted or
+abandoned old-version runs before cutover and preserving validated runs/rewards.
 
 ## Editor and verification
 

@@ -10,7 +10,7 @@ then `forest_voidcaller_easy_001`, before the existing enchanted forest.
 Each uses an independent arena ID and a single-candidate assembly group;
 the shared lifecycle releases one encounter before activating the next. The shared
 wire payloads and replay command encoding remain unchanged. Client and replay
-worker must consume the same Core in the pending `2026.10.9` release.
+worker consume the same Core in the deployed `2026.10.9` release.
 
 ## Catalogs and authority
 
@@ -145,7 +145,7 @@ The subsequent visual audit corrects the diagonal beam's reversed middle/slope
 and Shoggoth spin frames 4–7: front crescents follow their visible arc and the
 rear crescents now have damage geometry. Focused damage tests exercise both
 spin facings and the visible versus empty diagonal at 30/60/90 Hz. These are
-intentional gameplay corrections within the pending `2026.10.9` cutover, separate
+intentional gameplay corrections within the deployed `2026.10.9` cutover, separate
 from the equivalence evidence for the file separation.
 
 The full Core suite and 36 production-route pursuit cases exercise shared
