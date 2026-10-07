@@ -13,7 +13,7 @@ void main() {
       for (final id in EnemyId.values) catalog.terrainContactProfile(id),
     ];
 
-    expect(EnemyId.values, hasLength(5));
+    expect(EnemyId.values, hasLength(10));
     expect(profiles, hasLength(EnemyId.values.length));
     for (var index = 0; index < EnemyId.values.length; index += 1) {
       expect(
@@ -56,6 +56,21 @@ void main() {
             offsetX: 0.0,
             offsetY: 7.0,
           ),
+          EnemyId.voidbornGoddess: (
+            radius: 13.5,
+            spine: 27,
+            offsetX: 0,
+            offsetY: 0,
+          ),
+          EnemyId.shoggoth: (radius: 24, spine: 15, offsetX: 0, offsetY: 9),
+          EnemyId.voidcaller: (radius: 24, spine: 21, offsetX: 0, offsetY: 0),
+          EnemyId.shoggothMinion: (
+            radius: 10.5,
+            spine: 3,
+            offsetX: 0,
+            offsetY: 0,
+          ),
+          EnemyId.voidTentacle: (radius: 15, spine: 21, offsetX: 0, offsetY: 0),
           EnemyId.bringerOfDeath: (
             radius: 18.0,
             spine: 22.5,

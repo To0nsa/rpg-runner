@@ -8,6 +8,7 @@ import 'dart:math' as math;
 
 import '../../../anim/anim_resolver.dart';
 import '../../../abilities/ability_catalog.dart';
+import '../../../bosses/boss_utility_delivery.dart';
 import '../../../abilities/ability_def.dart';
 import '../../../events/game_event.dart';
 import '../../../snapshots/enums.dart';
@@ -279,6 +280,29 @@ class AnimSystem {
       return;
     }
 
+    final ancient = world.ancientBoss.tryIndexOf(e);
+    final active = world.activeAbility.tryIndexOf(e);
+    if (ancient != null &&
+        active != null &&
+        common.hp > 0 &&
+        deathPhase == DeathPhase.none &&
+        world.activeAbility.abilityId[active] ==
+            world.ancientBoss.utilityAbility[ancient] &&
+        abilities
+                .resolve(world.ancientBoss.utilityAbility[ancient] ?? '')
+                ?.hitDelivery
+            is BossTeleportDelivery &&
+        world.activeAbility.startTick[active] ==
+            world.ancientBoss.utilityStartTick[ancient]) {
+      final elapsed = currentTick - world.activeAbility.startTick[active];
+      final windup = world.activeAbility.windupTicks[active];
+      animStore.anim[ai] = elapsed < windup
+          ? AnimKey.teleportOut
+          : AnimKey.spawn;
+      animStore.animFrame[ai] = elapsed < windup ? elapsed : elapsed - windup;
+      return;
+    }
+
     // Phase 6: Active Action Layer (Enemies)
     final activeAction = _resolveActiveAction(
       world,
@@ -300,8 +324,7 @@ class AnimSystem {
       lastDamageTick: common.lastDamageTick,
       hitAnimTicks:
           world.enemy.has(e) &&
-              world.enemy.enemyId[world.enemy.indexOf(e)] ==
-                  EnemyId.bringerOfDeath &&
+              world.enemy.enemyId[world.enemy.indexOf(e)].isBoss &&
               world.activeAbility.hasActiveAbility(e)
           ? 0
           : hitAnimTicks,

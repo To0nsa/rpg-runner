@@ -29,7 +29,16 @@ final class BossArenaSystem {
   bool get failed => _current?.phase == BossArenaPhase.failed;
   bool get arenaFramed => _current?.framed ?? false;
   bool retainsChunk(int index) => _arenas[index]?.retained ?? false;
-  bool retainsActor(EntityId entity) => _current?.boss == entity;
+  bool retainsActor(EcsWorld world, EntityId entity) =>
+      _current != null && _belongs(world, entity, _current!);
+
+  bool _belongs(EcsWorld world, EntityId entity, _Arena arena) {
+    if (entity == arena.boss) return true;
+    final si = world.bossSummon.tryIndexOf(entity);
+    return si != null &&
+        arena.boss != null &&
+        world.bossSummon.owner[si] == arena.boss;
+  }
 
   /// Registration is driven by exact streamed occurrences, never source IDs alone.
   void synchronize(List<ActiveTrackChunkSnapshot> chunks, double cameraRight) {
@@ -147,7 +156,17 @@ final class BossArenaSystem {
       ...world.enemy.denseEntities,
       ...world.npc.denseEntities,
     ]) {
-      if (entity == arena.boss) continue;
+      if (_belongs(world, entity, arena)) {
+        world.actorMotionBounds.add(
+          entity,
+          TerrainHorizontalBounds(
+            minXTicks: physicsCoordinateToTicks(arena.minX),
+            maxXTicks: physicsCoordinateToTicks(arena.maxX),
+          ),
+          freeze: arena.phase == BossArenaPhase.introduction,
+        );
+        continue;
+      }
       world.arenaSuspension.addEntity(entity);
       _hold(world, entity, tick);
     }
@@ -237,6 +256,7 @@ final class BossArenaSystem {
         .health;
     return BossArenaSnapshot(
       id: arena.chunk.bossArena!.id,
+      enemyId: arena.chunk.bossArena!.enemyId,
       phase: arena.phase,
       entrance: arena.phase == BossArenaPhase.introduction && arena.boss != null
           ? BossEntranceSnapshot(
@@ -275,7 +295,7 @@ final class BossArenaSystem {
       final ti = world.transform.indexOf(e);
       final owner = world.projectile.owner[pi];
       final x = world.transform.posX[ti];
-      if ((owner != player && owner != arena.boss) ||
+      if ((owner != player && !_belongs(world, owner, arena)) ||
           x < arena.minX ||
           x > arena.maxX) {
         world.destroyEntity(e);
@@ -283,7 +303,9 @@ final class BossArenaSystem {
     }
     for (final e in world.hitbox.denseEntities.toList()) {
       final owner = world.hitbox.owner[world.hitbox.indexOf(e)];
-      if (owner != player && owner != arena.boss) world.destroyEntity(e);
+      if (owner != player && !_belongs(world, owner, arena)) {
+        world.destroyEntity(e);
+      }
     }
   }
 
@@ -315,6 +337,11 @@ final class BossArenaSystem {
   }
 
   void _release(EcsWorld world, EntityId player) {
+    for (final summon in world.bossSummon.denseEntities.toList()) {
+      if (_current != null && _belongs(world, summon, _current!)) {
+        world.destroyEntity(summon);
+      }
+    }
     for (final entity in world.arenaSuspension.denseEntities.toList()) {
       world.arenaSuspension.removeEntity(entity);
     }

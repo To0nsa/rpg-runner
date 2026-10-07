@@ -118,6 +118,11 @@ void main() {
           EnemyId.derf.name,
           EnemyId.grojib.name,
           EnemyId.hashash.name,
+          EnemyId.shoggoth.name,
+          EnemyId.shoggothMinion.name,
+          EnemyId.voidTentacle.name,
+          EnemyId.voidbornGoddess.name,
+          EnemyId.voidcaller.name,
         ],
       );
     });

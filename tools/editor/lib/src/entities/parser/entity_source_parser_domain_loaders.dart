@@ -53,6 +53,7 @@ List<EntityEntry> _parseAutonomousActors(
     );
   }
   final entries = <EntityEntry>[];
+  final importedRenderResolvers = <String, _ConstValueResolver?>{};
   for (final (actorName, expression) in rows) {
     final resolved = resolver._resolveExpression(expression, <String>{});
     final NodeList<Argument>? args = resolved is InstanceCreationExpression
@@ -160,7 +161,14 @@ List<EntityEntry> _parseAutonomousActors(
     final renderAnimExpression = _namedArgumentExpression(args, 'renderAnim');
     final parsedReferenceVisual = renderAnimExpression == null
         ? null
-        : resolver.resolveRenderVisual(renderAnimExpression);
+        : resolver.resolveRenderVisual(renderAnimExpression) ??
+              _resolveImportedActorRenderVisual(
+                workspace,
+                unit,
+                sourcePath,
+                renderAnimExpression,
+                importedRenderResolvers,
+              );
     final renderScaleArg = _namedArgument(args, 'renderScale');
     final renderScaleValue = renderScaleArg == null
         ? null

@@ -1,3 +1,5 @@
+import 'package:runner_core/enemies/enemy_id.dart';
+
 import 'dart:convert';
 
 import 'prefab_rotation.dart';
@@ -680,7 +682,9 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
     }
   }
 
-  if (markerOrder.any((m) => m.markerId == 'bringerOfDeath')) {
+  if (markerOrder.any(
+    (m) => EnemyId.values.any((id) => id.isArenaOnly && id.name == m.markerId),
+  )) {
     throw FormatException(
       '$sourcePath: bosses require a bossArena definition, not ambient markers.',
     );

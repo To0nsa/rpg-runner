@@ -21,6 +21,7 @@ import 'bosses/boss_arena_system.dart';
 import 'bosses/boss_victory_blessing_system.dart';
 import 'bosses/boss_arena_spawn_adapter.dart';
 import 'ecs/systems/bringer_combat_system.dart';
+import 'ecs/systems/ancient_god_combat_system.dart';
 import 'scoring/run_distance.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
@@ -998,6 +999,13 @@ class GameCore {
     castCommitter: _enemyCastSystem.committer,
     groundEnemyTuning: _groundEnemyTuning,
   );
+  late final _ancientGodCombat = AncientGodCombatSystem(
+    tickHz: tickHz,
+    motion: _worldMotionAuthority,
+    spawns: _spawnService,
+    castCommitter: _enemyCastSystem.committer,
+    groundTopY: _levelDefinition.groundTopY,
+  );
   List<ActiveTrackChunkSnapshot>? _registeredEncounterChunks;
   late final _encounterSpawnAdapter = EncounterSpawnAdapter(
     world: _world,
@@ -1609,6 +1617,8 @@ class GameCore {
       _endRun(RunEndReason.bossEncounterFailed);
       return;
     }
+    // Summons must join the body roster before terrain preparation enumerates it.
+    _ancientGodCombat.prepare(_world, player: _player, currentTick: tick);
     _worldMotionAuthority.prepareTick(
       _world,
       player: _player,
@@ -1660,6 +1670,11 @@ class GameCore {
       player: _player,
       currentTick: tick,
     );
+    _ancientGodCombat.executeTeleports(
+      _world,
+      player: _player,
+      currentTick: tick,
+    );
     // Observe teleports and the published water before both enemy AI and player
     // action gates; refresh again after integration for snapshots and next tick.
     final waterRegions = _worldMotionAuthority.waterRegions;
@@ -1672,6 +1687,7 @@ class GameCore {
     );
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _bringerCombat.step(_world, player: _player, currentTick: tick);
+    _ancientGodCombat.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);
     _npcAiSystem.step(
       _world,
@@ -1692,6 +1708,7 @@ class GameCore {
       currentTick: tick,
     );
 
+    _ancientGodCombat.composeMotion(_world, currentTick: tick);
     _abilityActivationSystem.step(_world, player: _player, currentTick: tick);
     _jumpSystem.step(_world, _movement, currentTick: tick);
     _movementSystem.step(
@@ -1943,7 +1960,7 @@ class GameCore {
       tuning: _trackTuning,
       retainForEncounter: (entity) =>
           _encounters.retainsActor(_world, entity) ||
-          _bossArenas.retainsActor(entity),
+          _bossArenas.retainsActor(_world, entity),
     );
     _encounters.resolve(
       _world,
@@ -1972,7 +1989,7 @@ class GameCore {
       tick: tick,
       emit: _events.add,
     );
-    if (_isPlayerDead()) _killedEnemiesScratch.remove(EnemyId.bringerOfDeath);
+    if (_isPlayerDead()) _killedEnemiesScratch.removeWhere((id) => id.isBoss);
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
     }
@@ -2211,7 +2228,14 @@ class GameCore {
 
     switch (enemyId) {
       case EnemyId.bringerOfDeath:
-        throw StateError('Bosses must be spawned by their owning arena.');
+      case EnemyId.voidbornGoddess:
+      case EnemyId.shoggoth:
+      case EnemyId.voidcaller:
+      case EnemyId.shoggothMinion:
+      case EnemyId.voidTentacle:
+        throw StateError(
+          'Arena-only actors must be spawned by their owning arena.',
+        );
       case EnemyId.unocoDemon:
         _spawnService.spawnUnocoDemon(
           spawnX: bodyX,

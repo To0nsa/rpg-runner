@@ -76,6 +76,18 @@ class SpellImpactRenderRegistry {
 
   final Map<SpellImpactId, SpellImpactRenderEntry> _entries =
       <SpellImpactId, SpellImpactRenderEntry>{
+        SpellImpactId.goddessEruption: SpellImpactRenderEntry(
+          id: SpellImpactId.goddessEruption,
+          renderScale: Vector2.all(1.5),
+        ),
+        SpellImpactId.voidVerticalBeam: SpellImpactRenderEntry(
+          id: SpellImpactId.voidVerticalBeam,
+          renderScale: Vector2.all(1.5),
+        ),
+        SpellImpactId.voidDiagonalBeam: SpellImpactRenderEntry(
+          id: SpellImpactId.voidDiagonalBeam,
+          renderScale: Vector2.all(1.5),
+        ),
         SpellImpactId.holyBlessing: SpellImpactRenderEntry(
           id: SpellImpactId.holyBlessing,
           renderScale: Vector2.all(2),

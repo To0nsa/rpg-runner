@@ -77,6 +77,8 @@ import 'stores/reactive_proc_cooldown_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/spawn_state_store.dart';
+import 'stores/ancient_boss_state_store.dart';
+import 'stores/boss_summon_store.dart';
 import 'stores/target_point_intent_store.dart';
 import 'stores/transform_store.dart';
 import 'stores/trap_store.dart';
@@ -378,6 +380,10 @@ class EcsWorld {
   late final AnimStateStore animState = _register(AnimStateStore());
 
   /// Per-entity spawn animation timing state.
+  late final AncientBossStateStore ancientBoss = _register(
+    AncientBossStateStore(),
+  );
+  late final BossSummonStore bossSummon = _register(BossSummonStore());
   late final SpawnStateStore spawnState = _register(SpawnStateStore());
 
   /// Tracks the currently active ability for animation purposes.
@@ -446,6 +452,27 @@ class EcsWorld {
   void destroyEntity(EntityId entity, {bool fatalWorldLoss = false}) {
     if (_freeIdsSet.contains(entity)) {
       return;
+    }
+    // Remove ownership before recycling an arena actor ID. Summon attacks must
+    // never become attacks owned by an unrelated actor reusing the same ID.
+    if (ancientBoss.has(entity)) {
+      for (final child in bossSummon.denseEntities.toList()) {
+        if (bossSummon.owner[bossSummon.indexOf(child)] == entity) {
+          destroyEntity(child);
+        }
+      }
+    }
+    if (bossSummon.has(entity)) {
+      for (final attack in [
+        ...projectile.denseEntities,
+        ...hitbox.denseEntities,
+      ]) {
+        final pi = projectile.tryIndexOf(attack);
+        final owner = pi == null
+            ? hitbox.owner[hitbox.indexOf(attack)]
+            : projectile.owner[pi];
+        if (owner == entity) destroyEntity(attack);
+      }
     }
     final hi = health.tryIndexOf(entity);
     encounterMember.recordRemoval(

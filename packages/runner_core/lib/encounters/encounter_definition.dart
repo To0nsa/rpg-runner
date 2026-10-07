@@ -111,7 +111,7 @@ final class EncounterDefinition {
        enemies = List.unmodifiable(enemies) {
     _validateId(id);
     if (name.trim().isEmpty) throw ArgumentError.value(name, 'name');
-    if (this.enemies.any((enemy) => enemy.enemyId == EnemyId.bringerOfDeath)) {
+    if (this.enemies.any((enemy) => enemy.enemyId.isArenaOnly)) {
       throw ArgumentError(
         'Bosses require their own arena, outside rescue rosters.',
       );

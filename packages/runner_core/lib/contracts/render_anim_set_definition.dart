@@ -4,6 +4,7 @@ library;
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'render_frame_rect.dart';
+import 'render_frame_part.dart';
 
 /// Data-driven animation strip definition (frame size, paths, timing).
 class RenderAnimSetDefinition {
@@ -17,6 +18,7 @@ class RenderAnimSetDefinition {
     this.gridColumnsByKey = const <AnimKey, int>{},
     this.sourceFramesByKey = const <AnimKey, List<RenderFrameRect>>{},
     this.anchorPointByKey = const <AnimKey, Vec2>{},
+    this.compositeFramesByKey = const <AnimKey, List<List<RenderFramePart>>>{},
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -59,6 +61,10 @@ class RenderAnimSetDefinition {
   /// Explicit source rectangles for nonuniform sheets; overrides grid sampling.
   /// Every rectangle retains the animation set's logical frame dimensions.
   final Map<AnimKey, List<RenderFrameRect>> sourceFramesByKey;
+
+  /// Layered frames composed from the same source image within logical frame dimensions.
+  /// These override ordinary grid sampling and retain the shared animation clock.
+  final Map<AnimKey, List<List<RenderFramePart>>> compositeFramesByKey;
 
   /// Optional per-animation pivots, for flight/impact art on the same sheet.
   final Map<AnimKey, Vec2> anchorPointByKey;

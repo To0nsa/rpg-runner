@@ -33,6 +33,27 @@ class ProjectileCatalog {
           colliderSizeX: 55.5,
           colliderSizeY: 7.5,
         );
+      case ProjectileId.goddessOrb:
+      case ProjectileId.shoggothOrb:
+        return ProjectileItemDef(
+          id: id,
+          weaponType: WeaponType.spell,
+          speedUnitsPerSecond: 340,
+          lifetimeSeconds: 2,
+          colliderSizeX: 30,
+          colliderSizeY: 30,
+          damageType: DamageType.dark,
+        );
+      case ProjectileId.voidClaw:
+        return const ProjectileItemDef(
+          id: ProjectileId.voidClaw,
+          weaponType: WeaponType.spell,
+          speedUnitsPerSecond: 300,
+          lifetimeSeconds: 2,
+          colliderSizeX: 60,
+          colliderSizeY: 36,
+          damageType: DamageType.fire,
+        );
       case ProjectileId.npcArrow:
         return const ProjectileItemDef(
           id: ProjectileId.npcArrow,

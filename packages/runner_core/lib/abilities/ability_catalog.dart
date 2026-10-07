@@ -1,5 +1,6 @@
 import 'catalog/derf_ability_defs.dart';
 import 'catalog/bringer_ability_defs.dart';
+import 'catalog/ancient_god_ability_defs.dart';
 import 'catalog/eloise_ability_defs.dart';
 import 'catalog/grojib_ability_defs.dart';
 import 'catalog/hashash_ability_defs.dart';
@@ -35,6 +36,7 @@ class AbilityCatalog implements AbilityResolver {
         ...unocoAbilityDefs,
         ...derfAbilityDefs,
         ...bringerAbilityDefs,
+        ...ancientGodAbilityDefs,
         ...grojibAbilityDefs,
         ...hashashAbilityDefs,
         ...eloiseAbilityDefs,

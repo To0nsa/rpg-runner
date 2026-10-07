@@ -2,6 +2,7 @@ import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'spell_impact_id.dart';
+import 'ancient_god_effect_catalog.dart';
 
 const int _fireExplosionFrameWidth = 64;
 const int _fireExplosionFrameHeight = 64;
@@ -50,6 +51,22 @@ class SpellImpactRenderCatalog {
           'id',
           'SpellImpactId.unknown has no render catalog entry.',
         );
+      case SpellImpactId.goddessEruption:
+        return const RenderAnimSetDefinition(
+          frameWidth: 138,
+          frameHeight: 93,
+          anchorPoint: Vec2(69, 92),
+          sourcesByKey: {
+            AnimKey.hit: 'entities/enemies/ancient_god_pack/voidborn_goddess/sprite_sheet.png',
+          },
+          rowByKey: {AnimKey.hit: 8},
+          frameCountsByKey: {AnimKey.hit: 17},
+          stepTimeSecondsByKey: {AnimKey.hit: .08},
+        );
+      case SpellImpactId.voidVerticalBeam:
+        return AncientGodEffectCatalog.vertical;
+      case SpellImpactId.voidDiagonalBeam:
+        return AncientGodEffectCatalog.diagonal;
       case SpellImpactId.deathPillar:
         return const RenderAnimSetDefinition(
           frameWidth: 140,

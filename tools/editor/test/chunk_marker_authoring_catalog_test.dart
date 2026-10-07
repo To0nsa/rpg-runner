@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/enemies/enemy_terrain_profile.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_marker_authoring_catalog.dart';
 
@@ -44,6 +45,9 @@ void main() {
 
       expect(chunkMarkerEnemyCatalogEntryFor('UnocoDemon'), isNull);
       expect(chunkMarkerDefaultPlacementFor('unknown'), markerPlacementGround);
+      for (final id in EnemyId.values.where((id) => id.isArenaOnly)) {
+        expect(chunkMarkerEnemyCatalogEntryFor(id.name), isNull);
+      }
     },
   );
 }

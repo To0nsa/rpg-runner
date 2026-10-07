@@ -1,3 +1,5 @@
+import '../enemies/enemy_id.dart';
+
 /// Arena phases are simulation state; presentation cannot advance them.
 enum BossArenaPhase { approaching, introduction, combat, defeated, failed }
 
@@ -15,6 +17,7 @@ final class BossEntranceSnapshot {
 final class BossArenaSnapshot {
   const BossArenaSnapshot({
     required this.id,
+    required this.enemyId,
     required this.phase,
     required this.minX,
     required this.maxX,
@@ -23,6 +26,7 @@ final class BossArenaSnapshot {
     this.entrance,
   });
   final String id;
+  final EnemyId enemyId;
   final BossArenaPhase phase;
   final double minX;
   final double maxX;

@@ -55,6 +55,9 @@ Rules:
   `feedback/boss_entrance_feedback.dart` envelope for camera and screen feedback
   instead of checking boss IDs or fabricating player-hit events
 - if you need new render data, add it through a Core contract intentionally
+- composite spell frames use `RenderAnimSetDefinition.compositeFramesByKey` and
+  the run-owned source PNG; retain Core frame clocks and avoid derived image
+  caches or renderer-owned effect lifetimes
 
 ## Input Bridge Rules
 

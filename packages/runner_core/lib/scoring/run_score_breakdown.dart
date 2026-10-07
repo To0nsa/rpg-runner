@@ -171,6 +171,12 @@ int _enemyKillScore(ScoreTuning tuning, EnemyId enemyId) {
     case EnemyId.unocoDemon:
       return tuning.unocoDemonKillScore;
     case EnemyId.bringerOfDeath:
+    case EnemyId.voidbornGoddess:
+    case EnemyId.shoggoth:
+    case EnemyId.voidcaller:
       return tuning.bossKillScore;
+    case EnemyId.shoggothMinion:
+    case EnemyId.voidTentacle:
+      return 0;
   }
 }

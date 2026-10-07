@@ -25,6 +25,11 @@ abstract final class ProjectilePoseCatalog {
       (ProjectileId.thunderBolt, AnimKey.idle) => _thunderBoltIdle,
       (ProjectileId.npcSpear, AnimKey.idle) => _npcSpearIdle,
       (ProjectileId.npcArrow, AnimKey.idle) => _npcArrowIdle,
+      (ProjectileId.goddessOrb, AnimKey.spawn) => _goddessOrbSpawn,
+      (ProjectileId.goddessOrb, AnimKey.idle) => _goddessOrbIdle,
+      (ProjectileId.shoggothOrb, AnimKey.idle) => _shoggothOrbIdle,
+      (ProjectileId.voidClaw, AnimKey.spawn) => _voidClawSpawn,
+      (ProjectileId.voidClaw, AnimKey.idle) => _voidClawIdle,
       _ => const <List<CombatCapsule>>[],
     };
     return frames.isEmpty ? const [] : frames[frame % frames.length];
@@ -185,5 +190,37 @@ abstract final class ProjectilePoseCatalog {
   static const _npcArrowIdle = [
     [CombatCapsule(-14.25, 0, 14.25, 0, 2.25)],
     [CombatCapsule(-15.75, 0, 15.75, 0, 0.75)],
+  ];
+  static const _goddessOrbSpawn = [
+    [CombatCapsule(-21, 21, 24, 21, 10.5)],
+    [CombatCapsule(-15, 21, 10.5, 21, 18)],
+    [CombatCapsule(-12.75, 21.75, 9.75, 21.75, 18.75)],
+  ];
+  static const _goddessOrbIdle = [
+    [CombatCapsule(-4.5, 19.5, 3, 19.5, 16.5)],
+    [CombatCapsule(-4.5, 21, -1.5, 21, 15)],
+    [CombatCapsule(-10.5, 21, 1.5, 21, 15)],
+    [CombatCapsule(-3.75, 20.25, -3.75, 20.25, 15.75)],
+    [CombatCapsule(-7.5, 21, 1.5, 21, 15)],
+    [CombatCapsule(-4.5, 21, -1.5, 21, 15)],
+    [CombatCapsule(-10.5, 21, 1.5, 21, 15)],
+    [CombatCapsule(-3.75, 20.25, -3.75, 20.25, 15.75)],
+  ];
+  static const _shoggothOrbIdle = [
+    [CombatCapsule(0.75, -0.75, 5.25, -0.75, 23.25)],
+    [CombatCapsule(-0.75, -0.75, 3.75, -0.75, 23.25)],
+    [CombatCapsule(0.75, -5.25, 3.75, -5.25, 23.25)],
+    [CombatCapsule(9, -10.5, 9, -1.5, 21)],
+    [CombatCapsule(6.75, -9.75, 6.75, -3.75, 23.25)],
+    [CombatCapsule(2.25, -3.75, 5.25, -3.75, 23.25)],
+  ];
+  static const _voidClawSpawn = [
+    [CombatCapsule(3, 4.5, 3, 6, 16.5)],
+    [CombatCapsule(-6, 1.5, 22.5, 1.5, 21)],
+  ];
+  static const _voidClawIdle = [
+    [CombatCapsule(-21, -3, 4.5, -3, 25.5)],
+    [CombatCapsule(-20.25, -2.25, 5.25, -2.25, 24.75)],
+    [CombatCapsule(-21, -3, 0, -3, 25.5)],
   ];
 }

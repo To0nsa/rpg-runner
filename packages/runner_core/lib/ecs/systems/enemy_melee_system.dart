@@ -55,7 +55,7 @@ class EnemyMeleeSystem {
         continue;
       }
 
-      if (world.enemy.enemyId[enemyIndex] == EnemyId.bringerOfDeath) continue;
+      if (world.enemy.enemyId[enemyIndex].isBoss) continue;
       final archetype = enemyCatalog.get(world.enemy.enemyId[enemyIndex]);
       final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
       if (primaryMeleeAbilityId == null) continue;

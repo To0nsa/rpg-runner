@@ -78,7 +78,7 @@ class EnemyCastSystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
-      if (enemies.enemyId[ei] == EnemyId.bringerOfDeath) continue;
+      if (enemies.enemyId[ei].isBoss) continue;
       final target = combatTarget(world, enemy, player);
       if (target == null) continue;
       final targetTi = world.transform.indexOf(target);

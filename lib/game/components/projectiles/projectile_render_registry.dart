@@ -101,6 +101,18 @@ class ProjectileRenderRegistry {
 
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
+        ProjectileId.goddessOrb: ProjectileRenderEntry(
+          id: ProjectileId.goddessOrb,
+          renderScale: Vector2.all(1.5),
+        ),
+        ProjectileId.shoggothOrb: ProjectileRenderEntry(
+          id: ProjectileId.shoggothOrb,
+          renderScale: Vector2.all(1.5),
+        ),
+        ProjectileId.voidClaw: ProjectileRenderEntry(
+          id: ProjectileId.voidClaw,
+          renderScale: Vector2.all(1.5),
+        ),
         ProjectileId.npcSpear: ProjectileRenderEntry(
           id: ProjectileId.npcSpear,
           renderScale: Vector2.all(

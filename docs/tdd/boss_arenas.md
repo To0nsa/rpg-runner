@@ -4,18 +4,20 @@ Forest's `forest_boss_easy_001` contains the first mandatory boss encounter,
 Bringer of Death. The original implementation is deployed with gameplay
 compatibility `2026.10.8` and score partition `score-v4`; see the
 [production evidence](../verification/forest_boss_arena.md#production-release-2026108).
-Source tuning now targets `2026.10.9`; the coordinated release remains pending.
+Source tuning and the additional [Ancient God bosses](ancient_god_bosses.md)
+now target `2026.10.9`; the coordinated release remains pending.
 
 ## Ownership and authored contract
 
 Chunk-v2 has an optional `bossArena` object with exactly five fields:
 `id`, `enemyId`, `spawnX`, `minX`, `maxX`. Coordinates are whole chunk-local
-pixels. The supported enemy identity is `bringerOfDeath`, appended to
-`EnemyId` without changing earlier ordinals. Arenas must match the fixed
+pixels. Supported required identities are `bringerOfDeath`, `voidbornGoddess`,
+`shoggoth` and `voidcaller`, appended to `EnemyId` without changing earlier
+ordinals. The owner form's Boss selector chooses that identity. Arenas must match the fixed
 600-by-270 viewport; the boss spawn and complete catalog capsule must fit
 inside the combat interval with valid polygon ground support and clearance.
 Ambient markers, rescue groups and traps are excluded from this first arena
-contract. Bosses cannot be ambient markers or rescue participants.
+contract. Bosses and their summons cannot be ambient markers or rescue participants.
 
 The shared content pipeline owns strict decoding and delegates placement to
 Core's `resolveBossArenaPlacement`. Generation, captured editor Play and live
@@ -28,7 +30,8 @@ active candidate across the level's pools. Forest reserves one easy
 `BossArenaSystem` owns occurrence registration, entrance, confinement, terminal
 outcomes and retention. `BossArenaSpawnAdapter` admits the required actor after
 the matching terrain has been published. `BringerCombatSystem` chooses actions;
-ordinary melee/cast committers and execution systems retain damage authority.
+`AncientGodCombatSystem` chooses the other three bosses' actions. Ordinary
+melee/cast committers and execution systems retain damage authority.
 Flame and Flutter display snapshots and cannot advance the encounter.
 
 ## Tick and camera lifecycle
@@ -61,7 +64,8 @@ failure check does not apply inside the framed arena; health and fatal world
 loss remain authoritative.
 
 Other autonomous actors retain their identities under `ArenaSuspensionStore`.
-Their motion, teleport execution, attacks and damage are suspended; they are
+Owned boss summons retain arena confinement, visibility and combat membership.
+Other actors' motion, teleport execution, attacks and damage are suspended; they are
 excluded from player auto aim and render snapshots until release. Projectiles
 and hitboxes from outside the roster cannot enter arena combat. Earlier combat
 artifacts are cleared at entrance and pending boss attacks at defeat.
@@ -78,7 +82,8 @@ retired arena records are discarded without restoring a completed occurrence.
 The first held Flame frame uses the authoritative arena camera rather than
 interpolating from the preceding runner frame. Core's framing remains locked
 while render-only entrance shake adds a small visual offset. Purple boundary
-cues and the boss HUD are presentation only.
+cues and the boss HUD are presentation only. `BossArenaSnapshot.enemyId` carries
+the required catalog identity so the HUD shows the selected boss's name.
 
 ## Victory blessing
 

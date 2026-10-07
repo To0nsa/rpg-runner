@@ -36,6 +36,9 @@ enum ProjectileId {
   /// Allied Huntress projectiles; excluded from the player item catalog below.
   npcSpear,
   npcArrow,
+  goddessOrb,
+  shoggothOrb,
+  voidClaw,
 }
 
 /// Explicit player spell catalog. Rendering may support additional projectiles.

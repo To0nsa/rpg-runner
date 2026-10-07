@@ -20,6 +20,10 @@ This doc explains how authored animation data is consumed, which layer owns each
   - Convert gameplay state into `(AnimKey, animFrame)` in deterministic Core ticks.
 - `RenderAnimSetDefinition` (`packages/runner_core/lib/contracts/render_anim_set_definition.dart`)
   - Defines frame count and step time per animation key.
+  - Optional composite frames describe several source-image parts sampled on
+    that same clock. Ancient God portal/beam/ground effects use this contract;
+    [their renderer](ancient_god_bosses.md#rendering-and-generated-effects) draws
+    directly from the run-owned PNG without derived images or extra timers.
 - Flame render components (`lib/game/components/sprite_anim/*.dart`)
   - Map `animFrame` to sprite frame index using `ticksPerFrame`.
 

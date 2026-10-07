@@ -87,6 +87,7 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
   late String _assemblyGroupId;
   String? _submissionError;
   late bool _bossEnabled;
+  late EnemyId _bossEnemyId;
   late final TextEditingController _bossId;
   late final TextEditingController _bossSpawnX;
   late final TextEditingController _bossMinX;
@@ -103,6 +104,8 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
       _tagsController.text != _initialTags ||
       _groundBandZIndexController.text != _initialGroundBandZIndex ||
       _bossEnabled != (widget.chunk.bossArena != null) ||
+      _bossEnemyId !=
+          (widget.chunk.bossArena?.enemyId ?? EnemyId.bringerOfDeath) ||
       [
             _bossId.text,
             _bossSpawnX.text,
@@ -129,6 +132,7 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
     );
     final arena = chunk.bossArena;
     _bossEnabled = arena != null;
+    _bossEnemyId = arena?.enemyId ?? EnemyId.bringerOfDeath;
     _bossId = TextEditingController(
       text: arena?.id ?? 'bringer_of_death_arena',
     );
@@ -192,7 +196,7 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
       try {
         arena = BossArenaDefinition(
           id: _bossId.text.trim(),
-          enemyId: EnemyId.bringerOfDeath,
+          enemyId: _bossEnemyId,
           spawnX: int.parse(_bossSpawnX.text).toDouble(),
           minX: int.parse(_bossMinX.text).toDouble(),
           maxX: int.parse(_bossMaxX.text).toDouble(),
@@ -372,7 +376,7 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
             key: const ValueKey('chunk_boss_arena_enabled'),
             title: const Text('Mandatory boss arena'),
             subtitle: const Text(
-              'Bringer of Death · full-screen entrance and combat',
+              'Full-screen entrance and confined boss combat',
             ),
             value: _bossEnabled,
             onChanged: (value) {
@@ -381,6 +385,20 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
             },
           ),
           if (_bossEnabled) ...[
+            DropdownButtonFormField<EnemyId>(
+              key: const ValueKey('chunk_boss_enemy'),
+              initialValue: _bossEnemyId,
+              decoration: const InputDecoration(labelText: 'Boss'),
+              items: [
+                for (final id in bossEnemyIds)
+                  DropdownMenuItem(value: id, child: Text(id.displayName)),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _bossEnemyId = value);
+                _handleFieldChanged();
+              },
+            ),
             TextFormField(
               controller: _bossId,
               decoration: const InputDecoration(labelText: 'Encounter ID'),

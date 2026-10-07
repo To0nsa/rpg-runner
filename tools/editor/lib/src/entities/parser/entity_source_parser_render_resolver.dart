@@ -6,7 +6,7 @@
 // bindings, without turning the parser into a full Dart evaluator.
 part of '../entity_source_parser.dart';
 
-/// Resolves supported const-backed render metadata within one source file.
+/// Resolves supported top-level and static const render metadata in one file.
 ///
 /// The resolver intentionally understands only the expression shapes the
 /// entities workflow can later round-trip safely.
@@ -277,12 +277,31 @@ class _ConstValueResolver {
         map[variable.name.lexeme] = initializer;
       }
     }
+    for (final declaration in unit.declarations.whereType<ClassDeclaration>()) {
+      for (final field
+          in declaration.body.members.whereType<FieldDeclaration>()) {
+        if (!field.isStatic || field.fields.keyword?.lexeme != 'const') {
+          continue;
+        }
+        for (final variable in field.fields.variables) {
+          final initializer = variable.initializer;
+          if (initializer != null) {
+            map['${declaration.namePart.typeName.lexeme}.${variable.name.lexeme}'] =
+                initializer;
+          }
+        }
+      }
+    }
     return map;
   }
 
   Expression _resolveExpression(Expression expression, Set<String> chain) {
-    if (expression is SimpleIdentifier) {
-      final name = expression.name;
+    final name = switch (expression) {
+      SimpleIdentifier() => expression.name,
+      PrefixedIdentifier() => expression.toSource(),
+      _ => null,
+    };
+    if (name != null) {
       if (chain.contains(name)) {
         return expression;
       }
@@ -462,6 +481,55 @@ class _ConstValueResolver {
     }
     return sourceByAnimKey.keys.first;
   }
+}
+
+/// Imported static definitions retain bindings to their actual source file.
+/// Only explicit relative imports inside the workspace are admitted; source
+/// expressions are never executed and unsupported shapes keep no preview.
+EntityReferenceVisual? _resolveImportedActorRenderVisual(
+  EditorWorkspace workspace,
+  CompilationUnit unit,
+  String sourcePath,
+  Expression expression,
+  Map<String, _ConstValueResolver?> cache,
+) {
+  if (expression is! PrefixedIdentifier) return null;
+  final className = expression.prefix.name;
+  if (!cache.containsKey(className)) {
+    cache[className] = null;
+    for (final directive in unit.directives.whereType<ImportDirective>()) {
+      final uri = directive.uri.stringValue;
+      if (uri == null ||
+          Uri.tryParse(uri)?.hasScheme != false ||
+          p.isAbsolute(uri)) {
+        continue;
+      }
+      final importedPath = p.normalize(p.join(p.dirname(sourcePath), uri));
+      String? content;
+      try {
+        content = _readOptionalSource(workspace, importedPath);
+      } on ArgumentError {
+        continue;
+      }
+      if (content == null) continue;
+      final imported = parseString(
+        content: content,
+        throwIfDiagnostics: false,
+      ).unit;
+      if (!imported.declarations.whereType<ClassDeclaration>().any(
+        (c) => c.namePart.typeName.lexeme == className,
+      )) {
+        continue;
+      }
+      cache[className] = _ConstValueResolver(
+        unit: imported,
+        sourcePath: importedPath,
+        sourceContent: content,
+      );
+      break;
+    }
+  }
+  return cache[className]?.resolveRenderVisualByName(expression.toSource());
 }
 
 class _RenderScaleConfig {

@@ -199,8 +199,16 @@ void main() {
           point: const Offset(450, 90),
           zoom: 1,
         )!;
-        expect(result.error, isNull);
-        expect(result.commit!.after.encounters.single.enemies.last.enemyId, id);
+        if (id.isArenaOnly) {
+          expect(result.error, isNotNull);
+          expect(result.commit, isNull);
+        } else {
+          expect(result.error, isNull);
+          expect(
+            result.commit!.after.encounters.single.enemies.last.enemyId,
+            id,
+          );
+        }
       }
       final full = chunk.copyWith(
         encounters: [

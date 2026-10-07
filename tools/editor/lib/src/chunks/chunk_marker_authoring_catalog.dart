@@ -46,7 +46,7 @@ final List<ChunkMarkerEnemyCatalogEntry> chunkMarkerEnemyCatalog =
       const catalog = EnemyCatalog();
       final entries = <ChunkMarkerEnemyCatalogEntry>[
         for (final enemyId in EnemyId.values)
-          if (enemyId != EnemyId.bringerOfDeath) _entryFor(catalog, enemyId),
+          if (!enemyId.isArenaOnly) _entryFor(catalog, enemyId),
       ];
       entries.sort((left, right) => left.markerId.compareTo(right.markerId));
       return entries;
@@ -106,5 +106,10 @@ String _enemyDisplayName(EnemyId enemyId) => switch (enemyId) {
   EnemyId.grojib => 'Grojib',
   EnemyId.hashash => 'Hashash',
   EnemyId.derf => 'Derf',
+  EnemyId.voidbornGoddess => 'Voidborn Goddess',
+  EnemyId.shoggoth => 'Shoggoth',
+  EnemyId.voidcaller => 'Voidcaller',
+  EnemyId.shoggothMinion => 'Shoggoth Minion',
+  EnemyId.voidTentacle => 'Void Tentacle',
   EnemyId.bringerOfDeath => 'Bringer of Death',
 };

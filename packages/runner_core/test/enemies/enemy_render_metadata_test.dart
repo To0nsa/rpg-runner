@@ -11,6 +11,11 @@ void main() {
       EnemyId.hashash: 1.5,
       EnemyId.derf: 1.5,
       EnemyId.bringerOfDeath: 1.5,
+      EnemyId.voidbornGoddess: 1.5,
+      EnemyId.shoggoth: 1.5,
+      EnemyId.voidcaller: 1.5,
+      EnemyId.shoggothMinion: 1.5,
+      EnemyId.voidTentacle: 1.5,
     };
     const catalog = EnemyCatalog();
 

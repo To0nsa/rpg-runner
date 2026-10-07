@@ -641,6 +641,16 @@ String _enemyName(EnemyId id) {
       return 'Hashash';
     case EnemyId.derf:
       return 'Derf';
+    case EnemyId.voidbornGoddess:
+      return 'Voidborn Goddess';
+    case EnemyId.shoggoth:
+      return 'Shoggoth';
+    case EnemyId.voidcaller:
+      return 'Voidcaller';
+    case EnemyId.shoggothMinion:
+      return 'Shoggoth Minion';
+    case EnemyId.voidTentacle:
+      return 'Void Tentacle';
     case EnemyId.bringerOfDeath:
       return 'Bringer of Death';
   }
@@ -648,6 +658,12 @@ String _enemyName(EnemyId id) {
 
 String _projectileName(ProjectileId id) {
   switch (id) {
+    case ProjectileId.goddessOrb:
+      return 'Voidborn Orb';
+    case ProjectileId.shoggothOrb:
+      return 'Shoggoth Orb';
+    case ProjectileId.voidClaw:
+      return 'Void Claw';
     case ProjectileId.unknown:
       return 'Unknown Projectile';
     case ProjectileId.poisonDart:

@@ -112,10 +112,22 @@ void main() {
     for (var tick = 3; tick < 72; tick++) {
       f.prepare(tick);
       expect(f.system.snapshot(f.world)!.playerHeld, isTrue);
+      expect(
+        f.world.actorMotionBounds.frozen[f.world.actorMotionBounds.indexOf(
+          f.boss!,
+        )],
+        isTrue,
+      );
     }
     f.prepare(72);
     expect(f.system.snapshot(f.world)!.phase, BossArenaPhase.combat);
     expect(f.world.invulnerability.has(f.boss!), isFalse);
+    expect(
+      f.world.actorMotionBounds.frozen[f.world.actorMotionBounds.indexOf(
+        f.boss!,
+      )],
+      isFalse,
+    );
     expect(
       f.world.actorMotionBounds.frozen[f.world.actorMotionBounds.indexOf(
         f.player,

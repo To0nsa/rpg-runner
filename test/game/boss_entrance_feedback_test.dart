@@ -1,3 +1,4 @@
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/feedback/boss_entrance_feedback.dart';
@@ -10,6 +11,7 @@ BossArenaSnapshot _arena({
   String id = 'any_boss',
   BossArenaPhase phase = BossArenaPhase.introduction,
 }) => BossArenaSnapshot(
+  enemyId: EnemyId.bringerOfDeath,
   id: id,
   phase: phase,
   minX: 24,
@@ -64,6 +66,7 @@ void main() {
   }
   test('feedback waits for boss creation and ends with the introduction', () {
     final pending = BossArenaSnapshot(
+      enemyId: EnemyId.bringerOfDeath,
       id: 'pending',
       phase: BossArenaPhase.introduction,
       minX: 0,

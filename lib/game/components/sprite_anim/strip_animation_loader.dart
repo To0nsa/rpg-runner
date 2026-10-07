@@ -12,6 +12,9 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/util/vec2.dart';
 
 import 'sprite_anim_set.dart';
+import 'composite_frame_sprite.dart';
+
+import 'package:runner_core/contracts/render_frame_part.dart';
 
 Future<SpriteAnimSet> loadStripAnimations(
   Images images, {
@@ -24,6 +27,7 @@ Future<SpriteAnimSet> loadStripAnimations(
   Map<AnimKey, int> gridColumnsByKey = const <AnimKey, int>{},
   Map<AnimKey, List<RenderFrameRect>> sourceFramesByKey = const {},
   Map<AnimKey, Vec2> anchorPointByKey = const {},
+  Map<AnimKey, List<List<RenderFramePart>>> compositeFramesByKey = const {},
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
@@ -95,7 +99,40 @@ Future<SpriteAnimSet> loadStripAnimations(
       'gridColumnsByKey[$key] must be > 0 when provided.',
     );
 
+    final compositeFrames = compositeFramesByKey[key];
+    if (compositeFrames != null && compositeFrames.length != frameCount) {
+      throw ArgumentError(
+        'Composite frame count for $key differs from metadata.',
+      );
+    }
     final sprites = List<Sprite>.generate(frameCount, (i) {
+      if (compositeFrames != null) {
+        for (final part in compositeFrames[i]) {
+          final rect = part.source;
+          if (rect.x < 0 ||
+              rect.y < 0 ||
+              rect.width <= 0 ||
+              rect.height <= 0 ||
+              rect.x + rect.width > img.width ||
+              rect.y + rect.height > img.height ||
+              !part.position.x.isFinite ||
+              !part.position.y.isFinite ||
+              !part.size.x.isFinite ||
+              !part.size.y.isFinite ||
+              part.size.x <= 0 ||
+              part.size.y <= 0 ||
+              !part.rotationRadians.isFinite) {
+            throw ArgumentError(
+              'Invalid composite frame $i for $key in $path.',
+            );
+          }
+        }
+        return CompositeFrameSprite(
+          img,
+          frameSize: frameSize,
+          parts: compositeFrames[i],
+        );
+      }
       if (explicitFrames != null) {
         final rect = explicitFrames[i];
         if (rect.width != frameWidth ||
@@ -166,6 +203,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     gridColumnsByKey: renderAnim.gridColumnsByKey,
     sourceFramesByKey: renderAnim.sourceFramesByKey,
     anchorPointByKey: renderAnim.anchorPointByKey,
+    compositeFramesByKey: renderAnim.compositeFramesByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,

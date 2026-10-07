@@ -17,7 +17,64 @@ import 'death_behavior.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'enemy_id.dart';
+import 'ancient_god_render_catalog.dart';
 import 'enemy_terrain_profile.dart';
+
+const ColliderAabbDef _voidbornGoddessCollider = ColliderAabbDef(
+  halfX: 13.5,
+  halfY: 40.5,
+  offsetY: 0,
+);
+final _voidbornGoddessTerrainProfile = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_voidbornGoddessCollider),
+  canJump: false,
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
+const ColliderAabbDef _shoggothCollider = ColliderAabbDef(
+  halfX: 24,
+  halfY: 39,
+  offsetY: 9,
+);
+final _shoggothTerrainProfile = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_shoggothCollider),
+  canJump: false,
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
+const ColliderAabbDef _voidcallerCollider = ColliderAabbDef(
+  halfX: 24,
+  halfY: 45,
+  offsetY: 0,
+);
+final _voidcallerTerrainProfile = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_voidcallerCollider),
+  canJump: false,
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
+const ColliderAabbDef _shoggothMinionCollider = ColliderAabbDef(
+  halfX: 10.5,
+  halfY: 13.5,
+  offsetY: 0,
+);
+final _shoggothMinionTerrainProfile = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_shoggothMinionCollider),
+  canJump: false,
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
+const ColliderAabbDef _voidTentacleCollider = ColliderAabbDef(
+  halfX: 15,
+  halfY: 36,
+  offsetY: 0,
+);
+final _voidTentacleTerrainProfile = createGroundedEnemyTerrainProfile(
+  capsule: WorldContactCapsuleDef.fromAabb(_voidTentacleCollider),
+  canJump: false,
+  maxWalkableSlopeDegrees: 45,
+  minimumSupportUpComponent: 724,
+);
 
 const ColliderAabbDef _unocoCollider = ColliderAabbDef(
   halfX: 8.125,
@@ -814,6 +871,176 @@ class EnemyCatalog {
           // Stun immunity prevents permanent light-hit interruption; damage remains normal.
           statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
         );
+      case EnemyId.voidbornGoddess:
+        return const EnemyArchetype(
+          body: BodyDef(
+            useGravity: true,
+            ignoreCeilings: true,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: _voidbornGoddessCollider,
+          // Finite encounter health; summons grant no kill points.
+          health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: AncientGodRenderCatalog.goddess,
+          renderScale: 1.5,
+          animProfile: AnimProfile(
+            supportsCast: true,
+            supportsRanged: true,
+            supportsWalk: true,
+            supportsSpawn: true,
+            supportsJumpFall: false,
+            minMoveSpeed: 1,
+            runSpeedThresholdX: 100,
+          ),
+          hitAnimSeconds: .3,
+          deathAnimSeconds: 1.4,
+          spawnAnimSeconds: 0.5,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'goddess.claw_combo',
+          primaryCastAbilityId: 'goddess.orb',
+          castTargetPolicy: AiCastAimPolicy.targetCenter,
+          meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
+          artFacingDir: Facing.left,
+          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+        );
+      case EnemyId.shoggoth:
+        return const EnemyArchetype(
+          body: BodyDef(
+            useGravity: true,
+            ignoreCeilings: true,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: _shoggothCollider,
+          // Finite encounter health; summons grant no kill points.
+          health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: AncientGodRenderCatalog.shoggoth,
+          renderScale: 1.5,
+          animProfile: AnimProfile(
+            supportsCast: true,
+            supportsRanged: true,
+            supportsWalk: true,
+            supportsSpawn: true,
+            supportsJumpFall: false,
+            minMoveSpeed: 1,
+            runSpeedThresholdX: 100,
+          ),
+          hitAnimSeconds: .3,
+          deathAnimSeconds: 0.8,
+          spawnAnimSeconds: 0.9,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'shoggoth.tentacle_sweep',
+          primaryCastAbilityId: 'shoggoth.orb',
+          castTargetPolicy: AiCastAimPolicy.targetCenter,
+          meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
+          artFacingDir: Facing.left,
+          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+        );
+      case EnemyId.voidcaller:
+        return const EnemyArchetype(
+          body: BodyDef(
+            useGravity: true,
+            ignoreCeilings: true,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: _voidcallerCollider,
+          // Finite encounter health; summons grant no kill points.
+          health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: AncientGodRenderCatalog.voidcaller,
+          renderScale: 1.5,
+          animProfile: AnimProfile(
+            supportsCast: true,
+            supportsRanged: true,
+            supportsWalk: true,
+            supportsSpawn: true,
+            supportsJumpFall: false,
+            minMoveSpeed: 1,
+            runSpeedThresholdX: 100,
+          ),
+          hitAnimSeconds: .3,
+          deathAnimSeconds: 0.9,
+          spawnAnimSeconds: 1.7,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: null,
+          primaryCastAbilityId: 'voidcaller.vertical_beam',
+          castTargetPolicy: AiCastAimPolicy.targetCenter,
+          meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
+          artFacingDir: Facing.left,
+          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+        );
+      case EnemyId.shoggothMinion:
+        return const EnemyArchetype(
+          body: BodyDef(
+            useGravity: true,
+            ignoreCeilings: true,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: _shoggothMinionCollider,
+          // Finite encounter health; summons grant no kill points.
+          health: HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: AncientGodRenderCatalog.minion,
+          renderScale: 1.5,
+          animProfile: AnimProfile(
+            supportsCast: true,
+            supportsRanged: true,
+            supportsWalk: true,
+            supportsSpawn: true,
+            supportsJumpFall: false,
+            minMoveSpeed: 1,
+            runSpeedThresholdX: 100,
+          ),
+          hitAnimSeconds: .3,
+          deathAnimSeconds: 0.5,
+          spawnAnimSeconds: 0.4,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'shoggoth_minion.bite',
+          primaryCastAbilityId: null,
+          castTargetPolicy: AiCastAimPolicy.targetCenter,
+          meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
+          artFacingDir: Facing.left,
+          statusImmunity: StatusImmunityDef(mask: 0),
+        );
+      case EnemyId.voidTentacle:
+        return const EnemyArchetype(
+          body: BodyDef(
+            useGravity: true,
+            ignoreCeilings: true,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: _voidTentacleCollider,
+          // Finite encounter health; summons grant no kill points.
+          health: HealthDef(hp: 1600, hpMax: 1600, regenPerSecond100: 0),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: AncientGodRenderCatalog.tentacle,
+          renderScale: 1.5,
+          animProfile: AnimProfile(
+            supportsCast: true,
+            supportsRanged: true,
+            supportsWalk: true,
+            supportsSpawn: true,
+            supportsJumpFall: false,
+            minMoveSpeed: 1,
+            runSpeedThresholdX: 100,
+          ),
+          hitAnimSeconds: .3,
+          deathAnimSeconds: 0.6,
+          spawnAnimSeconds: 0.5,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'void_tentacle.lash',
+          primaryCastAbilityId: null,
+          castTargetPolicy: AiCastAimPolicy.targetCenter,
+          meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
+          artFacingDir: Facing.left,
+          statusImmunity: StatusImmunityDef(mask: 0),
+        );
       case EnemyId.derf:
         return const EnemyArchetype(
           body: BodyDef(
@@ -857,6 +1084,11 @@ class EnemyCatalog {
       EnemyId.hashash => _hashashTerrainProfile,
       EnemyId.derf => _derfTerrainProfile,
       EnemyId.bringerOfDeath => _bringerTerrainProfile,
+      EnemyId.voidbornGoddess => _voidbornGoddessTerrainProfile,
+      EnemyId.shoggoth => _shoggothTerrainProfile,
+      EnemyId.voidcaller => _voidcallerTerrainProfile,
+      EnemyId.shoggothMinion => _shoggothMinionTerrainProfile,
+      EnemyId.voidTentacle => _voidTentacleTerrainProfile,
     };
   }
 }

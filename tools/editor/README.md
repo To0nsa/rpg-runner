@@ -30,6 +30,13 @@ flutter run -d windows
 
 ## Current Capabilities
 
+Chunk Creator's owner metadata includes **Mandatory boss arena** and a **Boss**
+selector for Bringer of Death, Voidborn Goddess, Shoggoth and Voidcaller. Set its
+encounter ID, spawn X and combat boundaries, then use the existing Apply/Save,
+Build and Play workflow. Bosses and their owned summons are excluded from ambient
+markers and rescue groups. Stats and abilities remain Core catalog definitions;
+see [Ancient God gameplay](../../docs/gdd/ancient_god_bosses.md).
+
 Chunk Creator's **Encounters** tab authors rescue groups in the current chunk.
 Create a named group, position its activation rectangle, then place Warrior,
 Huntress or Huntress II allies and required enemies from the catalog cards.

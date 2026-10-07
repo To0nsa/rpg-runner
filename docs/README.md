@@ -32,6 +32,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   deterministic full-screen entrance, confined combat, editor authoring and replay
   scoring deployed in `2026.10.8` / `score-v4`; see
   [production and local verification](verification/forest_boss_arena.md).
+- [Ancient God gameplay](gdd/ancient_god_bosses.md) and [implementation](tdd/ancient_god_bosses.md):
+  three additional selectable arena bosses, owned summons and composed spell art
+  at Bringer's 1.5x scale; implemented in source, with production placement unchanged.
 - [Derf transformation](tdd/derf_transformation.md) and [Derf gameplay](gdd/derf.md): normal-form explosions, first-visibility transformation, then ground pursuit and tentacle melee; deployed in `2026.10.7`.
 - [Technical design documents](tdd/): implemented architecture and contracts.
 - [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed. Survivor section

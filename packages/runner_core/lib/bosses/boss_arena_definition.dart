@@ -12,7 +12,7 @@ final class BossArenaDefinition {
     required this.maxX,
   }) {
     if (!RegExp(r'^[a-z][a-z0-9_]{0,63}$').hasMatch(id) ||
-        enemyId != EnemyId.bringerOfDeath ||
+        !enemyId.isBoss ||
         ![spawnX, minX, maxX].every((v) => v.isFinite) ||
         ![spawnX, minX, maxX].every((v) => v == v.roundToDouble()) ||
         minX < 0 ||

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/snapshots/boss_victory_blessing_snapshot.dart';
 
 import '../../../game/game_controller.dart';
@@ -24,10 +25,11 @@ class BossArenaHud extends StatelessWidget {
                 'Bénédiction des Dames de la forêt',
             }
           : switch (arena!.phase) {
-              BossArenaPhase.introduction => 'Bringer of Death awakens',
+              BossArenaPhase.introduction =>
+                '${arena.enemyId.displayName} awakens',
               BossArenaPhase.defeated => 'Boss defeated · exit opening',
               BossArenaPhase.failed => 'Encounter ended',
-              _ => 'Bringer of Death',
+              _ => arena.enemyId.displayName,
             };
       return IgnorePointer(
         child: Align(

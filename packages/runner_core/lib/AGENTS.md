@@ -49,7 +49,10 @@ confinement, retention and release. Reuse terrain motion and committed-action
 executors. Arena protection and suspension must be lifecycle-registered stores
 so recycled entity IDs cannot inherit encounter ownership. See
 [boss arena contracts](../../../docs/tdd/boss_arenas.md); renderer timers never
-advance these phases. Bringer is excluded from ambient and rescue rosters.
+advance these phases. All `EnemyId.isArenaOnly` actors (required bosses and
+their summons) are excluded from ambient and rescue rosters. Summon ownership
+must cascade cleanup before owner IDs are recycled; see
+[Ancient God contracts](../../../docs/tdd/ancient_god_bosses.md).
 
 Attack knockback is authored through ability payloads and accepted by damage,
 with lifecycle state in `KnockbackStore` and horizontal motion composed by

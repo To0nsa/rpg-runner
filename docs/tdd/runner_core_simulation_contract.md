@@ -55,7 +55,10 @@ precedes the entrance hold, and the terrain controller enforces both confinement
 and temporary motion freeze. Required boss spawning and placement happen before
 motion preparation; outside actor isolation happens before AI/actions. Defeat
 resolves after damage/fatal culls and before death cleanup, with player loss taking
-precedence. See [boss arena contracts](boss_arenas.md).
+precedence. Ancient God summons are admitted/expired before motion preparation;
+their teleports execute before water/navigation refresh, and committed spinning
+motion is composed before the single terrain integration. See
+[boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
 
 ## Tick ordering
 

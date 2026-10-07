@@ -47,6 +47,13 @@ void main() {
       final valid = compile(source());
       expect(valid.issues, isEmpty);
       expect(bossArenaToJson(valid.chunk!.pattern.bossArena!), _source());
+      for (final id in bossEnemyIds) {
+        final newBoss = source()
+          ..['bossArena'] = {..._source(), 'enemyId': id.name};
+        final result = compile(newBoss);
+        expect(result.issues, isEmpty, reason: id.name);
+        expect(result.chunk!.pattern.bossArena!.enemyId, id);
+      }
       final nearWall = source()..['bossArena'] = {..._source(), 'spawnX': 25};
       final unsupported = source()..['collisionShapes'] = [];
       for (final result in [
@@ -78,6 +85,19 @@ void main() {
     expect(arena.enemyId, EnemyId.bringerOfDeath);
     expect(bossArenaToJson(arena), _source());
   });
+  for (final id in EnemyId.values.where((id) => id.isBossSummon)) {
+    test('reject summoned ${id.name} as the required boss', () {
+      expect(
+        () => decodeBossArena(
+          {..._source(), 'enemyId': id.name},
+          sourcePath: 'chunk.bossArena',
+          chunkWidth: 600,
+          chunkHeight: 270,
+        ),
+        throwsFormatException,
+      );
+    });
+  }
   for (final value in [
     null,
     {},
