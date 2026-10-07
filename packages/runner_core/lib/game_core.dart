@@ -991,6 +991,7 @@ class GameCore {
   late final _bringerCombat = BringerCombatSystem(
     tickHz: tickHz,
     castCommitter: _enemyCastSystem.committer,
+    groundEnemyTuning: _groundEnemyTuning,
   );
   List<ActiveTrackChunkSnapshot>? _registeredEncounterChunks;
   late final _encounterSpawnAdapter = EncounterSpawnAdapter(

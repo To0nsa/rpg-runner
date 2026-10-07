@@ -38,10 +38,11 @@ const ColliderAabbDef _hashashCollider = ColliderAabbDef(
   offsetY: 7.0,
 );
 const ColliderAabbDef _bringerCollider = ColliderAabbDef(
-  halfX: 12,
-  halfY: 27,
+  // World units at 1.5x source size, matching the enlarged boss presentation.
+  halfX: 18,
+  halfY: 40.5,
   offsetX: 0,
-  offsetY: -3,
+  offsetY: -4.5,
 );
 final EnemyTerrainContactProfile _bringerTerrainProfile =
     createGroundedEnemyTerrainProfile(
@@ -108,10 +109,10 @@ const RenderAnimSetDefinition _bringerRenderAnim = RenderAnimSetDefinition(
   },
   stepTimeSecondsByKey: {
     AnimKey.idle: .12,
-    AnimKey.walk: .10,
-    AnimKey.run: .10,
-    AnimKey.strike: .10,
-    AnimKey.cast: .10,
+    AnimKey.walk: .10 / 1.2,
+    AnimKey.run: .10 / 1.2,
+    AnimKey.strike: .10 / 1.5,
+    AnimKey.cast: .10 / 1.5,
     AnimKey.hit: .10,
     AnimKey.death: .12,
     AnimKey.spawn: .12,
@@ -791,7 +792,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _bringerRenderAnim,
-          renderScale: 1,
+          renderScale: 1.5,
           animProfile: AnimProfile(
             supportsCast: true,
             supportsWalk: true,

@@ -61,7 +61,7 @@ class SpellImpactRenderCatalog {
           rowByKey: {AnimKey.hit: 6},
           gridColumnsByKey: {AnimKey.hit: 8},
           frameCountsByKey: {AnimKey.hit: 16},
-          stepTimeSecondsByKey: {AnimKey.hit: .08},
+          stepTimeSecondsByKey: {AnimKey.hit: .04},
         );
       case SpellImpactId.fireExplosion:
         return _fireExplosionRenderAnim;

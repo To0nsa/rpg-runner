@@ -57,10 +57,10 @@ void main() {
             offsetY: 7.0,
           ),
           EnemyId.bringerOfDeath: (
-            radius: 12.0,
-            spine: 15.0,
+            radius: 18.0,
+            spine: 22.5,
             offsetX: 0.0,
-            offsetY: -3.0,
+            offsetY: -4.5,
           ),
         };
     final bodyCenter = TerrainPoint.fromWorld(100, 200);

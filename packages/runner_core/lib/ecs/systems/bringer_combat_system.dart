@@ -3,6 +3,7 @@ import '../../combat/ai_cast_aim_policy.dart';
 import '../../combat/combat_pose_catalog.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_id.dart';
+import '../../tuning/ground_enemy_tuning.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
 import '../world.dart';
@@ -12,9 +13,14 @@ import 'enemy_melee_system.dart';
 /// Boss attack selection reuses the ordinary committed-action executors.
 /// A shared cooldown creates recovery space; neither attack tracks after commit.
 final class BringerCombatSystem {
-  BringerCombatSystem({required this.tickHz, required this.castCommitter});
+  BringerCombatSystem({
+    required this.tickHz,
+    required this.castCommitter,
+    required this.groundEnemyTuning,
+  });
   final int tickHz;
   final AiCastCommitter castCommitter;
+  final GroundEnemyTuningDerived groundEnemyTuning;
   late final _melee = AiMeleeCommitter(tickHz: tickHz);
 
   void step(
@@ -45,10 +51,23 @@ final class BringerCombatSystem {
       final engagement = world.engagementIntent.indexOf(boss);
       final nav = world.navIntent.indexOf(boss);
       final reach = CombatPoseCatalog.bringerScythe.reach;
-      world.engagementIntent.desiredTargetX[engagement] =
-          world.navIntent.navTargetX[nav];
+      final targetAtMeleeHeight =
+          (targetY - world.transform.posY[ti]).abs() <= 42;
+      final directApproach =
+          world.navIntent.canWalkDirectlyToTarget[nav] && targetAtMeleeHeight;
+      final directPlan = directApproach && world.navIntent.hasPlan[nav];
+      // A direct walk needs engagement arrival steering, not traversal cruise.
+      // Retain its graph-proven safe surface; only transfer speed/spacing control.
+      if (directApproach) world.navIntent.hasPlan[nav] = false;
+      // Keep the enlarged blade over its target instead of running underneath it.
+      final standOff = reach * groundEnemyTuning.engagement.meleeStandOffRatio;
+      world.engagementIntent.desiredTargetX[engagement] = directApproach
+          ? targetX + (ex >= targetX ? standOff : -standOff)
+          : world.navIntent.navTargetX[nav];
       world.engagementIntent.meleeRangeX[engagement] = reach;
-      world.engagementIntent.speedScale[engagement] = .6;
+      // Direct plans previously used full speed; fallback steering used 0.6.
+      // Both actual ground-speed paths increase by 20%.
+      world.engagementIntent.speedScale[engagement] = directPlan ? 1.2 : .72;
       world.engagementIntent.arrivalSlowRadiusX[engagement] = 30;
       if (world.activeAbility.hasActiveAbility(boss)) {
         world.controlLock.addLock(
@@ -60,8 +79,7 @@ final class BringerCombatSystem {
         continue;
       }
       if (world.cooldown.isOnCooldown(boss, 0)) continue;
-      if ((targetX - ex).abs() <= reach &&
-          (targetY - world.transform.posY[ti]).abs() <= 42) {
+      if ((targetX - ex).abs() <= reach && targetAtMeleeHeight) {
         _melee.commit(
           world,
           actor: boss,

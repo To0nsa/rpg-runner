@@ -72,7 +72,7 @@ void main() {
             actual.bossVictoryBlessing!.durationTicks,
             blessing.durationTicks,
           );
-          expect(actual.bossVictoryBlessing!.restorationBp, 6000);
+          expect(actual.bossVictoryBlessing!.restorationBp, 2000);
           expect(actual.hud.hp, expected.hud.hp);
           expect(actual.hud.mana, expected.hud.mana);
           expect(actual.hud.stamina, expected.hud.stamina);

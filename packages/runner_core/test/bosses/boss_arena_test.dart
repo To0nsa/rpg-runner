@@ -626,7 +626,7 @@ class _Fixture {
       world,
       player: player,
       tick: tick,
-      onVictoryReady: completed.add,
+      onVictoryReady: (occurrence, tier) => completed.add(occurrence),
       spawn: (chunk, tick) {
         spawns++;
         final a = const EnemyCatalog().get(EnemyId.bringerOfDeath);

@@ -352,9 +352,11 @@ death/despawn cleanup, before those world interactions and passive regeneration.
 Only a verified completed boss death strip requests a grant. The living-player
 check precedes the shared percentage restore, so it cannot reverse fatal damage.
 One streamed arena occurrence grants once; its Core-timed notice survives arena
-release and pauses with the simulation. The default restores 60% of current
-maximum health, mana and stamina, capped at those maxima, without changing
-regeneration state. This ships with the `2026.10.8` boss feature.
+release and pauses with the simulation. The defeated chunk's captured resolved
+tier selects 20% restoration in easy chunks and 60% otherwise. Current maximum
+health, mana and stamina are restored and capped without changing regeneration
+state. The original boss feature shipped in `2026.10.8`; tier-dependent reward
+tuning is implemented in source for `2026.10.9`.
 See [boss arena contracts](boss_arenas.md).
 
 ## Outputs and consumers
@@ -497,6 +499,15 @@ regenerated from the same saved sources before client and worker preparation.
 This authored revision and the Derf changes shipped in `2026.10.7`.
 `2026.10.8` preserves that authoring, activates the mandatory boss metadata and
 dedicated arena section, and regenerates the matching 80-chunk catalog.
+The source revision `2026.10.9` keeps that authored catalog and enlarges Bringer,
+its body and both attack shapes by 1.5x; it increases pursuit speed by 20% and
+accelerates both attack cycles by 1.5x, with 2x faster pillar effect frames.
+The boss keeps shared melee spacing for the enlarged blade, and easy-chunk
+victory blessings restore 20% of maxima while other tiers retain 60%.
+These changes alter deterministic combat outcomes and terrain graph signatures.
+Client, Functions and worker defaults move together; the new worker rejects
+previous gameplay tickets. Tick ordering, command encoding and `score-v4`
+remain unchanged. Deployment requires the coordinated release workflow.
 
 Core owns occurrence activation, target selection, participant damage credit,
 active chunk containment, survivor section bounds, terminal priority and checked

@@ -14,11 +14,11 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
       profile: CombatPoseCatalog.bringerScythe,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    // 60 Hz ticks: readable 400 ms windup, three blade frames, long recovery.
-    windupTicks: 24,
-    activeTicks: 18,
-    recoveryTicks: 24,
-    cooldownTicks: 108,
+    // 60 Hz ticks: 267 ms windup; the complete sweep cycle is 1.5x faster.
+    windupTicks: 16,
+    activeTicks: 12,
+    recoveryTicks: 16,
+    cooldownTicks: 72,
     cooldownGroupId: 0,
     animKey: AnimKey.strike,
     baseDamage: 800,
@@ -31,15 +31,16 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     targetingModel: TargetingModel.aimed,
     hitDelivery: TargetPointHitDelivery(
       profile: CombatPoseCatalog.bringerPillar,
-      stepTimeSeconds: .08,
+      // 40 ms frames keep commit-to-damage at least 1.5x faster at 30/60/90 Hz.
+      stepTimeSeconds: .04,
       hitPolicy: HitPolicy.oncePerTarget,
       impactEffectId: SpellImpactId.deathPillar,
     ),
-    // The target is captured on commit. Six harmless ring frames precede damage.
-    windupTicks: 36,
-    activeTicks: 6,
-    recoveryTicks: 18,
-    cooldownTicks: 150,
+    // 60 Hz ticks: 400 ms cast windup, then six harmless warning frames.
+    windupTicks: 24,
+    activeTicks: 4,
+    recoveryTicks: 12,
+    cooldownTicks: 100,
     cooldownGroupId: 0,
     animKey: AnimKey.cast,
     baseDamage: 700,

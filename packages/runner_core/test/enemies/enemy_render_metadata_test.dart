@@ -10,7 +10,7 @@ void main() {
       EnemyId.grojib: 1.5,
       EnemyId.hashash: 1.5,
       EnemyId.derf: 1.5,
-      EnemyId.bringerOfDeath: 1.0,
+      EnemyId.bringerOfDeath: 1.5,
     };
     const catalog = EnemyCatalog();
 

@@ -84,7 +84,7 @@ offset = collider.offset
 | Hashash | grounded dynamic | `(14, 7.5, -1/7)` | `60°`, 4 px step/snap, solid + one-way, ceiling ignore |
 | Unoco Demon | flying dynamic | `(8.125, 0.5, 0/2)` | solids on every side, no gravity/support/helpers, ignores one-way |
 | Derf | grounded dynamic | `(11.5, 12.75, 0/7)` | support up to `45°`; stationary caster, then twisted pursuit |
-| Bringer of Death | grounded dynamic | `(12, 15, 0/-3)` | `45°`, 4 px step/snap, solid + one-way, ceiling ignore; no intentional jump |
+| Bringer of Death | grounded dynamic | `(18, 22.5, 0/-4.5)` | `45°`, 4 px step/snap, solid + one-way, ceiling ignore; no intentional jump |
 
 Grounded enemy authored speed means constant distance along a support. The
 profile records that semantic explicitly. A later intent producer converts

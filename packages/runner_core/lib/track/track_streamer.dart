@@ -79,6 +79,7 @@ class ActiveTrackChunkSnapshot {
     required this.endX,
     required this.patternName,
     required this.chunkKey,
+    this.tier = ChunkPatternTier.normal,
     this.traps = const [],
     this.encounters = const [],
     this.bossArena,
@@ -99,6 +100,9 @@ class ActiveTrackChunkSnapshot {
 
   /// Stable authored chunk key, or null in scheduler-only fixtures.
   final String? chunkKey;
+
+  /// Resolved authored difficulty, captured with this exact streamed selection.
+  final ChunkPatternTier tier;
 
   /// Immutable canonical placements from this exact selected pattern.
   final List<TrapPlacement> traps;
@@ -241,6 +245,7 @@ class TrackStreamer {
             endX: nextStart + tuning.chunkWidth,
             patternName: pattern.name,
             chunkKey: pattern.chunkKey,
+            tier: selection.tier,
             assembly: selection.assembly,
             traps: List<TrapPlacement>.unmodifiable(pattern.traps),
             bossArena: pattern.bossArena,
@@ -381,6 +386,7 @@ class TrackStreamer {
             endX: c.endX,
             patternName: c.patternName,
             chunkKey: c.chunkKey,
+            tier: c.tier,
             assembly: c.assembly,
             traps: c.traps,
             encounters: c.encounters,

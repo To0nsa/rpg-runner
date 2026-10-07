@@ -42,12 +42,13 @@ void main() {
             );
             expect(after.bossArena, isNull);
             expect(after.bossVictoryBlessing!.startTick, core.tick);
+            expect(after.bossVictoryBlessing!.restorationBp, 2000);
             expect(events, hasLength(1));
             expect(events.single.followEntityId, after.playerEntity!.id);
             expect(
               after.hud.hp,
               greaterThanOrEqualTo(
-                min(before.hud.hpMax, before.hud.hp + before.hud.hpMax * .6) -
+                min(before.hud.hpMax, before.hud.hp + before.hud.hpMax * .2) -
                     .001,
               ),
             );
@@ -56,7 +57,7 @@ void main() {
               greaterThanOrEqualTo(
                 min(
                       before.hud.manaMax,
-                      before.hud.mana + before.hud.manaMax * .6,
+                      before.hud.mana + before.hud.manaMax * .2,
                     ) -
                     .001,
               ),
@@ -66,7 +67,7 @@ void main() {
               greaterThanOrEqualTo(
                 min(
                       before.hud.staminaMax,
-                      before.hud.stamina + before.hud.staminaMax * .6,
+                      before.hud.stamina + before.hud.staminaMax * .2,
                     ) -
                     .001,
               ),

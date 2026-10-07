@@ -1,6 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
-export const currentGameCompatVersion = "2026.10.8";
+export const currentGameCompatVersion = "2026.10.9";
 
 
 const defaultSupportedGameCompatVersions = Object.freeze([

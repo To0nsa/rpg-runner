@@ -9,6 +9,7 @@ import '../snapshots/enums.dart';
 import '../spell_impacts/spell_impact_id.dart';
 import '../spell_impacts/spell_impact_render_catalog.dart';
 import '../tuning/utils/anim_tuning.dart';
+import '../track/chunk_pattern_tier.dart';
 import '../util/vec2.dart';
 
 /// Reusable victory reward configuration, independent of enemy identity.
@@ -16,12 +17,17 @@ final class BossVictoryBlessingDefinition {
   const BossVictoryBlessingDefinition({
     this.id = BossVictoryBlessingId.forestLadies,
     this.restorationBp = 6000,
+    this.easyRestorationBp = 2000,
     this.effectId = SpellImpactId.holyBlessing,
-  }) : assert(restorationBp >= 0 && restorationBp <= 10000);
+  }) : assert(restorationBp >= 0 && restorationBp <= 10000),
+       assert(easyRestorationBp >= 0 && easyRestorationBp <= 10000);
   final BossVictoryBlessingId id;
 
-  /// Basis points of each current maximum, before clamping at that maximum.
+  /// Basis points of each current maximum in non-easy tiers, capped at the maximum.
   final int restorationBp;
+
+  /// Basis points of each maximum in easy chunks: 20% leaves post-boss attrition.
+  final int easyRestorationBp;
   final SpellImpactId effectId;
 }
 
@@ -43,14 +49,20 @@ final class BossVictoryBlessingSystem {
   final BossVictoryBlessingDefinition definition;
   late final int _durationTicks;
   final Set<int> _processed = {};
-  int? _pendingOccurrence;
+  ({int occurrence, int restorationBp})? _pendingReward;
   BossVictoryBlessingSnapshot? _presentation;
 
-  /// Queues one streamed chunk occurrence for this tick's post-death checks.
-  void request(int occurrence) {
+  /// Queues the reward for the defeated occurrence's resolved authored tier.
+  /// Difficulty belongs to that chunk, regardless of the player's later position.
+  void request(int occurrence, ChunkPatternTier tier) {
     if (_processed.contains(occurrence)) return;
-    assert(_pendingOccurrence == null || _pendingOccurrence == occurrence);
-    _pendingOccurrence = occurrence;
+    assert(_pendingReward == null || _pendingReward!.occurrence == occurrence);
+    _pendingReward = (
+      occurrence: occurrence,
+      restorationBp: tier == ChunkPatternTier.easy
+          ? definition.easyRestorationBp
+          : definition.restorationBp,
+    );
   }
 
   void step(
@@ -59,10 +71,10 @@ final class BossVictoryBlessingSystem {
     required int tick,
     required void Function(GameEvent) emit,
   }) {
-    final occurrence = _pendingOccurrence;
-    if (occurrence == null) return;
-    _pendingOccurrence = null;
-    if (!_processed.add(occurrence)) return;
+    final reward = _pendingReward;
+    if (reward == null) return;
+    _pendingReward = null;
+    if (!_processed.add(reward.occurrence)) return;
     final hi = world.health.tryIndexOf(player);
     final ti = world.transform.tryIndexOf(player);
     if (hi == null ||
@@ -76,7 +88,7 @@ final class BossVictoryBlessingSystem {
         world,
         entity: player,
         stat: stat,
-        percentBp: definition.restorationBp,
+        percentBp: reward.restorationBp,
       );
     }
     final ci = world.colliderAabb.tryIndexOf(player);
@@ -88,7 +100,7 @@ final class BossVictoryBlessingSystem {
           );
     _presentation = BossVictoryBlessingSnapshot(
       id: definition.id,
-      restorationBp: definition.restorationBp,
+      restorationBp: reward.restorationBp,
       startTick: tick,
       durationTicks: _durationTicks,
     );
@@ -117,7 +129,7 @@ final class BossVictoryBlessingSystem {
 
   /// Drops feedback and pending grants without making an occurrence eligible again.
   void endRun() {
-    _pendingOccurrence = null;
+    _pendingReward = null;
     _presentation = null;
   }
 }

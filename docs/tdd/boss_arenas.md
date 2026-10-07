@@ -1,9 +1,10 @@
 # Boss arenas
 
 Forest's `forest_boss_easy_001` contains the first mandatory boss encounter,
-Bringer of Death. This implementation is deployed with gameplay compatibility
-`2026.10.8` and score partition `score-v4`; see the
+Bringer of Death. The original implementation is deployed with gameplay
+compatibility `2026.10.8` and score partition `score-v4`; see the
 [production evidence](../verification/forest_boss_arena.md#production-release-2026108).
+Source tuning now targets `2026.10.9`; the coordinated release remains pending.
 
 ## Ownership and authored contract
 
@@ -83,14 +84,19 @@ cues and the boss HUD are presentation only.
 
 When the required boss is positively defeated, the arena records the normal
 death state's despawn deadline. Once the actor is gone and that deadline has
-passed, it requests a reward keyed by the streamed chunk occurrence. Early or
-unverified cleanup cannot grant the reward. Arena release keeps its existing
+passed, it requests a reward keyed by the streamed chunk occurrence and its
+captured resolved authored difficulty. Early or unverified cleanup cannot grant
+the reward. Arena release keeps its existing
 timing; it does not wait for the blessing effect.
 
 `BossVictoryBlessingSystem` owns reward eligibility and deduplication,
 independently of enemy identity. Its default definition names the Dames de la
-forêt and restores 6,000 basis points (60%) of each current maximum: health,
-mana and stamina. The shared `ResourceRestoration.restorePercent` helper also
+forêt and restores 2,000 basis points (20%) of each current maximum in easy
+chunks: health, mana and stamina. Other tiers retain 6,000 basis points (60%).
+`ActiveTrackChunkSnapshot.tier` preserves the selected tier after pool fallback;
+the arena passes it to the reward system rather than resampling player/camera
+position after release. The snapshot reports the actual applied percentage.
+The shared `ResourceRestoration.restorePercent` helper also
 serves restoration pickups. It rounds down in the pool's integer units and caps
 at the current maximum, preserving equipment, regeneration rates and fractional
 regeneration accumulators. This instant restore is separate from the persistent
@@ -147,6 +153,18 @@ metadata handles wrapped Attack, Hurt, Death and Cast sequences and explicit
 reverse-order spawn rectangles. The body anchor is `(104, 68)`; the immutable
 terrain capsule and vulnerable body remain separate from the scythe's attack
 capsules. Committed attack art cannot be replaced by ordinary hit reactions.
+The boss render scale is 1.5. Its AABB half-extents `(18, 40.5)` and offset
+`(0, -4.5)` scale the original body by the same factor; the derived terrain
+capsule is `(radius=18, halfSpine=22.5)`. Blade endpoints/radii and pillar
+endpoints/radius are authored at 1.5x original size. The spell-impact registry
+uses the matching 1.5 render scale. Source rectangles and pivots stay in source
+pixels. Direct ground approach uses a 1.2 speed multiplier, 20% above the full
+speed previously applied by direct navigation plans. Fallback steering uses 0.72,
+20% above its original 0.6 multiplier.
+For reachable ground targets, it uses the existing ground-enemy stand-off ratio
+against the scaled blade reach, avoiding pursuit underneath the larger blade.
+Direct walk plans transfer arrival steering to engagement intent while retaining
+their graph-proven safe surface range, so spacing and speed apply in locomotion.
 
 Scythe Sweep commits facing and uses reviewed blade capsules. Both attacks
 use the same attack executors as ordinary enemies. The catalog terrain profile's
@@ -160,6 +178,13 @@ movement. Its first six effect frames are harmless telegraph; later pillar frame
 use a world-anchored capsule and one hit per target. Both actions share cooldown
 group zero. Stun immunity prevents indefinite interruption; other damage and
 status rules remain ordinary Core behavior.
+Scythe authoring ticks are `16/12/16` (windup/active/recovery), with a 72-tick
+cooldown. Pillar uses `24/4/12`, with a 100-tick cooldown. Both cast cycles are
+1.5x faster at the 60 Hz authoring rate. Pillar delivery and impact render
+metadata both use 0.04-second frames, keeping damage and visual warning aligned.
+Its first damaging pose begins six quantized frame steps after delivery:
+18/36/60 ticks after commit at 30/60/90 Hz, respectively. This preserves at least
+1.5x faster commit-to-damage even at the lowest supported rate.
 
 Both attacks configure the shared [post-damage knockback](combat_knockback.md).
 Damage acceptance owns the effect; neither the boss AI nor arena lifecycle pushes
@@ -181,9 +206,11 @@ excluded tick count to `buildRunScoreBreakdown`. Validated-run generic stats
 include `excludedScoreTicks` and the extended ordinal-preserving kill array.
 Replay command encoding remains v1; no client-provided boss result is trusted.
 Functions, client and worker compatibility defaults move together to
-`2026.10.8`; board/worker score defaults use `score-v4` so earlier scores retain
-their existing partitions. The coordinated release verified matching artifacts
-and drained validation/settlement before restoring issuance.
+`2026.10.9` for this replay-sensitive tuning; previous gameplay tickets are
+rejected by the new worker. Board/worker score defaults remain `score-v4`.
+The earlier `2026.10.8` coordinated release verified matching artifacts and
+drained validation/settlement before restoring issuance. The new tuning requires
+the same coordinated release policy before production issuance.
 
 ## Editor and verification
 

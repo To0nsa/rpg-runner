@@ -82,7 +82,7 @@ class SpellImpactRenderRegistry {
         ),
         SpellImpactId.deathPillar: SpellImpactRenderEntry(
           id: SpellImpactId.deathPillar,
-          renderScale: Vector2.all(1),
+          renderScale: Vector2.all(1.5),
         ),
         SpellImpactId.fireExplosion: SpellImpactRenderEntry(
           id: SpellImpactId.fireExplosion,

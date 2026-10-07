@@ -86,8 +86,9 @@ persistent indicator use simulation time, so pause and remount do not create
 timers or duplicate gameplay effects.
 
 The [boss victory blessing](boss_arenas.md#victory-blessing) shares the Dames de
-la forêt attribution but has separate state: it restores 60% of current resource
-maxima once after a completed boss death strip and plays Holy VFX 02.
+la forêt attribution but has separate state: it restores 20% of current resource
+maxima in easy chunks and 60% in other tiers once after a completed boss death
+strip, then plays Holy VFX 02.
 It neither grants nor replaces this shrine's persistent regeneration modifier.
 
 ## Compatibility and checks

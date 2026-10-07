@@ -172,6 +172,7 @@ abstract final class CombatPoseCatalog {
     ],
   );
   static const bringerScythe = CombatStrikeProfile(
+    // World-unit blade poses at 1.5x source scale, matching the boss sprite.
     artFacing: Facing.left,
     timing: ActionFramePolicy(frameCount: 10, activeStart: 4, activeEnd: 7),
     frames: [
@@ -180,20 +181,21 @@ abstract final class CombatPoseCatalog {
       [],
       [],
       [
-        CombatCapsule(-12, -20, -65, -27, 6),
-        CombatCapsule(-65, -27, -86, -7, 7),
+        CombatCapsule(-18, -30, -97.5, -40.5, 9),
+        CombatCapsule(-97.5, -40.5, -129, -10.5, 10.5),
       ],
       [
-        CombatCapsule(-18, -24, -76, -17, 7),
-        CombatCapsule(-76, -17, -80, 8, 7),
+        CombatCapsule(-27, -36, -114, -25.5, 10.5),
+        CombatCapsule(-114, -25.5, -120, 12, 10.5),
       ],
-      [CombatCapsule(-24, -18, -69, 6, 6)],
+      [CombatCapsule(-36, -27, -103.5, 9, 9)],
       [],
       [],
       [],
     ],
   );
   static const bringerPillar = CombatStrikeProfile(
+    // World-unit column at 1.5x source scale, matching its impact sprite.
     timing: ActionFramePolicy(frameCount: 16, activeStart: 6, activeEnd: 12),
     frames: [
       [],
@@ -202,12 +204,12 @@ abstract final class CombatPoseCatalog {
       [],
       [],
       [],
-      [CombatCapsule(0, -20, 0, 24, 10)],
-      [CombatCapsule(0, -20, 0, 24, 10)],
-      [CombatCapsule(0, -20, 0, 24, 10)],
-      [CombatCapsule(0, -20, 0, 24, 10)],
-      [CombatCapsule(0, -20, 0, 24, 10)],
-      [CombatCapsule(0, -20, 0, 24, 10)],
+      [CombatCapsule(0, -30, 0, 36, 15)],
+      [CombatCapsule(0, -30, 0, 36, 15)],
+      [CombatCapsule(0, -30, 0, 36, 15)],
+      [CombatCapsule(0, -30, 0, 36, 15)],
+      [CombatCapsule(0, -30, 0, 36, 15)],
+      [CombatCapsule(0, -30, 0, 36, 15)],
       [],
       [],
       [],

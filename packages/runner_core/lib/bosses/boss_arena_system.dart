@@ -11,6 +11,7 @@ import '../enemies/death_behavior.dart';
 import '../snapshots/boss_arena_snapshot.dart';
 import '../snapshots/enums.dart';
 import '../track/track_streamer.dart';
+import '../track/chunk_pattern_tier.dart';
 import '../tuning/utils/anim_tuning.dart';
 
 /// Mandatory arena ownership, independent of ambient spawns and NPC rescues.
@@ -55,14 +56,14 @@ final class BossArenaSystem {
   }
 
   /// Spawn before motion preparation, after the full arena was framed last tick.
-  /// [onVictoryReady] receives the streamed occurrence only after its verified
-  /// death-strip deadline; the caller still owns living-player eligibility.
+  /// [onVictoryReady] receives the occurrence and its captured authored tier
+  /// after the verified death-strip deadline; the caller owns player eligibility.
   void prepare(
     EcsWorld world, {
     required EntityId player,
     required int tick,
     required EntityId? Function(ActiveTrackChunkSnapshot chunk, int tick) spawn,
-    void Function(int occurrence)? onVictoryReady,
+    void Function(int occurrence, ChunkPatternTier tier)? onVictoryReady,
   }) {
     final arena = _current;
     if (arena == null) return;
@@ -103,7 +104,7 @@ final class BossArenaSystem {
         !_isRequiredBoss(world, arena)) {
       if (arena.deathAnimationEndTick >= 0 &&
           tick >= arena.deathAnimationEndTick) {
-        onVictoryReady?.call(arena.chunk.index);
+        onVictoryReady?.call(arena.chunk.index, arena.chunk.tier);
       }
       _release(world, player);
       arena.retained = false;

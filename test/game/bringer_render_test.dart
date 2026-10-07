@@ -21,6 +21,10 @@ void main() {
       final actors = EnemyRenderRegistry();
       await actors.load(images);
       final entry = actors.entryFor(EnemyId.bringerOfDeath)!;
+      final scaledView = entry.createView();
+      await scaledView.onLoad();
+      expect(scaledView.scale.x, 1.5);
+      expect(scaledView.scale.y, 1.5);
       final animations = entry.animSet.animations;
       expect(animations[AnimKey.spawn]!.frames.length, 10);
       expect(animations[AnimKey.spawn]!.frames.first.sprite.srcPosition.x, 840);
@@ -33,6 +37,8 @@ void main() {
       expect(animations[AnimKey.cast]!.frames.last.sprite.srcPosition.y, 465);
       final impacts = SpellImpactRenderRegistry();
       await impacts.load(images);
+      expect(impacts.entryFor(SpellImpactId.deathPillar)!.renderScale.x, 1.5);
+      expect(impacts.entryFor(SpellImpactId.deathPillar)!.renderScale.y, 1.5);
       final pillar = impacts
           .entryFor(SpellImpactId.deathPillar)!
           .animSet
