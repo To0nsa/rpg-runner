@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 import 'dart:async';
 
+import '../test_support/fixture_sprite_bounds.dart';
+
 import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 
 import 'package:flame/cache.dart';
@@ -94,7 +96,11 @@ void main() {
         late _FixtureImages images;
         await tester.runAsync(() async {
           images = _FixtureImages(
-            transparent: await _solidImage(const Color(0x00000000), 3072),
+            transparent: await _solidImage(
+              const Color(0x00000000),
+              fixtureSpriteBounds().width,
+              height: fixtureSpriteBounds().height,
+            ),
             prefab: await _solidImage(const Color(0xFFFF0000), 1),
             terrain: await _solidImage(const Color(0xFF00FF00), 1),
             background: await _solidImage(const Color(0xFF0000FF), 1),
@@ -238,11 +244,11 @@ const _terrainProfile = TerrainMaterialEdgeProfileSpec(
   base: TerrainMaterialEdgeLayerSpec(region: _terrainRegion, anchorY: 0),
 );
 
-Future<ui.Image> _solidImage(Color color, int size) async {
+Future<ui.Image> _solidImage(Color color, int size, {int? height}) async {
   final recorder = ui.PictureRecorder();
   ui.Canvas(recorder).drawColor(color, ui.BlendMode.src);
   final picture = recorder.endRecording();
-  final image = await picture.toImage(size, size);
+  final image = await picture.toImage(size, height ?? size);
   picture.dispose();
   return image;
 }

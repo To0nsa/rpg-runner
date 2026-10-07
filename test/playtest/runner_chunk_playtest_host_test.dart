@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'dart:math' as math;
 
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
@@ -17,13 +16,13 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
-import 'package:runner_core/traps/trap_catalog.dart';
-import 'package:runner_core/traps/trap_id.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/playtest.dart';
 import 'package:rpg_runner/game/themes/authored_parallax_themes.dart';
 import 'package:rpg_runner/game/themes/terrain_material_registry.dart';
 import 'package:rpg_runner/ui/input/desktop/runner_desktop_input_adapter.dart';
+
+import '../test_support/fixture_sprite_bounds.dart';
 
 void main() {
   late ui.Image fixtureImage;
@@ -33,17 +32,8 @@ void main() {
     final canvas = ui.Canvas(recorder);
     canvas.drawColor(const Color(0x00000000), ui.BlendMode.src);
     final picture = recorder.endRecording();
-    // Explicit atlas regions can extend beyond the generic strip fixture.
-    final regions = TrapId.values.expand(TrapCatalog.sourceRegions).toList();
-    final width = regions.fold(
-      2048,
-      (value, r) => math.max(value, r.x + r.width),
-    );
-    final height = regions.fold(
-      2048,
-      (value, r) => math.max(value, r.y + r.height),
-    );
-    fixtureImage = await picture.toImage(width, height);
+    final bounds = fixtureSpriteBounds();
+    fixtureImage = await picture.toImage(bounds.width, bounds.height);
     picture.dispose();
   });
 

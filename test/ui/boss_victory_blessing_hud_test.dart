@@ -21,7 +21,7 @@ void main() {
     );
     const title = 'Bénédiction des Dames de la forêt';
     expect(find.text(title), findsOneWidget);
-    expect(find.text('+60 % santé · mana · endurance'), findsOneWidget);
+    expect(find.text('+20 % santé · mana · endurance'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(tester.takeException(), isNull);
 
