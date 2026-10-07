@@ -223,7 +223,7 @@ abstract final class VoidcallerEffectCatalog {
   static const diagonal = RenderAnimSetDefinition(
     frameWidth: 138,
     frameHeight: 146,
-    anchorPoint: Vec2(92, 146),
+    anchorPoint: Vec2(46, 146),
     sourcesByKey: {
       AnimKey.hit:
           'entities/enemies/ancient_god_pack/voidcaller/sprite_sheet.png',
@@ -235,13 +235,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(80, 1454, 26, 13),
-            position: Vec2(19, 19.5),
+            position: Vec2(93, 19.5),
             size: Vec2(26, 13),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(80, 1454, 26, 13),
-            position: Vec2(79, 133),
+            position: Vec2(33, 133),
             size: Vec2(26, 13),
             rotationRadians: 0,
           ),
@@ -249,13 +249,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(243, 1454, 41, 12),
-            position: Vec2(11.5, 20),
+            position: Vec2(85.5, 20),
             size: Vec2(41, 12),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(243, 1454, 41, 12),
-            position: Vec2(71.5, 134),
+            position: Vec2(25.5, 134),
             size: Vec2(41, 12),
             rotationRadians: 0,
           ),
@@ -263,13 +263,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(419, 1453, 31, 12),
-            position: Vec2(16.5, 20),
+            position: Vec2(90.5, 20),
             size: Vec2(31, 12),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(419, 1453, 31, 12),
-            position: Vec2(76.5, 134),
+            position: Vec2(30.5, 134),
             size: Vec2(31, 12),
             rotationRadians: 0,
           ),
@@ -277,13 +277,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(590, 1453, 30, 17),
-            position: Vec2(17, 17.5),
+            position: Vec2(91, 17.5),
             size: Vec2(30, 17),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(590, 1453, 30, 17),
-            position: Vec2(77, 129),
+            position: Vec2(31, 129),
             size: Vec2(30, 17),
             rotationRadians: 0,
           ),
@@ -291,13 +291,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(761, 1451, 34, 43),
-            position: Vec2(15, 4.5),
+            position: Vec2(89, 4.5),
             size: Vec2(34, 43),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(761, 1451, 34, 43),
-            position: Vec2(75, 103),
+            position: Vec2(29, 103),
             size: Vec2(34, 43),
             rotationRadians: 0,
           ),
@@ -305,19 +305,19 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(70, 1998, 43, 40),
-            position: Vec2(10.5, 6),
+            position: Vec2(84.5, 6),
             size: Vec2(43, 40),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(248, 1029, 12, 32),
-            position: Vec2(26.5, 26),
+            position: Vec2(100.5, 26),
             size: Vec2(11, 127.059),
-            rotationRadians: -0.491809175988699,
+            rotationRadians: 0.491809175988699,
           ),
           RenderFramePart(
             source: RenderFrameRect(53, 1870, 49, 32),
-            position: Vec2(67.5, 114),
+            position: Vec2(21.5, 114),
             size: Vec2(49, 32),
             rotationRadians: 0,
           ),
@@ -325,19 +325,19 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(242, 1998, 42, 40),
-            position: Vec2(11, 6),
+            position: Vec2(85, 6),
             size: Vec2(42, 40),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(76, 1029, 14, 32),
-            position: Vec2(26.5, 26),
+            position: Vec2(100.5, 26),
             size: Vec2(11, 127.059),
-            rotationRadians: -0.491809175988699,
+            rotationRadians: 0.491809175988699,
           ),
           RenderFramePart(
             source: RenderFrameRect(223, 1870, 49, 32),
-            position: Vec2(67.5, 114),
+            position: Vec2(21.5, 114),
             size: Vec2(49, 32),
             rotationRadians: 0,
           ),
@@ -345,19 +345,19 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(412, 1997, 44, 41),
-            position: Vec2(10, 5.5),
+            position: Vec2(84, 5.5),
             size: Vec2(44, 41),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(248, 1029, 12, 32),
-            position: Vec2(26.5, 26),
+            position: Vec2(100.5, 26),
             size: Vec2(11, 127.059),
-            rotationRadians: -0.491809175988699,
+            rotationRadians: 0.491809175988699,
           ),
           RenderFramePart(
             source: RenderFrameRect(394, 1870, 50, 32),
-            position: Vec2(67, 114),
+            position: Vec2(21, 114),
             size: Vec2(50, 32),
             rotationRadians: 0,
           ),
@@ -365,19 +365,19 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(584, 1996, 45, 42),
-            position: Vec2(9.5, 5),
+            position: Vec2(83.5, 5),
             size: Vec2(45, 42),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(76, 1029, 14, 32),
-            position: Vec2(26.5, 26),
+            position: Vec2(100.5, 26),
             size: Vec2(11, 127.059),
-            rotationRadians: -0.491809175988699,
+            rotationRadians: 0.491809175988699,
           ),
           RenderFramePart(
             source: RenderFrameRect(571, 1870, 43, 32),
-            position: Vec2(70.5, 114),
+            position: Vec2(24.5, 114),
             size: Vec2(43, 32),
             rotationRadians: 0,
           ),
@@ -385,19 +385,19 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(754, 1996, 44, 42),
-            position: Vec2(10, 5),
+            position: Vec2(84, 5),
             size: Vec2(44, 42),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(248, 1029, 12, 32),
-            position: Vec2(26.5, 26),
+            position: Vec2(100.5, 26),
             size: Vec2(11, 127.059),
-            rotationRadians: -0.491809175988699,
+            rotationRadians: 0.491809175988699,
           ),
           RenderFramePart(
             source: RenderFrameRect(740, 1870, 46, 32),
-            position: Vec2(69, 114),
+            position: Vec2(23, 114),
             size: Vec2(46, 32),
             rotationRadians: 0,
           ),
@@ -405,13 +405,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(926, 1997, 41, 41),
-            position: Vec2(11.5, 5.5),
+            position: Vec2(85.5, 5.5),
             size: Vec2(41, 41),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(912, 1870, 44, 32),
-            position: Vec2(70, 114),
+            position: Vec2(24, 114),
             size: Vec2(44, 32),
             rotationRadians: 0,
           ),
@@ -419,13 +419,13 @@ abstract final class VoidcallerEffectCatalog {
         [
           RenderFramePart(
             source: RenderFrameRect(926, 1997, 41, 41),
-            position: Vec2(11.5, 5.5),
+            position: Vec2(85.5, 5.5),
             size: Vec2(41, 41),
             rotationRadians: 0,
           ),
           RenderFramePart(
             source: RenderFrameRect(912, 1870, 44, 32),
-            position: Vec2(70, 114),
+            position: Vec2(24, 114),
             size: Vec2(44, 32),
             rotationRadians: 0,
           ),

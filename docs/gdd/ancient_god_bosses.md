@@ -45,6 +45,8 @@ Its sequence favors a summon every fourth action, a spin within 150 units, a
 sweep within 85, and an orb at distance. Teleports take priority when due.
 Walking uses the same 65-unit stand-off and speed as Goddess. The spin obeys
 walls, arena boundaries, gravity and terrain rather than moving through them.
+Its crescent sweeps are dangerous on either side as they rotate, with damage
+following the visible arc; it still deals at most one hit per target per cast.
 
 Minions have 10 HP and bite for 2 physical damage. They live for up to 12 seconds,
 can be killed through ordinary combat, and grant zero kill points.
@@ -54,7 +56,7 @@ can be killed through ordinary combat, and grant zero kill points.
 | Action | Default behavior |
 | --- | --- |
 | Vertical beam | A portal opens above a captured ground/platform mark, then fires a vertical beam for 7 dark damage; 0.8-second cast and five harmless effect frames |
-| Diagonal beam | The alternate Cast 1 version creates the same marked threat with a diagonal beam; 7 dark damage |
+| Diagonal beam | The alternate Cast 1 version creates the same marked threat, sloping from the offset overhead portal into the ground mark; 7 dark damage |
 | Fiery claw | Cast 2 launches a straight claw projectile at the captured target center; 6 fire damage; 0.6-second cast |
 | Summon tentacle | Casts for 1 second to plant one damageable tentacle; maximum two living tentacles per owner |
 

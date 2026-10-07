@@ -100,8 +100,13 @@ Goddess Cast 2 joins its six preparation and thirty cast frames using explicit
 source rectangles. Projectile startup/loop/impact strips stay separate.
 Voidcaller's beam exports are layered components rather than twenty sequential
 full effects. `RenderFramePart` and `RenderAnimSetDefinition.compositeFramesByKey`
-describe portal, middle and ground parts within one logical 138×146 canvas,
-anchored at `(92,146)`. `CompositeFrameSprite` draws those parts from the same
+describe portal, middle and ground parts within one logical 138×146 canvas.
+The vertical effect is anchored at `(92,146)` and the diagonal at `(46,146)`;
+its portal is 60 source pixels right of the ground mark, matching the endcaps'
+down-left slope. At 1.5x scale its damage segment runs from `(90,-180)` to
+`(0,-12)` relative to the ground mark. World-anchored impact art and damage keep
+this fixed orientation regardless of the caster's facing.
+`CompositeFrameSprite` draws those parts from the same
 run-owned PNG; it allocates no derived image or independent animation timer.
 The diagonal middle reuses the vertical middle rotated toward its ground mark.
 
@@ -119,7 +124,8 @@ Effect tests verify captured surfaces, harmless warning frames, evasion and
 single-hit damage at all three rates. Render tests load every catalog frame,
 check source bounds/scale and render composed beams and melee pose previews.
 
-The separation audit compares 28-second per-tick traces for all three bosses at
+The behavior-preserving separation commit `0ab07746` compares 28-second
+per-tick traces for all three bosses at
 30/60/90 Hz against the pre-refactor implementation: all nine hashes match.
 The trace includes health, arena phase, entity identity, position and animation
 frame. Additional isolation tests put two instances of each boss in one world:
@@ -131,6 +137,12 @@ The [source video](https://www.youtube.com/watch?v=0rPsM1DjEuc) was reviewed acr
 its full 75-second duration on October 7. Goddess occupies approximately 0–20 s,
 Shoggoth 21–49 s and Voidcaller 50–75 s. These are animation demonstrations;
 combat timing, damage and sequencing remain the documented gameplay defaults.
+The subsequent visual audit corrects the diagonal beam's reversed middle/slope
+and Shoggoth spin frames 4–7: front crescents follow their visible arc and the
+rear crescents now have damage geometry. Focused damage tests exercise both
+spin facings and the visible versus empty diagonal at 30/60/90 Hz. These are
+intentional gameplay corrections within the pending `2026.10.9` cutover, separate
+from the equivalence evidence for the file separation.
 
 The full Core suite and 36 production-route pursuit cases exercise shared
 terrain integration. Existing bosses remain covered by their arena tests;

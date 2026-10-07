@@ -16,13 +16,13 @@ void main() {
       addTearDown(() => root.deleteSync(recursive: true));
       _writeValidSmokeFixture(root.path);
       final prefabs = File(
-        root.path + '/assets/authoring/level/prefab_defs.json',
+        '${root.path}/assets/authoring/level/prefab_defs.json',
       );
       prefabs.writeAsStringSync(
         prefabs.readAsStringSync().replaceFirst('"platform"', '"decoration"'),
       );
       final source = File(
-        root.path + '/assets/authoring/level/chunks/field/chunk_ok.json',
+        '${root.path}/assets/authoring/level/chunks/field/chunk_ok.json',
       );
       final json =
           jsonDecode(source.readAsStringSync()) as Map<String, dynamic>;

@@ -30,7 +30,7 @@ def main():
         rotation = 0
         if beam:
             width,height = 11,math.hypot(60,112) if diagonal else 112
-            rotation = -math.atan2(60,112) if diagonal else 0
+            rotation = math.atan2(60,112) if diagonal else 0
             top = 26
         else:
             top = bottom_y-height if bottom_y is not None else center_y-height/2
@@ -40,17 +40,20 @@ def main():
     for diagonal in [False,True]:
         name = 'diagonal' if diagonal else 'vertical'
         startup,ground,portal = (10,13,14) if diagonal else (5,8,9)
-        center = 32 if diagonal else 92
-        lines += [f'  static const {name} = RenderAnimSetDefinition(', '    frameWidth: 138, frameHeight: 146, anchorPoint: Vec2(92,146),', "    sourcesByKey: {AnimKey.hit: 'entities/enemies/ancient_god_pack/voidcaller/sprite_sheet.png'},", '    frameCountsByKey: {AnimKey.hit: 12}, stepTimeSecondsByKey: {AnimKey.hit: .08},', '    compositeFramesByKey: {AnimKey.hit: [']
+        # Diagonal endcaps descend left in the source art and reference video.
+        # Keep the ground mark at the pivot, with the portal 60 source pixels right.
+        target_x = 46 if diagonal else 92
+        center = target_x + 60 if diagonal else target_x
+        lines += [f'  static const {name} = RenderAnimSetDefinition(', f'    frameWidth: 138, frameHeight: 146, anchorPoint: Vec2({target_x},146),', "    sourcesByKey: {AnimKey.hit: 'entities/enemies/ancient_god_pack/voidcaller/sprite_sheet.png'},", '    frameCountsByKey: {AnimKey.hit: 12}, stepTimeSecondsByKey: {AnimKey.hit: .08},', '    compositeFramesByKey: {AnimKey.hit: [']
         for frame in range(12):
             if frame<5:
-                parts = [part(startup,frame,center,center_y=26), part(startup,frame,92,bottom_y=146)]
+                parts = [part(startup,frame,center,center_y=26), part(startup,frame,target_x,bottom_y=146)]
             else:
                 phase=min(frame-5,5)
                 parts=[part(portal,phase,center,center_y=26)]
                 if frame<10:
                     parts += [part(7,frame%2,center,beam=True,diagonal=diagonal)]
-                parts += [part(ground,phase,92,bottom_y=146)]
+                parts += [part(ground,phase,target_x,bottom_y=146)]
             lines.append('      ['+', '.join(parts)+'],')
         lines += ['    ]},','  );']
     lines += ['}']
