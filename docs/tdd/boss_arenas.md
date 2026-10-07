@@ -173,8 +173,18 @@ edges without jump edges, and shared locomotion rejects upward launch requests
 and swim strokes. Other grounded enemies retain jumping. Gravity and collision
 support remain authoritative; the boss is not pinned to a fixed Y coordinate.
 
-Death Pillar captures the selected target's collider center on commit and never follows later
-movement. Its first six effect frames are harmless telegraph; later pillar frames
+Death Pillar captures the first upward terrain surface below the selected target's
+collider center on commit and never follows later movement. `TargetPointAnchor.surfaceBelow`
+uses `TargetPointSurfaceQuery` against the currently published surface index.
+The query samples exact slope height at the captured X and accepts solid floors
+and top-side one-way platforms. Airborne targets project downward to the first
+surface; no surface rejects the cast before resource/cooldown commitment.
+Index replacement refreshes reusable query scratch and vertical bounds.
+The impact's source pivot `(70, 93)` puts its frame bottom on that surface at
+1.5x render scale. Damage capsules are translated by `-(93 - 56) * 1.5 = -55.5`
+world units relative to the new pivot, preserving their source-art alignment.
+Target-point spells using the default center anchor retain their previous behavior.
+Its first six effect frames are harmless telegraph; later pillar frames
 use a world-anchored capsule and one hit per target. Both actions share cooldown
 group zero. Stun immunity prevents indefinite interruption; other damage and
 status rules remain ordinary Core behavior.

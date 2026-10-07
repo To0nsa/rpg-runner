@@ -35,6 +35,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
       stepTimeSeconds: .04,
       hitPolicy: HitPolicy.oncePerTarget,
       impactEffectId: SpellImpactId.deathPillar,
+      anchor: TargetPointAnchor.surfaceBelow,
     ),
     // 60 Hz ticks: 400 ms cast windup, then six harmless warning frames.
     windupTicks: 24,

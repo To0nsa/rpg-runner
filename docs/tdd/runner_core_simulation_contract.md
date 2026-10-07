@@ -504,6 +504,10 @@ its body and both attack shapes by 1.5x; it increases pursuit speed by 20% and
 accelerates both attack cycles by 1.5x, with 2x faster pillar effect frames.
 The boss keeps shared melee spacing for the enlarged blade, and easy-chunk
 victory blessings restore 20% of maxima while other tiers retain 60%.
+Death Pillar also captures the first upward terrain surface below its aim point
+at commitment. Its bottom pivot and translated damage shapes share that fixed
+surface anchor through the effect. The shared surface index resolves floors,
+one-way platforms and slopes; later target movement cannot retarget the spell.
 These changes alter deterministic combat outcomes and terrain graph signatures.
 Client, Functions and worker defaults move together; the new worker rejects
 previous gameplay tickets. Tick ordering, command encoding and `score-v4`

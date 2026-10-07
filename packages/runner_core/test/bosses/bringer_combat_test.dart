@@ -18,6 +18,7 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/spell_impacts/spell_impact_id.dart';
 import 'package:runner_core/spell_impacts/spell_impact_render_catalog.dart';
 import 'package:runner_core/tuning/ground_enemy_tuning.dart';
+import 'package:runner_core/util/vec2.dart';
 import 'package:test/test.dart';
 
 import '../test_support/combat_pose.dart';
@@ -31,7 +32,7 @@ void main() {
       final ii = intents.indexOf(f.boss);
       final executeTick = intents.tick[ii];
       final targetX = intents.targetX[ii];
-      final targetY = intents.targetY[ii];
+      expect(intents.targetY[ii], 24);
       final step = intents.frameStepTicks[ii];
       final firstDamageTick = executeTick + 6 * step;
       final oldDelay = (.6 * hz).ceil() + 6 * (.08 * hz).round();
@@ -41,11 +42,13 @@ void main() {
       );
       expect((render.stepTimeSecondsByKey[AnimKey.hit]! * hz).round(), step);
 
-      // The captured mark stays fixed; the enlarged edge reaches a 22-unit dodge.
-      f.world.transform.setPosXY(f.player, targetX + 22, targetY);
+      // Moving or jumping during windup cannot move the captured terrain mark.
+      f.world.transform.setPosXY(f.player, targetX + 100, -100);
       TargetPointImpactSystem().step(f.world, currentTick: executeTick);
       final box = f.world.hitbox.denseEntities.single;
       expect(f.world.transform.posX[f.world.transform.indexOf(box)], targetX);
+      expect(f.world.transform.posY[f.world.transform.indexOf(box)], 24);
+      f.world.transform.setPosXY(f.player, targetX + 22, 0);
       for (var tick = executeTick; tick < firstDamageTick; tick++) {
         f.resolveHits(tick);
         expect(
@@ -54,10 +57,10 @@ void main() {
           reason: 'harmless warning tick $tick',
         );
       }
-      f.world.transform.setPosXY(f.player, targetX + 26, targetY);
+      f.world.transform.setPosXY(f.player, targetX + 26, 0);
       f.resolveHits(firstDamageTick);
       expect(f.world.damageQueue.length, 0);
-      f.world.transform.setPosXY(f.player, targetX + 22, targetY);
+      f.world.transform.setPosXY(f.player, targetX + 22, 0);
       f.resolveHits(firstDamageTick);
       expect(f.world.damageQueue.target, [f.player]);
       expect(f.world.damageQueue.amount100, [700]);
@@ -152,10 +155,20 @@ void main() {
       },
     );
   }
+  test('pillar cannot commit without a surface beneath its target', () {
+    final f = _Fixture(60, playerX: 300, hasSurface: false);
+    f.selectAttack(10);
+    expect(f.world.activeAbility.hasActiveAbility(f.boss), isFalse);
+    expect(f.world.cooldown.isOnCooldown(f.boss, 0), isFalse);
+    expect(
+      f.world.targetPointIntent.tick[f.world.targetPointIntent.indexOf(f.boss)],
+      -1,
+    );
+  });
 }
 
 class _Fixture {
-  _Fixture(this.hz, {required double playerX}) {
+  _Fixture(this.hz, {required double playerX, this.hasSurface = true}) {
     final a = const EnemyCatalog().get(EnemyId.bringerOfDeath);
     final factory = EntityFactory(world);
     player = factory.createPlayer(
@@ -196,6 +209,7 @@ class _Fixture {
   }
 
   final int hz;
+  final bool hasSurface;
   final world = EcsWorld();
   late final int player;
   late final int boss;
@@ -204,6 +218,7 @@ class _Fixture {
     castCommitter: AiCastCommitter(
       tickHz: hz,
       projectiles: const ProjectileCatalog(),
+      surfaceTarget: (x, y) => hasSurface ? Vec2(x, 24) : null,
     ),
     groundEnemyTuning: GroundEnemyTuningDerived.from(
       const GroundEnemyTuning(),

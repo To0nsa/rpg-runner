@@ -195,7 +195,7 @@ abstract final class CombatPoseCatalog {
     ],
   );
   static const bringerPillar = CombatStrikeProfile(
-    // World-unit column at 1.5x source scale, matching its impact sprite.
+    // 1.5x source poses translated from the old Y=56 pivot to the bottom Y=93.
     timing: ActionFramePolicy(frameCount: 16, activeStart: 6, activeEnd: 12),
     frames: [
       [],
@@ -204,12 +204,12 @@ abstract final class CombatPoseCatalog {
       [],
       [],
       [],
-      [CombatCapsule(0, -30, 0, 36, 15)],
-      [CombatCapsule(0, -30, 0, 36, 15)],
-      [CombatCapsule(0, -30, 0, 36, 15)],
-      [CombatCapsule(0, -30, 0, 36, 15)],
-      [CombatCapsule(0, -30, 0, 36, 15)],
-      [CombatCapsule(0, -30, 0, 36, 15)],
+      [CombatCapsule(0, -85.5, 0, -19.5, 15)],
+      [CombatCapsule(0, -85.5, 0, -19.5, 15)],
+      [CombatCapsule(0, -85.5, 0, -19.5, 15)],
+      [CombatCapsule(0, -85.5, 0, -19.5, 15)],
+      [CombatCapsule(0, -85.5, 0, -19.5, 15)],
+      [CombatCapsule(0, -85.5, 0, -19.5, 15)],
       [],
       [],
       [],

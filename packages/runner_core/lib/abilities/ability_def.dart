@@ -131,22 +131,31 @@ class SelfHitDelivery extends HitDeliveryDef {
   const SelfHitDelivery();
 }
 
+/// Placement of a captured target-point attack before its windup begins.
+enum TargetPointAnchor {
+  targetCenter,
+
+  /// First upward terrain surface below the captured aim point, including one-way platforms.
+  surfaceBelow,
+}
+
 /// World-space impact delivery authored for non-projectile spell hits.
-///
-/// Impact hitboxes are spawned at the resolved target point and remain
-/// world-anchored for their active window.
+/// The captured anchor stays fixed throughout windup and impact; surface-based
+/// delivery requires a terrain resolver on the autonomous cast committer.
 class TargetPointHitDelivery extends HitDeliveryDef {
   const TargetPointHitDelivery({
     required this.profile,
     required this.stepTimeSeconds,
     this.hitPolicy = HitPolicy.oncePerTarget,
     this.impactEffectId = SpellImpactId.unknown,
+    this.anchor = TargetPointAnchor.targetCenter,
   });
 
   final CombatStrikeProfile profile;
   final double stepTimeSeconds;
   final HitPolicy hitPolicy;
   final SpellImpactId impactEffectId;
+  final TargetPointAnchor anchor;
 }
 
 /// Authored contact-impact payload for mobility abilities (dash/roll).

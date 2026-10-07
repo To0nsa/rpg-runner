@@ -22,6 +22,7 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/spell_impacts/spell_impact_id.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/authored_chunk_patterns.dart';
@@ -248,6 +249,20 @@ void main() {
     PlayerCharacterRegistry.eloise,
     PlayerCharacterRegistry.eloiseWip,
   ]) {
+    test('${character.id.name} death column captures the floor height', () {
+      final core = _core(character: character);
+      SpellImpactEvent? column;
+      for (var i = 0; i < 300 && column == null; i++) {
+        _step(core);
+        column = core
+            .drainEvents()
+            .whereType<SpellImpactEvent>()
+            .where((e) => e.impactId == SpellImpactId.deathPillar)
+            .firstOrNull;
+      }
+      expect(column, isNotNull);
+      expect(column!.pos.y, LevelRegistry.byId(LevelId.field).groundTopY);
+    });
     test(
       '${character.id.name} scythe damage uses shared shove against movement input',
       () {
@@ -441,8 +456,17 @@ void main() {
             final initialY = core.playerPosY;
             final initialHp = core.buildSnapshot().hud.hp;
             var damaged = false;
+            var markedPlatform = false;
             for (var i = 0; i < hz * 8 && !core.gameOver; i++) {
               _step(core);
+              for (final event
+                  in core.drainEvents().whereType<SpellImpactEvent>()) {
+                if (event.impactId == SpellImpactId.deathPillar &&
+                    (event.pos.x - platformX).abs() < 1) {
+                  expect(event.pos.y, 133);
+                  markedPlatform = true;
+                }
+              }
               final boss = core.buildSnapshot().entities.singleWhere(
                 (e) => e.enemyId == EnemyId.bringerOfDeath,
               );
@@ -457,6 +481,7 @@ void main() {
               isTrue,
               reason: 'Pillar must actually hit the platform.',
             );
+            expect(markedPlatform, isTrue);
             _step(core);
             final direction = (core.playerPosX - initialX).sign;
             final trace = <String>[];

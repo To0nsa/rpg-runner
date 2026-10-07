@@ -14,9 +14,11 @@ and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.0
 
 Source now targets `2026.10.9` for the [Bringer tuning](../gdd/bringer_of_death.md):
 1.5x boss/column size, faster attacks, 20% faster pursuit and 20% resource
-restoration from easy-chunk victory blessings. Production remains
-`2026.10.8`; this tuning still needs coordinated preparation, drain and cutover
-through `tools/release/release.ps1` before matching issuance resumes.
+restoration from easy-chunk victory blessings.
+The death column's bottom and damage now anchor to the captured floor/platform.
+Production remains `2026.10.8`; this tuning still needs coordinated preparation,
+drain and cutover through `tools/release/release.ps1` before matching issuance
+resumes.
 
 ## Deployed release: 2026.10.8
 

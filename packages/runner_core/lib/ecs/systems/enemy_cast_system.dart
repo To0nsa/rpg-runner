@@ -21,6 +21,7 @@ import '../../tuning/physics_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../../util/target_prediction.dart';
+import '../../util/vec2.dart';
 import '../../weapons/weapon_proc.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
@@ -50,10 +51,12 @@ class EnemyCastSystem {
     required this.projectiles,
     this.abilities = AbilityCatalog.shared,
     PhysicsTuning physics = const PhysicsTuning(),
+    Vec2? Function(double x, double y)? surfaceTarget,
   }) : committer = AiCastCommitter(
          tickHz: unocoDemonTuning.tickHz,
          projectiles: projectiles,
          physics: physics,
+         surfaceTarget: surfaceTarget,
          minTravelLeadSeconds:
              unocoDemonTuning.base.unocoDemonAimLeadMinSeconds,
          maxTravelLeadSeconds:
@@ -152,12 +155,17 @@ class AiCastCommitter {
     required this.tickHz,
     required this.projectiles,
     this.physics = const PhysicsTuning(),
+    this.surfaceTarget,
     this.minTravelLeadSeconds = .08,
     this.maxTravelLeadSeconds = .4,
   });
   final int tickHz;
   final ProjectileCatalog projectiles;
   final PhysicsTuning physics;
+
+  /// Captures a terrain anchor in world units. An absent resolver or null result
+  /// rejects a surface-delivered cast before spending resources or cooldown.
+  final Vec2? Function(double x, double y)? surfaceTarget;
   final double minTravelLeadSeconds;
   final double maxTravelLeadSeconds;
 
@@ -284,6 +292,10 @@ class AiCastCommitter {
         );
         return false;
       }
+      final impactPoint = hitDelivery.anchor == TargetPointAnchor.surfaceBelow
+          ? surfaceTarget?.call(aimX, aimY)
+          : Vec2(aimX, aimY);
+      if (impactPoint == null) return false;
       _writeTargetPointIntent(
         world,
         actor: actor,
@@ -291,8 +303,8 @@ class AiCastCommitter {
         hitDelivery: hitDelivery,
         payload: payload,
         commitCost: castCost,
-        targetX: aimX,
-        targetY: aimY,
+        targetX: impactPoint.x,
+        targetY: impactPoint.y,
         commitTick: commitTick,
         executeTick: executeTick,
         windupTicks: windupTicks,

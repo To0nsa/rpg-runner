@@ -33,7 +33,7 @@ two attacks:
 | Attack | Readable threat | Response window |
 | --- | --- | --- |
 | Scythe Sweep | About 267 ms windup, committed facing and a 1.5x larger blade arc; 8 base damage | Reposition before the sweep, then punish its recovery |
-| Death Pillar | 400 ms cast at the player's captured position, then six harmless ring frames at 40 ms per source frame; 7 base dark damage | Leave the larger marked position promptly; the spell also threatens the raised platform |
+| Death Pillar | 400 ms cast over the floor or platform below the player's captured position, then six harmless ring frames at 40 ms per source frame; 7 base dark damage | Leave the larger marked position promptly; the spell also threatens the raised platform |
 
 Those timings use 60 Hz authoring ticks and are scaled to the run's tick rate.
 Scythe windup, active window, recovery and cooldown are all 1.5x faster.
@@ -41,6 +41,10 @@ The pillar's cast cycle is 1.5x faster and its warning/effect strip is 2x faster
 before tick quantization. Commit-to-first-damage takes 600/600/667 ms at
 30/60/90 Hz, at least 1.5x faster than the original at each rate. The same
 effect clock drives its art and damage. Both attacks retain one hit per target.
+The column's bottom lands on the captured floor or platform rather than centering
+the animation on the player. An airborne target marks the first surface below
+their captured position. Moving or jumping during the cast never moves that mark;
+the column's damage shape remains aligned with its art above the surface.
 Both attacks push a damaged, surviving player horizontally away from the attack's
 caster origin. The shared effect targets 112 world units over about 0.28 seconds
 (9 ticks at 30 Hz, 17 at 60 Hz, 26 at 90 Hz). The platform spans 96 units, so the

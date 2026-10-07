@@ -54,7 +54,8 @@ class SpellImpactRenderCatalog {
         return const RenderAnimSetDefinition(
           frameWidth: 140,
           frameHeight: 93,
-          anchorPoint: Vec2(70, 56),
+          // Source-frame bottom lands on the captured terrain surface at any scale.
+          anchorPoint: Vec2(70, 93),
           sourcesByKey: {
             AnimKey.hit: 'entities/enemies/bringer_of_death/sheet.png',
           },

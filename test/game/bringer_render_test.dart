@@ -2,8 +2,10 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flame/cache.dart';
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/components/enemies/enemy_render_registry.dart';
+import 'package:rpg_runner/game/components/camera_space_snapped_sprite_animation.dart';
 import 'package:rpg_runner/game/components/spell_impacts/spell_impact_render_registry.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
@@ -39,6 +41,9 @@ void main() {
       await impacts.load(images);
       expect(impacts.entryFor(SpellImpactId.deathPillar)!.renderScale.x, 1.5);
       expect(impacts.entryFor(SpellImpactId.deathPillar)!.renderScale.y, 1.5);
+      final impactArt = impacts.entryFor(SpellImpactId.deathPillar)!.animSet;
+      expect(impactArt.anchorFor(AnimKey.hit).y, 1);
+      expect(impactArt.frameSize.y, 93);
       final pillar = impacts
           .entryFor(SpellImpactId.deathPillar)!
           .animSet
@@ -85,9 +90,28 @@ void main() {
           view.renderTree(canvas);
         }
       }
+      for (final surface in [(225.0, 708.0), (625.0, 640.0)]) {
+        canvas.drawRect(
+          ui.Rect.fromLTWH(surface.$1 - 150, surface.$2, 300, 16),
+          ui.Paint()..color = const ui.Color(0xFF61705B),
+        );
+        final column = CameraSpaceSnappedSpriteAnimation(
+          animation: pillar,
+          size: impactArt.frameSize.clone(),
+          worldPosX: surface.$1,
+          worldPosY: surface.$2,
+          anchor: impactArt.anchorFor(AnimKey.hit),
+          paint: ui.Paint()..filterQuality = ui.FilterQuality.none,
+        );
+        await column.onLoad();
+        column.scale.setValues(1.5, 1.5);
+        column.snapToCamera(Vector2.zero());
+        column.animationTicker!.currentIndex = 8;
+        column.renderTree(canvas);
+      }
       final picture = recorder.endRecording();
       addTearDown(picture.dispose);
-      final image = await picture.toImage(800, 520);
+      final image = await picture.toImage(800, 730);
       addTearDown(image.dispose);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       final file = File('build/test/bringer_animation_review.png');

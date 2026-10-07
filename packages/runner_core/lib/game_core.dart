@@ -31,6 +31,7 @@ import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
 import 'combat/projectile_aim_visibility.dart';
+import 'combat/target_point_surface_query.dart';
 import 'combat/status/status.dart';
 import 'collision/terrain/terrain_compiler.dart';
 import 'collision/terrain/terrain_geometry.dart';
@@ -762,12 +763,16 @@ class GameCore {
       projectiles: _projectiles,
       abilities: abilityCatalog,
     );
+    final surfaceTargets = TargetPointSurfaceQuery(
+      () => terrainAuthority.terrainRuntimeBundle.surfaceIndex,
+    );
     _enemyCastSystem = EnemyCastSystem(
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
       projectiles: _projectiles,
       physics: _physicsTuning,
       abilities: abilityCatalog,
+      surfaceTarget: surfaceTargets.below,
     );
     _flyingEnemyMeleeSystem = FlyingEnemyMeleeSystem(
       unocoDemonTuning: _unocoDemonTuning,
