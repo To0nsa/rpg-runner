@@ -321,6 +321,7 @@ class TrackStreamer {
               zIndex: sprite.zIndex,
               flipX: sprite.flipX,
               flipY: sprite.flipY,
+              rotationDegrees: sprite.rotationDegrees,
             ),
           )
           .toList(growable: false);
@@ -564,6 +565,7 @@ class ChunkVisualSpriteWorld {
     required this.zIndex,
     this.flipX = false,
     this.flipY = false,
+    this.rotationDegrees = 0,
   });
 
   final String assetPath;
@@ -578,4 +580,8 @@ class ChunkVisualSpriteWorld {
   final int zIndex;
   final bool flipX;
   final bool flipY;
+
+  /// Clockwise visual rotation in [0, 360) around this sprite's center.
+  /// X/Y locate its unrotated destination rectangle at the rotated tile center.
+  final double rotationDegrees;
 }

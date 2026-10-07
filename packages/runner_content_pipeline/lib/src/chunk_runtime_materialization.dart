@@ -1,16 +1,17 @@
+import 'dart:math' as math;
+
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 
 import 'polygon_terrain_compilation.dart';
+import 'prefab_rotation.dart';
 import 'polygon_terrain_render.dart';
 import 'polygon_terrain_source.dart';
 import 'polygon_tile_source.dart';
 import 'encounter_readiness.dart';
 import 'boss_arena_readiness.dart';
-
-const int _gridSnap = 16;
 
 /// Complete typed runtime products for one accepted current-schema chunk.
 final class PolygonTerrainRuntimeChunk {
@@ -257,7 +258,7 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
       );
       return const <ChunkVisualSpriteRel>[];
     }
-    return <ChunkVisualSpriteRel>[
+    return _rotateVisualSprites(<ChunkVisualSpriteRel>[
       _sprite(
         slice: slice,
         prefab: prefab,
@@ -267,7 +268,7 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
         localY: 0,
         groundBandZIndex: groundBandZIndex,
       ),
-    ];
+    ], placement.rotationDegrees);
   }
 
   final module = modulesById[visual.referenceId];
@@ -282,6 +283,9 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
     );
     return const <ChunkVisualSpriteRel>[];
   }
+  if (module.cells.isEmpty) return const <ChunkVisualSpriteRel>[];
+  final minGridX = module.cells.map((cell) => cell.gridX).reduce(math.min);
+  final minGridY = module.cells.map((cell) => cell.gridY).reduce(math.min);
   final sprites = <ChunkVisualSpriteRel>[];
   for (final cell in module.cells) {
     final slice = slicesById[cell.sliceId];
@@ -303,13 +307,65 @@ List<ChunkVisualSpriteRel> _materializeVisualSprites({
         prefab: prefab,
         placement: placement,
         scale: scale,
-        localX: cell.gridX * _gridSnap,
-        localY: cell.gridY * _gridSnap,
+        localX: (cell.gridX - minGridX) * module.tileSize,
+        localY: (cell.gridY - minGridY) * module.tileSize,
         groundBandZIndex: groundBandZIndex,
       ),
     );
   }
-  return sprites;
+  return _rotateVisualSprites(sprites, placement.rotationDegrees);
+}
+
+// Tile centers orbit the complete placed bounds; the renderer then rotates each
+// tile about its own center. This preserves one pivot for multi-tile visuals.
+List<ChunkVisualSpriteRel> _rotateVisualSprites(
+  List<ChunkVisualSpriteRel> sprites,
+  double degrees,
+) {
+  if (degrees == 0 || sprites.isEmpty) return sprites;
+  final left = sprites.map((s) => s.x).reduce(math.min);
+  final top = sprites.map((s) => s.y).reduce(math.min);
+  final right = sprites.map((s) => s.x + s.width).reduce(math.max);
+  final bottom = sprites.map((s) => s.y + s.height).reduce(math.max);
+  return [
+    for (final sprite in sprites)
+      _rotateSprite(
+        sprite,
+        centerX: (left + right) / 2,
+        centerY: (top + bottom) / 2,
+        degrees: degrees,
+      ),
+  ];
+}
+
+ChunkVisualSpriteRel _rotateSprite(
+  ChunkVisualSpriteRel sprite, {
+  required double centerX,
+  required double centerY,
+  required double degrees,
+}) {
+  final center = rotatePrefabVisualPoint(
+    x: sprite.x + sprite.width / 2,
+    y: sprite.y + sprite.height / 2,
+    centerX: centerX,
+    centerY: centerY,
+    degrees: degrees,
+  );
+  return ChunkVisualSpriteRel(
+    assetPath: sprite.assetPath,
+    srcX: sprite.srcX,
+    srcY: sprite.srcY,
+    srcWidth: sprite.srcWidth,
+    srcHeight: sprite.srcHeight,
+    x: center.x - sprite.width / 2,
+    y: center.y - sprite.height / 2,
+    width: sprite.width,
+    height: sprite.height,
+    zIndex: sprite.zIndex,
+    flipX: sprite.flipX,
+    flipY: sprite.flipY,
+    rotationDegrees: degrees,
+  );
 }
 
 ChunkVisualSpriteRel _sprite({

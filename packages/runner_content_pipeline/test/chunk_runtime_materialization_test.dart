@@ -6,6 +6,98 @@ import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('decoration rotation preserves the scaled reflected atlas center and physics', () {
+    PolygonTerrainRuntimeChunk compile(double degrees) {
+      final source = jsonDecode(_chunk) as Map<String, dynamic>;
+      source['prefabs'][0]['rotationDegrees'] = degrees;
+      source['prefabs'][0]['scale'] = 1.5;
+      source['prefabs'][0]['flipX'] = true;
+      source['prefabs'][0]['flipY'] = true;
+      final result = compilePolygonTerrainRuntimeChunkSource(
+        prefabSourcePath: 'prefab.json',
+        prefabContents: _prefabs.replaceFirst('"obstacle"', '"decoration"'),
+        tileSourcePath: 'tile.json',
+        tileContents: _tiles,
+        chunkSourcePath: 'chunk.json',
+        chunkContents: jsonEncode(source),
+      );
+      expect(result.issues, isEmpty);
+      return result.chunk!;
+    }
+
+    final baseline = compile(0);
+    for (final angle in [22.5, 90.0, 180.0, 359.0]) {
+      final rotated = compile(angle);
+      final sprite = rotated.pattern.visualSprites.single;
+      expect(sprite.rotationDegrees, angle);
+      expect(sprite.x, baseline.pattern.visualSprites.single.x);
+      expect(sprite.y, baseline.pattern.visualSprites.single.y);
+      expect(sprite.flipX && sprite.flipY, isTrue);
+      expect(
+        rotated.stagedTerrain.sourceSignature,
+        baseline.stagedTerrain.sourceSignature,
+      );
+      expect(
+        rotated.stagedTerrain.triangleSignature,
+        baseline.stagedTerrain.triangleSignature,
+      );
+    }
+  });
+
+  test(
+    'module tiles orbit one normalized visual center using the authored grid',
+    () {
+      final tiles = jsonDecode(_moduleTiles) as Map<String, dynamic>;
+      tiles['platformModules'][0]['tileSize'] = 32;
+      tiles['platformModules'][0]['cells'] = [
+        {'sliceId': 'tile', 'gridX': -1, 'gridY': -2},
+        {'sliceId': 'tile', 'gridX': 1, 'gridY': -2},
+      ];
+      final source = jsonDecode(_moduleChunk) as Map<String, dynamic>;
+      source['prefabs'][0]['rotationDegrees'] = 90;
+      final result = compilePolygonTerrainRuntimeChunkSource(
+        prefabSourcePath: 'prefab.json',
+        prefabContents: _modulePrefabs.replaceFirst(
+          '"platform"',
+          '"decoration"',
+        ),
+        tileSourcePath: 'tile.json',
+        tileContents: jsonEncode(tiles),
+        chunkSourcePath: 'chunk.json',
+        chunkContents: jsonEncode(source),
+      );
+      expect(result.issues, isEmpty);
+      final sprites = result.chunk!.pattern.visualSprites;
+      // Before rotation the reflected union is x=4..124, y=224..248.
+      expect(sprites, hasLength(2));
+      expect(sprites[0].x, closeTo(52, 1e-9));
+      expect(sprites[0].y, closeTo(272, 1e-9));
+      expect(sprites[1].x, closeTo(52, 1e-9));
+      expect(sprites[1].y, closeTo(176, 1e-9));
+      expect(sprites.map((s) => s.rotationDegrees), [90, 90]);
+    },
+  );
+
+  test(
+    'rotation rejects obstacle and platform owners even without collision',
+    () {
+      for (final kind in ['obstacle', 'platform']) {
+        final source = jsonDecode(_chunk) as Map<String, dynamic>;
+        source['prefabs'][0]['rotationDegrees'] = 90;
+        final result = compilePolygonTerrainRuntimeChunkSource(
+          prefabSourcePath: 'prefab.json',
+          prefabContents: _prefabs.replaceFirst('"obstacle"', '"$kind"'),
+          tileSourcePath: 'tile.json',
+          tileContents: _tiles,
+          chunkSourcePath: 'chunk.json',
+          chunkContents: jsonEncode(source),
+        );
+        expect(result.chunk, isNull);
+        expect(result.issues.single.code, 'invalid_prefab_placement_rotation');
+      }
+    },
+  );
+
   test('traps materialize without changing terrain signatures', () {
     PolygonTerrainRuntimeChunk compile({
       required bool withTraps,
@@ -175,7 +267,7 @@ void main() {
     expect(result.issues, isEmpty);
     final sprite = result.chunk!.pattern.visualSprites.single;
     expect(sprite.assetPath, 'level/tiles.png');
-    expect(sprite.x, 76);
+    expect(sprite.x, 100);
     expect(sprite.y, 224);
     expect(sprite.width, 24);
     expect(sprite.height, 24);

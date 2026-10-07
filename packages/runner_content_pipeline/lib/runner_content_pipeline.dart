@@ -15,3 +15,5 @@ export 'src/trap_placement_source.dart';
 export 'src/encounter_source.dart';
 export 'src/boss_arena_source.dart';
 export 'src/encounter_readiness.dart';
+
+export 'src/prefab_rotation.dart';

@@ -202,6 +202,7 @@ class TrackManager {
       zIndex: sprite.zIndex,
       flipX: sprite.flipX,
       flipY: sprite.flipY,
+      rotationDegrees: sprite.rotationDegrees,
     );
   }
 }

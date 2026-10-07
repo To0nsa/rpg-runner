@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -14,12 +15,16 @@ class StaticPrefabSpriteComponent extends PositionComponent
     required Vector2 size,
     this.flipX = false,
     this.flipY = false,
+    this.rotationDegrees = 0,
   }) : super(position: position, size: size, anchor: Anchor.topLeft);
 
   final String assetPath;
   final ui.Rect srcRect;
   final bool flipX;
   final bool flipY;
+
+  /// Clockwise degrees around the destination center, after local reflections.
+  final double rotationDegrees;
   bool _spriteLoadFailed = false;
   ui.Image? _image;
 
@@ -70,6 +75,17 @@ class StaticPrefabSpriteComponent extends PositionComponent
   @override
   void render(ui.Canvas canvas) {
     super.render(canvas);
+    if (rotationDegrees != 0) {
+      canvas.save();
+      canvas.translate(size.x / 2, size.y / 2);
+      canvas.rotate(rotationDegrees * math.pi / 180);
+      canvas.translate(-size.x / 2, -size.y / 2);
+    }
+    _renderSprite(canvas);
+    if (rotationDegrees != 0) canvas.restore();
+  }
+
+  void _renderSprite(ui.Canvas canvas) {
     final image = _image;
     if (image != null) {
       if (flipX || flipY) {

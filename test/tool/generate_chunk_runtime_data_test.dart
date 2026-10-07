@@ -9,6 +9,48 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/level_definition_generation.dart' as level_source;
 
 void main() {
+  test(
+    'decoration rotation survives generated Dart and registry loading',
+    () async {
+      final root = await Directory.systemTemp.createTemp('rotation_generator_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      _writeValidSmokeFixture(root.path);
+      final prefabs = File(
+        root.path + '/assets/authoring/level/prefab_defs.json',
+      );
+      prefabs.writeAsStringSync(
+        prefabs.readAsStringSync().replaceFirst('"platform"', '"decoration"'),
+      );
+      final source = File(
+        root.path + '/assets/authoring/level/chunks/field/chunk_ok.json',
+      );
+      final json =
+          jsonDecode(source.readAsStringSync()) as Map<String, dynamic>;
+      json['prefabs'] = [
+        {
+          'prefabId': 'grass',
+          'prefabKey': 'grass',
+          'x': 80,
+          'y': 80,
+          'zIndex': -1,
+          'snapToGrid': false,
+          'rotationDegrees': 37.5,
+        },
+      ];
+      source.writeAsStringSync(jsonEncode(json));
+      final generated = await _runGenerate(workingDirectory: root.path);
+      expect(generated.exitCode, 0, reason: generated.stderr.toString());
+      final probe = await _runCompiledRegistryProbe(root.path, r'''
+  final pattern = LevelRegistry.byId(LevelId.field).chunkPatternSource.patternFor(
+    chunkIndex: 0, seed: 1, tier: ChunkPatternTier.easy);
+  final sprite = pattern.visualSprites.single;
+  if (sprite.rotationDegrees != 37.5 || sprite.x != 64 || sprite.y != 64) {
+    throw StateError('Generated decoration rotation differs from source.');
+  }
+''');
+      expect(probe.exitCode, 0, reason: probe.stderr.toString());
+    },
+  );
   // Keep cold compilation subprocesses within their fixture lifetime on Windows.
   test('encounter source generates complete immutable rosters and exact reward overrides', () async {
     final root = await Directory.systemTemp.createTemp('encounter_generator_');

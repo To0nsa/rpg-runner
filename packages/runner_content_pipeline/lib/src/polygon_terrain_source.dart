@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'prefab_rotation.dart';
+
 import 'package:runner_core/terrain/water_region.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_core/encounters/encounter_definition.dart';
@@ -153,6 +155,7 @@ final class PolygonTerrainPlacementSource {
     required this.scaleTenths,
     required this.flipX,
     required this.flipY,
+    this.rotationDegrees = 0,
   });
 
   final String prefabId;
@@ -164,6 +167,9 @@ final class PolygonTerrainPlacementSource {
   final int scaleTenths;
   final bool flipX;
   final bool flipY;
+
+  /// Clockwise visual-only rotation in [0, 360), about the placed visual center.
+  final double rotationDegrees;
 
   String get resolvedPrefabRef => prefabKey ?? prefabId;
 }
@@ -566,6 +572,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
         'scale',
         'flipX',
         'flipY',
+        'rotationDegrees',
       },
       required: const {'prefabId', 'x', 'y', 'zIndex', 'snapToGrid'},
     );
@@ -588,6 +595,12 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
         flipY: json.containsKey('flipY')
             ? _boolean(json['flipY'], '$path.flipY')
             : false,
+        rotationDegrees: json.containsKey('rotationDegrees')
+            ? decodePrefabRotationDegrees(
+                json['rotationDegrees'],
+                sourcePath: '$path.rotationDegrees',
+              )
+            : 0,
       ),
     );
   }
@@ -1029,6 +1042,8 @@ int _comparePlacements(
   order = _compareBool(left.flipX, right.flipX);
   if (order != 0) return order;
   order = _compareBool(left.flipY, right.flipY);
+  if (order != 0) return order;
+  order = left.rotationDegrees.compareTo(right.rotationDegrees);
   return order != 0 ? order : left.prefabId.compareTo(right.prefabId);
 }
 

@@ -1,3 +1,5 @@
+import 'prefab_rotation.dart';
+
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -288,6 +290,25 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
       continue;
     }
     final prefab = candidates.single;
+    if (!isCanonicalPrefabRotationDegrees(placement.rotationDegrees) ||
+        (placement.rotationDegrees != 0 &&
+            !prefabSupportsCenterRotation(
+              kind: prefab.kind,
+              collisionShapeCount: prefab.collisionShapes.length,
+            ))) {
+      issues.add(
+        _errorIssue(
+          code: 'invalid_prefab_placement_rotation',
+          message:
+              'Chunk ${chunk.chunkKey} placement $placementKey rotation must be '
+              'canonical and is supported only for collision-free decorations.',
+          sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
+          placementKey: placementKey,
+        ),
+      );
+      continue;
+    }
     referencedPrefabs[prefab.prefabKey] = prefab;
     final transform = TerrainSourceTransform(
       reflectX: placement.flipX,

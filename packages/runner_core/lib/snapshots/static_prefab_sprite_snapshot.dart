@@ -15,6 +15,7 @@ class StaticPrefabSpriteSnapshot {
     required this.zIndex,
     this.flipX = false,
     this.flipY = false,
+    this.rotationDegrees = 0,
   });
 
   final String assetPath;
@@ -36,4 +37,8 @@ class StaticPrefabSpriteSnapshot {
   final int zIndex;
   final bool flipX;
   final bool flipY;
+
+  /// Clockwise visual rotation in [0, 360) around this sprite's center.
+  /// X/Y locate its unrotated destination rectangle at the rotated tile center.
+  final double rotationDegrees;
 }

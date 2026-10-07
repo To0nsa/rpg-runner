@@ -8,7 +8,26 @@ void main() {
   test(
     'publishes current selected chunk identities with geometry rebuilds',
     () {
-      const first = ChunkPattern(name: 'first', chunkKey: 'field_default_normal_001');
+      const first = ChunkPattern(
+        name: 'first',
+        chunkKey: 'field_default_normal_001',
+        visualSprites: [
+          ChunkVisualSpriteRel(
+            assetPath: 'decoration.png',
+            srcX: 0,
+            srcY: 0,
+            srcWidth: 40,
+            srcHeight: 20,
+            x: 7,
+            y: 9,
+            width: 40,
+            height: 20,
+            zIndex: -1,
+            flipX: true,
+            rotationDegrees: 37.5,
+          ),
+        ],
+      );
       const source = ChunkPatternListSource(
         earlyPatterns: <ChunkPattern>[first],
         easyPatterns: <ChunkPattern>[first],
@@ -28,6 +47,18 @@ void main() {
 
       streamer.step(cameraLeft: 0.0, cameraRight: 1800.0, spawnEnemy: (_) {});
 
+      expect(streamer.dynamicVisualSprites.map((s) => s.x), [
+        7,
+        607,
+        1207,
+        1807,
+      ]);
+      expect(
+        streamer.dynamicVisualSprites.every(
+          (s) => s.rotationDegrees == 37.5 && s.flipX && s.y == 9,
+        ),
+        isTrue,
+      );
       expect(streamer.activeChunks, hasLength(4));
       expect(streamer.activeChunks.map((chunk) => chunk.index), <int>[
         0,

@@ -138,6 +138,7 @@ class LiveWorldSyncSystem {
         size: Vector2(sprite.width, sprite.height),
         flipX: sprite.flipX,
         flipY: sprite.flipY,
+        rotationDegrees: sprite.rotationDegrees,
       )..priority = priorityStaticPrefabs + sprite.zIndex;
       _staticPrefabSpritesByKey[key] = view;
       world.add(view);
@@ -175,6 +176,15 @@ class LiveWorldSyncSystem {
       final key = _StaticPrefabSpriteKey.fromSnapshot(sprite);
       final view = _staticPrefabSpritesByKey[key];
       if (view == null) {
+        continue;
+      }
+      // Rotated module tiles share subpixel geometry. Snap the camera offset,
+      // rather than each tile independently, to preserve their common pivot.
+      if (sprite.rotationDegrees != 0) {
+        view.position.setValues(
+          sprite.x + math.snapWorldToPixelsInViewX(0, transform),
+          sprite.y + math.snapWorldToPixelsInViewY(0, transform),
+        );
         continue;
       }
       view.position.setValues(
@@ -432,6 +442,7 @@ class _StaticPrefabSpriteKey {
     required this.zIndex,
     required this.flipX,
     required this.flipY,
+    required this.rotationDegrees,
   });
 
   factory _StaticPrefabSpriteKey.fromSnapshot(StaticPrefabSpriteSnapshot s) {
@@ -448,6 +459,7 @@ class _StaticPrefabSpriteKey {
       zIndex: s.zIndex,
       flipX: s.flipX,
       flipY: s.flipY,
+      rotationDegrees: s.rotationDegrees,
     );
   }
 
@@ -463,6 +475,7 @@ class _StaticPrefabSpriteKey {
   final int zIndex;
   final bool flipX;
   final bool flipY;
+  final double rotationDegrees;
 
   @override
   bool operator ==(Object other) {
@@ -478,7 +491,8 @@ class _StaticPrefabSpriteKey {
         other.height == height &&
         other.zIndex == zIndex &&
         other.flipX == flipX &&
-        other.flipY == flipY;
+        other.flipY == flipY &&
+        other.rotationDegrees == rotationDegrees;
   }
 
   @override
@@ -495,5 +509,6 @@ class _StaticPrefabSpriteKey {
     zIndex,
     flipX,
     flipY,
+    rotationDegrees,
   );
 }

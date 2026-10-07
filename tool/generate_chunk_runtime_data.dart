@@ -796,6 +796,9 @@ void _writePatternList(
       if (sprite.flipY) {
         buffer.writeln('        flipY: true,');
       }
+      if (sprite.rotationDegrees != 0) {
+        buffer.writeln('        rotationDegrees: ${sprite.rotationDegrees},');
+      }
       buffer.writeln('      ),');
     }
     buffer.writeln('    ],');
