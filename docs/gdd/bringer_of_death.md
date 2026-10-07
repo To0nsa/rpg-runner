@@ -2,8 +2,8 @@
 
 Bringer of Death is Forest's first mandatory boss, fought in
 `forest_boss_easy_001` between the easy rocky-grove and enchanted-forest sections.
-This feature is prepared on `feature/forest-boss-arena`; production release is
-separate.
+This encounter is deployed as gameplay `2026.10.8` with `score-v4`; see the
+[production evidence](../verification/forest_boss_arena.md#production-release-2026108).
 
 The 600-by-270 arena fills one gameplay viewport. Its flat floor and raised
 one-way platform give the player room to reposition. Once the entire arena is

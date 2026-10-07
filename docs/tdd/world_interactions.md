@@ -93,12 +93,12 @@ It neither grants nor replaces this shrine's persistent regeneration modifier.
 ## Compatibility and checks
 
 Game compatibility `2026.10.4` introduced equal flat regeneration bonuses of
-0.10 health, mana, and stamina per second. Current `2026.10.6` source retains
+0.10 health, mana, and stamina per second. Current `2026.10.8` source retains
 those rates across the client, Functions issuance defaults, and validator. The HUD names it
 “Bénédiction des Dames de la forêt”. The worker rejects prior gameplay versions,
-including `2026.10.4`, because current Core also changes deterministic pickup
-placement over non-collidable terrain and combat pose geometry.
-Command/replay encoding is unchanged, and ranked scoring remains `score-v3`.
+including `2026.10.7`, because current Core also includes the mandatory boss
+encounter, shared attack knockback and victory resource restoration.
+Command/replay encoding is unchanged, and current ranked scoring uses `score-v4`.
 Ship matching client, Functions, and worker through the coordinated
 [release workflow](deployment_workflow.md).
 

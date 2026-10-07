@@ -1,8 +1,9 @@
 # Boss arenas
 
 Forest's `forest_boss_easy_001` contains the first mandatory boss encounter,
-Bringer of Death. This implementation is prepared for gameplay compatibility
-`2026.10.8` and score partition `score-v4`; it is not a production deployment.
+Bringer of Death. This implementation is deployed with gameplay compatibility
+`2026.10.8` and score partition `score-v4`; see the
+[production evidence](../verification/forest_boss_arena.md#production-release-2026108).
 
 ## Ownership and authored contract
 
@@ -181,8 +182,8 @@ include `excludedScoreTicks` and the extended ordinal-preserving kill array.
 Replay command encoding remains v1; no client-provided boss result is trusted.
 Functions, client and worker compatibility defaults move together to
 `2026.10.8`; board/worker score defaults use `score-v4` so earlier scores retain
-their existing partitions. A coordinated release and drain policy are required
-before this branch is deployed.
+their existing partitions. The coordinated release verified matching artifacts
+and drained validation/settlement before restoring issuance.
 
 ## Editor and verification
 

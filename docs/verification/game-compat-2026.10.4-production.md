@@ -92,4 +92,4 @@ the image benchmark and live infrastructure checks do not establish those
 signed-in outcomes. No Android/iOS package was built or installed in this release.
 
 Preparation, image and production checkpoints are retained under
-`.tmp/release-checkouts/43e6c8410b1ba43ae2851fa5678d99e252a1ceb9/.tmp/releases/rpg-runner-d7add/852d6127cc81d662a12c96f08d345f1d0424665aa018118d02ffd170f0a1e1c7/`.
+`.tmp/release-archives/43e6c8410b1ba43ae2851fa5678d99e252a1ceb9/releases/rpg-runner-d7add/852d6127cc81d662a12c96f08d345f1d0424665aa018118d02ffd170f0a1e1c7/`.

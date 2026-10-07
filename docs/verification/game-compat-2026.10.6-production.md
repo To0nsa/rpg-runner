@@ -102,4 +102,4 @@ See the [release checklist](../building/rescue_release_operations.md).
 
 Stage manifests, component logs, build/benchmark output, live inventories,
 and the sanitized App Check result remain under
-`.tmp/release-checkouts/6802fa0eb8e10ac902693a183202646aeafb7e99/.tmp/releases/rpg-runner-d7add/81a925773c17f3a54354b5a83c00700a700632195f6992f9f7a94aff1f7218ce/`.
+`.tmp/release-archives/6802fa0eb8e10ac902693a183202646aeafb7e99/releases/rpg-runner-d7add/81a925773c17f3a54354b5a83c00700a700632195f6992f9f7a94aff1f7218ce/`.

@@ -354,7 +354,7 @@ check precedes the shared percentage restore, so it cannot reverse fatal damage.
 One streamed arena occurrence grants once; its Core-timed notice survives arena
 release and pauses with the simulation. The default restores 60% of current
 maximum health, mana and stamina, capped at those maxima, without changing
-regeneration state. This is part of the unreleased `2026.10.8` boss feature.
+regeneration state. This ships with the `2026.10.8` boss feature.
 See [boss arena contracts](boss_arenas.md).
 
 ## Outputs and consumers
@@ -494,8 +494,9 @@ sections. Updated collision, enemy markers, traps and rescue placements are
 materialized into `authored_chunk_patterns.dart` and `staged_authored_terrain.dart`;
 `level_registry.dart` carries the new assembly. All three artifacts must be
 regenerated from the same saved sources before client and worker preparation.
-The existing prepared `2026.10.7` compatibility tuple includes this revision and
-the Derf changes; production remains on `2026.10.6` until coordinated cutover.
+This authored revision and the Derf changes shipped in `2026.10.7`.
+`2026.10.8` preserves that authoring, activates the mandatory boss metadata and
+dedicated arena section, and regenerates the matching 80-chunk catalog.
 
 Core owns occurrence activation, target selection, participant damage credit,
 active chunk containment, survivor section bounds, terminal priority and checked

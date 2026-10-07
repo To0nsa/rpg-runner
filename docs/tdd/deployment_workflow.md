@@ -9,12 +9,15 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.7`, with Derf transformation,
-finalized Forest authoring and repaired hard-section traversal. Its ranked tuple
-is `rules-v2`, `score-v3`, and `ghost-v1`; replay and command formats remain 1.
-See the [October 7 production evidence](../verification/game-compat-2026.10.7-production.md)
-for frozen commit `ffd6475f`, artifacts, authorized cancellation, cutover checks,
-and the remaining browser service-initialization limitation. The
+The current production release is gameplay `2026.10.8`, with the mandatory
+Forest boss, shared entrance/knockback feedback and the Dames de la forêt
+victory blessing, preserving the finalized Forest authoring from `2026.10.7`.
+Its ranked tuple is `rules-v2`, `score-v4`, and `ghost-v1`; replay and command
+formats remain 1. See the
+[October 7 production evidence](../verification/forest_boss_arena.md#production-release-2026108)
+for frozen commit `18d00737`, artifacts and live cutover checks. No runs required
+cancellation. Controlled signed-in gameplay and the pre-existing browser
+service-initialization limitation remain unverified. The
 [release checklist](../building/rescue_release_operations.md) retains the
 outstanding linked Play Games smoke checks.
 

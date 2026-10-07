@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.7` was deployed October 7, 2026 (Helsinki time) from frozen
-commit `ffd6475f`; see [current production evidence](../verification/game-compat-2026.10.7-production.md).
+Status: `2026.10.8` was deployed October 7, 2026 (Helsinki time) from frozen
+commit `18d00737`; see [current production evidence](../verification/forest_boss_arena.md#production-release-2026108).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.7](../verification/game-compat-2026.10.7-production.md),
 [2026.10.6](../verification/game-compat-2026.10.6-production.md),
 [2026.10.4](../verification/game-compat-2026.10.4-production.md),
 [2026.10.3](../verification/game-compat-2026.10.3-production.md),
@@ -10,6 +11,33 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed release: 2026.10.8
+
+The mandatory Forest boss, purple entrance with shared black vignette/shake/haptic
+feedback, grounded attacks with shared 112-unit knockback, fixed boss scoring,
+and the Dames de la forêt 60% victory resource restore are deployed.
+The current 80-chunk Forest catalog preserves the newer authoring from 2026.10.7.
+The ranked partition is now `score-v4`; replay/command and ghost formats remain 1.
+
+- [x] Merge the feature into master, preserve newer authoring/release fixes and
+  regenerate the current catalog. All 139 focused boss/traversal checks pass.
+- [x] Freeze corrected source and pass required client/backend/shared checks;
+  reuse only matching successful validator evidence. Build the release web artifact.
+- [x] Build and benchmark the exact immutable worker image at one CPU / 512 MiB.
+- [x] Pause issuance and verify the drain. Zero active sessions; all 191 grants
+  settled. No cancellation or remote data reset was necessary.
+- [x] Deploy matching Functions/worker/Hosting, verify all six boards, worker
+  digest/traffic and live web bytes, then restore both queues and matching issuer.
+- [x] Record live production evidence and the verified baseline.
+- [x] Remove the merged feature branch and all 17 obsolete clean, merged
+  worktrees after live verification, retaining checksum-verified release evidence.
+- [ ] Complete linked Play Games production gameplay/replay/settlement/ghost
+  and live retired-version smoke. The pre-existing browser bootstrap limitation
+  remains unverified; no native package was installed by this release.
+
+See [production evidence](../verification/forest_boss_arena.md#production-release-2026108)
+for frozen source, immutable artifacts, actual stage times and verification limits.
 
 ## Deployed release: 2026.10.7
 

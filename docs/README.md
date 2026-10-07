@@ -20,8 +20,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Deployment workflow](tdd/deployment_workflow.md): reusable preparation, asynchronous image builds, verified issuance cutover and missing-image recovery. Later source changes require their own compatibility release.
 - [Run distance and scoring](gdd/06_score.md#23-distance-means-furthest-progress): deployed in `2026.10.3`/`score-v3`, with furthest progress and 24 metres per full chunk.
 - [Earlier ghost cache client release](verification/ghost-cache-client-2026-10-03.md): ghost cache filename fix `8d7d9bdc` published to Hosting and installed on the connected Android phone; 876 client tests passed. Ghost launch, cache reuse, and rendering were verified on the phone.
-- [Latest coordinated production release](verification/game-compat-2026.10.7-production.md): frozen `ffd6475f` deployed October 7 (Helsinki time) as `2026.10.7`/`score-v3`; preparation, strict image benchmark, and live infrastructure checks passed. Three unsubmitted old-version tickets were cancelled with records retained. Signed-in Android smoke and browser file-I/O support remain unverified.
-- [Release checklist](building/rescue_release_operations.md#deployed-release-2026107): `2026.10.7` includes Derf transformation, finalized Forest authoring and repaired hard-section traversal.
+- [Latest coordinated production release](verification/forest_boss_arena.md#production-release-2026108): frozen `18d00737` deployed October 7 (Helsinki time) as `2026.10.8`/`score-v4`; preparation, strict image benchmark and live infrastructure checks passed. No runs required cancellation. Signed-in gameplay smoke and browser file-I/O support remain unverified.
+- [Release checklist](building/rescue_release_operations.md#deployed-release-2026108): `2026.10.8` adds the mandatory Forest boss, reusable entrance feedback, grounded attacks with shared knockback, and the Dames de la forêt victory blessing.
 - [Previous audit and planning baseline](archive/2026-09-15/README.md): historical reference.
 - [Chunk connections and terrain heights](tdd/chunk_connections.md): implemented authoring and selection contract.
 - [Reusable level traversal checks](../.agent/workflows/test-level-traversal.md): seeded enemy navigation tests, failure diagnostics, and how to adapt coverage to levels and movement limits.
@@ -30,8 +30,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Run startup](tdd/run_startup.md): shared preflight, world/recorder readiness, loading recovery, and run-owned assets.
 - [Forest boss arenas](tdd/boss_arenas.md) and [Bringer gameplay](gdd/bringer_of_death.md):
   deterministic full-screen entrance, confined combat, editor authoring and replay
-  scoring merged into `master` and preparing release `2026.10.8` / `score-v4`;
-  [local verification](verification/forest_boss_arena.md) is complete, not deployed.
+  scoring deployed in `2026.10.8` / `score-v4`; see
+  [production and local verification](verification/forest_boss_arena.md).
 - [Derf transformation](tdd/derf_transformation.md) and [Derf gameplay](gdd/derf.md): normal-form explosions, first-visibility transformation, then ground pursuit and tentacle melee; deployed in `2026.10.7`.
 - [Technical design documents](tdd/): implemented architecture and contracts.
 - [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed. Survivor section

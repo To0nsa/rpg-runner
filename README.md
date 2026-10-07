@@ -24,7 +24,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
   [combat debug geometry](docs/tdd/combat_pose_geometry.md)
 - Authored abilities (mobility, melee, ranged, defense, utility)
 - 5 enemy archetypes: ground chaser, ambusher, flying demon, transforming cultist,
-  and Bringer of Death in a mandatory [Forest boss arena](docs/gdd/bringer_of_death.md)
+  and Bringer of Death in a mandatory [Forest boss arena](docs/gdd/bringer_of_death.md),
+  deployed with shared attack knockback and a 60% victory resource blessing in
+  [gameplay 2026.10.8](docs/verification/forest_boss_arena.md#production-release-2026108)
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
   surviving section guards and Huntress throw/stab/slash combat,
   editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring

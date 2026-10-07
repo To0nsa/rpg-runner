@@ -132,7 +132,7 @@ successful browser service bootstrap or gameplay is not claimed. See the
 
 Stage manifests, component logs, Cloud Build output, inventories and artifacts
 remain under
-`.tmp/release-checkouts/ffd6475feb2004bc6f18de4884a9e1adaeaedeaa/.tmp/releases/rpg-runner-d7add/3e6ca5116deb95dcf3ebc3da80297e034d8eb1cb3bfc13ff53840fcb39ea6c68/`.
+`.tmp/release-archives/ffd6475feb2004bc6f18de4884a9e1adaeaedeaa/releases/rpg-runner-d7add/3e6ca5116deb95dcf3ebc3da80297e034d8eb1cb3bfc13ff53840fcb39ea6c68/`.
 Sanitized cancellation receipts, full benchmark output and cutover logs are
 retained in the repository's `.tmp/v7-*` files. The verified baseline is
 `.tmp/release-cache/deployments/rpg-runner-d7add/europe-west1.json`.

@@ -1,8 +1,8 @@
 # Current Implementation Plans
 
 - [Completed Forest boss arena](../archive/2026-10-06/building/forest_boss_arena.md):
-  implemented and locally validated on `feature/forest-boss-arena`; see
-  [verification](../verification/forest_boss_arena.md). Production deployment is separate.
+  merged into `master` and deployed in `2026.10.8` / `score-v4`; see
+  [production verification](../verification/forest_boss_arena.md#production-release-2026108).
 
 - [Completed combat hitbox alignment](../archive/2026-10-05/building/combat_hitbox_alignment.md):
   reviewed combat poses, shared timing, and exact debug geometry pass local
@@ -25,10 +25,10 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): frozen `ffd6475f`
-  deployed as `2026.10.7`/`score-v3` to Functions, Cloud Run, and web Hosting on
+- [Rescue release operations](rescue_release_operations.md): frozen `18d00737`
+  deployed as `2026.10.8`/`score-v4` to Functions, Cloud Run, and web Hosting on
   October 7 (Helsinki time). Checks and the exact-image benchmark passed.
-  Three unsubmitted old-version runs were cancelled with records retained;
+  No runs required cancellation;
   live gameplay smoke still needs a linked
   Play Games account. Browser file-I/O bootstrap remains unsupported.
   The earlier [ghost cache client fix](../verification/ghost-cache-client-2026-10-03.md)

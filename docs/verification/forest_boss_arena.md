@@ -1,10 +1,92 @@
 # Forest boss arena verification
 
-Implementation commit: `1c350b0e6` on `feature/forest-boss-arena`, based on
-`6519461c6`. The isolated worktree is
-`C:/dev/rpg_runner/.tmp/forest-boss-arena`; existing main-worktree Forest edits
-were preserved. Gameplay compatibility `2026.10.8` and score partition
-`score-v4` are prepared in source. Nothing was deployed.
+## Production release: 2026.10.8
+
+Deployed October 7, 2026 (Helsinki time) to
+[production Hosting](https://rpg-runner-d7add.web.app), Firebase Functions and
+Cloud Run from frozen commit `18d00737f6b3555811c3a54105dde6a14b084144`.
+The merge commit is `7c1bad00`; its newer Forest authoring and release fixes
+were retained. Source fingerprint: `784d75d0893bd32c82c0a78b6773bd1dda7f7a76d2f3865930c531f823648a02`.
+Client, Functions, worker and boards use `2026.10.8`, `rules-v2`, `score-v4`
+and `ghost-v1`; replay/command formats remain 1.
+
+### Prepared artifacts and exact-image checks
+
+- Fresh client analysis, **1,122 client tests** and the release web build passed,
+  including the WASM dry run. Functions build and **212 emulator tests** passed.
+- Shared checks passed: **994 Core**, **44 protocol**, **91 content-pipeline**
+  and **25 terrain-material** tests, with analysis and generated freshness for
+  **80 chunks, three levels, three parallax themes and three terrain materials**.
+- Matching cached validator evidence was reused: **201 tests**, analysis and
+  the compiled AOT protocol-rejection probe. Runtime inputs match; this was
+  successful evidence from preparation of the merge, not an omitted gate.
+- Fresh production dependency audit: no known vulnerabilities. The first frozen
+  preparation failed five stale board assertions; the fixture-only correction
+  passed 30 focused checks and the final 212-test gate. Failed checks were not
+  treated as release evidence.
+- Cloud Build `85abc066-66ee-40fa-9475-fb6bd7625033` succeeded. Its strict
+  **36,000-tick per level** benchmark of the exact image at **one CPU / 512 MiB**
+  passed all nine gates: Forest **1.573 s**, Field **1.784 s**, new-level **1.740 s**.
+  All replay outcomes match. The no-enemy Forest benchmark stalls around 332
+  units at geometry version 1; actual boss coverage comes from the combat/replay
+  tests. Separate container CI and unchanged mocked release-tool tests were not
+  rerun and are not claimed as passing current live gates.
+
+Immutable worker:
+`europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator@sha256:dbcc4fc3eab1ce23ecc3e734bd1dfa4acb1bbfb1a61646d4d169d4e34144a82a`.
+Functions build digest: `64f4f614c021595d556ae18294412df0339e6c6e2b0477a4f2080fc4f26b03e0`.
+Web tree digest: `0539426d40eea36c2a3e00618385520a245edf0b9c2c05e03a89d1aae00f7de5`.
+Live `main.dart.js` SHA-256 matches the prepared bytes:
+`08873fcc906d3ba2d0657f3e8f7d36066bf8acae3bed5a8dc14bb467a6cafb53`.
+
+### Live cutover verification
+
+The owner authorized merge, deployment, cancellation only if needed, and cleanup.
+Issuance paused at `2026-10-06T23:27:43.1901561Z` on a healthy serving revision.
+The fresh paused inventory had **zero active runs**, **191 accepted validations**
+and **191 settled grants**, with no pending/quarantined settlement. No runs were
+cancelled or data reset; the 20 cancellations and 23 expirations are historical.
+
+Functions deployed at `2026-10-06T23:36:20.1467706Z`, worker at
+`2026-10-06T23:38:35.3080332Z`, and Hosting at `2026-10-06T23:39:08.6183832Z`.
+All six current/next boards were verified before resumption. Issuance restored
+at `2026-10-06T23:44:59.7948271Z` after matching worker/web verification.
+The final inventory at `2026-10-06T23:46:28.087Z` confirmed **26 ACTIVE
+Functions**, both queues **RUNNING**, six expected boards present, and the
+same 191 settled runs. Ready worker `replay-validator-00049-g42` and ready
+issuer `runsessioncreate-00044-vph` serve **100% traffic**. The issuer has no
+temporary supported-version override. The verified baseline is retained in
+`.tmp/release-cache/deployments/rpg-runner-d7add/europe-west1.json`.
+
+### Remaining verification and evidence retention
+
+Controlled linked Play Games smoke remains outstanding: fresh Practice/ranked
+issuance, replay acceptance, once-only settlement, leaderboards, pinned ghosts
+and live retired-version rejection. Local compatibility and AOT tests reject
+retired inputs; they are not controlled signed-in production evidence. No native
+package was built or installed. The pre-existing browser file-I/O bootstrap
+limitation was unchanged and browser gameplay was not rechecked; Hosting byte
+identity and live service readiness were verified.
+
+Release manifests, component logs, Cloud Build metadata and inventories are
+retained under
+`.tmp/release-archives/18d00737f6b3555811c3a54105dde6a14b084144/releases/rpg-runner-d7add/784d75d0893bd32c82c0a78b6773bd1dda7f7a76d2f3865930c531f823648a02/`.
+Full benchmark output and cutover/issuer receipts remain in `.tmp/v8-*`;
+artifact/component caches remain in `.tmp/release-cache/`.
+
+After live verification, the merged feature branch and all **17 obsolete clean,
+merged worktrees** were removed. Only the main `master` worktree remains.
+Release evidence was copied and checksum-verified before removal; the cleanup
+receipt is `.tmp/v8-cleanup-applied.json`. Earlier release verification documents
+now point to their retained archives.
+
+Historical source/worktree validation below predates this production cutover.
+
+## Original implementation milestone
+
+Implementation commit `1c350b0e6` was developed on `feature/forest-boss-arena`,
+based on `6519461c6`, in the isolated `.tmp/forest-boss-arena` worktree.
+The following local evidence preserves that implementation history.
 
 ## Delivered behavior
 

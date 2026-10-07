@@ -71,4 +71,4 @@ anonymous canary is rejected by the identity gate and cannot stand in for a
 linked account. Native Android/iOS distribution was outside this web release.
 
 Local preparation, Cloud Build, and production checkpoints are retained under
-`.tmp/release-checkouts/b5835b8e4a8bd3c0e1f077b28affc8d1dc1a87a0/.tmp/releases/rpg-runner-d7add/fbec2a2cbb11fa95430e16c10f28943cdb3620781b903791d07be6e23d5ef03b/`.
+`.tmp/release-archives/b5835b8e4a8bd3c0e1f077b28affc8d1dc1a87a0/releases/rpg-runner-d7add/fbec2a2cbb11fa95430e16c10f28943cdb3620781b903791d07be6e23d5ef03b/`.
