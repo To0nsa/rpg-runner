@@ -31,13 +31,15 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     required bool atMeleeHeight,
     required int currentTick,
   }) {
+    // Barrage timing can make teleport due on every claw turn. Preserve an
+    // eligible claw turn; the due teleport can commit on the following action.
+    if (distanceX <= 85 && atMeleeHeight && sequence % 3 == 0) {
+      return 'goddess.claw_combo';
+    }
     final state = world.bossCombat.indexOf(boss);
     if (sequence >= 3 &&
         currentTick >= world.bossCombat.nextTeleportTick[state]) {
       return 'goddess.teleport';
-    }
-    if (distanceX <= 85 && atMeleeHeight && sequence % 3 == 0) {
-      return 'goddess.claw_combo';
     }
     return sequence.isEven ? 'goddess.orb' : 'goddess.eruption';
   }

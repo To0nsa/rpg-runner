@@ -29,6 +29,8 @@ attacker and combo activation bypass that combo's protection. This changes
 replayed combat outcomes and requires a coordinated client/Functions/worker
 cutover; it has not been deployed by the source change. The ranked tuple and
 replay/command formats above remain unchanged.
+This prepared release also preserves Goddess's eligible claw turns ahead of due
+teleports, as specified in [boss selection](ancient_god_bosses.md#catalogs-and-authority).
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug

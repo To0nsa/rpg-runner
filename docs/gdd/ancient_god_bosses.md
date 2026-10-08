@@ -39,8 +39,12 @@ death presentation, exit and victory blessing reuse the
 | Vanish and return | After at least three actions, relocates to a legal point 150 world units from the captured target, preferring the opposite side; at least eight seconds between teleport commits |
 
 She alternates orbs and eruptions, using claws on every third sequence position
-when the player is within 85 units and near her height. She approaches toward a
-65-unit stand-off at 0.8 of shared ground speed. The barrage sweeps from her corner
+when the player is within 85 units and near her height. In prepared source
+compatibility `2026.10.11`, an eligible claw turn takes priority over a due
+teleport; she can teleport on the next action after the claw cooldown. This
+prevents the six-second barrage cadence from repeatedly skipping her melee
+attack. Out of claw range or height, a due teleport keeps priority. She approaches
+toward a 65-unit stand-off at 0.8 of shared ground speed. The barrage sweeps from her corner
 to the other end, with fixed marks rather than tracking later player movement.
 Move between marks or jump to avoid the slaps. Her corner is 64 units inside the
 arena and 150 units above the level floor; she remains vulnerable while hovering.

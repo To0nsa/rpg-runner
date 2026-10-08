@@ -43,6 +43,18 @@ Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
+In prepared compatibility `2026.10.11`, Goddess evaluates an eligible claw turn
+before a due teleport: sequence modulo three is zero, horizontal distance is at
+most 85 world units, and vertical distance is at most 50. A claw commit advances
+the existing per-actor sequence without changing `nextTeleportTick`, leaving
+teleport due for the next action after the ordinary cooldown. Otherwise the
+existing teleport-first ranged selection applies. This prevents barrage timing
+from synchronizing every claw turn with teleport readiness. Shared dispatch,
+other bosses, ability timings, tick order and wire formats remain unchanged;
+client and replay worker must ship the same Core selection policy. The focused
+boss tests cover repeated commits after a ranged opening and range/height gates
+at 30, 60 and 90 Hz using the production ability-phase and cooldown systems.
+
 Both summons use ordinary enemy targeting, health, damage, statuses and death
 handling. Tentacles override pursuit speed to zero and discard navigation
 plans; minions pursue normally. Bosses use catalog Stun/Silence immunity and

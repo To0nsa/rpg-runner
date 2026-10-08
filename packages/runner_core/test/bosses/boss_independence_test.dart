@@ -2,8 +2,11 @@ import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
 import 'package:runner_core/ecs/systems/boss_combat_system.dart';
 import 'package:runner_core/ecs/systems/boss_utility_system.dart';
+import 'package:runner_core/ecs/systems/control_lock_system.dart';
+import 'package:runner_core/ecs/systems/cooldown_system.dart';
 import 'package:runner_core/ecs/systems/enemy_cast_system.dart';
 import 'package:runner_core/ecs/systems/shoggoth_combat_system.dart';
 import 'package:runner_core/ecs/systems/voidborn_goddess_combat_system.dart';
@@ -77,6 +80,103 @@ void main() {
   }
 
   for (final hz in [30, 60, 90]) {
+    test('Goddess keeps claw turns across repeated teleports at $hz Hz', () {
+      final f = _Fixture(hz);
+      final boss = f.actor(EnemyId.voidbornGoddess, 400);
+      f.world.actorMotionBounds.add(
+        boss,
+        TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 600 * 1024),
+      );
+      final system = VoidbornGoddessCombatSystem(
+        tickHz: hz,
+        castCommitter: f.casts,
+        utilities: f.utilities,
+      );
+      final cooldowns = CooldownSystem();
+      final locks = ControlLockSystem();
+      const phases = ActiveAbilityPhaseSystem();
+      final state = f.world.bossCombat.indexOf(boss);
+      final active = f.world.activeAbility.indexOf(boss);
+      final actions = <String>[];
+      final teleports = <int>[];
+      var deferredTeleports = 0;
+      var teleportPending = false;
+
+      // Exercise real action/cooldown clocks with a stationary close target;
+      // terrain placement and barrage execution have separate integration tests.
+      for (var tick = 1; tick <= hz * 50; tick++) {
+        cooldowns.step(f.world);
+        locks.step(f.world, currentTick: tick);
+        phases.step(f.world, currentTick: tick);
+        final sequence = f.world.bossCombat.actionIndex[state];
+        system.step(f.world, player: f.player, currentTick: tick);
+        if (f.world.bossCombat.actionIndex[state] == sequence) continue;
+        final key = f.world.activeAbility.abilityId[active]!;
+        actions.add(key);
+        if (actions.length == 1) {
+          expect(key, 'goddess.orb');
+          // Miss the opening claw opportunity, then enter melee range.
+          f.world.transform.setPosXY(f.player, 335, 0);
+        }
+        if (teleportPending) {
+          expect(key, 'goddess.teleport');
+          teleportPending = false;
+        }
+        if (key == 'goddess.claw_combo' &&
+            tick >= f.world.bossCombat.nextTeleportTick[state]) {
+          deferredTeleports++;
+          teleportPending = true;
+        }
+        if (key == 'goddess.teleport') {
+          if (teleports.isNotEmpty) {
+            expect(tick - teleports.last, greaterThanOrEqualTo(hz * 8));
+          }
+          teleports.add(tick);
+        }
+      }
+
+      expect(
+        actions.where((key) => key == 'goddess.claw_combo').length,
+        greaterThanOrEqualTo(4),
+      );
+      expect(actions, containsAll(['goddess.orb', 'goddess.eruption']));
+      expect(teleports.length, greaterThanOrEqualTo(3));
+      expect(deferredTeleports, greaterThanOrEqualTo(2));
+    });
+
+    for (final (distance, height, sequence, expected) in [
+      (85.0, 50.0, 3, 'goddess.claw_combo'),
+      (85.01, 0.0, 3, 'goddess.teleport'),
+      (65.0, 50.01, 3, 'goddess.teleport'),
+      (65.0, 0.0, 4, 'goddess.teleport'),
+    ]) {
+      test(
+        'Goddess chooses $expected at ($distance, $height), turn $sequence, $hz Hz',
+        () {
+          final f = _Fixture(hz);
+          final boss = f.actor(EnemyId.voidbornGoddess, 400);
+          f.world.actorMotionBounds.add(
+            boss,
+            TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 600 * 1024),
+          );
+          f.world.transform.setPosXY(f.player, 400 - distance, height);
+          f.world.bossCombat.actionIndex[f.world.bossCombat.indexOf(boss)] =
+              sequence;
+          VoidbornGoddessCombatSystem(
+            tickHz: hz,
+            castCommitter: f.casts,
+            utilities: f.utilities,
+          ).step(f.world, player: f.player, currentTick: 10);
+          expect(
+            f.world.activeAbility.abilityId[f.world.activeAbility.indexOf(
+              boss,
+            )],
+            expected,
+          );
+        },
+      );
+    }
+
     for (final interruption in ['cancelled', 'replaced', 'dead']) {
       test('Goddess cancels a $interruption barrage at $hz Hz', () {
         final motion = _BarrageMotion();
