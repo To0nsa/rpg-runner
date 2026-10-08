@@ -470,19 +470,18 @@ Combat and combat-adjacent ordering inside `GameCore.stepOneTick`:
 37. `EntityVisualCueCoalescer.resetForTick`
 38. `StatusSystem.tickExisting`
 39. `DamageMiddlewareSystem.step`
-40. `DamageSystem.step`
+40. `DamageSystem.step` (emits player-impact feedback once per accepted direct hit)
 41. `ReactiveProcSystem.step`
-42. `PlayerImpactFeedbackGate.flushTick`
-43. `StatusSystem.applyQueued`
-44. `EntityVisualCueCoalescer.emit`
-45. `EnemyCullSystem.step`
-46. `EnemyDeathStateSystem.step`
-47. `DeathDespawnSystem.step`
-48. `HealthDespawnSystem.step`
-49. `ResourceRegenSystem.step` (only when player survives combat/death checks)
-50. `AnimSystem.step` (final reactions, no second locomotion advance)
-51. `CombatHurtboxSystem.step` (final visible body)
-52. `LifetimeSystem.step`
+42. `StatusSystem.applyQueued`
+43. `EntityVisualCueCoalescer.emit`
+44. `EnemyCullSystem.step`
+45. `EnemyDeathStateSystem.step`
+46. `DeathDespawnSystem.step`
+47. `HealthDespawnSystem.step`
+48. `ResourceRegenSystem.step` (only when player survives combat/death checks)
+49. `AnimSystem.step` (final reactions, no second locomotion advance)
+50. `CombatHurtboxSystem.step` (final visible body)
+51. `LifetimeSystem.step`
 
 Notes:
 - Run-ending checks for the terrain fall threshold (`fellIntoGap`) and the

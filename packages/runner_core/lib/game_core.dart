@@ -650,7 +650,7 @@ class GameCore {
       accessories: _accessories,
       rngSeed: seed,
     );
-    _playerImpactFeedbackGate = PlayerImpactFeedbackGate(tickHz: tickHz);
+    _playerImpactFeedbackGate = const PlayerImpactFeedbackGate();
     _entityVisualCueCoalescer = EntityVisualCueCoalescer();
     _statusSystem = StatusSystem(
       tickHz: tickHz,
@@ -1925,12 +1925,13 @@ class GameCore {
             required DeathSourceKind sourceKind,
             required DamageType damageType,
           }) {
-            _playerImpactFeedbackGate.recordAppliedDamage(
+            final impact = _playerImpactFeedbackGate.eventForAppliedDamage(
               tick: tick,
               playerTarget: target == _player,
               appliedAmount100: appliedAmount100,
               sourceKind: sourceKind,
             );
+            if (impact != null) _events.add(impact);
             final kind = sourceKind == DeathSourceKind.statusEffect
                 ? EntityVisualCueKind.dotPulse
                 : EntityVisualCueKind.directHit;
@@ -1948,10 +1949,6 @@ class GameCore {
       currentTick: tick,
       queueStatus: _statusSystem.queue,
     );
-    final playerImpactEvent = _playerImpactFeedbackGate.flushTick(tick);
-    if (playerImpactEvent != null) {
-      _events.add(playerImpactEvent);
-    }
     _statusSystem.applyQueued(
       _world,
       currentTick: tick,

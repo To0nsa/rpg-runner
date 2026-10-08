@@ -5,6 +5,15 @@ import 'package:rpg_runner/ui/haptics/haptics_driver.dart';
 import 'package:rpg_runner/ui/haptics/haptics_service.dart';
 
 void main() {
+  test('every player combo hit reaches the vibration driver', () {
+    final driver = _FakeHapticsDriver();
+    final haptics = UiHapticsService(driver: driver);
+    for (var hit = 0; hit < 4; hit++) {
+      haptics.trigger(UiHapticsCue.playerHit);
+    }
+    expect(driver.calls, List.filled(4, 'medium'));
+  });
+
   test('maps cues to default intensity channels', () {
     final driver = _FakeHapticsDriver();
     final haptics = UiHapticsService(driver: driver);

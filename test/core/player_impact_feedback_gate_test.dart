@@ -1,109 +1,64 @@
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/events/player_impact_feedback_gate.dart';
 
 void main() {
-  test('emits direct player impact at most once per second', () {
-    final gate = PlayerImpactFeedbackGate(tickHz: 60);
+  const gate = PlayerImpactFeedbackGate();
 
-    gate.recordAppliedDamage(
-      tick: 10,
-      playerTarget: true,
-      appliedAmount100: 500,
-      sourceKind: DeathSourceKind.projectile,
-    );
-    final first = gate.flushTick(10);
-    expect(first, isNotNull);
-    expect(first!.amount100, equals(500));
-    expect(first.sourceKind, equals(DeathSourceKind.projectile));
-
-    gate.recordAppliedDamage(
-      tick: 20,
-      playerTarget: true,
-      appliedAmount100: 800,
-      sourceKind: DeathSourceKind.meleeHitbox,
-    );
-    expect(gate.flushTick(20), isNull);
-
-    gate.recordAppliedDamage(
-      tick: 70,
-      playerTarget: true,
-      appliedAmount100: 900,
-      sourceKind: DeathSourceKind.meleeHitbox,
-    );
-    final second = gate.flushTick(70);
-    expect(second, isNotNull);
-    expect(second!.amount100, equals(900));
-    expect(second.sourceKind, equals(DeathSourceKind.meleeHitbox));
+  test('emits every direct combo hit within one second', () {
+    final events = [
+      for (final tick in [10, 11, 15, 20])
+        gate.eventForAppliedDamage(
+          tick: tick,
+          playerTarget: true,
+          appliedAmount100: 700,
+          sourceKind: DeathSourceKind.meleeHitbox,
+        ),
+    ];
+    expect(events.map((event) => event?.tick), [10, 11, 15, 20]);
+    expect(events.map((event) => event?.amount100), [700, 700, 700, 700]);
   });
 
-  test('coalesces same-tick impacts using the highest applied damage', () {
-    final gate = PlayerImpactFeedbackGate(tickHz: 60);
-
-    gate.recordAppliedDamage(
-      tick: 42,
-      playerTarget: true,
-      appliedAmount100: 300,
-      sourceKind: DeathSourceKind.meleeHitbox,
-    );
-    gate.recordAppliedDamage(
-      tick: 42,
-      playerTarget: true,
-      appliedAmount100: 1200,
-      sourceKind: DeathSourceKind.projectile,
-    );
-    gate.recordAppliedDamage(
-      tick: 42,
-      playerTarget: true,
-      appliedAmount100: 700,
-      sourceKind: DeathSourceKind.meleeHitbox,
-    );
-
-    final event = gate.flushTick(42);
-    expect(event, isNotNull);
-    expect(event!.amount100, equals(1200));
-    expect(event.sourceKind, equals(DeathSourceKind.projectile));
+  test('preserves separate accepted hits on the same tick', () {
+    final events = [
+      for (final amount in [300, 1200, 700])
+        gate.eventForAppliedDamage(
+          tick: 42,
+          playerTarget: true,
+          appliedAmount100: amount,
+          sourceKind: DeathSourceKind.projectile,
+        ),
+    ];
+    expect(events.map((event) => event?.amount100), [300, 1200, 700]);
   });
 
-  test('ignores status-effect and non-player damage records', () {
-    final gate = PlayerImpactFeedbackGate(tickHz: 60);
-
-    gate.recordAppliedDamage(
-      tick: 8,
-      playerTarget: true,
-      appliedAmount100: 900,
-      sourceKind: DeathSourceKind.statusEffect,
-    );
-    gate.recordAppliedDamage(
-      tick: 8,
-      playerTarget: false,
-      appliedAmount100: 900,
-      sourceKind: DeathSourceKind.projectile,
-    );
-    gate.recordAppliedDamage(
-      tick: 8,
-      playerTarget: true,
-      appliedAmount100: 0,
-      sourceKind: DeathSourceKind.projectile,
-    );
-
-    expect(gate.flushTick(8), isNull);
+  test('ignores status ticks, non-player targets, and non-positive damage', () {
+    for (final (player, amount, source) in [
+      (true, 900, DeathSourceKind.statusEffect),
+      (false, 900, DeathSourceKind.projectile),
+      (true, 0, DeathSourceKind.projectile),
+      (true, -100, DeathSourceKind.projectile),
+    ]) {
+      expect(
+        gate.eventForAppliedDamage(
+          tick: 8,
+          playerTarget: player,
+          appliedAmount100: amount,
+          sourceKind: source,
+        ),
+        isNull,
+      );
+    }
   });
 
-  test('treats spell-impact as direct combat impact', () {
-    final gate = PlayerImpactFeedbackGate(tickHz: 60);
-
-    gate.recordAppliedDamage(
+  test('spell impacts retain direct-hit feedback', () {
+    final event = gate.eventForAppliedDamage(
       tick: 30,
       playerTarget: true,
       appliedAmount100: 750,
       sourceKind: DeathSourceKind.spellImpact,
     );
-
-    final event = gate.flushTick(30);
-    expect(event, isNotNull);
-    expect(event!.amount100, equals(750));
-    expect(event.sourceKind, equals(DeathSourceKind.spellImpact));
+    expect(event?.amount100, 750);
+    expect(event?.sourceKind, DeathSourceKind.spellImpact);
   });
 }

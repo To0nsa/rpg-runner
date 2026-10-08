@@ -58,12 +58,17 @@ happen before motion preparation; outside actor isolation happens before
 AI/actions. Defeat resolves after damage/fatal culls and before death cleanup,
 with player loss taking precedence. Ancient God summons are admitted/expired
 before motion preparation; their teleports execute before water/navigation
-refresh. Goddess's corner/return
-placement and scheduled hands run immediately after those teleports. Her hover
-and committed spinning motion compose after locomotion and before the single
+refresh. Goddess's corner placement, return lifecycle
+and scheduled hands run immediately after those teleports. Her hover/return
+velocity and committed spinning motion compose after locomotion and before the single
 terrain integration. Compatibility `2026.10.10` adds this barrage and
 authored strike windows that allow a later swing to hit the same target again. See
 [boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
+Prepared compatibility `2026.10.11` uses a continuous, collision-resolved Goddess
+return and limits teleporting to barrage entry. Her barrage activation grants
+unconditional damage/status protection through the last hand; action clear or
+replacement releases it without altering other invulnerability owners. Actor
+liveness remains independent from that protection.
 
 ## Tick ordering
 
@@ -443,6 +448,13 @@ the latest RunEndedEvent for terminal presentation, not an undrained copy of the
 run's transient feedback. Render effects own their bounded pending queues and
 flush them during scene synchronization. Subscribers register before play;
 controller event dispatch has no polling queue or history replay.
+
+Every accepted positive direct hit on the player emits its own
+`PlayerImpactFeedbackEvent` inside the damage callback, in damage-queue order.
+Combo follow-ups and distinct same-tick hits are not throttled or coalesced.
+Blocked hits, non-player damage and status-effect ticks emit no player-impact
+feedback. UI and render consume each event for vibration, border pulse and
+camera shake; entity color pulses retain their separate per-tick coalescer.
 
 Streaming-enabled normal and replay construction expose the selected staged
 candidate's `StagedTerrainRenderSnapshot` and use its matching collision,

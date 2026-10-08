@@ -34,8 +34,9 @@ separate channel for camera/haptics/border feedback:
   - player-target only
   - ignore zero/negative applied damage
   - ignore `DeathSourceKind.statusEffect`
-  - same-tick coalesce: keep highest `appliedAmount100`
-  - throttle: at most one emitted event per second (`tickHz` ticks)
+  - emit once per accepted direct hit, including each combo follow-up
+  - preserve separate accepted hits even on the same simulation tick
+  - no time throttle; misses and blocked hits do not emit feedback
 
 ### Render Layer
 
@@ -68,7 +69,8 @@ intensityBp = clamp(scaled, 2000, 10000) if restoredAmount100 > 0 else 0
 - highest `intensityBp` wins
 - metadata from the winning cue is kept
 
-This is independent from `PlayerImpactFeedbackGate` (camera/haptics/border throttling).
+This is independent from `PlayerImpactFeedbackGate`, which emits camera/haptics/
+border feedback for every accepted direct player hit without coalescing.
 
 ## Player Impact Feedback Mapping
 
