@@ -120,8 +120,10 @@ Actor, projectile and impact art all use 1.5x scale; source rectangles and pivot
 remain source-pixel coordinates. Collider and attack dimensions are world units.
 The source-backed Entities parser resolves static const visuals through explicit
 relative imports and preserves anchor rewrite bindings in each actor's render
-catalog. Collider and scale writes remain in `enemy_catalog.dart`; the existing
-guarded export transaction updates both files together.
+catalog. Collider and scale writes target the owning
+`enemies/catalog/<name>_enemy.dart` definition; `enemy_catalog.dart` only provides
+lookup. The existing guarded export transaction updates the definition and
+render catalog together.
 
 Goddess Cast 2 joins its six preparation and thirty cast frames using explicit
 source rectangles. Projectile startup/loop/impact strips stay separate.

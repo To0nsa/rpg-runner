@@ -16,7 +16,7 @@ List<EntityEntry> _parseAutonomousActors(
   final source = _readSource(workspace, sourcePath, issues);
   if (source == null) return const [];
   final unit = _parseUnit(source, sourcePath, issues);
-  final resolver = _ConstValueResolver(
+  final catalogResolver = _ConstValueResolver(
     unit: unit,
     sourcePath: sourcePath,
     sourceContent: source,
@@ -53,9 +53,24 @@ List<EntityEntry> _parseAutonomousActors(
     );
   }
   final entries = <EntityEntry>[];
-  final importedRenderResolvers = <String, _ConstValueResolver?>{};
+  final importedResolvers = <String, _ConstValueResolver?>{};
+  final catalogUnit = unit;
+  final catalogSourcePath = sourcePath;
   for (final (actorName, expression) in rows) {
-    final resolved = resolver._resolveExpression(expression, <String>{});
+    final local = catalogResolver._resolveExpression(expression, <String>{});
+    final resolver =
+        _resolveImportedActorConstant(
+          workspace,
+          catalogUnit,
+          catalogSourcePath,
+          local,
+          importedResolvers,
+        ) ??
+        catalogResolver;
+    final unit = resolver._unit;
+    final sourcePath = resolver._sourcePath;
+    final source = resolver._sourceContent;
+    final resolved = resolver._resolveExpression(local, <String>{});
     final NodeList<Argument>? args = resolved is InstanceCreationExpression
         ? resolved.argumentList.arguments
         : resolved is MethodInvocation
@@ -162,13 +177,13 @@ List<EntityEntry> _parseAutonomousActors(
     final parsedReferenceVisual = renderAnimExpression == null
         ? null
         : resolver.resolveRenderVisual(renderAnimExpression) ??
-              _resolveImportedActorRenderVisual(
+              _resolveImportedActorConstant(
                 workspace,
                 unit,
                 sourcePath,
                 renderAnimExpression,
-                importedRenderResolvers,
-              );
+                importedResolvers,
+              )?.resolveRenderVisual(renderAnimExpression);
     final renderScaleArg = _namedArgument(args, 'renderScale');
     final renderScaleValue = renderScaleArg == null
         ? null

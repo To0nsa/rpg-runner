@@ -19,6 +19,22 @@ String resolveEntitiesWorkspacePath() {
   return cwd;
 }
 
+/// Copies the current enemy source layout so round-trip tests exercise real imports.
+void copyRepositoryEnemySources(String targetRoot) {
+  final repositoryRoot = resolveEntitiesWorkspacePath();
+  final directory = Directory(
+    p.join(repositoryRoot, 'packages/runner_core/lib/enemies'),
+  );
+  for (final source in directory.listSync(recursive: true).whereType<File>()) {
+    if (!source.path.endsWith('.dart')) continue;
+    final target = File(
+      p.join(targetRoot, p.relative(source.path, from: repositoryRoot)),
+    );
+    target.parent.createSync(recursive: true);
+    source.copySync(target.path);
+  }
+}
+
 EditorSessionController buildEntitiesController() {
   return buildEntitiesControllerForPath(resolveEntitiesWorkspacePath());
 }

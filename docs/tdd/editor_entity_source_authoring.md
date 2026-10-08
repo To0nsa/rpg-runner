@@ -20,7 +20,8 @@ authoring phases are implemented.
 
 The parser reads the current supported shapes from:
 
-- `packages/runner_core/lib/enemies/enemy_catalog.dart`;
+- `packages/runner_core/lib/enemies/enemy_catalog.dart` and the per-enemy
+  definitions it imports from `packages/runner_core/lib/enemies/catalog/`;
 - `packages/runner_core/lib/npcs/npc_catalog.dart`;
 - every Dart file under
   `packages/runner_core/lib/players/characters/`;
@@ -30,12 +31,18 @@ The parser reads the current supported shapes from:
 
 Enemy uniform render scale lives beside `renderAnim` in each
 `EnemyArchetype`, so the parser captures both the value and writable scalar
-binding from `enemy_catalog.dart`. The Flame registry consumes that same field;
+binding from the owning `catalog/<name>_enemy.dart` file. The registry only maps
+`EnemyId` values to those constant archetypes and shared terrain profiles. The
+Flame registry consumes that same field;
 there is no separate enemy-scale binding in the render registry.
 
 NPCs use the same guarded collider, anchor, scale and radial cast-origin edits.
 The shared autonomous-actor parser resolves both block switches and expression
-switches with top-level constant archetypes, without duplicating the export path.
+switches with top-level constant archetypes, including explicit unprefixed
+relative imports of per-enemy definitions. Collider and scalar bindings retain
+the definition file and offsets; imported boss visuals retain their separate
+render-catalog bindings. Missing or ambiguous archetypes block export. This uses
+the same guarded export path as local constants.
 NPC art faces right. The launch preview includes the catalog-owned vertical
 offset, shown read-only; editing the radial offset does not reset that height.
 The NPC filter uses the existing route selection, draft and Save machinery.
@@ -135,6 +142,11 @@ unit. Hit tests use the same viewport geometry as the painter, and a pointer
 sequence outside a handle does not create history.
 
 ## Verification evidence
+
+`enemy_catalog_source_test.dart` checks every registered enemy against runtime
+metadata, a complete single-file enemy edit, definition drift, and missing
+imports. `ancient_god_entity_source_test.dart` checks atomic edits spanning an
+enemy definition and its separate render catalog.
 
 Focused tests cover scalar preservation with reordered and interleaved source,
 final drift, first/middle/last installation failures, verification rollback,

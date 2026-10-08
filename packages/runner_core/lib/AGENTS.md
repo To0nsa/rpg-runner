@@ -53,6 +53,13 @@ advance these phases. All `EnemyId.isArenaOnly` actors (required bosses and
 their summons) are excluded from ambient and rescue rosters. Summon ownership
 must cascade cleanup before owner IDs are recycled; see
 [Ancient God contracts](../../../docs/tdd/ancient_god_bosses.md).
+
+Enemy archetypes, colliders and terrain profiles belong in one
+`enemies/catalog/<name>_enemy.dart` file per enemy. Keep `EnemyCatalog` as the
+exhaustive lookup and shared types in `enemy_archetype.dart`. The source-backed
+Entities editor follows these imports; preserve its writable source bindings
+when changing this layout.
+
 Keep boss attack selection and owned ability/render/pose definitions in separate
 boss modules. Shared combat/utility machinery must not branch on a concrete boss
 identity; global catalogs provide lookup and GameCore wires explicit phases.

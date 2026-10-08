@@ -6,7 +6,7 @@
 // bindings, without turning the parser into a full Dart evaluator.
 part of '../entity_source_parser.dart';
 
-/// Resolves supported top-level and static const render metadata in one file.
+/// Resolves supported top-level and static constants within one source file.
 ///
 /// The resolver intentionally understands only the expression shapes the
 /// entities workflow can later round-trip safely.
@@ -15,10 +15,12 @@ class _ConstValueResolver {
     required CompilationUnit unit,
     required String sourcePath,
     required String sourceContent,
-  }) : _sourcePath = sourcePath,
+  }) : _unit = unit,
+       _sourcePath = sourcePath,
        _sourceContent = sourceContent,
        _initializerByName = _collectConstInitializers(unit);
 
+  final CompilationUnit _unit;
   final String _sourcePath;
   final String _sourceContent;
   final Map<String, Expression> _initializerByName;
@@ -483,53 +485,75 @@ class _ConstValueResolver {
   }
 }
 
-/// Imported static definitions retain bindings to their actual source file.
-/// Only explicit relative imports inside the workspace are admitted; source
-/// expressions are never executed and unsupported shapes keep no preview.
-EntityReferenceVisual? _resolveImportedActorRenderVisual(
+/// Resolves one explicit relative import while retaining its own source bindings.
+/// Unsupported, private, or ambiguous symbols remain unresolved and cannot be
+/// exported. Cache keys include the importing file so actor-local imports cannot
+/// accidentally reuse another actor's render or collider source.
+_ConstValueResolver? _resolveImportedActorConstant(
   EditorWorkspace workspace,
   CompilationUnit unit,
   String sourcePath,
   Expression expression,
   Map<String, _ConstValueResolver?> cache,
 ) {
-  if (expression is! PrefixedIdentifier) return null;
-  final className = expression.prefix.name;
-  if (!cache.containsKey(className)) {
-    cache[className] = null;
-    for (final directive in unit.directives.whereType<ImportDirective>()) {
-      final uri = directive.uri.stringValue;
-      if (uri == null ||
-          Uri.tryParse(uri)?.hasScheme != false ||
-          p.isAbsolute(uri)) {
-        continue;
-      }
-      final importedPath = p.normalize(p.join(p.dirname(sourcePath), uri));
-      String? content;
-      try {
-        content = _readOptionalSource(workspace, importedPath);
-      } on ArgumentError {
-        continue;
-      }
-      if (content == null) continue;
-      final imported = parseString(
-        content: content,
-        throwIfDiagnostics: false,
-      ).unit;
-      if (!imported.declarations.whereType<ClassDeclaration>().any(
-        (c) => c.namePart.typeName.lexeme == className,
-      )) {
-        continue;
-      }
-      cache[className] = _ConstValueResolver(
-        unit: imported,
-        sourcePath: importedPath,
-        sourceContent: content,
-      );
-      break;
-    }
+  final name = switch (expression) {
+    SimpleIdentifier() => expression.name,
+    PrefixedIdentifier() => expression.toSource(),
+    _ => null,
+  };
+  if (name == null || name.split('.').any((part) => part.startsWith('_'))) {
+    return null;
   }
-  return cache[className]?.resolveRenderVisualByName(expression.toSource());
+  final key = '$sourcePath::$name';
+  if (cache.containsKey(key)) return cache[key];
+  final symbol = name.split('.').first;
+  _ConstValueResolver? found;
+  for (final directive in unit.directives.whereType<ImportDirective>()) {
+    final uri = directive.uri.stringValue;
+    if (uri == null ||
+        directive.prefix != null ||
+        directive.configurations.isNotEmpty ||
+        Uri.tryParse(uri)?.hasScheme != false ||
+        p.isAbsolute(uri)) {
+      continue;
+    }
+    final visible = directive.combinators.every((combinator) {
+      return switch (combinator) {
+        ShowCombinator() => combinator.shownNames.any(
+          (name) => name.name == symbol,
+        ),
+        HideCombinator() => !combinator.hiddenNames.any(
+          (name) => name.name == symbol,
+        ),
+      };
+    });
+    if (!visible) continue;
+    final importedPath = p.normalize(p.join(p.dirname(sourcePath), uri));
+    String? content;
+    try {
+      content = _readOptionalSource(workspace, importedPath);
+    } on ArgumentError {
+      continue;
+    }
+    if (content == null) continue;
+    final imported = parseString(
+      content: content,
+      throwIfDiagnostics: false,
+    ).unit;
+    final resolver = _ConstValueResolver(
+      unit: imported,
+      sourcePath: importedPath,
+      sourceContent: content,
+    );
+    if (!resolver._initializerByName.containsKey(name)) continue;
+    if (found != null) {
+      cache[key] = null;
+      return null;
+    }
+    found = resolver;
+  }
+  cache[key] = found;
+  return found;
 }
 
 class _RenderScaleConfig {

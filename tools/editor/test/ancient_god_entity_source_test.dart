@@ -15,23 +15,11 @@ void main() {
     final root = await Directory.systemTemp.createTemp('ancient_god_entities_');
     addTearDown(() => root.deleteSync(recursive: true));
     writeEntityColliderFixture(root.path);
-    const catalog = 'packages/runner_core/lib/enemies/enemy_catalog.dart';
+    const definition =
+        'packages/runner_core/lib/enemies/catalog/voidborn_goddess_enemy.dart';
     const render =
         'packages/runner_core/lib/enemies/voidborn_goddess_render_catalog.dart';
-    for (final path in [
-      catalog,
-      render,
-      'packages/runner_core/lib/enemies/shoggoth_render_catalog.dart',
-      'packages/runner_core/lib/enemies/voidcaller_render_catalog.dart',
-      'packages/runner_core/lib/enemies/shoggoth_minion_render_catalog.dart',
-      'packages/runner_core/lib/enemies/void_tentacle_render_catalog.dart',
-    ]) {
-      final file = File(p.join(root.path, path));
-      file.parent.createSync(recursive: true);
-      file.writeAsStringSync(
-        File(p.join(resolveEntitiesWorkspacePath(), path)).readAsStringSync(),
-      );
-    }
+    copyRepositoryEnemySources(root.path);
     final workspace = EditorWorkspace(rootPath: root.path);
     final plugin = EntityDomainPlugin();
     final document = await plugin.loadFromRepo(workspace) as EntityDocument;
@@ -94,10 +82,10 @@ void main() {
     );
     expect(drifted, isNot(content));
     source.writeAsStringSync(drifted);
-    final enemyBefore = File(p.join(root.path, catalog)).readAsStringSync();
+    final enemyBefore = File(p.join(root.path, definition)).readAsStringSync();
     final rejected = await plugin.exportToRepo(workspace, document: staleEdit);
     expect(rejected.applied, isFalse);
-    expect(File(p.join(root.path, catalog)).readAsStringSync(), enemyBefore);
+    expect(File(p.join(root.path, definition)).readAsStringSync(), enemyBefore);
     expect(source.readAsStringSync(), drifted);
   });
 }

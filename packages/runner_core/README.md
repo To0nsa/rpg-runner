@@ -32,6 +32,28 @@ Normal `GameCore(...)` requires a registered `LevelId`; explicit
 captured content for tooling, including never-generated authored identities.
 They preserve the normal simulation and do not add replay/backend options.
 
+## Enemy tuning
+
+Start in `lib/enemies/catalog/<name>_enemy.dart` (for example,
+[`hashash_enemy.dart`](lib/enemies/catalog/hashash_enemy.dart)). Each file owns
+one enemy's archetype, stats, collider, terrain profile, animation configuration,
+and ability references. The archetype is first so common tuning is easy to find.
+
+`lib/enemies/enemy_catalog.dart` only maps IDs to definitions and terrain profiles.
+The shared types live in `enemy_archetype.dart` and remain exported through the
+catalog for existing consumers. Both lookups are exhaustive, archetypes remain
+constant, and terrain profiles are initialized once.
+
+Attack payloads and timings stay in `lib/abilities/catalog/*_ability_defs.dart`;
+AI decisions and movement tuning retain their existing systems and tuning files.
+Boss render catalogs remain separate because their actor/effect metadata is
+shared with combat and rendering. Common boss debuff scaling lives in
+`lib/enemies/catalog/boss_status_scaling.dart`.
+
+The source-backed Entities editor follows these imports and saves collider,
+anchor, scale, and cast-origin edits to their owning files with the existing
+backup and drift checks; see [entity source authoring](../../docs/tdd/editor_entity_source_authoring.md).
+
 ## Content and generated runtime data
 
 Playable-level source data is repository-owned:
