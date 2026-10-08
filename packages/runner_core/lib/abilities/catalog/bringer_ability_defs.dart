@@ -23,7 +23,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     cooldownTicks: 72,
     cooldownGroupId: 0,
     animKey: AnimKey.strike,
-    baseDamage: 800,
+    baseDamage: 2200,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: DamageType.physical,
   ),
@@ -46,7 +46,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     cooldownTicks: 100,
     cooldownGroupId: 0,
     animKey: AnimKey.cast,
-    baseDamage: 700,
+    baseDamage: 2200,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: DamageType.dark,
     procs: const [
@@ -55,8 +55,8 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
         statusProfileId: StatusProfileId.weakenOnHit,
         statusTuning: StatusProfileTuning(
           weaken: StatusApplicationTuning(
-            magnitude: 5000, // -50% outgoing damage, independently tunable.
-            durationSeconds: 5,
+            magnitude: 2500, // -25% outgoing damage
+            durationSeconds: 3,
           ),
         ),
       ),
