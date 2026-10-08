@@ -27,6 +27,12 @@ are current catalog values. NPC attacks use stamina, cooldowns and the same
 damage/status rules as other combat actors. NPC damage is allied damage and
 does not count as player participation. NPC death does not add an enemy kill.
 
+Each NPC archetype can configure immunity and per-effect strength/duration
+scaling using the same system as players and enemies. Multipliers below 100%
+resist harmful effects; values above 100% make them stronger or longer. Current
+NPCs retain normal effect strength and duration with no status immunities.
+Beneficial effects are unaffected by this scaling.
+
 Huntress throws spears at 420 world pixels/second along a low gravity arc, using
 half of the level's gravity. Her aim leads moving enemies and compensates for
 the drop. Spears end on a target or terrain impact; a six-second limit cleans

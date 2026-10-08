@@ -3,7 +3,8 @@ import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/stores/combat/damage_resistance_store.dart';
-import 'package:runner_core/ecs/stores/combat/status_resistance_store.dart';
+import 'package:runner_core/ecs/stores/combat/status_immunity_store.dart';
+import 'package:runner_core/ecs/stores/combat/status_scaling_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/systems/damage_system.dart';
@@ -11,15 +12,62 @@ import 'package:runner_core/ecs/systems/status_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/npcs/npc_catalog.dart';
+import 'package:runner_core/npcs/npc_id.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:test/test.dart';
 
-const _halfStrength = StatusResistanceDef(
-  defaultDebuff: StatusEffectResistance(magnitudeScaleBp: 5000),
+const _halfStrength = StatusScalingDef(
+  defaultDebuff: StatusEffectScaling(magnitudeScaleBp: 5000),
 );
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    for (final kind in ['player', 'enemy', 'npc']) {
+      test('$kind shares resistance, weakness and immunity at $hz Hz', () {
+        const scaling = StatusScalingDef(
+          defaultDebuff: StatusEffectScaling(magnitudeScaleBp: 5000),
+          vulnerable: StatusEffectScaling(
+            magnitudeScaleBp: 15000,
+            durationScaleBp: 15000,
+          ),
+          dot: StatusEffectScaling(magnitudeScaleBp: 15000),
+          stun: StatusEffectScaling(durationScaleBp: 20000),
+          silence: StatusEffectScaling(durationScaleBp: 15000),
+        );
+        final world = EcsWorld();
+        final target = _createActor(world, kind, scaling);
+        final status = StatusSystem(tickHz: hz);
+        for (final profile in [
+          StatusProfileId.slowOnHit,
+          StatusProfileId.acidOnHit,
+          StatusProfileId.burnOnHit,
+          StatusProfileId.stunOnHit,
+          StatusProfileId.silenceOnHit,
+        ]) {
+          status.queue(StatusRequest(target: target, profileId: profile));
+        }
+        status.applyQueued(world, currentTick: 1);
+        expect(world.statusScaling.forEntity(target), same(scaling));
+        expect(world.slow.magnitude.single, 1250);
+        expect(world.slow.ticksLeft.single, 5 * hz);
+        expect(world.vulnerable.magnitude.single, 7500);
+        expect(world.vulnerable.ticksLeft.single, (7.5 * hz).ceil());
+        expect(world.dot.dps100.single.single, 450);
+        expect(world.dot.periodTicks.single.single, hz);
+        expect(world.controlLock.isLocked(target, LockFlag.stun, 1), isFalse);
+        final silenceTicks = (7.5 * hz).ceil();
+        expect(
+          world.controlLock.isLocked(target, LockFlag.cast, silenceTicks),
+          isTrue,
+        );
+        expect(
+          world.controlLock.isLocked(target, LockFlag.cast, silenceTicks + 1),
+          isFalse,
+        );
+      });
+    }
+
     for (final id in EnemyId.values.where((id) => id.isBoss)) {
       test('$id resists debuffs and ignores controls at $hz Hz', () {
         final world = EcsWorld();
@@ -37,7 +85,7 @@ void main() {
           mana: a.mana,
           stamina: a.stamina,
           statusImmunity: a.statusImmunity,
-          statusResistance: a.statusResistance,
+          statusScaling: a.statusScaling,
         );
         world.activeAbility.set(
           boss,
@@ -83,11 +131,11 @@ void main() {
 
     test('source tuning, typed amplification, then resistance at $hz Hz', () {
       final f = _Fixture(hz);
-      f.world.statusResistance.add(
+      f.world.statusScaling.add(
         f.target,
-        const StatusResistanceDef(
-          defaultDebuff: StatusEffectResistance(magnitudeScaleBp: 5000),
-          slow: StatusEffectResistance(
+        const StatusScalingDef(
+          defaultDebuff: StatusEffectScaling(magnitudeScaleBp: 5000),
+          slow: StatusEffectScaling(
             magnitudeScaleBp: 2500,
             durationScaleBp: 5000,
           ),
@@ -112,7 +160,7 @@ void main() {
     });
 
     test('DoT keeps cadence, scales once and mitigates pulses at $hz Hz', () {
-      final f = _Fixture(hz, resistance: _halfStrength);
+      final f = _Fixture(hz, scaling: _halfStrength);
       f.world.damageResistance.add(
         f.target,
         const DamageResistanceDef(fireBp: -5000),
@@ -136,7 +184,7 @@ void main() {
     });
 
     test('refresh retains reduced strength without stacking at $hz Hz', () {
-      final f = _Fixture(hz, resistance: _halfStrength);
+      final f = _Fixture(hz, scaling: _halfStrength);
       f.apply(StatusProfileId.weakenOnHit);
       for (var tick = 0; tick < hz; tick++) {
         f.status.tickExisting(f.world);
@@ -161,8 +209,8 @@ void main() {
       ]) {
         final f = _Fixture(
           hz,
-          resistance: const StatusResistanceDef(
-            defaultDebuff: StatusEffectResistance(
+          scaling: const StatusScalingDef(
+            defaultDebuff: StatusEffectScaling(
               magnitudeScaleBp: 0,
               durationScaleBp: 2500,
             ),
@@ -182,8 +230,8 @@ void main() {
   test('beneficial statuses ignore even complete debuff resistance', () {
     final f = _Fixture(
       60,
-      resistance: const StatusResistanceDef(
-        defaultDebuff: StatusEffectResistance(
+      scaling: const StatusScalingDef(
+        defaultDebuff: StatusEffectScaling(
           magnitudeScaleBp: 0,
           durationScaleBp: 0,
         ),
@@ -213,12 +261,12 @@ void main() {
 
   test('zero remaining magnitude or duration prevents harmful effects', () {
     for (final multiplier in [
-      const StatusEffectResistance(magnitudeScaleBp: 0),
-      const StatusEffectResistance(durationScaleBp: 0),
+      const StatusEffectScaling(magnitudeScaleBp: 0),
+      const StatusEffectScaling(durationScaleBp: 0),
     ]) {
       final f = _Fixture(
         60,
-        resistance: StatusResistanceDef(defaultDebuff: multiplier),
+        scaling: StatusScalingDef(defaultDebuff: multiplier),
       );
       f.apply(StatusProfileId.poisonOnHit);
       f.apply(StatusProfileId.weakenOnHit);
@@ -233,13 +281,13 @@ void main() {
     }
   });
 
-  test('missing resistance and ordinary catalog defaults stay neutral', () {
+  test('missing scaling and ordinary catalog defaults stay neutral', () {
     final f = _Fixture(60);
     f.apply(StatusProfileId.weakenOnHit);
     expect(f.world.weaken.magnitude.single, 5000);
     expect(f.world.weaken.ticksLeft.single, 300);
     for (final id in EnemyId.values.where((id) => !id.isBoss)) {
-      final def = const EnemyCatalog().get(id).statusResistance;
+      final def = const EnemyCatalog().get(id).statusScaling;
       for (final type in StatusEffectType.values) {
         expect(def.forType(type).magnitudeScaleBp, 10000);
         expect(def.forType(type).durationScaleBp, 10000);
@@ -250,12 +298,12 @@ void main() {
   test('per-effect override replaces both default multipliers', () {
     final f = _Fixture(
       60,
-      resistance: const StatusResistanceDef(
-        defaultDebuff: StatusEffectResistance(
+      scaling: const StatusScalingDef(
+        defaultDebuff: StatusEffectScaling(
           magnitudeScaleBp: 5000,
           durationScaleBp: 5000,
         ),
-        weaken: StatusEffectResistance(durationScaleBp: 2500),
+        weaken: StatusEffectScaling(durationScaleBp: 2500),
       ),
     );
     f.apply(StatusProfileId.weakenOnHit);
@@ -263,10 +311,65 @@ void main() {
     expect(f.world.weaken.ticksLeft.single, 75);
   });
 
-  test('resistance changes only affect new applications', () {
-    final f = _Fixture(60, resistance: _halfStrength);
+  test('amplification retains effect caps and does not amplify buffs', () {
+    final f = _Fixture(
+      60,
+      scaling: const StatusScalingDef(
+        defaultDebuff: StatusEffectScaling(
+          magnitudeScaleBp: 20000,
+          durationScaleBp: 20000,
+        ),
+      ),
+    );
     f.apply(StatusProfileId.weakenOnHit);
-    f.world.statusResistance.add(f.target, const StatusResistanceDef());
+    f.apply(StatusProfileId.acidOnHit);
+    f.apply(StatusProfileId.drenchOnHit);
+    f.apply(StatusProfileId.speedBoost);
+    expect(f.world.weaken.magnitude.single, 9000);
+    expect(f.world.vulnerable.magnitude.single, 9000);
+    expect(f.world.drench.magnitude.single, 9000);
+    expect(f.world.weaken.ticksLeft.single, 600);
+    expect(f.world.haste.magnitude.single, 5000);
+    expect(f.world.haste.ticksLeft.single, 300);
+  });
+
+  test(
+    'NPC catalogs keep neutral status scaling and no immunities by default',
+    () {
+      for (final id in NpcId.values) {
+        final world = EcsWorld();
+        final npc = EntityFactory(world).createNpc(
+          npcId: id,
+          posX: 100,
+          posY: 50,
+          chunkStartX: 0,
+          chunkEndX: 500,
+        );
+        for (final type in StatusEffectType.values) {
+          final effect = world.statusScaling.forEntity(npc).forType(type);
+          expect(effect.magnitudeScaleBp, 10000);
+          expect(effect.durationScaleBp, 10000);
+          expect(world.statusImmunity.isImmune(npc, type), isFalse);
+        }
+      }
+    },
+  );
+
+  test('negative multipliers are invalid', () {
+    expect(
+      () => StatusEffectScaling(magnitudeScaleBp: -1),
+      throwsA(isA<AssertionError>()),
+    );
+    expect(
+      () => StatusEffectScaling(durationScaleBp: -1),
+      throwsA(isA<AssertionError>()),
+    );
+  });
+
+  test('scaling changes only affect new applications', () {
+    final f = _Fixture(60, scaling: _halfStrength);
+    f.apply(StatusProfileId.weakenOnHit);
+    f.world.statusScaling.add(f.target, const StatusScalingDef());
     f.status.tickExisting(f.world);
     expect(f.world.weaken.magnitude.single, 2500);
     f.apply(StatusProfileId.weakenOnHit);
@@ -274,31 +377,92 @@ void main() {
   });
 
   test(
-    'swap removal preserves the survivor; recycled IDs have no resistance',
+    'swap removal preserves the survivor; recycled IDs have neutral scaling',
     () {
       final world = EcsWorld();
       final first = world.createEntity(), survivor = world.createEntity();
-      world.statusResistance.add(first, const StatusResistanceDef());
-      world.statusResistance.add(survivor, _halfStrength);
+      world.statusScaling.add(first, const StatusScalingDef());
+      world.statusScaling.add(survivor, _halfStrength);
       world.destroyEntity(first);
-      expect(world.statusResistance.forEntity(survivor), same(_halfStrength));
+      expect(world.statusScaling.forEntity(survivor), same(_halfStrength));
       world.destroyEntity(survivor);
       final recycled = world.createEntity();
       expect(recycled, survivor);
-      expect(world.statusResistance.has(recycled), isFalse);
+      expect(world.statusScaling.has(recycled), isFalse);
       expect(
-        world.statusResistance
-            .forEntity(recycled)
-            .defaultDebuff
-            .magnitudeScaleBp,
+        world.statusScaling.forEntity(recycled).defaultDebuff.magnitudeScaleBp,
         10000,
       );
     },
   );
 }
 
+int _createActor(EcsWorld world, String kind, StatusScalingDef scaling) {
+  final factory = EntityFactory(world);
+  final catalog = _StatusNpcCatalog(scaling);
+  final a = catalog.get(NpcId.warrior);
+  return switch (kind) {
+    'npc' => factory.createNpc(
+      npcId: NpcId.warrior,
+      posX: 100,
+      posY: 50,
+      chunkStartX: 0,
+      chunkEndX: 500,
+      catalog: catalog,
+    ),
+    'player' => factory.createPlayer(
+      posX: 100,
+      posY: 50,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: a.body,
+      collider: a.collider,
+      health: a.health,
+      mana: a.mana,
+      stamina: a.stamina,
+      statusImmunity: a.statusImmunity,
+      statusScaling: scaling,
+    ),
+    'enemy' => factory.createEnemy(
+      enemyId: EnemyId.grojib,
+      posX: 100,
+      posY: 50,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: a.body,
+      collider: a.collider,
+      health: a.health,
+      mana: a.mana,
+      stamina: a.stamina,
+      statusImmunity: a.statusImmunity,
+      statusScaling: scaling,
+    ),
+    _ => throw ArgumentError.value(kind),
+  };
+}
+
+class _StatusNpcCatalog extends NpcCatalog {
+  const _StatusNpcCatalog(this.scaling);
+  final StatusScalingDef scaling;
+
+  @override
+  NpcArchetype get(NpcId id) {
+    final base = super.get(id);
+    return NpcArchetype(
+      collider: base.collider,
+      renderAnim: base.renderAnim,
+      attackAbilityId: base.attackAbilityId,
+      statusScaling: scaling,
+      statusImmunity: const StatusImmunityDef(mask: StatusImmunityMask.stun),
+    );
+  }
+}
+
 class _Fixture {
-  _Fixture(int hz, {StatusResistanceDef? resistance})
+  _Fixture(int hz, {StatusScalingDef? scaling})
     : status = StatusSystem(tickHz: hz) {
     target = world.createEntity();
     world.health.add(
@@ -310,7 +474,7 @@ class _Fixture {
       const ManaDef(mana: 2000, manaMax: 10000, regenPerSecond100: 0),
     );
     world.statModifier.add(target);
-    if (resistance != null) world.statusResistance.add(target, resistance);
+    if (scaling != null) world.statusScaling.add(target, scaling);
   }
   final world = EcsWorld();
   final StatusSystem status;

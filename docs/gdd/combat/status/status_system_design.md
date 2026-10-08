@@ -50,8 +50,8 @@ These are shared defaults. Every status effect can have its strength, duration,
 and applicable secondary settings tuned on its source ability or item. Bundled
 effects can differ independently: poison's damage and slow need not share the
 same duration. Tuning one source does not change another source's effect.
-Current balance is preserved; Death Pillar explicitly authors 50% Weaken for
-five seconds, while Dark Bolt inherits the same shared default. See
+Death Pillar explicitly authors 25% Weaken for three seconds, while Dark Bolt
+inherits the shared 50% / five-second default. See
 [status tuning](../../../tdd/status_effect_tuning.md) for the authoring contract.
 
 | Profile | Effects |
@@ -163,8 +163,23 @@ source. Death feedback distinguishes direct trap hits from later Poison deaths.
 
 ## Immunity, Scaling, and Gating
 
+Players, enemies, bosses and NPCs use the same `StatusScalingDef` to resist or
+amplify incoming harmful effects, independently for strength and duration.
+For example, a Vulnerable magnitude multiplier of `5000` changes its default
++50% incoming damage to +25%; `15000` changes it to +75%. A duration multiplier
+of `15000` changes five seconds to 7.5 seconds, rounded up to simulation ticks.
+Multipliers are nonnegative, with `10000` as neutral. Existing effect caps still
+apply after scaling. Beneficial effects keep their authored values.
+
+All four bosses retain Stun/Silence immunity and half-strength other harmful
+effects at full duration. Ordinary enemies, players and NPCs retain neutral
+defaults. Named effect overrides replace both default multipliers; an omitted
+multiplier within an override is neutral. See
+[target scaling](../../../tdd/status_effect_tuning.md#target-scaling).
+
 - Per-entity immunity via `StatusImmunityStore` bitmask.
 - `scaleByDamageType` scales magnitude up only when combined typed modifier is positive.
+- Recipient scaling runs after typed amplification and before caps, tick quantization and stacking; immunity is checked first.
 - Apply-time gating skips status when target is dead or missing health.
 - Invulnerability gating applies only to harmful statuses (`dot`, `slow`, `stun`, `vulnerable`, `weaken`, `drench`, `silence`).
 - An accepted hit's same-tick on-hit/on-crit statuses retain its eligibility

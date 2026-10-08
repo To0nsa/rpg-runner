@@ -62,6 +62,14 @@ survive AOT assertion removal.
 
 ## Occurrence lifecycle
 
+`NpcArchetype.statusScaling` and `statusImmunity` are passed by
+`EntityFactory.createNpc` into the same lifecycle-registered components used by
+players and enemies. `StatusSystem` applies recipient scaling once per harmful
+effect, with immunity checked first. Neutral defaults preserve NPC balance;
+stronger or longer effects can be authored with multipliers above `10000`.
+See [target scaling](status_effect_tuning.md#target-scaling) for units, caps and
+source/target ordering.
+
 `EncounterSystem` owns a bounded run-local state table keyed by streamed chunk
 index and authored encounter ID. `EncounterOccurrence` freezes sorted participant
 publication order and the actual chunk bounds. A dormant group creates no actors;

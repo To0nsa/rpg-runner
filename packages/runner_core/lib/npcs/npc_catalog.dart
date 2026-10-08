@@ -3,6 +3,8 @@ import '../abilities/ability_def.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/combat/status_immunity_store.dart';
+import '../ecs/stores/combat/status_scaling_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
@@ -36,6 +38,8 @@ final class NpcArchetype {
     required this.attackAbilityId,
     // 25 HP in hundredths gives all allied archetypes the same health budget.
     this.health = const HealthDef(hp: 2500, hpMax: 2500, regenPerSecond100: 0),
+    this.statusImmunity = const StatusImmunityDef(),
+    this.statusScaling = const StatusScalingDef(),
     this.renderScale = 1.5,
     this.speedX = 100,
     this.jumpSpeed = 360,
@@ -46,6 +50,12 @@ final class NpcArchetype {
   });
   final ColliderAabbDef collider;
   final HealthDef health;
+
+  /// Rejects named statuses before scaling or control-lock application.
+  final StatusImmunityDef statusImmunity;
+
+  /// Shared actor multipliers for incoming harmful status strength and duration.
+  final StatusScalingDef statusScaling;
   final RenderAnimSetDefinition renderAnim;
   final String attackAbilityId;
   final double renderScale;

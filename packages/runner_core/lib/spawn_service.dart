@@ -206,7 +206,7 @@ class SpawnService {
       tags: archetype.tags,
       resistance: archetype.resistance,
       statusImmunity: archetype.statusImmunity,
-      statusResistance: archetype.statusResistance,
+      statusScaling: archetype.statusScaling,
     );
 
     // Pre-set cooldown to prevent immediate casting on spawn tick.
@@ -278,7 +278,7 @@ class SpawnService {
       tags: archetype.tags,
       resistance: archetype.resistance,
       statusImmunity: archetype.statusImmunity,
-      statusResistance: archetype.statusResistance,
+      statusScaling: archetype.statusScaling,
     );
     final collisionIndex = _world.collision.tryIndexOf(enemy);
     if (collisionIndex != null) {

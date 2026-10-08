@@ -15,7 +15,7 @@ import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
-import 'stores/combat/status_resistance_store.dart';
+import 'stores/combat/status_scaling_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemies/flying_enemy_combat_mode_store.dart';
@@ -61,7 +61,7 @@ class EntityFactory {
   /// - [InvulnerabilityStore]: Grants temporary invulnerability after damage.
   /// - [LastDamageStore]: Tracks the last source of damage for UI/effects.
   /// - [StatusImmunityStore]: Status effect immunities.
-  /// - [StatusResistanceStore]: Incoming harmful status scaling.
+  /// - [StatusScalingStore]: Incoming harmful status scaling.
   /// - [ManaStore]: Mana points and max mana.
   /// - [EquippedLoadoutStore]: Equipped abilities and gear.
   /// - [MeleeIntentStore]: Tracks intent to perform melee strikes.
@@ -86,7 +86,7 @@ class EntityFactory {
     CreatureTagDef tags = const CreatureTagDef(),
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
-    StatusResistanceDef statusResistance = const StatusResistanceDef(),
+    StatusScalingDef statusScaling = const StatusScalingDef(),
     EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   }) {
     final id = world.createEntity();
@@ -110,7 +110,7 @@ class EntityFactory {
     world.invulnerability.add(id);
     world.lastDamage.add(id);
     world.statusImmunity.add(id, statusImmunity);
-    world.statusResistance.add(id, statusResistance);
+    world.statusScaling.add(id, statusScaling);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
     world.mobilityIntent.add(id);
@@ -171,7 +171,7 @@ class EntityFactory {
     CreatureTagDef tags = const CreatureTagDef(),
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
-    StatusResistanceDef statusResistance = const StatusResistanceDef(),
+    StatusScalingDef statusScaling = const StatusScalingDef(),
   }) {
     final id = _createAutonomousCombatant(
       posX: posX,
@@ -187,7 +187,7 @@ class EntityFactory {
       tags: tags,
       resistance: resistance,
       statusImmunity: statusImmunity,
-      statusResistance: statusResistance,
+      statusScaling: statusScaling,
     );
     world.meleeEngagement.add(id);
     world.enemy.add(
@@ -270,6 +270,8 @@ class EntityFactory {
       mana: archetype.mana,
       stamina: archetype.stamina,
       tags: const CreatureTagDef(mask: CreatureTagMask.humanoid),
+      statusImmunity: archetype.statusImmunity,
+      statusScaling: archetype.statusScaling,
     );
     world.npc.add(
       id,
@@ -301,7 +303,7 @@ class EntityFactory {
     CreatureTagDef tags = const CreatureTagDef(),
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
-    StatusResistanceDef statusResistance = const StatusResistanceDef(),
+    StatusScalingDef statusScaling = const StatusScalingDef(),
   }) {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
@@ -324,7 +326,7 @@ class EntityFactory {
     world.abilityCharge.add(id);
     world.animState.add(id);
     world.statusImmunity.add(id, statusImmunity);
-    world.statusResistance.add(id, statusResistance);
+    world.statusScaling.add(id, statusScaling);
     return id;
   }
 }

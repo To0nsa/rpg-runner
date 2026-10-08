@@ -287,7 +287,7 @@ class StatusSystem {
 
       final profile = _profiles.resolve(req.profileId, tuning: req.tuning);
       if (profile.applications.isEmpty) continue;
-      final targetResistance = world.statusResistance.forEntity(req.target);
+      final targetScaling = world.statusScaling.forEntity(req.target);
 
       for (final app in profile.applications) {
         if (isCombatProtected(world, req.target) &&
@@ -319,17 +319,17 @@ class StatusSystem {
             magnitude = applyBp(magnitude, modBp);
           }
         }
-        // Source tuning and typed amplification precede target resistance.
-        // Time-only controls have no scalable magnitude; shorten their duration.
-        final effectResistance = targetResistance.forType(app.type);
+        // Source tuning and typed amplification precede target scaling.
+        // Time-only controls have no scalable magnitude; scale their duration.
+        final effectScaling = targetScaling.forType(app.type);
         if (app.type != StatusEffectType.stun &&
             app.type != StatusEffectType.silence &&
-            effectResistance.magnitudeScaleBp != bpScale) {
-          magnitude = magnitude * effectResistance.magnitudeScaleBp ~/ bpScale;
+            effectScaling.magnitudeScaleBp != bpScale) {
+          magnitude = magnitude * effectScaling.magnitudeScaleBp ~/ bpScale;
         }
-        final durationSeconds = effectResistance.durationScaleBp == bpScale
+        final durationSeconds = effectScaling.durationScaleBp == bpScale
             ? app.durationSeconds
-            : app.durationSeconds * effectResistance.durationScaleBp / bpScale;
+            : app.durationSeconds * effectScaling.durationScaleBp / bpScale;
         final critBonusBp = app.critBonusBp ?? 0;
         final hasOffenseBuffMagnitude =
             app.type == StatusEffectType.offenseBuff &&

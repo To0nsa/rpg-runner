@@ -49,7 +49,7 @@ plans; minions pursue normally. Bosses use catalog Stun/Silence immunity and
 the shared half-magnitude harmful-status resistance profile, retaining effect
 duration. Summons retain neutral status resistance. These defenses are applied
 by the generic status pipeline, described in
-[target resistance](status_effect_tuning.md#target-resistance).
+[target scaling](status_effect_tuning.md#target-scaling).
 Hit reactions do not replace active boss attack art.
 
 ## Lifecycle and tick dependencies

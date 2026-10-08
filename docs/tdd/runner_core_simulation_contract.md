@@ -122,7 +122,7 @@ or cast interruption. All bosses now reject Stun/Silence and retain half of othe
 harmful magnitudes, with full duration. This outcome change joins prepared
 compatibility `2026.10.11`; it requires matching client/worker/issuer artifacts
 without changing commands, system order or replay format. See
-[target resistance](status_effect_tuning.md#target-resistance).
+[target scaling](status_effect_tuning.md#target-scaling).
 
 Mixed damage remains one queued hit. Shared modifiers precede deterministic
 integer splitting; typed resistance applies to each share before their sum takes

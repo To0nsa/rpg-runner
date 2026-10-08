@@ -6,7 +6,7 @@ import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
-import '../ecs/stores/combat/status_resistance_store.dart';
+import '../ecs/stores/combat/status_scaling_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
@@ -41,7 +41,7 @@ class PlayerArchetype {
     required this.tags,
     required this.resistance,
     required this.statusImmunity,
-    this.statusResistance = const StatusResistanceDef(),
+    this.statusScaling = const StatusScalingDef(),
     required this.loadoutSlotMask,
     required this.weaponId,
     required this.offhandWeaponId,
@@ -106,7 +106,7 @@ class PlayerArchetype {
   final StatusImmunityDef statusImmunity;
 
   /// Incoming debuff strength/duration multipliers, independent of damage type.
-  final StatusResistanceDef statusResistance;
+  final StatusScalingDef statusScaling;
 
   /// Bitmask of enabled loadout slots (see [LoadoutSlotMask]).
   final int loadoutSlotMask;

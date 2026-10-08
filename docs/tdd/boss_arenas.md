@@ -220,7 +220,7 @@ group zero. Catalog-authored Stun and Silence immunity prevents those controls
 from interrupting or locking the boss. The shared recipient status-resistance
 profile halves other harmful magnitudes while retaining duration; the same
 component can be authored on ordinary enemies or players. See
-[status tuning and resistance](status_effect_tuning.md#target-resistance).
+[status tuning and scaling](status_effect_tuning.md#target-scaling).
 Direct damage retains ordinary Core behavior.
 Death Pillar authors an `onHit` proc using `StatusProfileId.weakenOnHit`, shared
 with Dark Bolt. Its proc authors 2500 basis points of outgoing damage reduction

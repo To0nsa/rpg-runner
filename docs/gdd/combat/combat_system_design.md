@@ -324,6 +324,7 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | `DrenchStore` | Action-speed reduction |
 | `ResourceOverTimeStore` | Timed health/mana/stamina restoration |
 | `StatusImmunityStore` | Per-status immunity mask |
+| `StatusScalingStore` | Per-effect incoming strength/duration multipliers for all actors |
 | `StatModifierStore` | Derived move/action speed modifiers |
 | `ControlLockStore` | Stun/cast lock flags |
 
@@ -657,10 +658,15 @@ Per queued request:
 5. Apply optional typed scaling (`scaleByDamageType`):
    - uses `DamageResistanceStore` + resolved gear typed incoming mod
    - scales magnitude up only when combined typed modifier is positive
-6. Apply magnitude gating:
+6. Apply recipient `StatusScalingDef` multipliers to harmful effects:
+   - shared by players, enemies, bosses and NPCs
+   - below `10000` resists; above `10000` amplifies; negative values are invalid
+   - strength and duration scale independently; Stun/Silence scale duration only
+   - beneficial effects retain their source tuning
+7. Apply magnitude gating:
    - non-`offenseBuff` applications require `magnitude > 0`
    - `offenseBuff` can still apply when power bonus is `0` but crit bonus is positive
-7. Apply store/control updates with type-specific stacking/refresh rules.
+8. Apply store/control updates with type-specific caps and stacking/refresh rules.
 
 Type-specific apply behavior:
 
