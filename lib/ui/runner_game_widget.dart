@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:provider/provider.dart';
 import 'package:run_protocol/board_key.dart';
 
@@ -47,6 +48,8 @@ import 'viewport/viewport_metrics.dart';
 /// offer retry at tick zero with the same ticket, plus the host's exit callback.
 /// Start never waits on pending ghost asset or terrain work. A bounded native
 /// worker computes ghost ticks ahead; only presentation follows the live tick.
+/// Debug-only developer Practice skips recording and account submission while
+/// preserving the normal simulation, loading, controls and score breakdown.
 ///
 /// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
 /// resumes lifecycle-paused play while preserving manual pauses and ready state.
@@ -69,6 +72,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.boardId,
     this.boardKey,
     this.ghostReplayBootstrap,
+    this.isDeveloperPractice = false,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -79,7 +83,7 @@ class RunnerGameWidget extends StatefulWidget {
   /// Master RNG seed for deterministic generation.
   final int seed;
 
-  /// Fixed simulation tick rate from the server-issued run ticket.
+  /// Fixed simulation tick rate from the ticket or local developer configuration.
   final int tickHz;
 
   /// Unique identifier for this run session (replay/ghost).
@@ -109,6 +113,9 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Optional verified ghost replay payload to race against.
   final GhostReplayBootstrap? ghostReplayBootstrap;
+
+  /// Debug-only local Practice, without recording, rewards or leaderboard writes.
+  final bool isDeveloperPractice;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -191,6 +198,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       boardId: widget.boardId,
       boardKey: widget.boardKey,
       ghostReplayBootstrap: widget.ghostReplayBootstrap,
+      isDeveloperPractice: widget.isDeveloperPractice,
     );
     _initGame();
 
@@ -285,6 +293,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _validateInitialRunInputs() {
+    if (widget.isDeveloperPractice &&
+        (!kDebugMode ||
+            widget.runMode != RunMode.practice ||
+            widget.boardId != null ||
+            widget.boardKey != null ||
+            widget.ghostReplayBootstrap != null)) {
+      throw StateError('Developer runs require debug, local Practice only.');
+    }
     if (widget.runSessionId.trim().isEmpty) {
       throw StateError('RunnerGameWidget requires non-empty runSessionId.');
     }
@@ -356,6 +372,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _enqueueReplaySubmission(RunEndedEvent event) {
+    if (_descriptor.isDeveloperPractice) return;
     if (_runSubmissionRunSessionId == _runSessionId) {
       return;
     }
@@ -861,6 +878,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     levelId: _controller.snapshot.levelIdentity
                         .requireRegisteredId(),
                     runMode: _runMode,
+                    isDeveloperPractice: _descriptor.isDeveloperPractice,
                     runEndedEvent: runEndedEvent,
                     scoreTuning: _controller.scoreTuning,
                     tickHz: _controller.tickHz,

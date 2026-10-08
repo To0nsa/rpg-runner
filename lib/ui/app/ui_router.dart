@@ -9,6 +9,7 @@ import '../pages/hub/run_start_bootstrap_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/town/town_page.dart';
 import '../pages/profile/profile_page.dart';
+import '../pages/options/options_page.dart';
 import '../pages/selectLevel/level_setup_page.dart';
 import '../pages/selectCharacter/loadout_setup_page.dart';
 import '../bootstrap/profile_name_setup_page.dart';
@@ -51,7 +52,7 @@ class UiRouter {
       case UiRoutes.leaderboards:
         return _pageRoute(settings, const LeaderboardsPage());
       case UiRoutes.options:
-        return _pageRoute(settings, const PlaceholderPage(title: 'Options'));
+        return _pageRoute(settings, const OptionsPage());
       case UiRoutes.town:
         return _pageRoute(settings, const TownPage());
       case UiRoutes.messages:
@@ -77,6 +78,7 @@ class UiRouter {
             boardId: args.boardId,
             boardKey: args.boardKey,
             ghostReplayBootstrap: args.ghostReplayBootstrap,
+            isDeveloperPractice: args.isDeveloperPractice,
             settings: settings,
             restoreOrientations: const [
               DeviceOrientation.landscapeLeft,

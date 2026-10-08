@@ -13,9 +13,9 @@ class HubMenuIconColumn extends StatelessWidget {
     required this.onOptionsPressed,
   });
 
-  final VoidCallback onTownPressed;
-  final VoidCallback onProfilePressed;
-  final VoidCallback onLeaderboardsPressed;
+  final VoidCallback? onTownPressed;
+  final VoidCallback? onProfilePressed;
+  final VoidCallback? onLeaderboardsPressed;
   final VoidCallback onMessagesPressed;
   final VoidCallback onOptionsPressed;
 
@@ -73,5 +73,5 @@ class _HubMenuAction {
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 }

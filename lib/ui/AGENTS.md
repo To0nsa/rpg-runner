@@ -68,6 +68,12 @@ Initialize services through `AppBootstrapper`/`AppServices` behind the loader
 so initialization failures are visible and retryable. `AppServices` owns
 `AppState` disposal; the provider only subscribes after initialization. Keep
 production client construction and theme configuration out of `UiApp`.
+Debug-only Developer Practice restores its local preference before online
+service initialization. `AppServices` owns profile replacement as well as
+disposal; the proxy provider owns only subscriptions. Keep developer selections
+in their separate preference namespace, preserve the real account's queues,
+and never create tickets, record/submit replays or grant rewards for local runs.
+Use the existing menus and gameplay route; see `docs/tdd/developer_practice.md`.
 Forced bootstrap owns ownership flush-before-refresh ordering. Page tracking
 must ignore dialogs when deciding whether to show a resume loader; system Back
 must not bypass a resume refresh. Hub warmup starts only after bootstrap.
@@ -102,7 +108,8 @@ The run route is a UI-owned assembly of lower layers:
 
 - `RunnerRunSession` owns controller, input router, Flame game, aim previews, recorder, and ghost lifecycle
 - `RunnerGameWidget` owns the session, overlays, input/lifecycle policy, and submission UI
-- Start requires both world and recorder readiness; required load failures offer retry and exit
+- Online Start requires both world and recorder readiness; developer Practice
+  requires world readiness only. Required load failures offer retry and exit.
 - `RunStartPreparation` coordinates hub, leaderboard, and restart preflight through AppState
 - `RunnerGameRoute` scopes orientation and system UI behavior for embedded or routed runs
 - HUD and controls read snapshots and send input through the existing router/controller path

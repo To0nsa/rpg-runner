@@ -88,12 +88,16 @@ class _PlayHubPageState extends State<PlayHubPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             HubMenuIconColumn(
-              onTownPressed: () =>
-                  Navigator.of(context).pushNamed(UiRoutes.town),
-              onProfilePressed: () =>
-                  Navigator.of(context).pushNamed(UiRoutes.profile),
-              onLeaderboardsPressed: () =>
-                  Navigator.of(context).pushNamed(UiRoutes.leaderboards),
+              onTownPressed: appState.isDeveloperMode
+                  ? null
+                  : () => Navigator.of(context).pushNamed(UiRoutes.town),
+              onProfilePressed: appState.isDeveloperMode
+                  ? null
+                  : () => Navigator.of(context).pushNamed(UiRoutes.profile),
+              onLeaderboardsPressed: appState.isDeveloperMode
+                  ? null
+                  : () =>
+                        Navigator.of(context).pushNamed(UiRoutes.leaderboards),
               onMessagesPressed: () =>
                   Navigator.of(context).pushNamed(UiRoutes.messages),
               onOptionsPressed: () =>
@@ -117,12 +121,16 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         _preparingRunStart &&
                         _runStartSource == _RunStartSource.weekly,
                     onWeeklyPressed:
-                        _preparingRunStart ||
+                        appState.isDeveloperMode ||
+                            _preparingRunStart ||
                             !appState.weeklyFeaturedLevelAvailable
                         ? null
                         : () => _startWeeklyRun(appState),
-                    onWeeklyLeaderboardPressed: () =>
-                        Navigator.of(context).pushNamed(UiRoutes.leaderboards),
+                    onWeeklyLeaderboardPressed: appState.isDeveloperMode
+                        ? null
+                        : () =>
+                              Navigator.of(context)
+                                  .pushNamed(UiRoutes.leaderboards),
                   ),
                   SizedBox(height: ui.space.lg),
                   Center(
@@ -184,6 +192,7 @@ String _runModeLabel(RunMode runMode) {
 }
 
 String _weeklyBadgeTitle(ProgressionState progression, AppState appState) {
+  if (appState.isDeveloperMode) return 'DEVELOPER MODE • Practice only';
   if (!appState.weeklyFeaturedLevelAvailable) {
     return 'WEEKLY • Unavailable in this build';
   }

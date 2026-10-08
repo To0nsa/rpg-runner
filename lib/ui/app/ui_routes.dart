@@ -61,6 +61,7 @@ class RunStartDescriptor {
     this.boardId,
     this.boardKey,
     this.ghostReplayBootstrap,
+    this.isDeveloperPractice = false,
   });
 
   final String runSessionId;
@@ -74,6 +75,9 @@ class RunStartDescriptor {
   final String? boardId;
   final BoardKey? boardKey;
   final GhostReplayBootstrap? ghostReplayBootstrap;
+
+  /// Debug-only local run: no server ticket, recorder, rewards or leaderboard.
+  final bool isDeveloperPractice;
 
   RunStartDescriptor copyWith({
     String? runSessionId,
@@ -103,6 +107,7 @@ class RunStartDescriptor {
       ghostReplayBootstrap: clearGhostReplayBootstrap
           ? null
           : (ghostReplayBootstrap ?? this.ghostReplayBootstrap),
+      isDeveloperPractice: isDeveloperPractice,
     );
   }
 }

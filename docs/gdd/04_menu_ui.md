@@ -80,6 +80,23 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ## 3. Information Architecture
 
+### Developer mode (implemented, debug builds only)
+
+Options contains a Developer mode toggle for local gameplay testing. It switches
+the existing menu screens to a visibly named Developer profile with all current
+playable equipment and abilities unlocked. Character compatibility, slot limits,
+and gameplay rules still apply. The profile remembers its own level, character,
+build name and loadouts across launches and ordinary app updates.
+
+Only Practice is available. Town, account actions, leaderboards and Weekly are
+disabled, and Competitive is not offered. Run completion shows the ordinary
+score breakdown with restart/exit, without rewards or leaderboard entries.
+There is no separate developer economy. Turning the toggle off restores the
+real account after it loads successfully; developer choices never replace its
+inventory or equipment. Failed reconnection leaves Developer mode active.
+There is no automatic connection-based switching, and production builds do not
+expose this option. See [technical contract](../tdd/developer_practice.md).
+
 ### 3.1 Screens
 
 1. **Play Hub (Main Menu)**

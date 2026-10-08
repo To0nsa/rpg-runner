@@ -5,6 +5,9 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
   Future<void> flushOwnershipEdits({
     required OwnershipFlushTrigger trigger,
   }) async {
+    if (_app._disposed) return;
+    final developer = _app._developerController;
+    if (developer != null) return developer.flush();
     if (_app._accountDeletionAccepted) return;
     // Play Games opens a native activity during bootstrap. Its lifecycle
     // events must not start another sign-in when that attempt fails.
@@ -41,6 +44,8 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
   }
 
   Future<void> _ensureOwnershipSyncedBeforeRunStartInternal() async {
+    final developer = _app._developerController;
+    if (developer != null) return developer.flush();
     if (_canFastReturnOwnershipSyncedBeforeRunStart()) {
       return;
     }
@@ -112,11 +117,12 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
     _notifyListeners();
     try {
       final session = await _ensureAuthSession();
-      while (!_app._accountDeletionAccepted) {
+      while (!_app._disposed && !_app._accountDeletionAccepted) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final pending = await _ownershipOutboxStore.loadAll(
           ownerUserId: session.userId,
         );
+        if (_app._disposed) return;
         OwnershipPendingCommand? ready;
         OwnershipPendingCommand? fallbackReady;
         int? earliestNextAttemptAtMs;

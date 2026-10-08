@@ -28,6 +28,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Trap technical contracts](tdd/traps.md) and [trap gameplay](gdd/traps.md): gameplay, rendering and Chunk Creator authoring deployed with Forest repairs in `2026.09.8`.
 - [World interaction contracts](tdd/world_interactions.md) and [regeneration shrine](gdd/world_interactions.md): manually configured top-contact blessing and fire animation; editor controls are deferred.
 - [Run startup](tdd/run_startup.md): shared preflight, world/recorder readiness, loading recovery, and run-owned assets.
+- [Developer Practice](tdd/developer_practice.md): debug Options toggle, persistent
+  fully unlocked local profile, and Practice without backend sessions or rewards.
 - [Forest boss arenas](tdd/boss_arenas.md) and [Bringer gameplay](gdd/bringer_of_death.md):
   deterministic full-screen entrance, confined combat, editor authoring and replay
   scoring deployed in `2026.10.8` / `score-v4`; see

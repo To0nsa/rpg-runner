@@ -76,6 +76,47 @@ RunEndedEvent _buildDerfSpellImpactDeathEvent() {
 
 void main() {
   testWidgets(
+    'developer results have no reward, submission or leaderboard side effects',
+    (tester) async {
+      var exited = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: GameOverOverlay(
+              visible: true,
+              onRestart: () {},
+              onExit: () => exited = true,
+              showExitButton: true,
+              levelId: LevelId.field,
+              runMode: RunMode.practice,
+              runEndedEvent: _buildEvent(),
+              scoreTuning: _tuning,
+              tickHz: _tickHz,
+              isDeveloperPractice: true,
+              provisionalGoldEarned: 50,
+              verifiedGold: 100,
+              replaySubmissionJournaled: false,
+            ),
+          ),
+        ),
+      );
+      expect(find.byType(LeaderboardPanel), findsNothing);
+      expect(find.text('Run reward: +'), findsNothing);
+      expect(find.text('Saving Replay'), findsNothing);
+      expect(
+        find.textContaining('No rewards or leaderboard entries'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Collect Score'));
+      await tester.pump();
+      await tester.tap(find.text('Skip'));
+      await tester.pump();
+      await tester.tap(find.text('Exit'));
+      await tester.pump();
+      expect(exited, isTrue);
+    },
+  );
+  testWidgets(
     'mixed rescue points feed once and survive result serialization',
     (tester) async {
       const event = RunEndedEvent(

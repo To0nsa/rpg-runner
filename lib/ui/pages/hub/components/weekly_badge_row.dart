@@ -16,7 +16,7 @@ class WeeklyBadgeRow extends StatelessWidget {
   final String title;
   final bool isWeeklyLoading;
   final VoidCallback? onWeeklyPressed;
-  final VoidCallback onWeeklyLeaderboardPressed;
+  final VoidCallback? onWeeklyLeaderboardPressed;
 
   @override
   Widget build(BuildContext context) {

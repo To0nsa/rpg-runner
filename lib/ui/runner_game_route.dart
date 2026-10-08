@@ -17,11 +17,12 @@ import 'state/ownership/selection_state.dart';
 /// Host apps can `Navigator.push(createRunnerGameRoute(...))` without depending
 /// on this package's development host app (`lib/main.dart`).
 ///
-/// [runSessionId], [runId], and [seed] must come from a server-issued run
-/// session ticket. [tickHz] must use that ticket's fixed simulation rate.
+/// Except for debug-only [isDeveloperPractice] runs, [runSessionId], [runId],
+/// [seed] and [tickHz] must come from a server-issued run session ticket.
+/// Developer Practice uses the same gameplay without replay or account writes.
 /// The hosted widget keeps its loading presentation visible while initial
 /// render assets, upcoming terrain, and the selected ghost playback buffer and
-/// outlines are prepared and the replay recorder has opened its file. Required
+/// outlines are prepared and any online replay recorder has opened its file. Required
 /// loading failures offer retry and exit; retries before Start reuse the ticket
 /// after closing the previous attempt. HUD and controls appear only when ready.
 /// Ghost precomputation never advances live gameplay; its run-owned worker and
@@ -40,6 +41,7 @@ Route<void> createRunnerGameRoute({
   String? boardId,
   BoardKey? boardKey,
   GhostReplayBootstrap? ghostReplayBootstrap,
+  bool isDeveloperPractice = false,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
@@ -76,6 +78,7 @@ Route<void> createRunnerGameRoute({
         boardId: boardId,
         boardKey: boardKey,
         ghostReplayBootstrap: ghostReplayBootstrap,
+        isDeveloperPractice: isDeveloperPractice,
         onExit: () => Navigator.of(context).maybePop(),
       );
 

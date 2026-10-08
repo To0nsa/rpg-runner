@@ -64,6 +64,10 @@ class RunStartPreparation extends ChangeNotifier {
   }
 
   static String messageFor(Object error) {
+    if (error is RunStartRemoteException && error.code == 'invalid-loadout') {
+      return error.message ??
+          'Adjust your equipment and abilities before starting.';
+    }
     if (error is RunStartRemoteException && error.isLevelUnavailable) {
       return 'This level is unavailable in this build. Return to the hub and select an available level.';
     }

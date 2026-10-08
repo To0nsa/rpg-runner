@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flame/cache.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:rpg_runner/game/replay/run_recorder.dart';
@@ -12,8 +14,66 @@ import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/run/runner_run_session.dart';
 import 'package:rpg_runner/ui/runner_game_widget.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
+import 'package:rpg_runner/ui/state/app/app_state.dart';
+import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
 
 void main() {
+  testWidgets(
+    'developer Practice plays, ends and restarts without recording or submission',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final state = AppState.developer(
+        store: SharedPrefsDeveloperProfileStore(),
+      );
+      addTearDown(state.dispose);
+      await state.bootstrap();
+      final sessions = <RunnerRunSession>[];
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AppState>.value(
+          value: state,
+          child: _app((descriptor) {
+            final session = RunnerRunSession(
+              descriptor: descriptor,
+              createRecorder: (_) async =>
+                  throw StateError('Developer recording is forbidden'),
+            );
+            sessions.add(session);
+            return session;
+          }, isDeveloperPractice: true),
+        ),
+      );
+      await _until(tester, () => sessions.single.isReady);
+      await tester.tap(find.text('Tap to start'));
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(sessions.single.controller.tick, greaterThan(0));
+      sessions.single.controller.giveUp();
+      await tester.pump();
+      expect(
+        find.textContaining('No rewards or leaderboard entries'),
+        findsOneWidget,
+      );
+      if (find.text('Collect Score').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Collect Score'));
+        await tester.pump();
+        if (find.text('Skip').evaluate().isNotEmpty) {
+          await tester.tap(find.text('Skip'));
+          await tester.pump();
+        }
+      }
+      await tester.tap(find.text('Restart'));
+      await _until(tester, () => sessions.length == 2 && sessions.last.isReady);
+      expect(sessions.last.descriptor.isDeveloperPractice, isTrue);
+      expect(
+        sessions.last.descriptor.runSessionId,
+        isNot(sessions.first.descriptor.runSessionId),
+      );
+      expect(sessions.every((session) => session.recorder == null), isTrue);
+      expect(state.progression.gold, 0);
+      expect((await SharedPreferences.getInstance()).getKeys(), isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
   testWidgets('Start waits for recorder and records the first live tick', (
     tester,
   ) async {
@@ -229,19 +289,22 @@ void main() {
   });
 }
 
-Widget _app(RunnerRunSession Function(RunStartDescriptor) create) =>
-    MaterialApp(
-      theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
-      home: Scaffold(
-        body: RunnerGameWidget(
-          runSessionId: 'startup-widget-test',
-          runId: 1,
-          seed: 42,
-          levelId: LevelId.field,
-          sessionFactory: create,
-        ),
-      ),
-    );
+Widget _app(
+  RunnerRunSession Function(RunStartDescriptor) create, {
+  bool isDeveloperPractice = false,
+}) => MaterialApp(
+  theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
+  home: Scaffold(
+    body: RunnerGameWidget(
+      runSessionId: 'startup-widget-test',
+      runId: 1,
+      seed: 42,
+      levelId: LevelId.field,
+      sessionFactory: create,
+      isDeveloperPractice: isDeveloperPractice,
+    ),
+  ),
+);
 
 Future<RunnerRunSession> _readySession(
   WidgetTester tester,

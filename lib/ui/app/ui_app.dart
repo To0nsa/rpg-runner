@@ -88,6 +88,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final appState = widget.services.readyAppState;
+    if (widget.services.isSwitchingProfile) return;
     if (state == AppLifecycleState.resumed) {
       _applyGlobalSystemUiMode();
       if (_isStartupRoute || appState == null) return;
@@ -175,9 +176,11 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AppServices>.value(value: widget.services),
+        ChangeNotifierProvider<AppServices>.value(value: widget.services),
         // AppServices owns disposal; subscription starts only on ready routes.
-        ListenableProvider<AppState>(create: (_) => widget.services.appState),
+        ListenableProxyProvider<AppServices, AppState>(
+          update: (_, services, _) => services.appState,
+        ),
         Provider<UiAssetLifecycle>(
           create: (_) => UiAssetLifecycle(),
           dispose: (_, lifecycle) => lifecycle.dispose(),

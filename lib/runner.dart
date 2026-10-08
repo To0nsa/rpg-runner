@@ -1,6 +1,8 @@
 // Public entrypoint ("barrel file") for embedding the runner in a host app.
 // Hosted runs wait for world and recorder readiness and expose loading recovery;
 // hosts provide a server-issued ticket and an exit path (see the widget/route).
+// Debug-only developer Practice uses an explicit local descriptor, requires
+// world readiness only and never records, submits or rewards a run.
 // Boss entrances and arena completion remain inside that same run session.
 //
 // Host apps should import only this file:

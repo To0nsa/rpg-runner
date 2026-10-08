@@ -40,6 +40,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Reusable world interactions with a Forest regeneration shrine, persistent fire,
   and level-duration resource bonuses; [manual configuration](docs/tdd/world_interactions.md)
 - Gear/loadout setup flow before runs
+- Debug-only Developer Practice with persistent local loadouts and all playable
+  equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring
 - Board-backed leaderboards, replay validation, and ghost publication
 - Backend-authenticated player profile plus ownership/progression persistence via Firebase Functions + Firestore
@@ -66,6 +68,18 @@ flutter pub get
 flutter run
 ```
 
+For gameplay iteration on a connected phone, use a debug launch
+(`flutter run -d <device-id>`), sign in, and enable **Options > Developer mode**.
+This switches the existing screens to a local profile with all playable gear
+and abilities, with Practice as the only run mode. The toggle and developer
+loadouts survive hot restart, app relaunch and ordinary rebuilds. Once enabled,
+startup restores the local profile before initializing online services, so
+gameplay changes can be tested without deploying the backend. Turning it off
+reloads the real account and requires connectivity. Developer runs grant no
+rewards and write no leaderboards. The toggle is absent from release/profile
+builds; uninstalling or clearing app data resets it. See
+[Developer Practice](docs/tdd/developer_practice.md).
+
 Production web builds require the public, domain-restricted App Check key:
 
 ```bash
@@ -80,7 +94,7 @@ loader. Initialization and player-data failures remain on the loader with an
 explicit retry; the hub opens only after bootstrap and required name setup.
 See [startup and authentication](docs/tdd/authentication_flow_and_authorization.md).
 
-Android startup requires Play Games sign-in. On a new workstation, register
+Normal Android account startup requires Play Games sign-in. On a new workstation, register
 the debug signing certificate in Firebase and Play Games; a regenerated
 debug keystore has a different SHA-1. See
 [local Android sign-in troubleshooting](docs/tdd/authentication_flow_and_authorization.md#local-android-sign-in-troubleshooting)

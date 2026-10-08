@@ -51,7 +51,8 @@ Boot route flow:
 `AppServices` shares in-flight initialization and retains successful state.
 Failed initialization is retryable; Firebase already initialized before an
 App Check failure is reused on retry. `UiApp` disposes the service owner and
-its state, while the lazy `ListenableProvider` only owns the subscription.
+its state, while the lazy `ListenableProxyProvider` only owns the subscription
+and follows explicit profile replacements.
 Disposal during initialization prevents late construction of clients.
 
 Initialization errors are displayed by the existing game loader, even if
@@ -73,7 +74,13 @@ invalid run arguments display explicit errors rather than routing to the hub.
 - If token is near expiry, force refresh and retry.
 - If session is still invalid after refresh/restore, throw `PlayGamesAuthRequiredException`.
 
-This means bootstrap is intentionally fail-closed until Play Games auth succeeds.
+Normal-account bootstrap is intentionally fail-closed until Play Games auth succeeds.
+
+Debug builds can explicitly switch to [Developer Practice](developer_practice.md)
+from Options. Its saved preference is restored before Firebase initialization;
+the local profile has no auth/ownership clients and supports Practice only.
+Turning it off reloads the normal authenticated account without signing it out.
+This does not change callable authorization or introduce a public offline fallback.
 
 Concurrent `AppState.bootstrap()` calls share one attempt. Forced refreshes
 finish the pending ownership flush before loading profile and canonical

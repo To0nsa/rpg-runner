@@ -21,6 +21,8 @@ final class _AppStateAuthProfileController extends _AppStateController {
   }
 
   Future<void> _bootstrap({required bool force}) async {
+    final developer = _app._developerController;
+    if (developer != null) return developer.bootstrap();
     if (force && _bootstrapped) {
       await _app.flushOwnershipEdits(
         trigger: OwnershipFlushTrigger.connectivityRestored,
@@ -53,6 +55,8 @@ final class _AppStateAuthProfileController extends _AppStateController {
   }
 
   Future<void> applyDefaults() async {
+    final developer = _app._developerController;
+    if (developer != null) return developer.bootstrap();
     final session = await _ensureAuthSession();
     UserProfile loadedProfile;
     try {
@@ -215,6 +219,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
   }
 
   void startWarmup() {
+    if (_app.isDeveloperMode) return;
     if (!_bootstrapped || _app._disposed || _app._accountDeletionAccepted) {
       return;
     }

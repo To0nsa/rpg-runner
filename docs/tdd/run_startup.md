@@ -4,6 +4,10 @@
 
 The app has two preparation boundaries. UI preflight obtains an authoritative
 RunStartDescriptor; the run then prepares local resources without advancing ticks.
+Debug-only [Developer Practice](developer_practice.md) instead creates an
+explicitly local descriptor through the same preflight, without an authenticated
+ticket. It uses the same world, simulation and controls, skips replay recording
+and submission, and requires only world readiness. Restarts remain local.
 
 - RunStartPreparation in lib/ui/run coordinates selection, AppState preflight,
   failure reporting, and cancellation. Hub and leaderboard starts use

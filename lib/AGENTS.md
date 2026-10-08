@@ -12,6 +12,8 @@ Instructions for AI coding agents working in `lib/`.
 - `packages/run_protocol/lib/`: shared run/replay/leaderboard protocol values used by app state and validation
 - `lib/game/`: Flame renderer and fixed-tick bridge
 - `lib/ui/`: Flutter app shell, routes, pages, HUD, controls, state, and backend clients
+- Debug Developer Practice uses the same app/screens with an isolated local
+  profile; `AppServices` restores/switches it without exposing account APIs.
 
 The package must work in two modes:
 
@@ -75,11 +77,14 @@ The run route currently flows like this:
 1. `AppState` builds run args from selection/meta state.
 2. `UiRouter` creates the run route.
 3. `RunnerGameWidget` owns a `RunnerRunSession`, which constructs Core, controller, input router, Flame game, recorder, and optional ghost.
-   Its ready state requires world and recorder readiness; pre-start retry recreates the local attempt after cleanup.
+   Online readiness requires world and recorder readiness; debug Developer
+   Practice requires world readiness only. Pre-start retry recreates the local
+   attempt after cleanup.
 4. `RunnerFlameGame` renders immutable snapshots while `GameOverlay` and `GameOverOverlay` handle in-run UI.
 5. End-of-run rewards and replay submissions feed back into `AppState`, which
    talks to run-session, ownership, leaderboard, and ghost-facing backend
-   adapters.
+   adapters. Developer Practice keeps the score breakdown without recording,
+   submission, rewards or leaderboard writes.
 
 ## Public API Discipline
 

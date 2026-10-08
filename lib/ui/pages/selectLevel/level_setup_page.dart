@@ -166,7 +166,9 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
             children: [
               Center(
                 child: AppSegmentedControl<RunMode>(
-                  values: const [RunMode.practice, RunMode.competitive],
+                  values: appState.isDeveloperMode
+                      ? const [RunMode.practice]
+                      : const [RunMode.practice, RunMode.competitive],
                   selected: _draftRunMode,
                   onChanged: _onRunModeChanged,
                   labelBuilder: (context, value) => switch (value) {

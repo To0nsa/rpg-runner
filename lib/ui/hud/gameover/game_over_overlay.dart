@@ -50,6 +50,7 @@ class GameOverOverlay extends StatefulWidget {
     this.replaySubmissionJournalError,
     this.onRetryReplayJournal,
     this.leaderboardStore,
+    this.isDeveloperPractice = false,
   });
 
   final bool visible;
@@ -69,6 +70,9 @@ class GameOverOverlay extends StatefulWidget {
   final String? replaySubmissionJournalError;
   final VoidCallback? onRetryReplayJournal;
   final LeaderboardStore? leaderboardStore;
+
+  /// Keeps the score breakdown while excluding all reward and leaderboard UI.
+  final bool isDeveloperPractice;
 
   @override
   State<GameOverOverlay> createState() => _GameOverOverlayState();
@@ -113,6 +117,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   Widget? _buildGoldPanel(BuildContext context) {
+    if (widget.isDeveloperPractice) return null;
     if (!_enableGameOverRewardRow) {
       return null;
     }
@@ -234,6 +239,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   Widget? _buildSubmissionStatusPanel(BuildContext context) {
+    if (widget.isDeveloperPractice) return null;
     if (!widget.replaySubmissionJournaled) {
       final ui = context.ui;
       final journalError = widget.replaySubmissionJournalError;
@@ -441,6 +447,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     final goldPanel = _buildGoldPanel(context);
     final submissionPanel = _buildSubmissionStatusPanel(context);
     final mayLeaveGameOver =
+        widget.isDeveloperPractice ||
         widget.replaySubmissionJournaled ||
         widget.replaySubmissionJournalError != null;
     final rowLabels = [
@@ -505,7 +512,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                             exitButton: widget.showExitButton
                                 ? AppButton(
                                     label: mayLeaveGameOver
-                                        ? (widget.replaySubmissionJournaled
+                                        ? (widget.isDeveloperPractice ||
+                                                  widget
+                                                      .replaySubmissionJournaled
                                               ? 'Exit'
                                               : 'Exit Without Reward')
                                         : 'Saving Replay',
@@ -529,16 +538,23 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                   flex: 1,
                   child: Align(
                     alignment: Alignment.topCenter,
-                    child: LeaderboardPanel(
-                      levelId: widget.levelId,
-                      runMode: widget.runMode,
-                      runEndedEvent: widget.runEndedEvent,
-                      scoreTuning: widget.scoreTuning,
-                      tickHz: widget.tickHz,
-                      revealCurrentRunScore:
-                          _feedController.feedState == ScoreFeedState.complete,
-                      leaderboardStore: widget.leaderboardStore,
-                    ),
+                    child: widget.isDeveloperPractice
+                        ? Text(
+                            'Developer Practice\nNo rewards or leaderboard entries.',
+                            style: ui.text.body,
+                            textAlign: TextAlign.center,
+                          )
+                        : LeaderboardPanel(
+                            levelId: widget.levelId,
+                            runMode: widget.runMode,
+                            runEndedEvent: widget.runEndedEvent,
+                            scoreTuning: widget.scoreTuning,
+                            tickHz: widget.tickHz,
+                            revealCurrentRunScore:
+                                _feedController.feedState ==
+                                ScoreFeedState.complete,
+                            leaderboardStore: widget.leaderboardStore,
+                          ),
                   ),
                 ),
               ],

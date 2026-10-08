@@ -16,15 +16,16 @@ import '../../game/replay/ghost_render_frame.dart';
 import '../../game/replay/run_recorder.dart';
 import '../../game/runner_flame_game.dart';
 import '../app/ui_routes.dart';
+import '../state/ownership/selection_state.dart';
 import '../state/run/local_replay_artifact_store.dart';
 
 /// The required dependency that prevented a run from becoming playable.
 enum RunStartupFailure { world, recorder }
 
-/// Owns one local attempt for a server-issued descriptor.
+/// Owns one attempt for an online or debug developer Practice descriptor.
 ///
-/// The controller stays paused until the host starts it. Readiness requires both
-/// the initial rendered world and the recorder; optional ghost failures are
+/// The controller stays paused until the host starts it. Readiness requires the
+/// initial rendered world and, for online runs, the recorder. Ghost failures are
 /// contained by playback/rendering. Stop fences late asynchronous completion.
 class RunnerRunSession extends ChangeNotifier {
   RunnerRunSession({
@@ -32,6 +33,16 @@ class RunnerRunSession extends ChangeNotifier {
     Future<RunRecorder> Function(RunRecorderHeader)? createRecorder,
     @visibleForTesting Images? imageCache,
   }) {
+    if (descriptor.isDeveloperPractice &&
+        (!kDebugMode ||
+            descriptor.runMode != RunMode.practice ||
+            descriptor.boardId != null ||
+            descriptor.boardKey != null ||
+            descriptor.ghostReplayBootstrap != null)) {
+      throw StateError(
+        'Developer sessions require debug, local Practice only.',
+      );
+    }
     final character = PlayerCharacterRegistry.resolve(
       descriptor.playerCharacterId,
     );
@@ -47,7 +58,9 @@ class RunnerRunSession extends ChangeNotifier {
       tickHz: descriptor.tickHz,
     )..setPaused(true);
     input = RunnerInputRouter(controller: controller);
-    controller.addAppliedCommandFrameListener(_recordFrame);
+    if (!descriptor.isDeveloperPractice) {
+      controller.addAppliedCommandFrameListener(_recordFrame);
+    }
     final replay = descriptor.ghostReplayBootstrap?.replayBlob;
     if (replay != null) {
       _ghost = BufferedGhostPlayback(replayBlob: replay)
@@ -65,7 +78,9 @@ class RunnerRunSession extends ChangeNotifier {
       ghostPreparation: _ghost?.prepare(),
     );
     game.loadState.addListener(_onWorldChanged);
-    _recorderPreparation = _prepareRecorder(createRecorder ?? _createRecorder);
+    _recorderPreparation = descriptor.isDeveloperPractice
+        ? Future<void>.value()
+        : _prepareRecorder(createRecorder ?? _createRecorder);
   }
 
   final RunStartDescriptor descriptor;
@@ -88,7 +103,7 @@ class RunnerRunSession extends ChangeNotifier {
       !_stopped &&
       failure == null &&
       game.loadState.value.phase == RunLoadPhase.worldReady &&
-      _recorder != null;
+      (descriptor.isDeveloperPractice || _recorder != null);
 
   RunStartupFailure? get failure {
     if (_hostLoadError != null ||

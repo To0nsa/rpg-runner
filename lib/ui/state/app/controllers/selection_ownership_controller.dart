@@ -47,6 +47,10 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   }
 
   Future<void> setLoadout(EquippedLoadoutDef loadout) async {
+    final developer = _app._developerController;
+    if (developer != null) {
+      return developer.setLoadout(_selection.selectedCharacterId, loadout);
+    }
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setLoadout(
       SetLoadoutCommand(
@@ -67,6 +71,17 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required AbilitySlot slot,
     required AbilityKey abilityId,
   }) async {
+    final developer = _app._developerController;
+    if (developer != null) {
+      return developer.setLoadout(
+        characterId,
+        _withAbilityInLoadout(
+          loadout: _selection.loadoutFor(characterId),
+          slot: slot,
+          abilityId: abilityId,
+        ),
+      );
+    }
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
@@ -99,6 +114,16 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required PlayerCharacterId characterId,
     required ProjectileId spellId,
   }) async {
+    final developer = _app._developerController;
+    if (developer != null) {
+      return developer.setLoadout(
+        characterId,
+        _copyLoadout(
+          _selection.loadoutFor(characterId),
+          projectileSlotSpellId: spellId,
+        ),
+      );
+    }
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
@@ -130,6 +155,17 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required GearSlot slot,
     required Object itemId,
   }) async {
+    final developer = _app._developerController;
+    if (developer != null) {
+      return developer.setLoadout(
+        characterId,
+        _withGearInLoadout(
+          loadout: _selection.loadoutFor(characterId),
+          slot: slot,
+          itemId: itemId,
+        ),
+      );
+    }
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
@@ -246,6 +282,8 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
 
   @override
   Future<void> _setSelection(SelectionState nextSelection) async {
+    final developer = _app._developerController;
+    if (developer != null) return developer.setSelection(nextSelection);
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setSelection(
       SetSelectionCommand(
@@ -263,6 +301,8 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   Future<void> _updateSelectionOptimistically(
     SelectionState nextSelection,
   ) async {
+    final developer = _app._developerController;
+    if (developer != null) return developer.setSelection(nextSelection);
     if (_selection == nextSelection) {
       return;
     }

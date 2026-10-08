@@ -1,22 +1,39 @@
+import 'package:flutter/foundation.dart';
+
 import '../state/app/app_state.dart';
+import '../state/developer/developer_profile_store.dart';
+import '../state/ownership/ownership_sync_policy.dart';
 
 /// Owns service initialization and the app state's lifetime.
 ///
 /// Initialization is shared by concurrent callers and retried after failure.
-/// The state factory runs only after services are ready. The app shell must
+/// The online factory runs only after services are ready; debug developer
+/// preferences are checked first and can bypass online initialization entirely.
+/// The app shell must
 /// dispose this owner; providers expose its state without taking ownership.
-class AppServices {
+class AppServices extends ChangeNotifier {
   AppServices({
     required Future<void> Function() initialize,
     required AppState Function() createAppState,
+    DeveloperProfileStore? developerProfileStore,
   }) : _initialize = initialize,
-       _createAppState = createAppState;
+       _createAppState = createAppState,
+       _developerProfileStore = developerProfileStore;
 
   final Future<void> Function() _initialize;
   final AppState Function() _createAppState;
+  final DeveloperProfileStore? _developerProfileStore;
+  bool _switchingProfile = false;
   Future<AppState>? _initialization;
   AppState? _appState;
   bool _disposed = false;
+
+  /// Debug builds explicitly wired with local storage expose the Options toggle.
+  bool get developerModeAvailable =>
+      kDebugMode && _developerProfileStore != null;
+
+  /// Menu navigation and lifecycle refreshes must wait until switching finishes.
+  bool get isSwitchingProfile => _switchingProfile;
 
   /// Null until service initialization and state construction have succeeded.
   AppState? get readyAppState => _appState;
@@ -43,15 +60,62 @@ class AppServices {
   }
 
   Future<AppState> _initializeState() async {
+    if (developerModeAvailable && await _developerProfileStore!.loadEnabled()) {
+      if (_disposed) throw StateError('App services have been disposed.');
+      return _appState = AppState.developer(store: _developerProfileStore);
+    }
     await _initialize();
     if (_disposed) throw StateError('App services have been disposed.');
     return _appState = _createAppState();
   }
 
+  /// Switches menu profiles without signing out or sharing account persistence.
+  /// A failed bootstrap or preference write leaves the current profile active.
+  /// Call only outside a run; the menu resets its routes after success.
+  Future<void> setDeveloperMode(bool enabled) async {
+    if (_disposed) throw StateError('App services have been disposed.');
+    if (!developerModeAvailable) {
+      throw StateError('Developer mode requires a debug build.');
+    }
+    if (_switchingProfile) {
+      throw StateError('A profile switch is already running.');
+    }
+    final previous = appState;
+    if (previous.isDeveloperMode == enabled) return;
+    _switchingProfile = true;
+    notifyListeners();
+    AppState? candidate;
+    try {
+      if (previous.isDeveloperMode) {
+        await previous.flushOwnershipEdits(
+          trigger: OwnershipFlushTrigger.manual,
+        );
+      }
+      if (!enabled) await _initialize();
+      if (_disposed) throw StateError('App services have been disposed.');
+      candidate = enabled
+          ? AppState.developer(store: _developerProfileStore!)
+          : _createAppState();
+      await candidate.bootstrap();
+      if (_disposed) throw StateError('App services have been disposed.');
+      await _developerProfileStore!.saveEnabled(enabled);
+      if (_disposed) throw StateError('App services have been disposed.');
+      _appState = candidate;
+      candidate = null;
+      previous.dispose();
+    } finally {
+      candidate?.dispose();
+      _switchingProfile = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  @override
   void dispose() {
     if (_disposed) return;
     _disposed = true;
     _appState?.dispose();
     _appState = null;
+    super.dispose();
   }
 }

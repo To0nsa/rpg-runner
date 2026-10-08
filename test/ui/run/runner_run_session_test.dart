@@ -13,6 +13,37 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'developer Practice requires world readiness but never opens a recorder',
+    () async {
+      final session = RunnerRunSession(
+        descriptor: const RunStartDescriptor(
+          runSessionId: 'developer-test',
+          runId: 1,
+          seed: 42,
+          tickHz: 60,
+          levelId: LevelId.field,
+          playerCharacterId: PlayerCharacterId.eloise,
+          runMode: RunMode.practice,
+          equippedLoadout: EquippedLoadoutDef(),
+          isDeveloperPractice: true,
+        ),
+        createRecorder: (_) async =>
+            throw StateError('Must not record developer runs'),
+      );
+      addTearDown(session.dispose);
+      expect(session.isReady, isFalse);
+      _readyWorld(session);
+      expect(session.isReady, isTrue);
+      expect(session.recorder, isNull);
+      session.controller.setPaused(false);
+      session.controller.giveUp();
+      expect(session.controller.lastRunEndedEvent, isNotNull);
+      await session.stop();
+      expect(session.isReady, isFalse);
+    },
+  );
+
   for (final worldFirst in [true, false]) {
     test(
       'readiness awaits both dependencies (world first: $worldFirst)',

@@ -6,6 +6,16 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/loadout/loadout_validator.dart';
+import 'package:runner_core/meta/ability_ownership_state.dart';
+import 'package:runner_core/meta/inventory_state.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/character_ability_namespace.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/spellBook/spell_book_catalog.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_category.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -41,6 +51,7 @@ import '../ownership/progression_state.dart';
 import '../ownership/selection_state.dart';
 import '../profile/user_profile.dart';
 import '../profile/user_profile_remote_api.dart';
+import '../developer/developer_profile_store.dart';
 
 part 'controllers/controller_base.dart';
 part 'controllers/auth_profile_controller.dart';
@@ -49,6 +60,7 @@ part 'controllers/ownership_sync_controller.dart';
 part 'controllers/run_submission_controller.dart';
 part 'controllers/boards_controller.dart';
 part 'controllers/run_start_controller.dart';
+part 'controllers/developer_controller.dart';
 
 const String _defaultGameCompatVersion = '2026.10.10';
 
@@ -103,6 +115,22 @@ final class _RunTicketPrefetchKey {
 }
 
 class AppState extends ChangeNotifier {
+  /// Creates a debug-only local profile with no authentication or ownership API.
+  /// The caller must bootstrap it before exposing it to menu routes.
+  factory AppState.developer({required DeveloperProfileStore store}) {
+    if (!kDebugMode) throw StateError('Developer mode requires a debug build.');
+    return AppState._internal(
+      authApi: null,
+      loadoutOwnershipApi: null,
+      runSessionApi: const NoopRunSessionApi(),
+      leaderboardApi: const NoopLeaderboardApi(),
+      ghostApi: const NoopGhostApi(),
+      ghostReplayCache: FileGhostReplayCache(),
+      runSubmissionCoordinator: null,
+      developerStore: store,
+    );
+  }
+
   factory AppState({
     required AuthApi authApi,
     UserProfileRemoteApi? userProfileRemoteApi,
@@ -145,10 +173,10 @@ class AppState extends ChangeNotifier {
   }
 
   AppState._internal({
-    required AuthApi authApi,
+    required AuthApi? authApi,
     UserProfileRemoteApi? userProfileRemoteApi,
     AccountDeletionApi? accountDeletionApi,
-    required LoadoutOwnershipApi loadoutOwnershipApi,
+    required LoadoutOwnershipApi? loadoutOwnershipApi,
     RunBoardsApi? runBoardsApi,
     required RunSessionApi runSessionApi,
     required LeaderboardApi leaderboardApi,
@@ -156,13 +184,14 @@ class AppState extends ChangeNotifier {
     required GhostReplayCache ghostReplayCache,
     OwnershipSyncPolicy? ownershipSyncPolicy,
     OwnershipOutboxStore? ownershipOutboxStore,
-    required RunSubmissionCoordinator runSubmissionCoordinator,
-  }) : _authApi = authApi,
+    required RunSubmissionCoordinator? runSubmissionCoordinator,
+    DeveloperProfileStore? developerStore,
+  }) : _onlineAuthApi = authApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
        _accountDeletionApi =
            accountDeletionApi ?? const NoopAccountDeletionApi(),
-       _ownershipApi = loadoutOwnershipApi,
+       _onlineOwnershipApi = loadoutOwnershipApi,
        _runBoardsApi = runBoardsApi ?? const NoopRunBoardsApi(),
        _runSessionApi = runSessionApi,
        _leaderboardApi = leaderboardApi,
@@ -172,7 +201,10 @@ class AppState extends ChangeNotifier {
            ownershipSyncPolicy ?? OwnershipSyncPolicy.defaults,
        _ownershipOutboxStore =
            ownershipOutboxStore ?? InMemoryOwnershipOutboxStore(),
-       _runSubmissionCoordinator = runSubmissionCoordinator {
+       _onlineRunSubmissionCoordinator = runSubmissionCoordinator {
+    _developerController = developerStore == null
+        ? null
+        : _AppStateDeveloperController(this, developerStore);
     _authProfileController = _AppStateAuthProfileController(this);
     _selectionOwnershipController = _AppStateSelectionOwnershipController(this);
     _ownershipSyncController = _AppStateOwnershipSyncController(this);
@@ -182,10 +214,16 @@ class AppState extends ChangeNotifier {
   }
 
   final Random _random = Random();
-  final AuthApi _authApi;
+  final AuthApi? _onlineAuthApi;
+  AuthApi get _authApi =>
+      _onlineAuthApi ??
+      (throw StateError('Account actions are unavailable in Developer mode.'));
   final UserProfileRemoteApi _profileRemoteApi;
   final AccountDeletionApi _accountDeletionApi;
-  final LoadoutOwnershipApi _ownershipApi;
+  final LoadoutOwnershipApi? _onlineOwnershipApi;
+  LoadoutOwnershipApi get _ownershipApi =>
+      _onlineOwnershipApi ??
+      (throw StateError('Developer inventory is local only.'));
   final RunBoardsApi _runBoardsApi;
   final RunSessionApi _runSessionApi;
   final LeaderboardApi _leaderboardApi;
@@ -193,7 +231,11 @@ class AppState extends ChangeNotifier {
   final GhostReplayCache _ghostReplayCache;
   final OwnershipSyncPolicy _ownershipSyncPolicy;
   final OwnershipOutboxStore _ownershipOutboxStore;
-  final RunSubmissionCoordinator _runSubmissionCoordinator;
+  final RunSubmissionCoordinator? _onlineRunSubmissionCoordinator;
+  RunSubmissionCoordinator get _runSubmissionCoordinator =>
+      _onlineRunSubmissionCoordinator ??
+      (throw StateError('Developer runs cannot be submitted.'));
+  late final _AppStateDeveloperController? _developerController;
   late final _AppStateAuthProfileController _authProfileController;
   late final _AppStateSelectionOwnershipController
   _selectionOwnershipController;
@@ -229,6 +271,9 @@ class AppState extends ChangeNotifier {
   int _runTicketPrefetchLruClock = 0;
 
   SelectionState get selection => _selection;
+
+  /// Local, fully unlocked Practice profile; never an authenticated account.
+  bool get isDeveloperMode => _developerController != null;
   LevelId get weeklyFeaturedLevelId => _defaultWeeklyFeaturedLevelId;
   bool get weeklyFeaturedLevelAvailable =>
       LevelRegistry.isAvailable(_defaultWeeklyFeaturedLevelId);
@@ -244,8 +289,9 @@ class AppState extends ChangeNotifier {
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
 
-  /// Loads authenticated player data once, sharing concurrent attempts.
-  /// Forced refreshes flush pending ownership edits before reading the server.
+  /// Loads the active profile once, sharing concurrent attempts.
+  /// Online refreshes flush ownership edits before reading the server;
+  /// developer refreshes only finish pending local selection saves.
   Future<void> bootstrap({bool force = false}) =>
       _authProfileController.bootstrap(force: force);
 
@@ -445,6 +491,9 @@ class AppState extends ChangeNotifier {
     levelId: levelId,
   );
 
+  /// Prepares a server-ticketed run, or a debug-only local Practice descriptor.
+  /// Developer starts finish local saves and validate the selected loadout;
+  /// they reject online modes and ghosts without contacting account services.
   Future<RunStartDescriptor> prepareRunStartDescriptor({
     RunMode? expectedMode,
     LevelId? expectedLevelId,
@@ -542,6 +591,9 @@ class AppState extends ChangeNotifier {
 
   Future<AuthSession> _ensureAuthSession() async {
     if (_disposed) throw StateError('AppState has been disposed.');
+    if (isDeveloperMode) {
+      throw StateError('Online actions are unavailable in Developer mode.');
+    }
     if (_accountDeletionAccepted) {
       throw StateError('Account deletion has been accepted.');
     }

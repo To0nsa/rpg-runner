@@ -61,6 +61,14 @@ final class _AppStateRunStartController extends _AppStateController {
     LevelId? expectedLevelId,
     String? ghostEntryId,
   }) async {
+    final developer = _app._developerController;
+    if (developer != null) {
+      return developer.prepareRun(
+        expectedMode: expectedMode,
+        expectedLevelId: expectedLevelId,
+        ghostEntryId: ghostEntryId,
+      );
+    }
     await ensureOwnershipSyncedBeforeRunStart();
     final session = await _ensureAuthSession();
     // Restart flows pass expectedMode/expectedLevelId and still require a
