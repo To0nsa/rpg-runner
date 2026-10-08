@@ -8,6 +8,7 @@ import '../abilities/ability_def.dart';
 import 'damage_type.dart';
 import 'damage_credit.dart';
 import 'knockback.dart';
+import 'combat_combo.dart';
 
 /// Represents a request to apply damage to an entity.
 ///
@@ -29,6 +30,7 @@ class DamageRequest {
     this.sourceTrap,
     this.credit = DamageCredit.none,
     this.knockback,
+    this.comboHit,
   });
 
   /// The entity receiving the damage.
@@ -70,4 +72,8 @@ class DamageRequest {
 
   /// Applied only after defenses and middleware allow positive HP loss.
   final KnockbackHit? knockback;
+
+  /// Explicit strike provenance; null for ordinary attacks, procs and DoTs.
+  /// Only a later strike of the same activation can bypass its own post-hit gate.
+  final ComboHit? comboHit;
 }

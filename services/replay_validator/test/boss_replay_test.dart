@@ -15,7 +15,7 @@ import 'package:test/test.dart';
 
 import '../lib/src/replay_simulation.dart';
 
-GameCore _core(int hz) => GameCore(
+GameCore _core(int hz, {EnemyId bossId = EnemyId.bringerOfDeath}) => GameCore(
   seed: 7,
   tickHz: hz,
   playerCharacter: PlayerCharacterRegistry.eloise,
@@ -32,7 +32,7 @@ GameCore _core(int hz) => GameCore(
           chunkKey: 'field_default_normal_001',
           bossArena: BossArenaDefinition(
             id: 'replay_boss',
-            enemyId: EnemyId.bringerOfDeath,
+            enemyId: bossId,
             spawnX: 440,
             minX: 24,
             maxX: 576,
@@ -45,6 +45,31 @@ GameCore _core(int hz) => GameCore(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test('all three beam combo pulses damage and replay at $hz Hz', () {
+      final direct = _core(hz, bossId: EnemyId.voidcaller);
+      final replay = _core(hz, bossId: EnemyId.voidcaller);
+      final hitTicks = <int>[];
+      for (var n = 0; n < hz * 8 && hitTicks.length < 3; n++) {
+        final before = direct.buildSnapshot().hud.hp;
+        direct.applyCommands(const []);
+        direct.stepOneTick();
+        if (direct.buildSnapshot().hud.hp < before) hitTicks.add(direct.tick);
+      }
+      final pulseInterval = 2 * (.08 * hz).round();
+      expect(hitTicks, hasLength(3));
+      expect(hitTicks[1] - hitTicks[0], pulseInterval);
+      expect(hitTicks[2] - hitTicks[1], pulseInterval);
+      expect(pulseInterval, lessThan((.25 * hz).ceil()));
+      final result = runReplaySimulation(
+        core: replay,
+        totalTicks: direct.tick,
+        commandStream: const [],
+      );
+      expect(result.runEnded, isNull);
+      expect(replay.buildSnapshot().hud.hp, direct.buildSnapshot().hud.hp);
+      expect(replay.playerPosX, direct.playerPosX);
+      expect(replay.playerPosY, direct.playerPosY);
+    });
     test('accepted pillar damage and bounded shove replay at $hz Hz', () {
       final direct = _core(hz), replay = _core(hz);
       final initialX = direct.playerPosX;

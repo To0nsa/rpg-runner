@@ -87,6 +87,9 @@ class DamageSystem {
       final procs = queue.procs[i];
       final sourceKind = queue.sourceKind[i];
       final sourceEntity = queue.sourceEntity[i];
+      final comboHit = queue.comboHit[i]?.source == sourceEntity
+          ? queue.comboHit[i]
+          : null;
       final sourceEnemyId = queue.sourceEnemyId[i];
       final sourceProjectileId = queue.sourceProjectileId[i];
 
@@ -101,9 +104,7 @@ class DamageSystem {
       // 2. Resolve Invulnerability component (optional).
       final ii = invuln.tryIndexOf(target);
 
-      // Invulnerability applies only to entities that have `InvulnerabilityStore`
-      // attached.
-      if (ii != null && invuln.ticksLeft[ii] > 0) {
+      if (ii != null && !invuln.allowsHit(ii, comboHit)) {
         continue; // Damage negated.
       }
 
@@ -283,7 +284,11 @@ class DamageSystem {
 
       // 9. Apply new Invulnerability frames.
       if (invulnerabilityTicksOnHit > 0 && ii != null) {
-        invuln.ticksLeft[ii] = invulnerabilityTicksOnHit;
+        invuln.grantPostHit(
+          ii,
+          invulnerabilityTicksOnHit,
+          comboHit: nextHp < prevHp ? comboHit : null,
+        );
       }
     }
     queue.clear();

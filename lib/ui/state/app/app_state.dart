@@ -62,7 +62,7 @@ part 'controllers/boards_controller.dart';
 part 'controllers/run_start_controller.dart';
 part 'controllers/developer_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.10.10';
+const String _defaultGameCompatVersion = '2026.10.11';
 
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;

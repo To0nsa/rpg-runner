@@ -2,6 +2,7 @@ import '../../combat/combat_geometry.dart';
 import '../../combat/damage.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/combat_combo.dart';
 import '../../util/fixed_math.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
@@ -159,6 +160,10 @@ class HitboxDamageSystem {
           world.riposte.consume(owner);
         }
 
+        final comboActivation = hitboxes.comboActivation[hi];
+        final comboWindow = comboActivation == null
+            ? 0
+            : world.hitOnce.window[world.hitOnce.indexOf(hb)];
         world.damageQueue.add(
           DamageRequest(
             target: target,
@@ -170,6 +175,13 @@ class HitboxDamageSystem {
               world.transform.posX[world.transform.indexOf(target)],
             ),
             source: owner,
+            comboHit: comboWindow <= 0
+                ? null
+                : ComboHit(
+                    source: owner,
+                    activation: comboActivation!,
+                    strike: comboWindow,
+                  ),
             sourceMeleeAbilityId: hitboxes.abilityId[hi],
             credit: hitboxes.credit[hi],
             sourceKind: hitboxes.sourceKind[hi],

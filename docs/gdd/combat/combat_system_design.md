@@ -568,7 +568,7 @@ Current runtime stack order:
 Per uncanceled queue entry:
 
 1. Skip when target has no `HealthStore` entry.
-2. Skip when target has active i-frames (`InvulnerabilityStore.ticksLeft > 0`).
+2. Skip when target has active i-frames, except a later strike from the same explicit combo activation and attacker that granted them after positive HP loss.
 3. Apply source-side `weaken` outgoing penalty (when source entity exists and is weakened).
 4. Resolve crit from `critChanceBp` (`+50%` crit bonus).
 5. Apply global defense (`ResolvedCharacterStats.applyDefense`).
@@ -604,6 +604,8 @@ Important nuances:
 - `ProcHook.onBlock` exists but is not consumed in outgoing damage proc resolution.
 - Reactive outcomes are added only when applied damage is strictly positive.
 - If entry survives middleware and invulnerability checks, i-frames can still be refreshed even when final applied damage is `0`.
+- Player protection lasts 0.25 seconds after an accepted hit (rounded up to whole ticks) and remains available after every expiry. An authored combo can land consecutive strikes during its own protection window; each accepted strike refreshes protection against other attackers and separate attacks from the same attacker. Missed, blocked and canceled strikes do not guarantee later hits. Zero-damage hits grant no combo exception.
+- Combo membership is explicit in `CombatCombo`, usable by any actor's melee or area-effect profile. Repeated poses of one strike still hit each target once; independent AI attack choices are not automatically one combo. Arena entrance protection blocks combos as well. See [technical combo rules](../../tdd/combat_pose_geometry.md#combo-damage-and-post-hit-protection).
 
 ## Status Pipeline
 

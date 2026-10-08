@@ -23,6 +23,13 @@ unverified because browser automation was unavailable. The
 [release checklist](../building/rescue_release_operations.md) retains the
 outstanding linked Play Games smoke checks.
 
+Prepared source compatibility `2026.10.11` fixes post-hit invulnerability expiry
+and adds shared explicit combo provenance. Only later strikes from the same
+attacker and combo activation bypass that combo's protection. This changes
+replayed combat outcomes and requires a coordinated client/Functions/worker
+cutover; it has not been deployed by the source change. The ranked tuple and
+replay/command formats above remain unchanged.
+
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug
 APK on the connected phone. It required no issuance pause or run cancellation;

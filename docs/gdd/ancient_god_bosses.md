@@ -88,9 +88,14 @@ Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
 and damage. Targets and attack directions are committed once; attacks never
 home onto subsequent player movement. Utility actions deal no direct damage.
-Consecutive poses of one swing share its hit ledger. A later swing or pulse can
-hit again, while ordinary post-hit invulnerability still protects the player;
-overlapping bright frames never create damage every simulation tick.
+Consecutive poses of one swing share its hit ledger. In prepared source
+compatibility `2026.10.11`, claws, sweeps, spin passes and beam pulses are explicit
+combos: after a damaging hit, later strikes from that same boss and activation
+can hit through its post-hit protection. Other attackers and separate attacks
+from that boss remain blocked for 0.25 seconds after each accepted hit. Overlapping
+bright frames never create damage every simulation tick. This uses the
+[shared combat rule](combat/combat_system_design.md#resolution-stage-damagesystem)
+and is not a boss-only exception; the source change is not yet deployed.
 When both teleport destinations are invalid, the boss reappears at its original
 safe position and the cooldown still applies.
 

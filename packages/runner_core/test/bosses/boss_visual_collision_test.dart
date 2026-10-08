@@ -7,6 +7,7 @@ import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/systems/enemy_cast_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
 import 'package:runner_core/ecs/systems/enemy_melee_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
@@ -58,6 +59,10 @@ void main() {
         // A pose revisited after the final strike cannot reset its hit ledger.
         f.hit(execute);
         expect(f.world.damageQueue.length, expectedHits);
+        f.expectAcceptedDamage(
+          expectedHits * (key == 'shoggoth.spinning_charge' ? 600 : 700),
+          tick: execute,
+        );
       });
     }
 
@@ -108,6 +113,7 @@ void main() {
         f.hit(tick);
       }
       expect(f.world.damageQueue.target, List.filled(3, f.player));
+      f.expectAcceptedDamage(2100, tick: active);
     });
 
     for (final facing in Facing.values) {
@@ -155,6 +161,9 @@ class _Fixture {
     boss = actor(id, 0);
     player = actor(EnemyId.grojib, 300);
     world.faction.faction[world.faction.indexOf(player)] = Faction.player;
+    final hi = world.health.indexOf(player);
+    world.health.hp[hi] = 10000;
+    world.health.hpMax[hi] = 10000;
   }
   final int hz;
   final world = EcsWorld(seed: 7);
@@ -190,5 +199,16 @@ class _Fixture {
     HitboxFollowOwnerSystem(tickHz: hz).step(world, currentTick: tick);
     grid.rebuild(world);
     HitboxDamageSystem().step(world, grid, currentTick: tick);
+  }
+
+  void expectAcceptedDamage(int damage100, {required int tick}) {
+    world.invulnerability.add(player);
+    DamageSystem(
+      invulnerabilityTicksOnHit: (hz * .25).ceil(),
+      rngSeed: 7,
+      tickHz: hz,
+    ).step(world, currentTick: tick);
+    expect(world.health.hp[world.health.indexOf(player)], 10000 - damage100);
+    expect(world.invulnerability.ticksLeft.single, (hz * .25).ceil());
   }
 }

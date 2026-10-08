@@ -324,9 +324,7 @@ final class BossArenaSystem {
       world.arenaProtection.addEntity(entity);
     }
     final ii = world.invulnerability.indexOf(entity);
-    if (world.invulnerability.ticksLeft[ii] < 2) {
-      world.invulnerability.ticksLeft[ii] = 2;
-    }
+    world.invulnerability.protect(ii, 2);
   }
 
   void _releaseTemporaryProtection(EcsWorld world) {

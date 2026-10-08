@@ -1,10 +1,11 @@
 import '../snapshots/enums.dart';
+import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
 /// Damage geometry in world units at Voidcaller's 1.5x art scale.
 abstract final class VoidcallerPoseCatalog {
   static const voidVerticalBeam = CombatStrikeProfile(
-    strikeStartFrames: [5, 7, 9],
+    combo: CombatCombo(strikeStartFrames: [5, 7, 9]),
     artFacing: Facing.right,
     timing: ActionFramePolicy(frameCount: 12, activeStart: 5, activeEnd: 10),
     frames: [
@@ -23,7 +24,7 @@ abstract final class VoidcallerPoseCatalog {
     ],
   );
   static const voidDiagonalBeam = CombatStrikeProfile(
-    strikeStartFrames: [5, 7, 9],
+    combo: CombatCombo(strikeStartFrames: [5, 7, 9]),
     artFacing: Facing.right,
     timing: ActionFramePolicy(frameCount: 12, activeStart: 5, activeEnd: 10),
     frames: [

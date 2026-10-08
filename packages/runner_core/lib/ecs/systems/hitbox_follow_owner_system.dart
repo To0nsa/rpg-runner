@@ -52,7 +52,10 @@ class HitboxFollowOwnerSystem {
                       hitboxes.frameStepTicks[hi])
                   .clamp(0, profile.frames.length - 1);
           hitboxes.capsules[hi] = profile.frames[frame];
-          world.hitOnce.advanceWindow(hitbox, profile.strikeWindowAt(frame));
+          world.hitOnce.advanceWindow(
+            hitbox,
+            profile.combo?.strikeWindowAt(frame) ?? 0,
+          );
         }
         continue;
       }
@@ -115,7 +118,10 @@ class HitboxFollowOwnerSystem {
             ? 1.0
             : -1.0;
         final angle = actorCombatPoseAngle(world, owner, anim);
-        world.hitOnce.advanceWindow(hitbox, selected.strikeWindowAt(frame));
+        world.hitOnce.advanceWindow(
+          hitbox,
+          selected.combo?.strikeWindowAt(frame) ?? 0,
+        );
         hitboxes.capsules[hi] = [
           for (final capsule in selected.frames[frame])
             capsule.transformed(mirror: mirror, angle: angle),

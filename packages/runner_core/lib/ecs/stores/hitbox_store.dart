@@ -76,7 +76,11 @@ class HitboxDef {
 /// These entities usually exist for only a few frames (strike windows).
 /// They are queried by `HitboxDamageSystem`.
 class HitboxStore extends SparseSet {
+  // Independent of recycled entity IDs, including attacks from the same actor.
+  int _nextComboActivation = 1;
+
   final List<EntityId> owner = <EntityId>[];
+  final List<int?> comboActivation = [];
   final List<CombatStrikeProfile?> profile = [];
   final List<int> frameStepTicks = [];
   final List<int> spawnTick = [];
@@ -102,8 +106,16 @@ class HitboxStore extends SparseSet {
   final List<double> dirY = <double>[];
 
   void add(EntityId entity, HitboxDef def) {
+    final combo = def.profile?.combo;
+    if (combo != null) {
+      combo.validate(def.profile!.frames.length);
+      if (def.hitPolicy == HitPolicy.everyTick) {
+        throw ArgumentError('Combo strikes require a per-strike hit ledger.');
+      }
+    }
     final i = addEntity(entity);
     owner[i] = def.owner;
+    comboActivation[i] = combo == null ? null : _nextComboActivation++;
     abilityId[i] = def.abilityId;
     faction[i] = def.faction;
     profile[i] = def.profile;
@@ -130,6 +142,7 @@ class HitboxStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     owner.add(0);
+    comboActivation.add(null);
     abilityId.add(null);
     faction.add(Faction.player);
     profile.add(null);
@@ -156,6 +169,7 @@ class HitboxStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     owner[removeIndex] = owner[lastIndex];
+    comboActivation[removeIndex] = comboActivation[lastIndex];
     abilityId[removeIndex] = abilityId[lastIndex];
     faction[removeIndex] = faction[lastIndex];
     profile[removeIndex] = profile[lastIndex];
@@ -179,6 +193,7 @@ class HitboxStore extends SparseSet {
     dirY[removeIndex] = dirY[lastIndex];
 
     owner.removeLast();
+    comboActivation.removeLast();
     abilityId.removeLast();
     faction.removeLast();
     profile.removeLast();

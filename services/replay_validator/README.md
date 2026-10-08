@@ -60,13 +60,16 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts prepared game compatibility `2026.10.10`;
+The validator source accepts prepared game compatibility `2026.10.11`;
 replay/command format `1`, `rules-v2`, `score-v4`, and `ghost-v1` are the
 supported ranked tuple. This source includes mandatory boss arenas, whose
 entrance, defeat credit and excluded survival-score ticks are replayed through
 Core. This revision enlarges Bringer and Death Pillar by 1.5x, accelerates both
 attacks, increases boss pursuit speed by 20% and restores only 20% of each
 maximum resource after easy-chunk boss victories (60% for other tiers).
+It also retains player post-hit protection across expiry and resolves explicit
+combo strikes through Core: only later strikes from the same attacker and combo
+activation bypass protection granted by an accepted damaging combo hit.
 Previous gameplay tickets are rejected rather than replayed with the new tuning.
 The matching
 client/Functions/worker release is not deployed by this change.

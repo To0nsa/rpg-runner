@@ -1,10 +1,11 @@
 import '../snapshots/enums.dart';
+import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
 /// Damage geometry in world units at Shoggoth's 1.5x art scale.
 abstract final class ShoggothPoseCatalog {
   static const shoggothSweep = CombatStrikeProfile(
-    strikeStartFrames: [5, 7],
+    combo: CombatCombo(strikeStartFrames: [5, 7]),
     artFacing: Facing.left,
     timing: ActionFramePolicy(frameCount: 11, activeStart: 5, activeEnd: 8),
     frames: [
@@ -22,7 +23,7 @@ abstract final class ShoggothPoseCatalog {
     ],
   );
   static const shoggothSpin = CombatStrikeProfile(
-    strikeStartFrames: [3, 6],
+    combo: CombatCombo(strikeStartFrames: [3, 6]),
     artFacing: Facing.left,
     timing: ActionFramePolicy(frameCount: 12, activeStart: 3, activeEnd: 9),
     frames: [

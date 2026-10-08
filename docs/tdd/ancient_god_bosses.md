@@ -10,7 +10,10 @@ then `forest_voidcaller_easy_001`, before the existing enchanted forest.
 Each uses an independent arena ID and a single-candidate assembly group;
 the shared lifecycle releases one encounter before activating the next. The shared
 wire payloads and replay command encoding remain unchanged. Client and replay
-worker consume the same Core in the deployed `2026.10.10` release.
+worker consume the same Core in the deployed `2026.10.10` release. Prepared
+source compatibility `2026.10.11` uses shared explicit `CombatCombo` definitions
+for claws, sweeps, spin passes and beams. Their later strikes bypass only their
+own activation's post-hit protection; see [combo damage](combat_pose_geometry.md#combo-damage-and-post-hit-protection).
 
 ## Catalogs and authority
 

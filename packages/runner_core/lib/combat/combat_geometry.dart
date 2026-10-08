@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../snapshots/enums.dart';
+import 'combat_combo.dart';
 
 /// Explicit capsule endpoints and radius, in world units relative to an anchor.
 /// Rounded ends are part of the shape; no rectangle-size conversion is implied.
@@ -87,26 +88,15 @@ final class CombatStrikeProfile {
     required this.timing,
     required this.frames,
     this.artFacing = Facing.right,
-    this.strikeStartFrames = const [],
+    this.combo,
   });
 
   final ActionFramePolicy timing;
   final List<List<CombatCapsule>> frames;
   final Facing artFacing;
 
-  /// Ordered source frames starting distinct swings or pulses. A target may be
-  /// hit once per window; consecutive poses of the same swing share its ledger.
-  /// Empty preserves one hit window for the entire action.
-  final List<int> strikeStartFrames;
-
-  int strikeWindowAt(int frame) {
-    var window = 0;
-    for (final start in strikeStartFrames) {
-      if (frame < start) break;
-      window++;
-    }
-    return window;
-  }
+  /// Explicit multi-strike sequence; null gives the entire attack one hit window.
+  final CombatCombo? combo;
 
   /// Absolute reach from the source anchor, for AI approach planning only.
   double get reach {

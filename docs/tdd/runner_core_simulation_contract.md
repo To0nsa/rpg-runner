@@ -99,7 +99,14 @@ reaction pass that does not advance locomotion twice. See
 projectile/impact clocks, and snapshot/debug contracts.
 
 Damage grants post-hit invulnerability immediately, protecting against later
-queued damage in the same tick. Victim-targeted on-hit/on-crit status requests
+queued damage in the same tick except a strictly later strike from the same
+explicit combo activation and source that caused positive HP loss. A separate
+attack from that source cannot bypass it. Timer expiry retains the player's
+post-hit eligibility and clears combo provenance; arena protection also clears
+the exception. See [combo damage](combat_pose_geometry.md#combo-damage-and-post-hit-protection).
+This behavior is prepared in compatibility `2026.10.11` and requires matching
+client, Functions and worker artifacts; system ordering and wire formats stay
+unchanged. Victim-targeted on-hit/on-crit status requests
 carry `acceptedHitTick`; only requests applied on that tick reuse the hit's
 eligibility instead of testing the new invulnerability again. Status immunity
 and live-health checks still apply. Standalone and delayed requests retain

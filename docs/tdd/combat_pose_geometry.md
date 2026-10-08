@@ -15,13 +15,50 @@ windup/recovery poses. Compound blade arcs are unioned in stable entity-ID
 order before applying the delivery's hit policy. Overlapping arc segments
 cannot duplicate damage, even under `everyTick`.
 
-Compatibility `2026.10.10` adds optional ordered `strikeStartFrames`
-to each profile. `HitboxFollowOwnerSystem` advances `HitOnceStore`'s per-hitbox
+Compatibility `2026.10.11` represents multi-strike attacks with an explicit
+`CombatCombo` on the profile. Its ordered `strikeStartFrames` identify the
+individual strikes of one activation. `HitboxFollowOwnerSystem` advances `HitOnceStore`'s per-hitbox
 window monotonically before collision; only a later authored swing/pulse resets
 the target ledger. Revisiting a frame cannot reopen an old strike, and ordinary
 profiles keep one window for their whole lifetime. Goddess claws start at frames
 4/7/12/15, Shoggoth sweeps at 5/7 and spin passes at 3/6, and Voidcaller beam
-pulses at 5/7/9. Post-hit invulnerability remains ordinary damage middleware.
+pulses at 5/7/9. These frames retain the timing introduced in `2026.10.10`.
+
+### Combo damage and post-hit protection
+
+`CombatCombo` is shared by player, NPC and enemy attack profiles, with no boss
+identity check. It requires at least two strictly increasing in-range frame
+indices and a per-strike hit policy; `everyTick` is rejected. A profile without
+a combo keeps one hit window. Separate committed attacks, including an AI's
+armed alternate attack, do not implicitly become a combo just because they
+share an attacker or ability. Author the strikes as one combo profile to opt in.
+
+At hitbox creation, `HitboxStore` allocates a world-local, monotonically increasing
+combo activation ID independent of recycled entity IDs. `HitboxDamageSystem`
+captures that ID, the source actor and the one-based strike window in `ComboHit`
+on the damage request. The target's `InvulnerabilityStore` records provenance
+only after positive HP loss. While protected, it accepts a strictly later strike
+from that same source and activation. Other actors (including the same enemy
+type), separate activations, repeated strikes, ordinary attacks, procs and DoTs
+remain blocked. The opener cannot bypass protection caused by another hit.
+Each accepted follow-up refreshes the normal protection duration, so other
+attackers remain blocked during and after the combo.
+
+Zero-damage results retain the existing ordinary protection behavior but grant
+no combo exception. Canceled requests grant neither. On-hit statuses from
+accepted follow-ups retain the usual `acceptedHitTick` rule. Collision still
+consumes a strike's target ledger before damage resolution; blocked attempts
+do not retry later in the same strike.
+
+Invulnerability expiry clears the timer and combo provenance, not membership:
+the player remains eligible for protection from later hits. Arena entrances
+explicitly clear combo provenance when installing protection and remove only
+their owned temporary memberships on release. Store swap removal and entity
+destruction clear target state; new hitboxes never reuse activation IDs.
+
+These damage outcomes require matching client, Functions and replay-worker
+compatibility `2026.10.11`. Tick ordering, commands, scoring and wire formats are
+unchanged. This source change does not deploy a release.
 
 `CombatPoseCatalog` holds the player directional variants, Warrior and Huntress
 melee, Grojib's two strikes, Hashash strike/ambush, Unoco strike, and Derf tentacle/impact.

@@ -15,7 +15,9 @@ that direction after launch. Damage requests and their SoA queue retain it.
 Damage middleware runs before `DamageSystem`. Only positive HP loss on a living
 dynamic body queues a shove; canceled, invulnerable, protected, fully resisted,
 zero-damage and lethal outcomes do not. Partial mitigation still pushes. Existing
-hit policies and invulnerability prevent repeated pushes from one activation.
+hit policies prevent repeated pushes within one strike. Later strikes of an
+explicit combo may bypass that activation's post-hit protection and queue another
+shove; see [combo damage](combat_pose_geometry.md#combo-damage-and-post-hit-protection).
 Multiple accepted hits use deterministic damage-queue order: the last replaces
 the previous shove, rather than stacking unbounded velocity.
 

@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage.dart';
+import '../../combat/combat_combo.dart';
 import '../../combat/knockback.dart';
 import '../../combat/damage_credit.dart';
 import '../../combat/damage_type.dart';
@@ -34,6 +35,7 @@ class DamageQueueStore {
   final List<int> flags = <int>[];
   final List<DamageCredit> credit = [];
   final List<KnockbackHit?> knockback = [];
+  final List<ComboHit?> comboHit = [];
 
   int get length => target.length;
 
@@ -58,6 +60,7 @@ class DamageQueueStore {
     flags.add(0);
     credit.add(request.credit);
     knockback.add(request.knockback);
+    comboHit.add(request.comboHit);
     return index;
   }
 
@@ -80,5 +83,6 @@ class DamageQueueStore {
     flags.clear();
     credit.clear();
     knockback.clear();
+    comboHit.clear();
   }
 }

@@ -1,5 +1,7 @@
 import 'package:runner_core/bosses/boss_arena_definition.dart';
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/combat_combo.dart';
+import 'package:runner_core/combat/damage.dart';
 import 'package:runner_core/ecs/stores/enemies/enemy_store.dart';
 import 'package:runner_core/bosses/boss_arena_system.dart';
 import 'package:runner_core/camera/autoscroll_camera.dart';
@@ -10,6 +12,8 @@ import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/death_state_store.dart';
 import 'package:runner_core/enemies/death_behavior.dart';
 import 'package:runner_core/ecs/systems/control_lock_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/ecs/systems/invulnerability_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -39,6 +43,42 @@ BossArenaDefinition _definition() => BossArenaDefinition(
 );
 
 void main() {
+  test('arena hold clears combo permission and retains player post-hit eligibility', () {
+    final f = _Fixture();
+    final attacker = f.world.createEntity();
+    final protection = f.world.invulnerability;
+    protection.add(f.player);
+    protection.grantPostHit(
+      protection.indexOf(f.player),
+      15,
+      comboHit: ComboHit(source: attacker, activation: 1, strike: 1),
+    );
+    f.enter();
+    f.prepare(2);
+    expect(protection.lastComboHit[protection.indexOf(f.player)], isNull);
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 15, rngSeed: 7);
+    f.world.damageQueue.add(
+      DamageRequest(
+        target: f.player,
+        amount100: 700,
+        source: attacker,
+        comboHit: ComboHit(source: attacker, activation: 1, strike: 2),
+      ),
+    );
+    damage.step(f.world, currentTick: 2);
+    expect(f.world.health.hp[f.world.health.indexOf(f.player)], 5000);
+    for (var tick = 3; tick <= 74; tick++) {
+      f.prepare(tick);
+      InvulnerabilitySystem().step(f.world);
+    }
+    expect(protection.has(f.player), isTrue);
+    expect(protection.ticksLeft[protection.indexOf(f.player)], 0);
+    f.world.damageQueue.add(DamageRequest(target: f.player, amount100: 700));
+    damage.step(f.world, currentTick: 74);
+    expect(f.world.health.hp[f.world.health.indexOf(f.player)], 4300);
+    expect(protection.ticksLeft[protection.indexOf(f.player)], 15);
+  });
+
   test('entrance clears charge progress while preserving held input', () {
     final f = _Fixture();
     f.world.abilityCharge.add(f.player);
