@@ -1,8 +1,10 @@
 import '../../combat/combat_pose_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/knockback.dart';
+import '../../combat/status/status.dart';
 import '../../snapshots/enums.dart';
 import '../../spell_impacts/spell_impact_id.dart';
+import '../../weapons/weapon_proc.dart';
 import '../ability_def.dart';
 
 /// First boss: committed scythe sweeps and captured-position death pillars.
@@ -47,5 +49,11 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     baseDamage: 700,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: DamageType.dark,
+    procs: const [
+      WeaponProc(
+        hook: ProcHook.onHit,
+        statusProfileId: StatusProfileId.weakenOnHit,
+      ),
+    ],
   ),
 };

@@ -201,6 +201,13 @@ Its first six effect frames are harmless telegraph; later pillar frames
 use a world-anchored capsule and one hit per target. Both actions share cooldown
 group zero. Stun immunity prevents indefinite interruption; other damage and
 status rules remain ordinary Core behavior.
+Death Pillar authors an `onHit` proc using `StatusProfileId.weakenOnHit`, shared
+with Dark Bolt (5000 basis points of outgoing damage reduction for five seconds).
+The ordinary target-point payload carries it into `DamageSystem`; accepted-hit
+status application survives the protection granted by that same hit and still
+obeys status immunity. Blocked hits do not queue the proc. This catalog change
+is included in prepared compatibility `2026.10.11`; matching client and worker
+artifacts are required, with no command, wire-format or phase-order changes.
 Scythe authoring ticks are `16/12/16` (windup/active/recovery), with a 72-tick
 cooldown. Pillar uses `24/4/12`, with a 100-tick cooldown. Both cast cycles are
 1.5x faster at the 60 Hz authoring rate. Pillar delivery and impact render

@@ -1,14 +1,18 @@
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/combat/damage.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/systems/bringer_combat_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
 import 'package:runner_core/ecs/systems/enemy_cast_system.dart';
 import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:runner_core/ecs/systems/melee_strike_system.dart';
+import 'package:runner_core/ecs/systems/status_system.dart';
 import 'package:runner_core/ecs/systems/target_point_impact_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
@@ -63,7 +67,9 @@ void main() {
       f.world.transform.setPosXY(f.player, targetX + 22, 0);
       f.resolveHits(firstDamageTick);
       expect(f.world.damageQueue.target, [f.player]);
-      expect(f.world.damageQueue.amount100, [700]);
+      expect(f.world.damageQueue.amount100, [
+        const AbilityCatalog().resolve('bringer.death_pillar')!.baseDamage,
+      ]);
       for (
         var tick = firstDamageTick + 1;
         tick < executeTick + 16 * step;
@@ -90,11 +96,74 @@ void main() {
         f.world.transform.setPosXY(f.player, 120 * sign, 0);
         f.resolveHits(executeTick);
         expect(f.world.damageQueue.target, [f.player]);
-        expect(f.world.damageQueue.amount100, [800]);
+        expect(f.world.damageQueue.amount100, [
+          const AbilityCatalog().resolve('bringer.scythe_sweep')!.baseDamage,
+        ]);
         f.resolveHits(executeTick + 1);
         expect(f.world.damageQueue.length, 1);
       });
     }
+
+    test('pillar weaken halves player damage for five seconds at $hz Hz', () {
+      final f = _Fixture(hz, playerX: 300);
+      final status = StatusSystem(tickHz: hz);
+      final damage = DamageSystem(
+        invulnerabilityTicksOnHit: (hz / 4).ceil(),
+        rngSeed: 1,
+        tickHz: hz,
+      );
+      final hitTick = f.hitWithPillar();
+      damage.step(f.world, currentTick: hitTick, queueStatus: status.queue);
+      expect(
+        f.world.invulnerability.ticksLeft[f.world.invulnerability.indexOf(
+          f.player,
+        )],
+        greaterThan(0),
+      );
+      status.applyQueued(f.world, currentTick: hitTick);
+      final wi = f.world.weaken.indexOf(f.player);
+      expect(f.world.weaken.magnitude[wi], 5000);
+      expect(f.world.weaken.ticksLeft[wi], 5 * hz);
+
+      int playerDamage(int tick) {
+        final hi = f.world.health.indexOf(f.boss);
+        final before = f.world.health.hp[hi];
+        f.world.damageQueue.add(
+          DamageRequest(target: f.boss, source: f.player, amount100: 1000),
+        );
+        damage.step(f.world, currentTick: tick);
+        return before - f.world.health.hp[hi];
+      }
+
+      expect(playerDamage(hitTick + 1), 500);
+      for (var tick = 1; tick < 5 * hz; tick++) {
+        status.tickExisting(f.world);
+      }
+      expect(playerDamage(hitTick + 5 * hz - 1), 500);
+      status.tickExisting(f.world);
+      expect(f.world.weaken.has(f.player), isFalse);
+      expect(playerDamage(hitTick + 5 * hz), 1000);
+    });
+
+    test('blocked pillar cannot apply weaken at $hz Hz', () {
+      final f = _Fixture(hz, playerX: 300);
+      final status = StatusSystem(tickHz: hz);
+      final hi = f.world.health.indexOf(f.player);
+      final before = f.world.health.hp[hi];
+      f.world.invulnerability.protect(
+        f.world.invulnerability.indexOf(f.player),
+        hz,
+      );
+      final hitTick = f.hitWithPillar();
+      DamageSystem(
+        invulnerabilityTicksOnHit: (hz / 4).ceil(),
+        rngSeed: 1,
+        tickHz: hz,
+      ).step(f.world, currentTick: hitTick, queueStatus: status.queue);
+      status.applyQueued(f.world, currentTick: hitTick);
+      expect(f.world.health.hp[hi], before);
+      expect(f.world.weaken.has(f.player), isFalse);
+    });
 
     for (final planned in [false, true]) {
       test('boss pursuit is 20% faster at $hz Hz directPlan=$planned', () {
@@ -229,6 +298,18 @@ class _Fixture {
 
   void selectAttack(int tick) =>
       combat.step(world, player: player, currentTick: tick);
+
+  int hitWithPillar() {
+    selectAttack(10);
+    final ii = world.targetPointIntent.indexOf(boss);
+    final executeTick = world.targetPointIntent.tick[ii];
+    final hitTick =
+        executeTick + 6 * world.targetPointIntent.frameStepTicks[ii];
+    TargetPointImpactSystem().step(world, currentTick: executeTick);
+    resolveHits(hitTick);
+    expect(world.damageQueue.target, [player]);
+    return hitTick;
+  }
 
   void resolveHits(int tick) {
     resolveCombatPoses(world, tick, tickHz: hz);

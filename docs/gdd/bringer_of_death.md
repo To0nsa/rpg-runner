@@ -43,6 +43,11 @@ The pillar's cast cycle is 1.5x faster and its warning/effect strip is 2x faster
 before tick quantization. Commit-to-first-damage takes 600/600/667 ms at
 30/60/90 Hz, at least 1.5x faster than the original at each rate. The same
 effect clock drives its art and damage. Both attacks retain one hit per target.
+Death Pillar also applies the same Weaken effect as the player's Dark Bolt:
+50% less outgoing damage for five seconds. Another accepted pillar hit refreshes
+the duration without stacking the reduction. A hit blocked by invulnerability
+does not apply Weaken; ordinary status immunity still applies.
+This addition is prepared for compatibility `2026.10.11` and is not yet deployed.
 The column's bottom lands on the captured floor or platform rather than centering
 the animation on the player. An airborne target marks the first surface below
 their captured position. Moving or jumping during the cast never moves that mark;

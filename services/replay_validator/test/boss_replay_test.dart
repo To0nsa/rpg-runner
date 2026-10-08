@@ -9,6 +9,7 @@ import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
@@ -70,33 +71,45 @@ void main() {
       expect(replay.playerPosX, direct.playerPosX);
       expect(replay.playerPosY, direct.playerPosY);
     });
-    test('accepted pillar damage and bounded shove replay at $hz Hz', () {
-      final direct = _core(hz), replay = _core(hz);
-      final initialX = direct.playerPosX;
-      final initialHp = direct.buildSnapshot().hud.hp;
-      var minimumX = initialX;
-      final ticks = hz * 5;
-      for (var i = 0; i < ticks; i++) {
-        direct.applyCommands(const []);
-        direct.stepOneTick();
-        if (direct.playerPosX < minimumX) minimumX = direct.playerPosX;
-      }
-      expect(direct.buildSnapshot().hud.hp, lessThan(initialHp));
-      expect(minimumX, lessThan(initialX));
-      final result = runReplaySimulation(
-        core: replay,
-        totalTicks: ticks,
-        commandStream: const [],
-      );
-      expect(result.runEnded, isNull);
-      expect(replay.playerPosX, direct.playerPosX);
-      expect(replay.playerPosY, direct.playerPosY);
-      expect(replay.buildSnapshot().hud.hp, direct.buildSnapshot().hud.hp);
-      expect(
-        replay.buildSnapshot().bossArena?.phase,
-        direct.buildSnapshot().bossArena?.phase,
-      );
-    });
+    test(
+      'accepted pillar damage, weaken and bounded shove replay at $hz Hz',
+      () {
+        final direct = _core(hz), replay = _core(hz);
+        final initialX = direct.playerPosX;
+        final initialHp = direct.buildSnapshot().hud.hp;
+        var minimumX = initialX;
+        final ticks = hz * 5;
+        for (var i = 0; i < ticks; i++) {
+          direct.applyCommands(const []);
+          direct.stepOneTick();
+          if (direct.playerPosX < minimumX) minimumX = direct.playerPosX;
+        }
+        expect(direct.buildSnapshot().hud.hp, lessThan(initialHp));
+        expect(
+          direct.buildSnapshot().playerEntity!.statusVisualMask &
+              EntityStatusVisualMask.weaken,
+          isNonZero,
+        );
+        expect(minimumX, lessThan(initialX));
+        final result = runReplaySimulation(
+          core: replay,
+          totalTicks: ticks,
+          commandStream: const [],
+        );
+        expect(result.runEnded, isNull);
+        expect(replay.playerPosX, direct.playerPosX);
+        expect(replay.playerPosY, direct.playerPosY);
+        expect(replay.buildSnapshot().hud.hp, direct.buildSnapshot().hud.hp);
+        expect(
+          replay.buildSnapshot().playerEntity!.statusVisualMask,
+          direct.buildSnapshot().playerEntity!.statusVisualMask,
+        );
+        expect(
+          replay.buildSnapshot().bossArena?.phase,
+          direct.buildSnapshot().bossArena?.phase,
+        );
+      },
+    );
     test('boss entrance, combat clear and score replay at $hz Hz', () {
       final direct = _core(hz), replay = _core(hz);
       final frames = <ReplayCommandFrameV1>[];
