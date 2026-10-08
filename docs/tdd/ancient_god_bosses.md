@@ -10,7 +10,7 @@ then `forest_voidcaller_easy_001`, before the existing enchanted forest.
 Each uses an independent arena ID and a single-candidate assembly group;
 the shared lifecycle releases one encounter before activating the next. The shared
 wire payloads and replay command encoding remain unchanged. Client and replay
-worker consume the same Core in the deployed `2026.10.9` release.
+worker consume the same Core in the deployed `2026.10.10` release.
 
 ## Catalogs and authority
 
@@ -69,7 +69,7 @@ sample floor or top-side one-way support below the captured target. Delivery
 and effect rendering use the same rounded frame-step ticks. Damage geometry
 is resolved before broadphase; Flame never decides hit timing.
 
-For prepared compatibility `2026.10.10`, Goddess captures the cast start tick,
+For compatibility `2026.10.10`, Goddess captures the cast start tick,
 original position/facing, first release tick and sweep direction. Six hands use
 the already committed target-point payload, at half-second intervals and six
 evenly spaced floor marks inset 50 units from the arena edges. Her far upper

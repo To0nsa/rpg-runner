@@ -25,14 +25,15 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Authored abilities (mobility, melee, ranged, defense, utility)
 - 5 enemy archetypes: ground chaser, ambusher, flying demon, transforming cultist,
   and Bringer of Death in a mandatory [Forest boss arena](docs/gdd/bringer_of_death.md),
-  deployed with shared attack knockback and a 60% victory resource blessing in
-  [gameplay 2026.10.8](docs/verification/forest_boss_arena.md#production-release-2026108)
-  (source `2026.10.9` adds 1.5x boss/column size, faster attacks, 20% faster
-  pursuit and a 20% easy-chunk blessing; coordinated deployment is pending)
+  with shared attack knockback, 1.5x boss/column scale, faster attacks/pursuit and
+  a 20% easy-chunk victory resource blessing
 - 3 additional [Ancient God bosses](docs/gdd/ancient_god_bosses.md) selectable in
   Chunk Creator arena metadata: Voidborn Goddess, Shoggoth and Voidcaller, with
-  damageable summons, teleports and spell effects at Bringer's 1.5x scale;
-  production level placements remain unchanged
+  damageable summons, teleports and spell effects at Bringer's 1.5x scale.
+  Their three Forest rooms follow Bringer consecutively. Deployed
+  [gameplay 2026.10.10](docs/verification/boss-combat-corrections-2026-10-08.md#production-release)
+  aligns Voidcaller's beams, adds Goddess's corner hand barrage and allows
+  distinct visible swings/pulses to strike again
 - 3 allied NPC archetypes with animated combat, chunk-bound rescue encounters,
   surviving section guards and Huntress throw/stab/slash combat,
   editable targeting/rewards in Chunk Creator, and replay-validated rescue scoring

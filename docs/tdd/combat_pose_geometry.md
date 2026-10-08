@@ -15,7 +15,7 @@ windup/recovery poses. Compound blade arcs are unioned in stable entity-ID
 order before applying the delivery's hit policy. Overlapping arc segments
 cannot duplicate damage, even under `everyTick`.
 
-Prepared compatibility `2026.10.10` adds optional ordered `strikeStartFrames`
+Compatibility `2026.10.10` adds optional ordered `strikeStartFrames`
 to each profile. `HitboxFollowOwnerSystem` advances `HitOnceStore`'s per-hitbox
 window monotonically before collision; only a later authored swing/pulse resets
 the target ledger. Revisiting a frame cannot reopen an old strike, and ordinary

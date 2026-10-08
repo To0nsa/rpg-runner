@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.9` was deployed October 7, 2026 (Helsinki time) from frozen
-commit `8b0062d4`; see [current production evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
+Status: `2026.10.10` was deployed October 8, 2026 from frozen commit `10f85b4c`;
+see [current production evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.9](../verification/ancient-god-bosses-2026-10-07.md#production-release),
 [2026.10.8](../verification/forest_boss_arena.md#production-release-2026108),
 [2026.10.7](../verification/game-compat-2026.10.7-production.md),
 [2026.10.6](../verification/game-compat-2026.10.6-production.md),
@@ -13,12 +14,27 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-## Deployed release: 2026.10.9
+## Deployed release: 2026.10.10
 
-The next source compatibility `2026.10.10` corrects beam-piece alignment, adds
+Compatibility `2026.10.10` corrects beam-piece alignment, adds
 Goddess's upper-corner hand barrage, and allows separate visible swings/pulses
-to hit again. It requires a coordinated client/worker cutover. Production remains
-`2026.10.9` until the new release evidence records successful deployment.
+to hit again. The owner authorized commit/deploy and cancellation when necessary.
+
+- [x] Inspect the actual sprite frames and both live/ghost effect rendering paths.
+- [x] Verify sequential hands in the real Forest room at 30/60/90 Hz, independent
+  strike windows, cancellation/replacement/death and recycled-entity cleanup.
+- [x] Pass coordinated release preparation and the strict immutable-image benchmark.
+- [x] Pause issuance; transactionally cancel the two reviewed unsubmitted old-version
+  tickets without changing profiles, validated runs or rewards.
+- [x] Deploy Functions, worker and Hosting; verify all six boards and exact web
+  artifact bytes, restore both queues and matching issuance, and save the baseline.
+- [x] Verify healthy worker/issuer revisions serving 100%, with the issuer pause
+  gate absent, zero active sessions and all 199 accepted runs/rewards preserved.
+- [ ] Complete linked Play Games gameplay/replay/settlement/leaderboard/ghost and
+  live retired-version smoke. Browser automation was unavailable; no native package
+  was installed. See the current production evidence for limits.
+
+## Deployed release: 2026.10.9
 
 The release includes the [Bringer tuning](../gdd/bringer_of_death.md):
 1.5x boss/column size, faster attacks, 20% faster pursuit and 20% resource

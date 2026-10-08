@@ -59,7 +59,7 @@ precedence. Ancient God summons are admitted/expired before motion preparation;
 their teleports execute before water/navigation refresh. Goddess's corner/return
 placement and scheduled hands run immediately after those teleports. Her hover
 and committed spinning motion compose after locomotion and before the single
-terrain integration. Prepared compatibility `2026.10.10` adds this barrage and
+terrain integration. Compatibility `2026.10.10` adds this barrage and
 authored strike windows that allow a later swing to hit the same target again. See
 [boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
 

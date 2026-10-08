@@ -9,16 +9,17 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.9`, with independent
-Ancient God bosses, three consecutive Forest arenas after Bringer of Death,
-the 1.5x boss tuning and 20% easy-arena victory restoration.
+The current production release is gameplay `2026.10.10`, with corrected beam
+alignment, Goddess's corner hand barrage and distinct strike windows. It retains
+the independent Ancient God bosses in three Forest arenas after Bringer,
+1.5x boss tuning and 20% easy-arena victory restoration.
 Its ranked tuple is `rules-v2`, `score-v4`, and `ghost-v1`; replay and command
 formats remain 1. See the
-[October 7 production evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release)
-for frozen commit `8b0062d4`, artifacts and live cutover checks. Three reviewed
-old-version runs were cancelled under owner authorization; validated runs and
-rewards were preserved. Controlled signed-in gameplay remains unverified, and
-the pre-existing browser service-initialization failure was reproduced. The
+[October 8 production evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release)
+for frozen commit `10f85b4c`, artifacts and live cutover checks. Two reviewed
+unsubmitted tickets were cancelled under owner authorization; all 199 validated
+runs and settled rewards were preserved. Controlled signed-in gameplay remains
+unverified because browser automation was unavailable. The
 [release checklist](../building/rescue_release_operations.md) retains the
 outstanding linked Play Games smoke checks.
 
