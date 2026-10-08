@@ -270,6 +270,7 @@ class DamageSystem {
             StatusRequest(
               target: statusTarget,
               profileId: proc.statusProfileId,
+              tuning: proc.statusTuning,
               damageType: damageType,
               sourceTrap: queue.sourceTrap[i],
               credit: queue.credit[i],

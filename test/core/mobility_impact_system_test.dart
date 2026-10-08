@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
@@ -16,6 +17,7 @@ import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
 import 'package:runner_core/ecs/systems/mobility_impact_system.dart';
+import 'package:runner_core/ecs/systems/status_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/snapshots/enums.dart';
@@ -203,7 +205,17 @@ void main() {
 
     phaseSystem.step(world, currentTick: 1);
     broadphase.rebuild(world);
-    impactSystem.step(world, broadphase, currentTick: 1);
+    final status = StatusSystem(tickHz: 60);
+    world.statModifier.add(enemy);
+    impactSystem.step(
+      world,
+      broadphase,
+      currentTick: 1,
+      queueStatus: status.queue,
+    );
+    status.applyQueued(world, currentTick: 1);
+    expect(world.controlLock.isLocked(enemy, LockFlag.stun, 120), isTrue);
+    expect(world.controlLock.isLocked(enemy, LockFlag.stun, 121), isFalse);
 
     expect(world.damageQueue.length, equals(1));
     expect(world.damageQueue.target.single, equals(enemy));
@@ -269,6 +281,10 @@ class _TestAbilities extends AbilityCatalog {
           hitPolicy: HitPolicy.oncePerTarget,
           damage100: 750,
           damageType: DamageType.physical,
+          statusProfileId: StatusProfileId.stunOnHit,
+          statusTuning: StatusProfileTuning(
+            stun: StatusApplicationTuning(durationSeconds: 2),
+          ),
         ),
         animKey: AnimKey.dash,
       );

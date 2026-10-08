@@ -41,6 +41,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   records independent boss ownership, video review and collision corrections.
 - [Derf transformation](tdd/derf_transformation.md) and [Derf gameplay](gdd/derf.md): normal-form explosions, first-visibility transformation, then ground pursuit and tentacle melee; deployed in `2026.10.7`.
 - [Technical design documents](tdd/): implemented architecture and contracts.
+- [Status effect tuning](tdd/status_effect_tuning.md): per-ability and per-item
+  overrides for all status types, shared gameplay/UI resolution and compound effects.
 - [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed. Survivor section
   combat was deployed in `2026.10.1`. Huntress distance-based throw/stab/slash
   combat was deployed in compatibility `2026.10.3`.

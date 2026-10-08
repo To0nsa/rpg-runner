@@ -567,6 +567,7 @@ class AbilityActivationSystem {
         abilityId: ability.id,
         slot: slot,
         selfStatusProfileId: ability.selfStatusProfileId,
+        selfStatusTuning: ability.selfStatusTuning,
         selfPurgeProfileId: ability.selfPurgeProfileId,
         commitTick: commitTick,
         windupTicks: windupTicks,

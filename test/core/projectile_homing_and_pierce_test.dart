@@ -348,6 +348,11 @@ void main() {
       expect(procs[1].statusProfileId, equals(StatusProfileId.restoreMana));
       expect(procs[2].hook, equals(ProcHook.onCrit));
       expect(procs[2].statusProfileId, equals(StatusProfileId.focus));
+      final focus = const StatusProfileCatalog().resolve(
+        procs[2].statusProfileId, tuning: procs[2].statusTuning,
+      ).applications.single;
+      expect(focus.critBonusBp, 0);
+      expect(focus.durationSeconds, 1.5);
     },
   );
 
@@ -510,7 +515,13 @@ class _SpellProcBookCatalog extends SpellBookCatalog {
       hook: ProcHook.onKill,
       statusProfileId: StatusProfileId.restoreMana,
     ),
-    WeaponProc(hook: ProcHook.onCrit, statusProfileId: StatusProfileId.focus),
+    WeaponProc(
+      hook: ProcHook.onCrit,
+      statusProfileId: StatusProfileId.focus,
+      statusTuning: StatusProfileTuning(
+        offenseBuff: StatusApplicationTuning(critBonusBp: 0, durationSeconds: 1.5),
+      ),
+    ),
   ];
 
   @override

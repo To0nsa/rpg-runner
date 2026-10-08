@@ -10,6 +10,7 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/systems/damage_system.dart';
 import 'package:runner_core/ecs/systems/reactive_proc_system.dart';
+import 'package:runner_core/ecs/systems/status_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/weapons/reactive_proc.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
@@ -28,6 +29,12 @@ void main() {
             ReactiveProc(
               hook: ReactiveProcHook.onDamaged,
               statusProfileId: StatusProfileId.speedBoost,
+              statusTuning: StatusProfileTuning(
+                haste: StatusApplicationTuning(
+                  magnitude: 1000,
+                  durationSeconds: 2,
+                ),
+              ),
               target: ReactiveProcTarget.self,
               chanceBp: 10000,
             ),
@@ -51,6 +58,12 @@ void main() {
       expect(queued, hasLength(1));
       expect(queued.single.target, equals(target));
       expect(queued.single.profileId, equals(StatusProfileId.speedBoost));
+      final status = StatusSystem(tickHz: 60);
+      world.statModifier.add(target);
+      status.queue(queued.single);
+      status.applyQueued(world, currentTick: 1);
+      expect(world.haste.magnitude.single, 1000);
+      expect(world.haste.ticksLeft.single, 120);
     });
 
     test('queues onDamaged proc on attacker when source exists', () {

@@ -46,6 +46,14 @@ Status effects add deterministic pressure/control/tempo changes through authored
 
 ## Current Profile Reference
 
+These are shared defaults. Every status effect can have its strength, duration,
+and applicable secondary settings tuned on its source ability or item. Bundled
+effects can differ independently: poison's damage and slow need not share the
+same duration. Tuning one source does not change another source's effect.
+Current balance is preserved; Death Pillar explicitly authors 50% Weaken for
+five seconds, while Dark Bolt inherits the same shared default. See
+[status tuning](../../../tdd/status_effect_tuning.md) for the authoring contract.
+
 | Profile | Effects |
 |---|---|
 | `slowOnHit` | slow `25%` for `5.0s` |
@@ -72,6 +80,10 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - self abilities (`SelfAbilitySystem`) via `selfStatusProfileId`
 - mobility contact effects (`MobilityImpactSystem`) via `statusProfileId`
 - reactive defensive procs (`ReactiveProcSystem`)
+
+Each source carries optional per-effect tuning into the status request. Omitted
+values retain the profile defaults; the stacking and immunity rules below apply
+to the resolved values.
 
 ### Tick order in `GameCore`
 

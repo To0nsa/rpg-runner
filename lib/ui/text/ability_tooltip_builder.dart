@@ -2,6 +2,7 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/combat/middleware/parry_middleware.dart';
 import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+
 import 'ability_tag_resolver.dart';
 import 'ability_text.dart';
 import 'gear_text.dart';
@@ -396,7 +397,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _selfStatusDescription(AbilityDef def) {
-    final profile = _statusProfiles.get(def.selfStatusProfileId);
+    final profile = _statusProfiles.resolve(
+      def.selfStatusProfileId,
+      tuning: def.selfStatusTuning,
+    );
     if (profile.applications.isEmpty) {
       return const _DescriptionWithHighlights(
         description: 'Tap to use this ability.',
@@ -444,6 +448,18 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           StatusResourceType.stamina => 'max Stamina',
           null => 'max resource',
         };
+        if (application.applyOnApply) {
+          return _DescriptionWithHighlights(
+            description: application.durationSeconds > 0
+                ? 'Restore $restorePct% of $resourceLabel immediately and another $restorePct% over $duration seconds.'
+                : 'Restore $restorePct% of $resourceLabel immediately.',
+            dynamicValues: <String>[
+              restorePct,
+              resourceLabel,
+              if (application.durationSeconds > 0) duration,
+            ],
+          );
+        }
         return _DescriptionWithHighlights(
           description:
               'Restore $restorePct% of $resourceLabel over $duration seconds.',
@@ -482,8 +498,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         );
       case PurgeProfileId.cleanse:
         return const _DescriptionWithHighlights(
-          description:
-              'Cleanse all active debuffs, including stun, silence, slow, vulnerability, weaken, drench, and damage-over-time effects.',
+          description: 'Cleanse all active debuffs, including stun, silence, slow, vulnerability, weaken, drench, and damage-over-time effects.',
           dynamicValues: <String>[
             'stun',
             'silence',
@@ -614,7 +629,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   _StatusDotSummary _firstDotEffect(AbilityDef def) {
     for (final proc in def.procs) {
       if (proc.statusProfileId == StatusProfileId.none) continue;
-      final profile = _statusProfiles.get(proc.statusProfileId);
+      final profile = _statusProfiles.resolve(
+        proc.statusProfileId,
+        tuning: proc.statusTuning,
+      );
       for (final application in profile.applications) {
         if (application.type != StatusEffectType.dot) continue;
         return _StatusDotSummary(
@@ -632,7 +650,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     if (profileId == StatusProfileId.none) {
       return const _StatusControlSummary.none();
     }
-    final profile = _statusProfiles.get(profileId);
+    final profile = _statusProfiles.resolve(
+      profileId,
+      tuning: def.mobilityImpact.statusTuning,
+    );
     for (final application in profile.applications) {
       switch (application.type) {
         case StatusEffectType.stun:

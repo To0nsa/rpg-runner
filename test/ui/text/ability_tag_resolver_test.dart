@@ -87,6 +87,51 @@ void main() {
   });
 
   group('ability tooltip builder', () {
+    test('shows optional immediate restoration separately from its duration', () {
+      final def = AbilityDef(
+        id: 'test.restore', category: AbilityCategory.utility,
+        allowedSlots: {AbilitySlot.spell}, windupTicks: 0, activeTicks: 0,
+        recoveryTicks: 0, cooldownTicks: 0, animKey: AnimKey.cast,
+        selfStatusProfileId: StatusProfileId.restoreHealth,
+        selfStatusTuning: const StatusProfileTuning(
+          resourceOverTime: StatusApplicationTuning(
+            magnitude: 1000, durationSeconds: 2, applyOnApply: true,
+          ),
+        ),
+      );
+      expect(tooltipBuilder.build(def).description,
+        'Restore 10% of max Health immediately and another 10% over 2.0 seconds.');
+    });
+
+    test('shows self effect tuning without changing default descriptions', () {
+      final def = AbilityDef(
+        id: 'test.focus',
+        category: AbilityCategory.utility,
+        allowedSlots: {AbilitySlot.spell},
+        windupTicks: 0,
+        activeTicks: 0,
+        recoveryTicks: 0,
+        cooldownTicks: 0,
+        animKey: AnimKey.cast,
+        selfStatusProfileId: StatusProfileId.focus,
+        selfStatusTuning: const StatusProfileTuning(
+          offenseBuff: StatusApplicationTuning(
+            magnitude: 1000,
+            critBonusBp: 500,
+            durationSeconds: 2,
+          ),
+        ),
+      );
+      expect(
+        tooltipBuilder.build(def).description,
+        'Increase power by 10% and critical chance by 5% for 2.0 seconds.',
+      );
+      expect(
+        tooltipBuilder.build(ability('eloise.focus')).description,
+        'Increase power by 25% and critical chance by 15% for 5.0 seconds.',
+      );
+    });
+
     test('uses display-name overrides and includes charge badge', () {
       final tooltip = tooltipBuilder.build(ability('eloise.overcharge_shot'));
 

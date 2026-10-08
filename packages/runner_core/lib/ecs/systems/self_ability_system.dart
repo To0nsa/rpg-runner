@@ -33,7 +33,13 @@ class SelfAbilitySystem {
       if (queueStatus != null) {
         final profileId = intents.selfStatusProfileId[ii];
         if (profileId != StatusProfileId.none) {
-          queueStatus(StatusRequest(target: target, profileId: profileId));
+          queueStatus(
+            StatusRequest(
+              target: target,
+              profileId: profileId,
+              tuning: intents.selfStatusTuning[ii],
+            ),
+          );
         }
       }
       if (queuePurge != null) {

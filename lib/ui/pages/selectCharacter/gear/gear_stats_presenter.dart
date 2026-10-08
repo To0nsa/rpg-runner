@@ -158,7 +158,10 @@ List<GearStatLine> _buildProcHookLines(List<WeaponProc> procs) {
       if (proc.hook != hook || proc.statusProfileId == StatusProfileId.none) {
         continue;
       }
-      final profile = profiles.get(proc.statusProfileId);
+      final profile = profiles.resolve(
+        proc.statusProfileId,
+        tuning: proc.statusTuning,
+      );
       for (final app in profile.applications) {
         final summary = _procEffectSummary(app, proc);
         if (summary == null) continue;
@@ -194,7 +197,10 @@ List<GearStatLine> _buildReactiveProcHookLines(List<ReactiveProc> procs) {
       if (proc.hook != hook || proc.statusProfileId == StatusProfileId.none) {
         continue;
       }
-      final profile = profiles.get(proc.statusProfileId);
+      final profile = profiles.resolve(
+        proc.statusProfileId,
+        tuning: proc.statusTuning,
+      );
       for (final app in profile.applications) {
         final summary = _reactiveProcEffectSummary(app, proc);
         if (summary == null) continue;
@@ -302,8 +308,8 @@ _procEffectTemplates = <StatusEffectType, _ProcEffectTemplate>{
   StatusEffectType.resourceOverTime: _ProcEffectTemplate(
     tone: GearStatLineTone.positive,
     sentenceTemplate:
-        'Restores {resource} by {amount} every {pulse} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['resource', 'amount', 'pulse', 'duration'],
+        'Restores {resource} by {amount} over {duration}{chanceSuffix}',
+    highlightKeys: <String>['resource', 'amount', 'duration'],
   ),
   StatusEffectType.offenseBuff: _ProcEffectTemplate(
     tone: GearStatLineTone.positive,
@@ -338,7 +344,16 @@ _ProcEffectSummary? _procEffectSummaryFromProfile(
   required StatusProfileId statusProfileId,
   required int chanceBp,
 }) {
-  final template = _procEffectTemplates[app.type];
+  final template = app.type == StatusEffectType.resourceOverTime && app.applyOnApply
+      ? _ProcEffectTemplate(
+          tone: GearStatLineTone.positive,
+          sentenceTemplate: app.durationSeconds > 0
+              ? 'Restores {resource} by {amount} immediately and another {amount} over {duration}{chanceSuffix}'
+              : 'Restores {resource} by {amount} immediately{chanceSuffix}',
+          highlightKeys: <String>['resource', 'amount',
+            if (app.durationSeconds > 0) 'duration'],
+        )
+      : _procEffectTemplates[app.type];
   if (template == null) return null;
 
   final chance = _procChanceSummary(chanceBp);
@@ -406,7 +421,6 @@ Map<String, String> _procTemplateValues(
       return <String, String>{
         'resource': resource,
         'amount': _formatPercentFromBp(app.magnitude),
-        'pulse': _formatDuration(app.periodSeconds),
         'duration': duration,
         'chanceSuffix': chanceSuffix,
       };
@@ -654,7 +668,10 @@ Map<ProcHook, List<_ProcEffectSummary>> _procSummariesByHook(
   final byHook = <ProcHook, List<_ProcEffectSummary>>{};
   for (final proc in procs) {
     if (proc.statusProfileId == StatusProfileId.none) continue;
-    final profile = profiles.get(proc.statusProfileId);
+    final profile = profiles.resolve(
+        proc.statusProfileId,
+        tuning: proc.statusTuning,
+      );
     for (final app in profile.applications) {
       final summary = _procEffectSummary(app, proc);
       if (summary == null) continue;
@@ -674,7 +691,10 @@ Map<ReactiveProcHook, List<_ProcEffectSummary>> _reactiveProcSummariesByHook(
   final byHook = <ReactiveProcHook, List<_ProcEffectSummary>>{};
   for (final proc in procs) {
     if (proc.statusProfileId == StatusProfileId.none) continue;
-    final profile = profiles.get(proc.statusProfileId);
+    final profile = profiles.resolve(
+        proc.statusProfileId,
+        tuning: proc.statusTuning,
+      );
     for (final app in profile.applications) {
       final summary = _reactiveProcEffectSummary(app, proc);
       if (summary == null) continue;

@@ -53,6 +53,12 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
       WeaponProc(
         hook: ProcHook.onHit,
         statusProfileId: StatusProfileId.weakenOnHit,
+        statusTuning: StatusProfileTuning(
+          weaken: StatusApplicationTuning(
+            magnitude: 5000, // -50% outgoing damage, independently tunable.
+            durationSeconds: 5,
+          ),
+        ),
       ),
     ],
   ),

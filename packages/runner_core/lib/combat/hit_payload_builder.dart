@@ -46,6 +46,8 @@ class HitPayloadBuilder {
 
     // 4. Procs (deterministic merge + dedupe)
     // Order is canonical: ability -> item -> buffs -> passives.
+    // The first matching hook/profile owns its complete tuning and chance;
+    // duplicate item procs must not replace an ability's authored values.
     final Set<int> seen = <int>{};
     void addProcs(List<WeaponProc> procs) {
       for (final proc in procs) {

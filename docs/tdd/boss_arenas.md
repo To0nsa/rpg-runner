@@ -203,6 +203,8 @@ group zero. Stun immunity prevents indefinite interruption; other damage and
 status rules remain ordinary Core behavior.
 Death Pillar authors an `onHit` proc using `StatusProfileId.weakenOnHit`, shared
 with Dark Bolt (5000 basis points of outgoing damage reduction for five seconds).
+Its proc now authors these values through [local status tuning](status_effect_tuning.md),
+so changing the pillar's strength or duration does not change Dark Bolt.
 The ordinary target-point payload carries it into `DamageSystem`; accepted-hit
 status application survives the protection granted by that same hit and still
 obeys status immunity. Blocked hits do not queue the proc. This catalog change

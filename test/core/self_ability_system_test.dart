@@ -61,7 +61,7 @@ void main() {
       final system = AbilityActivationSystem(
         tickHz: 60,
         inputBufferTicks: 10,
-        abilities: const AbilityCatalog(),
+        abilities: const _TunedSelfAbilities(),
         weapons: const WeaponCatalog(),
         projectiles: const ProjectileCatalog(),
         spellBooks: const SpellBookCatalog(),
@@ -89,6 +89,15 @@ void main() {
         world.cooldown.getTicksLeft(player, CooldownGroup.spell0),
         equals(expectedCooldownTicks),
       );
+      final status = StatusSystem(tickHz: 60);
+      SelfAbilitySystem().step(
+        world,
+        currentTick: 5,
+        queueStatus: status.queue,
+      );
+      status.applyQueued(world, currentTick: 5);
+      expect(world.haste.magnitude.single, 1250);
+      expect(world.haste.ticksLeft.single, 120);
     },
   );
 
@@ -495,4 +504,30 @@ void main() {
     expect(world.selfIntent.tick[world.selfIntent.indexOf(player)], equals(5));
     expect(world.mana.mana[world.mana.indexOf(player)], equals(2000));
   });
+}
+
+class _TunedSelfAbilities extends AbilityCatalog {
+  const _TunedSelfAbilities();
+  @override
+  AbilityDef? resolve(AbilityKey key) {
+    final base = super.resolve(key);
+    if (base == null || key != 'eloise.arcane_haste') return base;
+    return AbilityDef(
+      id: base.id,
+      category: base.category,
+      allowedSlots: base.allowedSlots,
+      windupTicks: base.windupTicks,
+      activeTicks: base.activeTicks,
+      recoveryTicks: base.recoveryTicks,
+      cooldownTicks: base.cooldownTicks,
+      defaultCost: base.defaultCost,
+      requiredWeaponTypes: base.requiredWeaponTypes,
+      payloadSource: base.payloadSource,
+      animKey: base.animKey,
+      selfStatusProfileId: base.selfStatusProfileId,
+      selfStatusTuning: const StatusProfileTuning(
+        haste: StatusApplicationTuning(magnitude: 1250, durationSeconds: 2),
+      ),
+    );
+  }
 }

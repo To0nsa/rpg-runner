@@ -58,7 +58,10 @@ List<String> projectileStatusSummaries(
   final lines = <String>[];
   for (final proc in def.procs) {
     if (proc.statusProfileId == StatusProfileId.none) continue;
-    final profile = statusProfiles.get(proc.statusProfileId);
+    final profile = statusProfiles.resolve(
+      proc.statusProfileId,
+      tuning: proc.statusTuning,
+    );
     for (final app in profile.applications) {
       final line = _statusApplicationSummary(app, proc);
       if (line != null) lines.add(line);

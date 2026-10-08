@@ -285,7 +285,7 @@ class StatusSystem {
       final ii = invuln.tryIndexOf(req.target);
       final hasInvulnerability = ii != null && invuln.ticksLeft[ii] > 0;
 
-      final profile = _profiles.get(req.profileId);
+      final profile = _profiles.resolve(req.profileId, tuning: req.tuning);
       if (profile.applications.isEmpty) continue;
 
       for (final app in profile.applications) {

@@ -73,16 +73,17 @@ class StatusApplication {
   final StatusEffectType type;
 
   /// Effect strength:
-  /// - Slow/Haste: basis points (100 = 1%)
+  /// - Slow/Haste/Weaken/Drench/Vulnerable/DamageReduction: basis points (100 = 1%)
   /// - DoT: damage per second in fixed-point (100 = 1.0)
-  /// - ResourceOverTime: basis points restored per pulse (`100 = 1%` of max).
+  /// - ResourceOverTime: basis points restored over the duration (`100 = 1%` of max).
   /// - OffenseBuff: power bonus in basis points (100 = 1%).
   final int magnitude;
 
   /// Total duration (seconds).
   final double durationSeconds;
 
-  /// Tick period for DoT effects (seconds). Ignored for non-DoTs.
+  /// Tick period for DoT effects (seconds). Resource restoration is continuous
+  /// per tick and does not use this period for its cadence.
   final double periodSeconds;
 
   /// Whether to scale magnitude by damage resistance/vulnerability.
@@ -97,7 +98,7 @@ class StatusApplication {
   /// Crit chance bonus for [StatusEffectType.offenseBuff] in basis points.
   final int? critBonusBp;
 
-  /// Applies one pulse immediately when the status is queued/applied.
+  /// Restores an additional full magnitude immediately for resource effects.
   final bool applyOnApply;
 
   StatusApplication copyWith({
@@ -150,6 +151,115 @@ class StatusApplicationPreset {
       critBonusBp: critBonusBp,
     );
   }
+}
+
+/// Optional overrides for one effect, using [StatusApplication]'s units.
+///
+/// Null retains the preset value; zero and false are explicit overrides.
+/// Effect identity is fixed by the preset. Stun/silence use duration for their
+/// strength; their positive magnitude is an enable flag. Existing runtime caps,
+/// immunity, stacking, and tick quantization still apply.
+class StatusApplicationTuning {
+  const StatusApplicationTuning({
+    this.magnitude,
+    this.durationSeconds,
+    this.periodSeconds,
+    this.scaleByDamageType,
+    this.dotDamageType,
+    this.resourceType,
+    this.critBonusBp,
+    this.applyOnApply,
+  }) : assert(magnitude == null || magnitude >= 0),
+       assert(
+         durationSeconds == null ||
+             (durationSeconds >= 0 && durationSeconds < double.infinity),
+       ),
+       assert(
+         periodSeconds == null ||
+             (periodSeconds > 0 && periodSeconds < double.infinity),
+       ),
+       assert(critBonusBp == null || critBonusBp >= 0);
+
+  final int? magnitude;
+  final double? durationSeconds;
+  final double? periodSeconds;
+  final bool? scaleByDamageType;
+  final DamageType? dotDamageType;
+  final StatusResourceType? resourceType;
+  final int? critBonusBp;
+  final bool? applyOnApply;
+
+  /// Returns an independent application without mutating the shared preset.
+  StatusApplication applyTo(StatusApplication baseline) => baseline.copyWith(
+    magnitude: magnitude,
+    durationSeconds: durationSeconds,
+    periodSeconds: periodSeconds,
+    scaleByDamageType: scaleByDamageType,
+    dotDamageType: dotDamageType,
+    resourceType: resourceType,
+    critBonusBp: critBonusBp,
+    applyOnApply: applyOnApply,
+  );
+}
+
+/// Immutable per-effect tuning for a selected status profile.
+///
+/// Bundled effects are independent: tuning poison's DoT does not change its
+/// slow. Only effects already present in the selected profile may be tuned;
+/// [StatusProfileCatalog.resolve] rejects mismatches rather than ignoring them.
+class StatusProfileTuning {
+  const StatusProfileTuning({
+    this.dot,
+    this.slow,
+    this.stun,
+    this.haste,
+    this.damageReduction,
+    this.vulnerable,
+    this.weaken,
+    this.drench,
+    this.silence,
+    this.resourceOverTime,
+    this.offenseBuff,
+  });
+
+  final StatusApplicationTuning? dot;
+  final StatusApplicationTuning? slow;
+  final StatusApplicationTuning? stun;
+  final StatusApplicationTuning? haste;
+  final StatusApplicationTuning? damageReduction;
+  final StatusApplicationTuning? vulnerable;
+  final StatusApplicationTuning? weaken;
+  final StatusApplicationTuning? drench;
+  final StatusApplicationTuning? silence;
+  final StatusApplicationTuning? resourceOverTime;
+  final StatusApplicationTuning? offenseBuff;
+
+  StatusApplicationTuning? forType(StatusEffectType type) => switch (type) {
+    StatusEffectType.dot => dot,
+    StatusEffectType.slow => slow,
+    StatusEffectType.stun => stun,
+    StatusEffectType.haste => haste,
+    StatusEffectType.damageReduction => damageReduction,
+    StatusEffectType.vulnerable => vulnerable,
+    StatusEffectType.weaken => weaken,
+    StatusEffectType.drench => drench,
+    StatusEffectType.silence => silence,
+    StatusEffectType.resourceOverTime => resourceOverTime,
+    StatusEffectType.offenseBuff => offenseBuff,
+  };
+
+  bool get isEmpty =>
+      dot == null &&
+      slow == null &&
+      stun == null &&
+      haste == null &&
+      damageReduction == null &&
+      vulnerable == null &&
+      weaken == null &&
+      drench == null &&
+      silence == null &&
+      resourceOverTime == null &&
+      offenseBuff == null;
 }
 
 /// Shared presets used by [StatusProfileCatalog] to avoid duplicated literals.
@@ -286,6 +396,30 @@ class StatusProfile {
 class StatusProfileCatalog {
   const StatusProfileCatalog();
 
+  /// Resolves local tuning over shared defaults for both gameplay and UI.
+  ///
+  /// Throws [ArgumentError] if tuning names an effect absent from the profile.
+  /// Application order is preserved, including profiles with multiple effects.
+  StatusProfile resolve(
+    StatusProfileId id, {
+    StatusProfileTuning tuning = const StatusProfileTuning(),
+  }) {
+    final baseline = get(id);
+    if (tuning.isEmpty) return baseline;
+    for (final type in StatusEffectType.values) {
+      if (tuning.forType(type) != null &&
+          !baseline.applications.any((app) => app.type == type)) {
+        throw ArgumentError('Cannot tune $type in status profile $id.');
+      }
+    }
+    return StatusProfile(
+      List<StatusApplication>.unmodifiable([
+        for (final app in baseline.applications)
+          tuning.forType(app.type)?.applyTo(app) ?? app,
+      ]),
+    );
+  }
+
   StatusProfile get(StatusProfileId id) {
     switch (id) {
       case StatusProfileId.none:
@@ -368,6 +502,7 @@ class StatusRequest {
   const StatusRequest({
     required this.target,
     required this.profileId,
+    this.tuning = const StatusProfileTuning(),
     this.damageType = DamageType.physical,
     this.acceptedHitTick,
     this.sourceTrap,
@@ -376,6 +511,9 @@ class StatusRequest {
 
   final EntityId target;
   final StatusProfileId profileId;
+
+  /// Captured source tuning; no live ability/gear lookup is needed on impact.
+  final StatusProfileTuning tuning;
   final DamageType damageType;
 
   /// DamageSystem's acceptance tick for on-hit/on-crit effects on the victim.

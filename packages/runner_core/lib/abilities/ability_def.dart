@@ -170,6 +170,7 @@ class MobilityImpactDef {
     this.damageType = DamageType.physical,
     this.procs = const <WeaponProc>[],
     this.statusProfileId = StatusProfileId.none,
+    this.statusTuning = const StatusProfileTuning(),
   }) : assert(damage100 >= 0, 'mobility impact damage cannot be negative'),
        assert(
          critChanceBp >= 0 && critChanceBp <= 10000,
@@ -196,6 +197,9 @@ class MobilityImpactDef {
 
   /// Optional direct status applied on contact (independent from damage).
   final StatusProfileId statusProfileId;
+
+  /// Overrides for direct contact statuses, separate from contact-damage procs.
+  final StatusProfileTuning statusTuning;
 
   /// True when this definition would produce at least one gameplay effect.
   bool get hasAnyEffect =>
@@ -426,6 +430,7 @@ class AbilityDef {
     Set<ForcedInterruptCause> forcedInterruptCauses =
         defaultForcedInterruptCauses,
     this.selfStatusProfileId = StatusProfileId.none,
+    this.selfStatusTuning = const StatusProfileTuning(),
     this.selfPurgeProfileId = PurgeProfileId.none,
     required this.animKey,
   }) : allowedSlots = Set<AbilitySlot>.unmodifiable(allowedSlots),
@@ -689,6 +694,9 @@ class AbilityDef {
 
   /// Status profile applied to self on execute (SelfHitDelivery only).
   final StatusProfileId selfStatusProfileId;
+
+  /// Per-effect overrides captured when this self ability is committed.
+  final StatusProfileTuning selfStatusTuning;
 
   /// Purge profile applied to self on execute (SelfHitDelivery only).
   final PurgeProfileId selfPurgeProfileId;

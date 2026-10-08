@@ -141,6 +141,7 @@ class MobilityImpactSystem {
             StatusRequest(
               target: target,
               profileId: impact.statusProfileId,
+              tuning: impact.statusTuning,
               credit: damageCreditFor(world, source),
               damageType: impact.damageType,
             ),

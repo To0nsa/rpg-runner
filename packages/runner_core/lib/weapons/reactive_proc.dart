@@ -26,6 +26,7 @@ class ReactiveProc {
   const ReactiveProc({
     required this.hook,
     required this.statusProfileId,
+    this.statusTuning = const StatusProfileTuning(),
     this.target = ReactiveProcTarget.self,
     this.chanceBp = 10000,
     this.lowHealthThresholdBp = 3000,
@@ -48,6 +49,9 @@ class ReactiveProc {
 
   /// Status profile applied when this proc succeeds.
   final StatusProfileId statusProfileId;
+
+  /// Local effect values; omitted fields inherit the shared profile defaults.
+  final StatusProfileTuning statusTuning;
 
   /// Receiver of the resulting status.
   final ReactiveProcTarget target;

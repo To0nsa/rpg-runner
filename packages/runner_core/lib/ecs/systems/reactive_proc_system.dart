@@ -189,6 +189,7 @@ class ReactiveProcSystem {
         StatusRequest(
           target: statusTarget,
           profileId: proc.statusProfileId,
+          tuning: proc.statusTuning,
           credit: credit,
           damageType: damageType,
         ),
