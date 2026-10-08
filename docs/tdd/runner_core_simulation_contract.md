@@ -56,8 +56,11 @@ and temporary motion freeze. Required boss spawning and placement happen before
 motion preparation; outside actor isolation happens before AI/actions. Defeat
 resolves after damage/fatal culls and before death cleanup, with player loss taking
 precedence. Ancient God summons are admitted/expired before motion preparation;
-their teleports execute before water/navigation refresh, and committed spinning
-motion is composed before the single terrain integration. See
+their teleports execute before water/navigation refresh. Goddess's corner/return
+placement and scheduled hands run immediately after those teleports. Her hover
+and committed spinning motion compose after locomotion and before the single
+terrain integration. Prepared compatibility `2026.10.10` adds this barrage and
+authored strike windows that allow a later swing to hit the same target again. See
 [boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
 
 ## Tick ordering

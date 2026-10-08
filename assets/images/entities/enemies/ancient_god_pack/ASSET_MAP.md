@@ -55,8 +55,9 @@ Frame size: **138 x 93 pixels**; sheet grid: **30 columns x 14 rows**.
 
 Cast 2's total of 36 frames comprises the preparation and casting strips.
 Spell 2's total of 17 frames comprises startup, orb loop and explosion; its
-source frames are not one contiguous row. Runtime Spell 1 is a captured ground
-eruption; Spell 2 is a projectile with separate startup, loop and impact states.
+source frames are not one contiguous row. Runtime Spell 1 supplies each hand
+in Goddess's sequential floor barrage; Spell 2 is a projectile with separate
+startup, loop and impact states.
 
 ### Shoggoth and minion
 

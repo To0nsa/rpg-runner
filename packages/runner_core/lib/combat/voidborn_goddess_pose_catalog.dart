@@ -4,6 +4,7 @@ import 'combat_geometry.dart';
 /// Damage geometry in world units at VoidbornGoddess's 1.5x art scale.
 abstract final class VoidbornGoddessPoseCatalog {
   static const goddessClaws = CombatStrikeProfile(
+    strikeStartFrames: [4, 7, 12, 15],
     artFacing: Facing.left,
     timing: ActionFramePolicy(frameCount: 19, activeStart: 4, activeEnd: 17),
     frames: [
@@ -18,7 +19,7 @@ abstract final class VoidbornGoddessPoseCatalog {
       [CombatCapsule(-26, -5, -68, 6, 6)],
       [CombatCapsule(-26, -5, -68, 6, 6)],
       [],
-      [CombatCapsule(-22, -16, -60, -25, 6)],
+      [],
       [CombatCapsule(-22, -16, -60, -25, 6)],
       [CombatCapsule(-22, -16, -60, -25, 6)],
       [],

@@ -77,6 +77,57 @@ void main() {
   }
 
   for (final hz in [30, 60, 90]) {
+    for (final interruption in ['cancelled', 'replaced', 'dead']) {
+      test('Goddess cancels a $interruption barrage at $hz Hz', () {
+        final motion = _BarrageMotion();
+        final f = _Fixture(hz, motion: motion);
+        final boss = f.actor(EnemyId.voidbornGoddess, 400);
+        f.world.actorMotionBounds.add(
+          boss,
+          TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 600 * 1024),
+        );
+        f.world.bossCombat.actionIndex[f.world.bossCombat.indexOf(boss)] = 1;
+        final system = VoidbornGoddessCombatSystem(
+          tickHz: hz,
+          castCommitter: f.casts,
+          utilities: f.utilities,
+        );
+        system.step(f.world, player: f.player, currentTick: 10);
+        expect(f.world.goddessBarrage.has(boss), isTrue);
+        system.prepareBarrage(f.world, currentTick: 11);
+        system.composeMotion(f.world);
+        expect(f.world.gravityControl.has(boss), isTrue);
+        final firstHand = f
+            .world
+            .goddessBarrage
+            .firstHandTick[f.world.goddessBarrage.indexOf(boss)];
+        switch (interruption) {
+          case 'cancelled':
+            f.world.activeAbility.clear(boss);
+          case 'replaced':
+            f.world.activeAbility.startTick[f.world.activeAbility.indexOf(
+              boss,
+            )]++;
+          case 'dead':
+            f.world.health.hp[f.world.health.indexOf(boss)] = 0;
+        }
+        system.prepareBarrage(f.world, currentTick: firstHand);
+        expect(f.world.goddessBarrage.has(boss), isFalse);
+        expect(f.world.gravityControl.has(boss), isFalse);
+        expect(
+          f.world.targetPointIntent.tick[f.world.targetPointIntent.indexOf(
+            boss,
+          )],
+          -1,
+        );
+        if (interruption != 'dead') {
+          final ti = f.world.transform.indexOf(boss);
+          expect(f.world.transform.posX[ti], 400);
+          expect(f.world.transform.posY[ti], 0);
+        }
+      });
+    }
+
     for (final (id, key) in [
       (EnemyId.voidbornGoddess, 'goddess.teleport'),
       (EnemyId.shoggoth, 'shoggoth.summon'),
@@ -130,10 +181,21 @@ void main() {
       }
     }
   }
+  test('Goddess barrage state is removed before its entity ID is recycled', () {
+    final world = EcsWorld(seed: 7);
+    final old = world.createEntity();
+    final i = world.goddessBarrage.addEntity(old);
+    world.goddessBarrage.commitTick[i] = 7;
+    world.goddessBarrage.hovering[i] = true;
+    world.destroyEntity(old);
+    final next = world.createEntity();
+    expect(next, old);
+    expect(world.goddessBarrage.has(next), isFalse);
+  });
 }
 
 class _Fixture {
-  _Fixture(int hz) {
+  _Fixture(int hz, {WorldMotionAuthority? motion}) {
     player = actor(EnemyId.grojib, 300);
     world.faction.faction[world.faction.indexOf(player)] = Faction.player;
     casts = AiCastCommitter(
@@ -143,7 +205,7 @@ class _Fixture {
     );
     utilities = BossUtilitySystem(
       tickHz: hz,
-      motion: _ForbiddenMotion(),
+      motion: motion ?? _ForbiddenMotion(),
       spawns: _ForbiddenSpawns(),
       groundTopY: 24,
     );
@@ -182,4 +244,30 @@ class _ForbiddenSpawns implements SpawnService {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Unexpected spawn');
+}
+
+// Lifecycle tests record teleport commits; real terrain is covered by the
+// GameCore barrage integration test.
+class _BarrageMotion extends _ForbiddenMotion {
+  @override
+  WorldBodyPlacementOrigin beginBodyTeleport(EcsWorld world, int entity) {
+    final ti = world.transform.indexOf(entity);
+    return WorldBodyPlacementOrigin(
+      bodyX: world.transform.posX[ti],
+      bodyY: world.transform.posY[ti],
+      facing: Facing.left,
+    );
+  }
+
+  @override
+  bool tryCommitBodyTeleport(
+    EcsWorld world,
+    int entity, {
+    required double bodyX,
+    required double bodyY,
+    required Facing facing,
+  }) {
+    world.transform.setPosXY(entity, bodyX, bodyY);
+    return true;
+  }
 }

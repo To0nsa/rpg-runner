@@ -10,7 +10,11 @@ class CompositeFrameSprite extends Sprite {
     super.image, {
     required Vector2 frameSize,
     required this.parts,
-  }) : super(srcSize: frameSize);
+  }) : super(srcSize: frameSize) {
+    // Adjacent pixel-art strips must not blend with transparency at their edges.
+    paint.isAntiAlias = false;
+    paint.filterQuality = FilterQuality.none;
+  }
   final List<RenderFramePart> parts;
 
   @override

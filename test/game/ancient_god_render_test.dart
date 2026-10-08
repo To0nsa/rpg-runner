@@ -79,6 +79,34 @@ void main() {
           isA<CompositeFrameSprite>(),
         );
         expect(entry.renderScale.x, 1.5);
+        final diagonal = id == SpellImpactId.voidDiagonalBeam;
+        for (var frame = 5; frame < 10; frame++) {
+          for (final scale in [1.0, 1.5]) {
+            final recorder = ui.PictureRecorder();
+            final canvas = ui.Canvas(recorder);
+            entry.animSet.animations[AnimKey.hit]!.frames[frame].sprite.render(
+              canvas,
+              size: entry.animSet.frameSize * scale,
+            );
+            final picture = recorder.endRecording();
+            final width = (138 * scale).ceil();
+            final image = await picture.toImage(width, (146 * scale).ceil());
+            final pixels = (await image.toByteData())!;
+            // Every row across both cap joins and all native strip joins must
+            // contain fully opaque beam pixels along one continuous axis.
+            for (var y = (35 * scale).ceil(); y < 140 * scale; y++) {
+              final x = ((diagonal ? 106 - (y / scale - 26) / 2 : 92) * scale)
+                  .floor();
+              expect(
+                pixels.getUint8((y * width + x) * 4 + 3),
+                255,
+                reason: '$id frame $frame scale $scale at ($x,$y)',
+              );
+            }
+            image.dispose();
+            picture.dispose();
+          }
+        }
       }
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);

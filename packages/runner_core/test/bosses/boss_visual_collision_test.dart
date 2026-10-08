@@ -24,6 +24,43 @@ import '../test_support/combat_pose.dart';
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    for (final (id, key, x, y, expectedHits) in [
+      (EnemyId.voidbornGoddess, 'goddess.claw_combo', -40.0, -10.0, 4),
+      (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -65.0, -10.0, 2),
+      (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2),
+    ]) {
+      test('$key strikes again only on a new swing at $hz Hz', () {
+        final f = _Fixture(id, hz);
+        expect(
+          AiMeleeCommitter(tickHz: hz).commit(
+            f.world,
+            actor: f.boss,
+            abilityId: key,
+            targetX: -300,
+            currentTick: 10,
+          ),
+          isNotNull,
+        );
+        final ai = f.world.activeAbility.indexOf(f.boss);
+        final execute =
+            f.world.meleeIntent.tick[f.world.meleeIntent.indexOf(f.boss)];
+        resolveCombatPoses(f.world, execute, tickHz: hz);
+        MeleeStrikeSystem().step(f.world, currentTick: execute);
+        f.world.transform.setPosXY(f.player, x, y);
+        for (
+          var tick = execute;
+          tick < execute + f.world.activeAbility.activeTicks[ai];
+          tick++
+        ) {
+          f.hit(tick);
+        }
+        expect(f.world.damageQueue.target, List.filled(expectedHits, f.player));
+        // A pose revisited after the final strike cannot reset its hit ledger.
+        f.hit(execute);
+        expect(f.world.damageQueue.length, expectedHits);
+      });
+    }
+
     test('diagonal beam hits its visible upper-right slope at $hz Hz', () {
       final f = _Fixture(EnemyId.voidcaller, hz);
       expect(
@@ -66,6 +103,11 @@ void main() {
       expect(f.world.damageQueue.amount100, [700]);
       f.hit(active + 1);
       expect(f.world.damageQueue.length, 1);
+      final step = f.world.targetPointIntent.frameStepTicks[i];
+      for (var tick = active + 2; tick < execute + 10 * step; tick++) {
+        f.hit(tick);
+      }
+      expect(f.world.damageQueue.target, List.filled(3, f.player));
     });
 
     for (final facing in Facing.values) {

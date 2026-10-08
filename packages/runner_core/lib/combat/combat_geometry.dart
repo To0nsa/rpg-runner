@@ -87,11 +87,26 @@ final class CombatStrikeProfile {
     required this.timing,
     required this.frames,
     this.artFacing = Facing.right,
+    this.strikeStartFrames = const [],
   });
 
   final ActionFramePolicy timing;
   final List<List<CombatCapsule>> frames;
   final Facing artFacing;
+
+  /// Ordered source frames starting distinct swings or pulses. A target may be
+  /// hit once per window; consecutive poses of the same swing share its ledger.
+  /// Empty preserves one hit window for the entire action.
+  final List<int> strikeStartFrames;
+
+  int strikeWindowAt(int frame) {
+    var window = 0;
+    for (final start in strikeStartFrames) {
+      if (frame < start) break;
+      window++;
+    }
+    return window;
+  }
 
   /// Absolute reach from the source anchor, for AI approach planning only.
   double get reach {

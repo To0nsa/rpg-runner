@@ -15,6 +15,11 @@ and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.0
 
 ## Deployed release: 2026.10.9
 
+The next source compatibility `2026.10.10` corrects beam-piece alignment, adds
+Goddess's upper-corner hand barrage, and allows separate visible swings/pulses
+to hit again. It requires a coordinated client/worker cutover. Production remains
+`2026.10.9` until the new release evidence records successful deployment.
+
 The release includes the [Bringer tuning](../gdd/bringer_of_death.md):
 1.5x boss/column size, faster attacks, 20% faster pursuit and 20% resource
 restoration from easy-chunk victory blessings.

@@ -13,6 +13,8 @@ with its own chunk, arena identity and mandatory assembly group. Each victory
 restores 20% of maximum health, mana and stamina, capped at the resource maximum.
 These encounters are deployed in gameplay compatibility `2026.10.9`; see the
 [release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
+The corrections below are prepared in source for `2026.10.10`: aligned native
+beam pieces, Goddess's corner hand barrage and distinct damage windows per swing.
 
 All three share Bringer of Death's **1.5x sprite scale**, 120 HP, no passive
 health regeneration and stun immunity. Source frame dimensions differ, so their
@@ -26,22 +28,26 @@ death presentation, exit and victory blessing reuse the
 
 | Action | Default behavior |
 | --- | --- |
-| Claw combo | Four visible swipes in a committed direction, 7 physical damage total per target; 0.4-second windup |
+| Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.7-second cast |
-| Ground eruption | Cast 2's preparation and casting strips form one 36-frame action. A pink blob marks the floor/platform below the captured position, then erupts for 7 dark damage; 1-second cast followed by ten harmless effect frames |
+| Hand barrage | Moves to an upper arena corner away from the captured target, then sends six hands across the floor at half-second intervals after a 1-second cast. Each hand warns for ten effect frames and slaps once for 7 dark damage. She hovers through the final hand, then returns to her prior position; six seconds between commits |
 | Vanish and return | After at least three actions, relocates to a legal point 150 world units from the captured target, preferring the opposite side; at least eight seconds between teleport commits |
 
 She alternates orbs and eruptions, using claws on every third sequence position
 when the player is within 85 units and near her height. She approaches toward a
-65-unit stand-off at 0.8 of shared ground speed. The eruption stays on its captured
-surface when the player moves or jumps. Leaving its mark is the intended response.
+65-unit stand-off at 0.8 of shared ground speed. The barrage sweeps from her corner
+to the other end, with fixed marks rather than tracking later player movement.
+Move between marks or jump to avoid the slaps. Her corner is 64 units inside the
+arena and 150 units above the level floor; she remains vulnerable while hovering.
+If both upper corners are obstructed she casts from her current safe position.
+Return placement is checked again; if blocked, gravity lands her normally.
 
 ## Shoggoth
 
 | Action | Default behavior |
 | --- | --- |
-| Tentacle sweep | Alternating arcs aligned with the art, 7 physical damage once per target; 0.4-second windup |
-| Spinning charge | 0.5-second warning followed by a 0.6-second charge at 180 world units/second in the committed direction; 6 physical damage once per target |
+| Tentacle sweep | Two visible sweeps, each able to deal 7 physical damage per target; 0.4-second windup |
+| Spinning charge | 0.5-second warning followed by a 0.6-second charge at 180 world units/second in the committed direction; two arc passes, each able to deal 6 physical damage per target |
 | Void orb | A straight projectile at the captured target center; 6 dark damage; 0.7-second cast |
 | Invoke minion | Summons one damageable, mobile minion; maximum three living minions per owner |
 | Vanish and return | Uses the same placement policy as Goddess, with a six-frame disappearance and nine-frame return |
@@ -51,7 +57,7 @@ sweep within 85, and an orb at distance. Teleports take priority when due.
 Walking uses the same 65-unit stand-off and speed as Goddess. The spin obeys
 walls, arena boundaries, gravity and terrain rather than moving through them.
 Its crescent sweeps are dangerous on either side as they rotate, with damage
-following the visible arc; it still deals at most one hit per target per cast.
+following the visible arc, with one hit per target per arc pass.
 
 Minions have 10 HP and bite for 2 physical damage. They live for up to 12 seconds,
 can be killed through ordinary combat, and grant zero kill points.
@@ -60,8 +66,8 @@ can be killed through ordinary combat, and grant zero kill points.
 
 | Action | Default behavior |
 | --- | --- |
-| Vertical beam | A portal opens above a captured ground/platform mark, then fires a vertical beam for 7 dark damage; 0.8-second cast and five harmless effect frames |
-| Diagonal beam | The alternate Cast 1 version creates the same marked threat, sloping from the offset overhead portal into the ground mark; 7 dark damage |
+| Vertical beam | A portal opens above a captured ground/platform mark, then fires three bright pulses, each able to deal 7 dark damage; 0.8-second cast and five harmless effect frames |
+| Diagonal beam | The alternate Cast 1 version creates the same three-pulse threat, sloping from the offset overhead portal into the ground mark; 7 dark damage per pulse |
 | Fiery claw | Cast 2 launches a straight claw projectile at the captured target center; 6 fire damage; 0.6-second cast |
 | Summon tentacle | Casts for 1 second to plant one damageable tentacle; maximum two living tentacles per owner |
 
@@ -81,6 +87,9 @@ Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
 and damage. Targets and attack directions are committed once; attacks never
 home onto subsequent player movement. Utility actions deal no direct damage.
+Consecutive poses of one swing share its hit ledger. A later swing or pulse can
+hit again, while ordinary post-hit invulnerability still protects the player;
+overlapping bright frames never create damage every simulation tick.
 When both teleport destinations are invalid, the boss reappears at its original
 safe position and the cooldown still applies.
 

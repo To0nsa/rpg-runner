@@ -15,6 +15,14 @@ windup/recovery poses. Compound blade arcs are unioned in stable entity-ID
 order before applying the delivery's hit policy. Overlapping arc segments
 cannot duplicate damage, even under `everyTick`.
 
+Prepared compatibility `2026.10.10` adds optional ordered `strikeStartFrames`
+to each profile. `HitboxFollowOwnerSystem` advances `HitOnceStore`'s per-hitbox
+window monotonically before collision; only a later authored swing/pulse resets
+the target ledger. Revisiting a frame cannot reopen an old strike, and ordinary
+profiles keep one window for their whole lifetime. Goddess claws start at frames
+4/7/12/15, Shoggoth sweeps at 5/7 and spin passes at 3/6, and Voidcaller beam
+pulses at 5/7/9. Post-hit invulnerability remains ordinary damage middleware.
+
 `CombatPoseCatalog` holds the player directional variants, Warrior and Huntress
 melee, Grojib's two strikes, Hashash strike/ambush, Unoco strike, and Derf tentacle/impact.
 Coordinates include presentation scale and use the catalog sprite anchor.

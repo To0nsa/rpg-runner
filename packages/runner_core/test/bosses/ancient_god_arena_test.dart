@@ -114,6 +114,8 @@ void main() {
                   .toList(),
             ),
           );
+          // Gameplay timers stop during the player's terminal death animation.
+          if (sa.hud.hp <= 0) break;
           final actor = sa.entities.where((e) => e.enemyId == boss).firstOrNull;
           if (actor == null) continue;
           expect(actor.pos.x, inInclusiveRange(24, 576));
@@ -241,7 +243,7 @@ void main() {
           if (actor == null) continue;
           if (actor.anim == AnimKey.teleportOut) vanished = true;
           if (vanished && actor.anim == AnimKey.spawn) reappeared = true;
-          if (previousX != null) {
+          if (vanished && previousX != null) {
             expect((actor.pos.x - previousX).abs(), lessThan(20));
           }
           previousX = actor.pos.x;

@@ -7,6 +7,7 @@ import '../sparse_set.dart';
 /// to avoid allocation per entity per frame. Saturation limit is 4 targets.
 class HitOnceStore extends SparseSet {
   final List<int> count = <int>[];
+  final List<int> window = <int>[];
   final List<EntityId> hit0 = <EntityId>[];
   final List<EntityId> hit1 = <EntityId>[];
   final List<EntityId> hit2 = <EntityId>[];
@@ -14,6 +15,14 @@ class HitOnceStore extends SparseSet {
 
   void add(EntityId entity) {
     addEntity(entity);
+  }
+
+  /// Advances only forward: revisiting a pose cannot reopen an earlier strike.
+  void advanceWindow(EntityId entity, int nextWindow) {
+    final i = tryIndexOf(entity);
+    if (i == null || nextWindow <= window[i]) return;
+    window[i] = nextWindow;
+    count[i] = 0;
   }
 
   bool hasHit(EntityId entity, EntityId target) {
@@ -64,6 +73,7 @@ class HitOnceStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     count.add(0);
+    window.add(0);
     hit0.add(0);
     hit1.add(0);
     hit2.add(0);
@@ -73,12 +83,14 @@ class HitOnceStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     count[removeIndex] = count[lastIndex];
+    window[removeIndex] = window[lastIndex];
     hit0[removeIndex] = hit0[lastIndex];
     hit1[removeIndex] = hit1[lastIndex];
     hit2[removeIndex] = hit2[lastIndex];
     hit3[removeIndex] = hit3[lastIndex];
 
     count.removeLast();
+    window.removeLast();
     hit0.removeLast();
     hit1.removeLast();
     hit2.removeLast();

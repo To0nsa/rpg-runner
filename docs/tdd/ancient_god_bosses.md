@@ -34,6 +34,8 @@ Global ability, enemy, projectile and pose catalogs remain lookup registries.
 summon lifetime. Neither contains a concrete boss selection switch. Each boss
 owns its spacing, pursuit speed, sequence and teleport cadence. Shoggoth owns
 spin motion composition; `VoidTentacleCombatSystem` owns planted behavior.
+Goddess owns her corner placement, hover and six-hand barrage in her own combat
+system and lifecycle-registered `GoddessBarrageStore`.
 Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
@@ -56,14 +58,28 @@ execute a stale utility intent.
 | --- | --- |
 | Required arena spawn, then `BossUtilitySystem.prepare`, before terrain motion preparation | Admit summons and expire them before the authority enumerates tick bodies |
 | Shared utility teleport execution after target selection and Hashash teleports, before water/navigation refresh | Publish validated relocated support and position before dependent consumers |
+| Goddess barrage preparation immediately after utility teleports | Validate exact cast identity, commit corner/return placement, and schedule due hands before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
+| Goddess hover composition alongside spin composition | Suppress gravity for one tick and stop locomotion while retaining normal knockback and one terrain integration |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
 AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects
 sample floor or top-side one-way support below the captured target. Delivery
 and effect rendering use the same rounded frame-step ticks. Damage geometry
 is resolved before broadphase; Flame never decides hit timing.
+
+For prepared compatibility `2026.10.10`, Goddess captures the cast start tick,
+original position/facing, first release tick and sweep direction. Six hands use
+the already committed target-point payload, at half-second intervals and six
+evenly spaced floor marks inset 50 units from the arena edges. Her far upper
+corner is inset 64 units and 150 units above the level floor. Both corner and
+return use terrain-owned checked teleports. Both corners blocked means no hover;
+a blocked return resumes ordinary falling. She returns after the final hand's
+17 effect frames. Death, interruption, suspension or same-ID recommit cancels
+future releases and gravity suppression. State is removed before ID recycling.
+Each spawned hand has its own ordinary one-hit ledger and shared render/damage
+clock; committed effects retain normal impact lifetime behavior.
 
 `BossSummonDelivery` defines type, living cap and lifetime. Summon candidates
 are captured target X plus `[72, -72, 120, -120]`, in stable order. Admission
@@ -108,11 +124,14 @@ describe portal, middle and ground parts within one logical 138×146 canvas.
 The vertical effect is anchored at `(92,146)` and the diagonal at `(46,146)`;
 its portal is 60 source pixels right of the ground mark, matching the endcaps'
 down-left slope. At 1.5x scale its damage segment runs from `(90,-180)` to
-`(0,-12)` relative to the ground mark. World-anchored impact art and damage keep
+`(6,-12)` relative to the ground mark. World-anchored impact art and damage keep
 this fixed orientation regardless of the caster's facing.
 `CompositeFrameSprite` draws those parts from the same
 run-owned PNG; it allocates no derived image or independent animation timer.
-The diagonal middle reuses the vertical middle rotated toward its ground mark.
+The middle tiles native vertical/diagonal strips at integer source-pixel offsets.
+Fixed source-cell pivots align the axis despite changing endcap/debris bounds;
+all pieces use the same bright/pink phase. Nearest-neighbor rendering without
+edge antialiasing prevents seams at 1.5x scale. No piece is rotated or narrowed.
 
 `tools/combat/generate_voidcaller_effects.py` derives component crop rectangles
 from source alpha bounds and generates `voidcaller_effect_catalog.dart`.
@@ -125,8 +144,12 @@ Arena tests cover deterministic duplicate runs at 30/60/90 Hz, introduction,
 confinement, teleport/return, summon caps and lifetime, stationary tentacles,
 both characters' real-combat victories, release and recycled-owner cleanup.
 Effect tests verify captured surfaces, harmless warning frames, evasion and
-single-hit damage at all three rates. Render tests load every catalog frame,
+one hit per distinct swing/pulse at all three rates. Barrage tests cover six
+ordered floor marks, hover and return in flat and authored Forest rooms, plus
+cancelled/replaced/dead casts and recycled IDs. Render tests load every catalog frame,
 check source bounds/scale and render composed beams and melee pose previews.
+Pixel checks require an unbroken opaque beam axis in all five active frames at
+native and 1.5x scale, including every strip and endcap join.
 
 The behavior-preserving separation commit `0ab07746` compares 28-second
 per-tick traces for all three bosses at
