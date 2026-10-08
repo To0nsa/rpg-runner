@@ -47,9 +47,19 @@ Flame and Flutter display snapshots and cannot advance the encounter.
 Approach selects the earliest pending streamed arena. Camera motion stops at
 the exact chunk center and clears its forward target and velocity. It also frames
 the full vertical viewport, including with follow-player camera tuning. The player
-remains controllable while the camera approaches. After the complete arena is
-framed and the player's capsule is inside the combat interval, Core holds the
-player's motion and actions. The boss is created in the next world-preparation
+remains controllable until its terrain-capsule center reaches 25% of the chunk's
+width from the left edge (150 world units in a 600-unit chunk). Approach bounds
+stop crossing that point even during a dash. Core then holds horizontal motion
+and actions, cancels active dash/knockback and gravity suppression, and cancels
+upward velocity. Downward velocity, gravity and terrain landing remain active.
+The stop is inset into the authored combat interval if needed to fit the full
+capsule. A run or captured Play starting beyond the stop holds at its initial
+position rather than teleporting backward.
+
+The introduction starts only once the camera frames the complete arena and the
+player has reached the stop inside the combat interval. The player can fall
+while waiting for framing and throughout introduction; landing does not delay
+or extend the spawn strip. The boss is created in the next world-preparation
 phase, before terrain motion preparation and AI.
 
 Introduction duration is the catalog spawn strip's quantized duration:
@@ -63,13 +73,18 @@ transitions. Arena-owned protection is a lifecycle-registered ECS marker, so
 release cannot remove protection from a recycled entity ID.
 
 Short control locks refresh after timer maintenance and before action gates.
-`ActorMotionBoundsStore` supplies horizontal containment and introduction motion
-freeze to the existing terrain capsule controller. Confinement applies to
-walking, jumps, mobility and knockback without a second terrain representation
-or position teleport. Combat releases the introduction hold and boss protection
-while retaining bounds, camera lock and terrain ownership. The behind-camera
-failure check does not apply inside the framed arena; health and fatal world
-loss remain authoritative.
+`ActorMotionBoundsStore` supplies the approach limit, fixed player X during the
+hold, ordinary combat bounds, and boss introduction motion freeze to the existing
+terrain capsule controller. Player vertical motion is never frozen by the arena.
+Confinement applies to walking, jumps, mobility and knockback without a second
+terrain representation or position teleport. Combat releases the introduction
+hold and boss protection while retaining bounds, camera lock and terrain
+ownership. The behind-camera failure check does not apply inside the framed
+arena; health and fatal world loss remain authoritative.
+
+This entry behavior is included in prepared compatibility `2026.10.11`; matching
+client and replay-worker artifacts are required. Command encoding, snapshots and
+system phase ordering are unchanged.
 
 Other autonomous actors retain their identities under `ArenaSuspensionStore`.
 Owned boss summons retain arena confinement, visibility and combat membership.
@@ -87,7 +102,7 @@ cannot open the exit or award a kill. Recycled entity IDs are checked against
 the required enemy identity. Streamed instance indices prevent reactivation;
 retired arena records are discarded without restoring a completed occurrence.
 
-The first held Flame frame uses the authoritative arena camera rather than
+The first introduction Flame frame uses the authoritative arena camera rather than
 interpolating from the preceding runner frame. Core's framing remains locked
 while render-only entrance shake adds a small visual offset. Purple boundary
 cues and the boss HUD are presentation only. `BossArenaSnapshot.enemyId` carries
@@ -259,8 +274,10 @@ Undo/Redo and canonical Save path. Composition edits retain boss metadata;
 removal is explicit. Bosses are excluded from ambient enemy catalogs. Build and
 Play still require shared terrain readiness and unique candidate selection.
 
-Targeted tests cover entrance timing, both characters at three tick rates,
-confinement, real combat clears, release, entity recycling, invalid removal,
+Targeted tests cover quarter-chunk stops while running, jumping and air dashing,
+gravity-driven landing during the hold, authored-bound clearance, entrance
+timing, both characters at three tick rates, confinement, real combat clears,
+release, entity recycling, invalid removal,
 scoring, exact source rectangles, authoring round trips and validator replay.
 Victory tests cover once-per-occurrence restoration, full and uneven resource
 pools, fatal-player exclusion, death-strip completion, movement during the effect,

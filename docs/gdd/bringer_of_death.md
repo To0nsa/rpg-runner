@@ -10,11 +10,17 @@ across the client, Functions and replay worker; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 
 The 600-by-270 arena fills one gameplay viewport. Its flat floor and raised
-one-way platform give the player room to reposition. Once the entire arena is
-framed and the player is inside its combat bounds, the player stops while Bringer
-reconstitutes from purple smoke. Both actors are protected during this entrance.
+one-way platform give the player room to reposition. On entry, the player stops
+one-quarter into the chunk, 150 units from its left edge. Jump ascent and active
+dashes end at the stop; an airborne player falls and lands normally while held.
+Once the entire arena is framed, Bringer reconstitutes from purple smoke.
+Both actors are protected during this entrance.
 After the entrance, ordinary controls return and purple barriers contain the
 fight. A named boss health bar shows introduction, combat and defeat feedback.
+The quarter-chunk stop applies to all boss entrances and is prepared for
+compatibility `2026.10.11`, not yet deployed. Authored combat bounds must contain
+the player's full body; if necessary, the stop moves inward to fit. A preview or
+run starting beyond the stop holds at its starting position.
 
 During the smoke entrance, three black edge pulses accompany three moderate
 camera shakes and device haptic pulses where supported. The center stays clear

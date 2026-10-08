@@ -15,7 +15,8 @@ import '../track/chunk_pattern_tier.dart';
 import '../tuning/utils/anim_tuning.dart';
 
 /// Mandatory arena ownership, independent of ambient spawns and NPC rescues.
-/// Camera framing precedes the hold; entrance and release use catalog ticks.
+/// Entry stops horizontal travel; camera framing precedes the boss introduction.
+/// Entrance and release use catalog ticks while the held player can fall.
 final class BossArenaSystem {
   BossArenaSystem({required this.tickHz});
   final int tickHz;
@@ -129,17 +130,31 @@ final class BossArenaSystem {
   }
 
   /// Refresh short locks after timer maintenance and before every AI/action gate.
+  /// Entry bounds stop the player's capsule one-quarter into the chunk; reaching
+  /// that stop holds actions and horizontal motion while allowing falling.
   void control(EcsWorld world, {required EntityId player, required int tick}) {
     final arena = _current;
     if (arena == null) return;
     final min = arena.framed ? arena.minX : arena.chunk.startX - 600;
+    final entering =
+        arena.phase == BossArenaPhase.approaching ||
+        arena.phase == BossArenaPhase.introduction;
+    var playerMin = physicsCoordinateToTicks(min);
+    var playerMax = physicsCoordinateToTicks(arena.maxX);
+    if (entering) {
+      _updatePlayerStop(world, player, arena);
+      final radius = world
+          .worldContactCapsule
+          .radiusTicks[world.worldContactCapsule.indexOf(player)];
+      playerMax = arena.playerStopXTicks! + radius;
+      if (arena.playerStopped) {
+        playerMin = arena.playerStopXTicks! - radius;
+        _holdPlayer(world, player, tick);
+      }
+    }
     world.actorMotionBounds.add(
       player,
-      TerrainHorizontalBounds(
-        minXTicks: physicsCoordinateToTicks(min),
-        maxXTicks: physicsCoordinateToTicks(arena.maxX),
-      ),
-      freeze: arena.phase == BossArenaPhase.introduction,
+      TerrainHorizontalBounds(minXTicks: playerMin, maxXTicks: playerMax),
     );
     if (arena.boss != null && world.isEntityAlive(arena.boss!)) {
       world.actorMotionBounds.add(
@@ -171,7 +186,6 @@ final class BossArenaSystem {
       _hold(world, entity, tick);
     }
     if (arena.phase == BossArenaPhase.introduction) {
-      _hold(world, player, tick);
       if (arena.boss != null) _hold(world, arena.boss!, tick);
     } else if (arena.phase == BossArenaPhase.combat) {
       // Ordinary actors stay protected, while the required boss is vulnerable.
@@ -183,7 +197,7 @@ final class BossArenaSystem {
     protectCombat(world, player);
   }
 
-  /// Called after camera motion. The first held snapshot shows the whole arena.
+  /// Latches the entry stop after motion; introduction waits for full framing.
   void afterCamera(
     EcsWorld world, {
     required EntityId player,
@@ -193,20 +207,14 @@ final class BossArenaSystem {
     final arena = _current;
     if (arena == null) return;
     arena.cameraStopped = camera.centerX == arena.cameraCenterX;
-    if (arena.phase == BossArenaPhase.approaching && arena.cameraStopped) {
-      final ti = world.transform.indexOf(player);
-      final ci = world.colliderAabb.indexOf(player);
-      if (colliderCenterX(
-                world,
-                entity: player,
-                transformIndex: ti,
-                colliderIndex: ci,
-              ) -
-              world.colliderAabb.halfX[ci] >=
-          arena.minX) {
+    if (arena.phase == BossArenaPhase.approaching) {
+      _updatePlayerStop(world, player, arena);
+      if (arena.cameraStopped && arena.playerStopped) {
         arena.framed = true;
         arena.phase = BossArenaPhase.introduction;
         _clearCombatArtifacts(world);
+      }
+      if (arena.playerStopped) {
         control(world, player: player, tick: tick);
       }
     }
@@ -327,6 +335,36 @@ final class BossArenaSystem {
     world.invulnerability.protect(ii, 2);
   }
 
+  void _updatePlayerStop(EcsWorld world, EntityId player, _Arena arena) {
+    final ci = world.worldContactCapsule.indexOf(player);
+    final radius = world.worldContactCapsule.radiusTicks[ci];
+    final center =
+        physicsCoordinateToTicks(
+          world.transform.posX[world.transform.indexOf(player)],
+        ) +
+        world.worldContactCapsule.offsetXTicks[ci] *
+            colliderFacingSign(world, player);
+    // Keep the complete capsule inside authored bounds. A run/playtest starting
+    // beyond the mark holds where it starts instead of teleporting backward.
+    arena.playerStopXTicks ??= physicsCoordinateToTicks(arena.playerStopX)
+        .clamp(
+          physicsCoordinateToTicks(arena.minX) + radius,
+          physicsCoordinateToTicks(arena.maxX) - radius,
+        )
+        .clamp(center, physicsCoordinateToTicks(arena.maxX) - radius);
+    if (center >= arena.playerStopXTicks!) arena.playerStopped = true;
+  }
+
+  void _holdPlayer(EcsWorld world, EntityId player, int tick) {
+    _hold(world, player, tick);
+    final mi = world.movement.tryIndexOf(player);
+    if (mi != null) world.movement.dashTicksLeft[mi] = 0;
+    world.gravityControl.removeEntity(player);
+    world.knockback.removeEntity(player);
+    final ti = world.transform.indexOf(player);
+    if (world.transform.velY[ti] < 0) world.transform.velY[ti] = 0;
+  }
+
   void _releaseTemporaryProtection(EcsWorld world) {
     for (final entity in world.arenaProtection.denseEntities.toList()) {
       world.invulnerability.removeEntity(entity);
@@ -367,11 +405,15 @@ final class _Arena {
   bool retained = true;
   bool framed = false;
   bool cameraStopped = false;
+  int? playerStopXTicks;
+  bool playerStopped = false;
   EntityId? boss;
   int introductionStartTick = -1;
   int introductionTicks = 0;
   int deathAnimationEndTick = -1;
   double get cameraCenterX => (chunk.startX + chunk.endX) / 2;
+  // One-quarter of chunk width leaves space for the boss entrance on the right.
+  double get playerStopX => chunk.startX + (chunk.endX - chunk.startX) * 0.25;
   double get minX => chunk.startX + chunk.bossArena!.minX;
   double get maxX => chunk.startX + chunk.bossArena!.maxX;
 }

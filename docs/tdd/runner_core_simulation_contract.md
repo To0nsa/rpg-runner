@@ -50,13 +50,15 @@ commands once the run is paused or ended.
 The replay validator and ghost playback map each replay frame to its matching
 simulation tick. Neither consumer may reinterpret a command's tick.
 
-Boss arenas retain the same Core run and fixed clock. Full camera framing
-precedes the entrance hold, and the terrain controller enforces both confinement
-and temporary motion freeze. Required boss spawning and placement happen before
-motion preparation; outside actor isolation happens before AI/actions. Defeat
-resolves after damage/fatal culls and before death cleanup, with player loss taking
-precedence. Ancient God summons are admitted/expired before motion preparation;
-their teleports execute before water/navigation refresh. Goddess's corner/return
+Boss arenas retain the same Core run and fixed clock. The terrain controller
+stops player horizontal travel one-quarter into the chunk while gravity and
+landing continue; full camera framing precedes the boss introduction. Combat
+restores ordinary arena bounds and controls. Required boss spawning and placement
+happen before motion preparation; outside actor isolation happens before
+AI/actions. Defeat resolves after damage/fatal culls and before death cleanup,
+with player loss taking precedence. Ancient God summons are admitted/expired
+before motion preparation; their teleports execute before water/navigation
+refresh. Goddess's corner/return
 placement and scheduled hands run immediately after those teleports. Her hover
 and committed spinning motion compose after locomotion and before the single
 terrain integration. Compatibility `2026.10.10` adds this barrage and

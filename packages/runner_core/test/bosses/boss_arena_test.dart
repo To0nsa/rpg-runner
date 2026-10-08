@@ -6,8 +6,10 @@ import 'package:runner_core/ecs/stores/enemies/enemy_store.dart';
 import 'package:runner_core/bosses/boss_arena_system.dart';
 import 'package:runner_core/camera/autoscroll_camera.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/death_state_store.dart';
 import 'package:runner_core/enemies/death_behavior.dart';
@@ -34,11 +36,11 @@ import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:test/test.dart';
 
-BossArenaDefinition _definition() => BossArenaDefinition(
+BossArenaDefinition _definition({double minX = 24}) => BossArenaDefinition(
   id: 'test_bringer',
   enemyId: EnemyId.bringerOfDeath,
   spawnX: 440,
-  minX: 24,
+  minX: minX,
   maxX: 576,
 );
 
@@ -115,7 +117,7 @@ void main() {
     },
   );
 
-  test('hold starts only when the entire arena is framed', () {
+  test('player stops before framing but introduction waits for the camera', () {
     final f = _Fixture();
     f.system.afterCamera(
       f.world,
@@ -124,7 +126,8 @@ void main() {
       tick: 1,
     );
     expect(f.system.snapshot(f.world), isNull);
-    expect(f.world.actorMotionBounds.has(f.player), isFalse);
+    expect(f.world.actorMotionBounds.has(f.player), isTrue);
+    expect(f.spawns, 0);
     f.system.afterCamera(
       f.world,
       player: f.player,
@@ -136,10 +139,40 @@ void main() {
       f.world.actorMotionBounds.frozen[f.world.actorMotionBounds.indexOf(
         f.player,
       )],
-      isTrue,
+      isFalse,
     );
     expect(f.spawns, 0);
   });
+
+  test(
+    'framed arena waits for the quarter-chunk stop inside combat bounds',
+    () {
+      final f = _Fixture(playerX: 80);
+      f.prepare(1);
+      f.enter();
+      expect(f.system.snapshot(f.world), isNull);
+      final ti = f.world.transform.indexOf(f.player);
+      f.world.transform.posX[ti] = 150;
+      f.world.transform.velY[ti] = 120;
+      f.enter();
+      expect(f.system.snapshot(f.world)!.playerHeld, isTrue);
+      expect(f.world.transform.velY[ti], 120);
+    },
+  );
+
+  test(
+    'stop moves inward when authored bounds need full-capsule clearance',
+    () {
+      final f = _Fixture(playerX: 80, arenaMinX: 200);
+      f.prepare(1);
+      final bi = f.world.actorMotionBounds.indexOf(f.player);
+      expect(f.world.actorMotionBounds.bounds[bi]!.maxXTicks, 216 * 1024);
+      f.world.transform.posX[f.world.transform.indexOf(f.player)] = 208;
+      f.enter();
+      expect(f.system.snapshot(f.world)!.playerHeld, isTrue);
+      expect(f.world.actorMotionBounds.bounds[bi]!.minXTicks, 200 * 1024);
+    },
+  );
 
   test('entrance has one spawn and releases on its quantized catalog tick', () {
     final f = _Fixture()..enter();
@@ -354,6 +387,64 @@ void main() {
       },
     );
     for (final hz in [30, 60, 90]) {
+      for (final entry in ['running', 'jumping', 'air dash']) {
+        test(
+          '${character.id.name} $hz Hz $entry stops at one-quarter and lands',
+          () {
+            final core = _core(character: character, hz: hz);
+            final floorY = core.playerPosY;
+            core.setPlayerPosXYUnsafeForTest(
+              120,
+              entry == 'air dash' ? floorY - 80 : floorY,
+            );
+            core.setPlayerVelXY(200, entry == 'air dash' ? -150 : 0);
+            for (
+              var n = 0;
+              n < hz && core.buildSnapshot().bossArena == null;
+              n++
+            ) {
+              _step(
+                core,
+                axis: 1,
+                jump: n == 0 && entry == 'jumping',
+                dash: n == 0 && entry == 'air dash',
+              );
+              expect(_playerCenterX(core), lessThanOrEqualTo(150));
+            }
+            expect(core.buildSnapshot().bossArena?.playerHeld, isTrue);
+            expect(_playerCenterX(core), 150);
+            expect(core.playerVelX, 0);
+            expect(core.playerVelY, greaterThanOrEqualTo(0));
+            final heldY = core.playerPosY;
+            if (entry != 'running') expect(heldY, lessThan(floorY));
+            var fell = false;
+            for (var n = 0; n < hz; n++) {
+              _step(
+                core,
+                axis: n.isEven ? 1 : -1,
+                jump: true,
+                dash: true,
+                attack: true,
+              );
+              expect(core.buildSnapshot().bossArena?.playerHeld, isTrue);
+              expect(_playerCenterX(core), 150);
+              fell |= core.playerPosY > heldY;
+            }
+            if (entry != 'running') expect(fell, isTrue);
+            expect(core.playerGrounded, isTrue);
+            expect(core.playerPosY, closeTo(floorY, .01));
+            while (core.buildSnapshot().bossArena?.playerHeld == true &&
+                core.tick < hz * 3) {
+              _step(core, axis: 1);
+            }
+            expect(
+              core.buildSnapshot().bossArena?.phase,
+              BossArenaPhase.combat,
+            );
+            expect(_playerCenterX(core), greaterThan(150));
+          },
+        );
+      }
       test(
         '${character.id.name} $hz Hz holds through entrance then permits bounded combat',
         () {
@@ -462,6 +553,7 @@ void main() {
         _step(core, axis: 1);
         final s = core.buildSnapshot();
         if (s.bossArena?.playerHeld == true) {
+          expect(_playerCenterX(core), 750);
           expect(s.camera.centerX, 900);
           expect(s.camera.centerX - s.camera.viewWidth / 2, 600);
           expect(s.camera.centerX + s.camera.viewWidth / 2, 1200);
@@ -607,6 +699,10 @@ void main() {
 CameraState _camera(double x) =>
     CameraState(centerX: x, targetX: x, centerY: 135, targetY: 135, speedX: 0);
 
+double _playerCenterX(GameCore core) =>
+    core.buildTerrainPlayerDebugSnapshot()!.capsuleCenterXTicks /
+    terrainPhysicsTicksPerWorldUnit;
+
 GameCore _platformCore({
   required PlayerCharacterDefinition character,
   required int hz,
@@ -670,10 +766,14 @@ void _step(
 }
 
 class _Fixture {
-  _Fixture() {
+  _Fixture({double playerX = 300, double arenaMinX = 24}) {
     player = world.createEntity();
-    world.transform.add(player, posX: 300, posY: 198, velX: 0, velY: 0);
+    world.transform.add(player, posX: playerX, posY: 198, velX: 0, velY: 0);
     world.colliderAabb.add(player, const ColliderAabbDef(halfX: 8, halfY: 24));
+    world.worldContactCapsule.add(
+      player,
+      WorldContactCapsuleDef(radius: 8, verticalHalfSegment: 16),
+    );
     world.health.add(
       player,
       const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
@@ -685,7 +785,7 @@ class _Fixture {
       endX: 600,
       patternName: 'arena',
       chunkKey: 'arena',
-      bossArena: _definition(),
+      bossArena: _definition(minX: arenaMinX),
     );
     system.synchronize([chunk], 600);
   }
