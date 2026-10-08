@@ -132,6 +132,8 @@ The middle tiles native vertical/diagonal strips at integer source-pixel offsets
 Fixed source-cell pivots align the axis despite changing endcap/debris bounds;
 all pieces use the same bright/pink phase. Nearest-neighbor rendering without
 edge antialiasing prevents seams at 1.5x scale. No piece is rotated or narrowed.
+Component-supplied paints are copied with antialiasing disabled, preserving
+effect/ghost tint and opacity without mutating the caller's paint.
 
 `tools/combat/generate_voidcaller_effects.py` derives component crop rectangles
 from source alpha bounds and generates `voidcaller_effect_catalog.dart`.

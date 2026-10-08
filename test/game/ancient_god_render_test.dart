@@ -84,9 +84,17 @@ void main() {
           for (final scale in [1.0, 1.5]) {
             final recorder = ui.PictureRecorder();
             final canvas = ui.Canvas(recorder);
+            final effectPaint = ui.Paint()
+              ..filterQuality = ui.FilterQuality.none;
             entry.animSet.animations[AnimKey.hit]!.frames[frame].sprite.render(
               canvas,
               size: entry.animSet.frameSize * scale,
+              overridePaint: effectPaint,
+            );
+            expect(
+              effectPaint.isAntiAlias,
+              isTrue,
+              reason: 'rendering must not mutate the component paint',
             );
             final picture = recorder.endRecording();
             final width = (138 * scale).ceil();

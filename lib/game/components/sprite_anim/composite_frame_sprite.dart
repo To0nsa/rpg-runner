@@ -29,6 +29,13 @@ class CompositeFrameSprite extends Sprite {
     final actual = size ?? srcSize;
     final x = (position?.x ?? 0) - anchor.x * actual.x;
     final y = (position?.y ?? 0) - anchor.y * actual.y;
+    // Effect/ghost components supply their own paint. Preserve their tint and
+    // opacity without inheriting antialiasing or mutating that shared paint.
+    final partPaint = overridePaint == null
+        ? paint
+        : (Paint.from(overridePaint)
+            ..isAntiAlias = false
+            ..filterQuality = FilterQuality.none);
     canvas.save();
     canvas.translate(x, y);
     canvas.scale(actual.x / srcSize.x, actual.y / srcSize.y);
@@ -46,7 +53,7 @@ class CompositeFrameSprite extends Sprite {
           source.height.toDouble(),
         ),
         Rect.fromLTWH(-part.size.x / 2, 0, part.size.x, part.size.y),
-        overridePaint ?? paint,
+        partPaint,
       );
       canvas.restore();
     }
