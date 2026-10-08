@@ -113,6 +113,15 @@ and live-health checks still apply. Standalone and delayed requests retain
 apply-time invulnerability gating. DoT channels enqueue a due terminal pulse
 before expiry, so five-second/one-second-period effects pulse five times.
 
+Recipient status resistance applies once after source tuning and typed
+amplification, before caps, duration quantization and stacking. It independently
+scales harmful magnitude and duration; immunity wins before either control locks
+or cast interruption. All bosses now reject Stun/Silence and retain half of other
+harmful magnitudes, with full duration. This outcome change joins prepared
+compatibility `2026.10.11`; it requires matching client/worker/issuer artifacts
+without changing commands, system order or replay format. See
+[target resistance](status_effect_tuning.md#target-resistance).
+
 Mixed damage remains one queued hit. Shared modifiers precede deterministic
 integer splitting; typed resistance applies to each share before their sum takes
 global Vulnerable. Crit/proc RNG and hit side effects run once. Scythe Sweep now

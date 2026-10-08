@@ -201,8 +201,12 @@ world units relative to the new pivot, preserving their source-art alignment.
 Target-point spells using the default center anchor retain their previous behavior.
 Its first six effect frames are harmless telegraph; later pillar frames
 use a world-anchored capsule and one hit per target. Both actions share cooldown
-group zero. Stun immunity prevents indefinite interruption; other damage and
-status rules remain ordinary Core behavior.
+group zero. Catalog-authored Stun and Silence immunity prevents those controls
+from interrupting or locking the boss. The shared recipient status-resistance
+profile halves other harmful magnitudes while retaining duration; the same
+component can be authored on ordinary enemies or players. See
+[status tuning and resistance](status_effect_tuning.md#target-resistance).
+Direct damage retains ordinary Core behavior.
 Death Pillar authors an `onHit` proc using `StatusProfileId.weakenOnHit`, shared
 with Dark Bolt. Its proc authors 2500 basis points of outgoing damage reduction
 for three seconds through [local status tuning](status_effect_tuning.md),

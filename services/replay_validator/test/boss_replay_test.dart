@@ -1,12 +1,14 @@
 import 'package:run_protocol/replay_blob.dart';
 import 'package:runner_core/bosses/boss_arena_definition.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
@@ -17,10 +19,15 @@ import 'package:test/test.dart';
 
 import '../lib/src/replay_simulation.dart';
 
-GameCore _core(int hz, {EnemyId bossId = EnemyId.bringerOfDeath}) => GameCore(
+GameCore _core(
+  int hz, {
+  EnemyId bossId = EnemyId.bringerOfDeath,
+  EquippedLoadoutDef? loadout,
+}) => GameCore(
   seed: 7,
   tickHz: hz,
   playerCharacter: PlayerCharacterRegistry.eloise,
+  equippedLoadoutOverride: loadout,
   levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
     noEnemyChunks: 0,
     earlyPatternChunks: 0,
@@ -47,6 +54,85 @@ GameCore _core(int hz, {EnemyId bossId = EnemyId.bringerOfDeath}) => GameCore(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    for (final (spell, expectedStatus) in [
+      (ProjectileId.holyBolt, EntityStatusVisualMask.none),
+      (ProjectileId.darkBolt, EntityStatusVisualMask.weaken),
+      (ProjectileId.waterBolt, EntityStatusVisualMask.drench),
+      (ProjectileId.acidBolt, EntityStatusVisualMask.vulnerable),
+    ]) {
+      test('$spell respects boss defenses and replays at $hz Hz', () {
+        final loadout = EquippedLoadoutDef(projectileSlotSpellId: spell);
+        final direct = _core(hz, loadout: loadout);
+        final replay = _core(hz, loadout: loadout);
+        final frames = <ReplayCommandFrameV1>[];
+        int? hitTick;
+        var actedAfterHit = false;
+        for (var n = 0; n < hz * 12 && !direct.gameOver; n++) {
+          final before = direct.buildSnapshot();
+          final boss = before.entities
+              .where((e) => e.enemyId == EnemyId.bringerOfDeath)
+              .firstOrNull;
+          final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+          final axis = dx.abs() > 200 ? dx.sign : 0.0;
+          final tick = direct.tick + 1;
+          final shot = hitTick == null && n % ((hz * .75).round()) == 0;
+          frames.add(
+            ReplayCommandFrameV1(
+              tick: tick,
+              moveAxis: axis,
+              aimDirX: dx >= 0 ? 1 : -1,
+              aimDirY: 0,
+              pressedMask: shot ? ReplayCommandFrameV1.pressedProjectileBit : 0,
+            ),
+          );
+          direct.applyCommands([
+            MoveAxisCommand(tick: tick, axis: axis),
+            AimDirCommand(tick: tick, x: dx >= 0 ? 1 : -1, y: 0),
+            if (shot) ProjectilePressedCommand(tick: tick),
+          ]);
+          direct.stepOneTick();
+          final after = direct.buildSnapshot();
+          final arena = after.bossArena;
+          if (arena != null && arena.hp100 < arena.hpMax100) hitTick ??= tick;
+          if (hitTick != null) {
+            final liveBoss = after.entities.singleWhere(
+              (e) => e.enemyId == EnemyId.bringerOfDeath,
+            );
+            expect(liveBoss.statusVisualMask, expectedStatus);
+            actedAfterHit |=
+                liveBoss.anim == AnimKey.cast ||
+                liveBoss.anim == AnimKey.strike;
+            if (tick - hitTick >= hz) break;
+          }
+        }
+        expect(
+          hitTick,
+          isNotNull,
+          reason: 'the spell must actually hit the boss',
+        );
+        expect(actedAfterHit, isTrue);
+        final result = runReplaySimulation(
+          core: replay,
+          totalTicks: direct.tick,
+          commandStream: frames,
+        );
+        expect(result.runEnded, isNull);
+        final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+        expect(b.bossArena!.hp100, a.bossArena!.hp100);
+        expect(b.hud.hp, a.hud.hp);
+        final directBoss = a.entities.singleWhere(
+          (e) => e.enemyId == EnemyId.bringerOfDeath,
+        );
+        final replayBoss = b.entities.singleWhere(
+          (e) => e.enemyId == EnemyId.bringerOfDeath,
+        );
+        expect(replayBoss.statusVisualMask, directBoss.statusVisualMask);
+        expect(replayBoss.anim, directBoss.anim);
+        expect(replayBoss.pos.x, directBoss.pos.x);
+        expect(replay.playerPosX, direct.playerPosX);
+      });
+    }
+
     test('mixed Scythe Sweep damage and shove replay at $hz Hz', () {
       final direct = _core(hz), replay = _core(hz);
       final frames = <ReplayCommandFrameV1>[];

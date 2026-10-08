@@ -23,6 +23,7 @@ import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/resolved_stats_cache_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
+import 'stores/combat/status_resistance_store.dart';
 import 'stores/collectible_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/player/jump_state_store.dart';
@@ -286,6 +287,11 @@ class EcsWorld {
   /// (dot, slow, stun, haste, damageReduction, vulnerable, weaken, drench, resource-over-time, offenseBuff).
   late final StatusImmunityStore statusImmunity = _register(
     StatusImmunityStore(),
+  );
+
+  /// Scales incoming harmful status strength and duration per actor.
+  late final StatusResistanceStore statusResistance = _register(
+    StatusResistanceStore(),
   );
 
   /// Manages Mana Points (MP) and max MP.

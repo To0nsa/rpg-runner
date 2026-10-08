@@ -287,6 +287,7 @@ class StatusSystem {
 
       final profile = _profiles.resolve(req.profileId, tuning: req.tuning);
       if (profile.applications.isEmpty) continue;
+      final targetResistance = world.statusResistance.forEntity(req.target);
 
       for (final app in profile.applications) {
         if (isCombatProtected(world, req.target) &&
@@ -318,6 +319,17 @@ class StatusSystem {
             magnitude = applyBp(magnitude, modBp);
           }
         }
+        // Source tuning and typed amplification precede target resistance.
+        // Time-only controls have no scalable magnitude; shorten their duration.
+        final effectResistance = targetResistance.forType(app.type);
+        if (app.type != StatusEffectType.stun &&
+            app.type != StatusEffectType.silence &&
+            effectResistance.magnitudeScaleBp != bpScale) {
+          magnitude = magnitude * effectResistance.magnitudeScaleBp ~/ bpScale;
+        }
+        final durationSeconds = effectResistance.durationScaleBp == bpScale
+            ? app.durationSeconds
+            : app.durationSeconds * effectResistance.durationScaleBp / bpScale;
         final critBonusBp = app.critBonusBp ?? 0;
         final hasOffenseBuffMagnitude =
             app.type == StatusEffectType.offenseBuff &&
@@ -338,7 +350,7 @@ class StatusSystem {
               world,
               target: req.target,
               magnitude: magnitude,
-              durationSeconds: app.durationSeconds,
+              durationSeconds: durationSeconds,
               periodSeconds: app.periodSeconds,
               damageType: dotDamageType,
               sourceTrap: req.sourceTrap,
@@ -358,39 +370,39 @@ class StatusSystem {
               target: req.target,
               resourceType: resourceType,
               amountBp: magnitude,
-              durationSeconds: app.durationSeconds,
+              durationSeconds: durationSeconds,
               periodSeconds: app.periodSeconds,
               applyOnApply: app.applyOnApply,
               onResourcePulse: onResourcePulse,
             );
           case StatusEffectType.slow:
-            _applySlow(world, req.target, magnitude, app.durationSeconds);
+            _applySlow(world, req.target, magnitude, durationSeconds);
           case StatusEffectType.haste:
-            _applyHaste(world, req.target, magnitude, app.durationSeconds);
+            _applyHaste(world, req.target, magnitude, durationSeconds);
           case StatusEffectType.damageReduction:
             _applyDamageReduction(
               world,
               req.target,
               magnitude,
-              app.durationSeconds,
+              durationSeconds,
             );
           case StatusEffectType.stun:
-            _applyStun(world, req.target, magnitude, app.durationSeconds);
+            _applyStun(world, req.target, magnitude, durationSeconds);
           case StatusEffectType.vulnerable:
-            _applyVulnerable(world, req.target, magnitude, app.durationSeconds);
+            _applyVulnerable(world, req.target, magnitude, durationSeconds);
           case StatusEffectType.weaken:
-            _applyWeaken(world, req.target, magnitude, app.durationSeconds);
+            _applyWeaken(world, req.target, magnitude, durationSeconds);
           case StatusEffectType.drench:
-            _applyDrench(world, req.target, magnitude, app.durationSeconds);
+            _applyDrench(world, req.target, magnitude, durationSeconds);
           case StatusEffectType.silence:
-            _applySilence(world, req.target, app.durationSeconds);
+            _applySilence(world, req.target, durationSeconds);
           case StatusEffectType.offenseBuff:
             _applyOffenseBuff(
               world,
               req.target,
               magnitude,
               critBonusBp,
-              app.durationSeconds,
+              durationSeconds,
             );
         }
       }

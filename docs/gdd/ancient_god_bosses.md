@@ -18,7 +18,11 @@ Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
 All three share Bringer of Death's **1.5x sprite scale**, 120 HP, no passive
-health regeneration and stun immunity. Source frame dimensions differ, so their
+health regeneration and Stun immunity. Prepared compatibility `2026.10.11` also
+gives them Silence immunity and halves the strength of other harmful statuses,
+keeping duration unchanged, as described in [Bringer's defenses](bringer_of_death.md).
+Beneficial effects retain their full strength, and summoned minions and tentacles
+retain ordinary status susceptibility. Source frame dimensions differ, so their
 visible silhouettes differ in size. Terrain and attack shapes fit the scaled
 art. They walk under normal gravity and collision, without jumping or swimming
 upward. The framed arena, entrance protection, player controls, health bar,

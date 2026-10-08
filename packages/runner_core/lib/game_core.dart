@@ -846,6 +846,7 @@ class GameCore {
       tags: playerArchetype.tags,
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
+      statusResistance: playerArchetype.statusResistance,
       equippedLoadout: equippedLoadout,
     );
     _worldMotionAuthority.initializePlayer(

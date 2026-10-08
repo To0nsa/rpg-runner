@@ -4,6 +4,7 @@ import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
+import '../ecs/stores/combat/status_resistance_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
@@ -23,6 +24,11 @@ import 'voidcaller_render_catalog.dart';
 import 'shoggoth_minion_render_catalog.dart';
 import 'void_tentacle_render_catalog.dart';
 import 'enemy_terrain_profile.dart';
+
+// Half-strength debuffs keep boss mechanics threatening while preserving effect duration.
+const _bossStatusResistance = StatusResistanceDef(
+  defaultDebuff: StatusEffectResistance(magnitudeScaleBp: 5000),
+);
 
 const ColliderAabbDef _voidbornGoddessCollider = ColliderAabbDef(
   halfX: 13.5,
@@ -667,6 +673,7 @@ class EnemyArchetype {
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
+    this.statusResistance = const StatusResistanceDef(),
   });
 
   /// Physics configuration (Gravity, Constraints, Kinematics).
@@ -747,6 +754,9 @@ class EnemyArchetype {
 
   /// Status effect immunities for this enemy.
   final StatusImmunityDef statusImmunity;
+
+  /// Incoming debuff strength/duration multipliers, independent of damage type.
+  final StatusResistanceDef statusResistance;
 }
 
 /// Central registry for Enemy Definitions.
@@ -872,8 +882,10 @@ class EnemyCatalog {
           meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
-          // Stun immunity prevents permanent light-hit interruption; damage remains normal.
-          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+          statusImmunity: StatusImmunityDef(
+            mask: StatusImmunityMask.stun | StatusImmunityMask.silence,
+          ),
+          statusResistance: _bossStatusResistance,
         );
       case EnemyId.voidbornGoddess:
         return const EnemyArchetype(
@@ -907,7 +919,10 @@ class EnemyCatalog {
           castTargetPolicy: AiCastAimPolicy.targetCenter,
           meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
           artFacingDir: Facing.left,
-          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+          statusImmunity: StatusImmunityDef(
+            mask: StatusImmunityMask.stun | StatusImmunityMask.silence,
+          ),
+          statusResistance: _bossStatusResistance,
         );
       case EnemyId.shoggoth:
         return const EnemyArchetype(
@@ -941,7 +956,10 @@ class EnemyCatalog {
           castTargetPolicy: AiCastAimPolicy.targetCenter,
           meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
           artFacingDir: Facing.left,
-          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+          statusImmunity: StatusImmunityDef(
+            mask: StatusImmunityMask.stun | StatusImmunityMask.silence,
+          ),
+          statusResistance: _bossStatusResistance,
         );
       case EnemyId.voidcaller:
         return const EnemyArchetype(
@@ -975,7 +993,10 @@ class EnemyCatalog {
           castTargetPolicy: AiCastAimPolicy.targetCenter,
           meleeRangePolicy: EnemyMeleeRangePolicy.weaponReach,
           artFacingDir: Facing.left,
-          statusImmunity: StatusImmunityDef(mask: StatusImmunityMask.stun),
+          statusImmunity: StatusImmunityDef(
+            mask: StatusImmunityMask.stun | StatusImmunityMask.silence,
+          ),
+          statusResistance: _bossStatusResistance,
         );
       case EnemyId.shoggothMinion:
         return const EnemyArchetype(

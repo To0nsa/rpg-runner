@@ -69,10 +69,55 @@ independently.
   immunity, invulnerability, scaling, duration quantization and stacking rules.
   Accepted-hit provenance remains independent of tuning.
 
+## Target resistance
+
+`StatusResistanceDef` is the recipient's defense, separate from the source's
+`StatusProfileTuning` and the all-or-nothing `StatusImmunityDef`. Enemy and player
+catalogs carry it through spawning into `world.statusResistance`. It is not
+conditional on boss identity. An absent component or omitted catalog field is
+neutral. The world registers the store for swap removal and entity recycling.
+
+```dart
+StatusResistanceDef(
+  defaultDebuff: StatusEffectResistance(magnitudeScaleBp: 5000),
+  // Override the complete pair: full strength, one-quarter duration.
+  slow: StatusEffectResistance(durationScaleBp: 2500),
+)
+```
+
+Both multipliers describe the fraction remaining: `10000` retains the full
+effect, `5000` retains half, and `0` removes that dimension. Values are bounded
+to `0..10000`. The default applies to DoT, Slow, Stun, Vulnerable, Weaken, Drench
+and Silence. Each named effect can override both multipliers; omitted fields
+within that override use `10000`, rather than inheriting the default pair.
+Haste, damage reduction, restoration and offense buffs always remain unchanged.
+
+Application order is source tuning, eligibility/immunity, positive typed
+amplification, target resistance, then existing caps, tick quantization and
+stacking. Magnitude uses integer basis-point multiplication rounded down.
+Duration scales in seconds before the existing ceiling-to-ticks conversion;
+the neutral path preserves the original seconds exactly. DoT scales DPS, keeping
+its pulse interval unchanged; each pulse still undergoes ordinary damage-type
+mitigation. Stun and Silence have no meaningful magnitude, so only their duration
+multiplier applies. Use immunity to reject either control entirely.
+
+Scaling happens once per application, never every tick. Active effects retain
+their captured strength and duration if the recipient's resistance changes.
+Equal-strength applications still refresh duration, weaker ones do not replace
+stronger ones, and different DoT damage channels retain their existing behavior.
+
+All four bosses are immune to Stun and Silence. Their shared catalog default
+retains 50% of other harmful status magnitudes and 100% of duration. Ordinary
+enemies, summons and players retain neutral defaults. Halving both DoT strength
+and duration would reduce total damage to roughly one quarter, so these are
+independent tuning choices. Immunity is checked before control locks or cast
+interruption can be applied.
+
 Abilities and gear remain repository-authored. Tuning does not enter client
 commands or replay blobs, and no system ordering or wire format changes. This
-authoring extension preserves current gameplay values and remains within the
-prepared `2026.10.11` compatibility release. Future authored balance changes
+target-resistance change alters boss combat outcomes and remains within the
+prepared, unreleased `2026.10.11` compatibility release. Matching client, worker
+and issuance compatibility are required before release. Future balance changes
 must follow the normal matching client/worker compatibility policy.
 
 ## Validation
@@ -83,3 +128,7 @@ resource overrides, scaling, invalid timing and duplicate proc precedence.
 Focused activation, mobility, projectile and reactive tests verify payload
 propagation; UI tests verify resolved descriptions. Bringer replay tests retain
 the matching client/worker Weaken outcome.
+`status_resistance_test.dart` verifies all boss immunities, harmful and beneficial
+effects, source/target scaling order, duration quantization, DoT cadence and
+mitigation, refresh behavior and store lifecycle. Worker boss replay tests cover
+actual Holy, Dark, Water and Acid Bolt hits at 30/60/90 Hz.

@@ -66,8 +66,14 @@ Other bosses and attacks can opt into the same
 [damage effect](../tdd/combat_knockback.md) with their own distance and duration.
 
 The entrance lasts the complete ten-frame spawn strip, about 1.17 seconds at
-60 Hz. Ordinary light hits cannot stun-lock the boss. Incoming damage and other
-status rules continue normally; the boss has no special damage resistance.
+60 Hz. Bringer is immune to Stun and Silence. Other harmful effects retain their
+duration but apply at half strength: Slow reduces movement by 12.5%, Weaken
+reduces outgoing damage by 25%, Drench reduces attack/cast speed by 25%, and
+Vulnerable adds 25% incoming damage. Standard Burn and Bleed each deal 1.5 HP/s
+for five seconds. These values use the player's default effect tuning; individual
+abilities may author different values. Buffs and healing are unaffected, and
+the boss has no special direct-damage resistance. The Silence immunity and
+status resistance are prepared for compatibility `2026.10.11`, not yet deployed.
 
 Outside enemies and NPCs cannot interfere during the arena. Player health, mana,
 stamina, equipment and cooldowns carry into and out of the fight. Regeneration

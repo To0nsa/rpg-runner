@@ -45,7 +45,11 @@ The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
 Both summons use ordinary enemy targeting, health, damage, statuses and death
 handling. Tentacles override pursuit speed to zero and discard navigation
-plans; minions pursue normally. Boss stun immunity preserves committed threats.
+plans; minions pursue normally. Bosses use catalog Stun/Silence immunity and
+the shared half-magnitude harmful-status resistance profile, retaining effect
+duration. Summons retain neutral status resistance. These defenses are applied
+by the generic status pipeline, described in
+[target resistance](status_effect_tuning.md#target-resistance).
 Hit reactions do not replace active boss attack art.
 
 ## Lifecycle and tick dependencies
