@@ -51,8 +51,8 @@ Resource magnitude is not restoration per pulse. Durations must be finite and
 nonnegative, and pulse intervals finite and positive.
 
 Death Pillar now authors its own Weaken tuning in `bringer_ability_defs.dart`:
-5000 basis points for five seconds. Dark Bolt continues to inherit the shared
-Weaken defaults. Both currently have the same balance but can be edited
+2500 basis points for three seconds. Dark Bolt continues to inherit the shared
+Weaken defaults of 5000 basis points for five seconds. Each can be edited
 independently.
 
 ## Delivery and lifecycle

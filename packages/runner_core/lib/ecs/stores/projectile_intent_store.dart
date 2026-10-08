@@ -49,7 +49,7 @@ class ProjectileIntentDef {
   final int cooldownGroupId;
   final bool pierce;
   final int maxPierceHits;
-  final DamageType damageType;
+  final DamageComposition damageType;
   final List<WeaponProc> procs;
   final KnockbackDef? knockback;
   final bool ballistic;
@@ -84,7 +84,7 @@ class ProjectileIntentStore extends SparseSet {
   final List<int> cooldownGroupId = <int>[];
   final List<bool> pierce = <bool>[];
   final List<int> maxPierceHits = <int>[];
-  final List<DamageType> damageType = <DamageType>[];
+  final List<DamageComposition> damageType = <DamageComposition>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<KnockbackDef?> knockback = [];
   final List<bool> ballistic = <bool>[];

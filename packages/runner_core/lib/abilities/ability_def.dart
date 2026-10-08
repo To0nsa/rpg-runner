@@ -189,8 +189,9 @@ class MobilityImpactDef {
   /// Crit chance in basis points (`10000 == 100%`).
   final int critChanceBp;
 
-  /// Damage type used for queued contact damage and status scaling.
-  final DamageType damageType;
+  /// Single type or weighted split for contact damage. Direct contact statuses
+  /// use the composition's primary type for type-dependent scaling.
+  final DamageComposition damageType;
 
   /// Optional on-hit procs for contact damage applications.
   final List<WeaponProc> procs;
@@ -709,16 +710,15 @@ class AbilityDef {
   /// `0` means no timeout.
   final int chargeMaxHoldTicks60;
 
-  /// Base damage for this ability.
+  /// Total base damage for this ability, shared across [baseDamageType].
   /// Fixed-point: 100 = 1.0 damage.
   /// - Melee: Base damage of the swing.
   /// - Thrown: Base damage of the throw.
   /// - Spell: Base damage of the spell projectile.
   final int baseDamage;
 
-  /// Base damage type (element) for this ability.
-  /// Explicitly defined in authored data.
-  final DamageType baseDamageType;
+  /// Single [DamageType] or weighted [DamageTypeMix] dividing [baseDamage].
+  final DamageComposition baseDamageType;
 
   /// Optional post-damage shove shared by every damaging delivery.
   final KnockbackDef? knockback;

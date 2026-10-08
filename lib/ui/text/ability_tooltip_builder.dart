@@ -1,4 +1,5 @@
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/middleware/parry_middleware.dart';
 import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -106,7 +107,18 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }) {
     final tags = _tagResolver.resolve(def);
     final badges = _buildBadges(tags);
-    final descriptionWithHighlights = _descriptionWithHighlights(def, ctx);
+    final baseDescription = _descriptionWithHighlights(def, ctx);
+    final impact = def.mobilityImpact;
+    final breakdowns = <String>[
+      if (def.baseDamageType is DamageTypeMix && def.baseDamage > 0)
+        _damageBreakdown(def.baseDamage, def.baseDamageType),
+      if (impact.damageType is DamageTypeMix && impact.damage100 > 0)
+        _damageBreakdown(impact.damage100, impact.damageType),
+    ];
+    final descriptionWithHighlights = _DescriptionWithHighlights(
+      description: [baseDescription.description, ...breakdowns].join(' '),
+      dynamicValues: [...baseDescription.dynamicValues, ...breakdowns],
+    );
     return AbilityTooltip(
       title: abilityDisplayName(def.id),
       description: descriptionWithHighlights.description,
@@ -165,6 +177,16 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           description: _notBuildDescription(def, ctx),
         );
     }
+  }
+
+  String _damageBreakdown(int amount100, DamageComposition composition) {
+    final parts = composition
+        .split(amount100)
+        .map(
+          (part) =>
+              '${formatFixed100(part.amount100)} ${damageTypeDisplayName(part.type)}',
+        );
+    return 'Base damage: ${parts.join(' + ')}.';
   }
 
   double? _cooldownSeconds(AbilityDef def) {

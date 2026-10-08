@@ -83,7 +83,8 @@ class DamageSystem {
       if (isCombatProtected(world, target)) continue;
       final amount100 = queue.amount100[i];
       final critChanceBp = queue.critChanceBp[i];
-      final damageType = queue.damageType[i];
+      final composition = queue.damageType[i];
+      final damageType = composition.primaryType;
       final procs = queue.procs[i];
       final sourceKind = queue.sourceKind[i];
       final sourceEntity = queue.sourceEntity[i];
@@ -143,17 +144,23 @@ class DamageSystem {
       final resolvedStats = _statsCache.resolveForEntity(world, target);
       amountAfterDefense = resolvedStats.applyDefense(amountAfterDefense);
 
-      // 6. Apply resistance/vulnerability modifier.
+      // 6. Split once after shared modifiers, then resist each typed share.
       final ri = resistance.tryIndexOf(target);
-      final baseTypedModBp = ri == null
-          ? 0
-          : resistance.modBpForIndex(ri, damageType);
-      final gearTypedModBp = resolvedStats.incomingDamageModBpForDamageType(
-        damageType,
-      );
-      final modBp = baseTypedModBp + gearTypedModBp;
-      var appliedAmount = applyBp(amountAfterDefense, modBp);
-      if (appliedAmount < 0) appliedAmount = 0;
+      int resist(int amount, DamageType type) {
+        final baseMod = ri == null ? 0 : resistance.modBpForIndex(ri, type);
+        final gearMod = resolvedStats.incomingDamageModBpForDamageType(type);
+        final result = applyBp(amount, baseMod + gearMod);
+        return result < 0 ? 0 : result;
+      }
+
+      var appliedAmount = 0;
+      if (composition is DamageType) {
+        appliedAmount = resist(amountAfterDefense, composition);
+      } else {
+        for (final part in composition.split(amountAfterDefense)) {
+          appliedAmount += resist(part.amount100, part.type);
+        }
+      }
       final vi = vulnerable.tryIndexOf(target);
       if (vi != null && vulnerable.ticksLeft[vi] > 0) {
         appliedAmount = applyBp(appliedAmount, vulnerable.magnitude[vi]);

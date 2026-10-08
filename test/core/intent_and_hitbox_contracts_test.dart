@@ -54,7 +54,7 @@ void main() {
         manaCost100: 0,
         pierce: false,
         maxPierceHits: 1,
-        damageType: DamageType.ice,
+        damageType: DamageTypeMix(ice: 1, dark: 1),
         ballistic: false,
         gravityScale: 1.0,
         dirX: 1,
@@ -81,6 +81,10 @@ void main() {
     projectileLaunch.step(world, currentTick: 1);
 
     expect(world.projectile.denseEntities.length, 1);
+    expect(world.projectile.damageType.single.split(100), [
+      (type: DamageType.ice, amount100: 50),
+      (type: DamageType.dark, amount100: 50),
+    ]);
 
     // Melee intent.
     world.meleeIntent.set(
@@ -89,7 +93,7 @@ void main() {
         abilityId: 'grojib.strike',
         slot: AbilitySlot.primary,
         damage100: 100,
-        damageType: DamageType.physical,
+        damageType: DamageTypeMix(physical: 1, dark: 1),
         halfX: 4,
         halfY: 4,
         offsetX: 10,
@@ -112,6 +116,10 @@ void main() {
     meleeStrike.step(world, currentTick: 2);
 
     expect(world.hitbox.denseEntities.length, 1);
+    expect(world.hitbox.damageType.single.split(100), [
+      (type: DamageType.physical, amount100: 50),
+      (type: DamageType.dark, amount100: 50),
+    ]);
     // MeleeStrikeSystem is now execution-only; it does not deduct stamina.
     // Cost is handled by AbilityActivationSystem (upstream).
     expect(world.stamina.stamina[world.stamina.indexOf(caster)], equals(10000));

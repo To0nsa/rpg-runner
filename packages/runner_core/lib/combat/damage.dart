@@ -45,7 +45,8 @@ class DamageRequest {
   final int critChanceBp;
 
   /// Category used for resistance/vulnerability lookup.
-  final DamageType damageType;
+  /// Single type or immutable proportions of the total [amount100].
+  final DamageComposition damageType;
 
   /// Potential on-hit procs to roll at application time.
   final List<WeaponProc> procs;

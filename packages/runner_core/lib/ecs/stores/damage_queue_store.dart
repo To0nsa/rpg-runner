@@ -24,7 +24,7 @@ class DamageQueueStore {
   final List<EntityId> target = <EntityId>[];
   final List<int> amount100 = <int>[];
   final List<int> critChanceBp = <int>[];
-  final List<DamageType> damageType = <DamageType>[];
+  final List<DamageComposition> damageType = <DamageComposition>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
   final List<EntityId?> sourceEntity = <EntityId?>[];

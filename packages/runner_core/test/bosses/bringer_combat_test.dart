@@ -1,9 +1,12 @@
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/systems/bringer_combat_system.dart';
 import 'package:runner_core/ecs/systems/damage_system.dart';
@@ -99,51 +102,81 @@ void main() {
         expect(f.world.damageQueue.amount100, [
           const AbilityCatalog().resolve('bringer.scythe_sweep')!.baseDamage,
         ]);
+        expect(f.world.damageQueue.damageType.single.split(2200), [
+          (type: DamageType.physical, amount100: 1100),
+          (type: DamageType.dark, amount100: 1100),
+        ]);
         f.resolveHits(executeTick + 1);
         expect(f.world.damageQueue.length, 1);
+        f.world.damageResistance.add(
+          f.player,
+          const DamageResistanceDef(physicalBp: -5000, darkBp: -10000),
+        );
+        final hi = f.world.health.indexOf(f.player);
+        final before = f.world.health.hp[hi];
+        DamageSystem(
+          invulnerabilityTicksOnHit: hz ~/ 4,
+          rngSeed: 1,
+        ).step(f.world, currentTick: executeTick + 1);
+        // Default Plainsteel has -5% defense: 2200 -> 2310 -> 1155 physical.
+        expect(before - f.world.health.hp[hi], 577);
+        expect(f.world.reactiveDamageEventQueue.length, 1);
       });
     }
 
-    test('pillar weaken halves player damage for five seconds at $hz Hz', () {
-      final f = _Fixture(hz, playerX: 300);
-      final status = StatusSystem(tickHz: hz);
-      final damage = DamageSystem(
-        invulnerabilityTicksOnHit: (hz / 4).ceil(),
-        rngSeed: 1,
-        tickHz: hz,
-      );
-      final hitTick = f.hitWithPillar();
-      damage.step(f.world, currentTick: hitTick, queueStatus: status.queue);
-      expect(
-        f.world.invulnerability.ticksLeft[f.world.invulnerability.indexOf(
-          f.player,
-        )],
-        greaterThan(0),
-      );
-      status.applyQueued(f.world, currentTick: hitTick);
-      final wi = f.world.weaken.indexOf(f.player);
-      expect(f.world.weaken.magnitude[wi], 5000);
-      expect(f.world.weaken.ticksLeft[wi], 5 * hz);
-
-      int playerDamage(int tick) {
-        final hi = f.world.health.indexOf(f.boss);
-        final before = f.world.health.hp[hi];
-        f.world.damageQueue.add(
-          DamageRequest(target: f.boss, source: f.player, amount100: 1000),
+    test(
+      'pillar applies its authored weaken strength and duration at $hz Hz',
+      () {
+        final f = _Fixture(hz, playerX: 300);
+        final proc = const AbilityCatalog()
+            .resolve('bringer.death_pillar')!
+            .procs
+            .single;
+        final effect = const StatusProfileCatalog()
+            .resolve(proc.statusProfileId, tuning: proc.statusTuning)
+            .applications
+            .single;
+        final durationTicks = (effect.durationSeconds * hz).ceil();
+        final weakenedDamage = 1000 * (10000 - effect.magnitude) ~/ 10000;
+        final status = StatusSystem(tickHz: hz);
+        final damage = DamageSystem(
+          invulnerabilityTicksOnHit: (hz / 4).ceil(),
+          rngSeed: 1,
+          tickHz: hz,
         );
-        damage.step(f.world, currentTick: tick);
-        return before - f.world.health.hp[hi];
-      }
+        final hitTick = f.hitWithPillar();
+        damage.step(f.world, currentTick: hitTick, queueStatus: status.queue);
+        expect(
+          f.world.invulnerability.ticksLeft[f.world.invulnerability.indexOf(
+            f.player,
+          )],
+          greaterThan(0),
+        );
+        status.applyQueued(f.world, currentTick: hitTick);
+        final wi = f.world.weaken.indexOf(f.player);
+        expect(f.world.weaken.magnitude[wi], effect.magnitude);
+        expect(f.world.weaken.ticksLeft[wi], durationTicks);
 
-      expect(playerDamage(hitTick + 1), 500);
-      for (var tick = 1; tick < 5 * hz; tick++) {
+        int playerDamage(int tick) {
+          final hi = f.world.health.indexOf(f.boss);
+          final before = f.world.health.hp[hi];
+          f.world.damageQueue.add(
+            DamageRequest(target: f.boss, source: f.player, amount100: 1000),
+          );
+          damage.step(f.world, currentTick: tick);
+          return before - f.world.health.hp[hi];
+        }
+
+        expect(playerDamage(hitTick + 1), weakenedDamage);
+        for (var tick = 1; tick < durationTicks; tick++) {
+          status.tickExisting(f.world);
+        }
+        expect(playerDamage(hitTick + durationTicks - 1), weakenedDamage);
         status.tickExisting(f.world);
-      }
-      expect(playerDamage(hitTick + 5 * hz - 1), 500);
-      status.tickExisting(f.world);
-      expect(f.world.weaken.has(f.player), isFalse);
-      expect(playerDamage(hitTick + 5 * hz), 1000);
-    });
+        expect(f.world.weaken.has(f.player), isFalse);
+        expect(playerDamage(hitTick + durationTicks), 1000);
+      },
+    );
 
     test('blocked pillar cannot apply weaken at $hz Hz', () {
       final f = _Fixture(hz, playerX: 300);

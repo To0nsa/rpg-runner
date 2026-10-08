@@ -35,8 +35,8 @@ class HitPayload {
   /// Critical strike chance in basis points (100 = 1%).
   final int critChanceBp;
 
-  /// The elemental type of the damage (resolved from Ability vs Weapon priority).
-  final DamageType damageType;
+  /// Typed proportions of [damage100], with item conversion already resolved.
+  final DamageComposition damageType;
 
   /// List of potential on-hit effects contributed by the weapon/ability.
   ///

@@ -143,7 +143,7 @@ class MobilityImpactSystem {
               profileId: impact.statusProfileId,
               tuning: impact.statusTuning,
               credit: damageCreditFor(world, source),
-              damageType: impact.damageType,
+              damageType: impact.damageType.primaryType,
             ),
           );
         }

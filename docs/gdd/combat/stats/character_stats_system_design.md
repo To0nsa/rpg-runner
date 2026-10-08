@@ -76,7 +76,7 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 
 1. start from `AbilityDef.baseDamage`, `baseDamageType`, and ability procs
 2. apply global power (`resolvedGlobalPowerBp + offenseBuffPowerBp`)
-3. if payload source provides a damage type and ability base type is physical, override damage type
+3. if payload source provides a damage type, convert only the physical share to it
 4. merge procs in canonical builder order (ability -> item -> buffs -> passives) with deterministic dedupe; current runtime call sites wire ability + item proc sources
 5. clamp damage to `>= 0`
 
@@ -93,7 +93,7 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 1. source `weaken` penalty
 2. crit
 3. defense
-4. typed modifier (`store + gearIncomingMod`)
+4. split mixed damage into its typed shares; apply each typed modifier (`store + gearIncomingMod`) and sum
 5. target `vulnerable` bonus
 6. clamp `>= 0` after each stage that can go negative
 

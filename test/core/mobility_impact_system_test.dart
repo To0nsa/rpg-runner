@@ -177,7 +177,7 @@ void main() {
     expect(world.damageQueue.length, equals(0));
   });
 
-  test('mobility impact can queue damage for future dash-attack abilities', () {
+  test('mobility impact carries mixed damage and one primary-type status', () {
     final world = EcsWorld();
     final player = _spawnPlayer(world);
     final enemy = _spawnEnemy(world);
@@ -206,13 +206,18 @@ void main() {
     phaseSystem.step(world, currentTick: 1);
     broadphase.rebuild(world);
     final status = StatusSystem(tickHz: 60);
+    final statusRequests = <StatusRequest>[];
     world.statModifier.add(enemy);
     impactSystem.step(
       world,
       broadphase,
       currentTick: 1,
-      queueStatus: status.queue,
+      queueStatus: (request) {
+        statusRequests.add(request);
+        status.queue(request);
+      },
     );
+    expect(statusRequests.single.damageType, DamageType.dark);
     status.applyQueued(world, currentTick: 1);
     expect(world.controlLock.isLocked(enemy, LockFlag.stun, 120), isTrue);
     expect(world.controlLock.isLocked(enemy, LockFlag.stun, 121), isFalse);
@@ -220,7 +225,10 @@ void main() {
     expect(world.damageQueue.length, equals(1));
     expect(world.damageQueue.target.single, equals(enemy));
     expect(world.damageQueue.amount100.single, equals(750));
-    expect(world.damageQueue.damageType.single, equals(DamageType.physical));
+    expect(world.damageQueue.damageType.single.split(750), [
+      (type: DamageType.physical, amount100: 250),
+      (type: DamageType.dark, amount100: 500),
+    ]);
     expect(
       world.damageQueue.sourceKind.single,
       equals(DeathSourceKind.meleeHitbox),
@@ -280,7 +288,7 @@ class _TestAbilities extends AbilityCatalog {
         mobilityImpact: const MobilityImpactDef(
           hitPolicy: HitPolicy.oncePerTarget,
           damage100: 750,
-          damageType: DamageType.physical,
+          damageType: DamageTypeMix(physical: 1, dark: 2),
           statusProfileId: StatusProfileId.stunOnHit,
           statusTuning: StatusProfileTuning(
             stun: StatusApplicationTuning(durationSeconds: 2),

@@ -923,8 +923,11 @@ intent payload snapshots (`damage100`, `critChanceBp`, `damageType`, `procs`,
    - `finalDamage100 = finalDamage100 * (10000 + globalPowerBonusBp) ~/ 10000`
    - clamp floor at `0` if negative
 3. Apply optional damage-type override:
-   - if `weaponDamageType != null` and current type is `physical`, override with weapon type
+   - if `weaponDamageType != null`, convert the physical share to the weapon type
    - authored elemental ability types (`fire`, `ice`, etc.) are not overridden
+   - `baseDamageType` may be a weighted `DamageTypeMix`; `baseDamage` stays the total
+   - typed resistance applies independently to each share; crit, effects and
+     protection apply once for the hit ([resolution contract](../../tdd/mixed_damage.md))
 4. Merge procs in canonical order:
    - ability -> weapon/item -> buffs -> passives
 5. Deterministic dedupe (first wins):

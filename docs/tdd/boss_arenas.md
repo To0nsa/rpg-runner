@@ -179,7 +179,9 @@ against the scaled blade reach, avoiding pursuit underneath the larger blade.
 Direct walk plans transfer arrival steering to engagement intent while retaining
 their graph-proven safe surface range, so spacing and speed apply in locomotion.
 
-Scythe Sweep commits facing and uses reviewed blade capsules. Both attacks
+Scythe Sweep commits facing and uses reviewed blade capsules. Its 2200 total base
+damage is split equally between physical and dark through the shared
+[mixed damage contract](mixed_damage.md). Both attacks
 use the same attack executors as ordinary enemies. The catalog terrain profile's
 `canJump` capability is false for Bringer: its surface graph publishes walk/drop
 edges without jump edges, and shared locomotion rejects upward launch requests
@@ -202,8 +204,8 @@ use a world-anchored capsule and one hit per target. Both actions share cooldown
 group zero. Stun immunity prevents indefinite interruption; other damage and
 status rules remain ordinary Core behavior.
 Death Pillar authors an `onHit` proc using `StatusProfileId.weakenOnHit`, shared
-with Dark Bolt (5000 basis points of outgoing damage reduction for five seconds).
-Its proc now authors these values through [local status tuning](status_effect_tuning.md),
+with Dark Bolt. Its proc authors 2500 basis points of outgoing damage reduction
+for three seconds through [local status tuning](status_effect_tuning.md),
 so changing the pillar's strength or duration does not change Dark Bolt.
 The ordinary target-point payload carries it into `DamageSystem`; accepted-hit
 status application survives the protection granted by that same hit and still

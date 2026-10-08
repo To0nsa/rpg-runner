@@ -50,7 +50,7 @@ void main() {
           owner: attacker,
           faction: Faction.player,
           damage100: 1000,
-          damageType: DamageType.physical,
+          damageType: const DamageTypeMix(physical: 1, dark: 1),
           halfX: 1.0,
           halfY: 1.0,
           offsetX: 0.0,
@@ -70,6 +70,10 @@ void main() {
       expect(world.damageQueue.length, equals(1));
       expect(world.damageQueue.target.single, equals(target));
       expect(world.damageQueue.amount100.single, equals(2000));
+      expect(world.damageQueue.damageType.single.split(2000), [
+        (type: DamageType.physical, amount100: 1000),
+        (type: DamageType.dark, amount100: 1000),
+      ]);
       expect(world.riposte.has(attacker), isFalse);
     },
   );

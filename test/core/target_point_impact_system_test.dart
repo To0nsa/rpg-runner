@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/combat/damage_type.dart';
 
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
@@ -67,6 +68,8 @@ void main() {
     castSystem.step(world, player: player, currentTick: commitTick);
 
     final intentIndex = world.targetPointIntent.indexOf(derf);
+    const mix = DamageTypeMix(fire: 1, dark: 1);
+    world.targetPointIntent.damageType[intentIndex] = mix;
     expect(
       world.targetPointIntent.abilityId[intentIndex],
       equals('derf.fire_explosion'),
@@ -98,6 +101,7 @@ void main() {
     expect(impactEvents.single.impactId, isNotNull);
     expect(world.hitbox.denseEntities.length, 1);
     final hitbox = world.hitbox.denseEntities.single;
+    expect(world.hitbox.damageType.single, same(mix));
 
     final hitboxTransformIndex = world.transform.indexOf(hitbox);
     final anchoredX = world.transform.posX[hitboxTransformIndex];
@@ -122,6 +126,7 @@ void main() {
     broadphase.rebuild(world);
     HitboxDamageSystem(enemyCatalog: enemyCatalog)
         .step(world, broadphase, currentTick: executeTick);
+    expect(world.damageQueue.damageType.single, same(mix));
     DamageSystem(
       invulnerabilityTicksOnHit: 0,
       rngSeed: 123,

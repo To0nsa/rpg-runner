@@ -26,7 +26,7 @@ class HitPayloadBuilder {
   }) {
     // 1. Start with Ability Base
     int finalDamage100 = ability.baseDamage; // Fixed-point (e.g. 1500 = 15.0)
-    DamageType finalDamageType = ability.baseDamageType;
+    DamageComposition finalDamageType = ability.baseDamageType;
     int finalCritChanceBp = globalCritChanceBonusBp;
     final List<WeaponProc> finalProcs = [];
 
@@ -37,11 +37,8 @@ class HitPayloadBuilder {
     }
 
     if (weaponDamageType != null) {
-      // 3. Damage Type Override
-      // Rule: Weapon overrides Physical ability. Elemental ability (Fire/Ice) keeps its element.
-      if (finalDamageType == DamageType.physical) {
-        finalDamageType = weaponDamageType;
-      }
+      // Item conversion affects only physical shares; authored elements remain.
+      finalDamageType = finalDamageType.withPhysicalType(weaponDamageType);
     }
 
     // 4. Procs (deterministic merge + dedupe)

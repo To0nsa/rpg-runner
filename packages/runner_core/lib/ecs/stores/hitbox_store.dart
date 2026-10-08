@@ -54,7 +54,7 @@ class HitboxDef {
 
   /// Critical strike chance in basis points (100 = 1%).
   final int critChanceBp;
-  final DamageType damageType;
+  final DamageComposition damageType;
   final List<WeaponProc> procs;
   final KnockbackSource? knockback;
   final HitPolicy hitPolicy;
@@ -91,7 +91,7 @@ class HitboxStore extends SparseSet {
   /// Fixed-point: 100 = 1.0
   final List<int> damage100 = <int>[];
   final List<int> critChanceBp = <int>[];
-  final List<DamageType> damageType = <DamageType>[];
+  final List<DamageComposition> damageType = <DamageComposition>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<KnockbackSource?> knockback = [];
   final List<HitPolicy> hitPolicy = <HitPolicy>[];

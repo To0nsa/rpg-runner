@@ -113,6 +113,13 @@ and live-health checks still apply. Standalone and delayed requests retain
 apply-time invulnerability gating. DoT channels enqueue a due terminal pulse
 before expiry, so five-second/one-second-period effects pulse five times.
 
+Mixed damage remains one queued hit. Shared modifiers precede deterministic
+integer splitting; typed resistance applies to each share before their sum takes
+global Vulnerable. Crit/proc RNG and hit side effects run once. Scythe Sweep now
+splits its 2200 base damage equally between physical and dark in the prepared
+`2026.10.11` release. See [mixed damage](mixed_damage.md) for authoring, rounding
+and representative-type rules; tick order and replay wire formats are unchanged.
+
 Player projectile auto aim resolves once when an ability commits. It scans live
 hostile health entities in stable store order, rejects targets beyond the
 equipped projectile's speed-times-lifetime reach, and predicts windup and

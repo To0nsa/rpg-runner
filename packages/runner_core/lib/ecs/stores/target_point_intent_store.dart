@@ -48,7 +48,7 @@ class TargetPointIntentDef {
   final int manaCost100;
   final int cooldownTicks;
   final int cooldownGroupId;
-  final DamageType damageType;
+  final DamageComposition damageType;
   final List<WeaponProc> procs;
   final KnockbackDef? knockback;
   final double halfX;
@@ -76,7 +76,7 @@ class TargetPointIntentStore extends SparseSet {
   final List<int> manaCost100 = <int>[];
   final List<int> cooldownTicks = <int>[];
   final List<int> cooldownGroupId = <int>[];
-  final List<DamageType> damageType = <DamageType>[];
+  final List<DamageComposition> damageType = <DamageComposition>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<KnockbackDef?> knockback = [];
   final List<double> halfX = <double>[];

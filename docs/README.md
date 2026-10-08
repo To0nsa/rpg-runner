@@ -43,6 +43,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Technical design documents](tdd/): implemented architecture and contracts.
 - [Status effect tuning](tdd/status_effect_tuning.md): per-ability and per-item
   overrides for all status types, shared gameplay/UI resolution and compound effects.
+- [Mixed damage](tdd/mixed_damage.md): one hit with multiple typed shares,
+  independent resistance and shared crit, effects and post-hit protection.
 - [Allied NPC contracts](tdd/npc_encounter_contracts.md) and [rescue mechanics](gdd/npc_rescue.md): encounter Core, rendering, Entities editing, Chunk Creator authoring, shared rescue scoring and generated Field content are deployed. Survivor section
   combat was deployed in `2026.10.1`. Huntress distance-based throw/stab/slash
   combat was deployed in compatibility `2026.10.3`.

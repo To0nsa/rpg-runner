@@ -34,8 +34,8 @@ two attacks:
 
 | Attack | Readable threat | Response window |
 | --- | --- | --- |
-| Scythe Sweep | About 267 ms windup, committed facing and a 1.5x larger blade arc; 8 base damage | Reposition before the sweep, then punish its recovery |
-| Death Pillar | 400 ms cast over the floor or platform below the player's captured position, then six harmless ring frames at 40 ms per source frame; 7 base dark damage | Leave the larger marked position promptly; the spell also threatens the raised platform |
+| Scythe Sweep | About 267 ms windup, committed facing and a 1.5x larger blade arc; 22 base damage split into 11 physical + 11 dark | Reposition before the sweep, then punish its recovery; each resistance reduces its own share |
+| Death Pillar | 400 ms cast over the floor or platform below the player's captured position, then six harmless ring frames at 40 ms per source frame; 22 base dark damage | Leave the larger marked position promptly; the spell also threatens the raised platform |
 
 Those timings use 60 Hz authoring ticks and are scaled to the run's tick rate.
 Scythe windup, active window, recovery and cooldown are all 1.5x faster.
@@ -43,8 +43,11 @@ The pillar's cast cycle is 1.5x faster and its warning/effect strip is 2x faster
 before tick quantization. Commit-to-first-damage takes 600/600/667 ms at
 30/60/90 Hz, at least 1.5x faster than the original at each rate. The same
 effect clock drives its art and damage. Both attacks retain one hit per target.
-Death Pillar also applies the same Weaken effect as the player's Dark Bolt:
-50% less outgoing damage for five seconds. Another accepted pillar hit refreshes
+Scythe's two damage types resolve as one hit, with one shared crit and shove;
+they do not double its base damage or trigger protection between shares.
+Death Pillar applies Weaken with its own tuning:
+25% less outgoing damage for three seconds. The player's Dark Bolt retains its
+shared 50% / five-second tuning. Another accepted pillar hit refreshes
 the duration without stacking the reduction. A hit blocked by invulnerability
 does not apply Weaken; ordinary status immunity still applies.
 This addition is prepared for compatibility `2026.10.11` and is not yet deployed.

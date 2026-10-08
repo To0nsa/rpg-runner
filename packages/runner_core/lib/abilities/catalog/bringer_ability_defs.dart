@@ -25,7 +25,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     animKey: AnimKey.strike,
     baseDamage: 2200,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
-    baseDamageType: DamageType.physical,
+    baseDamageType: const DamageTypeMix(physical: 1, dark: 1),
   ),
   'bringer.death_pillar': AbilityDef(
     id: 'bringer.death_pillar',

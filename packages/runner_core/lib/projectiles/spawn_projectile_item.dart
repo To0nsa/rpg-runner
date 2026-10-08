@@ -57,7 +57,7 @@ EntityId spawnProjectileFromCaster(
   required double fallbackDirY,
   required int damage100,
   required int critChanceBp,
-  required DamageType damageType,
+  required DamageComposition damageType,
   List<WeaponProc> procs = const <WeaponProc>[],
   KnockbackDef? knockback,
   bool pierce = false,

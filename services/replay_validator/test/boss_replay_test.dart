@@ -10,6 +10,7 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:test/test.dart';
@@ -46,6 +47,39 @@ GameCore _core(int hz, {EnemyId bossId = EnemyId.bringerOfDeath}) => GameCore(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test('mixed Scythe Sweep damage and shove replay at $hz Hz', () {
+      final direct = _core(hz), replay = _core(hz);
+      final frames = <ReplayCommandFrameV1>[];
+      var hitBySweep = false;
+      for (var n = 0; n < hz * 12 && !direct.gameOver; n++) {
+        final before = direct.buildSnapshot();
+        final boss = before.entities
+            .where((e) => e.enemyId == EnemyId.bringerOfDeath)
+            .firstOrNull;
+        final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+        final axis = dx.abs() > 100 ? dx.sign : 0.0;
+        final tick = direct.tick + 1;
+        frames.add(ReplayCommandFrameV1(tick: tick, moveAxis: axis));
+        direct.applyCommands([MoveAxisCommand(tick: tick, axis: axis)]);
+        direct.stepOneTick();
+        if (boss?.anim == AnimKey.strike &&
+            direct.buildSnapshot().hud.hp < before.hud.hp) {
+          hitBySweep = true;
+          break;
+        }
+      }
+      expect(hitBySweep, isTrue);
+      final result = runReplaySimulation(
+        core: replay,
+        totalTicks: direct.tick,
+        commandStream: frames,
+      );
+      expect(result.runEnded, isNull);
+      expect(replay.buildSnapshot().hud.hp, direct.buildSnapshot().hud.hp);
+      expect(replay.playerPosX, direct.playerPosX);
+      expect(replay.playerPosY, direct.playerPosY);
+    });
+
     test('all three beam combo pulses damage and replay at $hz Hz', () {
       final direct = _core(hz, bossId: EnemyId.voidcaller);
       final replay = _core(hz, bossId: EnemyId.voidcaller);
@@ -78,11 +112,20 @@ void main() {
         final initialX = direct.playerPosX;
         final initialHp = direct.buildSnapshot().hud.hp;
         var minimumX = initialX;
-        final ticks = hz * 5;
-        for (var i = 0; i < ticks; i++) {
+        int? firstWeakenTick;
+        for (var i = 0; i < hz * 5; i++) {
           direct.applyCommands(const []);
           direct.stepOneTick();
           if (direct.playerPosX < minimumX) minimumX = direct.playerPosX;
+          if ((direct.buildSnapshot().playerEntity!.statusVisualMask &
+                  EntityStatusVisualMask.weaken) !=
+              0) {
+            firstWeakenTick ??= direct.tick;
+          }
+          // Observe the full shove while the locally tuned Weaken is active.
+          if (firstWeakenTick != null &&
+              direct.tick - firstWeakenTick >= (hz / 2).ceil())
+            break;
         }
         expect(direct.buildSnapshot().hud.hp, lessThan(initialHp));
         expect(
@@ -93,7 +136,7 @@ void main() {
         expect(minimumX, lessThan(initialX));
         final result = runReplaySimulation(
           core: replay,
-          totalTicks: ticks,
+          totalTicks: direct.tick,
           commandStream: const [],
         );
         expect(result.runEnded, isNull);
