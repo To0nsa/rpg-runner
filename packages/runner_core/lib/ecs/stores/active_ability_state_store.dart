@@ -3,24 +3,16 @@ import '../../snapshots/enums.dart'; // For Facing
 import '../sparse_set.dart';
 import '../entity_id.dart';
 
-/// Tracks the state of the currently active "Action Ability" for animation purposes.
-///
-/// This store is the single source of truth for "what action is the character doing?".
-/// It replaces disparate timestamps like `lastCastTick`, `lastMeleeTick`, etc.
-/// in the Animation System.
-///
-/// **Design Pillar**:
-/// - **Single Channel**: Only one Action Ability active at a time.
-/// - **Layering**: Overridden by Death, Stun, and potentially Hit Reactions.
-/// - **Lifecycle**: Must be explicitly cleared when the action completes.
+/// Owns one committed action's identity, timing and protection per actor.
+/// Gameplay and animation consume the same clock. Completion and interruption
+/// clear the action; replacing it cannot inherit the prior action's protection.
 class ActiveAbilityStateStore extends SparseSet {
-  /// The ID of the ability currently controlling the character.
-  /// Null (or empty string/special value) if no ability is active.
-  /// Using String (AbilityKey) here. Nullable?
-  /// SparseSet usage usually implies non-nullable defaults in lists?
-  /// Let's use nullable for logic, or empty string.
-  /// Pattern in other stores: `List<AbilityKey>` with default.
+  /// Null when the actor has no committed action.
   final List<AbilityKey?> abilityId = [];
+
+  /// Unconditional combat protection owned only by this committed activation.
+  /// Cleared with the action; unlike post-hit protection, combos cannot bypass it.
+  final List<bool> invulnerable = [];
 
   /// The tick when this ability was committed.
   /// Used to calculate (currentTick - commitTick) for phase timing.
@@ -81,6 +73,7 @@ class ActiveAbilityStateStore extends SparseSet {
     }
     final i = indexOf(entity);
     abilityId[i] = id;
+    invulnerable[i] = false;
     this.slot[i] = slot;
     startTick[i] = commitTick;
     facing[i] = facingDir;
@@ -108,6 +101,7 @@ class ActiveAbilityStateStore extends SparseSet {
     if (has(entity)) {
       final i = indexOf(entity);
       abilityId[i] = null;
+      invulnerable[i] = false;
       startTick[i] = -1;
       phase[i] = AbilityPhase.idle;
       elapsedTicks[i] = 0;
@@ -124,6 +118,7 @@ class ActiveAbilityStateStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     abilityId.add(null);
+    invulnerable.add(false);
     startTick.add(-1);
     facing.add(Facing.right);
     slot.add(AbilitySlot.primary);
@@ -141,6 +136,7 @@ class ActiveAbilityStateStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     abilityId[removeIndex] = abilityId[lastIndex];
+    invulnerable[removeIndex] = invulnerable[lastIndex];
     startTick[removeIndex] = startTick[lastIndex];
     facing[removeIndex] = facing[lastIndex];
     slot[removeIndex] = slot[lastIndex];
@@ -155,6 +151,7 @@ class ActiveAbilityStateStore extends SparseSet {
     elapsedTicks[removeIndex] = elapsedTicks[lastIndex];
 
     abilityId.removeLast();
+    invulnerable.removeLast();
     startTick.removeLast();
     facing.removeLast();
     slot.removeLast();

@@ -4,14 +4,14 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('enemy catalog owns complete runtime sprite footprint metadata', () {
+  group('enemy catalog owns complete runtime sprite footprint metadata', () {
     const expectedScales = <EnemyId, double>{
       EnemyId.unocoDemon: 0.5,
       EnemyId.grojib: 1.5,
       EnemyId.hashash: 1.5,
       EnemyId.derf: 1.5,
       EnemyId.bringerOfDeath: 1.5,
-      EnemyId.voidbornGoddess: 1.5,
+      EnemyId.voidbornGoddess: 1.2,
       EnemyId.shoggoth: 1.5,
       EnemyId.voidcaller: 1.5,
       EnemyId.shoggothMinion: 1.5,
@@ -20,19 +20,21 @@ void main() {
     const catalog = EnemyCatalog();
 
     for (final id in EnemyId.values) {
-      final archetype = catalog.get(id);
-      expect(archetype.renderScale, expectedScales[id]);
-      expect(archetype.renderScale.isFinite, isTrue);
-      expect(archetype.renderScale, greaterThan(0));
-      expect(archetype.renderAnim.sourcesByKey[AnimKey.idle], isNotEmpty);
-      expect(
-        archetype.renderAnim.anchorPoint.x,
-        inInclusiveRange(0, archetype.renderAnim.frameWidth),
-      );
-      expect(
-        archetype.renderAnim.anchorPoint.y,
-        inInclusiveRange(0, archetype.renderAnim.frameHeight),
-      );
+      test(id.name, () {
+        final archetype = catalog.get(id);
+        expect(archetype.renderScale, expectedScales[id]);
+        expect(archetype.renderScale.isFinite, isTrue);
+        expect(archetype.renderScale, greaterThan(0));
+        expect(archetype.renderAnim.sourcesByKey[AnimKey.idle], isNotEmpty);
+        expect(
+          archetype.renderAnim.anchorPoint.x,
+          inInclusiveRange(0, archetype.renderAnim.frameWidth),
+        );
+        expect(
+          archetype.renderAnim.anchorPoint.y,
+          inInclusiveRange(0, archetype.renderAnim.frameHeight),
+        );
+      });
     }
   });
 }

@@ -2505,6 +2505,7 @@ class GameCore {
 
   JumpReachabilityTemplate _buildGroundEnemyJumpTemplate(EnemyId enemyId) {
     final archetype = _enemyCatalog.get(enemyId);
+    final capsule = _enemyCatalog.terrainContactProfile(enemyId).capsule;
     return JumpReachabilityTemplate.build(
       JumpProfile(
         jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
@@ -2512,8 +2513,12 @@ class GameCore {
         maxAirTicks: _groundEnemyMaxAirTicks(),
         airSpeedX: _groundEnemyTuning.locomotion.speedX,
         dtSeconds: _movement.dtSeconds,
-        agentHalfWidth: archetype.collider.halfX,
-        agentHalfHeight: archetype.collider.halfY,
+        // Reuse quantized capsule dimensions so graph and motion agree even
+        // when fractional art scaling rounds radius and spine independently.
+        agentHalfWidth: capsule.radiusTicks / terrainPhysicsTicksPerWorldUnit,
+        agentHalfHeight:
+            (capsule.radiusTicks + capsule.verticalHalfSegmentTicks) /
+            terrainPhysicsTicksPerWorldUnit,
         requiredSupportFraction: groundEnemySupportFraction,
         collideCeilings: !archetype.body.ignoreCeilings,
         collideLeftWalls: (archetype.body.sideMask & BodyDef.sideLeft) != 0,

@@ -217,3 +217,9 @@ including frames that wrap across sheet rows. Core holds the arena for the
 quantized duration of that strip; render loading never controls release.
 Committed Bringer actions retain their attack animation through ordinary hit
 reactions so telegraphs remain visible. See [boss arena contracts](boss_arenas.md).
+
+Goddess's hand barrage maps six preparation frames to its windup and all thirty
+casting frames to the six-hand sequence through the final hand's full effect.
+The active duration is derived from quantized hand timing, so the casting art
+does not hold one release pose for the whole barrage. Core clears the cast before
+her collision-resolved return, which resumes ordinary movement animation.

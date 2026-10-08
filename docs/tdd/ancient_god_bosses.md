@@ -43,17 +43,14 @@ Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
-In prepared compatibility `2026.10.11`, Goddess evaluates an eligible claw turn
-before a due teleport: sequence modulo three is zero, horizontal distance is at
-most 85 world units, and vertical distance is at most 50. A claw commit advances
-the existing per-actor sequence without changing `nextTeleportTick`, leaving
-teleport due for the next action after the ordinary cooldown. Otherwise the
-existing teleport-first ranged selection applies. This prevents barrage timing
-from synchronizing every claw turn with teleport readiness. Shared dispatch,
-other bosses, ability timings, tick order and wire formats remain unchanged;
-client and replay worker must ship the same Core selection policy. The focused
-boss tests cover repeated commits after a ranged opening and range/height gates
-at 30, 60 and 90 Hz using the production ability-phase and cooldown systems.
+In prepared compatibility `2026.10.11`, Goddess selects claws when sequence
+modulo three is zero, horizontal distance is at most 68 world units and vertical
+distance is at most 50. Otherwise even positions cast orbs and odd positions
+cast the barrage. There is no standalone Goddess teleport ability; only barrage
+entry relocates her. Her orb windup is 27 authoring ticks (0.45 seconds), with
+480 world units/second flight. Shoggoth retains its separate 340-unit orb and
+teleport policy. Shared dispatch, tick order and wire formats remain unchanged;
+client and replay worker must ship the same Core selection and tuning.
 
 Both summons use ordinary enemy targeting, health, damage, statuses and death
 handling. Tentacles override pursuit speed to zero and discard navigation
@@ -77,10 +74,10 @@ execute a stale utility intent.
 | --- | --- |
 | Required arena spawn, then `BossUtilitySystem.prepare`, before terrain motion preparation | Admit summons and expire them before the authority enumerates tick bodies |
 | Shared utility teleport execution after target selection and Hashash teleports, before water/navigation refresh | Publish validated relocated support and position before dependent consumers |
-| Goddess barrage preparation immediately after utility teleports | Validate exact cast identity, commit corner/return placement, and schedule due hands before water/navigation |
+| Goddess barrage preparation immediately after utility teleports | Validate cast identity, commit corner placement, schedule due hands and manage return lifecycle before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
-| Goddess hover composition alongside spin composition | Suppress gravity for one tick and stop locomotion while retaining normal knockback and one terrain integration |
+| Goddess hover/return composition alongside spin composition | Suppress gravity and compose hover or return velocity while retaining normal knockback and one terrain integration |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
 AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects
@@ -88,15 +85,30 @@ sample floor or top-side one-way support below the captured target. Delivery
 and effect rendering use the same rounded frame-step ticks. Damage geometry
 is resolved before broadphase; Flame never decides hit timing.
 
-For compatibility `2026.10.10`, Goddess captures the cast start tick,
+Goddess captures the cast start tick,
 original position/facing, first release tick and sweep direction. Six hands use
 the already committed target-point payload, at half-second intervals and six
 evenly spaced floor marks inset 50 units from the arena edges. Her far upper
-corner is inset 64 units and 150 units above the level floor. Both corner and
-return use terrain-owned checked teleports. Both corners blocked means no hover;
-a blocked return resumes ordinary falling. She returns after the final hand's
-17 effect frames. Death, interruption, suspension or same-ID recommit cancels
-future releases and gravity suppression. State is removed before ID recycling.
+corner is inset 64 units and 150 units above the level floor. Corner entry uses a
+terrain-owned checked teleport. Both corners blocked means casting in place.
+In prepared compatibility `2026.10.11`, the committed active duration covers
+five hand intervals plus the final hand's 17 quantized effect frames. The pose
+policy maps preparation to frames 0–5 and that complete active window to frames
+6–35. One retained recovery tick lets barrage preparation end the action itself.
+The activation's unconditional protection starts on commit and ends with that
+action, independently of post-hit or arena protection. Shared combat eligibility
+rejects damage and statuses, including combo bypasses; protected actors remain
+living AI actors. Clearing, replacing or destroying the activation clears its
+protection.
+
+After the final effect ends, the action clears and a vulnerable return phase
+composes velocity toward the captured origin at 180 units/second. One-tick
+action/navigation locks prevent another action or locomotion from taking over.
+Terrain resolves every return step; there is no return teleport or snap. Arrival
+within half a world unit ends travel. A distance-derived travel deadline plus
+one second releases hover if blocked, allowing ordinary gravity to land her.
+Death, interruption, suspension or replacement cancels future releases and
+gravity suppression in place. State is removed before ID recycling.
 Each spawned hand has its own ordinary one-hit ledger and shared render/damage
 clock; committed effects retain normal impact lifetime behavior.
 
@@ -107,7 +119,7 @@ full-capsule horizontal bounds, player spacing and 40-unit summon spacing.
 One successful candidate creates one normal spawn-intro actor with the owner's
 motion bounds. Rejection consumes the cast without creating an actor.
 
-`BossTeleportDelivery` uses captured X ±150 and checks terrain clearance,
+Shoggoth's `BossTeleportDelivery` uses captured X ±150 and checks terrain clearance,
 full-capsule bounds and at least 70 units from the current target. Motion uses
 `beginBodyTeleport` / `tryCommitBodyTeleport` / `cancelBodyTeleport`; a failed
 candidate restores the retained origin. If neither candidate works, the normal
@@ -128,8 +140,12 @@ The unchanged runtime PNGs and license copies live under
 remain in ignored `resources/enemies_and_creatures/ancient_god_pack/`.
 The [asset map](../../assets/images/entities/enemies/ancient_god_pack/ASSET_MAP.md)
 records verified exported frame regions and discrepancies with Aseprite tags.
-Actor, projectile and impact art all use 1.5x scale; source rectangles and pivots
+Goddess actor art uses 1.2x scale, with a matching 21.6-by-64.8 body collider,
+scaled claw geometry and 52-world-unit approach stand-off. The other actors,
+projectiles and impact art retain 1.5x scale. Source rectangles and pivots
 remain source-pixel coordinates. Collider and attack dimensions are world units.
+Ground-enemy jump templates use the terrain capsule's quantized radius and
+spine, keeping graph and collision dimensions identical at fractional scales.
 The source-backed Entities parser resolves static const visuals through explicit
 relative imports and preserves anchor rewrite bindings in each actor's render
 catalog. Collider and scale writes target the owning

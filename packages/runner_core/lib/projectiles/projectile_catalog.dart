@@ -34,6 +34,16 @@ class ProjectileCatalog {
           colliderSizeY: 7.5,
         );
       case ProjectileId.goddessOrb:
+        return const ProjectileItemDef(
+          id: ProjectileId.goddessOrb,
+          weaponType: WeaponType.spell,
+          // World units/second: crosses 300 units in about 0.63 seconds.
+          speedUnitsPerSecond: 480,
+          lifetimeSeconds: 2,
+          colliderSizeX: 30,
+          colliderSizeY: 30,
+          damageType: DamageType.dark,
+        );
       case ProjectileId.shoggothOrb:
         return ProjectileItemDef(
           id: id,

@@ -155,10 +155,13 @@ void main() {
           expect(observedSummons, contains(EnemyId.voidTentacle));
           expect(animations, containsAll([AnimKey.ranged, AnimKey.strike2]));
         } else {
-          expect(animations, contains(AnimKey.teleportOut));
           expect(teleported, isTrue);
           if (boss == EnemyId.shoggoth) {
+            expect(animations, contains(AnimKey.teleportOut));
             expect(observedSummons, contains(EnemyId.shoggothMinion));
+          } else {
+            expect(animations, contains(AnimKey.ranged));
+            expect(animations, isNot(contains(AnimKey.teleportOut)));
           }
         }
       });
@@ -217,7 +220,7 @@ void main() {
         },
       );
     }
-    if (boss == EnemyId.voidcaller) continue;
+    if (boss != EnemyId.shoggoth) continue;
     test(
       '${boss.name} reappears safely when both teleport destinations exceed the arena',
       () {

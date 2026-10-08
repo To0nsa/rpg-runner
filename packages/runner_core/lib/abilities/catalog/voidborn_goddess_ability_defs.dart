@@ -2,7 +2,6 @@ import '../../combat/voidborn_goddess_pose_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../snapshots/enums.dart';
 import '../ability_def.dart';
-import '../../bosses/boss_utility_delivery.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../spell_impacts/spell_impact_id.dart';
 
@@ -32,7 +31,8 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     ),
     baseDamage: 600,
     baseDamageType: DamageType.dark,
-    windupTicks: 42,
+    // 0.45 seconds at 60 Hz: a brisk cast with a visible release warning.
+    windupTicks: 27,
     activeTicks: 6,
     recoveryTicks: 24,
     cooldownTicks: 110,
@@ -57,18 +57,5 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     cooldownTicks: 360,
     cooldownGroupId: 0,
     animKey: AnimKey.ranged,
-  ),
-  'goddess.teleport': AbilityDef(
-    id: 'goddess.teleport',
-    category: AbilityCategory.utility,
-    hitDelivery: const BossTeleportDelivery(),
-    baseDamage: 0,
-    baseDamageType: DamageType.physical,
-    windupTicks: 24,
-    activeTicks: 1,
-    recoveryTicks: 30,
-    cooldownTicks: 100,
-    cooldownGroupId: 0,
-    animKey: AnimKey.teleportOut,
   ),
 };

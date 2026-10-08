@@ -26,7 +26,7 @@ import '../test_support/combat_pose.dart';
 void main() {
   for (final hz in [30, 60, 90]) {
     for (final (id, key, x, y, expectedHits) in [
-      (EnemyId.voidbornGoddess, 'goddess.claw_combo', -40.0, -10.0, 4),
+      (EnemyId.voidbornGoddess, 'goddess.claw_combo', -32.0, -8.0, 4),
       (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -65.0, -10.0, 2),
       (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2),
     ]) {

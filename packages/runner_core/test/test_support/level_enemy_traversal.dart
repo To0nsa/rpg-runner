@@ -237,8 +237,16 @@ List<TerrainSurfaceGraphBuildProfile> _buildGraphProfiles(
                 : (airSeconds * 1.5 * _tickHz).ceil(),
             airSpeedX: locomotion.speedX,
             dtSeconds: 1 / _tickHz,
-            agentHalfWidth: catalog.get(id).collider.halfX,
-            agentHalfHeight: catalog.get(id).collider.halfY,
+            agentHalfWidth:
+                catalog.terrainContactProfile(id).capsule.radiusTicks /
+                terrainPhysicsTicksPerWorldUnit,
+            agentHalfHeight:
+                (catalog.terrainContactProfile(id).capsule.radiusTicks +
+                    catalog
+                        .terrainContactProfile(id)
+                        .capsule
+                        .verticalHalfSegmentTicks) /
+                terrainPhysicsTicksPerWorldUnit,
             requiredSupportFraction: groundEnemySupportFraction,
             collideCeilings: catalog
                 .terrainContactProfile(id)

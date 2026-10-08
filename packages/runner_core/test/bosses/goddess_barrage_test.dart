@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
@@ -7,6 +9,8 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/spell_impacts/spell_impact_id.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/util/vec2.dart';
 import 'package:test/test.dart';
 
 import 'ancient_god_arena_test.dart' show ancientGodTestCore;
@@ -42,6 +46,10 @@ void main() {
           final ground = authored ? 224.0 : 222.0;
           final hands = <SpellImpactEvent>[];
           double? cornerX;
+          Vec2? origin;
+          Vec2? previous;
+          final castFrames = <int>{};
+          var travelTicks = 0;
           var returned = false;
           for (var n = 0; n < hz * 15 && !core.gameOver; n++) {
             core.applyCommands([MoveAxisCommand(tick: core.tick + 1, axis: 0)]);
@@ -56,6 +64,23 @@ void main() {
                 .whereType<SpellImpactEvent>()
                 .where((e) => e.impactId == SpellImpactId.goddessEruption)
                 .toList();
+            if (actor != null) {
+              expect(actor.anim, isNot(AnimKey.teleportOut));
+              if (actor.anim == AnimKey.ranged) {
+                origin ??= actor.pos;
+                castFrames.add(actor.animFrame! ~/ (.1 * hz).round());
+              }
+              if (hands.length == 6 && previous != null) {
+                final dx = actor.pos.x - previous.x;
+                final dy = actor.pos.y - previous.y;
+                expect(
+                  math.sqrt(dx * dx + dy * dy),
+                  lessThanOrEqualTo(180 / hz + .1),
+                );
+                if (dx.abs() > .01 || dy.abs() > .01) travelTicks++;
+              }
+              previous = actor.pos;
+            }
             if (impacts.isNotEmpty) {
               hands.addAll(impacts);
               expect(actor, isNotNull);
@@ -64,7 +89,11 @@ void main() {
               expect(actor.pos.x, cornerX);
               expect(cornerX, anyOf(closeTo(88, .01), closeTo(512, .01)));
             }
-            if (hands.length == 6 && actor != null && actor.pos.y > 150) {
+            if (hands.length == 6 &&
+                actor != null &&
+                origin != null &&
+                (actor.pos.x - origin.x).abs() < 1 &&
+                (actor.pos.y - origin.y).abs() < 1) {
               returned = true;
               break;
             }
@@ -81,6 +110,8 @@ void main() {
             }
           }
           expect(returned, isTrue);
+          expect(travelTicks, greaterThan(hz ~/ 2));
+          expect(castFrames, containsAll(List.generate(36, (i) => i)));
         },
       );
     }

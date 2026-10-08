@@ -1,5 +1,4 @@
 import 'entity_id.dart';
-import 'combat_eligibility.dart';
 import 'stores/ai_target_store.dart';
 import 'world.dart';
 
@@ -11,7 +10,8 @@ EntityId? combatTarget(EcsWorld world, EntityId actor, EntityId player) {
 }
 
 bool isLivingCombatActor(EcsWorld world, EntityId actor) {
-  if (isCombatProtected(world, actor)) return false;
+  // Temporary action invulnerability must not stop AI or invalidate summons.
+  if (world.npc.isProtected(actor)) return false;
   if (!world.transform.has(actor) || world.deathState.has(actor)) return false;
   final health = world.health.tryIndexOf(actor);
   return health == null || world.health.hp[health] > 0;

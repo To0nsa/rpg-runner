@@ -2,7 +2,7 @@ import '../snapshots/enums.dart';
 import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
-/// Damage geometry in world units at VoidbornGoddess's 1.5x art scale.
+/// World-unit geometry: claws fit the 1.2x actor, hands the 1.5x effect art.
 abstract final class VoidbornGoddessPoseCatalog {
   static const goddessClaws = CombatStrikeProfile(
     combo: CombatCombo(strikeStartFrames: [4, 7, 12, 15]),
@@ -13,19 +13,19 @@ abstract final class VoidbornGoddessPoseCatalog {
       [],
       [],
       [],
-      [CombatCapsule(-22, -12, -71, -17, 6)],
-      [CombatCapsule(-22, -12, -71, -17, 6)],
-      [CombatCapsule(-22, -12, -71, -17, 6)],
-      [CombatCapsule(-26, -5, -68, 6, 6)],
-      [CombatCapsule(-26, -5, -68, 6, 6)],
-      [CombatCapsule(-26, -5, -68, 6, 6)],
+      [CombatCapsule(-17.6, -9.6, -56.8, -13.6, 4.8)],
+      [CombatCapsule(-17.6, -9.6, -56.8, -13.6, 4.8)],
+      [CombatCapsule(-17.6, -9.6, -56.8, -13.6, 4.8)],
+      [CombatCapsule(-20.8, -4, -54.4, 4.8, 4.8)],
+      [CombatCapsule(-20.8, -4, -54.4, 4.8, 4.8)],
+      [CombatCapsule(-20.8, -4, -54.4, 4.8, 4.8)],
       [],
       [],
-      [CombatCapsule(-22, -16, -60, -25, 6)],
-      [CombatCapsule(-22, -16, -60, -25, 6)],
+      [CombatCapsule(-17.6, -12.8, -48, -20, 4.8)],
+      [CombatCapsule(-17.6, -12.8, -48, -20, 4.8)],
       [],
-      [CombatCapsule(-24, -8, -62, 12, 6)],
-      [CombatCapsule(-24, -8, -62, 12, 6)],
+      [CombatCapsule(-19.2, -6.4, -49.6, 9.6, 4.8)],
+      [CombatCapsule(-19.2, -6.4, -49.6, 9.6, 4.8)],
       [],
       [],
     ],
@@ -64,8 +64,8 @@ abstract final class VoidbornGoddessPoseCatalog {
     ),
     'goddess.eruption' => const ActionFramePolicy(
       frameCount: 36,
-      activeStart: 26,
-      activeEnd: 27,
+      activeStart: 6,
+      activeEnd: 36,
     ),
     _ => null,
   };

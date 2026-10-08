@@ -27,7 +27,7 @@ const voidbornGoddessArchetype = EnemyArchetype(
   mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
   stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
   renderAnim: VoidbornGoddessRenderCatalog.actor,
-  renderScale: 1.5,
+  renderScale: 1.2,
   animProfile: AnimProfile(
     supportsCast: true,
     supportsRanged: true,
@@ -53,8 +53,8 @@ const voidbornGoddessArchetype = EnemyArchetype(
 );
 
 const ColliderAabbDef _voidbornGoddessCollider = ColliderAabbDef(
-  halfX: 13.5,
-  halfY: 40.5,
+  halfX: 10.8,
+  halfY: 32.4,
   offsetY: 0,
 );
 
