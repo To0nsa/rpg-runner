@@ -37,10 +37,17 @@ death presentation, exit and victory blessing reuse the
 | Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
 | Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
-| Hand barrage | Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
+| Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
 
-She alternates orbs and eruptions, using claws on every third sequence position
-when the player is within 45 units and near her height. Prepared source
+Her normal rotation uses orbs, with claws on every third sequence position
+when the player is within 45 units and near her height. Slapping Hands is reserved
+for reaching or falling below **270, 180 and 90 HP** at her 360 HP maximum.
+Each threshold grants one barrage, prioritized at the next action after her
+current action, return and cooldown finish. Large damage can queue multiple
+crossed thresholds; healing does not reset them. Failed cast admission retains
+the pending barrage, while an interrupted accepted cast still consumes it.
+She never casts hands above 75% HP before crossing a threshold and cannot earn
+more than three barrages per life. Prepared source
 compatibility `2026.10.11` limits teleporting to the reactive dodge and entry
 into the hand barrage. She approaches toward a 35-unit stand-off at 0.8 of
 shared ground speed. The barrage sweeps from her corner

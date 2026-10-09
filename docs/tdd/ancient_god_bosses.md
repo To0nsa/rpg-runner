@@ -39,20 +39,34 @@ summon lifetime. Neither contains a concrete boss selection switch. Each boss
 owns its spacing, pursuit speed, sequence and teleport cadence. Shoggoth owns
 spin motion composition; `VoidTentacleCombatSystem` owns planted behavior.
 Goddess owns her corner placement, hover, six-hand barrage and reactive dodge in
-her own combat system and lifecycle-registered `GoddessBarrageStore` and
-`GoddessDodgeStore`. Her damage middleware requests dodges through that system.
+her own combat system and lifecycle-registered `GoddessBarrageStore`,
+`GoddessHealthPhaseStore` and `GoddessDodgeStore`. Her damage middleware requests
+dodges through that system.
 Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
 In prepared compatibility `2026.10.11`, Goddess selects claws when sequence
 modulo three is zero, horizontal distance is at most 45 world units and vertical
-distance is at most 50. Otherwise even positions cast orbs and odd positions
-cast the barrage. Barrage entry and the reactive 4–6 attack dodge are her
+distance is at most 50. Otherwise her normal rotation casts orbs. A pending
+75/50/25% health phase takes priority and selects the hand barrage. Barrage entry
+and the reactive 4–6 attack dodge are her
 only teleports. Her orb windup is 27 authoring ticks (0.45 seconds), with
 480 world units/second flight. Shoggoth retains its separate 340-unit orb and
 teleport policy. Shared dispatch and wire formats remain unchanged;
 client and replay worker must ship the same Core selection and tuning.
+
+Before shared boss decisions, Goddess observes current/max health using integer
+comparisons `hp * 4 <= hpMax * quarter` for quarters 3, 2 and 1. Her persistent
+health-phase store retains the maximum number reached and the number of accepted
+barrages. This records crossings during actions, returns and cooldowns, including
+multiple thresholds crossed by one nonlethal hit. Healing never revokes earned
+phases or grants duplicates. Threshold selection waits for ordinary action and
+cooldown gates; it does not interrupt a dodge, claw combo or barrage return.
+Only `onAbilityCommitted` consumes one reached phase, so failed cast admission
+retries, while an interrupted accepted barrage cannot repeat the same threshold.
+The per-cast barrage store may be removed normally without losing this budget;
+actor destruction clears both stores before ID reuse. Dead actors start no phase.
 
 Both summons use ordinary enemy targeting, health, damage, statuses and death
 handling. Tentacles override pursuit speed to zero and discard navigation

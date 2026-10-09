@@ -81,7 +81,7 @@ void main() {
 
   for (final hz in [30, 60, 90]) {
     test(
-      'Goddess repeats claws and casts without standalone teleports at $hz Hz',
+      'Goddess repeats claws and orbs without hands at full HP at $hz Hz',
       () {
         final f = _Fixture(hz);
         final boss = f.actor(EnemyId.voidbornGoddess, 400);
@@ -123,19 +123,15 @@ void main() {
           actions.where((key) => key == 'goddess.claw_combo').length,
           greaterThanOrEqualTo(4),
         );
-        expect(actions, containsAll(['goddess.orb', 'goddess.eruption']));
-        expect(actions.toSet(), {
-          'goddess.claw_combo',
-          'goddess.orb',
-          'goddess.eruption',
-        });
+        expect(actions, contains('goddess.orb'));
+        expect(actions.toSet(), {'goddess.claw_combo', 'goddess.orb'});
       },
     );
 
     for (final (distance, height, sequence, expected) in [
       (45.0, 50.0, 3, 'goddess.claw_combo'),
-      (45.01, 0.0, 3, 'goddess.eruption'),
-      (35.0, 50.01, 3, 'goddess.eruption'),
+      (45.01, 0.0, 3, 'goddess.orb'),
+      (35.0, 50.01, 3, 'goddess.orb'),
       (35.0, 0.0, 4, 'goddess.orb'),
     ]) {
       test(
@@ -174,7 +170,7 @@ void main() {
           boss,
           TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 600 * 1024),
         );
-        f.world.bossCombat.actionIndex[f.world.bossCombat.indexOf(boss)] = 1;
+        f.world.health.hp[f.world.health.indexOf(boss)] = 27000;
         final system = VoidbornGoddessCombatSystem(
           tickHz: hz,
           castCommitter: f.casts,

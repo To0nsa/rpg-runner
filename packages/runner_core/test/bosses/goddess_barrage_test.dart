@@ -51,8 +51,29 @@ void main() {
           final castFrames = <int>{};
           var travelTicks = 0;
           var returned = false;
-          for (var n = 0; n < hz * 15 && !core.gameOver; n++) {
-            core.applyCommands([MoveAxisCommand(tick: core.tick + 1, axis: 0)]);
+          for (var n = 0; n < hz * 30 && !core.gameOver; n++) {
+            final before = core.buildSnapshot();
+            final boss = before.entities
+                .where((e) => e.enemyId == EnemyId.voidbornGoddess)
+                .firstOrNull;
+            final attack =
+                before.bossArena != null &&
+                before.bossArena!.hp100 > before.bossArena!.hpMax100 * .75;
+            final dx = boss == null
+                ? 0.0
+                : boss.pos.x - before.playerEntity!.pos.x;
+            final tick = core.tick + 1;
+            core.applyCommands([
+              MoveAxisCommand(
+                tick: tick,
+                axis: attack && dx.abs() > 20 ? dx.sign : 0,
+              ),
+              AimDirCommand(tick: tick, x: dx >= 0 ? 1 : -1, y: 0),
+              if (attack && n % (hz / 3).ceil() == 0)
+                StrikePressedCommand(tick: tick),
+              if (attack && n % (hz * .75).ceil() == 0)
+                ProjectilePressedCommand(tick: tick),
+            ]);
             core.stepOneTick();
             final actor = core
                 .buildSnapshot()
@@ -65,8 +86,11 @@ void main() {
                 .where((e) => e.impactId == SpellImpactId.goddessEruption)
                 .toList();
             if (actor != null) {
-              expect(actor.anim, isNot(AnimKey.teleportOut));
               if (actor.anim == AnimKey.ranged) {
+                expect(
+                  core.buildSnapshot().bossArena!.hp100,
+                  lessThanOrEqualTo(before.bossArena!.hpMax100 * .75),
+                );
                 origin ??= actor.pos;
                 castFrames.add(actor.animFrame! ~/ (.1 * hz).round());
               }

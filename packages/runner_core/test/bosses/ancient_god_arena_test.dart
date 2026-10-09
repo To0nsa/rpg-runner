@@ -155,12 +155,14 @@ void main() {
           expect(observedSummons, contains(EnemyId.voidTentacle));
           expect(animations, containsAll([AnimKey.ranged, AnimKey.strike2]));
         } else {
-          expect(teleported, isTrue);
           if (boss == EnemyId.shoggoth) {
+            expect(teleported, isTrue);
             expect(animations, contains(AnimKey.teleportOut));
             expect(observedSummons, contains(EnemyId.shoggothMinion));
           } else {
-            expect(animations, contains(AnimKey.ranged));
+            // No player attacks means no health threshold and no hand barrage.
+            expect(teleported, isFalse);
+            expect(animations, isNot(contains(AnimKey.ranged)));
             expect(animations, isNot(contains(AnimKey.teleportOut)));
           }
         }

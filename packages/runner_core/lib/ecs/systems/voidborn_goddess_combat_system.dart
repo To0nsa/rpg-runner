@@ -17,7 +17,7 @@ import 'boss_combat_system.dart';
 import 'enemy_melee_system.dart';
 import '../../util/vec2.dart';
 
-/// Goddess alternates her ranged threats, using claws when the target is close.
+/// Goddess uses orbs/claws normally and reserves hands for health thresholds.
 final class VoidbornGoddessCombatSystem extends BossCombatSystem {
   VoidbornGoddessCombatSystem({
     required super.tickHz,
@@ -36,6 +36,34 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
   static const _clawRange = 45.0;
 
   @override
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
+    // Observe crossings even while an action or cooldown delays the next cast.
+    final phases = world.goddessHealthPhase;
+    for (final boss in world.bossCombat.denseEntities) {
+      if (world.enemy.enemyId[world.enemy.indexOf(boss)] != enemyId ||
+          !isLivingCombatActor(world, boss) ||
+          world.arenaSuspension.has(boss)) {
+        continue;
+      }
+      final hi = world.health.tryIndexOf(boss);
+      if (hi == null || world.health.hpMax[hi] <= 0) continue;
+      final i = phases.tryIndexOf(boss) ?? phases.addEntity(boss);
+      final hp = world.health.hp[hi];
+      final maxHp = world.health.hpMax[hi];
+      var reached = 0;
+      for (var quarter = 3; quarter >= 1; quarter--) {
+        if (hp * 4 <= maxHp * quarter) reached++;
+      }
+      phases.reached[i] = math.max(phases.reached[i], reached);
+    }
+    super.step(world, player: player, currentTick: currentTick);
+  }
+
+  @override
   String selectAbility(
     EcsWorld world,
     EntityId boss, {
@@ -44,10 +72,15 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     required bool atMeleeHeight,
     required int currentTick,
   }) {
+    final phases = world.goddessHealthPhase;
+    final phase = phases.tryIndexOf(boss);
+    if (phase != null && phases.committed[phase] < phases.reached[phase]) {
+      return 'goddess.eruption';
+    }
     if (distanceX <= _clawRange && atMeleeHeight && sequence % 3 == 0) {
       return 'goddess.claw_combo';
     }
-    return sequence.isEven ? 'goddess.orb' : 'goddess.eruption';
+    return 'goddess.orb';
   }
 
   late final _counterMelee = AiMeleeCommitter(tickHz: tickHz);
@@ -238,6 +271,13 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     int tick,
   ) {
     if (abilityId != 'goddess.eruption') return;
+    // A failed commit never reaches this callback. An interrupted accepted
+    // barrage still consumes its threshold rather than casting it twice.
+    final phases = world.goddessHealthPhase;
+    final phase = phases.tryIndexOf(boss);
+    if (phase != null && phases.committed[phase] < phases.reached[phase]) {
+      phases.committed[phase]++;
+    }
     final boundsIndex = world.actorMotionBounds.tryIndexOf(boss);
     final bounds = boundsIndex == null
         ? null

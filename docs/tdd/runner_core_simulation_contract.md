@@ -79,6 +79,14 @@ unconditional damage/status protection through the last hand; action clear or
 replacement releases it without altering other invulnerability owners. Actor
 liveness remains independent from that protection.
 
+Goddess's hand barrage is selected only from earned 75/50/25% health phases.
+Her decision phase records reached thresholds before shared action/cooldown
+gates, using integer current/max-health comparisons. A separate registered
+store retains reached and consumed counts beyond barrage cleanup. Successful
+commits consume one phase; failed commits retain it. Large hits queue crossed
+thresholds and healing cannot rearm them. Normal action completion and cooldown
+still gate casting; no damage-phase teleport or interruption is introduced.
+
 ## Tick ordering
 
 `GameCore.stepOneTick` ordering is gameplay behavior, not an implementation
