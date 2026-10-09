@@ -59,14 +59,16 @@ AI/actions. Defeat resolves after damage/fatal culls and before death cleanup,
 with player loss taking precedence. Ancient God summons are admitted/expired
 before motion preparation; their teleports execute before water/navigation
 refresh. Goddess's reactive dodge executes next, followed by corner placement,
-return lifecycle and scheduled hands. Her hover/return
+scheduled hands and the tactical orb/teleport exit. Her hover/approach
 velocity and committed spinning motion compose after locomotion and before the single
 terrain integration. Compatibility `2026.10.10` adds this barrage and
 authored strike windows that allow a later swing to hit the same target again. See
 [boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
-Prepared compatibility `2026.10.11` uses a continuous, collision-resolved Goddess
-return and limits teleporting to barrage entry and the 4–6 attack reactive
-dodge. Damage middleware counts direct player attacks (each combo once),
+Prepared compatibility `2026.10.11` gives Goddess distance-based stationary
+casting, bounded close approaches, seeded voluntary repositioning, and an
+orb/teleport barrage exit, alongside her 4–6 attack reactive dodge. Voluntary
+teleports publish a captured destination cue and retain recovery; the tactical
+RNG stream is independent of dodge cadence. Damage middleware counts direct player attacks (each combo once),
 cancels the selected attack and begins an eight-authoring-tick vanish; its
 checked placement and ordinary claw counter run before the next
 water/navigation refresh when the vanish ends. Dodge cancellation is per attack,
@@ -80,7 +82,7 @@ replacement releases it without altering other invulnerability owners. Actor
 liveness remains independent from that protection.
 
 Goddess's hand barrage is selected only from earned 75/50/25% health phases.
-Her decision phase records reached thresholds before shared action/cooldown
+Her decision phase records reached thresholds before tactical action/cooldown
 gates, using integer current/max-health comparisons. A separate registered
 store retains reached and consumed counts beyond barrage cleanup. Successful
 commits consume one phase; failed commits retain it. Large hits queue crossed

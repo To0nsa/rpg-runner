@@ -329,6 +329,8 @@ class AnimResolver {
         return profile.supportsJumpFall ? profile.jumpAnimKey : null;
       case AnimKey.fall:
         return profile.supportsJumpFall ? profile.fallAnimKey : null;
+      case AnimKey.spawn:
+        return profile.supportsSpawn ? profile.spawnAnimKey : null;
       case AnimKey.roll:
         return profile.supportsDash ? key : null;
       case AnimKey.parry:

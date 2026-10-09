@@ -11,9 +11,9 @@ import 'boss_utility_system.dart';
 import 'enemy_cast_system.dart';
 import 'enemy_melee_system.dart';
 
-/// Shared engagement and commit machinery; concrete systems own each boss's kit.
-/// State stays per entity. Only matching actors are visited, after engagement and
-/// before locomotion. All damage uses the ordinary committed-action executors.
+/// Common boss tick interface; concrete systems own their kit and actor state.
+/// Decisions run after engagement and before locomotion. All damage uses the
+/// ordinary committed-action executors.
 abstract class BossCombatSystem {
   BossCombatSystem({
     required this.tickHz,
@@ -23,8 +23,23 @@ abstract class BossCombatSystem {
   final int tickHz;
   final AiCastCommitter castCommitter;
   final BossUtilitySystem utilities;
-  late final _melee = AiMeleeCommitter(tickHz: tickHz);
   EnemyId get enemyId;
+
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  });
+}
+
+/// Shared pursuit and rotation for bosses whose kits follow a fixed sequence.
+abstract class RotatingBossCombatSystem extends BossCombatSystem {
+  RotatingBossCombatSystem({
+    required super.tickHz,
+    required super.castCommitter,
+    required super.utilities,
+  });
+  late final _melee = AiMeleeCommitter(tickHz: tickHz);
 
   /// Desired horizontal spacing in world units on a directly walkable surface.
   double get standOff;
@@ -49,6 +64,7 @@ abstract class BossCombatSystem {
     int tick,
   ) {}
 
+  @override
   void step(
     EcsWorld world, {
     required EntityId player,

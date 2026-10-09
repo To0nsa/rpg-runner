@@ -29,11 +29,12 @@ attacker and combo activation bypass that combo's protection. This changes
 replayed combat outcomes and requires a coordinated client/Functions/worker
 cutover; it has not been deployed by the source change. The ranked tuple and
 replay/command formats above remain unchanged.
-This prepared release also limits Goddess teleporting to barrage entry and a
-reactive dodge every 4–6 eligible player attacks, followed by a claw combo. Its
+This prepared release gives Goddess stationary range-based casting, bounded
+close approaches, voluntary teleports with destination cues, and a reactive
+dodge every 4–6 eligible player attacks followed by a claw combo. Its
 seeded interval rerolls after each dodge; beyond claw range either legal landing
 side can be chosen. It adds
-continuous casting with cast invulnerability and a collision-resolved return,
+continuous barrage casting with invulnerability and a vulnerable orb/teleport exit,
 and speeds up her orb. Her health is 360 HP and actor scale is 1.0x with matching
 body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.

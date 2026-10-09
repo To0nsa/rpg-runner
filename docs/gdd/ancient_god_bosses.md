@@ -37,38 +37,56 @@ death presentation, exit and victory blessing reuse the
 | Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
 | Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
-| Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
+| Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then casts one orb and teleports to medium range; at least six seconds between commits |
 
-Her normal rotation uses orbs, with claws on every third sequence position
-when the player is within 45 units and near her height. Slapping Hands is reserved
-for reaching or falling below **270, 180 and 90 HP** at her 360 HP maximum.
-Each threshold grants one barrage, prioritized at the next action after her
-current action, return and cooldown finish. Large damage can queue multiple
-crossed thresholds; healing does not reset them. Failed cast admission retains
-the pending barrage, while an interrupted accepted cast still consumes it.
-She never casts hands above 75% HP before crossing a threshold and cannot earn
-more than three barrages per life. Prepared source
-compatibility `2026.10.11` limits teleporting to the reactive dodge and entry
-into the hand barrage. She approaches toward a 35-unit stand-off at 0.8 of
-shared ground speed. The barrage sweeps from her corner
-to the other end, with fixed marks rather than tracking later player movement.
-Move between marks or jump to avoid the slaps. Her corner is 64 units inside the
-arena and 150 units above the level floor. Six preparation frames lead into all
-thirty casting frames, continuing through the final hand's full effect.
-During each slap, the entire visible palm and fingers can hit the player;
-the warning frames, detached particles and impact streaks remain harmless.
-She becomes vulnerable again when the hands finish and cannot start another
-action until her return ends.
-If both upper corners are obstructed she casts from her current safe position.
-Her return follows normal collision. If blocked beyond the expected travel time
-plus one second, she stops hovering and falls normally, without teleporting.
+Prepared compatibility `2026.10.11` makes her a mostly stationary caster:
+
+- Within 45 horizontal units and 50 vertical units, she chooses a claw combo
+  70% of the time and a retreat teleport 30% of the time when teleport is ready.
+  Otherwise she uses claws. A blocked retreat also falls back to claws.
+- Just outside claw range (45–70 units), she may approach on directly walkable
+  ground, at half normal speed, for at most 25 units or 0.5 seconds. Her endpoint
+  stays fixed even if the player retreats; she then attacks instead of chasing.
+- At medium range she stands and casts a seeded sequence of one or two orbs
+  before considering relocation. If teleport is still cooling down, she keeps
+  casting. Beyond 240 units she prefers to teleport nearer when ready.
+- Voluntary teleports select a supported destination 140, 180 or 220 units from
+  the player, on either legal side, at least 64 units from her current position.
+  A purple destination mark accompanies her 0.3-second disappearance. The mark
+  stays fixed; reappearance takes 0.2 seconds followed by 0.3 seconds of recovery.
+- Voluntary teleports have a randomized 4–6-second minimum interval, including
+  an initial delay. A successful reactive dodge restarts that timer. Normal
+  ability recovery and cooldown must also finish, preserving the combo opening.
+  The scripted exit from Slapping Hands can bypass the voluntary timer.
+
+Slapping Hands is reserved for reaching or falling below **270, 180 and 90 HP**
+at her 360 HP maximum. Each threshold grants one barrage, prioritized over normal
+choices after the current action, scripted exit and cooldown finish. Large damage
+can queue multiple crossed thresholds; healing does not reset them. Failed cast
+admission retains the pending barrage, while an interrupted accepted cast still
+consumes it. She cannot earn more than three barrages per life.
+
+The barrage sweeps from her corner to the other end across six fixed floor marks,
+without tracking later player movement. Marks over holes without support are
+skipped. Move between marks or jump to avoid the slaps. Her corner is 64 units
+inside the arena and 150 units above the level floor. Six preparation frames lead
+into all thirty casting frames through the final hand's full effect. During each
+slap, the entire visible palm and fingers can hit the player; warning frames,
+detached particles and impact streaks remain harmless.
+
+When the final hand finishes she becomes vulnerable, holds her casting position
+for one normal orb, then teleports to medium range with the same destination cue
+and recovery as a voluntary teleport. If both upper corners are obstructed she
+casts from her current safe position. If the exit has no legal landing, or is
+interrupted, hovering ends and ordinary gravity resumes. She gains no additional
+invulnerability from the exit spell or voluntary teleports.
 
 The dodge counts melee, projectile and direct spell attacks that would hit her;
 a multi-hit combo counts once, and evading it also evades its remaining strikes.
 Misses, damage over time, NPC attacks and protected hits do not count. She cannot
-dodge during the hand barrage or its return, while stunned, or during another
-vanish. At 45 units or less of horizontal separation she crosses to the opposite
-side. Beyond that range either side has an equal chance when both are legal;
+dodge during the hand barrage, its scripted exit, a voluntary teleport, while
+stunned, or during another vanish. These intervals do not count new attacks.
+At 45 units or less of horizontal separation she crosses to the opposite side. Beyond that range either side has an equal chance when both are legal;
 if only one side is legal, she uses it. The distant side is chosen when the dodge
 starts and stays fixed through the vanish. The landing follows the player's
 position when she reappears and must have clear supported ground inside the

@@ -1,4 +1,5 @@
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/ecs/stores/enemies/goddess_tactics_store.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/combat/damage.dart';
@@ -25,31 +26,42 @@ import 'package:test/test.dart';
 void main() {
   for (final hz in [30, 60, 90]) {
     test(
-      'Goddess is protected through the last hand, vulnerable on return at $hz Hz',
+      'Goddess is protected through the last hand, vulnerable during its exit spell at $hz Hz',
       () {
         final f = _Fixture(hz)..cast();
         final hp = f.hp;
         f.damage(10);
         expect(f.hp, hp);
         f.prepare(11);
-        final returnTick = f.returnTick;
-        f.prepare(returnTick - 1);
-        f.damage(returnTick - 1);
+        final endTick = f.endTick;
+        f.prepare(endTick - 1);
+        f.damage(endTick - 1);
         expect(f.hp, hp);
-        f.prepare(returnTick);
+        f.prepare(endTick);
         expect(isCombatProtected(f.world, f.boss), isFalse);
         expect(f.world.activeAbility.hasActiveAbility(f.boss), isFalse);
-        expect(f.world.goddessBarrage.returning[f.state], isTrue);
-        f.damage(returnTick);
+        expect(f.world.goddessBarrage.has(f.boss), isFalse);
+        expect(
+          f.world.goddessTactics.stateFor(f.boss).phase,
+          GoddessTactic.exitPending,
+        );
+        f.damage(endTick);
         expect(f.hp, hp - 700);
         expect(f.motion.teleports, 1);
         expect(f.world.invulnerability.has(f.boss), isFalse);
 
-        // A terrain-blocked return releases hover after its bounded deadline;
-        // it must never fall back to teleporting to the retained origin.
-        final deadline = f.world.goddessBarrage.returnDeadlineTick[f.state];
-        f.prepare(deadline);
-        expect(f.world.goddessBarrage.has(f.boss), isFalse);
+        f.system.step(f.world, player: f.player, currentTick: endTick);
+        expect(
+          f.world.goddessTactics.stateFor(f.boss).phase,
+          GoddessTactic.exitOrb,
+        );
+        expect(isCombatProtected(f.world, f.boss), isFalse);
+        f.world.activeAbility.clear(f.boss);
+        f.system.prepareTactics(
+          f.world,
+          player: f.player,
+          currentTick: endTick + 1,
+        );
         expect(f.world.gravityControl.has(f.boss), isFalse);
         expect(f.motion.teleports, 1);
       },
@@ -115,7 +127,7 @@ void main() {
       f.prepare(11);
       expect(f.world.goddessBarrage.hovering[f.state], isFalse);
       expect(isCombatProtected(f.world, f.boss), isTrue);
-      f.prepare(f.returnTick);
+      f.prepare(f.endTick);
       expect(f.world.goddessBarrage.has(f.boss), isFalse);
       expect(isCombatProtected(f.world, f.boss), isFalse);
       expect(f.world.transform.posX[f.transform], 400);
@@ -158,7 +170,7 @@ void main() {
     f.world.invulnerability.protect(ii, 1000);
     f.cast();
     f.prepare(11);
-    f.prepare(f.returnTick);
+    f.prepare(f.endTick);
     expect(f.world.invulnerability.ticksLeft[ii], 1000);
     final old = f.boss;
     f.world.destroyEntity(old);
@@ -199,7 +211,7 @@ class _Fixture {
   late final int boss, player;
   late final VoidbornGoddessCombatSystem system;
   int get state => world.goddessBarrage.indexOf(boss);
-  int get returnTick => world.goddessBarrage.returnTick[state];
+  int get endTick => world.goddessBarrage.endTick[state];
   int get transform => world.transform.indexOf(boss);
   int get hp => world.health.hp[world.health.indexOf(boss)];
 

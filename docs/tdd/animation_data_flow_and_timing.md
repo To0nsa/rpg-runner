@@ -222,7 +222,10 @@ Goddess's hand barrage maps six preparation frames to its windup and all thirty
 casting frames to the six-hand sequence through the final hand's full effect.
 The active duration is derived from quantized hand timing, so the casting art
 does not hold one release pose for the whole barrage. Core clears the cast before
-her collision-resolved return, which resumes ordinary movement animation.
+one ordinary orb cast and its recovery, followed by a four-frame disappearance
+over 18 authoring ticks and five-frame reappearance over 12 active plus 18 recovery
+authoring ticks. A snapshot destination cue persists throughout disappearance;
+the generic resolver accepts the committed spawn strip for reappearance.
 Her reactive dodge maps all four `teleportOut` frames across eight 60 Hz
 authoring ticks (ceil-scaled). Core commits the selected nearby placement at the
 end of that strip, then starts the ordinary claw combo's animation and windup.

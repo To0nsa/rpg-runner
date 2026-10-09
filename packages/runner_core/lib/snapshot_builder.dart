@@ -32,6 +32,7 @@ import 'dart:math';
 import 'combat/damage_type.dart';
 
 import 'ecs/entity_id.dart';
+import 'ecs/stores/enemies/goddess_tactics_store.dart';
 import 'ecs/world.dart';
 import 'ecs/world_support_view.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
@@ -1025,6 +1026,7 @@ class SnapshotBuilder {
         EntityRenderSnapshot(
           id: e,
           kind: ni == null ? EntityKind.enemy : EntityKind.npc,
+          teleportDestination: _teleportDestination(e, tick),
           combatCapsules: _hurtCapsules(e),
           rotationRad: _poseAngle(e),
           isSwimming: world.swimState.isSwimming(e),
@@ -1056,6 +1058,25 @@ class SnapshotBuilder {
         ),
       );
     }
+  }
+
+  Vec2? _teleportDestination(EntityId entity, int tick) {
+    final i = world.goddessTactics.tryIndexOf(entity);
+    final ai = world.activeAbility.tryIndexOf(entity);
+    final hi = world.health.tryIndexOf(entity);
+    if (i == null ||
+        ai == null ||
+        hi == null ||
+        world.health.hp[hi] <= 0 ||
+        world.controlLock.isStunned(entity, tick)) {
+      return null;
+    }
+    final s = world.goddessTactics.states[i];
+    return s.phase == GoddessTactic.teleportOut &&
+            world.activeAbility.abilityId[ai] == s.abilityId &&
+            world.activeAbility.startTick[ai] == s.startTick
+        ? s.destination
+        : null;
   }
 }
 

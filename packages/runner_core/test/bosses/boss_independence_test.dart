@@ -85,10 +85,6 @@ void main() {
       () {
         final f = _Fixture(hz);
         final boss = f.actor(EnemyId.voidbornGoddess, 400);
-        f.world.actorMotionBounds.add(
-          boss,
-          TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 600 * 1024),
-        );
         final system = VoidbornGoddessCombatSystem(
           tickHz: hz,
           castCommitter: f.casts,
@@ -114,7 +110,7 @@ void main() {
           actions.add(key);
           if (actions.length == 1) {
             expect(key, 'goddess.orb');
-            // Miss the opening claw opportunity, then enter melee range.
+            // Cast at medium range, then punish a close target without chasing.
             f.world.transform.setPosXY(f.player, 365, 0);
           }
         }
@@ -132,7 +128,7 @@ void main() {
       (45.0, 50.0, 3, 'goddess.claw_combo'),
       (45.01, 0.0, 3, 'goddess.orb'),
       (35.0, 50.01, 3, 'goddess.orb'),
-      (35.0, 0.0, 4, 'goddess.orb'),
+      (35.0, 0.0, 4, 'goddess.claw_combo'),
     ]) {
       test(
         'Goddess chooses $expected at ($distance, $height), turn $sequence, $hz Hz',

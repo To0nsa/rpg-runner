@@ -85,10 +85,15 @@ abstract final class VoidbornGoddessPoseCatalog {
 
   /// Actor art phases share the committed action clock used by damage.
   static ActionFramePolicy? timingFor(String abilityId) => switch (abilityId) {
-    'goddess.dodge' => const ActionFramePolicy(
+    'goddess.dodge' || 'goddess.reposition_out' => const ActionFramePolicy(
       frameCount: 4,
       activeStart: 0,
       activeEnd: 4,
+    ),
+    'goddess.reposition_in' => const ActionFramePolicy(
+      frameCount: 5,
+      activeStart: 0,
+      activeEnd: 3,
     ),
     'goddess.claw_combo' => VoidbornGoddessPoseCatalog.goddessClaws.timing,
     'goddess.orb' => const ActionFramePolicy(

@@ -4,7 +4,7 @@ import '../world.dart';
 import 'boss_combat_system.dart';
 
 /// Voidcaller keeps distance and cycles beams, fiery claws and planted tentacles.
-final class VoidcallerCombatSystem extends BossCombatSystem {
+final class VoidcallerCombatSystem extends RotatingBossCombatSystem {
   VoidcallerCombatSystem({
     required super.tickHz,
     required super.castCommitter,

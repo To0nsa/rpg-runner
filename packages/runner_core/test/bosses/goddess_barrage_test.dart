@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
@@ -19,7 +17,7 @@ void main() {
   for (final hz in [30, 60, 90]) {
     for (final authored in [false, true]) {
       test(
-        'Goddess hovers for six sequential hands then returns at $hz Hz (authored=$authored)',
+        'Goddess finishes its fixed hand sweep, casts an orb and teleports at $hz Hz (authored=$authored)',
         () {
           final forest = LevelRegistry.byId(LevelId.forest);
           final start = forest.assembly!.segments.indexWhere(
@@ -46,10 +44,11 @@ void main() {
           final ground = authored ? 224.0 : 222.0;
           final hands = <SpellImpactEvent>[];
           double? cornerX;
-          Vec2? origin;
-          Vec2? previous;
+          Vec2? destination;
           final castFrames = <int>{};
-          var travelTicks = 0;
+          List<int>? supportedMarks;
+          var exitCast = false;
+          var vanishTicks = 0;
           var returned = false;
           for (var n = 0; n < hz * 30 && !core.gameOver; n++) {
             final before = core.buildSnapshot();
@@ -91,19 +90,37 @@ void main() {
                   core.buildSnapshot().bossArena!.hp100,
                   lessThanOrEqualTo(before.bossArena!.hpMax100 * .75),
                 );
-                origin ??= actor.pos;
+                supportedMarks ??= [
+                  for (var mark = 0; mark < 6; mark++)
+                    if (!authored ||
+                        before.stagedTerrainRenderSnapshot!.edges.any(
+                          (edge) =>
+                              edge.start.yTicks == ground * 1024 &&
+                              edge.end.yTicks == ground * 1024 &&
+                              edge.bounds.minX <= (74 + mark * 90.4) * 1024 &&
+                              edge.bounds.maxX >= (74 + mark * 90.4) * 1024,
+                        ))
+                      mark,
+                ];
                 castFrames.add(actor.animFrame! ~/ (.1 * hz).round());
               }
-              if (hands.length == 6 && previous != null) {
-                final dx = actor.pos.x - previous.x;
-                final dy = actor.pos.y - previous.y;
-                expect(
-                  math.sqrt(dx * dx + dy * dy),
-                  lessThanOrEqualTo(180 / hz + .1),
-                );
-                if (dx.abs() > .01 || dy.abs() > .01) travelTicks++;
+              if (supportedMarks != null &&
+                  hands.length == supportedMarks.length &&
+                  actor.anim == AnimKey.cast) {
+                exitCast = true;
+                expect(actor.pos.x, cornerX);
+                expect(actor.pos.y, closeTo(ground - 150, .01));
               }
-              previous = actor.pos;
+              if (supportedMarks != null &&
+                  hands.length == supportedMarks.length &&
+                  actor.teleportDestination != null) {
+                expect(exitCast, isTrue);
+                expect(actor.anim, AnimKey.teleportOut);
+                destination ??= actor.teleportDestination;
+                expect(actor.teleportDestination!.x, destination!.x);
+                expect(actor.teleportDestination!.y, destination.y);
+                vanishTicks++;
+              }
             }
             if (impacts.isNotEmpty) {
               hands.addAll(impacts);
@@ -113,28 +130,40 @@ void main() {
               expect(actor.pos.x, cornerX);
               expect(cornerX, anyOf(closeTo(88, .01), closeTo(512, .01)));
             }
-            if (hands.length == 6 &&
+            if (supportedMarks != null &&
+                hands.length == supportedMarks.length &&
                 actor != null &&
-                origin != null &&
-                (actor.pos.x - origin.x).abs() < 1 &&
-                (actor.pos.y - origin.y).abs() < 1) {
+                destination != null &&
+                actor.anim == AnimKey.spawn) {
+              expect(actor.pos.x, destination.x);
+              expect(actor.pos.y, closeTo(destination.y, .1));
+              expect(actor.teleportDestination, isNull);
               returned = true;
               break;
             }
           }
-          expect(hands, hasLength(6));
+          expect(supportedMarks, isNotEmpty);
+          expect(hands, hasLength(supportedMarks!.length));
           final xs = hands.map((e) => e.pos.x).toList();
-          expect(xs.toSet(), hasLength(6));
-          for (var i = 0; i < 6; i++) {
-            final index = cornerX! < 300 ? i : 5 - i;
+          expect(xs.toSet(), hasLength(supportedMarks.length));
+          final orderedMarks = cornerX! < 300
+              ? supportedMarks
+              : supportedMarks.reversed.toList();
+          for (var i = 0; i < orderedMarks.length; i++) {
+            final index = orderedMarks[i];
             expect(xs[i], closeTo(74 + index * 90.4, .01));
             expect(hands[i].pos.y, closeTo(ground, .01));
             if (i > 0) {
-              expect(hands[i].tick - hands[i - 1].tick, (hz * .35).ceil());
+              expect(
+                hands[i].tick - hands[i - 1].tick,
+                (orderedMarks[i] - orderedMarks[i - 1]).abs() *
+                    (hz * .35).ceil(),
+              );
             }
           }
           expect(returned, isTrue);
-          expect(travelTicks, greaterThan(hz ~/ 2));
+          expect(exitCast, isTrue);
+          expect(vanishTicks, (.3 * hz).ceil());
           expect(castFrames, containsAll(List.generate(36, (i) => i)));
         },
       );

@@ -12,6 +12,7 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/actor_frame_snapshot.dart';
 
 import 'components/boss_arena_barriers.dart';
+import 'components/teleport_destination_cues.dart';
 
 import 'package:run_protocol/replay_blob.dart';
 
@@ -133,6 +134,7 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> meleeAimPreview;
 
   final _bossArenaBarriers = BossArenaBarriers();
+  final _teleportDestinationCues = TeleportDestinationCues();
 
   /// Atomic replay snapshots and events; null disables ghost rendering.
   final ValueListenable<GhostRenderFrame?>? ghostRenderListenable;
@@ -222,6 +224,7 @@ class RunnerFlameGame extends FlameGame {
     await super.onLoad();
     if (_removed) return;
     await world.add(_bossArenaBarriers);
+    await world.add(_teleportDestinationCues);
     _ghostLayer.attachListeners();
 
     assert(() {
@@ -346,6 +349,7 @@ class RunnerFlameGame extends FlameGame {
     final prevSnapshot = controller.prevSnapshot;
     final currSnapshot = controller.snapshot;
     _bossArenaBarriers.arena = currSnapshot.bossArena;
+    _teleportDestinationCues.entities = currSnapshot.entities;
     final alpha = controller.alpha;
     _applyRenderTheme(currSnapshot.visualThemeId);
 

@@ -29,6 +29,7 @@ class EntityRenderSnapshot {
     this.combatCapsules = const [],
     this.spawnTick,
     this.size,
+    this.teleportDestination,
     this.enemyId,
     this.npcId,
     this.npcHealth,
@@ -63,6 +64,10 @@ class EntityRenderSnapshot {
   ///
   /// Render-only hint for placeholder shapes (e.g. projectile rectangles).
   final Vec2? size;
+
+  /// Captured body center for a pending teleport's visible destination cue.
+  /// Null once placement completes or the owning action is interrupted.
+  final Vec2? teleportDestination;
 
   /// Optional enemy archetype id (set when [kind] is [EntityKind.enemy]).
   final EnemyId? enemyId;

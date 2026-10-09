@@ -1699,6 +1699,7 @@ class GameCore {
     // Reactive dodge placement and its counter must precede water/navigation.
     _goddessCombat.prepareDodge(_world, currentTick: tick);
     _goddessCombat.prepareBarrage(_world, currentTick: tick);
+    _goddessCombat.prepareTactics(_world, player: _player, currentTick: tick);
     // Observe teleports and the published water before both enemy AI and player
     // action gates; refresh again after integration for snapshots and next tick.
     final waterRegions = _worldMotionAuthority.waterRegions;

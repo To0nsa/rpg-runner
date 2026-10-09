@@ -161,9 +161,9 @@ void main() {
             expect(observedSummons, contains(EnemyId.shoggothMinion));
           } else {
             // No player attacks means no health threshold and no hand barrage.
-            expect(teleported, isFalse);
+            expect(teleported, isTrue);
             expect(animations, isNot(contains(AnimKey.ranged)));
-            expect(animations, isNot(contains(AnimKey.teleportOut)));
+            expect(animations, contains(AnimKey.teleportOut));
           }
         }
       });

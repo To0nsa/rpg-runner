@@ -7,7 +7,7 @@ import '../world.dart';
 import 'boss_combat_system.dart';
 
 /// Shoggoth mixes close sweeps and committed charges with orbs and owned minions.
-final class ShoggothCombatSystem extends BossCombatSystem {
+final class ShoggothCombatSystem extends RotatingBossCombatSystem {
   ShoggothCombatSystem({
     required super.tickHz,
     required super.castCommitter,

@@ -177,9 +177,13 @@ final class BossUtilitySystem {
     final bi = world.actorMotionBounds.tryIndexOf(owner);
     final bounds = bi == null ? null : world.actorMotionBounds.bounds[bi];
     if (bounds == null) return null;
+    final requestedX = x * terrainPhysicsTicksPerWorldUnit;
+    if (requestedX < bounds.minXTicks || requestedX > bounds.maxXTicks) {
+      return null;
+    }
     final request = createEncounterSpawnRequest(
-      member: EncounterEnemyPlacement(id: 'summon', enemyId: id, x: x),
-      startX: 0,
+      member: EncounterEnemyPlacement(id: 'summon', enemyId: id, x: 0),
+      startX: x,
       groundTopY: groundTopY,
       flyingHoverOffsetY: 0,
     );

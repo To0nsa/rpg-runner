@@ -53,8 +53,11 @@ final class GoddessDodgeMiddleware implements DamageMiddleware {
     }
     final ii = world.invulnerability.tryIndexOf(boss);
     if (ii != null && !world.invulnerability.allowsHit(ii, combo)) return;
+    final tactic = world.goddessTactics.tryIndexOf(boss);
     if (state.executeTick[i] >= 0 ||
         world.goddessBarrage.has(boss) ||
+        (tactic != null &&
+            world.goddessTactics.states[tactic].scriptedTransition) ||
         world.controlLock.isStunned(boss, currentTick)) {
       return;
     }

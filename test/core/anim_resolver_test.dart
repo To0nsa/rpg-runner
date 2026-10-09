@@ -34,6 +34,25 @@ void main() {
       expect(result.animFrame, 2);
     });
 
+    test(
+      'committed reappearance uses its action frame outside the spawn window',
+      () {
+        final result = AnimResolver.resolve(
+          profile,
+          AnimSignals.enemy(
+            tick: 400,
+            hp: 100,
+            deathPhase: DeathPhase.none,
+            grounded: true,
+            activeActionAnim: AnimKey.spawn,
+            activeActionFrame: 3,
+          ),
+        );
+        expect(result.anim, AnimKey.spawn);
+        expect(result.animFrame, 3);
+      },
+    );
+
     test('hp<=0 uses deathStartTick, not stale lastDamageTick', () {
       final result = AnimResolver.resolve(
         profile,

@@ -24,46 +24,58 @@ Save/Build/Play and live spawn placement reuse the existing
 [arena contract](boss_arenas.md).
 
 `VoidbornGoddessCombatSystem`, `ShoggothCombatSystem` and
-`VoidcallerCombatSystem` independently select actions by sequence, target range
-and living summon count. They have no chunk-name dependency. Their normal action
-rotations consume no RNG; Goddess's reactive dodge has its own seeded actor stream.
+`VoidcallerCombatSystem` independently select actions without chunk-name dependencies. Shoggoth and
+Voidcaller use fixed sequences, range and living summon count. Goddess uses
+separate seeded actor streams for tactical decisions and reactive dodges.
 Each boss owns separate ability definitions, render metadata and combat poses
 under its own filename. Minion and tentacle definitions are also separate.
 Projectile art lives with its owning actor's render catalog; Voidcaller's
 generated beam composition has its own effect catalog and generator.
 
 Global ability, enemy, projectile and pose catalogs remain lookup registries.
-`BossCombatSystem` shares only engagement and committed-action dispatch;
+`BossCombatSystem` defines the common tick interface;
+`RotatingBossCombatSystem` shares pursuit and committed-action dispatch for
+Shoggoth and Voidcaller;
 `BossUtilitySystem` shares captured utility execution, terrain placement and
 summon lifetime. Neither contains a concrete boss selection switch. Each boss
 owns its spacing, pursuit speed, sequence and teleport cadence. Shoggoth owns
 spin motion composition; `VoidTentacleCombatSystem` owns planted behavior.
 Goddess owns her corner placement, hover, six-hand barrage and reactive dodge in
 her own combat system and lifecycle-registered `GoddessBarrageStore`,
-`GoddessHealthPhaseStore` and `GoddessDodgeStore`. Her damage middleware requests
+`GoddessHealthPhaseStore`, `GoddessDodgeStore` and `GoddessTacticsStore`.
+`GoddessTacticsSystem` owns distance decisions and cancellable exit/reposition
+transitions; the combat system retains threshold observation, hands and counters. Her damage middleware requests
 dodges through that system.
 Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
-In prepared compatibility `2026.10.11`, Goddess selects claws when sequence
-modulo three is zero, horizontal distance is at most 45 world units and vertical
-distance is at most 50. Otherwise her normal rotation casts orbs. A pending
-75/50/25% health phase takes priority and selects the hand barrage. Barrage entry
-and the reactive 4–6 attack dodge are her
-only teleports. Her orb windup is 27 authoring ticks (0.45 seconds), with
-480 world units/second flight. Shoggoth retains its separate 340-unit orb and
-teleport policy. Shared dispatch and wire formats remain unchanged;
-client and replay worker must ship the same Core selection and tuning.
+In prepared compatibility `2026.10.11`, Goddess no longer uses action-index
+modulo rotation or continuous pursuit. At melee height (vertical distance <=50),
+within 45 horizontal units, an available voluntary teleport competes with claws
+at 30/70 odds. At 45-70 units she may make one directly walkable approach, limited
+to 25 units and ceil(0.5 * tickHz) ticks; its endpoint never follows the target.
+Approach velocity is capped to remaining displacement before terrain integration.
+Outside that band she holds ground and casts. One or two successful normal orbs
+consume a seeded budget before relocation is considered; beyond 240 units she
+prefers relocation. Unavailable/blocked teleports fall back to ordinary attacks.
 
-Before shared boss decisions, Goddess observes current/max health using integer
+Tactical RNG uses `seedFrom(runSeed, entityId ^ 0x476f6454)`, independently of
+reactive dodge cadence. Initial admission and completed teleports sample a 4-6
+second minimum voluntary interval; a successful dodge resets it. Ordinary action
+and cooldown gates also apply, preserving claw recovery. A pending health phase
+always overrides regular decisions. Her orb retains 27 authoring ticks of
+windup and 480 world units/second flight; Shoggoth's orb remains at 340.
+Client and replay worker must ship matching Core selection and tuning.
+
+Before tactical decisions, Goddess observes current/max health using integer
 comparisons `hp * 4 <= hpMax * quarter` for quarters 3, 2 and 1. Her persistent
 health-phase store retains the maximum number reached and the number of accepted
-barrages. This records crossings during actions, returns and cooldowns, including
+barrages. This records crossings during actions, scripted exits and cooldowns, including
 multiple thresholds crossed by one nonlethal hit. Healing never revokes earned
 phases or grants duplicates. Threshold selection waits for ordinary action and
-cooldown gates; it does not interrupt a dodge, claw combo or barrage return.
-Only `onAbilityCommitted` consumes one reached phase, so failed cast admission
+cooldown gates; it does not interrupt a dodge, claw combo or scripted barrage exit.
+Only an accepted barrage commit consumes one reached phase, so failed cast admission
 retries, while an interrupted accepted barrage cannot repeat the same threshold.
 The per-cast barrage store may be removed normally without losing this budget;
 actor destruction clears both stores before ID reuse. Dead actors start no phase.
@@ -90,10 +102,10 @@ execute a stale utility intent.
 | --- | --- |
 | Required arena spawn, then `BossUtilitySystem.prepare`, before terrain motion preparation | Admit summons and expire them before the authority enumerates tick bodies |
 | Shared utility teleport execution after target selection and Hashash teleports, before water/navigation refresh | Publish validated relocated support and position before dependent consumers |
-| Goddess dodge preparation, then barrage preparation, immediately after utility teleports | Validate action identity, commit the dodge and counter or corner placement, schedule due hands and manage return lifecycle before water/navigation |
+| Goddess dodge, barrage and tactical preparation, immediately after utility teleports | Validate action identity, commit the dodge and counter or corner placement, schedule due hands and advance the orb/teleport exit before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
-| Goddess hover/return composition alongside spin composition | Suppress gravity and compose hover or return velocity while retaining normal knockback and one terrain integration |
+| Goddess hover/approach composition alongside spin composition | Suppress gravity and cap short approach velocity while retaining normal knockback and one terrain integration |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
 AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects
@@ -106,7 +118,7 @@ damage resolution. Melee, projectile and spell-impact requests count; player
 combos use `(source, activation)` to count once and retain the evasion decision
 for later strikes. Non-combo player deliveries already hit each target once.
 Ordinary invulnerability, action protection, suspension, stun, a pending dodge
-and any barrage state exclude new attacks from the cadence. The registered
+and any barrage or scripted tactical transition exclude new attacks from the cadence. The registered
 store clears cadence, RNG, pending identity/side and the combo ledger when destroyed.
 
 The first eligible attack samples an interval of 4, 5 or 6 using `nextUint32`
@@ -136,11 +148,11 @@ ordinary `goddess.claw_combo` facing the player. That reactive counter bypasses
 the rotation cooldown but preserves the longer of its new cooldown and the
 remaining prior cooldown; it does not advance the normal action sequence.
 Death, stun, suspension, replacement or an invalid landing cancels the pending
-counter and releases gravity suppression. Barrage casting and return are never
+counter and releases gravity suppression. Barrage casting, its exit and voluntary repositioning are never
 interrupted by this dodge.
 
 Goddess captures the cast start tick,
-original position/facing, first release tick and sweep direction. Six hands use
+first release tick and sweep direction. Six hands use
 the already committed target-point payload, at ceil(0.35 × tickHz) intervals and six
 evenly spaced floor marks inset 50 units from the arena edges. Her far upper
 corner is inset 64 units and 150 units above the level floor. Corner entry uses a
@@ -155,14 +167,31 @@ rejects damage and statuses, including combo bypasses; protected actors remain
 living AI actors. Clearing, replacing or destroying the activation clears its
 protection.
 
-After the final effect ends, the action clears and a vulnerable return phase
-composes velocity toward the captured origin at 180 units/second. One-tick
-action/navigation locks prevent another action or locomotion from taking over.
-Terrain resolves every return step; there is no return teleport or snap. Arrival
-within half a world unit ends travel. A distance-derived travel deadline plus
-one second releases hover if blocked, allowing ordinary gravity to land her.
-Death, interruption, suspension or replacement cancels future releases and
-gravity suppression in place. State is removed before ID recycling.
+After the final effect ends, barrage state and its protected action clear.
+Tactical state starts one ordinary orb while retaining hover; admission temporarily
+bypasses group-zero cooldown and restores the longer remaining cooldown. The
+ordinary orb animation, release and recovery all finish before exit placement.
+The scripted exit bypasses only the voluntary teleport interval.
+
+Repositioning preflights candidates at player X +/-140/180/220, rejecting destinations
+less than 64 units from the current body and using full-capsule support and arena
+validation. It uniformly samples the legal candidates and captures the destination.
+`goddess.reposition_out` maps four frames across 18 authoring ticks. Placement
+commits through terrain begin/commit/cancel before water/navigation; it never
+retargets the captured mark. `goddess.reposition_in` maps five reappearance frames
+across 12 active and 18 recovery authoring ticks. Neither action grants protection.
+`EntityRenderSnapshot.teleportDestination` exposes the captured body center only
+while the exact outgoing action/start tick remains current and alive. Flame's
+`TeleportDestinationCues` draws that world-space mark without deciding timing.
+The generic animation resolver accepts committed spawn/reappearance action frames.
+
+Death, stun, suspension or action replacement cancels owned transitions and hover
+without erasing a replacement ability. Blocked regular placements retain attacks
+and delay another placement attempt by one second. A blocked exit releases hover
+and ordinary gravity lands her; there is no glide-to-origin state or snap fallback.
+Every store is removed before ID reuse. Already released hand effects retain
+normal independent impact lifetimes. Floor marks with no supporting surface are
+skipped without changing the remaining hand schedule or full casting duration.
 Each spawned hand has its own ordinary one-hit ledger and deals 1000 fixed-point
 dark damage. Render and damage use a 0.06-second authored frame step, rounded
 to simulation ticks. Ten harmless frames therefore warn for 20/40/50 ticks at
@@ -248,8 +277,13 @@ confinement, teleport/return, summon caps and lifetime, stationary tentacles,
 both characters' real-combat victories, release and recycled-owner cleanup.
 Effect tests verify captured surfaces, harmless warning frames, evasion and
 one hit per distinct swing/pulse at all three rates. Barrage tests cover six
-ordered floor marks, hover and return in flat and authored Forest rooms, plus
-cancelled/replaced/dead casts and recycled IDs. Render tests load every catalog frame,
+scheduled floor marks (six on a complete floor; unsupported marks skipped),
+hover and orb/teleport exits in flat and authored Forest rooms, plus
+cancelled/replaced/dead casts and recycled IDs. Tactical regressions cover
+orb budgets, fixed approach bounds, captured legal landings, recovery, seeded
+close choices, dodge cadence reset and cancellation at 30/60/90 Hz. These are
+finite 600-unit arenas, not ambient enemy traversal or full-level pursuit checks.
+Render tests load every catalog frame,
 check source bounds/scale and render composed beams and melee pose previews.
 Pixel checks require an unbroken opaque beam axis in all five active frames at
 native and 1.5x scale, including every strip and endcap join.
