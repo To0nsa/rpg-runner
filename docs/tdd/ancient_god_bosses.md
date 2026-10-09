@@ -60,6 +60,23 @@ Outside that band she holds ground and casts. One or two successful normal orbs
 consume a seeded budget before relocation is considered; beyond 240 units she
 prefers relocation. Unavailable/blocked teleports fall back to ordinary attacks.
 
+Normal and reactive `goddess.claw_combo` actions track the current combat target
+through windup and active time. `GoddessTacticsSystem` samples the same
+`ActionFramePolicy` as animation and damage, using the committed timing and
+current tick. Empty poses and new strike-window boundaries may update the action
+facing and pending melee direction; damaging poses within one strike keep their
+facing. A two-unit horizontal dead zone avoids overlap jitter. The combo uses
+ordinary grounded locomotion at 0.5 speed toward a 35-unit stand-off, only when
+navigation confirms direct walking. It holds when the target crosses behind a
+live swipe, when support/path is unavailable, and during final recovery.
+
+After locomotion, Goddess restores the strike-owned facing before terrain, art
+and damage resolve, so shared target-facing logic cannot flip a live swipe.
+Velocity is capped at the current stand-off goal, retaining the ground tangent;
+normal knockback and terrain integration still follow. No combo clock, cooldown,
+activation ID or per-strike hit ledger restarts when she turns. No new random
+draws or teleport transitions are introduced by pursuit.
+
 Tactical RNG uses `seedFrom(runSeed, entityId ^ 0x476f6454)`, independently of
 reactive dodge cadence. Initial admission and completed teleports sample a 4-6
 second minimum voluntary interval; a successful dodge resets it. Ordinary action
@@ -105,7 +122,7 @@ execute a stale utility intent.
 | Goddess dodge, barrage and tactical preparation, immediately after utility teleports | Validate action identity, commit the dodge and counter or corner placement, schedule due hands and advance the orb/teleport exit before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
-| Goddess hover/approach composition alongside spin composition | Suppress gravity and cap short approach velocity while retaining normal knockback and one terrain integration |
+| Goddess hover/pursuit composition alongside spin composition | Suppress hover gravity, retain combo-facing ownership and cap pursuit velocity before knockback and one terrain integration |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
 AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects
@@ -281,7 +298,11 @@ scheduled floor marks (six on a complete floor; unsupported marks skipped),
 hover and orb/teleport exits in flat and authored Forest rooms, plus
 cancelled/replaced/dead casts and recycled IDs. Tactical regressions cover
 orb budgets, fixed approach bounds, captured legal landings, recovery, seeded
-close choices, dodge cadence reset and cancellation at 30/60/90 Hz. These are
+close choices, dodge cadence reset and cancellation at 30/60/90 Hz. Combo tests
+verify turning and matching damage for all four strikes, terrain-resolved pursuit,
+recovery, stand-off, blocked routes and movement locks for normal/counter combos.
+Victory controllers evade tracking claws with ordinary retreat/jump/dash inputs
+and punish recovery; player and boss combat stats remain catalog values. These are
 finite 600-unit arenas, not ambient enemy traversal or full-level pursuit checks.
 Render tests load every catalog frame,
 check source bounds/scale and render composed beams and melee pose previews.

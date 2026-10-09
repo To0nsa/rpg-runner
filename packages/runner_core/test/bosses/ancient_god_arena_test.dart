@@ -186,11 +186,35 @@ void main() {
                 ? 0.0
                 : actor.pos.x - s.playerEntity!.pos.x;
             final t = core.tick + 1;
+            final evadeCombo =
+                boss == EnemyId.voidbornGoddess &&
+                (actor?.anim == AnimKey.strike ||
+                    actor?.anim == AnimKey.teleportOut);
+            final playerX = s.playerEntity!.pos.x;
+            final escapeDirection = playerX < 70
+                ? 1.0
+                : playerX > 530
+                ? -1.0
+                : -dx.sign;
             core.applyCommands([
-              MoveAxisCommand(tick: t, axis: dx.abs() > 20 ? dx.sign : 0),
+              MoveAxisCommand(
+                tick: t,
+                axis: evadeCombo
+                    ? escapeDirection
+                    : dx.abs() > 20
+                    ? dx.sign
+                    : 0,
+              ),
               AimDirCommand(tick: t, x: dx >= 0 ? 1 : -1, y: 0),
-              if (n % 20 == 0) StrikePressedCommand(tick: t),
-              if (n % 45 == 0) ProjectilePressedCommand(tick: t),
+              // Tracking claws require an actual evasive input; walking through
+              // the boss no longer leaves the entire combo facing away.
+              if (boss == EnemyId.voidbornGoddess &&
+                  actor?.anim == AnimKey.strike &&
+                  dx.abs() < 90)
+                JumpPressedCommand(tick: t),
+              if (evadeCombo && dx.abs() < 55) DashPressedCommand(tick: t),
+              if (!evadeCombo && n % 20 == 0) StrikePressedCommand(tick: t),
+              if (!evadeCombo && n % 45 == 0) ProjectilePressedCommand(tick: t),
             ]);
             core.stepOneTick();
             final after = core.buildSnapshot();

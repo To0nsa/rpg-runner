@@ -34,7 +34,7 @@ death presentation, exit and victory blessing reuse the
 
 | Action | Default behavior |
 | --- | --- |
-| Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
+| Claw combo | Four visible swipes that follow and turn toward the player between hits, each able to deal 7 physical damage per target; 0.4-second windup |
 | Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
 | Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then casts one orb and teleports to medium range; at least six seconds between commits |
@@ -44,6 +44,10 @@ Prepared compatibility `2026.10.11` makes her a mostly stationary caster:
 - Within 45 horizontal units and 50 vertical units, she chooses a claw combo
   70% of the time and a retreat teleport 30% of the time when teleport is ready.
   Otherwise she uses claws. A blocked retreat also falls back to claws.
+- During the combo's windup and attack, she follows on directly walkable ground
+  at half normal speed, stopping about 35 units away. She can turn during windup,
+  harmless gaps and at each new swipe; a live swipe keeps its direction. This
+  applies to dodge counters too. Recovery stops pursuit and leaves an opening.
 - Just outside claw range (45–70 units), she may approach on directly walkable
   ground, at half normal speed, for at most 25 units or 0.5 seconds. Her endpoint
   stays fixed even if the player retreats; she then attacks instead of chasing.
@@ -138,8 +142,9 @@ with space from the player and other summons. A blocked summon creates nothing.
 
 Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
-and damage. Damaging attacks capture targets and directions once; attacks never
-home onto subsequent player movement. Utility actions deal no direct damage.
+and damage. Spells capture their targets once and never home onto later player
+movement. Goddess claws can retarget between distinct swipes while each live
+swipe retains its direction and hit ledger. Utility actions deal no direct damage.
 Consecutive poses of one swing share its hit ledger. In prepared source
 compatibility `2026.10.11`, claws, sweeps, spin passes and beam pulses are explicit
 combos: after a damaging hit, later strikes from that same boss and activation

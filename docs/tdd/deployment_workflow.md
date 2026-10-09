@@ -31,7 +31,9 @@ cutover; it has not been deployed by the source change. The ranked tuple and
 replay/command formats above remain unchanged.
 This prepared release gives Goddess stationary range-based casting, bounded
 close approaches, voluntary teleports with destination cues, and a reactive
-dodge every 4–6 eligible player attacks followed by a claw combo. Its
+dodge every 4–6 eligible player attacks followed by a claw combo. Normal and
+reactive combos follow the player on walkable ground and may turn between
+swipes, retaining per-hit damage ownership and final recovery. Its
 seeded interval rerolls after each dodge; beyond claw range either legal landing
 side can be chosen. It adds
 continuous barrage casting with invulnerability and a vulnerable orb/teleport exit,

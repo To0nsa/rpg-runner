@@ -5,6 +5,7 @@ import '../../abilities/ability_def.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../combat/ai_cast_aim_policy.dart';
 import '../../combat/control_lock.dart';
+import '../../combat/voidborn_goddess_pose_catalog.dart';
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../util/vec2.dart';
@@ -13,6 +14,7 @@ import '../combat_target.dart';
 import '../entity_id.dart';
 import '../stores/enemies/goddess_tactics_store.dart';
 import '../world.dart';
+import '../world_support_view.dart';
 import 'ability_interrupt.dart';
 import 'boss_utility_system.dart';
 import 'enemy_cast_system.dart';
@@ -82,6 +84,12 @@ final class GoddessTacticsSystem {
     if (!available || target == null) {
       _cancel(world, boss, s);
       _hold(world, boss, tick);
+      return;
+    }
+    final ai = world.activeAbility.tryIndexOf(boss);
+    if (ai != null &&
+        world.activeAbility.abilityId[ai] == 'goddess.claw_combo') {
+      _trackCombo(world, boss, target, ai, ni, ii, tick);
       return;
     }
     if (s.phase == GoddessTactic.exitPending) {
@@ -162,6 +170,62 @@ final class GoddessTacticsSystem {
   void _approachIntent(EcsWorld world, int ii, GoddessTactics s) {
     world.engagementIntent.desiredTargetX[ii] = s.approachX;
     world.engagementIntent.speedScale[ii] = .5;
+    world.engagementIntent.arrivalSlowRadiusX[ii] = 0;
+  }
+
+  // Follow at half ground speed so retreating remains useful during the combo.
+  static const _comboSpeedScale = .5;
+  // World units: stop within claw reach without walking through the target.
+  static const _comboStandOff = 35.0;
+
+  void _trackCombo(
+    EcsWorld world,
+    EntityId boss,
+    EntityId target,
+    int ai,
+    int ni,
+    int ii,
+    int tick,
+  ) {
+    final active = world.activeAbility;
+    final elapsed = tick - active.startTick[ai];
+    if (elapsed >= active.windupTicks[ai] + active.activeTicks[ai]) {
+      _hold(world, boss, tick);
+      return;
+    }
+    final profile = VoidbornGoddessPoseCatalog.goddessClaws;
+    int frameAt(int age) => profile.timing.frameAt(
+      elapsed: age,
+      windup: active.windupTicks[ai],
+      active: active.activeTicks[ai],
+      recovery: active.recoveryTicks[ai],
+    );
+    final frame = frameAt(elapsed);
+    final previous = frameAt(math.max(0, elapsed - 1));
+    final ti = world.transform.indexOf(boss);
+    final targetX = world.transform.posX[world.transform.indexOf(target)];
+    final dx = targetX - world.transform.posX[ti];
+    // Track in harmless poses and at the start of each distinct swipe, never
+    // flip a live swipe across the player. Two units avoid overlap jitter.
+    if (dx.abs() > 2 &&
+        (profile.frames[frame].isEmpty ||
+            profile.combo!.strikeWindowAt(frame) !=
+                profile.combo!.strikeWindowAt(previous))) {
+      active.facing[ai] = dx > 0 ? Facing.right : Facing.left;
+      final mi = world.meleeIntent.indexOf(boss);
+      world.meleeIntent.dirX[mi] = dx.sign;
+    }
+    final direction = active.facing[ai] == Facing.right ? 1.0 : -1.0;
+    setActorFacing(world, boss, active.facing[ai]);
+    if (!world.navIntent.canWalkDirectlyToTarget[ni] ||
+        !WorldSupportView(world).isGrounded(boss) ||
+        dx * direction <= _comboStandOff) {
+      _hold(world, boss, tick);
+      return;
+    }
+    world.engagementIntent.desiredTargetX[ii] =
+        targetX - direction * _comboStandOff;
+    world.engagementIntent.speedScale[ii] = _comboSpeedScale;
     world.engagementIntent.arrivalSlowRadiusX[ii] = 0;
   }
 
@@ -362,12 +426,33 @@ final class GoddessTacticsSystem {
     s.clearTransition();
   }
 
-  /// Bound approach displacement and retain the post-barrage casting hover.
+  /// Bound pursuit displacement, preserve each swipe's facing after locomotion,
+  /// and retain the post-barrage casting hover before the single terrain step.
   void composeMotion(EcsWorld world) {
     for (var i = 0; i < world.goddessTactics.states.length; i++) {
       final s = world.goddessTactics.states[i];
       final boss = world.goddessTactics.denseEntities[i];
       final ti = world.transform.indexOf(boss);
+      final ai = world.activeAbility.tryIndexOf(boss);
+      if (ai != null &&
+          world.activeAbility.abilityId[ai] == 'goddess.claw_combo') {
+        // Shared locomotion may turn toward its target; the strike owns facing
+        // until its next tracking window so the sprite and capsules agree.
+        setActorFacing(world, boss, world.activeAbility.facing[ai]);
+        final ii = world.engagementIntent.indexOf(boss);
+        final dx =
+            world.engagementIntent.desiredTargetX[ii] -
+            world.transform.posX[ti];
+        final vx = world.transform.velX[ti];
+        final capped = vx.sign == dx.sign
+            ? dx.sign * math.min(vx.abs(), dx.abs() * tickHz)
+            : 0.0;
+        world.transform.velX[ti] = capped;
+        if (vx != 0 && WorldSupportView(world).isGrounded(boss)) {
+          world.transform.velY[ti] *= capped / vx;
+        }
+        continue;
+      }
       if (s.hovering) {
         world.transform.velX[ti] = 0;
         world.transform.velY[ti] = 0;

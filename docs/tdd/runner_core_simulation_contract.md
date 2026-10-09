@@ -59,7 +59,7 @@ AI/actions. Defeat resolves after damage/fatal culls and before death cleanup,
 with player loss taking precedence. Ancient God summons are admitted/expired
 before motion preparation; their teleports execute before water/navigation
 refresh. Goddess's reactive dodge executes next, followed by corner placement,
-scheduled hands and the tactical orb/teleport exit. Her hover/approach
+scheduled hands and the tactical orb/teleport exit. Her hover/pursuit
 velocity and committed spinning motion compose after locomotion and before the single
 terrain integration. Compatibility `2026.10.10` adds this barrage and
 authored strike windows that allow a later swing to hit the same target again. See
@@ -68,7 +68,11 @@ Prepared compatibility `2026.10.11` gives Goddess distance-based stationary
 casting, bounded close approaches, seeded voluntary repositioning, and an
 orb/teleport barrage exit, alongside her 4–6 attack reactive dodge. Voluntary
 teleports publish a captured destination cue and retain recovery; the tactical
-RNG stream is independent of dodge cadence. Damage middleware counts direct player attacks (each combo once),
+RNG stream is independent of dodge cadence. Claw combos pursue on directly
+walkable ground and retarget only in harmless poses or at new strike windows.
+Post-locomotion composition retains each live swipe's facing and stops pursuit
+in recovery; art and damage use the same committed action clock. Damage middleware
+counts direct player attacks (each combo once),
 cancels the selected attack and begins an eight-authoring-tick vanish; its
 checked placement and ordinary claw counter run before the next
 water/navigation refresh when the vanish ends. Dodge cancellation is per attack,
