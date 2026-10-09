@@ -233,7 +233,7 @@ class _Fixture {
   }
 
   void cast() {
-    world.health.hp[world.health.indexOf(boss)] = 27000;
+    world.health.hp[world.health.indexOf(boss)] = 18000;
     system.step(world, player: player, currentTick: 10);
   }
 

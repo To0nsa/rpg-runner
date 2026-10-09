@@ -39,14 +39,14 @@ side can be chosen. It adds
 continuous barrage casting with invulnerability and a vulnerable orb/teleport exit,
 and speeds up her orb. Orb art and generated collision capsules are centered on
 the aim line; live and ghost explosions center over the struck body. Her health
-is 360 HP and actor scale is 1.0x with matching
+is 240 HP and actor scale is 1.0x with matching
 body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
 nominal 0.6-second warning per hand, and deals 10 dark damage per slap.
 Its active damage shapes cover the visible palm and fingers for each hand pose.
-The barrage is now exclusive to one cast at each 75/50/25% HP threshold (270,
-180 and 90 HP), with pending crossings retained through existing action gates.
+The barrage is now exclusive to one cast at each 75/50/25% HP threshold (180,
+120 and 60 HP), with pending crossings retained through existing action gates.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug

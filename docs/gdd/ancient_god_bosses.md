@@ -17,7 +17,7 @@ The corrections below are deployed in `2026.10.10`: aligned native beam pieces,
 Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
-Goddess uses **1.0x sprite scale** and **360 HP**; Shoggoth and Voidcaller have
+Goddess uses **1.0x sprite scale** and **240 HP**; Shoggoth and Voidcaller have
 120 HP and share Bringer of Death's **1.5x scale**. All three have no passive
 health regeneration and have Stun immunity. Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
@@ -63,8 +63,8 @@ Prepared compatibility `2026.10.11` makes her a mostly stationary caster:
   ability recovery and cooldown must also finish, preserving the combo opening.
   The scripted exit from Slapping Hands can bypass the voluntary timer.
 
-Slapping Hands is reserved for reaching or falling below **270, 180 and 90 HP**
-at her 360 HP maximum. Each threshold grants one barrage, prioritized over normal
+Slapping Hands is reserved for reaching or falling below **180, 120 and 60 HP**
+at her 240 HP maximum. Each threshold grants one barrage, prioritized over normal
 choices after the current action, scripted exit and cooldown finish. Large damage
 can queue multiple crossed thresholds; healing does not reset them. Failed cast
 admission retains the pending barrage, while an interrupted accepted cast still

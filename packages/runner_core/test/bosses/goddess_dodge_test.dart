@@ -144,7 +144,7 @@ void main() {
         f.damage(10);
         expect(
           f.hp,
-          35500,
+          23500,
           reason:
               'only the chosen hit is canceled; ${f.combat.utilities.motion.lastSpawnPlacementDiagnostic}',
         );
@@ -185,7 +185,7 @@ void main() {
           f.queue();
         }
         f.damage(execute + hz * 3);
-        expect(f.hp, 35000);
+        expect(f.hp, 23000);
         expect(f.action, 'goddess.dodge');
       });
     }
@@ -261,7 +261,7 @@ void main() {
       }
     }
     expect(evaded, inInclusiveRange(4, 6));
-    final hp = 36000 - (evaded - 1) * 400;
+    final hp = 24000 - (evaded - 1) * 400;
     expect(f.hp, hp, reason: 'only the chosen combo is evaded');
     expect(f.action, 'goddess.dodge');
     expect(f.attacks, 0);
@@ -288,7 +288,7 @@ void main() {
         f.queue(kind: kind);
       }
       f.damage(10);
-      expect(f.hp, 35500);
+      expect(f.hp, 23500);
       expect(f.action, 'goddess.dodge');
     },
   );
@@ -300,7 +300,7 @@ void main() {
       f.queue(source: f.boss);
     }
     f.damage(10);
-    expect(f.hp, 35200);
+    expect(f.hp, 23200);
     expect(f.attacks, 0);
     expect(f.action, isNull);
   });
@@ -315,7 +315,7 @@ void main() {
         f.queue();
       }
       f.damage(10);
-      expect(f.hp, 35400);
+      expect(f.hp, 23400);
       expect(f.attacks, f.interval - 1);
       expect(f.action, isNull);
       expect(f.x, blocked == 'arena edge' ? 560 : 280);
@@ -323,13 +323,13 @@ void main() {
       final rng = f.world.goddessDodge.rngState[f.state];
       f.queue();
       f.damage(11);
-      expect(f.hp, 35300);
+      expect(f.hp, 23300);
       expect(f.interval, interval, reason: 'blocked attacks do not reroll');
       expect(f.world.goddessDodge.rngState[f.state], rng);
       f.world.transform.setPosXY(f.player, 200, f.playerY);
       f.queue();
       f.damage(12);
-      expect(f.hp, 35300);
+      expect(f.hp, 23300);
       expect(f.action, 'goddess.dodge');
     });
   }

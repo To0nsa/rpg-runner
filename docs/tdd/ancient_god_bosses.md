@@ -255,7 +255,7 @@ The unchanged runtime PNGs and license copies live under
 remain in ignored `resources/enemies_and_creatures/ancient_god_pack/`.
 The [asset map](../../assets/images/entities/enemies/ancient_god_pack/ASSET_MAP.md)
 records verified exported frame regions and discrepancies with Aseprite tags.
-Goddess has 360 HP (36000 fixed-point current and maximum health), with no
+Goddess has 240 HP (24000 fixed-point current and maximum health), with no
 passive regeneration. Her actor art uses 1.0x scale, with a matching 18-by-54
 body collider, scaled claw geometry and 35-world-unit approach stand-off. The other actors,
 projectiles and impact art retain 1.5x scale. Source rectangles and pivots
