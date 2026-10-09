@@ -6,6 +6,7 @@ import '../../combat/control_lock.dart';
 import '../../enemies/enemy_id.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../snapshots/enums.dart';
+import '../../util/deterministic_rng.dart';
 import '../actor_facing.dart';
 import '../combat_eligibility.dart';
 import '../combat_target.dart';
@@ -32,6 +33,8 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
   @override
   double get pursuitSpeedScale => .8;
 
+  static const _clawRange = 45.0;
+
   @override
   String selectAbility(
     EcsWorld world,
@@ -41,7 +44,7 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     required bool atMeleeHeight,
     required int currentTick,
   }) {
-    if (distanceX <= 45 && atMeleeHeight && sequence % 3 == 0) {
+    if (distanceX <= _clawRange && atMeleeHeight && sequence % 3 == 0) {
       return 'goddess.claw_combo';
     }
     return sequence.isEven ? 'goddess.orb' : 'goddess.eruption';
@@ -49,7 +52,8 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
 
   late final _counterMelee = AiMeleeCommitter(tickHz: tickHz);
 
-  /// Starts a reactive vanish only when crossing the player has a legal landing.
+  /// Starts a reactive vanish with a checked landing in claw range of the player.
+  /// Close attacks cross the player; distant attacks choose either legal side.
   /// Damage middleware cancels the selected attack; this never grants blanket
   /// protection that could erase earlier hits already queued on the same tick.
   bool tryBeginDodge(EcsWorld world, EntityId boss, EntityId player, int tick) {
@@ -64,8 +68,24 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
         world.controlLock.isLocked(boss, LockFlag.strike, tick) ||
         !world.cooldown.has(boss) ||
         !world.meleeIntent.has(boss) ||
-        !world.activeAbility.has(boss) ||
-        _dodgePosition(world, boss, player) == null) {
+        !world.activeAbility.has(boss)) {
+      return false;
+    }
+    final targetX = world.transform.posX[world.transform.indexOf(player)];
+    final bossX = world.transform.posX[world.transform.indexOf(boss)];
+    var side = 0;
+    if ((bossX - targetX).abs() > _clawRange) {
+      final left = _dodgePosition(world, boss, player, side: -1);
+      final right = _dodgePosition(world, boss, player, side: 1);
+      if (left == null && right == null) return false;
+      if (left != null && right != null) {
+        final roll = nextUint32(states.rngState[i]);
+        states.rngState[i] = roll;
+        side = roll.isEven ? -1 : 1;
+      } else {
+        side = left != null ? -1 : 1;
+      }
+    } else if (_dodgePosition(world, boss, player) == null) {
       return false;
     }
     final ability = AbilityCatalog.shared.resolve('goddess.dodge')!;
@@ -88,6 +108,7 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     states.startTick[i] = tick;
     states.executeTick[i] = tick + duration;
     states.player[i] = player;
+    states.landingSide[i] = side;
     world.controlLock.addLock(
       boss,
       LockFlag.move | LockFlag.jump | LockFlag.nav,
@@ -124,7 +145,12 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
         world.gravityControl.setSuppressForTicks(boss, 1);
         continue;
       }
-      final position = _dodgePosition(world, boss, player);
+      final position = _dodgePosition(
+        world,
+        boss,
+        player,
+        side: states.landingSide[i],
+      );
       if (position == null ||
           world.controlLock.isLocked(boss, LockFlag.strike, currentTick)) {
         _finishDodge(world, boss, i);
@@ -161,20 +187,27 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     }
   }
 
-  Vec2? _dodgePosition(EcsWorld world, EntityId boss, EntityId player) {
+  Vec2? _dodgePosition(
+    EcsWorld world,
+    EntityId boss,
+    EntityId player, {
+    int side = 0,
+  }) {
     final targetX = world.transform.posX[world.transform.indexOf(player)];
     final bossX = world.transform.posX[world.transform.indexOf(boss)];
-    final side = bossX >= targetX ? -1 : 1;
+    final landingSide = side == 0 ? (bossX >= targetX ? -1 : 1) : side;
     final placement = utilities.resolveArenaPlacement(
       world,
       boss,
       enemyId,
-      targetX + side * standOff,
+      targetX + landingSide * standOff,
     );
     if (placement == null) return null;
     final body = placement.bodyCenter!;
     final x = body.xTicks / terrainPhysicsTicksPerWorldUnit;
-    if ((x - targetX) * side <= 0 || (x - targetX).abs() > 45) return null;
+    if ((x - targetX) * landingSide <= 0 || (x - targetX).abs() > _clawRange) {
+      return null;
+    }
     return Vec2(x, body.yTicks / terrainPhysicsTicksPerWorldUnit);
   }
 
@@ -194,6 +227,7 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     states.startTick[i] = -1;
     states.executeTick[i] = -1;
     states.player[i] = -1;
+    states.landingSide[i] = 0;
   }
 
   @override

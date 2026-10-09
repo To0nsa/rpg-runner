@@ -35,7 +35,7 @@ death presentation, exit and victory blessing reuse the
 | Action | Default behavior |
 | --- | --- |
 | Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
-| Reactive dodge | Evades every fourth eligible direct player attack, vanishes for about 0.13 seconds, teleports 35 units to the player's opposite side, then counters with her four-swipe claw combo |
+| Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
 | Hand barrage | Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
 
@@ -60,9 +60,13 @@ The dodge counts melee, projectile and direct spell attacks that would hit her;
 a multi-hit combo counts once, and evading it also evades its remaining strikes.
 Misses, damage over time, NPC attacks and protected hits do not count. She cannot
 dodge during the hand barrage or its return, while stunned, or during another
-vanish. The landing follows the player's position when she reappears and must
-have clear supported ground inside the arena. If no legal opposite-side landing
-exists when attacked, that hit lands and the dodge stays ready. The counter uses
+vanish. At 45 units or less of horizontal separation she crosses to the opposite
+side. Beyond that range either side has an equal chance when both are legal;
+if only one side is legal, she uses it. The distant side is chosen when the dodge
+starts and stays fixed through the vanish. The landing follows the player's
+position when she reappears and must have clear supported ground inside the
+arena. If no legal landing exists when attacked, that hit lands and the dodge
+stays ready without rerolling the interval. The counter uses
 the normal claw windup and damage and can be escaped. Dodging evades the selected
 attack; it does not make her invincible against other attacks.
 

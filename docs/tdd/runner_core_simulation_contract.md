@@ -58,19 +58,23 @@ happen before motion preparation; outside actor isolation happens before
 AI/actions. Defeat resolves after damage/fatal culls and before death cleanup,
 with player loss taking precedence. Ancient God summons are admitted/expired
 before motion preparation; their teleports execute before water/navigation
-refresh. Goddess's reactive dodge executes next, followed by corner placement, return lifecycle
-and scheduled hands run immediately after those teleports. Her hover/return
+refresh. Goddess's reactive dodge executes next, followed by corner placement,
+return lifecycle and scheduled hands. Her hover/return
 velocity and committed spinning motion compose after locomotion and before the single
 terrain integration. Compatibility `2026.10.10` adds this barrage and
 authored strike windows that allow a later swing to hit the same target again. See
 [boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
 Prepared compatibility `2026.10.11` uses a continuous, collision-resolved Goddess
-return and limits teleporting to barrage entry and the fourth-attack reactive
+return and limits teleporting to barrage entry and the 4–6 attack reactive
 dodge. Damage middleware counts direct player attacks (each combo once),
 cancels the selected attack and begins an eight-authoring-tick vanish; its
-checked opposite-side placement and ordinary claw counter run before the next
+checked placement and ordinary claw counter run before the next
 water/navigation refresh when the vanish ends. Dodge cancellation is per attack,
-so earlier queued hits remain valid. Her barrage activation grants
+so earlier queued hits remain valid. The interval and distant landing side use
+a per-actor RNG stream derived from the run seed and entity ID. Close dodges
+cross the player; beyond 45 horizontal units the side is sampled once from legal
+candidates at commit. Blocked attempts retain the charged interval without
+consuming RNG. Her barrage activation grants
 unconditional damage/status protection through the last hand; action clear or
 replacement releases it without altering other invulnerability owners. Actor
 liveness remains independent from that protection.

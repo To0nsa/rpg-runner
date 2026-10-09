@@ -393,7 +393,9 @@ class EcsWorld {
   late final GoddessBarrageStore goddessBarrage = _register(
     GoddessBarrageStore(),
   );
-  late final GoddessDodgeStore goddessDodge = _register(GoddessDodgeStore());
+  late final GoddessDodgeStore goddessDodge = _register(
+    GoddessDodgeStore(seed: seed),
+  );
 
   /// Per-entity spawn animation timing state.
   late final SpawnStateStore spawnState = _register(SpawnStateStore());

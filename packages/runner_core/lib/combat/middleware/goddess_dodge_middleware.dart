@@ -2,12 +2,14 @@ import '../../ecs/combat_eligibility.dart';
 import '../../ecs/combat_target.dart';
 import '../../ecs/entity_id.dart';
 import '../../ecs/stores/damage_queue_store.dart';
+import '../../ecs/stores/enemies/goddess_dodge_store.dart';
 import '../../ecs/systems/damage_middleware_system.dart';
 import '../../ecs/world.dart';
 import '../../enemies/enemy_id.dart';
 import '../../events/game_event.dart';
+import '../../util/deterministic_rng.dart';
 
-/// Counts direct player attacks that reach Goddess; the fourth may be evaded.
+/// Counts direct player attacks until a seeded 4–6 attack dodge interval expires.
 /// Misses, DoT, NPC attacks and protected hits never advance the cadence.
 final class GoddessDodgeMiddleware implements DamageMiddleware {
   const GoddessDodgeMiddleware({required this.tryBeginDodge});
@@ -57,14 +59,22 @@ final class GoddessDodgeMiddleware implements DamageMiddleware {
       return;
     }
     if (key != null) state.comboDodged[i][key] = false;
-    if (state.attacks[i] < 3) {
+    if (state.attackInterval[i] == 0) _rollInterval(state, i);
+    if (state.attacks[i] < state.attackInterval[i] - 1) {
       state.attacks[i]++;
       return;
     }
-    // Keep the dodge ready when terrain prevents crossing the player.
+    // Blocked placement keeps this interval charged without rerolling it.
     if (!tryBeginDodge(world, boss, source, currentTick)) return;
     state.attacks[i] = 0;
+    _rollInterval(state, i);
     if (key != null) state.comboDodged[i][key] = true;
     queue.cancel(index);
+  }
+
+  void _rollInterval(GoddessDodgeStore state, int i) {
+    final roll = nextUint32(state.rngState[i]);
+    state.rngState[i] = roll;
+    state.attackInterval[i] = 4 + roll % 3;
   }
 }

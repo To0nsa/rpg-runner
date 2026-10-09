@@ -25,7 +25,8 @@ Save/Build/Play and live spawn placement reuse the existing
 
 `VoidbornGoddessCombatSystem`, `ShoggothCombatSystem` and
 `VoidcallerCombatSystem` independently select actions by sequence, target range
-and living summon count. They have no chunk-name dependency and consume no RNG.
+and living summon count. They have no chunk-name dependency. Their normal action
+rotations consume no RNG; Goddess's reactive dodge has its own seeded actor stream.
 Each boss owns separate ability definitions, render metadata and combat poses
 under its own filename. Minion and tentacle definitions are also separate.
 Projectile art lives with its owning actor's render catalog; Voidcaller's
@@ -47,7 +48,7 @@ The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 In prepared compatibility `2026.10.11`, Goddess selects claws when sequence
 modulo three is zero, horizontal distance is at most 45 world units and vertical
 distance is at most 50. Otherwise even positions cast orbs and odd positions
-cast the barrage. Barrage entry and the reactive fourth-attack dodge are her
+cast the barrage. Barrage entry and the reactive 4–6 attack dodge are her
 only teleports. Her orb windup is 27 authoring ticks (0.45 seconds), with
 480 world units/second flight. Shoggoth retains its separate 340-unit orb and
 teleport policy. Shared dispatch and wire formats remain unchanged;
@@ -92,11 +93,19 @@ combos use `(source, activation)` to count once and retain the evasion decision
 for later strikes. Non-combo player deliveries already hit each target once.
 Ordinary invulnerability, action protection, suspension, stun, a pending dodge
 and any barrage state exclude new attacks from the cadence. The registered
-store clears cadence, pending identity and the combo ledger when destroyed.
+store clears cadence, RNG, pending identity/side and the combo ledger when destroyed.
 
-At the fourth attack, the owning combat system preflights a supported landing
-35 units beyond the current player, strictly on the opposite side and within
-full-capsule arena bounds. Failure retains a charged cadence and accepts damage.
+The first eligible attack samples an interval of 4, 5 or 6 using `nextUint32`
+modulo three plus four. A successful dodge samples the next interval. Each actor
+has an independent stream initialized with `seedFrom(runSeed, entityId ^
+0x476f6444)`; cadence and distant-side choices share that stream. Ineligible hits,
+combo follow-ups and blocked attempts do not consume draws.
+
+At the sampled attack, the owning combat system preflights supported landings
+35 units from the current player and within full-capsule arena bounds. Within
+45 horizontal units it requires the opposite side. Beyond 45 units it validates
+both sides, draws an even/odd random choice if both are legal, or chooses the only
+legal side without a draw. Failure retains a charged cadence and accepts damage.
 Success cancels only that request and its combo follow-ups, resets the cadence,
 interrupts the current ordinary action and starts `goddess.dodge`. Its four
 vanish frames span eight 60 Hz authoring ticks, ceil-scaled to the simulation.
@@ -105,8 +114,10 @@ must still apply. Movement/navigation locks and brief gravity suppression hold
 her during the vanish.
 
 Before water/navigation on the execution tick, preparation validates the exact
-action/start tick and recomputes the opposite-side landing from current player
-position. It uses terrain-owned begin/commit/cancel teleport APIs, then commits
+action/start tick and recomputes the landing from current player position.
+Close dodges retain the crossing rule; distant dodges retain their committed
+left/right side without resampling. A destination that becomes blocked cancels
+the dodge. It uses terrain-owned begin/commit/cancel teleport APIs, then commits
 ordinary `goddess.claw_combo` facing the player. That reactive counter bypasses
 the rotation cooldown but preserves the longer of its new cooldown and the
 remaining prior cooldown; it does not advance the normal action sequence.

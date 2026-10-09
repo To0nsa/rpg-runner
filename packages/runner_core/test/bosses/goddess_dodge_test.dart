@@ -51,7 +51,7 @@ void main() {
       final dx = boss == null ? 0.0 : boss.pos.x - player.pos.x;
       if (boss != null) floorBodyY ??= boss.pos.y;
       // Let the protected barrage and its uninterrupted return finish before
-      // delivering the fourth eligible attack; return damage cannot trigger it.
+      // delivering more eligible attacks; return damage cannot trigger a dodge.
       final attack =
           boss != null &&
           boss.anim != AnimKey.ranged &&
@@ -97,19 +97,82 @@ void main() {
   });
 
   for (final hz in [30, 60, 90]) {
-    for (final bossX in [100.0, 400.0]) {
-      test('fourth attack crosses player from $bossX at $hz Hz', () {
+    test('seeded dodge intervals and distant sides vary reproducibly at $hz Hz', () {
+      final intervals = <int>{};
+      final sides = <int>{};
+      final histories = <String>{};
+      for (final seed in [7, 41, 2026]) {
+        final a = _Fixture(hz: hz, bossX: 100, seed: seed);
+        final b = _Fixture(hz: hz, bossX: 100, seed: seed);
+        final history = <(int, int)>[];
+        for (var cycle = 0; cycle < 12; cycle++) {
+          final tick = 10 + cycle * hz * 3;
+          for (final f in [a, b]) {
+            f.prepare(tick - 1);
+            // Recreate ranged pressure while keeping each actor's cadence/RNG.
+            f.world.transform.setPosXY(f.boss, 100, f.playerY);
+          }
+          final hp = a.hp;
+          var count = 0;
+          for (var attack = 1; attack <= 6; attack++) {
+            for (final f in [a, b]) {
+              f.queue();
+              f.damage(tick);
+            }
+            expect(b.action, a.action);
+            expect(b.hp, a.hp);
+            if (a.action == 'goddess.dodge') {
+              count = attack;
+              break;
+            }
+            expect(a.hp, hp - attack * 100);
+          }
+          expect(count, inInclusiveRange(4, 6));
+          expect(a.hp, hp - (count - 1) * 100);
+          final side = a.world.goddessDodge.landingSide[a.state];
+          expect(side, anyOf(-1, 1));
+          expect(b.world.goddessDodge.landingSide[b.state], side);
+          expect(b.interval, a.interval);
+          expect(a.interval, inInclusiveRange(4, 6));
+          expect(
+            b.world.goddessDodge.rngState[b.state],
+            a.world.goddessDodge.rngState[a.state],
+          );
+          intervals.add(count);
+          sides.add(side);
+          history.add((count, side));
+          for (final f in [a, b]) {
+            f.prepare(tick + (8 * hz / 60).ceil());
+            expect(f.x, 300 + side * 35);
+            expect(f.action, 'goddess.claw_combo');
+            expect(
+              f.world.activeAbility.facing[f.world.activeAbility.indexOf(
+                f.boss,
+              )],
+              side < 0 ? Facing.right : Facing.left,
+            );
+          }
+        }
+        histories.add(history.toString());
+      }
+      expect(intervals, {4, 5, 6});
+      expect(sides, {-1, 1});
+      expect(histories.length, greaterThan(1));
+    });
+
+    for (final bossX in [255.0, 345.0]) {
+      test('close dodge crosses player from $bossX at $hz Hz', () {
         final f = _Fixture(hz: hz, bossX: bossX);
         f.world.cooldown.setTicksLeft(f.boss, 0, hz * 5);
-        for (var hit = 0; hit < 4; hit++) {
+        for (var hit = 0; hit < 6; hit++) {
           f.queue();
         }
         f.damage(10);
         expect(
           f.hp,
-          11700,
+          11500,
           reason:
-              'only the fourth hit is canceled; ${f.combat.utilities.motion.lastSpawnPlacementDiagnostic}',
+              'only the chosen hit is canceled; ${f.combat.utilities.motion.lastSpawnPlacementDiagnostic}',
         );
         expect(f.action, 'goddess.dodge');
         expect(f.attacks, 0);
@@ -142,34 +205,97 @@ void main() {
         f.resolveCounterHits(execute);
         expect(f.world.damageQueue.target, List.filled(4, f.player));
         f.world.damageQueue.clear();
-        // A completed counter leaves the cadence ready for another four attacks.
+        // A completed counter starts another 4–6 attack interval.
         f.prepare(execute + hz * 3);
-        for (var hit = 0; hit < 4; hit++) {
+        for (var hit = 0; hit < 6; hit++) {
           f.queue();
         }
         f.damage(execute + hz * 3);
-        expect(f.hp, 11400);
+        expect(f.hp, 11000);
         expect(f.action, 'goddess.dodge');
       });
     }
   }
 
+  test('distant dodge uses the only legal side when the other is blocked', () {
+    for (final blocked in ['arena edge', 'gap', 'wall']) {
+      final f = _Fixture(blocked: blocked, bossX: 100);
+      for (var hit = 0; hit < 6; hit++) {
+        f.queue();
+      }
+      f.damage(10);
+      expect(f.action, 'goddess.dodge');
+      expect(f.world.goddessDodge.landingSide[f.state], -1);
+      f.prepare(18);
+      expect(f.x, blocked == 'arena edge' ? 545 : 265);
+      expect(f.action, 'goddess.claw_combo');
+    }
+  });
+
+  test(
+    'distant side is fixed through the vanish while following player position',
+    () {
+      final f = _Fixture(bossX: 100);
+      for (var hit = 0; hit < 6; hit++) {
+        f.queue();
+      }
+      f.damage(10);
+      final side = f.world.goddessDodge.landingSide[f.state];
+      final rng = f.world.goddessDodge.rngState[f.state];
+      for (var tick = 11; tick < 18; tick++) {
+        f.world.transform.setPosXY(f.player, 300 + (tick - 10) * 5, f.playerY);
+        f.prepare(tick);
+        expect(f.world.goddessDodge.landingSide[f.state], side);
+        expect(f.world.goddessDodge.rngState[f.state], rng);
+      }
+      f.prepare(18);
+      expect(f.x, 335 + side * 35);
+      expect(f.action, 'goddess.claw_combo');
+    },
+  );
+
+  test(
+    'invalid captured distant side cancels without rerolling during vanish',
+    () {
+      final f = _Fixture(bossX: 100);
+      for (var hit = 0; hit < 6; hit++) {
+        f.queue();
+      }
+      f.damage(10);
+      final side = f.world.goddessDodge.landingSide[f.state];
+      final rng = f.world.goddessDodge.rngState[f.state];
+      f.world.transform.setPosXY(f.player, side < 0 ? 10 : 590, f.playerY);
+      f.prepare(18);
+      expect(f.x, 100);
+      expect(f.action, isNull);
+      expect(f.world.goddessDodge.rngState[f.state], rng);
+    },
+  );
+
   test('each player combo counts once and an evaded combo stays evaded', () {
     final f = _Fixture();
-    for (var activation = 1; activation <= 4; activation++) {
+    var evaded = 0;
+    for (var activation = 1; activation <= 6; activation++) {
+      final before = f.hp;
       for (var strike = 1; strike <= 4; strike++) {
         f.queue(combo: f.combo(activation, strike));
         f.damage(activation * 10 + strike);
       }
+      if (f.hp == before) {
+        evaded = activation;
+        break;
+      }
     }
-    expect(f.hp, 10800, reason: 'three complete combos land');
+    expect(evaded, inInclusiveRange(4, 6));
+    final hp = 12000 - (evaded - 1) * 400;
+    expect(f.hp, hp, reason: 'only the chosen combo is evaded');
     expect(f.action, 'goddess.dodge');
     expect(f.attacks, 0);
-    f.prepare(49);
+    f.prepare(evaded * 10 + 9);
     expect(f.action, 'goddess.claw_combo');
-    f.queue(combo: f.combo(4, 5));
-    f.damage(50);
-    expect(f.hp, 10800);
+    f.queue(combo: f.combo(evaded, 5));
+    f.damage(evaded * 10 + 10);
+    expect(f.hp, hp);
     expect(f.attacks, 0);
   });
 
@@ -182,11 +308,13 @@ void main() {
         DeathSourceKind.spellImpact,
         DeathSourceKind.meleeHitbox,
         DeathSourceKind.projectile,
+        DeathSourceKind.spellImpact,
+        DeathSourceKind.meleeHitbox,
       ]) {
         f.queue(kind: kind);
       }
       f.damage(10);
-      expect(f.hp, 11700);
+      expect(f.hp, 11500);
       expect(f.action, 'goddess.dodge');
     },
   );
@@ -205,19 +333,29 @@ void main() {
 
   for (final blocked in ['arena edge', 'gap', 'wall']) {
     test('$blocked rejects a dodge without spending its cadence', () {
-      final f = _Fixture(blocked: blocked);
-      for (var hit = 0; hit < 4; hit++) {
+      final f = _Fixture(
+        blocked: blocked,
+        bossX: blocked == 'arena edge' ? 560 : 280,
+      );
+      for (var hit = 0; hit < 6; hit++) {
         f.queue();
       }
       f.damage(10);
-      expect(f.hp, 11600);
-      expect(f.attacks, 3);
+      expect(f.hp, 11400);
+      expect(f.attacks, f.interval - 1);
       expect(f.action, isNull);
-      expect(f.x, 100);
-      f.world.transform.setPosXY(f.player, 200, f.playerY);
+      expect(f.x, blocked == 'arena edge' ? 560 : 280);
+      final interval = f.interval;
+      final rng = f.world.goddessDodge.rngState[f.state];
       f.queue();
       f.damage(11);
-      expect(f.hp, 11600);
+      expect(f.hp, 11300);
+      expect(f.interval, interval, reason: 'blocked attacks do not reroll');
+      expect(f.world.goddessDodge.rngState[f.state], rng);
+      f.world.transform.setPosXY(f.player, 200, f.playerY);
+      f.queue();
+      f.damage(12);
+      expect(f.hp, 11300);
       expect(f.action, 'goddess.dodge');
     });
   }
@@ -230,7 +368,7 @@ void main() {
   ]) {
     test('$reason during vanish cancels pending placement and counter', () {
       final f = _Fixture();
-      for (var hit = 0; hit < 4; hit++) {
+      for (var hit = 0; hit < 6; hit++) {
         f.queue();
       }
       f.damage(10);
@@ -246,7 +384,7 @@ void main() {
           f.world.transform.setPosXY(f.player, 590, f.playerY);
       }
       f.prepare(18);
-      expect(f.x, 100);
+      expect(f.x, 280);
       expect(f.action, isNull);
       expect(f.world.gravityControl.has(f.boss), isFalse);
       expect(
@@ -259,7 +397,7 @@ void main() {
   test('barrage cast and return never trigger a reactive dodge', () {
     final f = _Fixture();
     f.world.goddessBarrage.addEntity(f.boss);
-    for (var hit = 0; hit < 4; hit++) {
+    for (var hit = 0; hit < 6; hit++) {
       f.queue();
     }
     f.damage(10);
@@ -277,12 +415,15 @@ void main() {
     expect(replacement, f.boss);
     final recycled = f.world.goddessDodge.addEntity(replacement);
     expect(f.world.goddessDodge.attacks[recycled], 0);
+    expect(f.world.goddessDodge.attackInterval[recycled], 0);
+    expect(f.world.goddessDodge.landingSide[recycled], 0);
     expect(f.world.goddessDodge.comboDodged[recycled], isEmpty);
   });
 }
 
 final class _Fixture {
-  _Fixture({this.hz = 60, double bossX = 100, String? blocked}) {
+  _Fixture({this.hz = 60, double bossX = 280, String? blocked, int seed = 41})
+    : world = EcsWorld(seed: seed) {
     final tuning = eloiseCharacter.tuning;
     final archetype = PlayerCatalogDerived.from(
       eloiseCharacter.catalog,
@@ -367,7 +508,7 @@ final class _Fixture {
   }
 
   final int hz;
-  final world = EcsWorld(seed: 41);
+  final EcsWorld world;
   late final int boss;
   late final int player;
   late final double playerY;
@@ -375,6 +516,8 @@ final class _Fixture {
   late final DamageMiddlewareSystem middleware;
   late final DamageSystem damageSystem;
   int get hp => world.health.hp[world.health.indexOf(boss)];
+  int get state => world.goddessDodge.indexOf(boss);
+  int get interval => world.goddessDodge.attackInterval[state];
   double get x => world.transform.posX[world.transform.indexOf(boss)];
   String? get action =>
       world.activeAbility.abilityId[world.activeAbility.indexOf(boss)];

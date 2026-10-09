@@ -30,7 +30,9 @@ replayed combat outcomes and requires a coordinated client/Functions/worker
 cutover; it has not been deployed by the source change. The ranked tuple and
 replay/command formats above remain unchanged.
 This prepared release also limits Goddess teleporting to barrage entry and a
-reactive dodge on every fourth eligible player attack, followed by a claw combo. It adds
+reactive dodge every 4–6 eligible player attacks, followed by a claw combo. Its
+seeded interval rerolls after each dodge; beyond claw range either legal landing
+side can be chosen. It adds
 continuous casting with cast invulnerability and a collision-resolved return,
 and speeds up her orb. Her actor scale is 0.8x with matching body, claws and
 approach spacing. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
