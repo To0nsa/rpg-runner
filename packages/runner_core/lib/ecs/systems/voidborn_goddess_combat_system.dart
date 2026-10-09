@@ -1,15 +1,20 @@
 import 'dart:math' as math;
 
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_id.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../snapshots/enums.dart';
 import '../actor_facing.dart';
+import '../combat_eligibility.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
 import '../world.dart';
 import 'ability_interrupt.dart';
 import 'boss_combat_system.dart';
+import 'enemy_melee_system.dart';
+import '../../util/vec2.dart';
 
 /// Goddess alternates her ranged threats, using claws when the target is close.
 final class VoidbornGoddessCombatSystem extends BossCombatSystem {
@@ -23,7 +28,7 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
   EnemyId get enemyId => EnemyId.voidbornGoddess;
   @override
   // World units: keep the target inside the smaller actor's claw reach.
-  double get standOff => 52;
+  double get standOff => 35;
   @override
   double get pursuitSpeedScale => .8;
 
@@ -36,10 +41,159 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     required bool atMeleeHeight,
     required int currentTick,
   }) {
-    if (distanceX <= 68 && atMeleeHeight && sequence % 3 == 0) {
+    if (distanceX <= 45 && atMeleeHeight && sequence % 3 == 0) {
       return 'goddess.claw_combo';
     }
     return sequence.isEven ? 'goddess.orb' : 'goddess.eruption';
+  }
+
+  late final _counterMelee = AiMeleeCommitter(tickHz: tickHz);
+
+  /// Starts a reactive vanish only when crossing the player has a legal landing.
+  /// Damage middleware cancels the selected attack; this never grants blanket
+  /// protection that could erase earlier hits already queued on the same tick.
+  bool tryBeginDodge(EcsWorld world, EntityId boss, EntityId player, int tick) {
+    final states = world.goddessDodge;
+    final i = states.tryIndexOf(boss) ?? states.addEntity(boss);
+    if (!isLivingCombatActor(world, boss) ||
+        !isLivingCombatActor(world, player) ||
+        isCombatProtected(world, boss) ||
+        world.goddessBarrage.has(boss) ||
+        world.arenaSuspension.has(boss) ||
+        states.executeTick[i] >= 0 ||
+        world.controlLock.isLocked(boss, LockFlag.strike, tick) ||
+        !world.cooldown.has(boss) ||
+        !world.meleeIntent.has(boss) ||
+        !world.activeAbility.has(boss) ||
+        _dodgePosition(world, boss, player) == null) {
+      return false;
+    }
+    final ability = AbilityCatalog.shared.resolve('goddess.dodge')!;
+    final duration = (ability.activeTicks * tickHz / 60).ceil();
+    AbilityInterrupt.clearActiveAndTransient(
+      world,
+      entity: boss,
+      startDeferredCooldown: true,
+    );
+    world.activeAbility.set(
+      boss,
+      id: ability.id,
+      slot: AbilitySlot.mobility,
+      commitTick: tick,
+      windupTicks: 0,
+      activeTicks: duration,
+      recoveryTicks: 1,
+      facingDir: actorFacing(world, boss),
+    );
+    states.startTick[i] = tick;
+    states.executeTick[i] = tick + duration;
+    states.player[i] = player;
+    world.controlLock.addLock(
+      boss,
+      LockFlag.move | LockFlag.jump | LockFlag.nav,
+      duration + 1,
+      tick,
+    );
+    return true;
+  }
+
+  /// Commits reactive teleports before water/navigation and then ordinary claws.
+  void prepareDodge(EcsWorld world, {required int currentTick}) {
+    final states = world.goddessDodge;
+    for (var i = 0; i < states.denseEntities.length; i++) {
+      if (states.executeTick[i] < 0) continue;
+      final boss = states.denseEntities[i];
+      final player = states.player[i];
+      final ai = world.activeAbility.tryIndexOf(boss);
+      final current =
+          ai != null &&
+          world.activeAbility.abilityId[ai] == 'goddess.dodge' &&
+          world.activeAbility.startTick[ai] == states.startTick[i];
+      if (!current ||
+          !isLivingCombatActor(world, boss) ||
+          !isLivingCombatActor(world, player) ||
+          world.arenaSuspension.has(boss) ||
+          world.controlLock.isStunned(boss, currentTick)) {
+        _finishDodge(world, boss, i);
+        continue;
+      }
+      final ti = world.transform.indexOf(boss);
+      if (currentTick < states.executeTick[i]) {
+        world.transform.velX[ti] = 0;
+        world.transform.velY[ti] = 0;
+        world.gravityControl.setSuppressForTicks(boss, 1);
+        continue;
+      }
+      final position = _dodgePosition(world, boss, player);
+      if (position == null ||
+          world.controlLock.isLocked(boss, LockFlag.strike, currentTick)) {
+        _finishDodge(world, boss, i);
+        continue;
+      }
+      final targetX = world.transform.posX[world.transform.indexOf(player)];
+      final motion = utilities.motion;
+      final origin = motion.beginBodyTeleport(world, boss);
+      final placed = motion.tryCommitBodyTeleport(
+        world,
+        boss,
+        bodyX: position.x,
+        bodyY: position.y,
+        facing: targetX >= position.x ? Facing.right : Facing.left,
+      );
+      _finishDodge(world, boss, i);
+      if (!placed) {
+        motion.cancelBodyTeleport(world, boss, origin);
+        continue;
+      }
+      // Reactive claws bypass the rotation's cooldown, then retain whichever
+      // cooldown is longer so dodging cannot accelerate the next normal cast.
+      final remaining = world.cooldown.getTicksLeft(boss, 0);
+      world.cooldown.setTicksLeft(boss, 0, 0);
+      final committed = _counterMelee.commit(
+        world,
+        actor: boss,
+        abilityId: 'goddess.claw_combo',
+        targetX: targetX,
+        currentTick: currentTick,
+      );
+      world.cooldown.startCooldown(boss, 0, remaining);
+      if (committed == null) motion.cancelBodyTeleport(world, boss, origin);
+    }
+  }
+
+  Vec2? _dodgePosition(EcsWorld world, EntityId boss, EntityId player) {
+    final targetX = world.transform.posX[world.transform.indexOf(player)];
+    final bossX = world.transform.posX[world.transform.indexOf(boss)];
+    final side = bossX >= targetX ? -1 : 1;
+    final placement = utilities.resolveArenaPlacement(
+      world,
+      boss,
+      enemyId,
+      targetX + side * standOff,
+    );
+    if (placement == null) return null;
+    final body = placement.bodyCenter!;
+    final x = body.xTicks / terrainPhysicsTicksPerWorldUnit;
+    if ((x - targetX) * side <= 0 || (x - targetX).abs() > 45) return null;
+    return Vec2(x, body.yTicks / terrainPhysicsTicksPerWorldUnit);
+  }
+
+  void _finishDodge(EcsWorld world, EntityId boss, int i) {
+    final states = world.goddessDodge;
+    final ai = world.activeAbility.tryIndexOf(boss);
+    if (ai != null &&
+        world.activeAbility.abilityId[ai] == 'goddess.dodge' &&
+        world.activeAbility.startTick[ai] == states.startTick[i]) {
+      AbilityInterrupt.clearActiveAndTransient(
+        world,
+        entity: boss,
+        startDeferredCooldown: false,
+      );
+    }
+    world.gravityControl.removeEntity(boss);
+    states.startTick[i] = -1;
+    states.executeTick[i] = -1;
+    states.player[i] = -1;
   }
 
   @override

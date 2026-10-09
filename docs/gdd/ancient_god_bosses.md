@@ -17,7 +17,7 @@ The corrections below are deployed in `2026.10.10`: aligned native beam pieces,
 Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
-Goddess uses **1.2x sprite scale**; Shoggoth and Voidcaller share Bringer of
+Goddess uses **0.8x sprite scale**; Shoggoth and Voidcaller share Bringer of
 Death's **1.5x scale**. All three have 120 HP, no passive health regeneration
 and Stun immunity. Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
@@ -35,13 +35,14 @@ death presentation, exit and victory blessing reuse the
 | Action | Default behavior |
 | --- | --- |
 | Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
+| Reactive dodge | Evades every fourth eligible direct player attack, vanishes for about 0.13 seconds, teleports 35 units to the player's opposite side, then counters with her four-swipe claw combo |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
 | Hand barrage | Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
 
 She alternates orbs and eruptions, using claws on every third sequence position
-when the player is within 68 units and near her height. Prepared source
-compatibility `2026.10.11` removes her standalone teleport: she teleports only
-to start the hand barrage. She approaches toward a 52-unit stand-off at 0.8 of
+when the player is within 45 units and near her height. Prepared source
+compatibility `2026.10.11` limits teleporting to the reactive dodge and entry
+into the hand barrage. She approaches toward a 35-unit stand-off at 0.8 of
 shared ground speed. The barrage sweeps from her corner
 to the other end, with fixed marks rather than tracking later player movement.
 Move between marks or jump to avoid the slaps. Her corner is 64 units inside the
@@ -54,6 +55,16 @@ action until her return ends.
 If both upper corners are obstructed she casts from her current safe position.
 Her return follows normal collision. If blocked beyond the expected travel time
 plus one second, she stops hovering and falls normally, without teleporting.
+
+The dodge counts melee, projectile and direct spell attacks that would hit her;
+a multi-hit combo counts once, and evading it also evades its remaining strikes.
+Misses, damage over time, NPC attacks and protected hits do not count. She cannot
+dodge during the hand barrage or its return, while stunned, or during another
+vanish. The landing follows the player's position when she reappears and must
+have clear supported ground inside the arena. If no legal opposite-side landing
+exists when attacked, that hit lands and the dodge stays ready. The counter uses
+the normal claw windup and damage and can be escaped. Dodging evades the selected
+attack; it does not make her invincible against other attacks.
 
 ## Shoggoth
 
@@ -98,7 +109,7 @@ with space from the player and other summons. A blocked summon creates nothing.
 
 Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
-and damage. Targets and attack directions are committed once; attacks never
+and damage. Damaging attacks capture targets and directions once; attacks never
 home onto subsequent player movement. Utility actions deal no direct damage.
 Consecutive poses of one swing share its hit ledger. In prepared source
 compatibility `2026.10.11`, claws, sweeps, spin passes and beam pulses are explicit
@@ -108,7 +119,7 @@ from that boss remain blocked for 0.25 seconds after each accepted hit. Overlapp
 bright frames never create damage every simulation tick. This uses the
 [shared combat rule](combat/combat_system_design.md#resolution-stage-damagesystem)
 and is not a boss-only exception; the source change is not yet deployed.
-When both teleport destinations are invalid, the boss reappears at its original
+When both Shoggoth teleport destinations are invalid, it reappears at its original
 safe position and the cooldown still applies.
 
 Each required boss awards 1000 points once. Arena survival time is excluded

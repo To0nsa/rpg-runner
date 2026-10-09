@@ -37,19 +37,20 @@ Global ability, enemy, projectile and pose catalogs remain lookup registries.
 summon lifetime. Neither contains a concrete boss selection switch. Each boss
 owns its spacing, pursuit speed, sequence and teleport cadence. Shoggoth owns
 spin motion composition; `VoidTentacleCombatSystem` owns planted behavior.
-Goddess owns her corner placement, hover and six-hand barrage in her own combat
-system and lifecycle-registered `GoddessBarrageStore`.
+Goddess owns her corner placement, hover, six-hand barrage and reactive dodge in
+her own combat system and lifecycle-registered `GoddessBarrageStore` and
+`GoddessDodgeStore`. Her damage middleware requests dodges through that system.
 Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
 In prepared compatibility `2026.10.11`, Goddess selects claws when sequence
-modulo three is zero, horizontal distance is at most 68 world units and vertical
+modulo three is zero, horizontal distance is at most 45 world units and vertical
 distance is at most 50. Otherwise even positions cast orbs and odd positions
-cast the barrage. There is no standalone Goddess teleport ability; only barrage
-entry relocates her. Her orb windup is 27 authoring ticks (0.45 seconds), with
+cast the barrage. Barrage entry and the reactive fourth-attack dodge are her
+only teleports. Her orb windup is 27 authoring ticks (0.45 seconds), with
 480 world units/second flight. Shoggoth retains its separate 340-unit orb and
-teleport policy. Shared dispatch, tick order and wire formats remain unchanged;
+teleport policy. Shared dispatch and wire formats remain unchanged;
 client and replay worker must ship the same Core selection and tuning.
 
 Both summons use ordinary enemy targeting, health, damage, statuses and death
@@ -74,7 +75,7 @@ execute a stale utility intent.
 | --- | --- |
 | Required arena spawn, then `BossUtilitySystem.prepare`, before terrain motion preparation | Admit summons and expire them before the authority enumerates tick bodies |
 | Shared utility teleport execution after target selection and Hashash teleports, before water/navigation refresh | Publish validated relocated support and position before dependent consumers |
-| Goddess barrage preparation immediately after utility teleports | Validate cast identity, commit corner placement, schedule due hands and manage return lifecycle before water/navigation |
+| Goddess dodge preparation, then barrage preparation, immediately after utility teleports | Validate action identity, commit the dodge and counter or corner placement, schedule due hands and manage return lifecycle before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
 | Goddess hover/return composition alongside spin composition | Suppress gravity and compose hover or return velocity while retaining normal knockback and one terrain integration |
@@ -84,6 +85,34 @@ AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects
 sample floor or top-side one-way support below the captured target. Delivery
 and effect rendering use the same rounded frame-step ticks. Damage geometry
 is resolved before broadphase; Flame never decides hit timing.
+
+`GoddessDodgeMiddleware` counts eligible direct player damage requests before
+damage resolution. Melee, projectile and spell-impact requests count; player
+combos use `(source, activation)` to count once and retain the evasion decision
+for later strikes. Non-combo player deliveries already hit each target once.
+Ordinary invulnerability, action protection, suspension, stun, a pending dodge
+and any barrage state exclude new attacks from the cadence. The registered
+store clears cadence, pending identity and the combo ledger when destroyed.
+
+At the fourth attack, the owning combat system preflights a supported landing
+35 units beyond the current player, strictly on the opposite side and within
+full-capsule arena bounds. Failure retains a charged cadence and accepts damage.
+Success cancels only that request and its combo follow-ups, resets the cadence,
+interrupts the current ordinary action and starts `goddess.dodge`. Its four
+vanish frames span eight 60 Hz authoring ticks, ceil-scaled to the simulation.
+It grants no blanket invulnerability: earlier requests in the same damage batch
+must still apply. Movement/navigation locks and brief gravity suppression hold
+her during the vanish.
+
+Before water/navigation on the execution tick, preparation validates the exact
+action/start tick and recomputes the opposite-side landing from current player
+position. It uses terrain-owned begin/commit/cancel teleport APIs, then commits
+ordinary `goddess.claw_combo` facing the player. That reactive counter bypasses
+the rotation cooldown but preserves the longer of its new cooldown and the
+remaining prior cooldown; it does not advance the normal action sequence.
+Death, stun, suspension, replacement or an invalid landing cancels the pending
+counter and releases gravity suppression. Barrage casting and return are never
+interrupted by this dodge.
 
 Goddess captures the cast start tick,
 original position/facing, first release tick and sweep direction. Six hands use
@@ -149,8 +178,8 @@ The unchanged runtime PNGs and license copies live under
 remain in ignored `resources/enemies_and_creatures/ancient_god_pack/`.
 The [asset map](../../assets/images/entities/enemies/ancient_god_pack/ASSET_MAP.md)
 records verified exported frame regions and discrepancies with Aseprite tags.
-Goddess actor art uses 1.2x scale, with a matching 21.6-by-64.8 body collider,
-scaled claw geometry and 52-world-unit approach stand-off. The other actors,
+Goddess actor art uses 0.8x scale, with a matching 14.4-by-43.2 body collider,
+scaled claw geometry and 35-world-unit approach stand-off. The other actors,
 projectiles and impact art retain 1.5x scale. Source rectangles and pivots
 remain source-pixel coordinates. Collider and attack dimensions are world units.
 Ground-enemy jump templates use the terrain capsule's quantized radius and

@@ -166,7 +166,9 @@ final class BossUtilitySystem {
     return count;
   }
 
-  TerrainSpawnPlacementResult? _position(
+  /// Resolves an actor at world X on valid support inside the owner's arena.
+  /// This is a read-only placement query; callers commit through [motion].
+  TerrainSpawnPlacementResult? resolveArenaPlacement(
     EcsWorld world,
     EntityId owner,
     EnemyId id,
@@ -204,7 +206,7 @@ final class BossUtilitySystem {
     if (livingSummons(world, boss) >= delivery.maxAlive) return;
     final playerX = world.transform.posX[world.transform.indexOf(player)];
     for (final offset in const [72.0, -72.0, 120.0, -120.0]) {
-      final placement = _position(
+      final placement = resolveArenaPlacement(
         world,
         boss,
         delivery.enemyId,
@@ -258,7 +260,7 @@ final class BossUtilitySystem {
     final target = world.bossCombat.targetX[i];
     final preferred = oldX >= target ? -delivery.distance : delivery.distance;
     for (final offset in [preferred, -preferred]) {
-      final placement = _position(
+      final placement = resolveArenaPlacement(
         world,
         boss,
         world.enemy.enemyId[world.enemy.indexOf(boss)],

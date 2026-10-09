@@ -29,9 +29,10 @@ attacker and combo activation bypass that combo's protection. This changes
 replayed combat outcomes and requires a coordinated client/Functions/worker
 cutover; it has not been deployed by the source change. The ranked tuple and
 replay/command formats above remain unchanged.
-This prepared release also limits Goddess teleporting to barrage entry, adds
+This prepared release also limits Goddess teleporting to barrage entry and a
+reactive dodge on every fourth eligible player attack, followed by a claw combo. It adds
 continuous casting with cast invulnerability and a collision-resolved return,
-and speeds up her orb. Her actor scale is 1.2x with matching body, claws and
+and speeds up her orb. Her actor scale is 0.8x with matching body, claws and
 approach spacing. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a

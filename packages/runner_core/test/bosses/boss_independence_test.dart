@@ -115,7 +115,7 @@ void main() {
           if (actions.length == 1) {
             expect(key, 'goddess.orb');
             // Miss the opening claw opportunity, then enter melee range.
-            f.world.transform.setPosXY(f.player, 335, 0);
+            f.world.transform.setPosXY(f.player, 365, 0);
           }
         }
 
@@ -133,10 +133,10 @@ void main() {
     );
 
     for (final (distance, height, sequence, expected) in [
-      (68.0, 50.0, 3, 'goddess.claw_combo'),
-      (68.01, 0.0, 3, 'goddess.eruption'),
-      (65.0, 50.01, 3, 'goddess.eruption'),
-      (65.0, 0.0, 4, 'goddess.orb'),
+      (45.0, 50.0, 3, 'goddess.claw_combo'),
+      (45.01, 0.0, 3, 'goddess.eruption'),
+      (35.0, 50.01, 3, 'goddess.eruption'),
+      (35.0, 0.0, 4, 'goddess.orb'),
     ]) {
       test(
         'Goddess chooses $expected at ($distance, $height), turn $sequence, $hz Hz',

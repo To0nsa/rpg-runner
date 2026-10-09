@@ -7,6 +7,17 @@ import '../../spell_impacts/spell_impact_id.dart';
 
 /// Timings use 60 Hz authoring ticks; cooldown group zero is local to each actor.
 final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
+  'goddess.dodge': AbilityDef(
+    id: 'goddess.dodge',
+    category: AbilityCategory.mobility,
+    hitDelivery: const SelfHitDelivery(),
+    windupTicks: 0,
+    // 133 ms vanish; one recovery tick preserves identity for the AI transition.
+    activeTicks: 8,
+    recoveryTicks: 1,
+    cooldownTicks: 0,
+    animKey: AnimKey.teleportOut,
+  ),
   'goddess.claw_combo': AbilityDef(
     id: 'goddess.claw_combo',
     category: AbilityCategory.melee,

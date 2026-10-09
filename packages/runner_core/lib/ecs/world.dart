@@ -81,6 +81,7 @@ import 'stores/spawn_state_store.dart';
 import 'stores/boss_combat_state_store.dart';
 import 'stores/boss_summon_store.dart';
 import 'stores/enemies/goddess_barrage_store.dart';
+import 'stores/enemies/goddess_dodge_store.dart';
 import 'stores/target_point_intent_store.dart';
 import 'stores/transform_store.dart';
 import 'stores/trap_store.dart';
@@ -392,6 +393,7 @@ class EcsWorld {
   late final GoddessBarrageStore goddessBarrage = _register(
     GoddessBarrageStore(),
   );
+  late final GoddessDodgeStore goddessDodge = _register(GoddessDodgeStore());
 
   /// Per-entity spawn animation timing state.
   late final SpawnStateStore spawnState = _register(SpawnStateStore());

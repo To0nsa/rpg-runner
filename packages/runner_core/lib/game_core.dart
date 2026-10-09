@@ -32,6 +32,7 @@ import 'abilities/ability_def.dart';
 import 'abilities/forced_interrupt_policy.dart';
 import 'accessories/accessory_catalog.dart';
 import 'combat/middleware/hashash_teleport_evade_middleware.dart';
+import 'combat/middleware/goddess_dodge_middleware.dart';
 import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
@@ -628,6 +629,10 @@ class GameCore {
     _damageMiddlewareSystem = DamageMiddlewareSystem(
       middlewares: [
         HashashTeleportEvadeMiddleware(tickHz: tickHz),
+        GoddessDodgeMiddleware(
+          tryBeginDodge: (world, boss, player, tick) =>
+              _goddessCombat.tryBeginDodge(world, boss, player, tick),
+        ),
         ParryMiddleware(
           abilityIds: const <AbilityKey>{
             'eloise.aegis_riposte',
@@ -1691,6 +1696,8 @@ class GameCore {
       currentTick: tick,
     );
     _bossUtilities.executeTeleports(_world, player: _player, currentTick: tick);
+    // Reactive dodge placement and its counter must precede water/navigation.
+    _goddessCombat.prepareDodge(_world, currentTick: tick);
     _goddessCombat.prepareBarrage(_world, currentTick: tick);
     // Observe teleports and the published water before both enemy AI and player
     // action gates; refresh again after integration for snapshots and next tick.

@@ -2,7 +2,7 @@ import '../snapshots/enums.dart';
 import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
-/// World-unit geometry: claws fit the 1.2x actor, hands the 1.5x effect art.
+/// World-unit geometry: claws fit the 0.8x actor, hands the 1.5x effect art.
 abstract final class VoidbornGoddessPoseCatalog {
   static const goddessClaws = CombatStrikeProfile(
     combo: CombatCombo(strikeStartFrames: [4, 7, 12, 15]),
@@ -13,19 +13,19 @@ abstract final class VoidbornGoddessPoseCatalog {
       [],
       [],
       [],
-      [CombatCapsule(-17.6, -9.6, -56.8, -13.6, 4.8)],
-      [CombatCapsule(-17.6, -9.6, -56.8, -13.6, 4.8)],
-      [CombatCapsule(-17.6, -9.6, -56.8, -13.6, 4.8)],
-      [CombatCapsule(-20.8, -4, -54.4, 4.8, 4.8)],
-      [CombatCapsule(-20.8, -4, -54.4, 4.8, 4.8)],
-      [CombatCapsule(-20.8, -4, -54.4, 4.8, 4.8)],
+      [CombatCapsule(-11.73, -6.4, -37.87, -9.07, 3.2)],
+      [CombatCapsule(-11.73, -6.4, -37.87, -9.07, 3.2)],
+      [CombatCapsule(-11.73, -6.4, -37.87, -9.07, 3.2)],
+      [CombatCapsule(-13.87, -2.67, -36.27, 3.2, 3.2)],
+      [CombatCapsule(-13.87, -2.67, -36.27, 3.2, 3.2)],
+      [CombatCapsule(-13.87, -2.67, -36.27, 3.2, 3.2)],
       [],
       [],
-      [CombatCapsule(-17.6, -12.8, -48, -20, 4.8)],
-      [CombatCapsule(-17.6, -12.8, -48, -20, 4.8)],
+      [CombatCapsule(-11.73, -8.53, -32, -13.33, 3.2)],
+      [CombatCapsule(-11.73, -8.53, -32, -13.33, 3.2)],
       [],
-      [CombatCapsule(-19.2, -6.4, -49.6, 9.6, 4.8)],
-      [CombatCapsule(-19.2, -6.4, -49.6, 9.6, 4.8)],
+      [CombatCapsule(-12.8, -4.27, -33.07, 6.4, 3.2)],
+      [CombatCapsule(-12.8, -4.27, -33.07, 6.4, 3.2)],
       [],
       [],
     ],
@@ -85,6 +85,11 @@ abstract final class VoidbornGoddessPoseCatalog {
 
   /// Actor art phases share the committed action clock used by damage.
   static ActionFramePolicy? timingFor(String abilityId) => switch (abilityId) {
+    'goddess.dodge' => const ActionFramePolicy(
+      frameCount: 4,
+      activeStart: 0,
+      activeEnd: 4,
+    ),
     'goddess.claw_combo' => VoidbornGoddessPoseCatalog.goddessClaws.timing,
     'goddess.orb' => const ActionFramePolicy(
       frameCount: 11,
