@@ -17,9 +17,9 @@ The corrections below are deployed in `2026.10.10`: aligned native beam pieces,
 Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
-Goddess uses **0.8x sprite scale**; Shoggoth and Voidcaller share Bringer of
-Death's **1.5x scale**. All three have 120 HP, no passive health regeneration
-and Stun immunity. Prepared compatibility `2026.10.11` also
+Goddess uses **1.0x sprite scale** and **360 HP**; Shoggoth and Voidcaller have
+120 HP and share Bringer of Death's **1.5x scale**. All three have no passive
+health regeneration and have Stun immunity. Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
 keeping duration unchanged, as described in [Bringer's defenses](bringer_of_death.md).
 Beneficial effects retain their full strength, and summoned minions and tentacles

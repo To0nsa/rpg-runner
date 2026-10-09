@@ -34,8 +34,8 @@ reactive dodge every 4–6 eligible player attacks, followed by a claw combo. It
 seeded interval rerolls after each dodge; beyond claw range either legal landing
 side can be chosen. It adds
 continuous casting with cast invulnerability and a collision-resolved return,
-and speeds up her orb. Her actor scale is 0.8x with matching body, claws and
-approach spacing. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
+and speeds up her orb. Her health is 360 HP and actor scale is 1.0x with matching
+body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
 nominal 0.6-second warning per hand, and deals 10 dark damage per slap.

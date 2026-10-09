@@ -23,11 +23,11 @@ const voidbornGoddessArchetype = EnemyArchetype(
   ),
   collider: _voidbornGoddessCollider,
   // Finite encounter health; summons grant no kill points.
-  health: HealthDef(hp: 12000, hpMax: 12000, regenPerSecond100: 0),
+  health: HealthDef(hp: 36000, hpMax: 36000, regenPerSecond100: 0),
   mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
   stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
   renderAnim: VoidbornGoddessRenderCatalog.actor,
-  renderScale: 0.8,
+  renderScale: 1.0,
   animProfile: AnimProfile(
     supportsCast: true,
     supportsRanged: true,
@@ -53,8 +53,8 @@ const voidbornGoddessArchetype = EnemyArchetype(
 );
 
 const ColliderAabbDef _voidbornGoddessCollider = ColliderAabbDef(
-  halfX: 7.2,
-  halfY: 21.6,
+  halfX: 9,
+  halfY: 27,
   offsetY: 0,
 );
 

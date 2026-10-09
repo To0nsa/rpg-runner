@@ -11,7 +11,7 @@ void main() {
       EnemyId.hashash: 1.5,
       EnemyId.derf: 1.5,
       EnemyId.bringerOfDeath: 1.5,
-      EnemyId.voidbornGoddess: 0.8,
+      EnemyId.voidbornGoddess: 1.0,
       EnemyId.shoggoth: 1.5,
       EnemyId.voidcaller: 1.5,
       EnemyId.shoggothMinion: 1.5,
