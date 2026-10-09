@@ -37,7 +37,9 @@ swipes, retaining per-hit damage ownership and final recovery. Its
 seeded interval rerolls after each dodge; beyond claw range either legal landing
 side can be chosen. It adds
 continuous barrage casting with invulnerability and a vulnerable orb/teleport exit,
-and speeds up her orb. Her health is 360 HP and actor scale is 1.0x with matching
+and speeds up her orb. Orb art and generated collision capsules are centered on
+the aim line; live and ghost explosions center over the struck body. Her health
+is 360 HP and actor scale is 1.0x with matching
 body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a

@@ -111,7 +111,8 @@ abstract final class VoidbornGoddessRenderCatalog {
   static const orb = RenderAnimSetDefinition(
     frameWidth: 138,
     frameHeight: 93,
-    anchorPoint: Vec2(69, 45),
+    anchorPoint: Vec2(69, 59),
+    anchorPointByKey: {AnimKey.hit: Vec2(69, 57)},
     sourcesByKey: {
       AnimKey.spawn:
           'entities/enemies/ancient_god_pack/voidborn_goddess/sprite_sheet.png',

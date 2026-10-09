@@ -5,9 +5,11 @@ import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
 import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/util/vec2.dart';
 
 import '../sprite_anim/deterministic_anim_view.dart';
 import '../sprite_anim/sprite_anim_set.dart';
@@ -41,6 +43,9 @@ DeterministicAnimView _defaultProjectileViewFactory(
   );
 }
 
+/// Selects the captured hit location used by both live and ghost impact art.
+enum ProjectileImpactPlacement { contact, targetCenter }
+
 class ProjectileRenderEntry {
   ProjectileRenderEntry({
     required this.id,
@@ -48,6 +53,7 @@ class ProjectileRenderEntry {
     this.oneShotKeys = _defaultProjectileOneShotKeys,
     this.loader = loadAnimSetFromDefinition,
     this.viewFactory = _defaultProjectileViewFactory,
+    this.impactPlacement = ProjectileImpactPlacement.contact,
   });
 
   final ProjectileId id;
@@ -55,6 +61,13 @@ class ProjectileRenderEntry {
   final Set<AnimKey> oneShotKeys;
   final ProjectileAnimLoader loader;
   final ProjectileViewFactory viewFactory;
+  final ProjectileImpactPlacement impactPlacement;
+
+  /// World position at impact time; never consults mutable actor state.
+  Vec2 impactPosition(ProjectileHitEvent event) => switch (impactPlacement) {
+    ProjectileImpactPlacement.contact => event.pos,
+    ProjectileImpactPlacement.targetCenter => event.targetCenter,
+  };
 
   SpriteAnimSet? _animSet;
   bool _hasAssets = true;
@@ -104,6 +117,7 @@ class ProjectileRenderRegistry {
         ProjectileId.goddessOrb: ProjectileRenderEntry(
           id: ProjectileId.goddessOrb,
           renderScale: Vector2.all(1.5),
+          impactPlacement: ProjectileImpactPlacement.targetCenter,
         ),
         ProjectileId.shoggothOrb: ProjectileRenderEntry(
           id: ProjectileId.shoggothOrb,

@@ -83,6 +83,12 @@ second minimum voluntary interval; a successful dodge resets it. Ordinary action
 and cooldown gates also apply, preserving claw recovery. A pending health phase
 always overrides regular decisions. Her orb retains 27 authoring ticks of
 windup and 480 world units/second flight; Shoggoth's orb remains at 340.
+The orb's flight pivot is `(69, 59)` in its 138x93 frame, keeping its opaque
+silhouette and generated capsule on the captured aim line in either direction
+and on diagonal shots. Impact frames use their own `(69, 57)` pivot. The render
+registry places this burst at `ProjectileHitEvent.targetCenter`, the struck
+combat-body center captured on the collision tick, in both live and ghost views.
+The burst remains at that position and adds no area damage or target tracking.
 Client and replay worker must ship matching Core selection and tuning.
 
 Before tactical decisions, Goddess observes current/max health using integer

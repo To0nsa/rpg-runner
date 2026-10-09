@@ -117,6 +117,8 @@ Object eventFields(GameEvent e) => [
       e.projectileId,
       e.pos.x,
       e.pos.y,
+      e.targetCenter.x,
+      e.targetCenter.y,
       e.facing,
       e.rotationRad,
       e.sourceProjectileId,

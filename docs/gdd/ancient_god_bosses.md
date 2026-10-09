@@ -36,7 +36,7 @@ death presentation, exit and victory blessing reuse the
 | --- | --- |
 | Claw combo | Four visible swipes that follow and turn toward the player between hits, each able to deal 7 physical damage per target; 0.4-second windup |
 | Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
-| Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
+| Void orb | Flies straight toward the target position captured when casting starts; 6 dark damage; 0.45-second cast and 480 world units/second flight. The orb follows its aim line, and its explosion is centered over the struck body, expanding across the player silhouette. |
 | Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then casts one orb and teleports to medium range; at least six seconds between commits |
 
 Prepared compatibility `2026.10.11` makes her a mostly stationary caster:

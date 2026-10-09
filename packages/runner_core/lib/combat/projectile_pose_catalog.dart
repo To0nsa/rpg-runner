@@ -192,19 +192,19 @@ abstract final class ProjectilePoseCatalog {
     [CombatCapsule(-15.75, 0, 15.75, 0, 0.75)],
   ];
   static const _goddessOrbSpawn = [
-    [CombatCapsule(-21, 21, 24, 21, 10.5)],
-    [CombatCapsule(-15, 21, 10.5, 21, 18)],
-    [CombatCapsule(-12.75, 21.75, 9.75, 21.75, 18.75)],
+    [CombatCapsule(-21, 0, 24, 0, 10.5)],
+    [CombatCapsule(-15, 0, 10.5, 0, 18)],
+    [CombatCapsule(-12.75, 0.75, 9.75, 0.75, 18.75)],
   ];
   static const _goddessOrbIdle = [
-    [CombatCapsule(-4.5, 19.5, 3, 19.5, 16.5)],
-    [CombatCapsule(-4.5, 21, -1.5, 21, 15)],
-    [CombatCapsule(-10.5, 21, 1.5, 21, 15)],
-    [CombatCapsule(-3.75, 20.25, -3.75, 20.25, 15.75)],
-    [CombatCapsule(-7.5, 21, 1.5, 21, 15)],
-    [CombatCapsule(-4.5, 21, -1.5, 21, 15)],
-    [CombatCapsule(-10.5, 21, 1.5, 21, 15)],
-    [CombatCapsule(-3.75, 20.25, -3.75, 20.25, 15.75)],
+    [CombatCapsule(-4.5, -1.5, 3, -1.5, 16.5)],
+    [CombatCapsule(-4.5, 0, -1.5, 0, 15)],
+    [CombatCapsule(-10.5, 0, 1.5, 0, 15)],
+    [CombatCapsule(-3.75, -0.75, -3.75, -0.75, 15.75)],
+    [CombatCapsule(-7.5, 0, 1.5, 0, 15)],
+    [CombatCapsule(-4.5, 0, -1.5, 0, 15)],
+    [CombatCapsule(-10.5, 0, 1.5, 0, 15)],
+    [CombatCapsule(-3.75, -0.75, -3.75, -0.75, 15.75)],
   ];
   static const _shoggothOrbIdle = [
     [CombatCapsule(0.75, -0.75, 5.25, -0.75, 23.25)],

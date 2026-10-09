@@ -121,11 +121,12 @@ class RunEventFeedbackSystem {
         continue;
       }
 
+      final impactPosition = entry.impactPosition(event);
       final component = CameraSpaceSnappedSpriteAnimation(
         animation: hitAnim,
         size: entry.animSet.frameSize.clone(),
-        worldPosX: event.pos.x,
-        worldPosY: event.pos.y,
+        worldPosX: impactPosition.x,
+        worldPosY: impactPosition.y,
         anchor: entry.animSet.anchorFor(AnimKey.hit),
         paint: Paint()..filterQuality = FilterQuality.none,
         removeOnFinish: true,

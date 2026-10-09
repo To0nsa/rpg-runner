@@ -47,6 +47,59 @@ import '../test_tunings.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'ghost orb bursts use captured body centers for placement and culling',
+    () async {
+      final harness = _buildHarness();
+      addTearDown(harness.dispose);
+      final images = Images();
+      addTearDown(images.clearCache);
+      final projectiles = ProjectileRenderRegistry();
+      await projectiles.load(images);
+      final world = Component();
+      final layer = GhostLayerSystem(
+        controller: harness.controller,
+        world: world,
+        images: images,
+        enemyRenderRegistry: EnemyRenderRegistry(),
+        npcRenderRegistry: NpcRenderRegistry(),
+        projectileRenderRegistry: projectiles,
+        spellImpactRenderRegistry: SpellImpactRenderRegistry(),
+        combatFeedbackTuning: const CombatFeedbackTuning(),
+        ghostRenderListenable: null,
+      );
+      addTearDown(layer.clearViews);
+      layer.debugSetGhostRenderStateForTest(
+        events: const [
+          ProjectileHitEvent(
+            tick: 10,
+            projectileId: ProjectileId.goddessOrb,
+            pos: Vec2(10000, 0),
+            targetCenter: Vec2(50, 40),
+            facing: Facing.left,
+            rotationRad: 3,
+          ),
+          ProjectileHitEvent(
+            tick: 10,
+            projectileId: ProjectileId.goddessOrb,
+            pos: Vec2(50, 40),
+            targetCenter: Vec2(10000, 0),
+            facing: Facing.right,
+            rotationRad: 0,
+          ),
+        ],
+      );
+      layer.flushPendingProjectileHitEvents(cameraCenter: Vector2.zero());
+      final impact = world.children
+          .whereType<CameraSpaceSnappedSpriteAnimation>()
+          .single;
+      expect(impact.worldPosX, 50);
+      expect(impact.worldPosY, 40);
+      expect(impact.angle, 3);
+      expect(impact.animationStartTick, 10);
+    },
+  );
+
   for (final cancel in [false, true]) {
     test(
       'ghost preparation awaits shared animations and fences cancellation: $cancel',

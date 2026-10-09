@@ -1,4 +1,5 @@
 import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/combat_geometry.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/combat/hit_target_policy.dart';
 import 'package:runner_core/ecs/hit/capsule_sweep.dart';
@@ -52,6 +53,8 @@ void main() {
       expect(world.damageQueue.sourceEntity, [null]);
       expect(world.projectile.has(p), isFalse);
       expect(events.single.pos.x, closeTo(25, 1e-10));
+      expect(events.single.targetCenter.x, 30);
+      expect(events.single.targetCenter.y, 0);
     },
   );
 
@@ -64,6 +67,29 @@ void main() {
     resolve(world);
     expect(world.damageQueue.target, [large]);
   });
+
+  for (final piercing in [false, true]) {
+    test('hit event captures the struck pose center, piercing=$piercing', () {
+      final world = EcsWorld();
+      final near = _target(world, 30);
+      final far = _target(world, 60);
+      world.combatHurtbox.set(near, const CombatCapsule(5, -6, 5, 10, 2));
+      final projectile = _projectile(world);
+      final pi = world.projectile.indexOf(projectile);
+      world.projectile.pierce[pi] = piercing;
+      world.projectile.maxPierceHits[pi] = 2;
+      final events = <ProjectileHitEvent>[];
+      motion.step(world, movement);
+      resolve(world, events: events);
+      expect(world.damageQueue.target, piercing ? [near, far] : [near]);
+      expect(events.first.targetCenter.x, 35);
+      expect(events.first.targetCenter.y, 2);
+      if (piercing) {
+        expect(events.last.targetCenter.x, 60);
+        expect(events.last.targetCenter.y, 0);
+      }
+    });
+  }
 
   test('equal contact uses entity ID after dense swap removal', () {
     final world = EcsWorld();

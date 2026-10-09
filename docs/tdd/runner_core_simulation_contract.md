@@ -128,6 +128,12 @@ reaction pass that does not advance locomotion twice. See
 [combat pose geometry](combat_pose_geometry.md) for ownership, action timing,
 projectile/impact clocks, and snapshot/debug contracts.
 
+Projectile hit events capture both the projectile contact position and the
+struck combat-body center from that tick's broadphase. Render consumers choose
+their impact placement from these immutable positions; they do not query a
+later actor pose. Goddess orb flight alignment and its body-centered impact
+presentation are included in prepared compatibility `2026.10.11`.
+
 Damage grants post-hit invulnerability immediately, protecting against later
 queued damage in the same tick except a strictly later strike from the same
 explicit combo activation and source that caused positive HP loss. A separate

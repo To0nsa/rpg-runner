@@ -133,6 +133,17 @@ remain separate from their visual damage silhouettes. Ordinary and piercing
 travel use swept capsules; piercing contacts sort by arrival fraction, then
 entity ID, and retain target deduplication.
 
+`ProjectileHitEvent` retains the projectile contact position and also captures
+`targetCenter` from the same broadphase combat pose that received the hit. Each
+piercing hit captures its own target center. These immutable world positions
+survive projectile despawn and subsequent target movement. Live feedback and
+ghost playback share `ProjectileRenderEntry.impactPosition`: ordinary impacts
+use contact placement; Goddess orb bursts use the struck body center. Its
+flight pivot and generated capsule are centered on the trajectory, with a
+separate impact pivot for the expanding burst. This alignment is included in
+prepared compatibility `2026.10.11`; it changes orb collision geometry, without
+adding explosion damage or changing command/replay wire formats.
+
 Normal Derf's explosion owns its 16-pose timeline at 0.05 seconds per pose. Only poses
 2 and 3 damage, beginning six ticks after release at 60 Hz. Blank/startup and
 dissipation poses are harmless. The hitbox remains world-anchored and dedupes
