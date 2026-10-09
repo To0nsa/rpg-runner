@@ -115,6 +115,11 @@ to simulation ticks. Ten harmless frames therefore warn for 20/40/50 ticks at
 30/60/90 Hz (about 0.6 seconds); frames 10–14 can slap once. Marks stay fixed
 regardless of subsequent player movement. Committed effects retain normal
 impact lifetime behavior.
+Each active hand frame uses a union of capsules traced around its palm and
+fingers, converted from source pixels about `(69,92)` at the effect's 1.5x scale.
+Detached motes, impact streaks and transparent corners are outside the damage
+silhouette. All capsules share that hand's one-hit ledger and world anchor;
+caster facing cannot mirror the floor effect.
 
 `BossSummonDelivery` defines type, living cap and lifetime. Summon candidates
 are captured target X plus `[72, -72, 120, -120]`, in stable order. Admission

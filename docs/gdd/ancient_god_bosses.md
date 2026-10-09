@@ -47,6 +47,8 @@ to the other end, with fixed marks rather than tracking later player movement.
 Move between marks or jump to avoid the slaps. Her corner is 64 units inside the
 arena and 150 units above the level floor. Six preparation frames lead into all
 thirty casting frames, continuing through the final hand's full effect.
+During each slap, the entire visible palm and fingers can hit the player;
+the warning frames, detached particles and impact streaks remain harmless.
 She becomes vulnerable again when the hands finish and cannot start another
 action until her return ends.
 If both upper corners are obstructed she casts from her current safe position.

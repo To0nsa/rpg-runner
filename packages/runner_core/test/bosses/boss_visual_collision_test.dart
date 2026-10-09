@@ -71,37 +71,13 @@ void main() {
       'hand warning matches its art then slaps once for 10 damage at $hz Hz',
       () {
         final f = _Fixture(EnemyId.voidbornGoddess, hz);
-        expect(
-          AiCastCommitter(
-            tickHz: hz,
-            projectiles: const ProjectileCatalog(),
-            surfaceTarget: (x, y) => Vec2(x, 24),
-          ).commit(
-            f.world,
-            actor: f.boss,
-            castAbility: AbilityCatalog.shared.resolve('goddess.eruption')!,
-            sourceX: 0,
-            sourceY: 0,
-            targetX: 300,
-            targetY: 0,
-            targetVelX: 0,
-            targetVelY: 0,
-            aimPolicy: AiCastAimPolicy.targetCenter,
-            casterOriginOffset: 0,
-            currentTick: 10,
-          ),
-          isTrue,
-        );
-        final i = f.world.targetPointIntent.indexOf(f.boss);
-        final execute = f.world.targetPointIntent.tick[i];
-        final step = f.world.targetPointIntent.frameStepTicks[i];
+        final (execute, step) = f.spawnHand();
         final renderStep = VoidbornGoddessRenderCatalog
             .eruption
             .stepTimeSecondsByKey[AnimKey.hit]!;
         expect(step, (.06 * hz).round());
         expect((renderStep * hz).round(), step);
         final active = execute + 10 * step;
-        TargetPointImpactSystem().step(f.world, currentTick: execute);
         f.world.transform.setPosXY(f.player, 300, 14);
         for (var tick = execute; tick < active; tick++) {
           f.hit(tick);
@@ -117,6 +93,51 @@ void main() {
         f.expectAcceptedDamage(1000, tick: active);
       },
     );
+
+    // Source-pixel samples from the upper finger and both palm edges of row 8.
+    for (final (frame, tip, left, right) in [
+      (10, (60.0, 58.0), (52.0, 87.0), (80.0, 88.0)),
+      (11, (60.0, 56.0), (53.0, 87.0), (83.0, 88.0)),
+      (12, (60.0, 51.0), (48.0, 68.0), (84.0, 89.0)),
+      (13, (60.0, 56.0), (52.0, 88.0), (84.0, 89.0)),
+      (14, (55.0, 67.0), (51.0, 82.0), (81.0, 88.0)),
+    ]) {
+      for (final facing in Facing.values) {
+        test(
+          'hand frame $frame covers its full silhouette at $hz Hz $facing',
+          () {
+            for (final (point, hits) in [
+              (tip, true),
+              (left, true),
+              (right, true),
+              ((30.0, 70.0), false),
+              ((100.0, 70.0), false),
+              (
+                (80.0, 60.0),
+                false,
+              ), // Empty upper corner inside the broad bounds.
+            ]) {
+              final f = _Fixture(EnemyId.voidbornGoddess, hz);
+              final (execute, step) = f.spawnHand(facing: facing);
+              f.world.transform.setPosXY(
+                f.player,
+                300 + (point.$1 - 69) * 1.5,
+                24 + (point.$2 - 92) * 1.5,
+              );
+              final tick = execute + frame * step;
+              f.hit(tick);
+              expect(
+                f.world.damageQueue.target,
+                hits ? [f.player] : isEmpty,
+                reason: 'source pixel $point',
+              );
+              f.hit(tick + 1);
+              expect(f.world.damageQueue.length, hits ? 1 : 0);
+            }
+          },
+        );
+      }
+    }
 
     test('diagonal beam hits its visible upper-right slope at $hz Hz', () {
       final f = _Fixture(EnemyId.voidcaller, hz);
@@ -221,6 +242,38 @@ class _Fixture {
   final world = EcsWorld(seed: 7);
   final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
   late final int boss, player;
+
+  (int, int) spawnHand({Facing facing = Facing.right}) {
+    final sourceX = facing == Facing.right ? 0.0 : 600.0;
+    world.transform.setPosXY(boss, sourceX, 0);
+    expect(
+      AiCastCommitter(
+        tickHz: hz,
+        projectiles: const ProjectileCatalog(),
+        surfaceTarget: (x, y) => Vec2(x, 24),
+      ).commit(
+        world,
+        actor: boss,
+        castAbility: AbilityCatalog.shared.resolve('goddess.eruption')!,
+        sourceX: sourceX,
+        sourceY: 0,
+        targetX: 300,
+        targetY: 0,
+        targetVelX: 0,
+        targetVelY: 0,
+        aimPolicy: AiCastAimPolicy.targetCenter,
+        casterOriginOffset: 0,
+        currentTick: 10,
+      ),
+      isTrue,
+    );
+    final i = world.targetPointIntent.indexOf(boss);
+    final execute = world.targetPointIntent.tick[i];
+    final step = world.targetPointIntent.frameStepTicks[i];
+    TargetPointImpactSystem().step(world, currentTick: execute);
+    return (execute, step);
+  }
+
   int actor(EnemyId id, double x) {
     final a = const EnemyCatalog().get(id);
     final collider = id == EnemyId.grojib
