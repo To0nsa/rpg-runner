@@ -483,6 +483,25 @@ class EcsWorld {
           destroyEntity(child);
         }
       }
+      // Released boss spells may outlive the death strip. Detach before the
+      // actor ID is reusable, while retaining enemy attribution for later hits.
+      final ei = enemy.tryIndexOf(entity);
+      final sourceEnemyId = ei == null ? null : enemy.enemyId[ei];
+      for (var pi = 0; pi < projectile.denseEntities.length; pi++) {
+        if (projectile.owner[pi] != entity) continue;
+        projectile.detachedSourceEnemyId[pi] = sourceEnemyId;
+        projectile.owner[pi] = 0;
+      }
+      for (final attack in hitbox.denseEntities.toList()) {
+        final hi = hitbox.indexOf(attack);
+        if (hitbox.owner[hi] != entity) continue;
+        if (hitbox.attachment[hi] == HitboxAttachment.worldAnchor) {
+          hitbox.detachedSourceEnemyId[hi] = sourceEnemyId;
+          hitbox.owner[hi] = 0;
+        } else {
+          destroyEntity(attack);
+        }
+      }
     }
     if (bossSummon.has(entity)) {
       for (final attack in [

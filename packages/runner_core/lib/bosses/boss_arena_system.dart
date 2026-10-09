@@ -5,6 +5,7 @@ import '../combat/control_lock.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/collider_aabb_utils.dart';
 import '../ecs/systems/ability_interrupt.dart';
+import '../ecs/stores/hitbox_store.dart';
 import '../ecs/world.dart';
 import '../enemies/enemy_catalog.dart';
 import '../enemies/death_behavior.dart';
@@ -244,7 +245,13 @@ final class BossArenaSystem {
         entity: boss,
         startDeferredCooldown: false,
       );
-      _clearCombatArtifacts(world);
+      final preserveSpells = const EnemyCatalog()
+          .get(arena.chunk.bossArena!.enemyId)
+          .preserveReleasedSpellsOnDefeat;
+      _clearCombatArtifacts(
+        world,
+        preserveReleasedBy: preserveSpells ? boss : null,
+      );
     }
   }
 
@@ -388,11 +395,23 @@ final class BossArenaSystem {
     _releaseTemporaryProtection(world);
   }
 
-  void _clearCombatArtifacts(EcsWorld world) {
+  void _clearCombatArtifacts(EcsWorld world, {EntityId? preserveReleasedBy}) {
     for (final entity in [
       ...world.projectile.denseEntities,
       ...world.hitbox.denseEntities,
     ]) {
+      if (preserveReleasedBy != null) {
+        final pi = world.projectile.tryIndexOf(entity);
+        if (pi != null && world.projectile.owner[pi] == preserveReleasedBy) {
+          continue;
+        }
+        final hi = world.hitbox.tryIndexOf(entity);
+        if (hi != null &&
+            world.hitbox.owner[hi] == preserveReleasedBy &&
+            world.hitbox.attachment[hi] == HitboxAttachment.worldAnchor) {
+          continue;
+        }
+      }
       world.destroyEntity(entity);
     }
   }

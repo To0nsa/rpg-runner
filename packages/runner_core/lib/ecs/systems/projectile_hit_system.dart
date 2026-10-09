@@ -252,7 +252,9 @@ class ProjectileHitSystem {
     final projectiles = world.projectile;
 
     final ei = enemies.tryIndexOf(owner);
-    final enemyId = ei != null ? enemies.enemyId[ei] : null;
+    final enemyId =
+        projectiles.detachedSourceEnemyId[projectileStoreIndex] ??
+        (ei != null ? enemies.enemyId[ei] : null);
 
     final si = projectileOrigins.tryIndexOf(projectileEntity);
     final sourceProjectileId = si != null

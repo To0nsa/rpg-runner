@@ -41,6 +41,7 @@ class EnemyArchetype {
     required this.deathAnimSeconds,
     this.spawnAnimSeconds = 0.0,
     this.deathBehavior = DeathBehavior.instant,
+    this.preserveReleasedSpellsOnDefeat = false,
     this.primaryCastAbilityId,
     this.castOriginOffset,
     this.castTargetPolicy = AiCastAimPolicy.predictedTargetCenter,
@@ -90,6 +91,10 @@ class EnemyArchetype {
 
   /// Behavior for death transition timing (instant vs ground impact).
   final DeathBehavior deathBehavior;
+
+  /// Arena defeat preserves this actor's launched projectiles and world-anchored
+  /// spells until their normal impact/expiry. Pending casts and melee still end.
+  final bool preserveReleasedSpellsOnDefeat;
 
   /// Optional primary cast ability for this enemy.
   final AbilityKey? primaryCastAbilityId;

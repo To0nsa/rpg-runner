@@ -1,4 +1,5 @@
 import '../../combat/combat_geometry.dart';
+import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/knockback.dart';
@@ -72,6 +73,9 @@ class ProjectileStore extends SparseSet {
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<Faction> faction = <Faction>[];
   final List<EntityId> owner = <EntityId>[];
+
+  /// Attribution retained when a boss owner is detached before ID recycling.
+  final List<EnemyId?> detachedSourceEnemyId = [];
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> speedUnitsPerSecond = <double>[];
@@ -104,6 +108,7 @@ class ProjectileStore extends SparseSet {
     projectileId[i] = def.projectileId;
     faction[i] = def.faction;
     owner[i] = def.owner;
+    detachedSourceEnemyId[i] = null;
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     speedUnitsPerSecond[i] = def.speedUnitsPerSecond;
@@ -129,6 +134,7 @@ class ProjectileStore extends SparseSet {
     projectileId.add(ProjectileId.unknown);
     faction.add(Faction.player);
     owner.add(0);
+    detachedSourceEnemyId.add(null);
     dirX.add(1.0);
     dirY.add(0.0);
     speedUnitsPerSecond.add(0.0);
@@ -157,6 +163,7 @@ class ProjectileStore extends SparseSet {
     projectileId[removeIndex] = projectileId[lastIndex];
     faction[removeIndex] = faction[lastIndex];
     owner[removeIndex] = owner[lastIndex];
+    detachedSourceEnemyId[removeIndex] = detachedSourceEnemyId[lastIndex];
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     speedUnitsPerSecond[removeIndex] = speedUnitsPerSecond[lastIndex];
@@ -182,6 +189,7 @@ class ProjectileStore extends SparseSet {
     projectileId.removeLast();
     faction.removeLast();
     owner.removeLast();
+    detachedSourceEnemyId.removeLast();
     dirX.removeLast();
     dirY.removeLast();
     speedUnitsPerSecond.removeLast();

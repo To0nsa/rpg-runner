@@ -215,6 +215,12 @@ and ordinary gravity lands her; there is no glide-to-origin state or snap fallba
 Every store is removed before ID reuse. Already released hand effects retain
 normal independent impact lifetimes. Floor marks with no supporting surface are
 skipped without changing the remaining hand schedule or full casting duration.
+Goddess opts into `EnemyArchetype.preserveReleasedSpellsOnDefeat`: arena defeat
+retains her launched projectiles and world-anchored hands. They remain damaging
+through their existing hit/expiry rules while pending casts and attached melee
+end. At boss despawn, `EcsWorld` detaches surviving attacks from the recycled
+entity ID and retains their enemy attribution; summon-owned attacks still cascade
+to destruction. Her death does not extend any released spell's lifetime.
 Each spawned hand has its own ordinary one-hit ledger and deals 1200 fixed-point
 dark damage. Render and damage use a 0.06-second authored frame step, rounded
 to simulation ticks. Ten harmless frames therefore warn for 20/40/50 ticks at

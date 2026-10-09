@@ -41,6 +41,7 @@ const voidbornGoddessArchetype = EnemyArchetype(
   deathAnimSeconds: 1.4,
   spawnAnimSeconds: 0.5,
   deathBehavior: DeathBehavior.groundImpactThenDeath,
+  preserveReleasedSpellsOnDefeat: true,
   primaryMeleeAbilityId: 'goddess.claw_combo',
   primaryCastAbilityId: 'goddess.orb',
   castTargetPolicy: AiCastAimPolicy.targetCenter,

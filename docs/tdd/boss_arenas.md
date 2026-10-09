@@ -91,7 +91,11 @@ Owned boss summons retain arena confinement, visibility and combat membership.
 Other actors' motion, teleport execution, attacks and damage are suspended; they are
 excluded from player auto aim and render snapshots until release. Projectiles
 and hitboxes from outside the roster cannot enter arena combat. Earlier combat
-artifacts are cleared at entrance and pending boss attacks at defeat.
+artifacts are cleared at entrance. Defeat cancels pending boss casts and attached
+melee. Catalog policy may retain the defeated boss's released projectiles and
+world-anchored spells through ordinary impact/expiry; Goddess enables it. Other
+combat artifacts are cleared. Surviving spells remain dangerous during the death
+presentation and after release if their lifetime has not ended.
 
 Player loss takes precedence over a simultaneous boss loss. Positive combat
 defeat enters `defeated`; the camera and boundaries remain closed until normal

@@ -1,4 +1,5 @@
 import '../../combat/combat_geometry.dart';
+import '../../enemies/enemy_id.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/knockback.dart';
@@ -80,6 +81,9 @@ class HitboxStore extends SparseSet {
   int _nextComboActivation = 1;
 
   final List<EntityId> owner = <EntityId>[];
+
+  /// Attribution retained when a boss owner is detached before ID recycling.
+  final List<EnemyId?> detachedSourceEnemyId = [];
   final List<int?> comboActivation = [];
   final List<CombatStrikeProfile?> profile = [];
   final List<int> frameStepTicks = [];
@@ -115,6 +119,7 @@ class HitboxStore extends SparseSet {
     }
     final i = addEntity(entity);
     owner[i] = def.owner;
+    detachedSourceEnemyId[i] = null;
     comboActivation[i] = combo == null ? null : _nextComboActivation++;
     abilityId[i] = def.abilityId;
     faction[i] = def.faction;
@@ -142,6 +147,7 @@ class HitboxStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     owner.add(0);
+    detachedSourceEnemyId.add(null);
     comboActivation.add(null);
     abilityId.add(null);
     faction.add(Faction.player);
@@ -169,6 +175,7 @@ class HitboxStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     owner[removeIndex] = owner[lastIndex];
+    detachedSourceEnemyId[removeIndex] = detachedSourceEnemyId[lastIndex];
     comboActivation[removeIndex] = comboActivation[lastIndex];
     abilityId[removeIndex] = abilityId[lastIndex];
     faction[removeIndex] = faction[lastIndex];
@@ -193,6 +200,7 @@ class HitboxStore extends SparseSet {
     dirY[removeIndex] = dirY[lastIndex];
 
     owner.removeLast();
+    detachedSourceEnemyId.removeLast();
     comboActivation.removeLast();
     abilityId.removeLast();
     faction.removeLast();

@@ -85,6 +85,12 @@ unconditional damage/status protection through the last hand; action clear or
 replacement releases it without altering other invulnerability owners. Actor
 liveness remains independent from that protection.
 
+Goddess's catalog preserves released projectiles and world-anchored spells on
+arena defeat; pending casts and attached melee are still canceled. Released
+spells remain damaging and keep their original lifetimes. Boss despawn detaches
+surviving attacks before recycling the owner ID and retains enemy attribution.
+Other boss arena defeat policies and summon attack cleanup remain unchanged.
+
 Goddess's hand barrage is selected only from earned 75/50/25% health phases.
 Her decision phase records reached thresholds before tactical action/cooldown
 gates, using integer current/max-health comparisons. A separate registered

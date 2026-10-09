@@ -6,6 +6,7 @@ import '../../combat/combat_combo.dart';
 import '../../util/fixed_math.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
+import '../stores/hitbox_store.dart';
 import '../world.dart';
 
 /// Detects collisions between active hitboxes (melee strikes) and vulnerable targets.
@@ -80,14 +81,18 @@ class HitboxDamageSystem {
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      if (world.deathState.has(owner)) continue;
-
       // Resolve enemy ID efficiently if the owner is an enemy.
       // This is used for kill credit/stats.
       final enemyIndex = world.enemy.tryIndexOf(owner);
-      final enemyId = enemyIndex != null
-          ? world.enemy.enemyId[enemyIndex]
-          : null;
+      final enemyId =
+          hitboxes.detachedSourceEnemyId[hi] ??
+          (enemyIndex != null ? world.enemy.enemyId[enemyIndex] : null);
+      if (world.deathState.has(owner) &&
+          !(hitboxes.attachment[hi] == HitboxAttachment.worldAnchor &&
+              enemyId != null &&
+              enemyCatalog.get(enemyId).preserveReleasedSpellsOnDefeat)) {
+        continue;
+      }
 
       // Ensure buffer is clear before collection (safety measure).
       _overlaps.clear();
@@ -174,7 +179,7 @@ class HitboxDamageSystem {
             knockback: hitboxes.knockback[hi]?.resolve(
               world.transform.posX[world.transform.indexOf(target)],
             ),
-            source: owner,
+            source: owner == 0 ? null : owner,
             comboHit: comboWindow <= 0
                 ? null
                 : ComboHit(
