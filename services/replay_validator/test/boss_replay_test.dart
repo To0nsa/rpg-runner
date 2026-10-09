@@ -54,6 +54,131 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test('Shoggoth swarms and final-phase return charge replay at $hz Hz', () {
+      final direct = _core(hz, bossId: EnemyId.shoggoth);
+      final replay = _core(hz, bossId: EnemyId.shoggoth);
+      final frames = <ReplayCommandFrameV1>[];
+      final summons = <int>{};
+      final chargeTicks = <int>[];
+      var summonCasts = 0;
+      var finalPhase = false;
+      var returned = false;
+      final trace = <String>[];
+      EntityRenderSnapshot? previousBoss;
+      for (var n = 0; n < hz * 60 && !direct.gameOver; n++) {
+        final before = direct.buildSnapshot();
+        final boss = before.entities
+            .where((e) => e.enemyId == EnemyId.shoggoth)
+            .firstOrNull;
+        final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+        finalPhase |=
+            before.bossArena != null && before.bossArena!.hp100 <= 9100;
+        // Earn both phases using ordinary attacks, then bait a charge by making
+        // space. Jump over the committed first pass and let its counter finish.
+        final escape = direct.playerPosX < 90
+            ? 1.0
+            : direct.playerPosX > 510
+            ? -1.0
+            : -dx.sign;
+        final axis = finalPhase
+            ? (boss?.anim == AnimKey.strike2 &&
+                      chargeTicks.isNotEmpty &&
+                      direct.tick - chargeTicks.last < hz * .3
+                  ? dx.sign
+                  : dx.abs() < 160 && boss?.anim != AnimKey.strike2
+                  ? escape
+                  : 0.0)
+            : (dx.abs() > 20 ? dx.sign : 0.0);
+        final tick = direct.tick + 1;
+        final strike = !finalPhase && n % (hz / 3).round() == 0;
+        final shot = !finalPhase && n % (hz * .75).round() == 0;
+        final jump =
+            finalPhase &&
+            boss?.anim == AnimKey.strike2 &&
+            chargeTicks.isNotEmpty &&
+            tick == chargeTicks.last + 1;
+        final dash =
+            finalPhase && dx.abs() < 140 && boss?.anim != AnimKey.strike2;
+        frames.add(
+          ReplayCommandFrameV1(
+            tick: tick,
+            moveAxis: axis,
+            aimDirX: dx >= 0 ? 1 : -1,
+            aimDirY: 0,
+            pressedMask:
+                (strike ? ReplayCommandFrameV1.pressedStrikeBit : 0) |
+                (shot ? ReplayCommandFrameV1.pressedProjectileBit : 0) |
+                (jump ? ReplayCommandFrameV1.pressedJumpBit : 0) |
+                (dash ? ReplayCommandFrameV1.pressedDashBit : 0),
+          ),
+        );
+        direct.applyCommands([
+          MoveAxisCommand(tick: tick, axis: axis),
+          AimDirCommand(tick: tick, x: dx >= 0 ? 1 : -1, y: 0),
+          if (strike) StrikePressedCommand(tick: tick),
+          if (shot) ProjectilePressedCommand(tick: tick),
+          if (jump) JumpPressedCommand(tick: tick),
+          if (dash) DashPressedCommand(tick: tick),
+        ]);
+        direct.stepOneTick();
+        final after = direct.buildSnapshot();
+        for (final e in after.entities.where(
+          (e) => e.enemyId == EnemyId.shoggothMinion,
+        )) {
+          summons.add(e.id);
+        }
+        final actor = after.entities
+            .where((e) => e.enemyId == EnemyId.shoggoth)
+            .firstOrNull;
+        if (actor?.anim == AnimKey.ranged &&
+            previousBoss?.anim != AnimKey.ranged)
+          summonCasts++;
+        if (actor?.anim == AnimKey.strike2 &&
+            (previousBoss?.anim != AnimKey.strike2 ||
+                actor!.animFrame! < previousBoss!.animFrame!)) {
+          if (chargeTicks.isNotEmpty &&
+              tick - chargeTicks.last <= (90 * hz / 60).ceil()) {
+            returned = true;
+          }
+          chargeTicks.add(tick);
+        }
+        if (chargeTicks.isNotEmpty &&
+            chargeTicks.length < 3 &&
+            n % (hz / 5).round() == 0)
+          trace.add(
+            "$tick HP=${after.bossArena?.hp100} player=${after.playerEntity!.pos} boss=${actor?.pos} ${actor?.anim}",
+          );
+        previousBoss = actor;
+        if (returned && tick - chargeTicks.last > 2 * hz) break;
+      }
+      expect(summonCasts, 2);
+      expect(summons, isNotEmpty);
+      expect(
+        returned,
+        isTrue,
+        reason:
+            'HP=${direct.buildSnapshot().hud.hp}, charges=$chargeTicks\n${trace.join("\n")}',
+      );
+      final result = runReplaySimulation(
+        core: replay,
+        totalTicks: direct.tick,
+        commandStream: frames,
+      );
+      expect(result.runEnded, isNull);
+      final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+      expect(a.bossArena!.hpMax100, 26000);
+      expect(b.bossArena!.hp100, a.bossArena!.hp100);
+      expect(b.hud.hp, a.hud.hp);
+      expect(
+        b.entities.map(
+          (e) => [e.id, e.enemyId, e.pos.x, e.pos.y, e.anim, e.animFrame],
+        ),
+        a.entities.map(
+          (e) => [e.id, e.enemyId, e.pos.x, e.pos.y, e.anim, e.animFrame],
+        ),
+      );
+    });
+
     test('Goddess counters two landed projectiles and replays at $hz Hz', () {
       const loadout = EquippedLoadoutDef(
         projectileSlotSpellId: ProjectileId.holyBolt,

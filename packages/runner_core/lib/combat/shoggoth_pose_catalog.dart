@@ -62,13 +62,14 @@ abstract final class ShoggothPoseCatalog {
   /// Actor art phases share the committed action clock used by damage.
   static ActionFramePolicy? timingFor(String abilityId) => switch (abilityId) {
     'shoggoth.tentacle_sweep' => ShoggothPoseCatalog.shoggothSweep.timing,
-    'shoggoth.spinning_charge' => ShoggothPoseCatalog.shoggothSpin.timing,
+    'shoggoth.spinning_charge' ||
+    'shoggoth.return_charge' => ShoggothPoseCatalog.shoggothSpin.timing,
     'shoggoth.orb' => const ActionFramePolicy(
       frameCount: 11,
       activeStart: 8,
       activeEnd: 9,
     ),
-    'shoggoth.summon' => const ActionFramePolicy(
+    'shoggoth.summon' || 'shoggoth.summon_swarm' => const ActionFramePolicy(
       frameCount: 9,
       activeStart: 7,
       activeEnd: 8,

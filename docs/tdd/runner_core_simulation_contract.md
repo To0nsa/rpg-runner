@@ -107,6 +107,19 @@ commits consume one phase; failed commits retain it. Large hits queue crossed
 thresholds and healing cannot rearm them. Normal action completion and cooldown
 still gate casting; no damage-phase teleport or interruption is introduced.
 
+Shoggoth's prepared `2026.10.11` tactics observe one-time 70/35% health phases,
+admit capped minion waves before terrain preparation, and choose sweeps, charges
+or orbs from the shared combat target and navigation result. His bounded sweep
+approach and 360-unit/second charge compose after locomotion; action facing owns
+both art and damage. A surviving final-phase charge continuation is verified
+**before** the active-ability phase update clears its identity. Only natural
+completion can commit the separately telegraphed return in that tick's decision
+phase; interruption or replacement cannot revive it. Shared utility teleports
+capture a supported destination at commitment and expose that fixed point through
+the existing snapshot cue until execution or cancellation. These changes retain
+command encoding and require matching client/worker/issuer release artifacts.
+See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
+
 ## Tick ordering
 
 `GameCore.stepOneTick` ordering is gameplay behavior, not an implementation

@@ -24,8 +24,9 @@ Save/Build/Play and live spawn placement reuse the existing
 [arena contract](boss_arenas.md).
 
 `VoidbornGoddessCombatSystem`, `ShoggothCombatSystem` and
-`VoidcallerCombatSystem` independently select actions without chunk-name dependencies. Shoggoth and
-Voidcaller use fixed sequences, range and living summon count. Goddess uses
+`VoidcallerCombatSystem` independently select actions without chunk-name dependencies.
+Voidcaller uses a fixed sequence, range and living summon count. Shoggoth uses
+distance, persistent health milestones and owned charge continuations. Goddess uses
 separate seeded actor streams for tactical decisions and reactive dodges.
 Each boss owns separate ability definitions, render metadata and combat poses
 under its own filename. Minion and tentacle definitions are also separate.
@@ -34,12 +35,12 @@ generated beam composition has its own effect catalog and generator.
 
 Global ability, enemy, projectile and pose catalogs remain lookup registries.
 `BossCombatSystem` defines the common tick interface;
-`RotatingBossCombatSystem` shares pursuit and committed-action dispatch for
-Shoggoth and Voidcaller;
+`RotatingBossCombatSystem` supplies pursuit and committed-action dispatch for
+Voidcaller;
 `BossUtilitySystem` shares captured utility execution, terrain placement and
 summon lifetime. Neither contains a concrete boss selection switch. Each boss
-owns its spacing, pursuit speed, sequence and teleport cadence. Shoggoth owns
-spin motion composition; `VoidTentacleCombatSystem` owns planted behavior.
+owns its spacing, pursuit speed and action cadence. Shoggoth owns
+charge and sweep motion composition; `VoidTentacleCombatSystem` owns planted behavior.
 Goddess owns her corner placement, hover, six-hand barrage and reactive dodge in
 her own combat system and lifecycle-registered `GoddessBarrageStore`,
 `GoddessHealthPhaseStore`, `GoddessDodgeStore` and `GoddessTacticsStore`.
@@ -112,10 +113,62 @@ by the generic status pipeline, described in
 [target scaling](status_effect_tuning.md#target-scaling).
 Hit reactions do not replace active boss attack art.
 
+## Shoggoth tactics
+
+Prepared compatibility `2026.10.11` replaces Shoggoth's modulo rotation with
+`ShoggothCombatSystem` and lifecycle-registered `ShoggothTacticsStore`.
+The catalog has 26000 fixed-point health (260 HP). Decisions use current combat
+target identity and published navigation: at vertical separation <=50, directly
+walkable targets within 100 units select a sweep; targets through 260 units
+select a charge. Other targets select an orb. Ordinary cooldown and active
+ability gates remain authoritative. Pursuit retains 0.8 shared ground speed and
+65-unit spacing, with no change to terrain/navigation capabilities.
+
+Integer comparisons `hp * 100 <= hpMax * 70` and `hp * 100 <= hpMax * 35`
+record reached phases during actions and cooldowns. The maximum reached count
+survives healing. Successful summon commitments consume each phase once; failed
+admission retries and interrupted accepted casts do not repeat. The first
+summon has count/cap two; the second count/cap three. Burst damage queues both.
+Placement still runs before terrain body enumeration, including every admitted
+minion in that tick's motion roster. Expiry, owner destruction and attack cleanup
+use the shared summon lifecycle.
+
+Sweep preparation captures an endpoint at most 24 units ahead and no closer than
+65 units to the captured target. During windup only, grounded direct walking
+approaches it at 0.5 speed; remaining displacement and live target spacing cap
+velocity. The endpoint never follows a retreating target. Windup/harmless frames
+and new combo strike windows may retarget facing; a live strike cannot turn.
+Post-locomotion composition restores action facing before art and damage resolve.
+Active sweeps and recovery hold position; normal knockback still follows.
+
+Both charge abilities track facing during windup, then compose 360 horizontal
+units/second for their 36-authoring-tick active phase before the single terrain
+integration. The existing two-pass geometry and ledgers remain unchanged.
+After the 35% phase, the first and every alternate accepted normal charge can
+queue a return. Its exact ability/start/end identity is inspected after control
+lock refresh and **before** the active-phase system clears completed actions.
+Only natural completion admits the continuation in that tick's decision phase.
+Cancellation, replacement, suspension, missing target, death or stun discards it.
+The target must be behind the first direction by >20 and <=260 units, at melee
+height with direct walking available. Otherwise the original cooldown remains.
+
+An admitted `shoggoth.return_charge` bypasses only the completing charge's
+remaining cooldown and starts a new 150-authoring-tick cooldown. Failed admission
+restores the prior remaining cooldown. The return is an ordinary independent
+melee activation: 30 windup ticks, 36 active ticks and 48 recovery ticks. Its two
+strikes share their own combo provenance, never the preceding charge's exception.
+There is no continuation from a return charge.
+
+Separation tracks consecutive ticks beyond 300 horizontal units or without a
+directly walkable approach. After three seconds, a ready actor tries a captured
+utility teleport, at most once per eight seconds after acceptance. Failed
+placement preflight falls back to an orb with a one-second teleport retry delay.
+No teleport or health event interrupts an action or skips its recovery.
+
 ## Lifecycle and tick dependencies
 
 `BossCombatStateStore` and `BossSummonStore` are lifecycle-registered sparse
-stores. The former holds action sequence, next teleport tick and utility action
+stores. The former holds action sequence, captured teleport destination and utility action
 identity/start/execute tick/target X. The latter holds owner and expiry tick.
 Utility execution checks the exact active ability ID and start tick, living
 owner, suspension and stun state, so interrupted or replaced actions cannot
@@ -124,6 +177,7 @@ execute a stale utility intent.
 | Placement in `GameCore.stepOneTick` | Reason |
 | --- | --- |
 | Required arena spawn, then `BossUtilitySystem.prepare`, before terrain motion preparation | Admit summons and expire them before the authority enumerates tick bodies |
+| Shoggoth continuation preparation after control locks, before active ability phase update | Verify completion identity before the shared phase clears it; no placement or damage runs here |
 | Shared utility teleport execution after target selection and Hashash teleports, before water/navigation refresh | Publish validated relocated support and position before dependent consumers |
 | Goddess dodge, barrage and tactical preparation, immediately after utility teleports | Validate action identity, commit the dodge and counter or corner placement, schedule due hands and advance the orb/teleport exit before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
@@ -245,18 +299,26 @@ Detached motes, impact streaks and transparent corners are outside the damage
 silhouette. All capsules share that hand's one-hit ledger and world anchor;
 caster facing cannot mirror the floor effect.
 
-`BossSummonDelivery` defines type, living cap and lifetime. Summon candidates
-are captured target X plus `[72, -72, 120, -120]`, in stable order. Admission
+`BossSummonDelivery` defines type, per-cast count (default one), living cap and
+lifetime. Summon candidates are captured target X plus `[72, -72, 120, -120]`, in stable order. Admission
 uses existing encounter spawn requests, published terrain support and clearance,
 full-capsule horizontal bounds, player spacing and 40-unit summon spacing.
-One successful candidate creates one normal spawn-intro actor with the owner's
-motion bounds. Rejection consumes the cast without creating an actor.
+Each successful candidate creates one normal spawn-intro actor with the owner's
+motion bounds, until the cast count or living cap is reached. Newly admitted
+actors participate in subsequent spacing checks. Rejected candidates admit no
+actor; unavailable space never postpones a released summon into a later cast.
 
-Shoggoth's `BossTeleportDelivery` uses captured X ±150 and checks terrain clearance,
-full-capsule bounds and at least 70 units from the current target. Motion uses
-`beginBodyTeleport` / `tryCommitBodyTeleport` / `cancelBodyTeleport`; a failed
-candidate restores the retained origin. If neither candidate works, the normal
-return animation plays at the original valid position.
+`BossTeleportDelivery` preflights captured target X ±150, preferring the opposite
+side, before accepting an action. Candidates require terrain clearance, full
+capsule bounds, 70-unit target spacing and 64-unit displacement from the origin.
+The captured body center is published through the existing snapshot
+`teleportDestination` cue only while its exact ability/start identity survives
+and placement is pending. Death, suspension, stun or interruption hides the cue.
+At execution, the same supported body center and current player spacing are
+revalidated; no alternate destination can replace the visible mark. Motion uses
+`beginBodyTeleport` / `tryCommitBodyTeleport` / `cancelBodyTeleport`; invalidated
+placement retains the origin and ordinary return/cooldown. Failed preflight
+commits nothing, allowing the decision system's attack fallback.
 
 Arena retention, confinement and combat protection recognize owned summons.
 Owner death expires them during next tick preparation. `EcsWorld.destroyEntity`
@@ -312,6 +374,10 @@ from source alpha bounds and generates `voidcaller_effect_catalog.dart`.
 with `--check` to detect stale outputs; never hand-edit generated catalogs.
 
 ## Verification
+
+The [October 9 Shoggoth verification](../verification/shoggoth-boss-2026-10-09.md)
+records the new phase, movement, teleport, arena and replay checks, including
+the unrelated failures in the broader boss run and the limits of local evidence.
 
 Arena tests cover deterministic duplicate runs at 30/60/90 Hz, introduction,
 confinement, teleport/return, summon caps and lifetime, stationary tentacles,

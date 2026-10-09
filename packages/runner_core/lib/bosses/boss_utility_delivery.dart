@@ -7,10 +7,15 @@ final class BossSummonDelivery extends HitDeliveryDef {
     required this.enemyId,
     required this.maxAlive,
     required this.lifetimeSeconds,
+    this.count = 1,
   }) : assert(maxAlive > 0),
+       assert(count > 0),
        assert(lifetimeSeconds > 0);
   final EnemyId enemyId;
   final int maxAlive;
+
+  /// Maximum admissions in this cast, still bounded by [maxAlive] and placement.
+  final int count;
   final double lifetimeSeconds;
 }
 

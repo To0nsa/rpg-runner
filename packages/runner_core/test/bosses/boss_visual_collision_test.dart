@@ -30,6 +30,7 @@ void main() {
       (EnemyId.voidbornGoddess, 'goddess.claw_combo', -21.33, -5.33, 4, 500),
       (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -65.0, -10.0, 2, 700),
       (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2, 600),
+      (EnemyId.shoggoth, 'shoggoth.return_charge', 0.0, -5.0, 2, 600),
     ]) {
       test('$key strikes again only on a new swing at $hz Hz', () {
         final f = _Fixture(id, hz);

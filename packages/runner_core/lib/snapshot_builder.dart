@@ -1061,16 +1061,27 @@ class SnapshotBuilder {
   }
 
   Vec2? _teleportDestination(EntityId entity, int tick) {
-    final i = world.goddessTactics.tryIndexOf(entity);
     final ai = world.activeAbility.tryIndexOf(entity);
     final hi = world.health.tryIndexOf(entity);
-    if (i == null ||
-        ai == null ||
+    if (ai == null ||
         hi == null ||
         world.health.hp[hi] <= 0 ||
+        world.arenaSuspension.has(entity) ||
         world.controlLock.isStunned(entity, tick)) {
       return null;
     }
+    final bi = world.bossCombat.tryIndexOf(entity);
+    if (bi != null &&
+        world.bossCombat.executeTick[bi] > tick &&
+        world.activeAbility.abilityId[ai] ==
+            world.bossCombat.utilityAbility[bi] &&
+        world.activeAbility.startTick[ai] ==
+            world.bossCombat.utilityStartTick[bi]) {
+      final destination = world.bossCombat.teleportDestination[bi];
+      if (destination != null) return destination;
+    }
+    final i = world.goddessTactics.tryIndexOf(entity);
+    if (i == null) return null;
     final s = world.goddessTactics.states[i];
     return s.phase == GoddessTactic.teleportOut &&
             world.activeAbility.abilityId[ai] == s.abilityId &&

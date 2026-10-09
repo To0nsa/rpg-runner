@@ -211,8 +211,8 @@ void main() {
     }
 
     for (final (id, key) in [
-      (EnemyId.shoggoth, 'shoggoth.teleport'),
       (EnemyId.shoggoth, 'shoggoth.summon'),
+      (EnemyId.shoggoth, 'shoggoth.summon_swarm'),
       (EnemyId.voidcaller, 'voidcaller.summon'),
     ]) {
       for (final replaced in [false, true]) {

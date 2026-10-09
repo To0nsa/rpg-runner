@@ -1659,6 +1659,8 @@ class GameCore {
     _controlLockSystem.step(_world, currentTick: tick);
 
     // ─── Phase 2.75: Active ability phase update ───
+    // Capture a surviving charge's completion before the phase clears identity.
+    _shoggothCombat.prepare(_world, currentTick: tick);
     _activeAbilityPhaseSystem.step(_world, currentTick: tick);
 
     // ─── Phase 2.8: Authoritative charge tracking ───

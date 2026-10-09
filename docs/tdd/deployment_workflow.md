@@ -44,6 +44,11 @@ and speeds up her orb. Orb art and generated collision capsules are centered on
 the aim line; live and ghost explosions center over the struck body. Her health
 is 300 HP and actor scale is 1.0x with matching
 body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
+Shoggoth joins this prepared release with 260 HP, distance-based attacks,
+360-unit/second charges, bounded advancing sweeps, one-time 70/35% minion waves,
+conditional final-phase return charges and captured teleport destination cues.
+The normal and return charge retain independent combo provenance and full
+warnings. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
 nominal 0.6-second warning per hand, and deals 12 dark damage per slap.

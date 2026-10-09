@@ -60,6 +60,11 @@ first visibility, transformation and combat.
 Bringer of Death is confined to its authored arena and is excluded from route-wide
 pursuit. `packages/runner_core/test/bosses/boss_arena_test.dart` exercises its
 actual confinement, both characters, entrance, combat and exit transitions.
+Shoggoth is also arena-only. `packages/runner_core/test/bosses/shoggoth_arena_test.dart`
+checks its complete authored Forest room through the 600-unit exit boundary at
+30/60/90 Hz, both characters and seeds 7, 42 and 2026; focused motion tests cover
+charge walls/bounds and bounded sweep advances. Route-wide ambient pursuit does
+not substitute for these boss-specific checks.
 
 ## Adapt the test to a level
 

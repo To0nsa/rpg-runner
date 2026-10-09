@@ -10,6 +10,7 @@ import '../../encounters/encounter_placement.dart';
 import '../../navigation/terrain_spawn_placement.dart';
 import '../../snapshots/enums.dart';
 import '../../spawn_service.dart';
+import '../../util/vec2.dart';
 import '../actor_facing.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
@@ -87,10 +88,10 @@ final class BossUtilitySystem {
           world,
           boss,
           i,
-          ability!.hitDelivery as BossTeleportDelivery,
           world.transform.posX[world.transform.indexOf(player)],
         );
       }
+      states.teleportDestination[i] = null;
     }
   }
 
@@ -115,6 +116,11 @@ final class BossUtilitySystem {
       return false;
     }
     final ti = world.transform.indexOf(boss);
+    final delivery = ability.hitDelivery;
+    final destination = delivery is BossTeleportDelivery
+        ? _resolveTeleport(world, boss, targetX, delivery)
+        : null;
+    if (delivery is BossTeleportDelivery && destination == null) return false;
     final facing = targetX >= world.transform.posX[ti]
         ? Facing.right
         : Facing.left;
@@ -139,6 +145,7 @@ final class BossUtilitySystem {
     states.utilityStartTick[i] = tick;
     states.executeTick[i] = tick + windup;
     states.targetX[i] = targetX;
+    states.teleportDestination[i] = destination;
     return true;
   }
 
@@ -207,7 +214,9 @@ final class BossUtilitySystem {
     BossSummonDelivery delivery,
     int tick,
   ) {
-    if (livingSummons(world, boss) >= delivery.maxAlive) return;
+    var alive = livingSummons(world, boss);
+    var admitted = 0;
+    if (alive >= delivery.maxAlive) return;
     final playerX = world.transform.posX[world.transform.indexOf(player)];
     for (final offset in const [72.0, -72.0, 120.0, -120.0]) {
       final placement = resolveArenaPlacement(
@@ -248,20 +257,20 @@ final class BossUtilitySystem {
         summon,
         world.actorMotionBounds.bounds[world.actorMotionBounds.indexOf(boss)]!,
       );
-      return;
+      alive++;
+      admitted++;
+      if (alive >= delivery.maxAlive || admitted >= delivery.count) return;
     }
   }
 
-  void _teleport(
+  Vec2? _resolveTeleport(
     EcsWorld world,
     EntityId boss,
-    int i,
+    double target,
     BossTeleportDelivery delivery,
-    double currentTargetX,
   ) {
     final ti = world.transform.indexOf(boss);
     final oldX = world.transform.posX[ti];
-    final target = world.bossCombat.targetX[i];
     final preferred = oldX >= target ? -delivery.distance : delivery.distance;
     for (final offset in [preferred, -preferred]) {
       final placement = resolveArenaPlacement(
@@ -273,22 +282,42 @@ final class BossUtilitySystem {
       if (placement == null) continue;
       final body = placement.bodyCenter!;
       final x = body.xTicks / terrainPhysicsTicksPerWorldUnit;
-      if ((x - currentTargetX).abs() < 70) continue;
-      final origin = motion.beginBodyTeleport(world, boss);
-      final placed = motion.tryCommitBodyTeleport(
-        world,
-        boss,
-        bodyX: x,
-        bodyY: body.yTicks / terrainPhysicsTicksPerWorldUnit,
-        facing: x <= currentTargetX ? Facing.right : Facing.left,
-      );
-      if (!placed) {
-        motion.cancelBodyTeleport(world, boss, origin);
-        continue;
-      }
+      if ((x - target).abs() < 70 || (x - oldX).abs() < 64) continue;
+      return Vec2(x, body.yTicks / terrainPhysicsTicksPerWorldUnit);
+    }
+    return null;
+  }
+
+  void _teleport(EcsWorld world, EntityId boss, int i, double currentTargetX) {
+    final destination = world.bossCombat.teleportDestination[i];
+    if (destination == null || (destination.x - currentTargetX).abs() < 70) {
       return;
     }
-    // Reappear at the original valid position when both candidates are blocked.
+    // The warning mark never moves. Terrain or player movement can invalidate
+    // it, in which case the original body remains and ordinary recovery applies.
+    final placement = resolveArenaPlacement(
+      world,
+      boss,
+      world.enemy.enemyId[world.enemy.indexOf(boss)],
+      destination.x,
+    );
+    if (placement == null ||
+        placement.bodyCenter!.xTicks !=
+            (destination.x * terrainPhysicsTicksPerWorldUnit).round() ||
+        placement.bodyCenter!.yTicks !=
+            (destination.y * terrainPhysicsTicksPerWorldUnit).round()) {
+      return;
+    }
+    final origin = motion.beginBodyTeleport(world, boss);
+    if (!motion.tryCommitBodyTeleport(
+      world,
+      boss,
+      bodyX: destination.x,
+      bodyY: destination.y,
+      facing: destination.x <= currentTargetX ? Facing.right : Facing.left,
+    )) {
+      motion.cancelBodyTeleport(world, boss, origin);
+    }
   }
 
   int _ticks(int ticks60) => (ticks60 * tickHz / 60).ceil();

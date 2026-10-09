@@ -17,8 +17,8 @@ The corrections below are deployed in `2026.10.10`: aligned native beam pieces,
 Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
-Goddess uses **1.0x sprite scale** and **300 HP**; Shoggoth and Voidcaller have
-120 HP and share Bringer of Death's **1.5x scale**. All three have no passive
+Goddess uses **1.0x sprite scale** and **300 HP**; Shoggoth has **260 HP** and Voidcaller has
+120 HP; both share Bringer of Death's **1.5x scale**. All three have no passive
 health regeneration and have Stun immunity. Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
 keeping duration unchanged, as described in [Bringer's defenses](bringer_of_death.md).
@@ -113,23 +113,50 @@ landed projectile, and a lethal hit never triggers a counter.
 
 ## Shoggoth
 
+Prepared compatibility `2026.10.11` gives Shoggoth an advancing melee kit with
+health-triggered minions and a final charge phase. He has **260 HP** and retains
+his 1.5x sprite scale, ordinary gravity, terrain collision and inability to jump.
+
 | Action | Default behavior |
 | --- | --- |
-| Tentacle sweep | Two visible sweeps, each able to deal 7 physical damage per target; 0.4-second windup |
-| Spinning charge | 0.5-second warning followed by a 0.6-second charge at 180 world units/second in the committed direction; two arc passes, each able to deal 6 physical damage per target |
-| Void orb | A straight projectile at the captured target center; 6 dark damage; 0.7-second cast |
-| Invoke minion | Summons one damageable, mobile minion; maximum three living minions per owner |
-| Vanish and return | After three actions, relocates to a legal point 150 units from the captured target, preferring the opposite side; at least eight seconds between commits, with a six-frame disappearance and nine-frame return |
+| Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. During the 0.4-second windup he can advance up to 24 units at half shared ground speed, stopping 65 units from the player. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. The attack and its 0.3-second recovery hold position. |
+| Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Two arc passes can each deal 6 physical damage. Recovery lasts 0.4 seconds. |
+| Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and damage, and 0.8-second stationary recovery. |
+| Void orb | Captures the target center when casting begins and flies straight at 340 units/second; 6 dark damage and a 0.7-second cast. |
+| Invoke minions | One 0.7-second summon cast at 70% HP (182 HP), admitting up to two living minions; another at 35% HP (91 HP), admitting up to three. |
+| Vanish and return | After three continuous seconds beyond 300 horizontal units or without a directly walkable approach, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
-Its sequence favors a summon every fourth action, a spin within 150 units, a
-sweep within 85, and an orb at distance. Teleports take priority when due.
-Walking uses a 65-unit stand-off and 0.8 of shared ground speed. The spin obeys
-walls, arena boundaries, gravity and terrain rather than moving through them.
-Its crescent sweeps are dangerous on either side as they rotate, with damage
-following the visible arc, with one hit per target per arc pass.
+On directly walkable ground and within 50 vertical units of the target, he
+chooses a sweep within 100 horizontal units and a charge from there through
+260 units. Beyond charge range, above him, or behind an obstruction, he uses
+orbs. Between actions he pursues at 0.8 of shared ground speed toward a 65-unit
+stand-off. The sweep's short approach endpoint stays fixed if the player retreats.
+Charge warning frames can turn; a launched charge cannot steer. Walls and arena
+bounds stop charge movement, and gravity continues normally.
 
-Minions have 10 HP and bite for 2 physical damage. They live for up to 12 seconds,
-can be killed through ordinary combat, and grant zero kill points.
+The two health thresholds are earned once per life. Burst damage can queue both;
+healing cannot rearm a summon or undo the final phase. Summons wait for the
+current action, any accepted return charge, and the normal cooldown. A rejected
+cast admission retains the phase; an interrupted accepted cast consumes it.
+Clear supported spawn positions must remain separated from the player and
+other minions, so blocked space can reduce the number admitted. Minions have
+10 HP, bite for 2 physical damage, last up to 12 seconds, and grant no kill points.
+Killing them buys space: he does not replenish them between these two casts.
+
+The first, third and subsequent alternating charges in the final phase can
+return only if the player is behind the completed pass, more than 20 and at most
+260 units away, at melee height, with a directly walkable approach. Otherwise he
+keeps the ordinary cooldown. Interrupted, replaced or suspended first passes
+cannot trigger a return. The second pass is a separate attack activation and
+retains ordinary post-hit protection between attacks.
+
+Teleport candidates prefer the opposite side of the captured target, remain at
+least 64 units from his current position, and require a legal supported landing.
+A blocked attempt falls back to an orb. The destination never follows the player.
+If it becomes blocked or the player comes within 70 horizontal units before
+placement, Shoggoth returns at his original position and retains the cooldown.
+Teleporting grants no additional invulnerability and never skips the next attack's
+normal warning.
 
 ## Voidcaller
 
@@ -155,8 +182,8 @@ with space from the player and other summons. A blocked summon creates nothing.
 Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
 and damage. Spells capture their targets once and never home onto later player
-movement. Goddess claws can retarget between distinct swipes while each live
-swipe retains its direction and hit ledger. Utility actions deal no direct damage.
+movement. Goddess claws and Shoggoth sweeps can retarget between distinct swipes
+while each live swipe retains its direction and hit ledger. Utility actions deal no direct damage.
 Consecutive poses of one swing share its hit ledger. In prepared source
 compatibility `2026.10.11`, claws, sweeps, spin passes and beam pulses are explicit
 combos: after a damaging hit, later strikes from that same boss and activation
@@ -165,8 +192,9 @@ from that boss remain blocked for 0.25 seconds after each accepted hit. Overlapp
 bright frames never create damage every simulation tick. This uses the
 [shared combat rule](combat/combat_system_design.md#resolution-stage-damagesystem)
 and is not a boss-only exception; the source change is not yet deployed.
-When both Shoggoth teleport destinations are invalid, it reappears at its original
-safe position and the cooldown still applies.
+When Shoggoth has no legal teleport destination at commitment, he casts an orb
+instead. A destination invalidated during the warning retains the original
+position and the committed cooldown.
 
 Each required boss awards 1000 points once. Arena survival time is excluded
 from score, and summon kills cannot farm points. Summons and their attacks are

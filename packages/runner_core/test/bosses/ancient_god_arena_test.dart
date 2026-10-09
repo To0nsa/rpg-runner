@@ -156,9 +156,10 @@ void main() {
           expect(animations, containsAll([AnimKey.ranged, AnimKey.strike2]));
         } else {
           if (boss == EnemyId.shoggoth) {
-            expect(teleported, isTrue);
-            expect(animations, contains(AnimKey.teleportOut));
-            expect(observedSummons, contains(EnemyId.shoggothMinion));
+            expect(animations, contains(AnimKey.strike));
+            // A reachable stationary target needs no relocation, and minions
+            // belong to health thresholds rather than the ambient action clock.
+            expect(observedSummons, isEmpty);
           } else {
             // No player attacks means no health threshold and no hand barrage.
             expect(teleported, isTrue);
@@ -246,42 +247,6 @@ void main() {
         },
       );
     }
-    if (boss != EnemyId.shoggoth) continue;
-    test(
-      '${boss.name} reappears safely when both teleport destinations exceed the arena',
-      () {
-        final core = ancientGodTestCore(
-          boss,
-          minX: 240,
-          maxX: 360,
-          spawnX: 330,
-        );
-        var vanished = false, reappeared = false;
-        double? previousX;
-        for (var n = 0; n < 1500 && !core.gameOver; n++) {
-          final t = core.tick + 1;
-          core.applyCommands([
-            MoveAxisCommand(tick: t, axis: core.playerPosX < 260 ? 1 : 0),
-          ]);
-          core.stepOneTick();
-          final actor = core
-              .buildSnapshot()
-              .entities
-              .where((e) => e.enemyId == boss)
-              .firstOrNull;
-          if (actor == null) continue;
-          if (actor.anim == AnimKey.teleportOut) vanished = true;
-          if (vanished && actor.anim == AnimKey.spawn) reappeared = true;
-          if (vanished && previousX != null) {
-            expect((actor.pos.x - previousX).abs(), lessThan(20));
-          }
-          previousX = actor.pos.x;
-          if (reappeared) break;
-        }
-        expect(vanished, isTrue);
-        expect(reappeared, isTrue);
-      },
-    );
   }
   test(
     'destroyed owner removes summons and their attacks before ID recycling',
