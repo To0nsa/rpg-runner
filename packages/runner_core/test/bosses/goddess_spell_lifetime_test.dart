@@ -135,7 +135,7 @@ void main() {
       HitboxDef(
         owner: f.base.boss,
         faction: world.projectile.faction[0],
-        damage100: 840,
+        damage100: 500,
         damageType: world.projectile.damageType[0],
         dirX: 1,
         dirY: 0,

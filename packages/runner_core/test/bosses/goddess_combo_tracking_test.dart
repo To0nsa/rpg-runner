@@ -87,7 +87,7 @@ void main() {
           }
           expect(seen, {1, 2, 3, 4});
           expect(f.world.damageQueue.target, List.filled(4, f.player));
-          expect(f.world.damageQueue.amount100, List.filled(4, 840));
+          expect(f.world.damageQueue.amount100, List.filled(4, 500));
         },
       );
 

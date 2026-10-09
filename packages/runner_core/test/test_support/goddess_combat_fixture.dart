@@ -163,7 +163,24 @@ final class GoddessCombatFixture {
 
   void damage(int tick) {
     middleware.step(world, currentTick: tick);
-    damageSystem.step(world, currentTick: tick);
+    damageSystem.step(
+      world,
+      currentTick: tick,
+      onDamageApplied:
+          ({
+            required target,
+            required source,
+            required appliedAmount100,
+            required sourceKind,
+            required damageType,
+          }) => combat.onDamageApplied(
+            world,
+            target: target,
+            source: source,
+            sourceKind: sourceKind,
+            currentTick: tick,
+          ),
+    );
   }
 
   void prepare(int tick) {

@@ -20,7 +20,7 @@ void main() {
     test('75/50/25% each grant exactly one barrage at $hz Hz', () {
       final f = _Fixture(hz);
       for (var phase = 1; phase <= 3; phase++) {
-        final hp = (4 - phase) * 6000;
+        final hp = (4 - phase) * 7500;
         f.hp = hp + 1;
         f.decide(phase * 10);
         expect(f.action, isNot('goddess.eruption'));
@@ -45,7 +45,7 @@ void main() {
         f.cancelAction(phase * 10 + 5);
       }
       // Healing and crossing the same thresholds again cannot grant extra casts.
-      f.hp = 24000;
+      f.hp = 30000;
       f.decide(50);
       f.cancelAction(51);
       f.hp = 1;
@@ -64,7 +64,7 @@ void main() {
         expect(f.action, isNull);
         expect(f.reached, 3);
         expect(f.committed, 0);
-        f.hp = 24000;
+        f.hp = 30000;
         for (var phase = 1; phase <= 3; phase++) {
           f.decide(13 + phase * 2);
           expect(f.action, 'goddess.eruption');
@@ -80,7 +80,7 @@ void main() {
       final f = _Fixture(hz);
       f.decide(10);
       final current = f.action;
-      f.hp = 18000;
+      f.hp = 22500;
       f.decide(11);
       expect(f.action, current);
       expect(f.committed, 0);
@@ -97,7 +97,7 @@ void main() {
 
     test('failed surface cast retains its health threshold at $hz Hz', () {
       final f = _Fixture(hz)..surfaceAvailable = false;
-      f.hp = 18000;
+      f.hp = 22500;
       f.decide(10);
       expect(f.action, isNull);
       expect(f.committed, 0);
@@ -112,7 +112,7 @@ void main() {
   test('health phases are per Goddess and removed before ID recycling', () {
     final f = _Fixture(60);
     final other = f.actor(EnemyId.voidbornGoddess, 400);
-    f.hp = 18000;
+    f.hp = 22500;
     f.decide(10);
     final phases = f.world.goddessHealthPhase;
     expect(phases.reached[phases.indexOf(other)], 0);

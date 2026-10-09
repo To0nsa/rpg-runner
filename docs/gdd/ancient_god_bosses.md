@@ -17,7 +17,7 @@ The corrections below are deployed in `2026.10.10`: aligned native beam pieces,
 Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
-Goddess uses **1.0x sprite scale** and **240 HP**; Shoggoth and Voidcaller have
+Goddess uses **1.0x sprite scale** and **300 HP**; Shoggoth and Voidcaller have
 120 HP and share Bringer of Death's **1.5x scale**. All three have no passive
 health regeneration and have Stun immunity. Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
@@ -34,8 +34,9 @@ death presentation, exit and victory blessing reuse the
 
 | Action | Default behavior |
 | --- | --- |
-| Claw combo | Four visible swipes that follow and turn toward the player between hits, each able to deal 8.4 physical damage per target; 0.4-second windup |
+| Claw combo | Four visible swipes that follow and turn toward the player between hits, each able to deal 5 physical damage per target; 0.4-second windup |
 | Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
+| Projectile counter | After taking damage from two consecutive player projectiles, uses the same quick teleport and claw combo. Both projectile hits deal damage; a landed melee or direct spell hit breaks the streak |
 | Void orb | Flies straight toward the target position captured when casting starts; 7.2 dark damage; 0.45-second cast and 480 world units/second flight. The orb follows its aim line, and its explosion is centered over the struck body, expanding across the player silhouette. |
 | Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 12 dark damage. She animates and remains invincible through the final hand, then casts one orb and teleports to medium range; at least six seconds between commits |
 
@@ -66,8 +67,8 @@ Prepared compatibility `2026.10.11` makes her a mostly stationary caster:
   ability recovery and cooldown must also finish, preserving the combo opening.
   The scripted exit from Slapping Hands can bypass the voluntary timer.
 
-Slapping Hands is reserved for reaching or falling below **180, 120 and 60 HP**
-at her 240 HP maximum. Each threshold grants one barrage, prioritized over normal
+Slapping Hands is reserved for reaching or falling below **225, 150 and 75 HP**
+at her 300 HP maximum. Each threshold grants one barrage, prioritized over normal
 choices after the current action, scripted exit and cooldown finish. Large damage
 can queue multiple crossed thresholds; healing does not reset them. Failed cast
 admission retains the pending barrage, while an interrupted accepted cast still
@@ -101,6 +102,14 @@ arena. If no legal landing exists when attacked, that hit lands and the dodge
 stays ready without rerolling the interval. The counter uses
 the normal claw windup and damage and can be escaped. Dodging evades the selected
 attack; it does not make her invincible against other attacks.
+
+Two consecutive damaging player-projectile hits also trigger that teleport and
+combo. A landed melee or direct spell hit breaks the projectile streak; damage
+over time and NPC hits neither advance nor break it. Protected, evaded and
+zero-damage hits do not count. The same barrage, transition and stun exclusions
+apply. Either successful reactive trigger clears the streak and starts a new
+4–6 attack interval. A blocked projectile counter stays ready for the next
+landed projectile, and a lethal hit never triggers a counter.
 
 ## Shoggoth
 

@@ -1929,10 +1929,18 @@ class GameCore {
       onDamageApplied:
           ({
             required EntityId target,
+            required EntityId? source,
             required int appliedAmount100,
             required DeathSourceKind sourceKind,
             required DamageType damageType,
           }) {
+            _goddessCombat.onDamageApplied(
+              _world,
+              target: target,
+              source: source,
+              sourceKind: sourceKind,
+              currentTick: tick,
+            );
             final impact = _playerImpactFeedbackGate.eventForAppliedDamage(
               tick: tick,
               playerTarget: target == _player,

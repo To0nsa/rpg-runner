@@ -4,6 +4,7 @@ import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_id.dart';
+import '../../events/game_event.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../../snapshots/enums.dart';
 import '../../util/deterministic_rng.dart';
@@ -75,10 +76,58 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
 
   late final _counterMelee = AiMeleeCommitter(tickHz: tickHz);
 
+  /// Observes positive HP loss after damage interrupts, so both projectiles land
+  /// before the second triggers a counter. Direct melee/spell hits break the
+  /// streak; DoT and NPC damage do not affect it. Blocked placement stays ready.
+  void onDamageApplied(
+    EcsWorld world, {
+    required EntityId target,
+    required EntityId? source,
+    required DeathSourceKind sourceKind,
+    required int currentTick,
+  }) {
+    final ei = world.enemy.tryIndexOf(target);
+    if (ei == null ||
+        world.enemy.enemyId[ei] != enemyId ||
+        source == null ||
+        !world.playerInput.has(source) ||
+        !isLivingCombatActor(world, target) ||
+        !isLivingCombatActor(world, source)) {
+      return;
+    }
+    if (sourceKind != DeathSourceKind.projectile &&
+        sourceKind != DeathSourceKind.meleeHitbox &&
+        sourceKind != DeathSourceKind.spellImpact) {
+      return;
+    }
+    final state = world.goddessDodge;
+    final i = state.tryIndexOf(target) ?? state.addEntity(target);
+    if (state.executeTick[i] >= 0 ||
+        world.goddessBarrage.has(target) ||
+        _hasScriptedTransition(world, target) ||
+        world.arenaSuspension.has(target) ||
+        world.controlLock.isStunned(target, currentTick)) {
+      return;
+    }
+    if (sourceKind != DeathSourceKind.projectile) {
+      state.consecutiveProjectileHits[i] = 0;
+      return;
+    }
+    // Two landed projectiles force a response to sustained ranged pressure.
+    state.consecutiveProjectileHits[i] = math.min(
+      2,
+      state.consecutiveProjectileHits[i] + 1,
+    );
+    if (state.consecutiveProjectileHits[i] == 2 &&
+        tryBeginDodge(world, target, source, currentTick)) {
+      state.resetAfterDodge(i);
+    }
+  }
+
   /// Starts a reactive vanish with a checked landing in claw range of the player.
   /// Close attacks cross the player; distant attacks choose either legal side.
-  /// Damage middleware cancels the selected attack; this never grants blanket
-  /// protection that could erase earlier hits already queued on the same tick.
+  /// Only the cadence middleware cancels its selected attack; a post-hit counter
+  /// accepts both hits. Neither trigger grants blanket protection.
   bool tryBeginDodge(EcsWorld world, EntityId boss, EntityId player, int tick) {
     final states = world.goddessDodge;
     final i = states.tryIndexOf(boss) ?? states.addEntity(boss);

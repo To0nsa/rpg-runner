@@ -54,6 +54,90 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test('Goddess counters two landed projectiles and replays at $hz Hz', () {
+      const loadout = EquippedLoadoutDef(
+        projectileSlotSpellId: ProjectileId.holyBolt,
+      );
+      final direct = _core(
+        hz,
+        bossId: EnemyId.voidbornGoddess,
+        loadout: loadout,
+      );
+      final replay = _core(
+        hz,
+        bossId: EnemyId.voidbornGoddess,
+        loadout: loadout,
+      );
+      final frames = <ReplayCommandFrameV1>[];
+      var landed = 0;
+      int? secondHitTick;
+      var vanished = false;
+      var countered = false;
+      for (var n = 0; n < hz * 15 && !direct.gameOver; n++) {
+        final before = direct.buildSnapshot();
+        final boss = before.entities
+            .where((e) => e.enemyId == EnemyId.voidbornGoddess)
+            .firstOrNull;
+        final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+        final axis = dx.abs() > 200 ? dx.sign : 0.0;
+        final tick = direct.tick + 1;
+        final shot = landed < 2 && n % ((hz * .75).round()) == 0;
+        frames.add(
+          ReplayCommandFrameV1(
+            tick: tick,
+            moveAxis: axis,
+            aimDirX: dx >= 0 ? 1 : -1,
+            aimDirY: 0,
+            pressedMask: shot ? ReplayCommandFrameV1.pressedProjectileBit : 0,
+          ),
+        );
+        direct.applyCommands([
+          MoveAxisCommand(tick: tick, axis: axis),
+          AimDirCommand(tick: tick, x: dx >= 0 ? 1 : -1, y: 0),
+          if (shot) ProjectilePressedCommand(tick: tick),
+        ]);
+        direct.stepOneTick();
+        final after = direct.buildSnapshot();
+        final arena = after.bossArena;
+        if (arena != null &&
+            before.bossArena != null &&
+            arena.hp100 < before.bossArena!.hp100) {
+          landed++;
+          if (landed == 2) secondHitTick = tick;
+        }
+        if (secondHitTick == null) continue;
+        final actor = after.entities.singleWhere(
+          (e) => e.enemyId == EnemyId.voidbornGoddess,
+        );
+        vanished |= actor.anim == AnimKey.teleportOut;
+        if (vanished && actor.anim == AnimKey.strike) {
+          expect(
+            tick - secondHitTick,
+            lessThanOrEqualTo((8 * hz / 60).ceil() + 1),
+          );
+          expect((actor.pos.x - direct.playerPosX).abs(), closeTo(35, 1));
+          countered = true;
+          break;
+        }
+      }
+      expect(landed, 2);
+      expect(countered, isTrue);
+      final result = runReplaySimulation(
+        core: replay,
+        totalTicks: direct.tick,
+        commandStream: frames,
+      );
+      expect(result.runEnded, isNull);
+      final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+      expect(a.bossArena!.hpMax100, 30000);
+      expect(b.bossArena!.hp100, a.bossArena!.hp100);
+      expect(b.hud.hp, a.hud.hp);
+      expect(
+        b.entities.map((e) => [e.id, e.pos.x, e.pos.y, e.anim, e.animFrame]),
+        a.entities.map((e) => [e.id, e.pos.x, e.pos.y, e.anim, e.animFrame]),
+      );
+    });
+
     for (final (spell, expectedStatus) in [
       (ProjectileId.holyBolt, EntityStatusVisualMask.none),
       (ProjectileId.darkBolt, EntityStatusVisualMask.weaken),

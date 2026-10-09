@@ -85,6 +85,14 @@ unconditional damage/status protection through the last hand; action clear or
 replacement releases it without altering other invulnerability owners. Actor
 liveness remains independent from that protection.
 
+Two consecutive positive player-projectile hits also start the same checked
+vanish/counter. Damage's applied callback includes the source entity and runs
+after HP reduction and forced interrupts, so both projectile hits land. Direct
+melee/spell hits reset the streak; DoT, NPC and rejected hits do not affect it.
+The callback retains the same barrage/transition/stun exclusions and rejects
+lethal counters. Both reactive triggers reset the streak and seeded dodge
+interval. Blocked placement retains a charged streak without consuming RNG.
+
 Goddess's catalog preserves released projectiles and world-anchored spells on
 arena defeat; pending casts and attached melee are still canceled. Released
 spells remain damaging and keep their original lifetimes. Boss despawn detaches

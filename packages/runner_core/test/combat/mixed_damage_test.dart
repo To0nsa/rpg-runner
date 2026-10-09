@@ -142,6 +142,7 @@ void main() {
         onDamageApplied:
             ({
               required target,
+              required source,
               required appliedAmount100,
               required sourceKind,
               required damageType,

@@ -31,7 +31,10 @@ cutover; it has not been deployed by the source change. The ranked tuple and
 replay/command formats above remain unchanged.
 This prepared release gives Goddess stationary range-based casting, bounded
 close approaches, voluntary teleports with destination cues, and a reactive
-dodge every 4–6 eligible player attacks followed by a claw combo. Normal and
+dodge every 4–6 eligible player attacks followed by a claw combo. She also
+teleports and counters two consecutive damaging player-projectile hits;
+both hits land, and direct melee/spell hits break that streak. Either successful
+reactive trigger resets both counters and rerolls the attack interval. Normal and
 reactive combos follow the player on walkable ground and may turn between
 swipes, retaining per-hit damage ownership and final recovery. Its
 seeded interval rerolls after each dodge; beyond claw range either legal landing
@@ -39,13 +42,13 @@ side can be chosen. It adds
 continuous barrage casting with invulnerability and a vulnerable orb/teleport exit,
 and speeds up her orb. Orb art and generated collision capsules are centered on
 the aim line; live and ghost explosions center over the struck body. Her health
-is 240 HP and actor scale is 1.0x with matching
+is 300 HP and actor scale is 1.0x with matching
 body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
 nominal 0.6-second warning per hand, and deals 12 dark damage per slap.
-Her authored damage is increased by 20% across all attacks: 8.4 physical per claw
-swipe, 7.2 dark per orb and 12 dark per hand, before ordinary damage modifiers.
+Her authored damage is 5 physical per claw swipe, 7.2 dark per orb and 12 dark
+per hand, before ordinary damage modifiers.
 Her released orbs and world-anchored hands persist through death until normal
 impact or expiry, with enemy attribution retained after caster despawn.
 Its active damage shapes cover the visible palm and fingers for each hand pose.

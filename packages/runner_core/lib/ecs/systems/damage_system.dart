@@ -16,8 +16,11 @@ import '../entity_id.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
 
+/// Positive HP loss after defenses and forced interrupts, before status/i-frames.
+/// [source] is the request's source entity, or null for unattributed/detached hits.
 typedef DamageAppliedCallback = void Function({
   required int target,
+  required EntityId? source,
   required int appliedAmount100,
   required DeathSourceKind sourceKind,
   required DamageType damageType,
@@ -226,6 +229,7 @@ class DamageSystem {
 
         onDamageApplied?.call(
           target: target,
+          source: sourceEntity,
           appliedAmount100: appliedAmount,
           sourceKind: sourceKind,
           damageType: damageType,

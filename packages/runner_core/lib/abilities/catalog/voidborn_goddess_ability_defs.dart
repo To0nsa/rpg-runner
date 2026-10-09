@@ -45,7 +45,7 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
       profile: VoidbornGoddessPoseCatalog.goddessClaws,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    baseDamage: 840,
+    baseDamage: 500,
     baseDamageType: DamageType.physical,
     windupTicks: 24,
     activeTicks: 54,

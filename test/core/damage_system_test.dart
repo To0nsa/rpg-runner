@@ -61,6 +61,8 @@ void main() {
     final callbackTargets = <int>[];
     final callbackAmounts = <int>[];
     final callbackKinds = <DeathSourceKind>[];
+    final attacker = world.createEntity();
+    final callbackSources = <int?>[];
 
     world.damageQueue.add(const DamageRequest(target: 999, amount100: 500));
     world.damageQueue.add(
@@ -74,6 +76,7 @@ void main() {
       DamageRequest(
         target: target,
         amount100: 300,
+        source: attacker,
         sourceKind: DeathSourceKind.projectile,
       ),
     );
@@ -84,17 +87,20 @@ void main() {
       onDamageApplied:
           ({
             required target,
+            required source,
             required appliedAmount100,
             required sourceKind,
             required damageType,
           }) {
             callbackTargets.add(target);
+            callbackSources.add(source);
             callbackAmounts.add(appliedAmount100);
             callbackKinds.add(sourceKind);
           },
     );
 
     expect(callbackTargets, equals(<int>[target]));
+    expect(callbackSources, [attacker]);
     expect(callbackAmounts, equals(<int>[300]));
     expect(
       callbackKinds,

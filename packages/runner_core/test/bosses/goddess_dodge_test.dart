@@ -144,7 +144,7 @@ void main() {
         f.damage(10);
         expect(
           f.hp,
-          23500,
+          29500,
           reason:
               'only the chosen hit is canceled; ${f.combat.utilities.motion.lastSpawnPlacementDiagnostic}',
         );
@@ -185,7 +185,7 @@ void main() {
           f.queue();
         }
         f.damage(execute + hz * 3);
-        expect(f.hp, 23000);
+        expect(f.hp, 29000);
         expect(f.action, 'goddess.dodge');
       });
     }
@@ -261,7 +261,7 @@ void main() {
       }
     }
     expect(evaded, inInclusiveRange(4, 6));
-    final hp = 24000 - (evaded - 1) * 400;
+    final hp = 30000 - (evaded - 1) * 400;
     expect(f.hp, hp, reason: 'only the chosen combo is evaded');
     expect(f.action, 'goddess.dodge');
     expect(f.attacks, 0);
@@ -288,7 +288,7 @@ void main() {
         f.queue(kind: kind);
       }
       f.damage(10);
-      expect(f.hp, 23500);
+      expect(f.hp, 29500);
       expect(f.action, 'goddess.dodge');
     },
   );
@@ -300,7 +300,7 @@ void main() {
       f.queue(source: f.boss);
     }
     f.damage(10);
-    expect(f.hp, 23200);
+    expect(f.hp, 29200);
     expect(f.attacks, 0);
     expect(f.action, isNull);
   });
@@ -315,7 +315,7 @@ void main() {
         f.queue();
       }
       f.damage(10);
-      expect(f.hp, 23400);
+      expect(f.hp, 29400);
       expect(f.attacks, f.interval - 1);
       expect(f.action, isNull);
       expect(f.x, blocked == 'arena edge' ? 560 : 280);
@@ -323,13 +323,13 @@ void main() {
       final rng = f.world.goddessDodge.rngState[f.state];
       f.queue();
       f.damage(11);
-      expect(f.hp, 23300);
+      expect(f.hp, 29300);
       expect(f.interval, interval, reason: 'blocked attacks do not reroll');
       expect(f.world.goddessDodge.rngState[f.state], rng);
       f.world.transform.setPosXY(f.player, 200, f.playerY);
       f.queue();
       f.damage(12);
-      expect(f.hp, 23300);
+      expect(f.hp, 29300);
       expect(f.action, 'goddess.dodge');
     });
   }
@@ -379,16 +379,20 @@ void main() {
     expect(f.action, isNull);
   });
 
-  test('destroying an actor clears its dodge cadence and combo ledger', () {
+  test('destroying an actor clears its dodge triggers and combo ledger', () {
     final f = GoddessCombatFixture();
     f.queue(combo: f.combo(1, 1));
     f.damage(10);
+    f.queue(kind: DeathSourceKind.projectile);
+    f.damage(11);
+    expect(f.world.goddessDodge.consecutiveProjectileHits[f.state], 1);
     f.world.destroyEntity(f.boss);
     expect(f.world.goddessDodge.has(f.boss), isFalse);
     final replacement = f.world.createEntity();
     expect(replacement, f.boss);
     final recycled = f.world.goddessDodge.addEntity(replacement);
     expect(f.world.goddessDodge.attacks[recycled], 0);
+    expect(f.world.goddessDodge.consecutiveProjectileHits[recycled], 0);
     expect(f.world.goddessDodge.attackInterval[recycled], 0);
     expect(f.world.goddessDodge.landingSide[recycled], 0);
     expect(f.world.goddessDodge.comboDodged[recycled], isEmpty);

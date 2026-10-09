@@ -147,7 +147,7 @@ void main() {
       () {
         final f = GoddessCombatFixture(hz: hz, bossX: 30);
         final s = f.world.goddessTactics.stateFor(f.boss)..initialized = true;
-        f.world.health.hp[f.world.health.indexOf(f.boss)] = 18000;
+        f.world.health.hp[f.world.health.indexOf(f.boss)] = 15000;
         _tick(f, 10);
         expect(f.action, 'goddess.eruption');
         expect(s.destination, isNull);

@@ -166,7 +166,7 @@ void main() {
           boss,
           TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 600 * 1024),
         );
-        f.world.health.hp[f.world.health.indexOf(boss)] = 18000;
+        f.world.health.hp[f.world.health.indexOf(boss)] = 22500;
         final system = VoidbornGoddessCombatSystem(
           tickHz: hz,
           castCommitter: f.casts,

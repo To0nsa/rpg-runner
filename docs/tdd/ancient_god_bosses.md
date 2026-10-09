@@ -142,7 +142,19 @@ combos use `(source, activation)` to count once and retain the evasion decision
 for later strikes. Non-combo player deliveries already hit each target once.
 Ordinary invulnerability, action protection, suspension, stun, a pending dodge
 and any barrage or scripted tactical transition exclude new attacks from the cadence. The registered
-store clears cadence, RNG, pending identity/side and the combo ledger when destroyed.
+store clears cadence, consecutive projectile hits, RNG, pending identity/side
+and the combo ledger when destroyed.
+
+`DamageSystem` reports the request's source entity through `onDamageApplied`
+only after positive HP loss and forced interrupts. GameCore routes that callback
+to Goddess's combat module, which counts consecutive player-projectile hits.
+The second landed hit requests the same checked vanish/counter without canceling
+either hit. Landed melee/spell-impact hits reset this streak; DoT and NPC damage
+do not change it. Lethal hits cannot counter. Barrages, scripted transitions,
+suspension, stun and an already pending vanish exclude new streak updates.
+Blocked placement retains two hits for the next landed projectile to retry.
+Either successful reactive trigger clears both counters and samples a new
+4–6 attack interval; no additional RNG stream or teleport executor is introduced.
 
 The first eligible attack samples an interval of 4, 5 or 6 using `nextUint32`
 modulo three plus four. A successful dodge samples the next interval. Each actor
@@ -261,7 +273,7 @@ The unchanged runtime PNGs and license copies live under
 remain in ignored `resources/enemies_and_creatures/ancient_god_pack/`.
 The [asset map](../../assets/images/entities/enemies/ancient_god_pack/ASSET_MAP.md)
 records verified exported frame regions and discrepancies with Aseprite tags.
-Goddess has 240 HP (24000 fixed-point current and maximum health), with no
+Goddess has 300 HP (30000 fixed-point current and maximum health), with no
 passive regeneration. Her actor art uses 1.0x scale, with a matching 18-by-54
 body collider, scaled claw geometry and 35-world-unit approach stand-off. The other actors,
 projectiles and impact art retain 1.5x scale. Source rectangles and pivots
