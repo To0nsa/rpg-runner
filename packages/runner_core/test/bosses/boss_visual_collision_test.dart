@@ -26,10 +26,10 @@ import '../test_support/combat_pose.dart';
 
 void main() {
   for (final hz in [30, 60, 90]) {
-    for (final (id, key, x, y, expectedHits) in [
-      (EnemyId.voidbornGoddess, 'goddess.claw_combo', -21.33, -5.33, 4),
-      (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -65.0, -10.0, 2),
-      (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2),
+    for (final (id, key, x, y, expectedHits, damagePerHit) in [
+      (EnemyId.voidbornGoddess, 'goddess.claw_combo', -21.33, -5.33, 4, 840),
+      (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -65.0, -10.0, 2, 700),
+      (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2, 600),
     ]) {
       test('$key strikes again only on a new swing at $hz Hz', () {
         final f = _Fixture(id, hz);
@@ -60,15 +60,12 @@ void main() {
         // A pose revisited after the final strike cannot reset its hit ledger.
         f.hit(execute);
         expect(f.world.damageQueue.length, expectedHits);
-        f.expectAcceptedDamage(
-          expectedHits * (key == 'shoggoth.spinning_charge' ? 600 : 700),
-          tick: execute,
-        );
+        f.expectAcceptedDamage(expectedHits * damagePerHit, tick: execute);
       });
     }
 
     test(
-      'hand warning matches its art then slaps once for 10 damage at $hz Hz',
+      'hand warning matches its art then slaps once for 12 damage at $hz Hz',
       () {
         final f = _Fixture(EnemyId.voidbornGoddess, hz);
         final (execute, step) = f.spawnHand();
@@ -85,12 +82,12 @@ void main() {
         }
         f.hit(active);
         expect(f.world.damageQueue.target, [f.player]);
-        expect(f.world.damageQueue.amount100, [1000]);
+        expect(f.world.damageQueue.amount100, [1200]);
         for (var tick = active + 1; tick < execute + 17 * step; tick++) {
           f.hit(tick);
         }
         expect(f.world.damageQueue.length, 1);
-        f.expectAcceptedDamage(1000, tick: active);
+        f.expectAcceptedDamage(1200, tick: active);
       },
     );
 

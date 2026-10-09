@@ -76,6 +76,7 @@ void main() {
               if (events.isNotEmpty) break;
             }
             expect(world.damageQueue.target, [f.player]);
+            expect(world.damageQueue.amount100, [720]);
             expect(world.projectile.has(projectile), isFalse);
             final event = events.single;
             expect(event.projectileId, ProjectileId.goddessOrb);

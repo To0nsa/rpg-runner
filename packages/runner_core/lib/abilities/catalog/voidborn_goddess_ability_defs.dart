@@ -45,7 +45,7 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
       profile: VoidbornGoddessPoseCatalog.goddessClaws,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    baseDamage: 700,
+    baseDamage: 840,
     baseDamageType: DamageType.physical,
     windupTicks: 24,
     activeTicks: 54,
@@ -60,7 +60,7 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     hitDelivery: const ProjectileHitDelivery(
       projectileId: ProjectileId.goddessOrb,
     ),
-    baseDamage: 600,
+    baseDamage: 720,
     baseDamageType: DamageType.dark,
     // 0.45 seconds at 60 Hz: a brisk cast with a visible release warning.
     windupTicks: 27,
@@ -81,7 +81,7 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
       impactEffectId: SpellImpactId.goddessEruption,
       anchor: TargetPointAnchor.surfaceBelow,
     ),
-    baseDamage: 1000,
+    baseDamage: 1200,
     baseDamageType: DamageType.dark,
     windupTicks: 60,
     activeTicks: 240,

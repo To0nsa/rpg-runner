@@ -22,10 +22,10 @@ import '../test_support/combat_pose.dart';
 
 void main() {
   for (final hz in [30, 60, 90]) {
-    for (final (id, key, warningFrames) in [
-      (EnemyId.voidbornGoddess, 'goddess.eruption', 10),
-      (EnemyId.voidcaller, 'voidcaller.vertical_beam', 5),
-      (EnemyId.voidcaller, 'voidcaller.diagonal_beam', 5),
+    for (final (id, key, warningFrames, damage100) in [
+      (EnemyId.voidbornGoddess, 'goddess.eruption', 10, 1200),
+      (EnemyId.voidcaller, 'voidcaller.vertical_beam', 5, 700),
+      (EnemyId.voidcaller, 'voidcaller.diagonal_beam', 5, 700),
     ]) {
       test('$key captures terrain, warns and hits once at $hz Hz', () {
         final world = EcsWorld(seed: 7);
@@ -112,7 +112,7 @@ void main() {
         world.transform.setPosXY(player, 300, 0);
         hit(damageTick);
         expect(world.damageQueue.target, [player]);
-        expect(world.damageQueue.amount100, [700]);
+        expect(world.damageQueue.amount100, [damage100]);
         hit(damageTick + 1);
         expect(world.damageQueue.length, 1);
       });

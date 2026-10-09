@@ -215,7 +215,7 @@ and ordinary gravity lands her; there is no glide-to-origin state or snap fallba
 Every store is removed before ID reuse. Already released hand effects retain
 normal independent impact lifetimes. Floor marks with no supporting surface are
 skipped without changing the remaining hand schedule or full casting duration.
-Each spawned hand has its own ordinary one-hit ledger and deals 1000 fixed-point
+Each spawned hand has its own ordinary one-hit ledger and deals 1200 fixed-point
 dark damage. Render and damage use a 0.06-second authored frame step, rounded
 to simulation ticks. Ten harmless frames therefore warn for 20/40/50 ticks at
 30/60/90 Hz (about 0.6 seconds); frames 10–14 can slap once. Marks stay fixed

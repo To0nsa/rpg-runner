@@ -43,7 +43,9 @@ is 240 HP and actor scale is 1.0x with matching
 body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
-nominal 0.6-second warning per hand, and deals 10 dark damage per slap.
+nominal 0.6-second warning per hand, and deals 12 dark damage per slap.
+Her authored damage is increased by 20% across all attacks: 8.4 physical per claw
+swipe, 7.2 dark per orb and 12 dark per hand, before ordinary damage modifiers.
 Its active damage shapes cover the visible palm and fingers for each hand pose.
 The barrage is now exclusive to one cast at each 75/50/25% HP threshold (180,
 120 and 60 HP), with pending crossings retained through existing action gates.
