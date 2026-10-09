@@ -87,7 +87,7 @@ is resolved before broadphase; Flame never decides hit timing.
 
 Goddess captures the cast start tick,
 original position/facing, first release tick and sweep direction. Six hands use
-the already committed target-point payload, at half-second intervals and six
+the already committed target-point payload, at ceil(0.35 × tickHz) intervals and six
 evenly spaced floor marks inset 50 units from the arena edges. Her far upper
 corner is inset 64 units and 150 units above the level floor. Corner entry uses a
 terrain-owned checked teleport. Both corners blocked means casting in place.
@@ -109,8 +109,12 @@ within half a world unit ends travel. A distance-derived travel deadline plus
 one second releases hover if blocked, allowing ordinary gravity to land her.
 Death, interruption, suspension or replacement cancels future releases and
 gravity suppression in place. State is removed before ID recycling.
-Each spawned hand has its own ordinary one-hit ledger and shared render/damage
-clock; committed effects retain normal impact lifetime behavior.
+Each spawned hand has its own ordinary one-hit ledger and deals 1000 fixed-point
+dark damage. Render and damage use a 0.06-second authored frame step, rounded
+to simulation ticks. Ten harmless frames therefore warn for 20/40/50 ticks at
+30/60/90 Hz (about 0.6 seconds); frames 10–14 can slap once. Marks stay fixed
+regardless of subsequent player movement. Committed effects retain normal
+impact lifetime behavior.
 
 `BossSummonDelivery` defines type, living cap and lifetime. Summon candidates
 are captured target X plus `[72, -72, 120, -120]`, in stable order. Admission

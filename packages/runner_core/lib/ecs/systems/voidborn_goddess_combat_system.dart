@@ -90,7 +90,8 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     world.targetPointIntent.tick[ii] = -1;
   }
 
-  int get _handInterval => (tickHz / 2).ceil();
+  // 0.35 seconds between fixed marks keeps adjacent warnings overlapping.
+  int get _handInterval => (tickHz * .35).ceil();
 
   /// World units/second: a visible glide across the arena, resolved by terrain.
   static const _returnSpeed = 180.0;

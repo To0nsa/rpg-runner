@@ -16,6 +16,7 @@ import 'package:runner_core/ecs/systems/target_point_impact_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/enemies/voidborn_goddess_render_catalog.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/util/vec2.dart';
@@ -65,6 +66,57 @@ void main() {
         );
       });
     }
+
+    test(
+      'hand warning matches its art then slaps once for 10 damage at $hz Hz',
+      () {
+        final f = _Fixture(EnemyId.voidbornGoddess, hz);
+        expect(
+          AiCastCommitter(
+            tickHz: hz,
+            projectiles: const ProjectileCatalog(),
+            surfaceTarget: (x, y) => Vec2(x, 24),
+          ).commit(
+            f.world,
+            actor: f.boss,
+            castAbility: AbilityCatalog.shared.resolve('goddess.eruption')!,
+            sourceX: 0,
+            sourceY: 0,
+            targetX: 300,
+            targetY: 0,
+            targetVelX: 0,
+            targetVelY: 0,
+            aimPolicy: AiCastAimPolicy.targetCenter,
+            casterOriginOffset: 0,
+            currentTick: 10,
+          ),
+          isTrue,
+        );
+        final i = f.world.targetPointIntent.indexOf(f.boss);
+        final execute = f.world.targetPointIntent.tick[i];
+        final step = f.world.targetPointIntent.frameStepTicks[i];
+        final renderStep = VoidbornGoddessRenderCatalog
+            .eruption
+            .stepTimeSecondsByKey[AnimKey.hit]!;
+        expect(step, (.06 * hz).round());
+        expect((renderStep * hz).round(), step);
+        final active = execute + 10 * step;
+        TargetPointImpactSystem().step(f.world, currentTick: execute);
+        f.world.transform.setPosXY(f.player, 300, 14);
+        for (var tick = execute; tick < active; tick++) {
+          f.hit(tick);
+          expect(f.world.damageQueue.length, 0, reason: 'warning is harmless');
+        }
+        f.hit(active);
+        expect(f.world.damageQueue.target, [f.player]);
+        expect(f.world.damageQueue.amount100, [1000]);
+        for (var tick = active + 1; tick < execute + 17 * step; tick++) {
+          f.hit(tick);
+        }
+        expect(f.world.damageQueue.length, 1);
+        f.expectAcceptedDamage(1000, tick: active);
+      },
+    );
 
     test('diagonal beam hits its visible upper-right slope at $hz Hz', () {
       final f = _Fixture(EnemyId.voidcaller, hz);

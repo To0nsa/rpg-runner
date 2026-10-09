@@ -34,6 +34,8 @@ continuous casting with cast invulnerability and a collision-resolved return,
 and speeds up her orb. Her actor scale is 1.2x with matching body, claws and
 approach spacing. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
 Direct player impacts now emit feedback per accepted hit, including combos.
+Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
+nominal 0.6-second warning per hand, and deals 10 dark damage per slap.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug

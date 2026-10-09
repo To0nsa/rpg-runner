@@ -106,7 +106,7 @@ void main() {
             expect(xs[i], closeTo(74 + index * 90.4, .01));
             expect(hands[i].pos.y, closeTo(ground, .01));
             if (i > 0) {
-              expect(hands[i].tick - hands[i - 1].tick, (hz / 2).ceil());
+              expect(hands[i].tick - hands[i - 1].tick, (hz * .35).ceil());
             }
           }
           expect(returned, isTrue);

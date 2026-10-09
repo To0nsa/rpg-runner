@@ -36,7 +36,7 @@ death presentation, exit and victory blessing reuse the
 | --- | --- |
 | Claw combo | Four visible swipes in a committed direction, each able to deal 7 physical damage per target; 0.4-second windup |
 | Void orb | A straight projectile aimed at the captured target center; 6 dark damage; 0.45-second cast and 480 world units/second flight |
-| Hand barrage | Teleports to an upper arena corner away from the captured target, then sends six hands across the floor at half-second intervals after a 1-second preparation. Each hand warns for ten effect frames and slaps once for 7 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
+| Hand barrage | Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 10 dark damage. She animates and remains invincible through the final hand, then glides back at 180 world units/second; at least six seconds between commits |
 
 She alternates orbs and eruptions, using claws on every third sequence position
 when the player is within 68 units and near her height. Prepared source

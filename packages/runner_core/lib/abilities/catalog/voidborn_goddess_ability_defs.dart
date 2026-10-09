@@ -44,12 +44,13 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     category: AbilityCategory.ranged,
     hitDelivery: const TargetPointHitDelivery(
       profile: VoidbornGoddessPoseCatalog.goddessEruption,
-      stepTimeSeconds: .08,
+      // Ten warning frames: nominally 0.6 seconds before the slap.
+      stepTimeSeconds: .06,
       hitPolicy: HitPolicy.oncePerTarget,
       impactEffectId: SpellImpactId.goddessEruption,
       anchor: TargetPointAnchor.surfaceBelow,
     ),
-    baseDamage: 700,
+    baseDamage: 1000,
     baseDamageType: DamageType.dark,
     windupTicks: 60,
     activeTicks: 240,

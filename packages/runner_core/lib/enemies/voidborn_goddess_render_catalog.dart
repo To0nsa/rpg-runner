@@ -138,6 +138,6 @@ abstract final class VoidbornGoddessRenderCatalog {
     },
     rowByKey: {AnimKey.hit: 8},
     frameCountsByKey: {AnimKey.hit: 17},
-    stepTimeSecondsByKey: {AnimKey.hit: .08},
+    stepTimeSecondsByKey: {AnimKey.hit: .06},
   );
 }
