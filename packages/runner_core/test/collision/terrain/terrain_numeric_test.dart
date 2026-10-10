@@ -3,6 +3,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('source and physics quantization', () {
+    test('coordinate limits retain their full precision on every platform', () {
+      expect(terrainMaxAbsPhysicsTicks, 1099511627776);
+      expect(terrainMaxAbsSourceTicks, 2147483648);
+      expect(TerrainPoint(1099511627776, -1099511627776).xTicks, 1099511627776);
+      expect(SourceTerrainPoint(2147483648, -2147483648).yTicks, -2147483648);
+    });
+
     test('positive and negative half-pixel values round-trip exactly', () {
       for (final value in <double>[-10.5, -0.5, 0, 0.5, 12.5]) {
         final point = SourceTerrainPoint.fromWorld(value, -value);
@@ -30,7 +37,7 @@ void main() {
         () => SourceTerrainPoint(terrainMaxAbsSourceTicks + 1, 0),
         throwsRangeError,
       );
-      expect(() => SourceTerrainPoint(1 << 55, 0), throwsRangeError);
+      expect(() => SourceTerrainPoint(0x80000000000000, 0), throwsRangeError);
       expect(
         () => sourceCoordinateToTicks(
           (terrainMaxAbsSourceTicks + 1) / terrainSourceTicksPerWorldUnit,
@@ -113,7 +120,7 @@ void main() {
         const TerrainSourceTransform(scaleNumerator: 1, scaleDenominator: 5),
         const TerrainSourceTransform(scaleNumerator: 31, scaleDenominator: 10),
         const TerrainSourceTransform(scaleNumerator: 0),
-        const TerrainSourceTransform(scaleNumerator: 0x7fffffffffffffff),
+        const TerrainSourceTransform(scaleNumerator: 0x1fffffffffffff),
       ]) {
         expect(
           () => transform.apply(SourceTerrainPoint(0, 0)),

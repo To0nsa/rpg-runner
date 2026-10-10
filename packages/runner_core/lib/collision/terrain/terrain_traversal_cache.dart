@@ -123,7 +123,8 @@ int? _snappedControlAngle(int x, int y) {
   return null;
 }
 
-const int _fullTurnBam = 1 << 32;
+// Keep the full turn exact on JavaScript, where int shifts use 32 bits.
+const int _fullTurnBam = 0x100000000;
 
 // Binary-angle constants are atan(2^-i), where a full turn is 2^32.
 const List<int> _cordicAtanBam = <int>[

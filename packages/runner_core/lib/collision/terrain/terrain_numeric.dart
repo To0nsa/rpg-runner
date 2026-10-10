@@ -46,7 +46,9 @@ const int terrainDefaultCellSizeWorld = 64;
 /// This keeps coordinates and deltas inside signed 63-bit arithmetic while
 /// allowing more than one billion world units in either direction. Exact
 /// compiler products promote to [BigInt] where their range can be larger.
-const int terrainMaxAbsPhysicsTicks = 1 << 40;
+/// The exact literal also preserves this bound in JavaScript, whose integer
+/// bit shifts truncate to 32 bits.
+const int terrainMaxAbsPhysicsTicks = 0x10000000000;
 
 /// Maximum absolute coordinate accepted on the authored half-unit grid.
 const int terrainMaxAbsSourceTicks =
