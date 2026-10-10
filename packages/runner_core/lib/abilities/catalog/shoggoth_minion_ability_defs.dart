@@ -12,7 +12,7 @@ final Map<AbilityKey, AbilityDef> shoggothMinionAbilityDefs = {
       profile: ShoggothMinionPoseCatalog.minionBite,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    baseDamage: 200,
+    baseDamage: 300,
     baseDamageType: DamageType.physical,
     windupTicks: 24,
     activeTicks: 12,

@@ -61,7 +61,7 @@ final Map<AbilityKey, AbilityDef> shoggothAbilityDefs = {
     hitDelivery: const ProjectileHitDelivery(
       projectileId: ProjectileId.shoggothOrb,
     ),
-    baseDamage: 600,
+    baseDamage: 720,
     baseDamageType: DamageType.dark,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     procs: const [

@@ -44,10 +44,20 @@ void main() {
         for (final mode in ['all', 'miss finisher', 'finisher only']) {
           test('$key $pushRule, $mode side=$side at $hz Hz', () {
             final f = _Fixture(key, hz);
+            // Isolate base damage from the fixture's equipment modifiers.
+            f.world.equippedLoadout.removeEntity(f.player);
             f.place(side * 35);
             final ability = AbilityCatalog.shared.resolve(key)!;
             final profile = (ability.hitDelivery as MeleeHitDelivery).profile;
             final count = profile.combo!.strikeStartFrames.length;
+            expect(count, hasFinisherPush ? 3 : 4);
+            final damagePerHit = key == 'goddess.claw_combo'
+                ? 500
+                : key.endsWith('charge')
+                ? 600
+                : 700;
+            final playerHi = f.world.health.indexOf(f.player);
+            final hpBefore = f.world.health.hp[playerHi];
             expect(
               AiMeleeCommitter(tickHz: hz).commit(
                 f.world,
@@ -74,9 +84,13 @@ void main() {
               final miss =
                   mode == 'miss finisher' && last ||
                   mode == 'finisher only' && !last;
-              // The spin's shared core hits at close contact on both rotations;
-              // its outer arc changes sides as the charge passes the target.
-              final reach = key.endsWith('charge') ? 20.0 : 35.0;
+              // Sample the visible rear arc for the sweep's second strike;
+              // all three spin windows can connect through the central body.
+              final reach = key.endsWith('charge')
+                  ? 20.0
+                  : key == 'shoggoth.tentacle_sweep' && frame == 6
+                  ? -25.0
+                  : 35.0;
               f.place(side * (miss ? 250.0 : reach));
               resolveCombatPoses(f.world, tick, tickHz: hz);
               MeleeStrikeSystem().step(f.world, currentTick: tick);
@@ -89,6 +103,7 @@ void main() {
                 expect(queue.target[i], f.player);
                 final strike = queue.comboHit[i]!.strike;
                 strikes.add(strike);
+                expect(queue.amount100[i], damagePerHit);
                 expect(
                   queue.knockback[i] != null,
                   hasFinisherPush && strike == count,
@@ -111,6 +126,10 @@ void main() {
                     ),
             );
             expect(pushes, hasFinisherPush && mode != 'miss finisher' ? 1 : 0);
+            expect(
+              hpBefore - f.world.health.hp[playerHi],
+              strikes.length * damagePerHit,
+            );
             if (pushes > 0) {
               expect(f.world.knockback.signedDistance.single, side * 112);
             }
@@ -125,6 +144,9 @@ void main() {
           () {
             final f = _Fixture(key, hz)..place(side * 140);
             final hit = f.spellHit(key);
+            expect(f.world.damageQueue.amount100, [
+              key == 'goddess.eruption' ? 1200 : 720,
+            ]);
             f.damage.step(
               f.world,
               currentTick: hit,

@@ -53,7 +53,7 @@ follow-up. See [boss arena contracts](boss_arenas.md) and
 [Bringer tuning](../gdd/bringer_of_death.md).
 
 Prepared compatibility `2026.10.11` applies 112 world units over 0.28 seconds
-(the same tuning as Bringer) to the second strike of Shoggoth's sweep, spinning
+(the same tuning as Bringer) to the third strike of Shoggoth's sweep, spinning
 charge and return charge. Goddess's claw combo has no knockback. Both orbs and
 each Goddess hand impact carry the same shove on every accepted damaging hit.
 Those spells also carry the ordinary `weakenOnHit` proc tuned to 25% outgoing

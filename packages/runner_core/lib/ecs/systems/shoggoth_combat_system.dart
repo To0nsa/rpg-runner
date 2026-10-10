@@ -32,7 +32,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
 
   // World-unit spacing keeps the native-scale tentacle arcs within body reach.
   static const _standOff = 45.0;
-  // Half ground speed keeps retreat useful while the two-hit sweep pursues.
+  // Half ground speed keeps retreat useful while the three-hit sweep pursues.
   static const _sweepSpeedScale = .5;
   static const _chargeSpeed = 360.0;
 

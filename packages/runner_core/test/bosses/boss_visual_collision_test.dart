@@ -29,8 +29,9 @@ void main() {
     for (final (id, key, x, y, expectedHits, damagePerHit) in [
       (EnemyId.voidbornGoddess, 'goddess.claw_combo', -21.33, -5.33, 4, 500),
       (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -43.33, -6.67, 2, 700),
-      (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2, 600),
-      (EnemyId.shoggoth, 'shoggoth.return_charge', 0.0, -5.0, 2, 600),
+      (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 3, 600),
+      (EnemyId.shoggoth, 'shoggoth.return_charge', 0.0, -5.0, 3, 600),
+      (EnemyId.shoggothMinion, 'shoggoth_minion.bite', -16.0, -4.0, 1, 300),
     ]) {
       test('$key strikes again only on a new swing at $hz Hz', () {
         final f = _Fixture(id, hz);

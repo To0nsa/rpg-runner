@@ -175,7 +175,8 @@ Client and replay worker consume this pursuit under prepared compatibility
 
 Both charge abilities track facing during windup, then compose 360 horizontal
 units/second for their 36-authoring-tick active phase before the single terrain
-integration. The existing two-pass geometry and ledgers remain unchanged.
+integration. Three strike windows divide the existing spin geometry, each with
+its own per-target hit ledger.
 A separate persistent `frenzyReached` flag records the 35% charge milestone;
 healing cannot undo it and summon thresholds do not advance it. Once reached,
 the first and every alternate accepted normal charge can queue a return. Its
@@ -217,11 +218,21 @@ released projectiles retain their normal independent flight and collision.
 
 ## Combo finishers and spell effects
 
+Shoggoth's sweep authors three `CombatCombo` windows at zero-based pose frames
+`[5, 6, 7]`, dealing 700 fixed-point damage each (21 HP total). Its middle arc
+faces backward; landing all three requires contact with each authored shape.
+Both charges use `[3, 5, 7]`, grouping their six active frames into three
+two-frame windows of 600 damage each (18 HP total per charge). Existing pose
+geometry and action timings are retained. Each target can take one hit per
+window, independent of simulation tick rate. Both bosses' orbs deal 720
+fixed-point damage (7.2 HP), and Shoggoth minion bites deal 300 (3 HP).
+Goddess retains four 500-damage claw strikes and 1200 damage per hand slap.
+
 Shoggoth's sweep, spinning charge and return charge author
 `KnockbackTrigger.comboFinisher`. The shared hitbox resolver supplies whether
 contact belongs to the final authored strike; only that strike resolves the
 captured knockback source. No boss identity check or hit-count shortcut is used.
-The second sweep/spin strikes push 112 world units over 0.28 seconds,
+The third sweep/spin strikes push 112 world units over 0.28 seconds,
 subject to normal damage acceptance, body caps and terrain. See
 [combat knockback](combat_knockback.md) for motion and cancellation rules.
 Goddess's claw combo has no knockback payload, including on its final strike.

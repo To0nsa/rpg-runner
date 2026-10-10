@@ -48,7 +48,7 @@ void main() {
             ProjectileHitSystem().step(f.world, grid, currentTick: tick);
           }
           expect(f.world.damageQueue.target, [f.player]);
-          expect(f.world.damageQueue.amount100, [600]);
+          expect(f.world.damageQueue.amount100, [720]);
           expect(WorldSupportView(f.world).isGrounded(f.player), isTrue);
         });
 
@@ -107,7 +107,8 @@ void main() {
             expect(f.world.damageQueue.target, everyElement(f.player));
             expect(
               f.world.damageQueue.length,
-              sweep ? 2 : inInclusiveRange(1, 2),
+              // A target in front misses the sweep's rear-facing middle arc.
+              sweep ? 2 : inInclusiveRange(1, 3),
             );
             expect(
               f.world.damageQueue.amount100,

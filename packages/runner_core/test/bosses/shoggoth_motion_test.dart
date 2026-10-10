@@ -59,11 +59,11 @@ void main() {
               expect(f.x, recoveryX);
             }
           }
-          expect(movingWindows, {1, 2});
+          expect(movingWindows, {1, 2, 3});
           expect(f.world.damageQueue.target, [f.player, f.player]);
           expect(f.world.damageQueue.comboHit.map((hit) => hit!.strike), [
             1,
-            2,
+            3,
           ]);
           expect((f.x - start) * side, greaterThan(24));
         },
@@ -99,9 +99,9 @@ void main() {
         f.tick(10);
         f.placePlayer(450);
         final activeStart = 10 + f.world.activeAbility.windupTicks[f.ai];
-          for (var tick = 11; tick < activeStart; tick++) {
-            f.tick(tick);
-          }
+        for (var tick = 11; tick < activeStart; tick++) {
+          f.tick(tick);
+        }
         final x = f.x;
         switch (stop) {
           case 'route':
@@ -212,11 +212,12 @@ void main() {
           final newStrike =
               window != previousWindow && profile.frames[frame].isNotEmpty;
           if (newStrike) {
-            expectedFacing = window == 1 ? Facing.right : Facing.left;
+            expectedFacing = window.isOdd ? Facing.right : Facing.left;
             windows.add(window);
           }
           final direction = expectedFacing == Facing.right ? 1 : -1;
-          f.placePlayer(f.x + (newStrike ? direction : -direction) * 45);
+          final distance = window == 2 ? 25 : 45;
+          f.placePlayer(f.x + (newStrike ? direction : -direction) * distance);
           f.decide(10 + age);
           f.locomote(10 + age);
           resolveCombatPoses(f.world, 10 + age, tickHz: hz);
@@ -230,9 +231,9 @@ void main() {
           }
           previousWindow = window;
         }
-        expect(windows, {1, 2});
-        expect(f.world.damageQueue.target, [f.player, f.player]);
-        expect(f.world.damageQueue.amount100, [700, 700]);
+        expect(windows, {1, 2, 3});
+        expect(f.world.damageQueue.target, List.filled(3, f.player));
+        expect(f.world.damageQueue.amount100, [700, 700, 700]);
       },
     );
 

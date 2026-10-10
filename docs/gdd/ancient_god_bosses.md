@@ -132,10 +132,10 @@ height; both melee art and damage shapes use that same scale.
 
 | Action | Default behavior |
 | --- | --- |
-| Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. Follows the current player position at half shared ground speed through the 0.4-second windup and both hits, stopping 45 units away. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. Recovery holds position for 0.3 seconds. |
-| Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Two arc passes can each deal 6 physical damage. Recovery lasts 0.4 seconds. |
-| Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and damage, and 0.8-second stationary recovery. |
-| Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 6 dark damage. |
+| Tentacle sweep | Three rotating sweeps, each dealing 7 physical damage (21 if all three connect). Follows the current player position at half shared ground speed through the 0.4-second windup and all three hits, stopping 45 units away. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. Recovery holds position for 0.3 seconds. |
+| Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Three hit windows can each deal 6 physical damage (18 total). Recovery lasts 0.4 seconds. |
+| Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and three hits of 6 damage (18 total), and 0.8-second stationary recovery. |
+| Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 7.2 dark damage. |
 | Invoke minions | Three 0.7-second summon casts: at 80% HP (208 HP), up to two living minions; at 60% (156 HP), up to three; at 40% (104 HP), up to four. Surviving minions count toward each cap. |
 | Vanish and return | After three continuous seconds beyond 300 horizontal units or without a directly walkable approach, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
@@ -149,12 +149,16 @@ he does not walk backward through the player or chase during recovery.
 Charge warning frames can turn; a launched charge cannot steer. Walls and arena
 bounds stop charge movement, and gravity continues normally.
 
-The second hit of his sweep and of each spinning/return charge knocks the
-player back; the first hit does not. His orb also pushes and applies **Weaken**
+Each strike requires contact with its visible arc. The sweep's middle arc reaches
+behind him, so a player staying in front can miss that hit. Listed damage is base
+damage before equipment, resistance and status modifiers.
+
+The third hit of his sweep and of each spinning/return charge knocks the
+player back; the first two hits do not. His orb also pushes and applies **Weaken**
 for **25% less outgoing damage over three seconds**, using the existing dark
 status feedback. These pushes use Bringer's 112-unit, 0.28-second horizontal
 knockback, limited by ordinary collision. Missing a combo finisher causes no
-push; the first hit never substitutes for it.
+push; earlier hits never substitute for it.
 
 While any of his own minions are alive, targets outside melee reach make him
 prioritize orbs over charges and repositioning. Melee reach requires a directly
@@ -174,7 +178,7 @@ current action, any accepted return charge, and the normal cooldown. A rejected
 cast admission retains the phase; an interrupted accepted cast consumes it.
 Clear supported spawn positions must remain separated from the player and
 other minions, so blocked space can reduce the number admitted. Minions have
-10 HP, bite for 2 physical damage, last up to 12 seconds, and grant no kill points.
+10 HP, bite for 3 physical damage, last up to 12 seconds, and grant no kill points.
 Killing them buys space: he does not replenish them between these three casts.
 
 The charge frenzy begins at 35% HP (91 HP), independently of the summon waves.

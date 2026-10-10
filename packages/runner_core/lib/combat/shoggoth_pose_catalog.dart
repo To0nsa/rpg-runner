@@ -10,7 +10,8 @@ abstract final class ShoggothPoseCatalog {
   static const orbReleaseOffset = Vec2(-35, 14);
 
   static const shoggothSweep = CombatStrikeProfile(
-    combo: CombatCombo(strikeStartFrames: [5, 7]),
+    // Each visible front/back/front arc owns one hit, even on adjacent frames.
+    combo: CombatCombo(strikeStartFrames: [5, 6, 7]),
     artFacing: Facing.left,
     timing: ActionFramePolicy(frameCount: 11, activeStart: 5, activeEnd: 8),
     frames: [
@@ -31,7 +32,8 @@ abstract final class ShoggothPoseCatalog {
     ],
   );
   static const shoggothSpin = CombatStrikeProfile(
-    combo: CombatCombo(strikeStartFrames: [3, 6]),
+    // Three two-frame strike windows share the existing six-frame spin.
+    combo: CombatCombo(strikeStartFrames: [3, 5, 7]),
     artFacing: Facing.left,
     timing: ActionFramePolicy(frameCount: 12, activeStart: 3, activeEnd: 9),
     frames: [
