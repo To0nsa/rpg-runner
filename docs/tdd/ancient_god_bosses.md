@@ -162,8 +162,33 @@ profile still derives from the same collider. Decisions use current combat
 target identity and a read-only full-capsule flight preview: at vertical
 separation <=50, directly reachable targets within 70 units select a sweep; targets through 260 units
 select a charge. Other targets select an orb. Ordinary cooldown and active
-ability gates remain authoritative. Between actions, pursuit uses up to 240
+ability gates remain authoritative. Between ordinary actions, pursuit uses up to 240
 horizontal and 300 vertical units/second with 45-unit horizontal spacing.
+
+Each successfully committed Shoggoth action records its ability ID, start tick
+and end tick in `ShoggothTacticsStore`. Before shared phase cleanup, `prepare`
+observes exact natural completion once: a sweep, normal charge or return charge
+increments `meleeActionsSinceOrb`, capped at five; a completed orb resets it.
+Cancellation, replacement (including the same ability with a new start tick),
+stun, death, suspension and target loss invalidate the observation and pending
+ranged phase. They retain the completed melee count until a later orb finishes.
+The registered store discards all cadence state on entity destruction.
+
+At five completed melee actions without an orb, decision priority becomes:
+finish an eligible return continuation, honor an already reserved orb, consume
+earned summon waves, then start the ranged break before ordinary attack
+selection. The break reuses `shoggoth.teleport` and its existing checked
+150-unit placement, fixed destination cue, action clocks and eight-second
+teleport interval. `ShoggothRangedPhase.retreating` advances to `orbPending` only
+after that exact teleport naturally completes. During the remaining group-zero
+cooldown the boss hovers; the next accepted action is an orb even inside melee
+reach. No cooldown or warning is bypassed. Failed teleport admission or an
+unready teleport interval requests the orb in place instead. A landing that
+becomes occupied retains the existing return animation and still leads to the
+orb. A blocked cast admission waits for ordinary eligibility rather than
+resuming melee. New summon thresholds cannot interrupt an accepted retreat
+and its reserved orb. This sequencing shares prepared client/worker gameplay
+compatibility `2026.10.11`; command encoding and tick ordering are unchanged.
 
 Integer comparisons `hp * 100 <= hpMax * threshold` for 80, 60 and 40
 record reached summon phases during actions and cooldowns. The maximum reached
@@ -176,10 +201,11 @@ Placement still runs before terrain body enumeration, including every admitted
 minion in that tick's motion roster. Expiry, owner destruction and attack cleanup
 use the shared summon lifecycle.
 
-After earned summon waves, living owned summons prioritize an orb whenever the
-target is outside the same clear flight path, <=70 horizontal / <=50 vertical
-melee reach used by sweep selection. This precedes teleport and charge selection,
-including a pending return continuation. `BossUtilitySystem.livingSummons`
+After earned summon waves and any due ranged break, living owned summons
+prioritize an orb whenever the target is outside the same clear flight path,
+<=70 horizontal / <=50 vertical melee reach used by sweep selection. This
+precedes separation-driven teleport and charge selection, including a pending
+return continuation. `BossUtilitySystem.livingSummons`
 excludes dead actors and other owners; expiry is resolved before AI. Existing
 actions and cooldowns complete normally, and the absence of living minions
 restores ordinary attack decisions. No new RNG or persistent target state is used.
@@ -208,17 +234,17 @@ exact ability/start/end identity is inspected after control lock refresh and **b
 Only natural completion admits the continuation in that tick's decision phase.
 Cancellation, replacement, suspension, missing target, death or stun discards it.
 The target must be behind the first direction by >20 and <=260 units, at melee
-height with direct walking available. Otherwise the original cooldown remains.
+height with a clear direct flight path. Otherwise the original cooldown remains.
 
 An admitted `shoggoth.return_charge` bypasses only the completing charge's
 remaining cooldown and starts a new 150-authoring-tick cooldown. Failed admission
 restores the prior remaining cooldown. The return is an ordinary independent
-melee activation: 30 windup ticks, 36 active ticks and 48 recovery ticks. Its two
+melee activation: 30 windup ticks, 36 active ticks and 48 recovery ticks. Its three
 strikes share their own combo provenance, never the preceding charge's exception.
 There is no continuation from a return charge.
 
 Separation tracks consecutive ticks beyond 300 horizontal units or without a
-directly walkable approach. After three seconds, a ready actor tries a captured
+clear direct flight path. After three seconds, a ready actor tries a captured
 utility teleport, at most once per eight seconds after acceptance. Failed
 placement preflight falls back to an orb with a one-second teleport retry delay.
 No teleport or health event interrupts an action or skips its recovery.
@@ -480,6 +506,14 @@ from source alpha bounds and generates `voidcaller_effect_catalog.dart`.
 with `--check` to detect stale outputs; never hand-edit generated catalogs.
 
 ## Verification
+
+Ranged-break regressions at 30/60/90 Hz require five whole melee actions, a
+marked retreat, stationary recovery/cooldown and an orb even when the player
+closes the gap. They cover interrupted/replaced actions, death, suspension,
+target loss, recycled IDs, blocked placement, teleport/cast cooldowns, summon
+priority and an accepted return charge. Normal-input Core/worker replay cases
+bait five attacks without modifying health or damage, observe the landing and
+orb release, then compare entity, animation, projectile and health state.
 
 The [October 9 Shoggoth verification](../verification/shoggoth-boss-2026-10-09.md)
 records the new phase, movement, teleport, arena and replay checks, including

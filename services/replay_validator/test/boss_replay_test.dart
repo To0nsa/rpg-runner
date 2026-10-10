@@ -62,6 +62,109 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test(
+      'Shoggoth breaks five melee actions with a teleport and orb in replay, $hz Hz',
+      () {
+        final direct = _core(hz, bossId: EnemyId.shoggoth);
+        final replay = _core(hz, bossId: EnemyId.shoggoth);
+        final frames = <ReplayCommandFrameV1>[];
+        AnimKey? previous;
+        var meleeActions = 0;
+        var retreated = false;
+        var cast = false;
+        var released = false;
+        double? landingX;
+        final trace = <String>[];
+        for (var n = 0; n < hz * 25 && !direct.gameOver; n++) {
+          final before = direct.buildSnapshot();
+          final boss = before.entities
+              .where((e) => e.enemyId == EnemyId.shoggoth)
+              .firstOrNull;
+          final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+          // Bait repeated melee with normal pursuit input, then let the marked
+          // retreat and its orb finish. No attacks or health overrides are used.
+          final axis = landingX == null && dx.abs() > 40 ? dx.sign : 0.0;
+          final tick = direct.tick + 1;
+          frames.add(ReplayCommandFrameV1(tick: tick, moveAxis: axis));
+          direct.applyCommands([MoveAxisCommand(tick: tick, axis: axis)]);
+          direct.stepOneTick();
+          final after = direct.buildSnapshot();
+          final actor = after.entities
+              .where((e) => e.enemyId == EnemyId.shoggoth)
+              .firstOrNull;
+          if (actor == null) continue;
+          if (actor.anim != previous) {
+            trace.add(
+              '$tick ${actor.anim} at ${actor.pos.x}, HP=${after.hud.hp}',
+            );
+            if (actor.anim == AnimKey.strike || actor.anim == AnimKey.strike2) {
+              meleeActions++;
+              expect(
+                landingX,
+                isNull,
+                reason: 'retreat must cast before melee resumes',
+              );
+            }
+            if (actor.anim == AnimKey.teleportOut) {
+              expect(meleeActions, 5, reason: trace.join('\n'));
+              expect(actor.teleportDestination, isNotNull);
+              landingX = actor.teleportDestination!.x;
+              expect(
+                (landingX - before.playerEntity!.pos.x).abs(),
+                closeTo(150, 1),
+              );
+            }
+            if (actor.anim == AnimKey.cast) {
+              expect(retreated, isTrue, reason: trace.join('\n'));
+              cast = true;
+            }
+          }
+          retreated |= landingX != null && (actor.pos.x - landingX).abs() < 1;
+          released = after.entities.any(
+            (e) => e.projectileId == ProjectileId.shoggothOrb,
+          );
+          previous = actor.anim;
+          if (released) break;
+        }
+        expect(meleeActions, 5, reason: trace.join('\n'));
+        expect(retreated, isTrue, reason: trace.join('\n'));
+        expect(cast && released, isTrue, reason: trace.join('\n'));
+        final result = runReplaySimulation(
+          core: replay,
+          totalTicks: direct.tick,
+          commandStream: frames,
+        );
+        expect(result.runEnded, isNull);
+        final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+        expect(b.bossArena!.hp100, 30000);
+        expect(b.hud.hp, a.hud.hp);
+        expect(
+          b.entities.map(
+            (e) => [
+              e.id,
+              e.enemyId,
+              e.projectileId,
+              e.pos.x,
+              e.pos.y,
+              e.anim,
+              e.animFrame,
+            ],
+          ),
+          a.entities.map(
+            (e) => [
+              e.id,
+              e.enemyId,
+              e.projectileId,
+              e.pos.x,
+              e.pos.y,
+              e.anim,
+              e.animFrame,
+            ],
+          ),
+        );
+      },
+    );
+
     for (final bossId in [EnemyId.shoggoth, EnemyId.voidbornGoddess]) {
       test(
         '$bossId flies after a real jump and hovers in recovery in replay, $hz Hz',

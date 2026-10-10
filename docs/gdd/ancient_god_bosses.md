@@ -141,7 +141,7 @@ height; both melee art and damage shapes use that same scale.
 | Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and three hits of 6 damage (18 total), and 0.8-second stationary recovery. |
 | Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 7.2 dark damage. |
 | Invoke minions | Three 0.7-second summon casts: at 80% HP (240 HP), up to two living minions; at 60% (180 HP), up to three; at 40% (120 HP), up to four. Surviving minions count toward each cap. |
-| Vanish and return | After three continuous seconds beyond 300 horizontal units or without a clear direct flight path, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
+| Vanish and return | After five completed melee actions without an orb, retreats to cast. Also, after three continuous seconds beyond 300 horizontal units or without a clear direct flight path, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
 With a clear flight path and within 50 vertical units of the target, he
 chooses a sweep within 70 horizontal units and a charge from there through
@@ -165,11 +165,24 @@ status feedback. These pushes use Bringer's 112-unit, 0.28-second horizontal
 knockback, limited by ordinary collision. Missing a combo finisher causes no
 push; earlier hits never substitute for it.
 
+After **five completed melee actions without an orb**, he breaks away with the
+existing marked teleport, aiming for a clear spot **150 units from the player**.
+A three-hit sweep counts once; each charge or return charge counts once. He
+finishes recovery and respects the normal cooldown, then casts an orb even if
+the player closes the gap. He hovers through the wait instead of chasing back
+into melee. A blocked landing or an active teleport cooldown makes him cast
+from his current position. Completing any orb resets this count; interrupted
+actions do not count as completed attacks. An already accepted charge/return
+sequence and earned summon waves finish before starting the retreat. Once the
+retreat is accepted, its orb comes before newly earned waves.
+
 While any of his own minions are alive, targets outside melee reach make him
-prioritize orbs over charges and repositioning. Melee reach requires a clear
-flight path, at most 70 horizontal units and 50 vertical units. In reach
+prioritize orbs over charges and ordinary separation-driven repositioning.
+Melee reach requires a clear flight path, at most 70 horizontal units and
+50 vertical units. In reach
 he still uses sweeps. Earned summon waves take priority; existing actions finish
-normally. A queued return charge is skipped when the minions need ranged support.
+normally, including an accepted retreat-and-orb sequence. A queued return charge
+is skipped when the minions need ranged support.
 Once the last minion dies or expires, normal attack selection resumes.
 
 During an orb cast he turns when the player crosses to his other side, including

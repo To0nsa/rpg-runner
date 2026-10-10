@@ -11,13 +11,14 @@ import '../../snapshots/enums.dart';
 import '../actor_facing.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
+import '../stores/enemies/shoggoth_tactics_store.dart';
 import '../world.dart';
 import 'boss_flight_system.dart';
 import 'boss_combat_system.dart';
 import 'enemy_cast_system.dart';
 import 'enemy_melee_system.dart';
 
-/// Pursuit, health-triggered swarms and committed charge chains for Shoggoth.
+/// Pursuit, ranged breaks, health-triggered swarms and charge chains for Shoggoth.
 /// Shared executors retain damage, utility placement and terrain authority.
 final class ShoggothCombatSystem extends BossCombatSystem {
   ShoggothCombatSystem({
@@ -33,13 +34,16 @@ final class ShoggothCombatSystem extends BossCombatSystem {
   // World-unit spacing keeps the native-scale tentacle arcs within body reach.
   static const _standOff = 45.0;
   static const _chargeSpeed = 360.0;
+  // Completed actions, not strike hits: break sustained melee pressure with an orb.
+  static const _meleeActionsBeforeOrb = 5;
 
   /// Inspect identity before the phase system clears completed actions. A clear,
-  /// replacement, suspension or interruption must never become a queued counter.
+  /// replacement, suspension or interruption must never count as completion.
   void prepare(EcsWorld world, {required int currentTick}) {
     for (var i = 0; i < world.shoggothTactics.states.length; i++) {
       final boss = world.shoggothTactics.denseEntities[i];
       final s = world.shoggothTactics.states[i];
+      _observeCompletion(world, boss, s, currentTick);
       if (s.chainStartTick < 0) continue;
       final ai = world.activeAbility.tryIndexOf(boss);
       if (!_available(world, boss, currentTick) ||
@@ -53,6 +57,40 @@ final class ShoggothCombatSystem extends BossCombatSystem {
         s.clearChain();
       }
     }
+  }
+
+  void _observeCompletion(
+    EcsWorld world,
+    EntityId boss,
+    ShoggothTactics s,
+    int tick,
+  ) {
+    final key = s.observedAbilityId;
+    if (key == null) return;
+    final ai = world.activeAbility.tryIndexOf(boss);
+    if (!_available(world, boss, tick) ||
+        ai == null ||
+        world.activeAbility.abilityId[ai] != key ||
+        world.activeAbility.startTick[ai] != s.observedStartTick ||
+        tick > s.observedEndTick) {
+      s.clearObservation();
+      s.rangedPhase = ShoggothRangedPhase.none;
+      return;
+    }
+    if (tick != s.observedEndTick) return;
+    if (key == 'shoggoth.tentacle_sweep' || _isCharge(key)) {
+      s.meleeActionsSinceOrb = math.min(
+        _meleeActionsBeforeOrb,
+        s.meleeActionsSinceOrb + 1,
+      );
+    } else if (key == 'shoggoth.orb') {
+      s.meleeActionsSinceOrb = 0;
+      s.rangedPhase = ShoggothRangedPhase.none;
+    } else if (key == 'shoggoth.teleport' &&
+        s.rangedPhase == ShoggothRangedPhase.retreating) {
+      s.rangedPhase = ShoggothRangedPhase.orbPending;
+    }
+    s.clearObservation();
   }
 
   bool _available(EcsWorld world, EntityId boss, int tick) =>
@@ -73,6 +111,8 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       final target = combatTarget(world, boss, player);
       if (!_available(world, boss, currentTick) || target == null) {
         s.clearChain();
+        s.clearObservation();
+        s.rangedPhase = ShoggothRangedPhase.none;
         s.separatedSinceTick = -1;
         _hold(world, boss, currentTick);
         continue;
@@ -151,18 +191,41 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       }
       final key = world.activeAbility.abilityId[ai];
       if (key != null) {
+        if (s.rangedPhase == ShoggothRangedPhase.orbPending &&
+            key != 'shoggoth.orb') {
+          s.rangedPhase = ShoggothRangedPhase.none;
+        }
         _trackAction(world, boss, target, ai, currentTick);
         continue;
+      }
+      // Preserve the space earned by a retreat while its ordinary cooldown ends.
+      if (s.rangedPhase == ShoggothRangedPhase.orbPending ||
+          s.meleeActionsSinceOrb >= _meleeActionsBeforeOrb) {
+        _hold(world, boss, currentTick);
       }
       if (world.cooldown.isOnCooldown(boss, 0)) continue;
 
       String choice;
-      if (s.phasesCommitted < s.phasesReached) {
+      if (s.rangedPhase == ShoggothRangedPhase.orbPending) {
+        choice = 'shoggoth.orb';
+      } else if (s.phasesCommitted < s.phasesReached) {
         choice = switch (s.phasesCommitted) {
           0 => 'shoggoth.summon',
           1 => 'shoggoth.summon_swarm',
           _ => 'shoggoth.summon_horde',
         };
+      } else if (s.meleeActionsSinceOrb >= _meleeActionsBeforeOrb) {
+        if (currentTick >= s.nextTeleportTick &&
+            _commit(world, boss, target, 'shoggoth.teleport', currentTick)) {
+          s.nextTeleportTick = currentTick + 8 * tickHz;
+          s.separatedSinceTick = -1;
+          s.rangedPhase = ShoggothRangedPhase.retreating;
+          _hold(world, boss, currentTick);
+          continue;
+        }
+        // A failed placement or teleport cooldown must not extend the melee loop.
+        s.rangedPhase = ShoggothRangedPhase.orbPending;
+        choice = 'shoggoth.orb';
       } else if (supportMinions) {
         choice = 'shoggoth.orb';
       } else if (s.separatedSinceTick >= 0 &&
@@ -321,6 +384,10 @@ final class ShoggothCombatSystem extends BossCombatSystem {
     }
     if (committed) {
       world.bossCombat.actionIndex[world.bossCombat.indexOf(boss)]++;
+      final ai = world.activeAbility.indexOf(boss);
+      world.shoggothTactics
+          .stateFor(boss)
+          .observeAction(key, tick, tick + world.activeAbility.totalTicks[ai]);
     }
     return committed;
   }
