@@ -160,13 +160,18 @@ excludes dead actors and other owners; expiry is resolved before AI. Existing
 actions and cooldowns complete normally, and the absence of living minions
 restores ordinary attack decisions. No new RNG or persistent target state is used.
 
-Sweep preparation captures an endpoint at most 24 units ahead and no closer than
-45 units to the captured target. During windup only, grounded direct walking
-approaches it at 0.5 speed; remaining displacement and live target spacing cap
-velocity. The endpoint never follows a retreating target. Windup/harmless frames
+Sweep windup and active hits refresh a grounded, directly walkable approach to
+45 units from the live combat target at 0.5 shared ground speed. There is no
+captured approach endpoint or per-action distance limit. Windup/harmless frames
 and new combo strike windows may retarget facing; a live strike cannot turn.
-Post-locomotion composition restores action facing before art and damage resolve.
-Active sweeps and recovery hold position; normal knockback still follows.
+Pursuit stops when the target is inside the stand-off or behind the committed
+facing, the route is blocked, the boss is airborne, or recovery begins.
+Post-locomotion composition caps each step at the current stand-off and restores
+action facing before art and damage resolve. Shared locomotion still observes
+control locks; knockback, gravity and terrain integration follow normally.
+No movement capability, attack clock, hit ledger or command encoding changes.
+Client and replay worker consume this pursuit under prepared compatibility
+`2026.10.11`.
 
 Both charge abilities track facing during windup, then compose 360 horizontal
 units/second for their 36-authoring-tick active phase before the single terrain

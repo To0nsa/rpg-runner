@@ -11,7 +11,6 @@ import '../../snapshots/enums.dart';
 import '../actor_facing.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
-import '../stores/enemies/shoggoth_tactics_store.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 import 'boss_combat_system.dart';
@@ -33,6 +32,8 @@ final class ShoggothCombatSystem extends BossCombatSystem {
 
   // World-unit spacing keeps the native-scale tentacle arcs within body reach.
   static const _standOff = 45.0;
+  // Half ground speed keeps retreat useful while the two-hit sweep pursues.
+  static const _sweepSpeedScale = .5;
   static const _chargeSpeed = 360.0;
 
   /// Inspect identity before the phase system clears completed actions. A clear,
@@ -141,7 +142,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       }
       final key = world.activeAbility.abilityId[ai];
       if (key != null) {
-        _trackAction(world, boss, target, s, ai, ni, ii, currentTick);
+        _trackAction(world, boss, target, ai, ni, ii, currentTick);
         continue;
       }
       if (world.cooldown.isOnCooldown(boss, 0)) continue;
@@ -178,11 +179,6 @@ final class ShoggothCombatSystem extends BossCombatSystem {
           choice == 'shoggoth.summon_swarm' ||
           choice == 'shoggoth.summon_horde') {
         s.phasesCommitted++;
-      } else if (choice == 'shoggoth.tentacle_sweep') {
-        s.sweepStartTick = currentTick;
-        s.sweepApproachX =
-            world.transform.posX[ti] +
-            dx.sign * math.min(24, math.max(0, dx.abs() - _standOff));
       } else if (choice == 'shoggoth.spinning_charge' && s.frenzyReached) {
         // Alternate normal and double passes in the final phase. Each actor's
         // count advances only when its own charge is accepted.
@@ -191,7 +187,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
           s.chainEndTick = currentTick + world.activeAbility.totalTicks[ai];
         }
       }
-      _trackAction(world, boss, target, s, ai, ni, ii, currentTick);
+      _trackAction(world, boss, target, ai, ni, ii, currentTick);
     }
   }
 
@@ -199,7 +195,6 @@ final class ShoggothCombatSystem extends BossCombatSystem {
     EcsWorld world,
     EntityId boss,
     EntityId target,
-    ShoggothTactics s,
     int ai,
     int ni,
     int ii,
@@ -241,19 +236,15 @@ final class ShoggothCombatSystem extends BossCombatSystem {
     }
     final direction = active.facing[ai] == Facing.right ? 1.0 : -1.0;
     if (key == 'shoggoth.tentacle_sweep' &&
-        windup &&
-        s.sweepStartTick == active.startTick[ai] &&
+        attacking &&
         world.navIntent.canWalkDirectlyToTarget[ni] &&
         WorldSupportView(world).isGrounded(boss) &&
-        dx * direction > _standOff &&
-        (s.sweepApproachX - world.transform.posX[ti]) * direction > 0) {
-      final remaining = math.min(
-        (s.sweepApproachX - world.transform.posX[ti]).abs(),
-        dx.abs() - _standOff,
-      );
+        dx * direction > _standOff) {
+      // Follow the live target only in the committed strike direction; crossing
+      // behind a live arc pauses pursuit until the next allowed turn.
       world.engagementIntent.desiredTargetX[ii] =
-          world.transform.posX[ti] + direction * remaining;
-      world.engagementIntent.speedScale[ii] = .5;
+          world.transform.posX[ti] + dx - direction * _standOff;
+      world.engagementIntent.speedScale[ii] = _sweepSpeedScale;
       world.engagementIntent.arrivalSlowRadiusX[ii] = 0;
       world.controlLock.addLock(boss, LockFlag.jump, 1, tick);
     } else {

@@ -9,8 +9,6 @@ class ShoggothTactics {
   int separatedSinceTick = -1;
   int nextTeleportTick = 0;
   int frenzyCharges = 0;
-  double sweepApproachX = 0;
-  int sweepStartTick = -1;
   int chainStartTick = -1;
   int chainEndTick = -1;
   int returnReadyTick = -1;

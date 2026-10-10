@@ -112,9 +112,11 @@ admit capped minion waves before terrain preparation, and choose sweeps, charges
 or orbs from the shared combat target and navigation result. Waves cap living
 owned minions at two, three and four respectively. With living minions, targets
 outside melee reach prioritize orbs over charges/teleports; the separate 35%
-charge milestone survives healing. His bounded sweep approach and
-360-unit/second charge compose after locomotion; action facing owns
-both art and damage. A surviving final-phase charge continuation is verified
+charge milestone survives healing. His sweep follows the live target through
+windup and active hits at half ground speed, stops at 45-unit spacing, and holds
+in recovery. Sweep displacement caps and the 360-unit/second charge compose after
+locomotion; action facing owns both art and damage. A surviving final-phase
+charge continuation is verified
 **before** the active-ability phase update clears its identity. Only natural
 completion can commit the separately telegraphed return in that tick's decision
 phase; interruption or replacement cannot revive it. Shared utility teleports

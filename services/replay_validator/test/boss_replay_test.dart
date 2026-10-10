@@ -57,6 +57,68 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test('Shoggoth follows during melee strikes and replays at $hz Hz', () {
+      final direct = _core(hz, bossId: EnemyId.shoggoth);
+      final replay = _core(hz, bossId: EnemyId.shoggoth);
+      final frames = <ReplayCommandFrameV1>[];
+      int? sweepTick;
+      var activeTravel = 0.0;
+      var recoveryObserved = false;
+      for (var n = 0; n < hz * 12 && !direct.gameOver; n++) {
+        final before = direct.buildSnapshot();
+        final boss = before.entities
+            .where((e) => e.enemyId == EnemyId.shoggoth)
+            .firstOrNull;
+        final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+        // Enter melee range, then retreat throughout the committed combo.
+        final axis = boss?.anim == AnimKey.strike
+            ? -dx.sign
+            : (dx.abs() > 55 ? dx.sign : 0.0);
+        final tick = direct.tick + 1;
+        frames.add(ReplayCommandFrameV1(tick: tick, moveAxis: axis));
+        direct.applyCommands([MoveAxisCommand(tick: tick, axis: axis)]);
+        direct.stepOneTick();
+        final actor = direct
+            .buildSnapshot()
+            .entities
+            .where((e) => e.enemyId == EnemyId.shoggoth)
+            .firstOrNull;
+        if (actor?.anim == AnimKey.strike && sweepTick == null)
+          sweepTick = tick;
+        if (sweepTick == null || boss == null || actor == null) continue;
+        final age = tick - sweepTick;
+        final windup = (.4 * hz).ceil();
+        final recovery = windup + (.4 * hz).ceil();
+        if (age >= windup && age < recovery) {
+          expect(actor.anim, AnimKey.strike);
+          final displacement = actor.pos.x - boss.pos.x;
+          expect(displacement * dx, lessThanOrEqualTo(0));
+          activeTravel += displacement.abs();
+        }
+        if (age >= recovery && age < recovery + (.3 * hz).ceil()) {
+          expect(actor.pos.x, boss.pos.x);
+          recoveryObserved = true;
+        }
+        if (age >= recovery + (.3 * hz).ceil() - 1) break;
+      }
+      expect(sweepTick, isNotNull);
+      expect(activeTravel, greaterThan(10));
+      expect(recoveryObserved, isTrue);
+      final result = runReplaySimulation(
+        core: replay,
+        totalTicks: direct.tick,
+        commandStream: frames,
+      );
+      expect(result.runEnded, isNull);
+      final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+      expect(b.hud.hp, a.hud.hp);
+      expect(b.bossArena!.hp100, a.bossArena!.hp100);
+      expect(
+        b.entities.map((e) => [e.id, e.pos.x, e.pos.y, e.anim, e.animFrame]),
+        a.entities.map((e) => [e.id, e.pos.x, e.pos.y, e.anim, e.animFrame]),
+      );
+    });
+
     for (final bossId in [EnemyId.shoggoth, EnemyId.voidbornGoddess]) {
       test('$bossId turns during casting and aims at release in replay, $hz Hz', () {
         final direct = _core(hz, bossId: bossId);

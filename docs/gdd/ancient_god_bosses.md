@@ -132,7 +132,7 @@ height; both melee art and damage shapes use that same scale.
 
 | Action | Default behavior |
 | --- | --- |
-| Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. During the 0.4-second windup he can advance up to 24 units at half shared ground speed, stopping 45 units from the player. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. The attack and its 0.3-second recovery hold position. |
+| Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. Follows the current player position at half shared ground speed through the 0.4-second windup and both hits, stopping 45 units away. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. Recovery holds position for 0.3 seconds. |
 | Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Two arc passes can each deal 6 physical damage. Recovery lasts 0.4 seconds. |
 | Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and damage, and 0.8-second stationary recovery. |
 | Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 6 dark damage. |
@@ -143,7 +143,9 @@ On directly walkable ground and within 50 vertical units of the target, he
 chooses a sweep within 70 horizontal units and a charge from there through
 260 units. Beyond charge range, above him, or behind an obstruction, he uses
 orbs. Between actions he pursues at 0.8 of shared ground speed toward a 45-unit
-stand-off. The sweep's short approach endpoint stays fixed if the player retreats.
+stand-off. During a sweep he follows a retreating player on directly walkable
+ground. Crossing behind a live swing pauses pursuit until the next allowed turn;
+he does not walk backward through the player or chase during recovery.
 Charge warning frames can turn; a launched charge cannot steer. Walls and arena
 bounds stop charge movement, and gravity continues normally.
 
