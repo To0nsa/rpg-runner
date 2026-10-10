@@ -33,36 +33,44 @@ void main() {
       'health thresholds produce capped swarms once, including burst damage, $hz Hz',
       () {
         for (final burst in [false, true]) {
-          final f = ShoggothCombatFixture(hz: hz)..hp = burst ? 9000 : 18200;
+          final f = ShoggothCombatFixture(hz: hz)..hp = burst ? 9000 : 20800;
           f.decide(10);
           expect(f.action, 'shoggoth.summon');
-          expect(f.state.phasesReached, burst ? 2 : 1);
+          expect(f.state.phasesReached, burst ? 3 : 1);
           var peak = 0;
           final casts = <String>[f.action!];
           var previous = f.world.activeAbility.startTick[f.ai];
           for (var tick = 11; tick < 10 + hz * 20; tick++) {
             if (tick == 10 + hz) {
               expect(f.utilities.livingSummons(f.world, f.boss), 2);
-              f.hp = 9100;
+              if (!burst) f.hp = 15600;
             }
-            if (tick == 10 + hz * 4) f.hp = 26000;
+            if (tick == 10 + hz * 4) {
+              expect(f.utilities.livingSummons(f.world, f.boss), 3);
+              if (!burst) f.hp = 10400;
+            }
+            if (tick == 10 + hz * 7) {
+              expect(f.utilities.livingSummons(f.world, f.boss), 4);
+              f.hp = 26000;
+            }
             f.decide(tick);
             final count = f.utilities.livingSummons(f.world, f.boss);
             peak = count > peak ? count : peak;
-            expect(count, lessThanOrEqualTo(3));
+            expect(count, lessThanOrEqualTo(4));
             if (f.action != null &&
                 f.world.activeAbility.startTick[f.ai] != previous) {
               casts.add(f.action!);
               previous = f.world.activeAbility.startTick[f.ai];
             }
           }
-          expect(peak, 3);
+          expect(peak, 4);
           expect(casts.where((id) => id.startsWith('shoggoth.summon')), [
             'shoggoth.summon',
             'shoggoth.summon_swarm',
+            'shoggoth.summon_horde',
           ]);
           expect(f.utilities.livingSummons(f.world, f.boss), 0);
-          expect(f.state.phasesCommitted, 2);
+          expect(f.state.phasesCommitted, 3);
         }
       },
     );
@@ -77,7 +85,7 @@ void main() {
       var summoned = false;
       for (var tick = 11; tick < 10 + 3 * hz; tick++) {
         f.decide(tick);
-        expect(f.state.phasesReached, 2);
+        expect(f.state.phasesReached, 3);
         if (tick < end) expect(f.action, 'shoggoth.tentacle_sweep');
         if (f.action == 'shoggoth.summon') {
           expect(tick, greaterThanOrEqualTo(10 + (100 * hz / 60).ceil()));
@@ -91,7 +99,7 @@ void main() {
     test(
       'failed admission retains phase; cancelled summon cannot repeat it, $hz Hz',
       () {
-        final f = ShoggothCombatFixture(hz: hz)..hp = 18200;
+        final f = ShoggothCombatFixture(hz: hz)..hp = 20800;
         f.world.actorMotionBounds.removeEntity(f.boss);
         f.decide(10);
         expect(f.action, isNull);
@@ -192,7 +200,7 @@ void main() {
       'final phase reverses only after completion with a full warning and recovery, $hz Hz',
       () {
         final f = ShoggothCombatFixture(hz: hz, bossX: 150);
-        f.state.phasesReached = f.state.phasesCommitted = 2;
+        f.state.phasesReached = f.state.phasesCommitted = 3;
         f.hp = 9100;
         f.placePlayer(300);
         f.tick(10);
@@ -276,7 +284,8 @@ void main() {
 
       test('$interruption cannot revive a return charge, $hz Hz', () {
         final f = ShoggothCombatFixture(hz: hz, bossX: 150);
-        f.state.phasesReached = f.state.phasesCommitted = 2;
+        f.state.phasesReached = f.state.phasesCommitted = 3;
+        f.hp = 9100;
         f.placePlayer(300);
         f.tick(10);
         final end = f.state.chainEndTick;
@@ -304,13 +313,15 @@ void main() {
 
   test('Shoggoth state and captured utilities do not survive recycled IDs', () {
     final f = ShoggothCombatFixture();
-    f.state.phasesReached = 2;
+    f.state.phasesReached = 3;
+    f.state.frenzyReached = true;
     f.state.chainEndTick = 400;
     f.world.destroyEntity(f.boss);
     expect(f.world.createEntity(), f.boss);
     expect(f.world.shoggothTactics.has(f.boss), isFalse);
     expect(f.world.bossCombat.has(f.boss), isFalse);
     expect(f.state.phasesReached, 0);
+    expect(f.state.frenzyReached, isFalse);
     expect(f.state.chainEndTick, -1);
   });
 }

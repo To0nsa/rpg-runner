@@ -81,12 +81,12 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       final hi = world.health.indexOf(boss);
       final hp = world.health.hp[hi];
       final maxHp = world.health.hpMax[hi];
-      final reached = hp * 100 <= maxHp * 35
-          ? 2
-          : hp * 100 <= maxHp * 70
-          ? 1
-          : 0;
+      var reached = 0;
+      for (final threshold in const [80, 60, 40]) {
+        if (hp * 100 <= maxHp * threshold) reached++;
+      }
       s.phasesReached = math.max(s.phasesReached, reached);
+      s.frenzyReached |= hp * 100 <= maxHp * 35;
 
       final ti = world.transform.indexOf(boss);
       final targetTi = world.transform.indexOf(target);
@@ -98,6 +98,9 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       final ni = world.navIntent.indexOf(boss);
       final ii = world.engagementIntent.indexOf(boss);
       final direct = world.navIntent.canWalkDirectlyToTarget[ni];
+      final inMeleeReach = atHeight && direct && dx.abs() <= 70;
+      final supportMinions =
+          !inMeleeReach && utilities.livingSummons(world, boss) > 0;
       if (direct) world.navIntent.hasPlan[ni] = false;
       world.engagementIntent.desiredTargetX[ii] = direct
           ? targetX - (dx >= 0 ? _standOff : -_standOff)
@@ -119,6 +122,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
             : -1.0;
         s.clearChain();
         if (!world.activeAbility.hasActiveAbility(boss) &&
+            !supportMinions &&
             direct &&
             atHeight &&
             dx * firstDirection < -20 &&
@@ -144,9 +148,13 @@ final class ShoggothCombatSystem extends BossCombatSystem {
 
       String choice;
       if (s.phasesCommitted < s.phasesReached) {
-        choice = s.phasesCommitted == 0
-            ? 'shoggoth.summon'
-            : 'shoggoth.summon_swarm';
+        choice = switch (s.phasesCommitted) {
+          0 => 'shoggoth.summon',
+          1 => 'shoggoth.summon_swarm',
+          _ => 'shoggoth.summon_horde',
+        };
+      } else if (supportMinions) {
+        choice = 'shoggoth.orb';
       } else if (s.separatedSinceTick >= 0 &&
           currentTick - s.separatedSinceTick >= 3 * tickHz &&
           currentTick >= s.nextTeleportTick) {
@@ -158,7 +166,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
           continue;
         }
         choice = 'shoggoth.orb';
-      } else if (atHeight && direct && dx.abs() <= 70) {
+      } else if (inMeleeReach) {
         choice = 'shoggoth.tentacle_sweep';
       } else if (atHeight && direct && dx.abs() <= 260) {
         choice = 'shoggoth.spinning_charge';
@@ -166,14 +174,16 @@ final class ShoggothCombatSystem extends BossCombatSystem {
         choice = 'shoggoth.orb';
       }
       if (!_commit(world, boss, target, choice, currentTick)) continue;
-      if (choice == 'shoggoth.summon' || choice == 'shoggoth.summon_swarm') {
+      if (choice == 'shoggoth.summon' ||
+          choice == 'shoggoth.summon_swarm' ||
+          choice == 'shoggoth.summon_horde') {
         s.phasesCommitted++;
       } else if (choice == 'shoggoth.tentacle_sweep') {
         s.sweepStartTick = currentTick;
         s.sweepApproachX =
             world.transform.posX[ti] +
             dx.sign * math.min(24, math.max(0, dx.abs() - _standOff));
-      } else if (choice == 'shoggoth.spinning_charge' && s.phasesReached == 2) {
+      } else if (choice == 'shoggoth.spinning_charge' && s.frenzyReached) {
         // Alternate normal and double passes in the final phase. Each actor's
         // count advances only when its own charge is accepted.
         if (s.frenzyCharges++ % 2 == 0) {

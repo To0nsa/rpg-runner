@@ -107,10 +107,13 @@ commits consume one phase; failed commits retain it. Large hits queue crossed
 thresholds and healing cannot rearm them. Normal action completion and cooldown
 still gate casting; no damage-phase teleport or interruption is introduced.
 
-Shoggoth's prepared `2026.10.11` tactics observe one-time 70/35% health phases,
+Shoggoth's prepared `2026.10.11` tactics observe one-time 80/60/40% summon phases,
 admit capped minion waves before terrain preparation, and choose sweeps, charges
-or orbs from the shared combat target and navigation result. His bounded sweep
-approach and 360-unit/second charge compose after locomotion; action facing owns
+or orbs from the shared combat target and navigation result. Waves cap living
+owned minions at two, three and four respectively. With living minions, targets
+outside melee reach prioritize orbs over charges/teleports; the separate 35%
+charge milestone survives healing. His bounded sweep approach and
+360-unit/second charge compose after locomotion; action facing owns
 both art and damage. A surviving final-phase charge continuation is verified
 **before** the active-ability phase update clears its identity. Only natural
 completion can commit the separately telegraphed return in that tick's decision

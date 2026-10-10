@@ -192,6 +192,7 @@ void main() {
       var summonCasts = 0;
       var finalPhase = false;
       var returned = false;
+      var supportedMinions = false;
       final trace = <String>[];
       EntityRenderSnapshot? previousBoss;
       for (var n = 0; n < hz * 60 && !direct.gameOver; n++) {
@@ -202,19 +203,29 @@ void main() {
         final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
         finalPhase |=
             before.bossArena != null && before.bossArena!.hp100 <= 9100;
-        // Earn both phases using ordinary attacks, then bait a charge by making
+        // Earn all three waves using ordinary attacks, then bait a charge by making
         // space. Jump over the committed first pass and let its counter finish.
         final escape = direct.playerPosX < 90
             ? 1.0
             : direct.playerPosX > 510
             ? -1.0
             : -dx.sign;
+        final minionsAlive = before.entities.any(
+          (e) => e.enemyId == EnemyId.shoggothMinion && e.anim != AnimKey.death,
+        );
+        final baitAxis = direct.playerPosX < 150
+            ? 1.0
+            : direct.playerPosX > 450
+            ? -1.0
+            : dx.abs() < 120
+            ? -dx.sign
+            : 0.0;
         final axis = finalPhase
-            ? (boss?.anim == AnimKey.strike2 &&
-                      chargeTicks.isNotEmpty &&
-                      direct.tick - chargeTicks.last < hz * .3
-                  ? dx.sign
-                  : dx.abs() < 160 && boss?.anim != AnimKey.strike2
+            ? (boss?.anim == AnimKey.strike2
+                  ? 0.0
+                  : !minionsAlive
+                  ? baitAxis
+                  : dx.abs() < 160
                   ? escape
                   : 0.0)
             : (dx.abs() > 20 ? dx.sign : 0.0);
@@ -227,7 +238,10 @@ void main() {
             chargeTicks.isNotEmpty &&
             tick == chargeTicks.last + 1;
         final dash =
-            finalPhase && dx.abs() < 140 && boss?.anim != AnimKey.strike2;
+            finalPhase &&
+            minionsAlive &&
+            dx.abs() < 140 &&
+            boss?.anim != AnimKey.strike2;
         frames.add(
           ReplayCommandFrameV1(
             tick: tick,
@@ -259,6 +273,13 @@ void main() {
         final actor = after.entities
             .where((e) => e.enemyId == EnemyId.shoggoth)
             .firstOrNull;
+        supportedMinions |=
+            actor?.anim == AnimKey.cast &&
+            after.entities.any(
+              (e) =>
+                  e.enemyId == EnemyId.shoggothMinion &&
+                  e.anim != AnimKey.death,
+            );
         if (actor?.anim == AnimKey.ranged &&
             previousBoss?.anim != AnimKey.ranged)
           summonCasts++;
@@ -280,8 +301,9 @@ void main() {
         previousBoss = actor;
         if (returned && tick - chargeTicks.last > 2 * hz) break;
       }
-      expect(summonCasts, 2);
+      expect(summonCasts, 3);
       expect(summons, isNotEmpty);
+      expect(supportedMinions, isTrue);
       expect(
         returned,
         isTrue,

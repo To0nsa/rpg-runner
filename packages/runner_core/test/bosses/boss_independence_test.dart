@@ -213,6 +213,7 @@ void main() {
     for (final (id, key) in [
       (EnemyId.shoggoth, 'shoggoth.summon'),
       (EnemyId.shoggoth, 'shoggoth.summon_swarm'),
+      (EnemyId.shoggoth, 'shoggoth.summon_horde'),
       (EnemyId.voidcaller, 'voidcaller.summon'),
     ]) {
       for (final replaced in [false, true]) {

@@ -4,6 +4,8 @@ import '../../sparse_set.dart';
 class ShoggothTactics {
   int phasesReached = 0;
   int phasesCommitted = 0;
+  // The 35% charge milestone survives healing independently of summon waves.
+  bool frenzyReached = false;
   int separatedSinceTick = -1;
   int nextTeleportTick = 0;
   int frenzyCharges = 0;

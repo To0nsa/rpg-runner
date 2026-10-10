@@ -141,14 +141,24 @@ select a charge. Other targets select an orb. Ordinary cooldown and active
 ability gates remain authoritative. Pursuit retains 0.8 shared ground speed and
 45-unit spacing, retaining the existing jump and slope policies.
 
-Integer comparisons `hp * 100 <= hpMax * 70` and `hp * 100 <= hpMax * 35`
-record reached phases during actions and cooldowns. The maximum reached count
-survives healing. Successful summon commitments consume each phase once; failed
+Integer comparisons `hp * 100 <= hpMax * threshold` for 80, 60 and 40
+record reached summon phases during actions and cooldowns. The maximum reached
+count survives healing. Successful summon commitments consume each phase once; failed
 admission retries and interrupted accepted casts do not repeat. The first
-summon has count/cap two; the second count/cap three. Burst damage queues both.
+summon has count/cap two, the second three and the third four. Burst damage
+queues every crossed threshold in order. All three use the same nine-frame
+summon timing, releasing at frame 7 after 42 authoring ticks.
 Placement still runs before terrain body enumeration, including every admitted
 minion in that tick's motion roster. Expiry, owner destruction and attack cleanup
 use the shared summon lifecycle.
+
+After earned summon waves, living owned summons prioritize an orb whenever the
+target is outside the same directly walkable, <=70 horizontal / <=50 vertical
+melee reach used by sweep selection. This precedes teleport and charge selection,
+including a pending return continuation. `BossUtilitySystem.livingSummons`
+excludes dead actors and other owners; expiry is resolved before AI. Existing
+actions and cooldowns complete normally, and the absence of living minions
+restores ordinary attack decisions. No new RNG or persistent target state is used.
 
 Sweep preparation captures an endpoint at most 24 units ahead and no closer than
 45 units to the captured target. During windup only, grounded direct walking
@@ -161,9 +171,10 @@ Active sweeps and recovery hold position; normal knockback still follows.
 Both charge abilities track facing during windup, then compose 360 horizontal
 units/second for their 36-authoring-tick active phase before the single terrain
 integration. The existing two-pass geometry and ledgers remain unchanged.
-After the 35% phase, the first and every alternate accepted normal charge can
-queue a return. Its exact ability/start/end identity is inspected after control
-lock refresh and **before** the active-phase system clears completed actions.
+A separate persistent `frenzyReached` flag records the 35% charge milestone;
+healing cannot undo it and summon thresholds do not advance it. Once reached,
+the first and every alternate accepted normal charge can queue a return. Its
+exact ability/start/end identity is inspected after control lock refresh and **before** the active-phase system clears completed actions.
 Only natural completion admits the continuation in that tick's decision phase.
 Cancellation, replacement, suspension, missing target, death or stun discards it.
 The target must be behind the first direction by >20 and <=260 units, at melee

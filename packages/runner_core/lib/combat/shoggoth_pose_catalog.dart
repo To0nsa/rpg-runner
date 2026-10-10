@@ -80,11 +80,8 @@ abstract final class ShoggothPoseCatalog {
       activeStart: 8,
       activeEnd: 9,
     ),
-    'shoggoth.summon' || 'shoggoth.summon_swarm' => const ActionFramePolicy(
-      frameCount: 9,
-      activeStart: 7,
-      activeEnd: 8,
-    ),
+    'shoggoth.summon' || 'shoggoth.summon_swarm' || 'shoggoth.summon_horde' =>
+      const ActionFramePolicy(frameCount: 9, activeStart: 7, activeEnd: 8),
     _ => null,
   };
 }
