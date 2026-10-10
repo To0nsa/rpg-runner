@@ -125,7 +125,7 @@ height; both melee art and damage shapes use that same scale.
 | Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. During the 0.4-second windup he can advance up to 24 units at half shared ground speed, stopping 45 units from the player. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. The attack and its 0.3-second recovery hold position. |
 | Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Two arc passes can each deal 6 physical damage. Recovery lasts 0.4 seconds. |
 | Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and damage, and 0.8-second stationary recovery. |
-| Void orb | Captures the target center when casting begins and flies straight at 340 units/second; 6 dark damage and a 0.7-second cast. |
+| Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 6 dark damage. |
 | Invoke minions | One 0.7-second summon cast at 70% HP (182 HP), admitting up to two living minions; another at 35% HP (91 HP), admitting up to three. |
 | Vanish and return | After three continuous seconds beyond 300 horizontal units or without a directly walkable approach, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
@@ -136,6 +136,11 @@ orbs. Between actions he pursues at 0.8 of shared ground speed toward a 45-unit
 stand-off. The sweep's short approach endpoint stays fixed if the player retreats.
 Charge warning frames can turn; a launched charge cannot steer. Walls and arena
 bounds stop charge movement, and gravity continues normally.
+
+During an orb cast he turns when the player crosses to his other side, including
+on the release tick. The hand origin mirrors with the visible pose, without
+restarting the windup or cooldown. He can keep turning through cast recovery;
+an orb already in flight keeps its launch direction.
 
 The two health thresholds are earned once per life. Burst damage can queue both;
 healing cannot rearm a summon or undo the final phase. Summons wait for the
@@ -184,7 +189,8 @@ with space from the player and other summons. A blocked summon creates nothing.
 
 Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
-and damage. Spells capture their targets once and never home onto later player
+and damage. Shoggoth tracks his orb target until release; other spells capture
+their target at commitment. Released projectiles never home onto later player
 movement. Goddess claws and Shoggoth sweeps can retarget between distinct swipes
 while each live swipe retains its direction and hit ledger. Utility actions deal no direct damage.
 Consecutive poses of one swing share its hit ledger. In prepared source

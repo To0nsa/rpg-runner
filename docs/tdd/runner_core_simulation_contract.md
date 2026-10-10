@@ -118,7 +118,12 @@ phase; interruption or replacement cannot revive it. Shared utility teleports
 capture a supported destination at commitment and expose that fixed point through
 the existing snapshot cue until execution or cancellation. These changes retain
 command encoding and require matching client/worker/issuer release artifacts.
-See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
+His orb cast refresh runs after terrain movement and self abilities, immediately
+before projectile launch. It turns the actor and aims a still-pending shot from
+the mirrored hand tip using the current target center. Exact action identity
+and eligibility guard release; an already released orb retains its direction.
+Shared projectile intents default body-relative X/Y offsets to zero, preserving
+other casters. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 
 ## Tick ordering
 

@@ -15,6 +15,7 @@ import '../stores/enemies/shoggoth_tactics_store.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 import 'boss_combat_system.dart';
+import 'enemy_cast_system.dart';
 import 'enemy_melee_system.dart';
 
 /// Pursuit, health-triggered swarms and committed charge chains for Shoggoth.
@@ -300,7 +301,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
         targetVelX: 0,
         targetVelY: 0,
         aimPolicy: AiCastAimPolicy.targetCenter,
-        casterOriginOffset: 30,
+        casterOriginOffset: 0,
         currentTick: tick,
       );
     }
@@ -308,6 +309,64 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       world.bossCombat.actionIndex[world.bossCombat.indexOf(boss)]++;
     }
     return committed;
+  }
+
+  /// After terrain movement, keep casting art aimed at the current target and
+  /// refresh only this activation's pending shot from the mirrored hand tip.
+  /// Released orbs retain their direction; turning never restarts the cast clock.
+  void refreshOrbCast(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
+    for (final boss in world.bossCombat.denseEntities) {
+      if (world.enemy.enemyId[world.enemy.indexOf(boss)] != enemyId) continue;
+      final intents = world.projectileIntent;
+      final pi = intents.indexOf(boss);
+      final ai = world.activeAbility.indexOf(boss);
+      final target = combatTarget(world, boss, player);
+      final casting =
+          world.activeAbility.abilityId[ai] == 'shoggoth.orb' &&
+          _available(world, boss, currentTick) &&
+          target != null;
+      final pending =
+          intents.abilityId[pi] == 'shoggoth.orb' && intents.tick[pi] >= 0;
+      if (pending &&
+          (!casting ||
+              intents.commitTick[pi] != world.activeAbility.startTick[ai])) {
+        intents.tick[pi] = -1;
+        intents.commitTick[pi] = -1;
+      }
+      if (!casting) continue;
+      final ti = world.transform.indexOf(boss);
+      final targetTi = world.transform.indexOf(target);
+      final center = aiActorCenter(
+        world,
+        target,
+        fallbackX: world.transform.posX[targetTi],
+        fallbackY: world.transform.posY[targetTi],
+      );
+      final dx = center.$1 - world.transform.posX[ti];
+      if (dx.abs() > 2) {
+        world.activeAbility.facing[ai] = dx > 0 ? Facing.right : Facing.left;
+      }
+      final facing = world.activeAbility.facing[ai];
+      setActorFacing(world, boss, facing);
+      if (intents.tick[pi] < currentTick ||
+          intents.abilityId[pi] != 'shoggoth.orb' ||
+          intents.commitTick[pi] != world.activeAbility.startTick[ai]) {
+        continue;
+      }
+      final offset = ShoggothPoseCatalog.orbReleaseOffset;
+      final originX = facing == Facing.left ? offset.x : -offset.x;
+      intents.sourceOffsetX[pi] = originX;
+      intents.sourceOffsetY[pi] = offset.y;
+      intents.originOffset[pi] = 0;
+      intents.dirX[pi] = center.$1 - world.transform.posX[ti] - originX;
+      intents.dirY[pi] = center.$2 - world.transform.posY[ti] - offset.y;
+      intents.fallbackDirX[pi] = facing == Facing.left ? -1 : 1;
+      intents.fallbackDirY[pi] = 0;
+    }
   }
 
   /// Preserve strike facing after locomotion, then compose horizontal motion

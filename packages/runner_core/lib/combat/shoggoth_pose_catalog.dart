@@ -1,9 +1,14 @@
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
 /// Damage geometry in world units at Shoggoth's native 1.0x art scale.
 abstract final class ShoggothPoseCatalog {
+  /// Hand-tip center (44, 79) minus actor pivot (79, 65) in cast frame 8.
+  /// Native art faces left; mirror X for a right-facing release at 1.0x scale.
+  static const orbReleaseOffset = Vec2(-35, 14);
+
   static const shoggothSweep = CombatStrikeProfile(
     combo: CombatCombo(strikeStartFrames: [5, 7]),
     artFacing: Facing.left,

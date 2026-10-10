@@ -170,6 +170,23 @@ utility teleport, at most once per eight seconds after acceptance. Failed
 placement preflight falls back to an orb with a one-second teleport retry delay.
 No teleport or health event interrupts an action or skips its recovery.
 
+Orb casting refreshes facing and the pending shot after terrain movement and
+self abilities, immediately before shared projectile launch. The current combat
+body center determines facing (with the same two-unit horizontal dead zone) and
+aim. Cast frame 8's hand-tip center is source pixel (44, 79) relative to the
+(79, 65) pivot: world offset (-35, 14) at native scale, mirrored in X when facing
+right. Projectile intents carry a signed body-relative `sourceOffsetX` alongside
+`sourceOffsetY`, with zero defaults for existing callers. These offsets precede
+the ordinary aim-line offset; Shoggoth uses zero aim-line displacement so steep
+aim never moves the projectile off his hands.
+
+The refresh checks the exact orb ability/start identity, living actor/target,
+suspension and control gates. Invalid pending intents are cleared before the
+executor runs. Facing can follow through cast recovery, while aim changes end
+at release. Turning spends no resources, advances no action index and changes no
+cast/cooldown clock. The projectile executor contains no Shoggoth branch, and
+released projectiles retain their normal independent flight and collision.
+
 ## Lifecycle and tick dependencies
 
 `BossCombatStateStore` and `BossSummonStore` are lifecycle-registered sparse
@@ -188,6 +205,7 @@ execute a stale utility intent.
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
 | Goddess hover/pursuit composition alongside spin composition | Suppress hover gravity, retain combo-facing ownership and cap pursuit velocity before knockback and one terrain integration |
+| Shoggoth cast refresh after motion/self abilities, immediately before projectile launch | Mirror the authored hand origin and aim from final target positions, including a release-tick crossing |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
 AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects
@@ -394,6 +412,12 @@ within the middle 60% of a standing player's body, and render
 `.tmp/shoggoth_height_preview.png` for visual inspection. Matching capsule tests
 reject the previous enlarged arc's invisible reach. The 21 Shoggoth arena cases
 and three phase/return-charge replay cases also pass with the smaller body.
+Casting regressions additionally cover side changes through the release tick,
+elevated targets, fixed hand origins, unchanged flight after turning, interrupted
+intents and recycled projectile-origin state at 30/60/90 Hz. Three normal-input
+replays cross the boss during windup and verify the first projectile snapshot
+at the hand tip. Real-PNG casting checks render both facings and three aim angles
+to `.tmp/shoggoth_cast_release.png`.
 
 Arena tests cover deterministic duplicate runs at 30/60/90 Hz, introduction,
 confinement, teleport/return, summon caps and lifetime, stationary tentacles,

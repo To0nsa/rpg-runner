@@ -54,6 +54,117 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    test(
+      'Shoggoth turns during casting and releases from his hands in replay, $hz Hz',
+      () {
+        final direct = _core(hz, bossId: EnemyId.shoggoth);
+        final replay = _core(hz, bossId: EnemyId.shoggoth);
+        final frames = <ReplayCommandFrameV1>[];
+        final seenOrbs = <int>{};
+        Facing? castFacing;
+        var crossingAxis = 0.0;
+        var turned = false;
+        var verifiedRelease = false;
+        var wasCasting = false;
+        final trace = <String>[];
+        for (var n = 0; n < hz * 40 && !direct.gameOver; n++) {
+          final before = direct.buildSnapshot();
+          final boss = before.entities
+              .where((e) => e.enemyId == EnemyId.shoggoth)
+              .firstOrNull;
+          final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+          final casting = boss?.anim == AnimKey.cast;
+          final axis = casting
+              ? crossingAxis
+              : (dx.abs() > 110 ? dx.sign : 0.0);
+          final tick = direct.tick + 1;
+          final jump = boss != null && !casting && dx.abs() < 180;
+          final dash = casting && !turned && dx.abs() > 50;
+          frames.add(
+            ReplayCommandFrameV1(
+              tick: tick,
+              moveAxis: axis,
+              pressedMask:
+                  (jump ? ReplayCommandFrameV1.pressedJumpBit : 0) |
+                  (dash ? ReplayCommandFrameV1.pressedDashBit : 0),
+            ),
+          );
+          direct.applyCommands([
+            MoveAxisCommand(tick: tick, axis: axis),
+            if (jump) JumpPressedCommand(tick: tick),
+            if (dash) DashPressedCommand(tick: tick),
+          ]);
+          direct.stepOneTick();
+          final after = direct.buildSnapshot();
+          final actor = after.entities
+              .where((e) => e.enemyId == EnemyId.shoggoth)
+              .firstOrNull;
+          if (actor?.anim == AnimKey.cast) {
+            if (!wasCasting) {
+              castFacing = actor!.facing;
+              crossingAxis = (actor.pos.x - direct.playerPosX).sign;
+              turned = false;
+            }
+            turned |= actor!.facing != castFacing;
+          }
+          for (final orb in after.entities.where(
+            (e) => e.projectileId == ProjectileId.shoggothOrb,
+          )) {
+            if (!seenOrbs.add(orb.id)) continue;
+            expect(actor, isNotNull);
+            expect(
+              orb.pos.x,
+              closeTo(
+                actor!.pos.x + (actor.facing == Facing.left ? -35 : 35),
+                1e-9,
+              ),
+            );
+            expect(orb.pos.y, closeTo(actor.pos.y + 14, 1e-9));
+            if (turned && actor.anim == AnimKey.cast) verifiedRelease = true;
+          }
+          wasCasting = actor?.anim == AnimKey.cast;
+          if (n % hz == 0)
+            trace.add(
+              '$tick player=${after.playerEntity?.pos} boss=${actor?.pos} ${actor?.anim}',
+            );
+          if (verifiedRelease) break;
+        }
+        expect(verifiedRelease, isTrue, reason: trace.join('\n'));
+        final result = runReplaySimulation(
+          core: replay,
+          totalTicks: direct.tick,
+          commandStream: frames,
+        );
+        expect(result.runEnded, isNull);
+        final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+        expect(b.hud.hp, a.hud.hp);
+        expect(
+          b.entities.map(
+            (e) => [
+              e.id,
+              e.pos.x,
+              e.pos.y,
+              e.facing,
+              e.anim,
+              e.animFrame,
+              e.rotationRad,
+            ],
+          ),
+          a.entities.map(
+            (e) => [
+              e.id,
+              e.pos.x,
+              e.pos.y,
+              e.facing,
+              e.anim,
+              e.animFrame,
+              e.rotationRad,
+            ],
+          ),
+        );
+      },
+    );
+
     test('Shoggoth swarms and final-phase return charge replay at $hz Hz', () {
       final direct = _core(hz, bossId: EnemyId.shoggoth);
       final replay = _core(hz, bossId: EnemyId.shoggoth);

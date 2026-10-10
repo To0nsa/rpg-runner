@@ -48,7 +48,8 @@ Shoggoth joins this prepared release with 260 HP, distance-based attacks,
 360-unit/second charges, bounded advancing sweeps, one-time 70/35% minion waves,
 conditional final-phase return charges and captured teleport destination cues.
 The normal and return charge retain independent combo provenance and full
-warnings. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
+warnings. His orb tracks the target through cast release and launches from the
+mirrored hand tip after terrain movement. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 Direct player impacts now emit feedback per accepted hit, including combos.
 Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
 nominal 0.6-second warning per hand, and deals 12 dark damage per slap.

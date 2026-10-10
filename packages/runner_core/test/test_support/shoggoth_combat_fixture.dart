@@ -176,6 +176,7 @@ final class ShoggothCombatFixture {
     decide(tick, prepareMotion: true);
     locomote(tick);
     integrate(tick);
+    combat.refreshOrbCast(world, player: player, currentTick: tick);
   }
 }
 
