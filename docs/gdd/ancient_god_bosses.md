@@ -41,12 +41,11 @@ death presentation, exit and victory blessing reuse the
 | Void orb | Turns toward the player throughout the 0.45-second cast and aims at the current target center until release; the orb then flies straight at 480 world units/second and deals 7.2 dark damage. The orb follows its aim line, and its explosion is centered over the struck body, expanding across the player silhouette. |
 | Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 12 dark damage. She animates and remains invincible through the final hand, then casts one orb and teleports to medium range; at least six seconds between commits |
 
-Her fourth claw swipe knocks the player back; the earlier three do not. Both
-her orb and every damaging hand slap also push and apply **Weaken**, reducing
+Her claw combo applies no knockback. Both
+her orb and every damaging hand slap push and apply **Weaken**, reducing
 the player's outgoing damage by **25% for three seconds**, with the existing
 dark-status feedback. Each push uses Bringer's 112-unit, 0.28-second horizontal
-knockback; walls and arena bounds can shorten it. A missed final swipe causes
-no push, even when earlier swipes landed.
+knockback; walls and arena bounds can shorten it.
 
 Crossing behind Goddess during an orb cast makes her turn, including on the
 release tick. Turning preserves the cast clock; launched orbs do not home. This

@@ -36,9 +36,13 @@ void main() {
       'shoggoth.spinning_charge',
       'shoggoth.return_charge',
     ]) {
+      final hasFinisherPush = key != 'goddess.claw_combo';
+      final pushRule = hasFinisherPush
+          ? 'pushes only its final strike'
+          : 'never pushes';
       for (final side in [-1, 1]) {
         for (final mode in ['all', 'miss finisher', 'finisher only']) {
-          test('$key pushes only its final strike, $mode side=$side at $hz Hz', () {
+          test('$key $pushRule, $mode side=$side at $hz Hz', () {
             final f = _Fixture(key, hz);
             f.place(side * 35);
             final ability = AbilityCatalog.shared.resolve(key)!;
@@ -85,7 +89,10 @@ void main() {
                 expect(queue.target[i], f.player);
                 final strike = queue.comboHit[i]!.strike;
                 strikes.add(strike);
-                expect(queue.knockback[i] != null, strike == count);
+                expect(
+                  queue.knockback[i] != null,
+                  hasFinisherPush && strike == count,
+                );
                 if (queue.knockback[i] != null) {
                   pushes++;
                   expect(queue.knockback[i]!.directionX, side);
@@ -103,7 +110,7 @@ void main() {
                       (i) => i + 1,
                     ),
             );
-            expect(pushes, mode == 'miss finisher' ? 0 : 1);
+            expect(pushes, hasFinisherPush && mode != 'miss finisher' ? 1 : 0);
             if (pushes > 0) {
               expect(f.world.knockback.signedDistance.single, side * 112);
             }

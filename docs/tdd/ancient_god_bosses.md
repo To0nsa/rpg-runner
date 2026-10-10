@@ -212,13 +212,14 @@ released projectiles retain their normal independent flight and collision.
 
 ## Combo finishers and spell effects
 
-Goddess's claws and Shoggoth's sweep, spinning charge and return charge author
+Shoggoth's sweep, spinning charge and return charge author
 `KnockbackTrigger.comboFinisher`. The shared hitbox resolver supplies whether
 contact belongs to the final authored strike; only that strike resolves the
 captured knockback source. No boss identity check or hit-count shortcut is used.
-The fourth claw and second sweep/spin each push 112 world units over 0.28 seconds,
+The second sweep/spin strikes push 112 world units over 0.28 seconds,
 subject to normal damage acceptance, body caps and terrain. See
 [combat knockback](combat_knockback.md) for motion and cancellation rules.
+Goddess's claw combo has no knockback payload, including on its final strike.
 
 Both orb payloads and `goddess.eruption` use the same shove with the default
 per-hit trigger. Each carries an `onHit` Weaken proc with source-local magnitude

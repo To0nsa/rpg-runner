@@ -50,12 +50,6 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     ),
     baseDamage: 500,
     baseDamageType: DamageType.physical,
-    // Bringer-strength push only on the authored final strike.
-    knockback: const KnockbackDef(
-      distance: 112,
-      durationSeconds: .28,
-      trigger: KnockbackTrigger.comboFinisher,
-    ),
     windupTicks: 24,
     activeTicks: 54,
     recoveryTicks: 18,
