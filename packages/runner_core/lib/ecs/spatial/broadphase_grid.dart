@@ -1,6 +1,7 @@
 import '../hit/aabb_hit_utils.dart';
 import '../world.dart';
 import 'grid_index_2d.dart';
+import 'grid_cell_map.dart';
 
 /// Deterministic broadphase grid rebuilt each tick from dynamic damageable AABBs.
 ///
@@ -24,18 +25,14 @@ import 'grid_index_2d.dart';
 class BroadphaseGrid {
   BroadphaseGrid({required GridIndex2D index}) : _index = index;
 
-  /// Helper for grid math (coordinate conversion, key packing).
+  /// Helper for grid math (coordinate conversion and exact cell identity).
   final GridIndex2D _index;
 
   /// Stores component data for all damageable entities in the current frame.
   /// Rebuilt at the start of `rebuild()`.
   final DamageableTargetCache targets = DamageableTargetCache();
 
-  // cellKey -> list of target indices into `targets`.
-  final Map<int, List<int>> _buckets = <int, List<int>>{};
-  // Tracks keys currently in `_buckets` to allow fast iteration/clearing without
-  // scanning the whole map (if it were sparse/large).
-  final List<int> _activeKeys = <int>[];
+  final _buckets = GridCellMap<List<int>>();
   // Pool of lists to avoid allocating new Lists every frame.
   final List<List<int>> _bucketPool = <List<int>>[];
 
@@ -51,16 +48,11 @@ class BroadphaseGrid {
   void rebuild(EcsWorld world) {
     targets.rebuild(world);
 
-    // clear() old buckets and return lists to the pool.
-    // We remove keys from the map to keep the map size small (only active cells).
-    for (var i = 0; i < _activeKeys.length; i += 1) {
-      final key = _activeKeys[i];
-      final bucket = _buckets.remove(key);
-      if (bucket == null) continue;
+    for (final bucket in _buckets.values) {
       bucket.clear();
       _bucketPool.add(bucket);
     }
-    _activeKeys.clear();
+    _buckets.clear();
 
     if (targets.isEmpty) return;
 
@@ -87,14 +79,11 @@ class BroadphaseGrid {
       // This handles "large" entities that span multiple grid cells.
       for (var cellY = minCy; cellY <= maxCy; cellY += 1) {
         for (var cellX = minCx; cellX <= maxCx; cellX += 1) {
-          final key = _index.cellKey(cellX, cellY);
-          var bucket = _buckets[key];
-          if (bucket == null) {
-            // Get a list from the pool or allocate new.
-            bucket = _bucketPool.isNotEmpty ? _bucketPool.removeLast() : <int>[];
-            _buckets[key] = bucket;
-            _activeKeys.add(key);
-          }
+          final bucket = _buckets.putIfAbsent(
+            cellX,
+            cellY,
+            () => _bucketPool.isNotEmpty ? _bucketPool.removeLast() : <int>[],
+          );
           // Store the target index (not EntityId) for fast lookups.
           bucket.add(ti);
         }
@@ -151,9 +140,8 @@ class BroadphaseGrid {
     // Order: Row by row (Y), then column by column (X).
     for (var cellY = minCy; cellY <= maxCy; cellY += 1) {
       for (var cellX = minCx; cellX <= maxCx; cellX += 1) {
-        final key = _index.cellKey(cellX, cellY);
-        final bucket = _buckets[key];
-        
+        final bucket = _buckets.get(cellX, cellY);
+
         // Skip empty cells.
         if (bucket == null || bucket.isEmpty) continue;
 
@@ -161,7 +149,7 @@ class BroadphaseGrid {
         // Elements are roughly sorted by insertion order (EntityId order).
         for (var bi = 0; bi < bucket.length; bi += 1) {
           final targetIndex = bucket[bi];
-          
+
           // Use stamp to check if already visited this query.
           // This avoids adding the same entity multiple times if it spans multiple cells.
           if (_seenStampByTargetIndex[targetIndex] == _stamp) continue;

@@ -21,14 +21,8 @@ class CellAabb {
   final double maxY;
 }
 
-/// Generic 2D grid math + hashing utility.
-///
-/// This is intentionally reusable for both:
-/// - dynamic broadphase buckets (Milestone 9), and
-/// - future nav/cost grids (later milestone).
-///
-/// IMPORTANT (determinism):
-/// - `cellKey(cx, cy)` must be stable and must not use Dart `hashCode`.
+/// Shared cell geometry for combat, collision, and navigation broadphases.
+/// Cell identity uses both coordinates; map hashing never defines identity.
 class GridIndex2D {
   GridIndex2D({required this.cellSize}) : invCellSize = 1.0 / cellSize;
 
@@ -59,21 +53,6 @@ class GridIndex2D {
     );
   }
 
-  /// Packs signed (cx, cy) into a single int key (two 32-bit lanes).
-  ///
-  /// The key is constructed by placing `cy` in the upper 32 bits and `cx` in the
-  /// lower 32 bits.
-  ///
-  /// **Platform Note**: This logic relies on Dart's 64-bit integers (VM/Native).
-  /// On the web, where `int` is a double and bitwise operations are 32-bit,
-  /// this will lose data (collisions) for keys requiring >32 bits.
-  /// For cross-platform safety use a String key or customized class, or ensure
-  /// coordinates fit in 16 bits (packed to 32).
-  int cellKey(int cx, int cy) {
-    // Mask to 32 bits to treat as unsigned for packing, then shift.
-    return ((cy & 0xFFFFFFFF) << 32) | (cx & 0xFFFFFFFF);
-  }
-
   /// Iterates 4 neighbors (or 8 if [diagonal] is true) around [cx], [cy].
   ///
   /// Order is guaranteed for determinism:
@@ -92,11 +71,10 @@ class GridIndex2D {
     visit(cx, cy + 1); // South
 
     if (!diagonal) return;
-    
+
     visit(cx - 1, cy - 1); // NW
     visit(cx + 1, cy - 1); // NE
     visit(cx - 1, cy + 1); // SW
     visit(cx + 1, cy + 1); // SE
   }
 }
-

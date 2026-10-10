@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'terrain_edge_id.dart';
 import 'terrain_numeric.dart';
+import 'terrain_polygon_queries.dart';
 
 /// Collision behavior authored independently from semantic/render metadata.
 enum TerrainCollisionMode { solid, oneWay }
@@ -162,6 +163,20 @@ class TerrainPolygon {
   /// Transformed canonical loop in 1/1024-world-unit physics ticks.
   final List<TerrainPoint> vertices;
 
+  /// Closed bounds of the immutable transformed loop, computed once on demand.
+  late final TerrainAabb bounds = _polygonBounds(vertices);
+
+  /// Tests solid-fill containment after exact bounds rejection.
+  /// Points on the boundary remain excluded, including bounds corners.
+  bool containsPointStrictly(TerrainPoint point) {
+    final box = bounds;
+    return point.xTicks > box.minX &&
+        point.xTicks < box.maxX &&
+        point.yTicks > box.minY &&
+        point.yTicks < box.maxY &&
+        terrainPointStrictlyInsidePolygon(point, vertices);
+  }
+
   /// Physical sidedness, independent from semantic metadata.
   final TerrainCollisionMode collisionMode;
 
@@ -257,4 +272,18 @@ class TerrainValidationException implements Exception {
 
   @override
   String toString() => 'TerrainValidationException(${diagnostics.join('; ')})';
+}
+
+TerrainAabb _polygonBounds(List<TerrainPoint> vertices) {
+  var minX = vertices.first.xTicks;
+  var maxX = minX;
+  var minY = vertices.first.yTicks;
+  var maxY = minY;
+  for (final point in vertices.skip(1)) {
+    if (point.xTicks < minX) minX = point.xTicks;
+    if (point.xTicks > maxX) maxX = point.xTicks;
+    if (point.yTicks < minY) minY = point.yTicks;
+    if (point.yTicks > maxY) maxY = point.yTicks;
+  }
+  return TerrainAabb(minX: minX, minY: minY, maxX: maxX, maxY: maxY);
 }

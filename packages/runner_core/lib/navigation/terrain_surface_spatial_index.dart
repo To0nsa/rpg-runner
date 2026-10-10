@@ -1,5 +1,5 @@
 import '../collision/terrain/terrain_numeric.dart';
-import '../ecs/spatial/grid_index_2d.dart';
+import '../ecs/spatial/grid_cell_map.dart';
 import 'terrain_surface_query_buffer.dart';
 import 'types/terrain_navigation_surface.dart';
 
@@ -12,8 +12,7 @@ class TerrainSurfaceSpatialIndex {
   TerrainSurfaceSpatialIndex({
     required this.surfaceSet,
     this.cellSizeWorld = terrainDefaultCellSizeWorld,
-  }) : _grid = GridIndex2D(cellSize: cellSizeWorld.toDouble()),
-       cellSizeTicks = cellSizeWorld * terrainPhysicsTicksPerWorldUnit,
+  }) : cellSizeTicks = cellSizeWorld * terrainPhysicsTicksPerWorldUnit,
        surfaces = surfaceSet.surfaces {
     if (cellSizeWorld <= 0) {
       throw ArgumentError.value(
@@ -27,7 +26,6 @@ class TerrainSurfaceSpatialIndex {
 
   /// Immutable surface/version source owned by this index.
   final TerrainSurfaceSet surfaceSet;
-  final GridIndex2D _grid;
 
   /// Square cell width in world units.
   final int cellSizeWorld;
@@ -38,7 +36,7 @@ class TerrainSurfaceSpatialIndex {
   /// Canonical immutable surface order used by candidate indices.
   final List<TerrainNavigationSurface> surfaces;
 
-  final Map<int, List<int>> _buckets = <int, List<int>>{};
+  final _buckets = GridCellMap<List<int>>();
 
   /// Total bucket references inserted during construction.
   int insertedReferences = 0;
@@ -83,7 +81,7 @@ class TerrainSurfaceSpatialIndex {
     for (var cellY = minCellY; cellY <= maxCellY; cellY += 1) {
       for (var cellX = minCellX; cellX <= maxCellX; cellX += 1) {
         buffer.stats.cellsVisited += 1;
-        final bucket = _buckets[_grid.cellKey(cellX, cellY)];
+        final bucket = _buckets.get(cellX, cellY);
         if (bucket == null) continue;
         for (final surfaceIndex in bucket) {
           buffer.stats.rawCandidates += 1;
@@ -137,9 +135,7 @@ class TerrainSurfaceSpatialIndex {
       final maxCellY = _closedMaxCell(maxY);
       for (var cellY = minCellY; cellY <= maxCellY; cellY += 1) {
         for (var cellX = minCellX; cellX <= maxCellX; cellX += 1) {
-          _buckets
-              .putIfAbsent(_grid.cellKey(cellX, cellY), () => <int>[])
-              .add(surfaceIndex);
+          _buckets.putIfAbsent(cellX, cellY, () => <int>[]).add(surfaceIndex);
           insertedReferences += 1;
         }
       }

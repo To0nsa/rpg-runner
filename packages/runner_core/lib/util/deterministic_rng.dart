@@ -18,11 +18,19 @@ const int _nonZeroSeed = 0x6d2b79f5;
 int mix32(int x) {
   var v = x & _mask32;
   v ^= (v >> 16);
-  v = (v * 0x7feb352d) & _mask32;
+  v = _multiply32(v, 0x7feb352d);
   v ^= (v >> 15);
-  v = (v * 0x846ca68b) & _mask32;
+  v = _multiply32(v, 0x846ca68b);
   v ^= (v >> 16);
   return v & _mask32;
+}
+
+// Keep partial products below JavaScript's exact-integer limit. A direct
+// 32-bit product can lose its low bits before the mask runs in a web build.
+int _multiply32(int value, int multiplier) {
+  final low = (value & 0xffff) * multiplier;
+  final high = ((value >> 16) * multiplier) & 0xffff;
+  return (low + high * 0x10000) & _mask32;
 }
 
 /// Derives a non-zero 32-bit RNG state from [seed] and [salt].

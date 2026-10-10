@@ -5,7 +5,6 @@ import '../collision/terrain/terrain_edge_index.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../collision/terrain/terrain_polygon.dart';
-import '../collision/terrain/terrain_polygon_queries.dart';
 import '../collision/terrain/terrain_query_buffer.dart';
 import '../collision/terrain/terrain_traversal_cache.dart';
 import '../collision/terrain/terrain_traversal_profile.dart';
@@ -910,7 +909,7 @@ class TerrainPlacementQuery {
     // Edge proximity alone misses a capsule wholly buried inside solid fill.
     for (final polygon in geometry.polygons) {
       if (polygon.collisionMode == TerrainCollisionMode.solid &&
-          terrainPointStrictlyInsidePolygon(capsuleCenter, polygon.vertices)) {
+          polygon.containsPointStrictly(capsuleCenter)) {
         return (
           polygon.identity.edgeId(0),
           _terrainBuffer.candidateCount,

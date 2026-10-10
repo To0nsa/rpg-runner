@@ -11,6 +11,15 @@ import 'package:test/test.dart';
 
 void main() {
   group('TerrainRuntimeBundle', () {
+    test('mirrored zero offsets retain canonical integer encoding', () {
+      final profiles = buildDefaultGroundEnemyTerrainGraphProfiles();
+      for (final profile in profiles) {
+        if (profile.authoredOffsetXTicks == 0) {
+          expect(profile.authoredOffsetXTicks.toString(), '0');
+        }
+      }
+    });
+
     test('graph capsules match catalog collision for both enemy facings', () {
       const catalog = EnemyCatalog();
       for (final profile in buildDefaultGroundEnemyTerrainGraphProfiles()) {

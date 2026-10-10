@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import '../../ecs/spatial/grid_index_2d.dart';
+import '../../ecs/spatial/grid_cell_map.dart';
 import 'terrain_edge.dart';
 import 'terrain_numeric.dart';
 import 'terrain_query_buffer.dart';
@@ -13,8 +13,7 @@ class TerrainEdgeIndex {
   TerrainEdgeIndex({
     required Iterable<TerrainEdge> edges,
     this.cellSizeWorld = terrainDefaultCellSizeWorld,
-  }) : _grid = GridIndex2D(cellSize: cellSizeWorld.toDouble()),
-       cellSizeTicks = cellSizeWorld * terrainPhysicsTicksPerWorldUnit,
+  }) : cellSizeTicks = cellSizeWorld * terrainPhysicsTicksPerWorldUnit,
        edges = UnmodifiableListView<TerrainEdge>(
          List<TerrainEdge>.of(edges)
            ..sort((left, right) => left.id.compareTo(right.id)),
@@ -29,8 +28,6 @@ class TerrainEdgeIndex {
     _rebuild();
   }
 
-  final GridIndex2D _grid;
-
   /// Square cell width in world units.
   final int cellSizeWorld;
 
@@ -40,7 +37,7 @@ class TerrainEdgeIndex {
   /// Canonical immutable edge order used by candidate indices.
   final List<TerrainEdge> edges;
 
-  final Map<int, List<int>> _buckets = <int, List<int>>{};
+  final _buckets = GridCellMap<List<int>>();
 
   /// Total bucket references inserted during rebuild.
   int insertedReferences = 0;
@@ -90,7 +87,7 @@ class TerrainEdgeIndex {
     for (var cy = minCellY; cy <= maxCellY; cy += 1) {
       for (var cx = minCellX; cx <= maxCellX; cx += 1) {
         buffer.stats.cellsVisited += 1;
-        final bucket = _buckets[_grid.cellKey(cx, cy)];
+        final bucket = _buckets.get(cx, cy);
         if (bucket == null) continue;
         for (final edgeIndex in bucket) {
           buffer.stats.rawCandidates += 1;
@@ -150,8 +147,7 @@ class TerrainEdgeIndex {
       final maxCellY = _closedMaxCell(bounds.maxY);
       for (var cy = minCellY; cy <= maxCellY; cy += 1) {
         for (var cx = minCellX; cx <= maxCellX; cx += 1) {
-          final key = _grid.cellKey(cx, cy);
-          _buckets.putIfAbsent(key, () => <int>[]).add(edgeIndex);
+          _buckets.putIfAbsent(cx, cy, () => <int>[]).add(edgeIndex);
           insertedReferences += 1;
         }
       }

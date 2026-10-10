@@ -5,6 +5,22 @@ import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('reconstructed terrain identities find cached map entries', () {
+    TerrainEdgeId id(int chunk) => TerrainEdgeId(
+      chunkIndex: chunk,
+      chunkKey: 'forest/é',
+      placementKey: 'p/$chunk',
+      shapeId: 'shape',
+      localEdgeIndex: 3,
+      subEdgeIndex: 2,
+    );
+    final entries = {for (var i = -100; i < 100; i++) id(i): i};
+    for (var i = -100; i < 100; i++) {
+      expect(entries[id(i)], i);
+      expect(id(i).hashCode, id(i).hashCode);
+    }
+  });
+
   test('identity boundaries reject empty keys and negative edge indices', () {
     expect(
       () =>

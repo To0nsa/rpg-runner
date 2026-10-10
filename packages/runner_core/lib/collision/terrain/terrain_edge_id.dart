@@ -30,14 +30,21 @@ class TerrainEdgeId implements Comparable<TerrainEdgeId> {
     );
   }
 
-  const TerrainEdgeId._({
+  TerrainEdgeId._({
     required this.chunkIndex,
     required this.chunkKey,
     required this.shapeId,
     required this.localEdgeIndex,
     required this.placementKey,
     required this.subEdgeIndex,
-  });
+  }) : hashCode = _collectionHash(
+         chunkIndex,
+         chunkKey,
+         placementKey,
+         shapeId,
+         localEdgeIndex,
+         subEdgeIndex,
+       );
 
   /// Signed authored chunk order; base terrain may use a negative index.
   final int chunkIndex;
@@ -82,16 +89,10 @@ class TerrainEdgeId implements Comparable<TerrainEdgeId> {
       localEdgeIndex == other.localEdgeIndex &&
       subEdgeIndex == other.subEdgeIndex;
 
-  /// Collection hash only; canonical signatures serialize ordered fields.
+  /// Cached collection hash, stable when IDs cross isolate boundaries.
+  /// Canonical ordering and signatures always use the complete identity fields.
   @override
-  int get hashCode => Object.hash(
-    chunkIndex,
-    chunkKey,
-    placementKey,
-    shapeId,
-    localEdgeIndex,
-    subEdgeIndex,
-  );
+  final int hashCode;
 
   /// Canonical text form used by diagnostics and signature records.
   String get canonicalKey =>
@@ -110,4 +111,25 @@ int _compareNullable(String? left, String? right) {
   if (left == null) return -1;
   if (right == null) return 1;
   return left.compareTo(right);
+}
+
+// Small exact products work identically on native and JavaScript. Do not cache
+// Object.hash here: its isolate-local seed would invalidate transferred keys.
+int _collectionHash(
+  int chunk,
+  String chunkKey,
+  String? placement,
+  String shape,
+  int edge,
+  int subEdge,
+) {
+  var hash = chunk & 0x3fffffff;
+  for (final text in [chunkKey, placement ?? '', shape]) {
+    hash = (hash * 31 + text.length) & 0x3fffffff;
+    for (final unit in text.codeUnits) {
+      hash = (hash * 31 + unit) & 0x3fffffff;
+    }
+  }
+  hash = (hash * 31 + edge) & 0x3fffffff;
+  return (hash * 31 + subEdge) & 0x3fffffff;
 }

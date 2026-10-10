@@ -8,6 +8,26 @@ import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('a local query does not scan distant rows with the same column', () {
+    final index = TerrainEdgeIndex(
+      edges: [
+        for (var row = 0; row < 200; row++)
+          _edge(row, 10, 10 + row * 128, 20, 10 + row * 128),
+      ],
+    );
+    final buffer = index.createQueryBuffer();
+    index.queryBounds(
+      minX: 12 * terrainPhysicsTicksPerWorldUnit,
+      maxX: 18 * terrainPhysicsTicksPerWorldUnit,
+      minY: 9 * terrainPhysicsTicksPerWorldUnit,
+      maxY: 11 * terrainPhysicsTicksPerWorldUnit,
+      buffer: buffer,
+    );
+    expect(index.occupiedCellCount, 200);
+    expect(buffer.candidateCount, 1);
+    expect(buffer.stats.rawCandidates, 1);
+  });
+
   test('closed exact-boundary edge enters both adjacent cell lanes', () {
     final edge = _edge(0, 0, 0, 64, 0);
     final index = TerrainEdgeIndex(edges: <TerrainEdge>[edge]);

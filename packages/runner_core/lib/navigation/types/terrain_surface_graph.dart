@@ -103,7 +103,11 @@ class TerrainSurfaceGraphBuildProfile {
       traversalProfile: traversalProfile,
       radiusTicks: radiusTicks,
       verticalHalfSegmentTicks: verticalHalfSegmentTicks,
-      authoredOffsetXTicks: authoredOffsetXTicks,
+      // Mirroring integer zero produces -0.0 in JavaScript. Keep the native
+      // integer representation in canonical graph records.
+      authoredOffsetXTicks: authoredOffsetXTicks == 0
+          ? 0
+          : authoredOffsetXTicks,
       offsetYTicks: offsetYTicks,
       supportRequirement: supportRequirement,
       locomotionSpeedTicksPerSecond: locomotionSpeedTicksPerSecond,

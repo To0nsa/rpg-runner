@@ -152,6 +152,22 @@ at a new version produces the same content signature.
 `TerrainSurfaceSpatialIndex` indexes the complete closed bounds of every
 sloped segment using the accepted 64-world-unit Phase 1 grid. Exact cell
 boundaries enter both adjacent lanes, including negative coordinates.
+Terrain-edge, navigation-surface, and combat grids use separate signed integer
+X/Y map lanes (`GridCellMap`) on VM, JavaScript, and Wasm. Lookups allocate no
+coordinate keys and do not pack two 32-bit lanes into one integer. Cell traversal
+and canonical candidate ordering remain explicit. Dynamic grids recycle row maps
+and bucket lists while clearing all inactive cells. Terrain edge IDs cache a
+portable collection hash once; full identity fields still decide equality,
+ordering and signatures, including after isolate transfer.
+
+Placement checks reject points outside cached immutable polygon bounds before
+running exact solid-fill containment. Boundary and concavity rules are unchanged.
+
+Seeded selection uses the shared 32-bit mixer with exact 16-bit partial
+products. This preserves the native integer sequence on JavaScript, where a
+direct 32-bit product can exceed exact number precision before masking.
+Mirrored zero offsets are normalized to integer zero in graph profiles so
+`nav-graphs-v1` encoding is identical across native and browser builds.
 
 Queries:
 
