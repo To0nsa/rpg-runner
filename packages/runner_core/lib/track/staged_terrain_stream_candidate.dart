@@ -2,6 +2,7 @@
 library;
 
 import '../terrain/water_region.dart';
+import '../util/cooperative_work_yield.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../navigation/terrain_runtime_bundle.dart';
@@ -139,6 +140,38 @@ final class StagedTerrainStreamCandidateBuilder {
       geometry: geometry,
       groundEnemyProfiles: groundEnemyProfiles,
     );
+    return _complete(bindings, geometry, runtimeBundle);
+  }
+
+  /// Browser preparation shares exact assembly but yields during graph work.
+  /// A candidate becomes visible only after every graph and render record exists.
+  Future<StagedTerrainStreamCandidate> buildFromBindingsCooperatively({
+    required List<StagedTerrainChunkBinding> bindings,
+    required int geometryVersion,
+    required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+  }) async {
+    bindings = List<StagedTerrainChunkBinding>.unmodifiable(bindings);
+    final profiles = List<TerrainSurfaceGraphBuildProfile>.unmodifiable(
+      groundEnemyProfiles,
+    );
+    await yieldCooperativeWork();
+    final geometry = _worldGeometryBuilder.build(
+      bindings: bindings,
+      geometryVersion: geometryVersion,
+    );
+    final runtimeBundle = await TerrainRuntimeBundle.buildCooperatively(
+      geometry: geometry,
+      groundEnemyProfiles: profiles,
+    );
+    await yieldCooperativeWork();
+    return _complete(bindings, geometry, runtimeBundle);
+  }
+
+  StagedTerrainStreamCandidate _complete(
+    List<StagedTerrainChunkBinding> bindings,
+    TerrainGeometry geometry,
+    TerrainRuntimeBundle runtimeBundle,
+  ) {
     final terrainSnapshot = _renderSnapshotBuilder.build(
       bindings: bindings,
       geometry: geometry,
@@ -166,7 +199,7 @@ final class StagedTerrainStreamCandidateBuilder {
           ),
     ]);
     final renderSnapshot = StagedTerrainRenderSnapshot(
-      geometryVersion: geometryVersion,
+      geometryVersion: geometry.version,
       polygons: terrainSnapshot.polygons,
       edges: terrainSnapshot.edges,
       waterRegions: waterRegions,

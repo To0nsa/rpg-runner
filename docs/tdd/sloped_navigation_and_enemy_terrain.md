@@ -315,6 +315,16 @@ slope, one-way, or clearance policy. Jumps keep the legacy reachability model
 of linearly interpolating horizontal displacement to a reachable landing while
 using the template's authoritative vertical samples.
 
+Each profile build owns its scratch state. Capsule directions, quantized jump
+samples, contact policy and per-surface standable intervals are reused within
+that build. Exact grounded-placement results are memoized by surface identity,
+capsule-center X, resolved facing offset and clamp policy, with a 4,096-entry
+cap. Both valid and rejected placements are reusable because geometry and the
+profile are immutable; caches never cross profiles or geometry publications.
+Landing candidates are generated one tick at a time, retaining the original
+tick/support-Y/capsule-X ordering and deduplication. A successful trajectory
+stops later candidate construction without relaxing any sweep or landing check.
+
 Every trajectory tick continuously sweeps the complete upright capsule against
 the canonical full-edge index. `TerrainContactPolicy` supplies solid/one-way
 sidedness, slope support classification, and the profile's ceiling/left/right
@@ -564,12 +574,22 @@ source, and tuning. It does not move those cursors or emit entity/item spawns.
 At a shared boundary it includes inclusive spawning followed by strict culling;
 an actual tick can skip intermediate selections.
 
-The preparer binds those selections through normal catalog admission and sends
-only the immutable bindings and the run's exact graph profiles to `Isolate.run`.
-The worker uses the same geometry, graph, and render builders as synchronous
-construction. It returns complete candidates without running future gameplay.
+The preparer binds those selections through normal catalog admission. Native
+platforms send only immutable bindings and the run's exact graph profiles to
+`Isolate.run`. Browsers use cooperative construction on the event queue because
+Dart isolates are unavailable there. Both paths share geometry, graph, and render
+assembly and return complete candidates without running future gameplay.
 No topology approximation, reduced graph coverage, or serialized replay option
 is introduced.
+
+Graph construction drains the same ordered work iterator synchronously or in
+cooperative slices. Browser preparation checks a two-millisecond scheduling
+budget between sources, jump destinations, and candidate trajectory checks,
+then yields through a browser MessageChannel event, avoiding nested timer
+throttling. This is a scheduling
+budget, not a hard upper bound on one geometry/sweep operation. Partial graph
+rows and per-profile scratch never escape; only a fully validated bundle is
+published. Wall time changes when speculative work resumes, never its output.
 
 On a live selection change, every chunk's index, key, start, and end must match
 before a candidate can be consumed. `withGeometryVersion` gives it the actual
@@ -588,7 +608,7 @@ result becomes available immediately. Concurrent requests replace the queue;
 after every handoff the preparer reselects the nearest missing candidate and
 discards obsolete output. Disabled/disposed runs reject late results and cannot
 start another job. Changed selections trigger refills.
-Binding and isolate handoff are queued after the current frame/simulation stack;
+Binding and preparation dispatch are queued after the current frame/simulation stack;
 the tick only updates the desired window and consumes already prepared data.
 `RunnerFlameGame` awaits the live run's first window during loading. The run
 widget starts the ghost's preparation at initialization and awaits it before
@@ -603,17 +623,22 @@ run session additionally awaits replay-recorder initialization. The player HUD,
 controls, and ready prompt are not mounted before both boundaries succeed;
 see [run startup](run_startup.md).
 
-A cold cache, a jump beyond the window, or unsupported/failed isolate work uses
+A cold cache, a jump beyond the window, or failed preparation uses
 the original synchronous build. Speculative failures are diagnostic only and
 cannot make a future invalid selection fail an earlier simulation tick; actual
-selection admission still fails normally. Ready/hit/miss/error statistics are
-profiling evidence, never snapshot or replay state. This removes navigation
+selection admission still fails normally. Ready/hit/miss/error statistics,
+completed/discarded candidate counts and worker latency in microseconds are
+profiling evidence, never snapshot or replay state. Latency includes scheduling,
+isolate handoff/return or cooperative yields, rather than only builder CPU time. This removes navigation
 construction from prepared transitions; it does not guarantee a frame deadline
 after an arbitrary camera jump or eliminate unrelated rendering/OS stalls.
 
-`tool/benchmark_terrain_preparation.dart` reproduces seed-42 compiled selections
-for 60 simulated seconds per level. `--realtime` gives workers only their actual
-lead time; `--forest` narrows the run to Forest. Its transition timings cover
+`tool/benchmark_terrain_preparation.dart` uses the production connected selector
+and the same `buildActorNavigationProfiles` factory as GameCore, including NPCs.
+It defaults to seed 42 and 180 seconds per compiled level at 200 world units/sec;
+`--seed=857469563 --seconds=300` retains the October phone reproduction.
+`--realtime` gives preparation only its actual lead time; `--forest` narrows the
+run. Its transition timings cover
 stream selection, prepared publication, and queuing a refill. Deferred handoff,
 background CPU, actors, and rendering require separate gameplay frame profiling.
 Observed phone timings and validation are recorded in

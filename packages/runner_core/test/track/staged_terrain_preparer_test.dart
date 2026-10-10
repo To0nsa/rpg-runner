@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
-import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
+import 'package:runner_core/navigation/actor_navigation_profiles.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/track/connected_chunk_pattern_source.dart';
 import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
-import 'package:runner_core/track/staged_terrain_stream_bindings.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/track/staged_terrain_catalog.dart';
 import 'package:runner_core/track/staged_terrain_preparer.dart';
@@ -89,6 +90,8 @@ void main() {
       second.complete();
       await Future.wait([pending, latest]);
       expect(worker.started, 2);
+      expect(preparer.stats.completed, 2);
+      expect(preparer.stats.discarded, 0);
       expect(preparer.stats.ready, 1);
       expect(preparer.take(window.last, geometryVersion: 9), isNotNull);
     },
@@ -116,6 +119,8 @@ void main() {
       next.complete();
       await Future.wait([pending, latest]);
       expect(worker.started, 2);
+      expect(preparer.stats.completed, 2);
+      expect(preparer.stats.discarded, 1);
       expect(preparer.take(old.first, geometryVersion: 2), isNull);
       expect(preparer.take(replacement.first, geometryVersion: 3), isNotNull);
     },
@@ -144,60 +149,70 @@ void main() {
       expect(worker.started, 1);
       expect(preparer.stats.ready, 0);
       expect(preparer.take(window.first, geometryVersion: 2), isNull);
-      if (stop != 'dispose')
+      if (stop != 'dispose') {
         expect(preparer.stats.lastError, contains('failed'));
+      }
     });
   }
 
-  test('prepared Forest publications exactly match synchronous builds', () async {
-    final streamer = _streamer(LevelId.forest);
-    _step(streamer, 0);
-    final preparer = _preparer();
-    addTearDown(preparer.dispose);
-    await preparer.prepare(
-      streamer.upcomingSelections(viewWidth: 600, count: 8),
+  for (final seed in [42, 857469563]) {
+    test(
+      'prepared Forest publications exactly match synchronous builds seed=$seed',
+      () async {
+        final streamer = _streamer(LevelId.forest, seed: seed);
+        _step(streamer, 0);
+        final preparer = _preparer();
+        addTearDown(preparer.dispose);
+        await preparer.prepare(
+          streamer.upcomingSelections(viewWidth: 600, count: 8),
+        );
+        var version = 1;
+        // Both sides of each shared spawn/cull boundary, including the measured
+        // worst-case 42-second Forest selection and a tick skipping that boundary.
+        for (final x in [
+          600.0,
+          1200.0,
+          1200.5,
+          1800.5,
+          2400.0,
+          2400.5,
+          3000.5,
+          3600.0,
+          3600.5,
+          4200.5,
+          4800.5,
+          5400.5,
+          6000.5,
+          6600.5,
+          7200.5,
+          7800.5,
+          8400.0,
+          8400.5,
+          for (var x = 9000.5; x <= 18000.5; x += 600) x,
+        ]) {
+          _step(streamer, x);
+          version += 1;
+          final prepared = preparer.take(
+            streamer.activeChunks,
+            geometryVersion: version,
+          );
+          expect(prepared, isNotNull, reason: 'camera $x, ${preparer.stats}');
+          final synchronous = _build(streamer.activeChunks, version);
+          _expectSamePublication(prepared!, synchronous);
+          await preparer.prepare(
+            streamer.upcomingSelections(viewWidth: 600, count: 8),
+          );
+          expect(preparer.stats.ready, lessThanOrEqualTo(8));
+        }
+        expect(preparer.stats.hits, version - 1);
+        expect(preparer.stats.misses, 0);
+        expect(preparer.stats.lastError, isNull);
+      },
+      // This compares every publication with a full rebuild in browser debug
+      // output as well as native; neither path skips the dense Forest windows.
+      timeout: const Timeout(Duration(minutes: 10)),
     );
-    var version = 1;
-    // Both sides of each shared spawn/cull boundary, including the measured
-    // worst-case 42-second Forest selection and a tick skipping that boundary.
-    for (final x in [
-      600.0,
-      1200.0,
-      1200.5,
-      1800.5,
-      2400.0,
-      2400.5,
-      3000.5,
-      3600.0,
-      3600.5,
-      4200.5,
-      4800.5,
-      5400.5,
-      6000.5,
-      6600.5,
-      7200.5,
-      7800.5,
-      8400.0,
-      8400.5,
-    ]) {
-      _step(streamer, x);
-      version += 1;
-      final prepared = preparer.take(
-        streamer.activeChunks,
-        geometryVersion: version,
-      );
-      expect(prepared, isNotNull, reason: 'camera $x, ${preparer.stats}');
-      final synchronous = _build(streamer.activeChunks, version);
-      _expectSamePublication(prepared!, synchronous);
-      await preparer.prepare(
-        streamer.upcomingSelections(viewWidth: 600, count: 8),
-      );
-      expect(preparer.stats.ready, lessThanOrEqualTo(8));
-    }
-    expect(preparer.stats.hits, version - 1);
-    expect(preparer.stats.misses, 0);
-    expect(preparer.stats.lastError, isNull);
-  }, timeout: const Timeout(Duration(minutes: 3)));
+  }
 
   test(
     'cold, skipped, stale and disposed windows cannot supply wrong terrain',
@@ -250,13 +265,16 @@ void main() {
   );
 }
 
-TrackStreamer _streamer(LevelId id, {TrackTuning? tuning}) {
+TrackStreamer _streamer(LevelId id, {TrackTuning? tuning, int seed = 42}) {
   final level = LevelRegistry.byId(id);
   return TrackStreamer(
-    seed: 42,
+    seed: seed,
     tuning: tuning ?? level.tuning.track,
     groundTopY: level.groundTopY,
-    patternSource: level.chunkPatternSource,
+    patternSource: ConnectedChunkPatternSource.forLevel(
+      level: level,
+      catalog: StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain),
+    ),
     earlyPatternChunks: level.earlyPatternChunks,
     easyPatternChunks: level.easyPatternChunks,
     normalPatternChunks: level.normalPatternChunks,
@@ -284,7 +302,7 @@ Object _spawn(SpawnEnemyRequest spawn) => (
 
 StagedTerrainPreparer _preparer() => StagedTerrainPreparer(
   catalog: StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain),
-  groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+  groundEnemyProfiles: _profiles(),
 );
 
 StagedTerrainStreamCandidate _build(
@@ -294,7 +312,7 @@ StagedTerrainStreamCandidate _build(
   catalog: StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain),
   activeChunks: chunks,
   geometryVersion: version,
-  groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+  groundEnemyProfiles: _profiles(),
 );
 
 void _expectSamePublication(
@@ -333,7 +351,7 @@ void _expectSamePublication(
 StagedTerrainPreparer _preparerWithWorker(_ControlledPreparation worker) =>
     StagedTerrainPreparer(
       catalog: StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain),
-      groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+      groundEnemyProfiles: _profiles(),
       prepareCandidate: worker.prepare,
     );
 
@@ -375,5 +393,15 @@ class _PendingCandidate {
       geometryVersion: 0,
       groundEnemyProfiles: profiles,
     ),
+  );
+}
+
+List<TerrainSurfaceGraphBuildProfile> _profiles() {
+  final tuning = LevelRegistry.byId(LevelId.forest).tuning;
+  return buildActorNavigationProfiles(
+    enemyCatalog: const EnemyCatalog(),
+    locomotion: tuning.groundEnemy.locomotion,
+    physics: tuning.physics,
+    tickHz: 60,
   );
 }

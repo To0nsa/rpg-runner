@@ -1,11 +1,13 @@
 import 'dart:async';
-import 'dart:isolate';
 
 import '../navigation/types/terrain_surface_graph.dart';
 import 'staged_terrain_catalog.dart';
 import 'staged_terrain_stream_bindings.dart';
 import 'staged_terrain_stream_candidate.dart';
 import 'track_streamer.dart';
+import 'terrain_candidate_preparation_native.dart'
+    if (dart.library.js_interop) 'terrain_candidate_preparation_cooperative.dart'
+    as preparation;
 
 /// Run-owned, bounded preparation of exact future terrain publications.
 ///
@@ -34,12 +36,20 @@ final class StagedTerrainPreparer {
   Object? _lastError;
   int _hits = 0;
   int _misses = 0;
+  int _completed = 0;
+  int _discarded = 0;
+  int _lastPreparationMicros = 0;
+  int _maxPreparationMicros = 0;
 
   /// Performance evidence only; these values never enter snapshots or replays.
-  ({int hits, int misses, int ready, String? lastError}) get stats => (
+  TerrainPreparationStats get stats => (
     hits: _hits,
     misses: _misses,
     ready: _ready.length,
+    completed: _completed,
+    discarded: _discarded,
+    lastPreparationMicros: _lastPreparationMicros,
+    maxPreparationMicros: _maxPreparationMicros,
     lastError: _lastError?.toString(),
   );
 
@@ -61,7 +71,7 @@ final class StagedTerrainPreparer {
   /// prepared. Selections must be ordered nearest first. Concurrent calls replace
   /// the queue; each complete result is available before later jobs finish.
   ///
-  /// Worker failures (including unsupported isolates) disable preparation for
+  /// Preparation failures disable preparation for
   /// this instance and remain visible in [stats]. They never suppress a required
   /// synchronous build or change the simulation's error behavior.
   Future<void> prepare(List<List<ActiveTrackChunkSnapshot>> selections) {
@@ -75,7 +85,7 @@ final class StagedTerrainPreparer {
     };
     _ready.removeWhere((key, _) => !_wanted.containsKey(key));
     // Binding and isolate handoff run after the current simulation/frame stack.
-    return _pending ??= Future<void>(_fill).whenComplete(() => _pending = null);
+    return _pending ??= Future<void>(_fill);
   }
 
   Future<void> _fill() async {
@@ -93,17 +103,32 @@ final class StagedTerrainPreparer {
           catalog: catalog,
           activeChunks: next.value,
         );
+        final watch = Stopwatch()..start();
         final candidate = await _prepareCandidate(
           bindings,
           groundEnemyProfiles,
         );
+        watch.stop();
+        _completed += 1;
+        _lastPreparationMicros = watch.elapsedMicroseconds;
+        if (_lastPreparationMicros > _maxPreparationMicros) {
+          _maxPreparationMicros = _lastPreparationMicros;
+        }
+        if (_disposed || _lastError != null || !_wanted.containsKey(next.key)) {
+          _discarded += 1;
+        } else {
+          _ready[next.key] = candidate;
+        }
         if (_disposed || _lastError != null) return;
-        if (_wanted.containsKey(next.key)) _ready[next.key] = candidate;
         // Re-read the latest queue after every handoff. A replaced window must
         // not wait for obsolete selections, nor for the rest of an old batch.
       }
     } catch (error) {
       disable(error);
+    } finally {
+      // Release ownership before the drain future completes. A new request in
+      // that completion gap must start its own pump, not join a finished one.
+      _pending = null;
     }
   }
 
@@ -141,16 +166,21 @@ typedef TerrainCandidatePreparation =
       List<TerrainSurfaceGraphBuildProfile> profiles,
     );
 
-/// Transfers one complete candidate back from a short-lived background isolate.
-/// Keeping the closure outside the preparer prevents capturing live run state.
+/// Prepares one exact candidate using an isolate on native platforms or
+/// cooperative event-queue slices in browsers. No live run state is captured.
 Future<StagedTerrainStreamCandidate> prepareTerrainCandidate(
   List<StagedTerrainChunkBinding> bindings,
   List<TerrainSurfaceGraphBuildProfile> profiles,
-) => Isolate.run(
-  () => const StagedTerrainStreamCandidateBuilder().buildFromBindings(
-    bindings: bindings,
-    geometryVersion: 0,
-    groundEnemyProfiles: profiles,
-  ),
-  debugName: 'terrain-preparation',
-);
+) => preparation.prepareTerrainCandidate(bindings, profiles);
+
+/// Diagnostic counters and end-to-end worker latency; never simulation inputs.
+typedef TerrainPreparationStats = ({
+  int hits,
+  int misses,
+  int ready,
+  int completed,
+  int discarded,
+  int lastPreparationMicros,
+  int maxPreparationMicros,
+  String? lastError,
+});

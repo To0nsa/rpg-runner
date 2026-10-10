@@ -4,6 +4,7 @@ import '../collision/terrain/terrain_contact_policy.dart';
 import '../collision/terrain/terrain_edge.dart';
 import '../collision/terrain/terrain_edge_id.dart';
 import '../collision/terrain/terrain_numeric.dart';
+import '../util/cooperative_work_yield.dart';
 import '../collision/terrain/terrain_motion_request.dart';
 import '../collision/terrain/terrain_traversal_profile.dart';
 import '../collision/terrain/terrain_query_buffer.dart';
@@ -18,11 +19,83 @@ import 'types/terrain_surface_graph.dart';
 /// existing semi-implicit-Euler template, but validate every tick with a
 /// continuous complete-capsule sweep against compiled terrain.
 class TerrainSurfaceGraphBuilder {
-  TerrainSurfaceGraphBuilder({required this.placementQuery})
+  TerrainSurfaceGraphBuilder({required this.placementQuery});
+
+  final TerrainPlacementQuery placementQuery;
+
+  /// Uses the same ordered work as [build], yielding between bounded graph
+  /// operations so a browser can service input and render during preparation.
+  Future<TerrainSurfaceGraph> buildCooperatively(
+    TerrainSurfaceGraphBuildProfile profile,
+  ) => _ProfileGraphBuilder(
+    placementQuery: placementQuery,
+    profile: profile,
+  ).buildCooperatively();
+
+  /// Builds an immutable profile view with scratch data scoped to this call.
+  TerrainSurfaceGraph build(TerrainSurfaceGraphBuildProfile profile) =>
+      _ProfileGraphBuilder(
+        placementQuery: placementQuery,
+        profile: profile,
+      ).build();
+}
+
+final class _ProfileGraphBuilder {
+  _ProfileGraphBuilder({required this.placementQuery, required this.profile})
     : _surfaceBuffer = placementQuery.surfaceIndex.createQueryBuffer(),
       _terrainBuffer = placementQuery.terrainIndex.createQueryBuffer();
 
   final TerrainPlacementQuery placementQuery;
+  final TerrainSurfaceGraphBuildProfile profile;
+  // Bound retained placement evidence even for unusually dense authored chunks.
+  // Geometry, capsule dimensions and traversal rules are fixed for this builder.
+  static const _placementCacheCapacity = 4096;
+  final _placements =
+      <(TerrainEdgeId, int, int, bool), TerrainPlacementResult>{};
+  late final _leftCapsule = profile.capsuleForDirection(-1);
+  late final _rightCapsule = profile.capsuleForDirection(1);
+  late final _contactPolicy = TerrainContactPolicy(
+    geometry: placementQuery.geometry,
+    profile: profile.traversalProfile,
+  );
+  late final _standableRanges = <TerrainStandableCenterRange?>[
+    for (final surface in surfaceSet.surfaces)
+      placementQuery.standableCenterRange(
+        surface: surface,
+        capsule: _rightCapsule,
+        traversalProfile: profile.traversalProfile,
+        supportRequirement: profile.supportRequirement,
+      ),
+  ];
+  late final _jumpSamples = [
+    for (final sample in profile.jumpTemplate.samples)
+      (
+        tick: sample.tick,
+        falling: sample.velY >= 0,
+        reach: terrainPhysicsTickValueToInt(
+          sample.maxDx * terrainPhysicsTicksPerWorldUnit,
+          name: 'jumpSample.maxDx',
+        ),
+        prevY: terrainPhysicsTickValueToInt(
+          sample.prevY * terrainPhysicsTicksPerWorldUnit,
+          name: 'jumpSample.prevY',
+        ),
+        y: terrainPhysicsTickValueToInt(
+          sample.y * terrainPhysicsTicksPerWorldUnit,
+          name: 'jumpSample.y',
+        ),
+      ),
+  ];
+
+  TerrainPlacementCapsule _capsuleForDirection(int direction) =>
+      direction < 0 ? _leftCapsule : _rightCapsule;
+
+  // Standable capsule-center ranges depend on radius/support and terrain, not
+  // the facing-dependent body offset. No cache survives this profile build.
+  TerrainStandableCenterRange? _standableRange(
+    TerrainNavigationSurface surface,
+  ) => _standableRanges[surfaceSet.indexOfId(surface.id)!];
+
   final TerrainSurfaceQueryBuffer _surfaceBuffer;
   final TerrainQueryBuffer _terrainBuffer;
   final CapsuleSegmentKernel _kernel = CapsuleSegmentKernel();
@@ -37,8 +110,25 @@ class TerrainSurfaceGraphBuilder {
 
   TerrainSurfaceSet get surfaceSet => placementQuery.surfaceIndex.surfaceSet;
 
-  /// Builds one immutable profile view without deleting shared nodes.
-  TerrainSurfaceGraph build(TerrainSurfaceGraphBuildProfile profile) {
+  late TerrainSurfaceGraph _result;
+
+  TerrainSurfaceGraph build() {
+    for (final _ in _buildSteps()) {}
+    return _result;
+  }
+
+  Future<TerrainSurfaceGraph> buildCooperatively() async {
+    final slice = Stopwatch()..start();
+    for (final _ in _buildSteps()) {
+      if (slice.elapsedMicroseconds < 2000) continue;
+      // An event-queue yield, not a microtask, lets browser frames and input run.
+      await yieldCooperativeWork();
+      slice.reset();
+    }
+    return _result;
+  }
+
+  Iterable<void> _buildSteps() sync* {
     final eligibility = <bool>[
       for (final surface in surfaceSet.surfaces)
         surface.isEligibleFor(profile.traversalProfile),
@@ -52,6 +142,7 @@ class TerrainSurfaceGraphBuilder {
       sourceIndex < surfaceSet.surfaces.length;
       sourceIndex += 1
     ) {
+      yield null;
       edgeOffsets[sourceIndex] = edges.length;
       if (!eligibility[sourceIndex]) continue;
       final source = surfaceSet.surfaces[sourceIndex];
@@ -93,7 +184,7 @@ class TerrainSurfaceGraphBuilder {
         );
       }
       if (profile.canJump) {
-        _addJumpEdges(
+        yield* _addJumpEdges(
           sourceIndex: sourceIndex,
           source: source,
           profile: profile,
@@ -136,7 +227,7 @@ class TerrainSurfaceGraphBuilder {
     }
     edgeOffsets[surfaceSet.surfaces.length] = edges.length;
 
-    return TerrainSurfaceGraph(
+    _result = TerrainSurfaceGraph(
       surfaceSet: surfaceSet,
       buildProfile: profile,
       eligibility: eligibility,
@@ -243,7 +334,7 @@ class TerrainSurfaceGraphBuilder {
     required bool isSmallTransition,
     required TerrainSurfaceGraphBuildProfile profile,
   }) {
-    final capsule = profile.capsuleForDirection(directionX);
+    final capsule = _capsuleForDirection(directionX);
     final sourceSupportX =
         sourceEndpoint.xTicks - directionX * profile.radiusTicks;
     final targetSupportX =
@@ -302,13 +393,21 @@ class TerrainSurfaceGraphBuilder {
     required TerrainSurfaceGraphBuildProfile profile,
     bool allowSameSupportClamp = true,
   }) {
+    final key = (
+      surface.id,
+      desiredCapsuleXTicks,
+      capsule.resolvedOffsetXTicks,
+      allowSameSupportClamp,
+    );
+    final cached = _placements[key];
+    if (cached != null) return cached;
     final minimumY = surface.start.yTicks < surface.end.yTicks
         ? surface.start.yTicks
         : surface.end.yTicks;
     final maximumY = surface.start.yTicks > surface.end.yTicks
         ? surface.start.yTicks
         : surface.end.yTicks;
-    return placementQuery.resolveGrounded(
+    final result = placementQuery.resolveGrounded(
       TerrainGroundPlacementRequest(
         desiredBodyCenterXTicks:
             desiredCapsuleXTicks - capsule.resolvedOffsetXTicks,
@@ -322,22 +421,19 @@ class TerrainSurfaceGraphBuilder {
         expectedGeometryVersion: surfaceSet.geometryVersion,
       ),
     );
+    if (_placements.length == _placementCacheCapacity) _placements.clear();
+    _placements[key] = result;
+    return result;
   }
 
-  void _addJumpEdges({
+  Iterable<void> _addJumpEdges({
     required int sourceIndex,
     required TerrainNavigationSurface source,
     required TerrainSurfaceGraphBuildProfile profile,
     required List<bool> eligibility,
     required List<TerrainSurfaceGraphEdge> row,
-  }) {
-    final rangeCapsule = profile.capsuleForDirection(1);
-    final sourceRange = placementQuery.standableCenterRange(
-      surface: source,
-      capsule: rangeCapsule,
-      traversalProfile: profile.traversalProfile,
-      supportRequirement: profile.supportRequirement,
-    );
+  }) sync* {
+    final sourceRange = _standableRange(source);
     if (sourceRange == null) return;
 
     final maxDxTicks = physicsCoordinateToTicks(
@@ -353,7 +449,7 @@ class TerrainSurfaceGraphBuilder {
 
     for (final takeoffCapsuleX in takeoffSamples) {
       for (final directionX in const <int>[-1, 1]) {
-        final capsule = profile.capsuleForDirection(directionX);
+        final capsule = _capsuleForDirection(directionX);
         final sourcePlacement = _placeOnSurface(
           surface: source,
           desiredCapsuleXTicks: takeoffCapsuleX,
@@ -407,18 +503,19 @@ class TerrainSurfaceGraphBuilder {
         }
 
         for (final targetIndex in candidates) {
+          yield null;
           if (targetIndex == sourceIndex || !eligibility[targetIndex]) {
             continue;
           }
           final target = surfaceSet.surfaces[targetIndex];
           if (_isOrdinaryContinuation(source, target)) continue;
-          final targetRange = placementQuery.standableCenterRange(
-            surface: target,
-            capsule: capsule,
-            traversalProfile: profile.traversalProfile,
-            supportRequirement: profile.supportRequirement,
-          );
+          final targetRange = _standableRange(target);
           if (targetRange == null) continue;
+          if (directionX > 0
+              ? targetRange.maximumXTicks <= takeoffCenter.xTicks
+              : targetRange.minimumXTicks >= takeoffCenter.xTicks) {
+            continue;
+          }
           final descendsAlongTravel = target.dyTicks * directionX > 0;
           final landings = _jumpLandingCandidates(
             takeoffCenter: takeoffCenter,
@@ -429,6 +526,7 @@ class TerrainSurfaceGraphBuilder {
             profile: profile,
           );
           for (final landing in landings) {
+            yield null;
             final contact = _sweepJumpTrajectory(
               sourceId: source.id,
               targetId: target.id,
@@ -483,27 +581,27 @@ class TerrainSurfaceGraphBuilder {
     }
   }
 
-  List<_JumpLandingCandidate> _jumpLandingCandidates({
+  Iterable<_JumpLandingCandidate> _jumpLandingCandidates({
     required TerrainPoint takeoffCenter,
     required int directionX,
     required TerrainNavigationSurface target,
     required TerrainStandableCenterRange targetRange,
     required TerrainPlacementCapsule capsule,
     required TerrainSurfaceGraphBuildProfile profile,
-  }) {
-    final candidates = <_JumpLandingCandidate>[];
+  }) sync* {
     final supportOffset =
         profile.verticalHalfSegmentTicks +
         _divideCeil(
           profile.radiusTicks * terrainDirectionScale,
           -target.outwardNormal.yTicks,
         );
-    for (final sample in profile.jumpTemplate.samples) {
-      if (sample.velY < 0) continue;
-      final reach = terrainPhysicsTickValueToInt(
-        sample.maxDx * terrainPhysicsTicksPerWorldUnit,
-        name: 'jumpSample.maxDx',
-      );
+    // Samples are tick ordered. Sort only this tick's at most three landings;
+    // the consumer stops after its first valid trajectory without constructing
+    // placements for later ticks. This preserves the original global ordering.
+    for (final sample in _jumpSamples) {
+      if (!sample.falling) continue;
+      final candidates = <_JumpLandingCandidate>[];
+      final reach = sample.reach;
       var minimumX = targetRange.minimumXTicks;
       var maximumX = targetRange.maximumXTicks;
       if (directionX > 0) {
@@ -515,18 +613,8 @@ class TerrainSurfaceGraphBuilder {
       }
       if (minimumX > maximumX) continue;
 
-      final previousY =
-          takeoffCenter.yTicks +
-          terrainPhysicsTickValueToInt(
-            sample.prevY * terrainPhysicsTicksPerWorldUnit,
-            name: 'jumpSample.prevY',
-          );
-      final currentY =
-          takeoffCenter.yTicks +
-          terrainPhysicsTickValueToInt(
-            sample.y * terrainPhysicsTicksPerWorldUnit,
-            name: 'jumpSample.y',
-          );
+      final previousY = takeoffCenter.yTicks + sample.prevY;
+      final currentY = takeoffCenter.yTicks + sample.y;
       final verticalRange = _surfaceCenterXRangeForY(
         surface: target,
         supportOffsetTicks: supportOffset,
@@ -557,19 +645,19 @@ class TerrainSurfaceGraphBuilder {
           _JumpLandingCandidate(tick: sample.tick, placement: placement),
         );
       }
+      candidates.sort((left, right) {
+        final tickOrder = left.tick.compareTo(right.tick);
+        if (tickOrder != 0) return tickOrder;
+        final verticalOrder = left.placement.supportPoint!.yTicks.compareTo(
+          right.placement.supportPoint!.yTicks,
+        );
+        if (verticalOrder != 0) return verticalOrder;
+        return left.placement.capsuleCenter!.xTicks.compareTo(
+          right.placement.capsuleCenter!.xTicks,
+        );
+      });
+      yield* _dedupeLandingCandidates(candidates);
     }
-    candidates.sort((left, right) {
-      final tickOrder = left.tick.compareTo(right.tick);
-      if (tickOrder != 0) return tickOrder;
-      final verticalOrder = left.placement.supportPoint!.yTicks.compareTo(
-        right.placement.supportPoint!.yTicks,
-      );
-      if (verticalOrder != 0) return verticalOrder;
-      return left.placement.capsuleCenter!.xTicks.compareTo(
-        right.placement.capsuleCenter!.xTicks,
-      );
-    });
-    return _dedupeLandingCandidates(candidates);
   }
 
   _TrajectoryLanding? _sweepJumpTrajectory({
@@ -584,24 +672,16 @@ class TerrainSurfaceGraphBuilder {
   }) {
     var previousX = takeoffCenter.xTicks;
     var previousY = takeoffCenter.yTicks;
-    final contactPolicy = TerrainContactPolicy(
-      geometry: placementQuery.geometry,
-      profile: profile.traversalProfile,
-    );
+    final contactPolicy = _contactPolicy;
     for (var tick = 1; tick <= landingTick; tick += 1) {
-      final sample = profile.jumpTemplate.samples[tick - 1];
+      final sample = _jumpSamples[tick - 1];
       final currentX =
           takeoffCenter.xTicks +
           _divideRoundNearest(
             (landingCenterX - takeoffCenter.xTicks) * tick,
             landingTick,
           );
-      final currentY =
-          takeoffCenter.yTicks +
-          terrainPhysicsTickValueToInt(
-            sample.y * terrainPhysicsTicksPerWorldUnit,
-            name: 'jumpSample.y',
-          );
+      final currentY = takeoffCenter.yTicks + sample.y;
       final contact = _firstBlockingContact(
         startCenterX: previousX,
         startCenterY: previousY,
@@ -664,13 +744,8 @@ class TerrainSurfaceGraphBuilder {
     required List<bool> eligibility,
     required List<TerrainSurfaceGraphEdge> row,
   }) {
-    final capsule = profile.capsuleForDirection(directionX);
-    final range = placementQuery.standableCenterRange(
-      surface: source,
-      capsule: capsule,
-      traversalProfile: profile.traversalProfile,
-      supportRequirement: profile.supportRequirement,
-    );
+    final capsule = _capsuleForDirection(directionX);
+    final range = _standableRange(source);
     if (range == null) return;
     final supportedX = directionX > 0
         ? range.maximumXTicks
@@ -739,10 +814,7 @@ class TerrainSurfaceGraphBuilder {
     var velocityY = 0.0;
     var previousX = takeoffCenter.xTicks;
     var previousY = takeoffCenter.yTicks;
-    final contactPolicy = TerrainContactPolicy(
-      geometry: placementQuery.geometry,
-      profile: profile.traversalProfile,
-    );
+    final contactPolicy = _contactPolicy;
     for (var tick = 1; tick <= jumpProfile.maxAirTicks; tick += 1) {
       velocityY += jumpProfile.gravityY * jumpProfile.dtSeconds;
       offsetY += velocityY * jumpProfile.dtSeconds;

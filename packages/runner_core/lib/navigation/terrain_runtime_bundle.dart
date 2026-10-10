@@ -3,6 +3,7 @@ import 'dart:collection';
 import '../collision/terrain/terrain_edge_index.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../collision/terrain/terrain_numeric.dart';
+import '../util/cooperative_work_yield.dart';
 import '../enemies/enemy_catalog.dart';
 import '../enemies/enemy_id.dart';
 import '../snapshots/enums.dart';
@@ -26,65 +27,32 @@ final class TerrainRuntimeBundle {
     required TerrainGeometry geometry,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
   }) {
-    final profiles = List<TerrainSurfaceGraphBuildProfile>.of(
-      groundEnemyProfiles,
-    );
-    final byKey = <String, TerrainSurfaceGraphBuildProfile>{};
-    for (final profile in profiles) {
-      if (byKey.containsKey(profile.profileKey)) {
-        throw ArgumentError(
-          'Terrain runtime graph profile keys must be unique.',
-        );
-      }
-      byKey[profile.profileKey] = profile;
-    }
-    for (final id in groundNavigatingEnemyIds) {
-      if (!byKey.containsKey(id.name)) {
-        throw ArgumentError(
-          'Terrain publication requires the ${id.name} graph profile.',
-        );
-      }
-    }
-
-    final edgeIndex = TerrainEdgeIndex(edges: geometry.edges);
-    final surfaceSet = const TerrainSurfaceExtractor().extract(geometry);
-    final surfaceIndex = TerrainSurfaceSpatialIndex(surfaceSet: surfaceSet);
-    final placementQuery = TerrainPlacementQuery(
+    final assembly = _TerrainRuntimeBundleAssembly(
       geometry: geometry,
-      terrainIndex: edgeIndex,
-      surfaceIndex: surfaceIndex,
+      groundEnemyProfiles: groundEnemyProfiles,
     );
-    final graphBuilder = TerrainSurfaceGraphBuilder(
-      placementQuery: placementQuery,
-    );
-    final graphPublication = TerrainSurfaceGraphPublication(
-      <TerrainSurfaceGraph>[
-        for (final profile in profiles) graphBuilder.build(profile),
-      ],
-    );
+    return assembly.complete([
+      for (final profile in assembly.profiles)
+        assembly.graphBuilder.build(profile),
+    ]);
+  }
 
-    if (surfaceSet.geometryVersion != geometry.version ||
-        surfaceIndex.geometryVersion != geometry.version ||
-        graphPublication.geometryVersion != geometry.version ||
-        !identical(surfaceIndex.surfaceSet, surfaceSet) ||
-        !identical(graphPublication.surfaceSet, surfaceSet)) {
-      throw StateError(
-        'Terrain runtime bundle components do not share one version and '
-        'surface-set identity.',
-      );
-    }
-
-    return TerrainRuntimeBundle._(
+  /// Prepares the exact bundle with event-queue yields during graph construction.
+  /// Wall time only schedules speculative work; it never changes graph results.
+  static Future<TerrainRuntimeBundle> buildCooperatively({
+    required TerrainGeometry geometry,
+    required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+  }) async {
+    final assembly = _TerrainRuntimeBundleAssembly(
       geometry: geometry,
-      edgeIndex: edgeIndex,
-      surfaceSet: surfaceSet,
-      surfaceIndex: surfaceIndex,
-      graphPublication: graphPublication,
-      graphProfiles: UnmodifiableListView<TerrainSurfaceGraphBuildProfile>(
-        profiles
-          ..sort((left, right) => left.profileKey.compareTo(right.profileKey)),
-      ),
+      groundEnemyProfiles: groundEnemyProfiles,
     );
+    final graphs = <TerrainSurfaceGraph>[];
+    for (final profile in assembly.profiles) {
+      await yieldCooperativeWork();
+      graphs.add(await assembly.graphBuilder.buildCooperatively(profile));
+    }
+    return assembly.complete(graphs);
   }
 
   const TerrainRuntimeBundle._({
@@ -157,6 +125,73 @@ final class TerrainRuntimeBundle {
   String graphSignature() => graphPublication.signature();
 }
 
+/// Run-local construction state; no partial bundle escapes this boundary.
+final class _TerrainRuntimeBundleAssembly {
+  _TerrainRuntimeBundleAssembly({
+    required this.geometry,
+    required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+  }) : profiles = List<TerrainSurfaceGraphBuildProfile>.of(
+         groundEnemyProfiles,
+       ) {
+    final byKey = <String, TerrainSurfaceGraphBuildProfile>{};
+    for (final profile in profiles) {
+      if (byKey.containsKey(profile.profileKey)) {
+        throw ArgumentError(
+          'Terrain runtime graph profile keys must be unique.',
+        );
+      }
+      byKey[profile.profileKey] = profile;
+    }
+    for (final id in groundNavigatingEnemyIds) {
+      if (!byKey.containsKey(id.name)) {
+        throw ArgumentError(
+          'Terrain publication requires the ${id.name} graph profile.',
+        );
+      }
+    }
+  }
+
+  final TerrainGeometry geometry;
+  final List<TerrainSurfaceGraphBuildProfile> profiles;
+  late final edgeIndex = TerrainEdgeIndex(edges: geometry.edges);
+  late final surfaceSet = const TerrainSurfaceExtractor().extract(geometry);
+  late final surfaceIndex = TerrainSurfaceSpatialIndex(surfaceSet: surfaceSet);
+  late final placementQuery = TerrainPlacementQuery(
+    geometry: geometry,
+    terrainIndex: edgeIndex,
+    surfaceIndex: surfaceIndex,
+  );
+  late final graphBuilder = TerrainSurfaceGraphBuilder(
+    placementQuery: placementQuery,
+  );
+
+  TerrainRuntimeBundle complete(List<TerrainSurfaceGraph> graphs) {
+    final graphPublication = TerrainSurfaceGraphPublication(graphs);
+    if (surfaceSet.geometryVersion != geometry.version ||
+        surfaceIndex.geometryVersion != geometry.version ||
+        graphPublication.geometryVersion != geometry.version ||
+        !identical(surfaceIndex.surfaceSet, surfaceSet) ||
+        !identical(graphPublication.surfaceSet, surfaceSet)) {
+      throw StateError(
+        'Terrain runtime bundle components do not share one version and '
+        'surface-set identity.',
+      );
+    }
+
+    return TerrainRuntimeBundle._(
+      geometry: geometry,
+      edgeIndex: edgeIndex,
+      surfaceSet: surfaceSet,
+      surfaceIndex: surfaceIndex,
+      graphPublication: graphPublication,
+      graphProfiles: UnmodifiableListView<TerrainSurfaceGraphBuildProfile>(
+        profiles
+          ..sort((left, right) => left.profileKey.compareTo(right.profileKey)),
+      ),
+    );
+  }
+}
+
 /// Builds the catalog ground-enemy graph profiles from runtime tuning.
 ///
 /// The supplied jump templates are the catalog/tuning-derived templates shared
@@ -197,13 +232,30 @@ List<TerrainSurfaceGraphBuildProfile>
 buildDefaultGroundEnemyTerrainGraphProfiles({
   EnemyCatalog enemyCatalog = const EnemyCatalog(),
 }) {
-  const tickHz = 60;
-  const locomotion = GroundEnemyLocomotionTuning();
-  const physics = PhysicsTuning();
-  final baseAirSeconds = physics.gravityY <= 0
-      ? 1.0
-      : (2 * locomotion.jumpSpeed.abs()) / physics.gravityY;
-  final maxAirTicks = (baseAirSeconds * 1.5 * tickHz).ceil();
+  return buildGroundEnemyTerrainGraphProfilesForTuning(
+    enemyCatalog: enemyCatalog,
+    locomotion: const GroundEnemyLocomotionTuning(),
+    physics: const PhysicsTuning(),
+    tickHz: 60,
+  );
+}
+
+/// Builds every grounded enemy profile using the simulation's exact tuning.
+/// Capsule quantization and jump sampling are shared by gameplay and benchmarks.
+List<TerrainSurfaceGraphBuildProfile>
+buildGroundEnemyTerrainGraphProfilesForTuning({
+  required EnemyCatalog enemyCatalog,
+  required GroundEnemyLocomotionTuning locomotion,
+  required PhysicsTuning physics,
+  required int tickHz,
+}) {
+  if (tickHz <= 0) {
+    throw ArgumentError.value(tickHz, 'tickHz', 'Must be positive.');
+  }
+  final maxAirTicks = physics.gravityY <= 0
+      ? tickHz
+      : ((2.0 * locomotion.jumpSpeed.abs() / physics.gravityY) * 1.5 * tickHz)
+            .ceil();
   final templates = <EnemyId, JumpReachabilityTemplate>{};
   for (final enemyId in groundNavigatingEnemyIds) {
     final terrain = enemyCatalog.terrainContactProfile(enemyId);

@@ -20,6 +20,26 @@ import 'package:test/test.dart';
 import '../fixtures/slopes_golden_fixture.dart';
 
 void main() {
+  test(
+    'cooperative builds preserve results while profiles interleave',
+    () async {
+      final fixture = _fixture(buildSlopesGoldenInputs());
+      final profiles = buildDefaultGroundEnemyTerrainGraphProfiles();
+      final expected = [
+        for (final profile in profiles)
+          fixture.builder.build(profile).signature(),
+      ];
+      final actual = await Future.wait([
+        for (final profile in profiles)
+          fixture.builder.buildCooperatively(profile),
+      ]);
+      expect(actual.map((graph) => graph.signature()), orderedEquals(expected));
+      for (final graph in actual) {
+        expect(graph.surfaceSet, same(fixture.surfaces));
+      }
+    },
+  );
+
   group('shared profile graph views', () {
     test(
       'catalog no-jump profile omits jumps and preserves ordinary jumps',
@@ -721,6 +741,28 @@ void main() {
       );
       expect(first.signature(), repeated.signature());
       expect(first.signature(), permuted.signature());
+    },
+  );
+
+  test(
+    'profile caches cannot carry placement evidence across traversal rules',
+    () {
+      final fixture = _fixture(buildSlopesGoldenInputs());
+      final profiles = [
+        _profile(EnemyId.hashash),
+        _profile(EnemyId.grojib),
+        _profile(EnemyId.hashash, collideCeilings: false),
+        _profile(EnemyId.derf),
+      ];
+      final expected = [
+        for (final profile in profiles)
+          _fixture(buildSlopesGoldenInputs()).builder
+              .build(profile)
+              .signature(),
+      ];
+      for (final i in [0, 2, 1, 3, 2, 0]) {
+        expect(fixture.builder.build(profiles[i]).signature(), expected[i]);
+      }
     },
   );
 

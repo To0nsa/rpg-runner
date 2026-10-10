@@ -7,7 +7,7 @@
 library;
 
 import 'ecs/systems/derf_transformation_system.dart';
-import 'npcs/npc_navigation_profiles.dart';
+import 'navigation/actor_navigation_profiles.dart';
 import 'ecs/systems/npc_ai_system.dart';
 import 'ecs/systems/npc_guard_system.dart';
 import 'encounters/encounter_spawn_adapter.dart';
@@ -52,7 +52,6 @@ import 'ecs/entity_id.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/stores/restoration_item_store.dart';
-import 'ecs/stores/body_store.dart';
 import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_middleware_system.dart';
@@ -115,13 +114,10 @@ import 'events/entity_visual_cue_coalescer.dart';
 import 'events/player_impact_feedback_gate.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_identity.dart';
-import 'navigation/terrain_runtime_bundle.dart';
 import 'navigation/terrain_spawn_placement.dart';
 import 'navigation/terrain_surface_navigator.dart';
 import 'navigation/terrain_surface_pathfinder.dart';
 import 'navigation/types/terrain_surface_graph.dart';
-import 'navigation/utils/jump_template.dart';
-import 'navigation/utils/standability.dart';
 import 'players/player_catalog.dart';
 import 'players/player_archetype.dart';
 import 'players/player_character_definition.dart';
@@ -165,7 +161,6 @@ import 'tuning/restoration_item_tuning.dart';
 import 'tuning/score_tuning.dart';
 import 'tuning/spatial_grid_tuning.dart';
 import 'tuning/track_tuning.dart';
-import 'util/tick_math.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GameCore - Main simulation coordinator
@@ -384,22 +379,12 @@ class GameCore {
       movement: _movement,
       resources: _resourceTuning,
     ).archetype;
-    _groundEnemyJumpTemplatesById = <EnemyId, JumpReachabilityTemplate>{
-      for (final id in groundNavigatingEnemyIds)
-        id: _buildGroundEnemyJumpTemplate(id),
-    };
-    _groundEnemyTerrainGraphProfiles = [
-      ...buildGroundEnemyTerrainGraphProfiles(
-        enemyCatalog: _enemyCatalog,
-        jumpTemplatesById: _groundEnemyJumpTemplatesById,
-        locomotionSpeedTicksPerSecond: physicsCoordinateToTicks(
-          _groundEnemyTuning.locomotion.speedX,
-          name: 'groundEnemyLocomotionSpeed',
-        ),
-        simulationTicksPerSecond: tickHz,
-      ),
-      ...buildNpcNavigationProfiles(tickHz: tickHz, physics: _physicsTuning),
-    ];
+    _groundEnemyTerrainGraphProfiles = buildActorNavigationProfiles(
+      enemyCatalog: _enemyCatalog,
+      locomotion: _groundEnemyTuning.locomotion,
+      physics: _physicsTuning,
+      tickHz: tickHz,
+    );
 
     // The scheduler's initial selection is pure track state. Resolve it before
     // spawning ECS entities so the complete terrain candidate is available to
@@ -1070,8 +1055,6 @@ class GameCore {
   late EnemyCastSystem _enemyCastSystem;
   late FlyingEnemyMeleeSystem _flyingEnemyMeleeSystem;
   late EnemyMeleeSystem _enemyMeleeSystem;
-  late final Map<EnemyId, JumpReachabilityTemplate>
-  _groundEnemyJumpTemplatesById;
   late final List<TerrainSurfaceGraphBuildProfile>
   _groundEnemyTerrainGraphProfiles;
   late final AbilityActivationSystem _abilityActivationSystem;
@@ -1127,8 +1110,8 @@ class GameCore {
   }
 
   /// Cache evidence for profiling only, absent until preparation is enabled.
-  ({int hits, int misses, int ready, String? lastError})?
-  get terrainPreparationStats => _terrainPreparer?.stats;
+  TerrainPreparationStats? get terrainPreparationStats =>
+      _terrainPreparer?.stats;
 
   /// Releases prepared terrain when the interactive owner closes this run.
   /// Core remains usable through the exact synchronous construction path.
@@ -2506,45 +2489,6 @@ class GameCore {
     if (maxA <= 0) return false; // Invalid ratio A, can't be less.
     if (maxB <= 0) return true; // Invalid ratio B, A wins by default.
     return valueA * maxB < valueB * maxA;
-  }
-
-  /// Computes the maximum air time (in ticks) for ground enemy jumps.
-  ///
-  /// Based on projectile motion: time = 2 * jumpSpeed / gravity.
-  /// Multiplied by 1.5 for safety margin (accounts for landing tolerance).
-  int _groundEnemyMaxAirTicks() {
-    final gravity = _physicsTuning.gravityY;
-    if (gravity <= 0) {
-      // No gravity means infinite air time; cap at 1 second.
-      return ticksFromSecondsCeil(1.0, tickHz);
-    }
-    final jumpSpeed = _groundEnemyTuning.locomotion.jumpSpeed.abs();
-    final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
-    return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
-  }
-
-  JumpReachabilityTemplate _buildGroundEnemyJumpTemplate(EnemyId enemyId) {
-    final archetype = _enemyCatalog.get(enemyId);
-    final capsule = _enemyCatalog.terrainContactProfile(enemyId).capsule;
-    return JumpReachabilityTemplate.build(
-      JumpProfile(
-        jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
-        gravityY: _physicsTuning.gravityY,
-        maxAirTicks: _groundEnemyMaxAirTicks(),
-        airSpeedX: _groundEnemyTuning.locomotion.speedX,
-        dtSeconds: _movement.dtSeconds,
-        // Reuse quantized capsule dimensions so graph and motion agree even
-        // when fractional art scaling rounds radius and spine independently.
-        agentHalfWidth: capsule.radiusTicks / terrainPhysicsTicksPerWorldUnit,
-        agentHalfHeight:
-            (capsule.radiusTicks + capsule.verticalHalfSegmentTicks) /
-            terrainPhysicsTicksPerWorldUnit,
-        requiredSupportFraction: groundEnemySupportFraction,
-        collideCeilings: !archetype.body.ignoreCeilings,
-        collideLeftWalls: (archetype.body.sideMask & BodyDef.sideLeft) != 0,
-        collideRightWalls: (archetype.body.sideMask & BodyDef.sideRight) != 0,
-      ),
-    );
   }
 
   int _damagePulseIntensityBp(int appliedAmount100) {
