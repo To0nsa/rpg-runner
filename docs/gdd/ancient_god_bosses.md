@@ -26,8 +26,11 @@ keeping duration unchanged, as described in [Bringer's defenses](bringer_of_deat
 Beneficial effects retain their full strength, and summoned minions and tentacles
 retain ordinary status susceptibility. Source frame dimensions differ, so their
 visible silhouettes differ in size. Terrain and attack shapes fit the scaled
-art. They walk under normal gravity and collision, without jumping or swimming
-upward. The framed arena, entrance protection, player controls, health bar,
+art. Goddess and Shoggoth fly permanently: gravity never pulls them down, and
+they hover while idle, casting, recovering or interrupted. Their flight still
+collides with solid floors, walls, ceilings and arena bounds, but does not need
+ground support or land on one-way platforms. Their death animation plays in place.
+Voidcaller remains grounded, without jumping or swimming upward. The framed arena, entrance protection, player controls, health bar,
 death presentation, exit and victory blessing reuse the
 [existing boss rules](bringer_of_death.md).
 
@@ -59,17 +62,18 @@ Prepared compatibility `2026.10.11` makes her a mostly stationary caster:
 - Within 45 horizontal units and 50 vertical units, she chooses a claw combo
   70% of the time and a retreat teleport 30% of the time when teleport is ready.
   Otherwise she uses claws. A blocked retreat also falls back to claws.
-- During the combo's windup and attack, she follows on directly walkable ground
-  at half normal speed, stopping about 35 units away. She can turn during windup,
+- During the combo's windup and attack, she flies toward the player at up to
+  150 horizontal and 300 vertical units/second, stopping about 35 units away
+  horizontally and following jumps at the player's foot height. She can turn during windup,
   harmless gaps and at each new swipe; a live swipe keeps its direction. This
   applies to dodge counters too. Recovery stops pursuit and leaves an opening.
-- Just outside claw range (45–70 units), she may approach on directly walkable
-  ground, at half normal speed, for at most 25 units or 0.5 seconds. Her endpoint
+- Just outside claw range (45–70 units), she may fly horizontally through clear
+  space at 150 units/second, for at most 25 units or 0.5 seconds. Her endpoint
   stays fixed even if the player retreats; she then attacks instead of chasing.
 - At medium range she stands and casts a seeded sequence of one or two orbs
   before considering relocation. If teleport is still cooling down, she keeps
   casting. Beyond 240 units she prefers to teleport nearer when ready.
-- Voluntary teleports select a supported destination 140, 180 or 220 units from
+- Voluntary teleports select a clear destination 140, 180 or 220 units from
   the player, on either legal side, at least 64 units from her current position.
   A purple destination mark accompanies her 0.3-second disappearance. The mark
   stays fixed; reappearance takes 0.2 seconds followed by 0.3 seconds of recovery.
@@ -97,7 +101,7 @@ When the final hand finishes she becomes vulnerable, holds her casting position
 for one normal orb, then teleports to medium range with the same destination cue
 and recovery as a voluntary teleport. If both upper corners are obstructed she
 casts from her current safe position. If the exit has no legal landing, or is
-interrupted, hovering ends and ordinary gravity resumes. She gains no additional
+interrupted, she continues hovering at her current position. She gains no additional
 invulnerability from the exit spell or voluntary teleports.
 
 The dodge counts melee, projectile and direct spell attacks that would hit her;
@@ -108,8 +112,8 @@ stunned, or during another vanish. These intervals do not count new attacks.
 At 45 units or less of horizontal separation she crosses to the opposite side. Beyond that range either side has an equal chance when both are legal;
 if only one side is legal, she uses it. The distant side is chosen when the dodge
 starts and stays fixed through the vanish. The landing follows the player's
-position when she reappears and must have clear supported ground inside the
-arena. If no legal landing exists when attacked, that hit lands and the dodge
+position when she reappears and must have clear space inside the arena; a gap
+below the destination does not prevent her from flying there. If no legal landing exists when attacked, that hit lands and the dodge
 stays ready without rerolling the interval. The counter uses
 the normal claw windup and damage and can be escaped. Dodging evades the selected
 attack; it does not make her invincible against other attacks.
@@ -126,28 +130,29 @@ landed projectile, and a lethal hit never triggers a counter.
 
 Prepared compatibility `2026.10.11` gives Shoggoth an advancing melee kit with
 health-triggered minions and a final charge phase. He has **260 HP** and retains
-ordinary gravity, terrain collision and inability to jump. His 1.0x sprite scale
+permanent flight with solid-terrain collision. His 1.0x sprite scale
 and matching 32-by-52 body keep his spin and tentacle arcs at standing-player
 height; both melee art and damage shapes use that same scale.
 
 | Action | Default behavior |
 | --- | --- |
-| Tentacle sweep | Three rotating sweeps, each dealing 7 physical damage (21 if all three connect). Follows the current player position at half shared ground speed through the 0.4-second windup and all three hits, stopping 45 units away. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. Recovery holds position for 0.3 seconds. |
-| Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Three hit windows can each deal 6 physical damage (18 total). Recovery lasts 0.4 seconds. |
+| Tentacle sweep | Three rotating sweeps, each dealing 7 physical damage (21 if all three connect). Follows the current player position at up to 150 horizontal and 300 vertical units/second through the 0.4-second windup and all three hits, stopping 45 units away horizontally and following jumps. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. Recovery holds position for 0.3 seconds. |
+| Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units through unobstructed space at a fixed height). Three hit windows can each deal 6 physical damage (18 total). Recovery lasts 0.4 seconds. |
 | Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and three hits of 6 damage (18 total), and 0.8-second stationary recovery. |
 | Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 7.2 dark damage. |
 | Invoke minions | Three 0.7-second summon casts: at 80% HP (208 HP), up to two living minions; at 60% (156 HP), up to three; at 40% (104 HP), up to four. Surviving minions count toward each cap. |
-| Vanish and return | After three continuous seconds beyond 300 horizontal units or without a directly walkable approach, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
+| Vanish and return | After three continuous seconds beyond 300 horizontal units or without a clear direct flight path, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
-On directly walkable ground and within 50 vertical units of the target, he
+With a clear flight path and within 50 vertical units of the target, he
 chooses a sweep within 70 horizontal units and a charge from there through
 260 units. Beyond charge range, above him, or behind an obstruction, he uses
-orbs. Between actions he pursues at 0.8 of shared ground speed toward a 45-unit
-stand-off. During a sweep he follows a retreating player on directly walkable
-ground. Crossing behind a live swing pauses pursuit until the next allowed turn;
-he does not walk backward through the player or chase during recovery.
+orbs. Between actions he flies toward a 45-unit horizontal stand-off at up to
+240 horizontal and 300 vertical units/second. During a sweep he follows the
+player horizontally and vertically, including jumps. Crossing behind a live
+swing pauses horizontal pursuit until the next allowed turn; vertical tracking
+continues. Recovery holds his current position in the air.
 Charge warning frames can turn; a launched charge cannot steer. Walls and arena
-bounds stop charge movement, and gravity continues normally.
+bounds stop charge movement; the committed charge holds its height.
 
 Each strike requires contact with its visible arc. The sweep's middle arc reaches
 behind him, so a player staying in front can miss that hit. Listed damage is base
@@ -161,8 +166,8 @@ knockback, limited by ordinary collision. Missing a combo finisher causes no
 push; earlier hits never substitute for it.
 
 While any of his own minions are alive, targets outside melee reach make him
-prioritize orbs over charges and repositioning. Melee reach requires a directly
-walkable approach, at most 70 horizontal units and 50 vertical units. In reach
+prioritize orbs over charges and repositioning. Melee reach requires a clear
+flight path, at most 70 horizontal units and 50 vertical units. In reach
 he still uses sweeps. Earned summon waves take priority; existing actions finish
 normally. A queued return charge is skipped when the minions need ranged support.
 Once the last minion dies or expires, normal attack selection resumes.
@@ -184,13 +189,13 @@ Killing them buys space: he does not replenish them between these three casts.
 The charge frenzy begins at 35% HP (91 HP), independently of the summon waves.
 The first, third and subsequent alternating charges in that phase can
 return only if the player is behind the completed pass, more than 20 and at most
-260 units away, at melee height, with a directly walkable approach. Otherwise he
+260 units away, at melee height, with a clear flight path. Otherwise he
 keeps the ordinary cooldown. Interrupted, replaced or suspended first passes
 cannot trigger a return. The second pass is a separate attack activation and
 retains ordinary post-hit protection between attacks.
 
 Teleport candidates prefer the opposite side of the captured target, remain at
-least 64 units from his current position, and require a legal supported landing.
+least 64 units from his current position, and require clear airspace inside the arena.
 A blocked attempt falls back to an orb. The destination never follows the player.
 If it becomes blocked or the player comes within 70 horizontal units before
 placement, Shoggoth returns at his original position and retains the cooldown.

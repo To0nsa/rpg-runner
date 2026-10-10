@@ -1,3 +1,4 @@
+import 'package:runner_core/ecs/systems/boss_flight_system.dart';
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 import 'package:runner_core/combat/faction.dart';
@@ -126,7 +127,7 @@ void main() {
 
     for (final (distance, height, sequence, expected) in [
       (45.0, 50.0, 3, 'goddess.claw_combo'),
-      (45.01, 0.0, 3, 'goddess.orb'),
+      (70.01, 0.0, 3, 'goddess.orb'),
       (35.0, 50.01, 3, 'goddess.orb'),
       (35.0, 0.0, 4, 'goddess.claw_combo'),
     ]) {
@@ -175,8 +176,8 @@ void main() {
         system.step(f.world, player: f.player, currentTick: 10);
         expect(f.world.goddessBarrage.has(boss), isTrue);
         system.prepareBarrage(f.world, currentTick: 11);
-        system.composeMotion(f.world);
-        expect(f.world.gravityControl.has(boss), isTrue);
+        BossFlightSystem(tickHz: hz).step(f.world, currentTick: 11);
+        expect(f.world.body.useGravity[f.world.body.indexOf(boss)], isFalse);
         final ti = f.world.transform.indexOf(boss);
         final cornerX = f.world.transform.posX[ti];
         final cornerY = f.world.transform.posY[ti];
@@ -269,7 +270,6 @@ void main() {
     final old = world.createEntity();
     final i = world.goddessBarrage.addEntity(old);
     world.goddessBarrage.commitTick[i] = 7;
-    world.goddessBarrage.hovering[i] = true;
     world.destroyEntity(old);
     final next = world.createEntity();
     expect(next, old);
@@ -316,8 +316,11 @@ class _Fixture {
   }
 }
 
-// These tests must reject stale intents before querying placement or spawning.
+// These tests permit read-only flight clearance; stale intents must never
+// trigger placement or spawning.
 class _ForbiddenMotion implements WorldMotionAuthority {
+  @override
+  bool canFlyDirectlyTo(EcsWorld world, int entity, double x, double y) => true;
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Unexpected terrain mutation/query');

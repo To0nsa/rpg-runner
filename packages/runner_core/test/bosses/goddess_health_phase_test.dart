@@ -206,6 +206,8 @@ final class _Fixture {
 
 final class _NoMotion implements WorldMotionAuthority {
   @override
+  bool canFlyDirectlyTo(EcsWorld world, int entity, double x, double y) => true;
+  @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Unexpected motion');
 }

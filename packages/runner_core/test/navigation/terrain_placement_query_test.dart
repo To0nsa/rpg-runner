@@ -457,6 +457,27 @@ void main() {
       expect(result.validity, TerrainPlacementValidity.blockedClearance);
       expect(result.blockingEdgeId!.shapeId, 'corner_blocker');
     });
+
+    test(
+      'rejects a capsule fully inside solid fill, but allows empty gaps',
+      () {
+        final fixture = _fixture(<TerrainPolygonInput>[
+          _rectangle('buried', 0, 0, 100, 100),
+          _rectangle('other', 160, 0, 260, 100),
+        ]);
+        TerrainPlacementResult at(double x) => fixture.query.validateClearance(
+          TerrainClearancePlacementRequest(
+            bodyCenter: TerrainPoint.fromWorld(x, 50),
+            capsule: _capsule(radiusWorld: 9, spineWorld: 18),
+            traversalProfile: sixtyProfile,
+            oneWayClearancePolicy: TerrainOneWayClearancePolicy.ignore,
+          ),
+        );
+        expect(at(50).validity, TerrainPlacementValidity.blockedClearance);
+        expect(at(50).blockingEdgeId!.shapeId, 'buried');
+        expect(at(130).validity, TerrainPlacementValidity.valid);
+      },
+    );
   });
 
   test('geometry version mismatch invalidates retained placement evidence', () {

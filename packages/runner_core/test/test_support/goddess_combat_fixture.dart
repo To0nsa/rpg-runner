@@ -84,6 +84,7 @@ final class GoddessCombatFixture {
       ] else
         _rectangle('floor', 0, 500, 600, 600),
       if (blocked == 'wall') _rectangle('wall', 325, 380, 345, 500),
+      if (blocked == 'ceiling') _rectangle('ceiling', 150, 300, 450, 320),
     ], geometryVersion: 17);
     motion = TerrainMultiBodyWorldMotionAuthority(
       geometry: geometry,

@@ -59,18 +59,23 @@ AI/actions. Defeat resolves after damage/fatal culls and before death cleanup,
 with player loss taking precedence. Ancient God summons are admitted/expired
 before motion preparation; their teleports execute before water/navigation
 refresh. Goddess's reactive dodge executes next, followed by corner placement,
-scheduled hands and the tactical orb/teleport exit. Her hover/pursuit
-velocity and committed spinning motion compose after locomotion and before the single
-terrain integration. Compatibility `2026.10.10` adds this barrage and
+scheduled hands and the tactical orb/teleport exit. Shared boss flight resolves
+current-tick hover, pursuit and charge intent after ordinary locomotion and before
+knockback and the single terrain integration. Shoggoth and Goddess have permanent
+catalog flight, no gravity or ground-navigation state, and solid-terrain collision.
+Idle, recovery, interruption and death hold altitude; no temporary gravity override
+is needed. Flight intent is lifecycle-registered and stale requests stop both axes.
+Compatibility `2026.10.10` adds this barrage and
 authored strike windows that allow a later swing to hit the same target again. See
 [boss arena contracts](boss_arenas.md) and [Ancient God ordering](ancient_god_bosses.md).
 Prepared compatibility `2026.10.11` gives Goddess distance-based stationary
 casting, bounded close approaches, seeded voluntary repositioning, and an
 orb/teleport barrage exit, alongside her 4–6 attack reactive dodge. Voluntary
 teleports publish a captured destination cue and retain recovery; the tactical
-RNG stream is independent of dodge cadence. Claw combos pursue on directly
-walkable ground and retarget only in harmless poses or at new strike windows.
-Post-locomotion composition retains each live swipe's facing and stops pursuit
+RNG stream is independent of dodge cadence. Claw combos pursue horizontally and
+vertically at up to 150/300 units per second, following the target foot height,
+and retarget facing only in harmless poses or at new strike windows.
+Shared flight retains each live swipe's facing and stops pursuit
 in recovery; art and damage use the same committed action clock. Damage middleware
 counts direct player attacks (each combo once),
 cancels the selected attack and begins an eight-authoring-tick vanish; its
@@ -109,18 +114,19 @@ still gate casting; no damage-phase teleport or interruption is introduced.
 
 Shoggoth's prepared `2026.10.11` tactics observe one-time 80/60/40% summon phases,
 admit capped minion waves before terrain preparation, and choose sweeps, charges
-or orbs from the shared combat target and navigation result. Waves cap living
-owned minions at two, three and four respectively. With living minions, targets
+or orbs from the shared combat target and capsule flight-clearance result. Waves
+cap living owned minions at two, three and four respectively. With living minions, targets
 outside melee reach prioritize orbs over charges/teleports; the separate 35%
 charge milestone survives healing. His sweep follows the live target through
-windup and active hits at half ground speed, stops at 45-unit spacing, and holds
-in recovery. Sweep displacement caps and the 360-unit/second charge compose after
-locomotion; action facing owns both art and damage. A surviving final-phase
-charge continuation is verified
+windup and active hits at up to 150 horizontal and 300 vertical units per second,
+stops at 45-unit horizontal spacing, and hovers in recovery. Sweep displacement
+caps and the fixed-height 360-unit/second charge resolve through shared flight
+after ordinary locomotion; action facing owns both art and damage. A surviving
+final-phase charge continuation is verified
 **before** the active-ability phase update clears its identity. Only natural
 completion can commit the separately telegraphed return in that tick's decision
 phase; interruption or replacement cannot revive it. Shared utility teleports
-capture a supported destination at commitment and expose that fixed point through
+capture a terrain-clear destination at commitment and expose that fixed point through
 the existing snapshot cue until execution or cancellation. These changes retain
 command encoding and require matching client/worker/issuer release artifacts.
 His orb cast refresh runs after terrain movement and self abilities, immediately

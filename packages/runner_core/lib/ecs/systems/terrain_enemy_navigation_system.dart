@@ -106,8 +106,13 @@ final class TerrainEnemyNavigationSystem {
         EnemyId.grojib ||
         EnemyId.hashash ||
         EnemyId.derf ||
-        EnemyId.bringerOfDeath || EnemyId.voidbornGoddess || EnemyId.shoggoth || EnemyId.voidcaller || EnemyId.shoggothMinion || EnemyId.voidTentacle => bundle.groundEnemyGraph(enemyId!),
-        EnemyId.unocoDemon => null,
+        EnemyId.bringerOfDeath ||
+        EnemyId.voidcaller ||
+        EnemyId.shoggothMinion ||
+        EnemyId.voidTentacle => bundle.groundEnemyGraph(enemyId!),
+        EnemyId.unocoDemon ||
+        EnemyId.voidbornGoddess ||
+        EnemyId.shoggoth => null,
         null =>
           bundle.graphPublication[npcNavigationProfileKey(
             world.npc.npcId[npcIndex!],

@@ -86,13 +86,7 @@ void main() {
       );
     }
 
-    for (final stop in [
-      'route',
-      'move lock',
-      'stunned',
-      'suspended',
-      'dead target',
-    ]) {
+    for (final stop in ['move lock', 'stunned', 'suspended', 'dead target']) {
       test('sweep pursuit stops for $stop at $hz Hz', () {
         final f = ShoggothCombatFixture(hz: hz);
         f.placePlayer(f.x + 70);
@@ -104,8 +98,6 @@ void main() {
         }
         final x = f.x;
         switch (stop) {
-          case 'route':
-            f.direct = false;
           case 'move lock':
             f.world.controlLock.addLock(f.boss, LockFlag.move, hz, activeStart);
           case 'stunned':

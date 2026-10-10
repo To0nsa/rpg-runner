@@ -21,7 +21,12 @@ void main() {
       test(
         'Shoggoth chooses $expected at $distance/$height/$direct, $hz Hz',
         () {
-          final f = ShoggothCombatFixture(hz: hz)..direct = direct;
+          final f = ShoggothCombatFixture(
+            hz: hz,
+            wall: !direct,
+            wallX: 200 + distance / 2,
+            wallWidth: 4,
+          );
           f.placePlayer(f.x + distance, y: f.playerY + height);
           f.decide(10);
           expect(f.action, expected);
@@ -127,7 +132,12 @@ void main() {
     test(
       'teleport requires sustained separation and marks a fixed safe landing, $hz Hz',
       () {
-        final f = ShoggothCombatFixture(hz: hz, bossX: 100)..direct = false;
+        final f = ShoggothCombatFixture(
+          hz: hz,
+          bossX: 100,
+          wall: true,
+          wallX: 250,
+        );
         f.placePlayer(500);
         int? commit;
         for (var tick = 10; tick < 10 + hz * 6; tick++) {
@@ -163,7 +173,7 @@ void main() {
     test(
       'blocked teleport falls back to offense; occupied mark cancels placement, $hz Hz',
       () {
-        final blocked = ShoggothCombatFixture(hz: hz)..direct = false;
+        final blocked = ShoggothCombatFixture(hz: hz, wall: true);
         blocked.placePlayer(500);
         blocked.world.actorMotionBounds.add(
           blocked.boss,

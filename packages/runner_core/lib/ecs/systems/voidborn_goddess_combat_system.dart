@@ -275,7 +275,6 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
       if (currentTick < states.executeTick[i]) {
         world.transform.velX[ti] = 0;
         world.transform.velY[ti] = 0;
-        world.gravityControl.setSuppressForTicks(boss, 1);
         continue;
       }
       final position = _dodgePosition(
@@ -360,7 +359,6 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
         startDeferredCooldown: false,
       );
     }
-    world.gravityControl.removeEntity(boss);
     states.startTick[i] = -1;
     states.executeTick[i] = -1;
     states.player[i] = -1;
@@ -402,7 +400,6 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
         (bounds.minXTicks + bounds.maxXTicks) /
             (2 * terrainPhysicsTicksPerWorldUnit);
     states.positioned[i] = false;
-    states.hovering[i] = false;
     final active = world.activeAbility;
     final ai = active.indexOf(boss);
     active.invulnerable[ai] = true;
@@ -438,9 +435,8 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
         continue;
       }
       if (currentTick >= states.endTick[i]) {
-        final hovering = states.hovering[i];
         _finishBarrage(world, boss);
-        _tactics.endBarrage(world, boss, hovering, currentTick);
+        _tactics.endBarrage(world, boss, currentTick);
         continue;
       }
       final bi = world.actorMotionBounds.indexOf(boss);
@@ -457,7 +453,6 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
             utilities.groundTopY - 150,
             fromLeft ? Facing.right : Facing.left,
           )) {
-            states.hovering[i] = true;
             states.fromLeft[i] = fromLeft;
             break;
           }
@@ -485,20 +480,6 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     }
   }
 
-  /// Locomotion runs first; the terrain authority still integrates this body once.
-  void composeMotion(EcsWorld world) {
-    final states = world.goddessBarrage;
-    for (var i = 0; i < states.denseEntities.length; i++) {
-      if (!states.hovering[i]) continue;
-      final boss = states.denseEntities[i];
-      final ti = world.transform.indexOf(boss);
-      world.transform.velX[ti] = 0;
-      world.transform.velY[ti] = 0;
-      world.gravityControl.setSuppressForTicks(boss, 1);
-    }
-    _tactics.composeMotion(world);
-  }
-
   void _finishBarrage(EcsWorld world, EntityId boss) {
     final state = world.goddessBarrage.indexOf(boss);
     final ai = world.activeAbility.tryIndexOf(boss);
@@ -512,7 +493,6 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
         startDeferredCooldown: true,
       );
     }
-    world.gravityControl.removeEntity(boss);
     world.goddessBarrage.removeEntity(boss);
   }
 

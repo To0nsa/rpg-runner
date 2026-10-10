@@ -1,4 +1,5 @@
 import 'entity_id.dart';
+import 'stores/enemies/boss_flight_intent_store.dart';
 import 'stores/combat_hurtbox_store.dart';
 import 'stores/actor_motion_bounds_store.dart';
 import 'stores/arena_suspension_store.dart';
@@ -391,6 +392,9 @@ class EcsWorld {
   /// Decision/utility state is actor-owned and cleared before entity ID reuse.
   late final BossCombatStateStore bossCombat = _register(
     BossCombatStateStore(),
+  );
+  late final BossFlightIntentStore bossFlightIntent = _register(
+    BossFlightIntentStore(),
   );
   late final BossSummonStore bossSummon = _register(BossSummonStore());
   late final GoddessBarrageStore goddessBarrage = _register(

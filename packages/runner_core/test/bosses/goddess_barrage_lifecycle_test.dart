@@ -1,3 +1,4 @@
+import 'package:runner_core/ecs/systems/boss_flight_system.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/ecs/stores/enemies/goddess_tactics_store.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
@@ -125,7 +126,6 @@ void main() {
       f.motion.accept = false;
       f.cast();
       f.prepare(11);
-      expect(f.world.goddessBarrage.hovering[f.state], isFalse);
       expect(isCombatProtected(f.world, f.boss), isTrue);
       f.prepare(f.endTick);
       expect(f.world.goddessBarrage.has(f.boss), isFalse);
@@ -240,7 +240,7 @@ class _Fixture {
   void prepare(int tick) {
     const ActiveAbilityPhaseSystem().step(world, currentTick: tick);
     system.prepareBarrage(world, currentTick: tick);
-    system.composeMotion(world);
+    BossFlightSystem(tickHz: hz).step(world, currentTick: tick);
   }
 
   void damage(int tick) {
@@ -256,6 +256,8 @@ class _Fixture {
 }
 
 class _Motion implements WorldMotionAuthority {
+  @override
+  bool canFlyDirectlyTo(EcsWorld world, int entity, double x, double y) => true;
   var accept = true;
   var teleports = 0;
   @override

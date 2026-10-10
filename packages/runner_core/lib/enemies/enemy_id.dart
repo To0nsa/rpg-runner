@@ -62,8 +62,6 @@ const List<EnemyId> groundNavigatingEnemyIds = <EnemyId>[
   EnemyId.hashash,
   EnemyId.derf,
   EnemyId.bringerOfDeath,
-  EnemyId.voidbornGoddess,
-  EnemyId.shoggoth,
   EnemyId.voidcaller,
   EnemyId.shoggothMinion,
   EnemyId.voidTentacle,

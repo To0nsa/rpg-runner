@@ -40,8 +40,8 @@ Voidcaller;
 `BossUtilitySystem` shares captured utility execution, terrain placement and
 summon lifetime. Neither contains a concrete boss selection switch. Each boss
 owns its spacing, pursuit speed and action cadence. Shoggoth owns
-charge and sweep motion composition; `VoidTentacleCombatSystem` owns planted behavior.
-Goddess owns her corner placement, hover, six-hand barrage and reactive dodge in
+charge and sweep flight requests; `VoidTentacleCombatSystem` owns planted behavior.
+Goddess owns her corner placement, six-hand barrage and reactive dodge in
 her own combat system and lifecycle-registered `GoddessBarrageStore`,
 `GoddessHealthPhaseStore`, `GoddessDodgeStore` and `GoddessTacticsStore`.
 `GoddessTacticsSystem` owns distance decisions and cancellable exit/reposition
@@ -51,13 +51,37 @@ Ordinary AI melee/cast selectors skip required bosses; the existing
 committed-action executors own all damage.
 The [gameplay document](../gdd/ancient_god_bosses.md) records the default kits.
 
+### Shared permanent flight
+
+Shoggoth and Goddess use catalog `flyingDynamic` profiles and bodies with
+`useGravity: false`, solid ceiling/wall/floor collision, no support snapping,
+stepping or ground navigation, and no one-way-platform landing. Entity creation
+registers `BossFlightIntentStore` instead of ground navigation/locomotion stores.
+Each boss owns its tactical choices and committed facing, then requests hover,
+pursuit or horizontal charge for the current tick. `BossFlightSystem` is the
+only shared velocity composer; stale requests, death, suspension, stun and
+movement locks stop both axes. Catalog flight persists through all those states,
+including the immediate death animation. No temporary gravity override or
+barrage-specific hovering flag is required. Destruction removes flight intent
+before entity-ID reuse.
+
+Flight resolves after ordinary locomotion and before knockback and terrain.
+Horizontal pursuit uses 600 units/second² acceleration and 400 deceleration;
+vertical pursuit is bounded at 300 units/second. Both pursuit axes apply movement
+status multipliers and cap displacement to avoid overshoot. Collider-bottom
+alignment, with terrain skin clearance, preserves attack height across body sizes.
+Read-only path previews use the actor's actual flight capsule and solid terrain.
+The existing world motion authority alone integrates positions and arena bounds.
+Teleport clearance also rejects a capsule fully enclosed by a solid polygon,
+sharing integer polygon-containment logic with item placement.
+
 In prepared compatibility `2026.10.11`, Goddess no longer uses action-index
 modulo rotation or continuous pursuit. At melee height (vertical distance <=50),
 within 45 horizontal units, an available voluntary teleport competes with claws
-at 30/70 odds. At 45-70 units she may make one directly walkable approach, limited
+at 30/70 odds. At 45-70 units she may make one clear horizontal flight approach, limited
 to 25 units and ceil(0.5 * tickHz) ticks; its endpoint never follows the target.
 Approach velocity is capped to remaining displacement before terrain integration.
-Outside that band she holds ground and casts. One or two successful normal orbs
+Outside that band she hovers and casts. One or two successful normal orbs
 consume a seeded budget before relocation is considered; beyond 240 units she
 prefers relocation. Unavailable/blocked teleports fall back to ordinary attacks.
 
@@ -67,14 +91,14 @@ through windup and active time. `GoddessTacticsSystem` samples the same
 current tick. Empty poses and new strike-window boundaries may update the action
 facing and pending melee direction; damaging poses within one strike keep their
 facing. A two-unit horizontal dead zone avoids overlap jitter. The combo uses
-ordinary grounded locomotion at 0.5 speed toward a 35-unit stand-off, only when
-navigation confirms direct walking. It holds when the target crosses behind a
-live swipe, when support/path is unavailable, and during final recovery.
+shared flight at 150 horizontal and 300 vertical units/second toward a 35-unit
+horizontal stand-off and the live target foot height. Horizontal pursuit holds
+when the target crosses behind a live swipe; vertical tracking continues.
+Final recovery holds both axes. Terrain resolves any intervening solid obstacle.
 
-After locomotion, Goddess restores the strike-owned facing before terrain, art
-and damage resolve, so shared target-facing logic cannot flip a live swipe.
-Velocity is capped at the current stand-off goal, retaining the ground tangent;
-normal knockback and terrain integration still follow. No combo clock, cooldown,
+The boss action owns facing before terrain, art and damage resolve. Flight
+velocity is capped at the remaining displacement on each axis; ordinary
+knockback and the single terrain integration still follow. No combo clock, cooldown,
 activation ID or per-strike hit ledger restarts when she turns. No new random
 draws or teleport transitions are introduced by pursuit.
 
@@ -135,11 +159,11 @@ and spin capsules. Ground contact places the transform 32 units above the floor
 (plus terrain collision skin), lowering the spin core from about 53 to 35 units
 above ground. Damage geometry and renderer scale change together; the terrain
 profile still derives from the same collider. Decisions use current combat
-target identity and published navigation: at vertical separation <=50, directly
-walkable targets within 70 units select a sweep; targets through 260 units
+target identity and a read-only full-capsule flight preview: at vertical
+separation <=50, directly reachable targets within 70 units select a sweep; targets through 260 units
 select a charge. Other targets select an orb. Ordinary cooldown and active
-ability gates remain authoritative. Pursuit retains 0.8 shared ground speed and
-45-unit spacing, retaining the existing jump and slope policies.
+ability gates remain authoritative. Between actions, pursuit uses up to 240
+horizontal and 300 vertical units/second with 45-unit horizontal spacing.
 
 Integer comparisons `hp * 100 <= hpMax * threshold` for 80, 60 and 40
 record reached summon phases during actions and cooldowns. The maximum reached
@@ -153,23 +177,23 @@ minion in that tick's motion roster. Expiry, owner destruction and attack cleanu
 use the shared summon lifecycle.
 
 After earned summon waves, living owned summons prioritize an orb whenever the
-target is outside the same directly walkable, <=70 horizontal / <=50 vertical
+target is outside the same clear flight path, <=70 horizontal / <=50 vertical
 melee reach used by sweep selection. This precedes teleport and charge selection,
 including a pending return continuation. `BossUtilitySystem.livingSummons`
 excludes dead actors and other owners; expiry is resolved before AI. Existing
 actions and cooldowns complete normally, and the absence of living minions
 restores ordinary attack decisions. No new RNG or persistent target state is used.
 
-Sweep windup and active hits refresh a grounded, directly walkable approach to
-45 units from the live combat target at 0.5 shared ground speed. There is no
+Sweep windup and active hits refresh a flight request toward 45-unit horizontal
+spacing from the live combat target at 150 horizontal and 300 vertical units/second. There is no
 captured approach endpoint or per-action distance limit. Windup/harmless frames
 and new combo strike windows may retarget facing; a live strike cannot turn.
-Pursuit stops when the target is inside the stand-off or behind the committed
-facing, the route is blocked, the boss is airborne, or recovery begins.
-Post-locomotion composition caps each step at the current stand-off and restores
-action facing before art and damage resolve. Shared locomotion still observes
-control locks; knockback, gravity and terrain integration follow normally.
-No movement capability, attack clock, hit ledger or command encoding changes.
+Horizontal pursuit stops inside the stand-off or behind the committed facing;
+vertical pursuit follows the target through jumps and landings. Recovery hovers.
+The shared flight system observes control locks and caps each axis at the target.
+Action facing owns art and damage; knockback and terrain integration follow.
+Flight changes the catalog movement capability, while attack clocks, hit ledgers
+and command encoding retain their existing contracts.
 Client and replay worker consume this pursuit under prepared compatibility
 `2026.10.11`.
 
@@ -261,8 +285,7 @@ execute a stale utility intent.
 | Shared utility teleport execution after target selection and Hashash teleports, before water/navigation refresh | Publish validated relocated support and position before dependent consumers |
 | Goddess dodge, barrage and tactical preparation, immediately after utility teleports | Validate action identity, commit the dodge and counter or corner placement, schedule due hands and advance the orb/teleport exit before water/navigation |
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
-| Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
-| Goddess hover/pursuit composition alongside spin composition | Suppress hover gravity, retain combo-facing ownership and cap pursuit velocity before knockback and one terrain integration |
+| Shared boss flight after ordinary locomotion, before movement/knockback/gravity/terrain | Resolve current-tick hover, pursuit or charge intent for both flying bosses; preserve action facing and integrate once through terrain |
 | Shoggoth and Goddess orb refresh after motion/self abilities, immediately before projectile launch | Turn and aim from final target positions, including a release-tick crossing; Shoggoth also mirrors his authored hand origin |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
@@ -297,7 +320,7 @@ has an independent stream initialized with `seedFrom(runSeed, entityId ^
 0x476f6444)`; cadence and distant-side choices share that stream. Ineligible hits,
 combo follow-ups and blocked attempts do not consume draws.
 
-At the sampled attack, the owning combat system preflights supported landings
+At the sampled attack, the owning combat system preflights clear airspace
 35 units from the current player and within full-capsule arena bounds. Within
 45 horizontal units it requires the opposite side. Beyond 45 units it validates
 both sides, draws an even/odd random choice if both are legal, or chooses the only
@@ -306,8 +329,8 @@ Success cancels only that request and its combo follow-ups, resets the cadence,
 interrupts the current ordinary action and starts `goddess.dodge`. Its four
 vanish frames span eight 60 Hz authoring ticks, ceil-scaled to the simulation.
 It grants no blanket invulnerability: earlier requests in the same damage batch
-must still apply. Movement/navigation locks and brief gravity suppression hold
-her during the vanish.
+must still apply. The shared flight controller holds her during the vanish;
+her body has no gravity in any state.
 
 Before water/navigation on the execution tick, preparation validates the exact
 action/start tick and recomputes the landing from current player position.
@@ -318,7 +341,7 @@ ordinary `goddess.claw_combo` facing the player. That reactive counter bypasses
 the rotation cooldown but preserves the longer of its new cooldown and the
 remaining prior cooldown; it does not advance the normal action sequence.
 Death, stun, suspension, replacement or an invalid landing cancels the pending
-counter and releases gravity suppression. Barrage casting, its exit and voluntary repositioning are never
+counter and leaves the actor hovering. Barrage casting, its exit and voluntary repositioning are never
 interrupted by this dodge.
 
 Goddess captures the cast start tick,
@@ -344,8 +367,8 @@ ordinary orb animation, release and recovery all finish before exit placement.
 The scripted exit bypasses only the voluntary teleport interval.
 
 Repositioning preflights candidates at player X +/-140/180/220, rejecting destinations
-less than 64 units from the current body and using full-capsule support and arena
-validation. It uniformly samples the legal candidates and captures the destination.
+less than 64 units from the current body and using full-capsule clearance and arena
+validation. Ground support is not required for these flying actors. It uniformly samples the legal candidates and captures the destination.
 `goddess.reposition_out` maps four frames across 18 authoring ticks. Placement
 commits through terrain begin/commit/cancel before water/navigation; it never
 retargets the captured mark. `goddess.reposition_in` maps five reappearance frames
@@ -355,10 +378,10 @@ while the exact outgoing action/start tick remains current and alive. Flame's
 `TeleportDestinationCues` draws that world-space mark without deciding timing.
 The generic animation resolver accepts committed spawn/reappearance action frames.
 
-Death, stun, suspension or action replacement cancels owned transitions and hover
+Death, stun, suspension or action replacement cancels owned transitions
 without erasing a replacement ability. Blocked regular placements retain attacks
-and delay another placement attempt by one second. A blocked exit releases hover
-and ordinary gravity lands her; there is no glide-to-origin state or snap fallback.
+and delay another placement attempt by one second. A blocked exit leaves her
+hovering at the current position; there is no fall, glide-to-origin state or snap fallback.
 Every store is removed before ID reuse. Already released hand effects retain
 normal independent impact lifetimes. Floor marks with no supporting surface are
 skipped without changing the remaining hand schedule or full casting duration.
@@ -395,7 +418,7 @@ capsule bounds, 70-unit target spacing and 64-unit displacement from the origin.
 The captured body center is published through the existing snapshot
 `teleportDestination` cue only while its exact ability/start identity survives
 and placement is pending. Death, suspension, stun or interruption hides the cue.
-At execution, the same supported body center and current player spacing are
+At execution, the same clear body center and current player spacing are
 revalidated; no alternate destination can replace the visible mark. Motion uses
 `beginBodyTeleport` / `tryCommitBodyTeleport` / `cancelBodyTeleport`; invalidated
 placement retains the origin and ordinary return/cooldown. Failed preflight
@@ -534,9 +557,15 @@ focused navigation regressions for the normal camp crate approach and the hard
 grove gap; their authored foothold/clearance repairs leave actor capabilities
 unchanged.
 
-Navigation/run goldens now include nine grounded graph profiles. Review against
-an isolated HEAD copy confirmed identical terrain surfaces and original four
-graph views. Canonical scenario records differ only in the global graph digest
-and SG-E05 graph-record count (118→143); movement checkpoints and outcomes are
-unchanged. The checked-in prior goldens were already stale against HEAD, so
-the updated digests reflect the current expanded catalog after that comparison.
+Navigation/run goldens now include seven grounded graph profiles; Shoggoth and
+Goddess use flight capsules and no ground graph. Flight goldens are generated
+from HEAD plus this change, excluding concurrent catalog/content edits. The
+terrain surface digest is unchanged. The new graph and run digests describe
+the reduced ground roster, while the separate flight tests cover boss movement.
+
+Permanent-flight coverage includes 30/60/90 Hz, both combo facings, rising and
+falling targets, stationary recovery, cancellation, replacement, movement locks,
+suspension, target loss, ceiling contact and airborne death/ID reuse. Full Core
+replay tests issue real jump commands, require airborne attack damage, and
+compare the final client/worker entity and health state. Clear-air dodge and
+solid-interior placement regressions cover the changed teleport capability.

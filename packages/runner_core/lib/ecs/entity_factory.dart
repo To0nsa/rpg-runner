@@ -220,6 +220,9 @@ class EntityFactory {
       world.engagementIntent.add(id);
       world.meleeCombo.add(id);
     }
+    if (enemyId == EnemyId.voidbornGoddess || enemyId == EnemyId.shoggoth) {
+      world.bossFlightIntent.addEntity(id);
+    }
     if (enemyId == EnemyId.hashash) {
       world.hashashTeleport.add(
         id,

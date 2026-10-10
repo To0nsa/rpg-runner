@@ -1,3 +1,4 @@
+import 'package:runner_core/ecs/systems/boss_flight_system.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
 import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/ecs/combat_eligibility.dart';
@@ -32,15 +33,9 @@ void main() {
             casts++;
           }
           expect(f.action, anyOf(isNull, 'goddess.orb'));
-          expect(
-            f.world.controlLock.isLocked(f.boss, LockFlag.move, tick),
-            isTrue,
-          );
-          expect(
-            f.world.engagementIntent.speedScale[f.world.engagementIntent
-                .indexOf(f.boss)],
-            0,
-          );
+          final ti = f.world.transform.indexOf(f.boss);
+          expect(f.world.transform.velX[ti], 0);
+          expect(f.world.transform.velY[ti], 0);
         }
         expect(casts, budget);
         expect(s.phase, GoddessTactic.teleportOut);
@@ -85,8 +80,6 @@ void main() {
 
     test('short approach has a fixed endpoint and deadline at $hz Hz', () {
       final f = GoddessCombatFixture(hz: hz, bossX: 240);
-      final ni = f.world.navIntent.indexOf(f.boss);
-      f.world.navIntent.canWalkDirectlyToTarget[ni] = true;
       _tick(f, 10);
       final s = f.world.goddessTactics.stateFor(f.boss);
       expect(s.phase, GoddessTactic.approach);
@@ -99,7 +92,7 @@ void main() {
       final ti = f.world.transform.indexOf(f.boss);
       f.world.transform.setPosXY(f.boss, 264, f.world.transform.posY[ti]);
       f.world.transform.velX[ti] = 500;
-      f.combat.composeMotion(f.world);
+      BossFlightSystem(tickHz: f.hz).step(f.world, currentTick: end - 1);
       expect(f.world.transform.velX[ti], hz.toDouble());
       _tick(f, end);
       expect(s.phase, GoddessTactic.idle);
@@ -158,7 +151,7 @@ void main() {
     );
 
     test(
-      'an exit with no supported medium-range landing releases hover at $hz Hz',
+      'an exit with no supported medium-range landing retains flight at $hz Hz',
       () {
         final f = GoddessCombatFixture(hz: hz, bossX: 280);
         f.world.actorMotionBounds.add(
@@ -167,8 +160,7 @@ void main() {
         );
         final s = f.world.goddessTactics.stateFor(f.boss)
           ..initialized = true
-          ..phase = GoddessTactic.exitPending
-          ..hovering = true;
+          ..phase = GoddessTactic.exitPending;
         _tick(f, 10);
         expect(f.action, 'goddess.orb');
         final end = s.endTick;
@@ -198,7 +190,6 @@ void main() {
               ..initialized = true;
             if (exit) {
               s.phase = GoddessTactic.exitPending;
-              s.hovering = true;
             }
             _tick(f, 10);
             final ai = f.world.activeAbility.indexOf(f.boss);
@@ -278,5 +269,5 @@ void _tick(GoddessCombatFixture f, int tick) {
   f.combat.prepareBarrage(f.world, currentTick: tick);
   f.combat.prepareTactics(f.world, player: f.player, currentTick: tick);
   f.combat.step(f.world, player: f.player, currentTick: tick);
-  f.combat.composeMotion(f.world);
+  BossFlightSystem(tickHz: f.hz).step(f.world, currentTick: tick);
 }

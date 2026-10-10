@@ -1,3 +1,5 @@
+import 'package:runner_core/ecs/systems/boss_flight_system.dart';
+
 import 'dart:math' as math;
 
 import 'package:runner_core/combat/control_lock.dart';
@@ -112,7 +114,10 @@ void main() {
                 world.goddessTactics.stateFor(f.boss).phase,
                 GoddessTactic.exitOrb,
               );
-              expect(world.gravityControl.has(f.boss), isTrue);
+              expect(
+                world.body.useGravity[world.body.indexOf(f.boss)],
+                isFalse,
+              );
             }
           },
         );
@@ -179,7 +184,7 @@ GoddessCombatFixture _casting(int hz, Facing facing, {bool hovering = false}) {
     ..orbsRemaining = 1;
   if (hovering) {
     s.phase = GoddessTactic.exitPending;
-    s.hovering = true;
+
     final ti = f.world.transform.indexOf(f.boss);
     f.world.transform.posY[ti] -= 150;
   }
@@ -202,5 +207,5 @@ void _decide(GoddessCombatFixture f, int tick) {
   const ActiveAbilityPhaseSystem().step(f.world, currentTick: tick);
   f.combat.prepareTactics(f.world, player: f.player, currentTick: tick);
   f.combat.step(f.world, player: f.player, currentTick: tick);
-  f.combat.composeMotion(f.world);
+  BossFlightSystem(tickHz: f.hz).step(f.world, currentTick: tick);
 }

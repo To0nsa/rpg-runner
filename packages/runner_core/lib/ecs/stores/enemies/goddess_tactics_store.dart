@@ -26,7 +26,6 @@ class GoddessTactics {
   int startTick = -1;
   int endTick = -1;
   Vec2? destination;
-  bool hovering = false;
 
   bool get scriptedTransition =>
       phase != GoddessTactic.idle && phase != GoddessTactic.approach;
@@ -42,7 +41,6 @@ class GoddessTactics {
     startTick = -1;
     endTick = -1;
     destination = null;
-    hovering = false;
   }
 }
 

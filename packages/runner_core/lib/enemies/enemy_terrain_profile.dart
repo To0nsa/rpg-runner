@@ -147,7 +147,7 @@ EnemyTerrainContactProfile createGroundedEnemyTerrainProfile({
   );
 }
 
-/// Builds the frozen Unoco solid-contact policy.
+/// Builds a gravity-free, support-free enemy policy that collides with solids.
 EnemyTerrainContactProfile createFlyingEnemyTerrainProfile({
   required WorldContactCapsuleDef capsule,
 }) => EnemyTerrainContactProfile(

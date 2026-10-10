@@ -9,7 +9,7 @@ import 'package:runner_core/ecs/systems/control_lock_system.dart';
 import 'package:runner_core/ecs/systems/cooldown_system.dart';
 import 'package:runner_core/ecs/systems/enemy_cast_system.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
-import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
+import 'package:runner_core/ecs/systems/boss_flight_system.dart';
 import 'package:runner_core/ecs/systems/shoggoth_combat_system.dart';
 import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
@@ -22,7 +22,6 @@ import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/spawn_service.dart';
-import 'package:runner_core/tuning/ground_enemy_tuning.dart';
 import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:runner_core/util/vec2.dart';
 import 'package:test/test.dart';
@@ -35,6 +34,9 @@ final class ShoggothCombatFixture {
     this.hz = 60,
     double bossX = 200,
     bool wall = false,
+    bool ceiling = false,
+    double wallX = 350,
+    double wallWidth = 25,
     PlayerCharacterDefinition character = eloiseCharacter,
   }) {
     final tuning = character.tuning;
@@ -69,7 +71,8 @@ final class ShoggothCombatFixture {
     motion = TerrainMultiBodyWorldMotionAuthority(
       geometry: const TerrainCompiler().compile([
         _rectangle('floor', 0, 500, 600, 600),
-        if (wall) _rectangle('wall', 350, 300, 375, 500),
+        if (wall) _rectangle('wall', wallX, 300, wallX + wallWidth, 500),
+        if (ceiling) _rectangle('ceiling', 150, 300, 450, 320),
       ], geometryVersion: 17),
       playerProfile: archetype.terrainTraversalProfile,
     );
@@ -93,17 +96,11 @@ final class ShoggothCombatFixture {
         surfaceTarget: (x, y) => Vec2(x, 500),
       ),
     );
-    locomotion = GroundEnemyLocomotionSystem(
-      groundEnemyTuning: GroundEnemyTuningDerived.from(
-        const GroundEnemyTuning(),
-        tickHz: hz,
-      ),
-    );
+    locomotion = BossFlightSystem(tickHz: hz);
     for (var tick = 1; tick < 10; tick++) {
       motion.prepareTick(world, player: player, currentTick: tick);
       integrate(tick);
     }
-    direct = true;
   }
 
   final int hz;
@@ -114,15 +111,12 @@ final class ShoggothCombatFixture {
   late final TerrainMultiBodyWorldMotionAuthority motion;
   late final ShoggothCombatSystem combat;
   late final BossUtilitySystem utilities;
-  late final GroundEnemyLocomotionSystem locomotion;
+  late final BossFlightSystem locomotion;
   ShoggothTactics get state => world.shoggothTactics.stateFor(boss);
   int get ai => world.activeAbility.indexOf(boss);
   double get x => world.transform.posX[world.transform.indexOf(boss)];
   String? get action => world.activeAbility.abilityId[ai];
   set hp(int value) => world.health.hp[world.health.indexOf(boss)] = value;
-  set direct(bool value) =>
-      world.navIntent.canWalkDirectlyToTarget[world.navIntent.indexOf(boss)] =
-          value;
 
   void placePlayer(double x, {double? y}) {
     final origin = motion.beginBodyTeleport(world, player);
@@ -151,13 +145,7 @@ final class ShoggothCombatFixture {
   }
 
   void locomote(int tick) {
-    locomotion.step(
-      world,
-      player: player,
-      dtSeconds: movement.dtSeconds,
-      currentTick: tick,
-    );
-    combat.composeMotion(world, currentTick: tick);
+    locomotion.step(world, currentTick: tick);
   }
 
   void integrate(int tick) {

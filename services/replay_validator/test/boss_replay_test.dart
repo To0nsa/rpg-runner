@@ -26,12 +26,17 @@ GameCore _core(
   int hz, {
   EnemyId bossId = EnemyId.bringerOfDeath,
   EquippedLoadoutDef? loadout,
+  double playerStartX = 300,
 }) => GameCore(
   seed: 7,
   tickHz: hz,
   playerCharacter: PlayerCharacterRegistry.eloise,
   equippedLoadoutOverride: loadout,
   levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
+    tuning: LevelRegistry.byId(LevelId.field).tuning.copyWith(
+      track: LevelRegistry.byId(LevelId.field).tuning.track
+          .copyWith(playerStartX: playerStartX),
+    ),
     noEnemyChunks: 0,
     earlyPatternChunks: 0,
     clearAssembly: true,
@@ -57,6 +62,112 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
+    for (final bossId in [EnemyId.shoggoth, EnemyId.voidbornGoddess]) {
+      test(
+        '$bossId flies after a real jump and hovers in recovery in replay, $hz Hz',
+        () {
+          final direct = _core(hz, bossId: bossId);
+          final replay = _core(hz, bossId: bossId);
+          final frames = <ReplayCommandFrameV1>[];
+          int? comboTick;
+          double? floorY;
+          double? recoveryY;
+          var jumped = false;
+          var lift = 0.0;
+          var playerLift = 0.0;
+          var airborneHit = false;
+          final flightTrace = <String>[];
+          double? playerFloor;
+          final activeEnd =
+              (.4 * hz).ceil() +
+              ((bossId == EnemyId.shoggoth ? .4 : .9) * hz).ceil();
+          for (var n = 0; n < hz * 15 && !direct.gameOver; n++) {
+            final before = direct.buildSnapshot();
+            final boss = before.entities
+                .where((e) => e.enemyId == bossId)
+                .firstOrNull;
+            final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
+            final axis = comboTick != null
+                ? (bossId == EnemyId.shoggoth && dx.abs() < 43 ? -dx.sign : 0.0)
+                : dx.abs() > 55
+                ? dx.sign
+                : 0.0;
+            final tick = direct.tick + 1;
+            final jump =
+                comboTick != null &&
+                !jumped &&
+                (bossId != EnemyId.shoggoth ||
+                    tick - comboTick >= (.2 * hz).ceil());
+            if (jump) {
+              jumped = true;
+              playerFloor = direct.playerPosY;
+            }
+            frames.add(
+              ReplayCommandFrameV1(
+                tick: tick,
+                moveAxis: axis,
+                pressedMask: jump ? ReplayCommandFrameV1.pressedJumpBit : 0,
+              ),
+            );
+            direct.applyCommands([
+              MoveAxisCommand(tick: tick, axis: axis),
+              if (jump) JumpPressedCommand(tick: tick),
+            ]);
+            direct.stepOneTick();
+            final after = direct.buildSnapshot();
+            final actor = after.entities
+                .where((e) => e.enemyId == bossId)
+                .firstOrNull;
+            if (actor == null) continue;
+            if (actor.anim == AnimKey.strike && comboTick == null) {
+              comboTick = tick;
+              floorY = actor.pos.y;
+            }
+            if (comboTick == null) continue;
+            lift = math.max(lift, floorY! - actor.pos.y);
+            if (playerFloor != null)
+              playerLift = math.max(
+                playerLift,
+                playerFloor - direct.playerPosY,
+              );
+            flightTrace.add(
+              '$tick age=${tick - comboTick} player=${after.playerEntity!.pos} boss=${actor.pos} hp=${after.hud.hp} anim=${actor.anim} frame=${actor.animFrame}',
+            );
+            airborneHit |=
+                actor.anim == AnimKey.strike &&
+                floorY - actor.pos.y > 30 &&
+                after.hud.hp < before.hud.hp;
+            final age = tick - comboTick;
+            if (age >= activeEnd && age < activeEnd + (.3 * hz).ceil()) {
+              recoveryY ??= actor.pos.y;
+              expect(actor.pos.y, recoveryY);
+            }
+            if (age >= activeEnd + (.3 * hz).ceil() - 1) break;
+          }
+          expect(jumped, isTrue);
+          expect(playerLift, greaterThan(45));
+          expect(lift, greaterThan(30));
+          expect(airborneHit, isTrue, reason: flightTrace.join('\n'));
+          expect(recoveryY, isNotNull);
+          final result = runReplaySimulation(
+            core: replay,
+            totalTicks: direct.tick,
+            commandStream: frames,
+          );
+          expect(result.runEnded, isNull);
+          final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+          expect(b.hud.hp, a.hud.hp);
+          expect(
+            b.entities.map(
+              (e) => [e.id, e.pos.x, e.pos.y, e.anim, e.animFrame],
+            ),
+            a.entities.map(
+              (e) => [e.id, e.pos.x, e.pos.y, e.anim, e.animFrame],
+            ),
+          );
+        },
+      );
+    }
     test('Shoggoth follows during melee strikes and replays at $hz Hz', () {
       final direct = _core(hz, bossId: EnemyId.shoggoth);
       final replay = _core(hz, bossId: EnemyId.shoggoth);
@@ -121,8 +232,16 @@ void main() {
 
     for (final bossId in [EnemyId.shoggoth, EnemyId.voidbornGoddess]) {
       test('$bossId turns during casting and aims at release in replay, $hz Hz', () {
-        final direct = _core(hz, bossId: bossId);
-        final replay = _core(hz, bossId: bossId);
+        final direct = _core(
+          hz,
+          bossId: bossId,
+          playerStartX: bossId == EnemyId.shoggoth ? 175 : 300,
+        );
+        final replay = _core(
+          hz,
+          bossId: bossId,
+          playerStartX: bossId == EnemyId.shoggoth ? 175 : 300,
+        );
         final frames = <ReplayCommandFrameV1>[];
         final seenOrbs = <int>{};
         Facing? castFacing;
@@ -140,9 +259,16 @@ void main() {
           final casting = boss?.anim == AnimKey.cast;
           final axis = casting
               ? crossingAxis
-              : (dx.abs() > 110 ? dx.sign : 0.0);
+              : (bossId == EnemyId.shoggoth
+                    ? 0.0
+                    : (dx.abs() > 110 ? dx.sign : 0.0));
           final tick = direct.tick + 1;
-          final jump = boss != null && !casting && dx.abs() < 180;
+          // Jump near Shoggoth's hands so his release remains visible instead
+          // of immediately colliding with the crossing player's body.
+          final jump =
+              boss != null &&
+              ((!casting && dx.abs() < 180) ||
+                  (bossId == EnemyId.shoggoth && casting && dx.abs() < 100));
           final dash = casting && !turned && dx.abs() > 50;
           frames.add(
             ReplayCommandFrameV1(
@@ -247,8 +373,8 @@ void main() {
 
     for (final bossId in [EnemyId.voidbornGoddess, EnemyId.shoggoth]) {
       test('$bossId spell knockback and dark Weaken replay at $hz Hz', () {
-        final direct = _core(hz, bossId: bossId),
-            replay = _core(hz, bossId: bossId);
+        final direct = _core(hz, bossId: bossId, playerStartX: 175),
+            replay = _core(hz, bossId: bossId, playerStartX: 175);
         final frames = <ReplayCommandFrameV1>[];
         int? hitTick;
         double? hitX;

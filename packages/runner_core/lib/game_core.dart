@@ -24,6 +24,7 @@ import 'ecs/systems/bringer_combat_system.dart';
 import 'ecs/systems/boss_utility_system.dart';
 import 'ecs/systems/voidborn_goddess_combat_system.dart';
 import 'ecs/systems/shoggoth_combat_system.dart';
+import 'ecs/systems/boss_flight_system.dart';
 import 'ecs/systems/voidcaller_combat_system.dart';
 import 'ecs/systems/void_tentacle_combat_system.dart';
 import 'scoring/run_distance.dart';
@@ -1057,6 +1058,7 @@ class GameCore {
   late EnemyEngagementSystem _enemyEngagementSystem;
   late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
+  late final _bossFlightSystem = BossFlightSystem(tickHz: tickHz);
   late final _npcAiSystem = NpcAiSystem(
     tickHz: tickHz,
     locomotion: _groundEnemyLocomotionSystem,
@@ -1738,8 +1740,8 @@ class GameCore {
       currentTick: tick,
     );
 
-    _shoggothCombat.composeMotion(_world, currentTick: tick);
-    _goddessCombat.composeMotion(_world);
+    // Boss intent becomes velocity here; knockback and terrain retain final motion.
+    _bossFlightSystem.step(_world, currentTick: tick);
     _abilityActivationSystem.step(_world, player: _player, currentTick: tick);
     _jumpSystem.step(_world, _movement, currentTick: tick);
     _movementSystem.step(

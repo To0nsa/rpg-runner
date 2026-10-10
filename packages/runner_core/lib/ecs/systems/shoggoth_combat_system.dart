@@ -12,7 +12,7 @@ import '../actor_facing.dart';
 import '../combat_target.dart';
 import '../entity_id.dart';
 import '../world.dart';
-import '../world_support_view.dart';
+import 'boss_flight_system.dart';
 import 'boss_combat_system.dart';
 import 'enemy_cast_system.dart';
 import 'enemy_melee_system.dart';
@@ -32,8 +32,6 @@ final class ShoggothCombatSystem extends BossCombatSystem {
 
   // World-unit spacing keeps the native-scale tentacle arcs within body reach.
   static const _standOff = 45.0;
-  // Half ground speed keeps retreat useful while the three-hit sweep pursues.
-  static const _sweepSpeedScale = .5;
   static const _chargeSpeed = 360.0;
 
   /// Inspect identity before the phase system clears completed actions. A clear,
@@ -96,19 +94,30 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       final atHeight =
           (world.transform.posY[targetTi] - world.transform.posY[ti]).abs() <=
           50;
-      final ni = world.navIntent.indexOf(boss);
-      final ii = world.engagementIntent.indexOf(boss);
-      final direct = world.navIntent.canWalkDirectlyToTarget[ni];
+      final targetY = BossFlightSystem.targetHeight(world, boss, target);
+      final direct = utilities.motion.canFlyDirectlyTo(
+        world,
+        boss,
+        targetX,
+        targetY,
+      );
       final inMeleeReach = atHeight && direct && dx.abs() <= 70;
       final supportMinions =
           !inMeleeReach && utilities.livingSummons(world, boss) > 0;
-      if (direct) world.navIntent.hasPlan[ni] = false;
-      world.engagementIntent.desiredTargetX[ii] = direct
-          ? targetX - (dx >= 0 ? _standOff : -_standOff)
-          : world.navIntent.navTargetX[ni];
-      world.engagementIntent.speedScale[ii] = .8;
-      world.engagementIntent.arrivalSlowRadiusX[ii] = 30;
-      world.engagementIntent.meleeRangeX[ii] = _standOff;
+      if (direct) {
+        world.bossFlightIntent.pursue(
+          boss,
+          currentTick: currentTick,
+          x: dx.abs() > _standOff
+              ? targetX - dx.sign * _standOff
+              : world.transform.posX[ti],
+          y: targetY,
+          horizontalSpeed: BossFlightSystem.pursuitSpeed,
+          verticalSpeed: BossFlightSystem.verticalSpeed,
+        );
+      } else {
+        _hold(world, boss, currentTick);
+      }
       final separated = dx.abs() > 300 || !direct;
       s.separatedSinceTick = separated
           ? (s.separatedSinceTick < 0 ? currentTick : s.separatedSinceTick)
@@ -116,8 +125,8 @@ final class ShoggothCombatSystem extends BossCombatSystem {
 
       final ai = world.activeAbility.indexOf(boss);
       if (s.returnReadyTick == currentTick) {
-        // Only reverse toward a target behind the first pass, with a walkable
-        // approach. The second pass is a fresh activation with its full warning.
+        // Only reverse toward a target behind the first pass, with a clear
+        // flight path. The second pass is a fresh activation with its full warning.
         final firstDirection = world.activeAbility.facing[ai] == Facing.right
             ? 1.0
             : -1.0;
@@ -142,7 +151,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       }
       final key = world.activeAbility.abilityId[ai];
       if (key != null) {
-        _trackAction(world, boss, target, ai, ni, ii, currentTick);
+        _trackAction(world, boss, target, ai, currentTick);
         continue;
       }
       if (world.cooldown.isOnCooldown(boss, 0)) continue;
@@ -187,7 +196,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
           s.chainEndTick = currentTick + world.activeAbility.totalTicks[ai];
         }
       }
-      _trackAction(world, boss, target, ai, ni, ii, currentTick);
+      _trackAction(world, boss, target, ai, currentTick);
     }
   }
 
@@ -196,8 +205,6 @@ final class ShoggothCombatSystem extends BossCombatSystem {
     EntityId boss,
     EntityId target,
     int ai,
-    int ni,
-    int ii,
     int tick,
   ) {
     final active = world.activeAbility;
@@ -235,18 +242,24 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       setActorFacing(world, boss, active.facing[ai]);
     }
     final direction = active.facing[ai] == Facing.right ? 1.0 : -1.0;
-    if (key == 'shoggoth.tentacle_sweep' &&
-        attacking &&
-        world.navIntent.canWalkDirectlyToTarget[ni] &&
-        WorldSupportView(world).isGrounded(boss) &&
-        dx * direction > _standOff) {
-      // Follow the live target only in the committed strike direction; crossing
-      // behind a live arc pauses pursuit until the next allowed turn.
-      world.engagementIntent.desiredTargetX[ii] =
-          world.transform.posX[ti] + dx - direction * _standOff;
-      world.engagementIntent.speedScale[ii] = _sweepSpeedScale;
-      world.engagementIntent.arrivalSlowRadiusX[ii] = 0;
-      world.controlLock.addLock(boss, LockFlag.jump, 1, tick);
+    if (key == 'shoggoth.tentacle_sweep' && attacking) {
+      // A live arc keeps its direction; vertical pursuit continues at stand-off.
+      world.bossFlightIntent.pursue(
+        boss,
+        currentTick: tick,
+        x: dx * direction > _standOff
+            ? world.transform.posX[ti] + dx - direction * _standOff
+            : world.transform.posX[ti],
+        y: BossFlightSystem.targetHeight(world, boss, target),
+        horizontalSpeed: BossFlightSystem.comboSpeed,
+        verticalSpeed: BossFlightSystem.verticalSpeed,
+      );
+    } else if (_isCharge(key) && !windup && attacking) {
+      world.bossFlightIntent.charge(
+        boss,
+        currentTick: tick,
+        velocityX: direction * _chargeSpeed,
+      );
     } else {
       _hold(world, boss, tick);
     }
@@ -256,7 +269,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       key == 'shoggoth.spinning_charge' || key == 'shoggoth.return_charge';
 
   void _hold(EcsWorld world, EntityId boss, int tick) {
-    world.controlLock.addLock(boss, LockFlag.move | LockFlag.jump, 1, tick);
+    world.bossFlightIntent.hover(boss, tick);
   }
 
   bool _commit(
@@ -367,42 +380,6 @@ final class ShoggothCombatSystem extends BossCombatSystem {
       intents.dirY[pi] = center.$2 - world.transform.posY[ti] - offset.y;
       intents.fallbackDirX[pi] = facing == Facing.left ? -1 : 1;
       intents.fallbackDirY[pi] = 0;
-    }
-  }
-
-  /// Preserve strike facing after locomotion, then compose horizontal motion
-  /// before knockback, gravity and the single terrain integration.
-  void composeMotion(EcsWorld world, {required int currentTick}) {
-    for (final boss in world.bossCombat.denseEntities) {
-      if (world.enemy.enemyId[world.enemy.indexOf(boss)] != enemyId ||
-          !_available(world, boss, currentTick)) {
-        continue;
-      }
-      final ai = world.activeAbility.indexOf(boss);
-      final key = world.activeAbility.abilityId[ai];
-      if (key != 'shoggoth.tentacle_sweep' && !_isCharge(key)) continue;
-      final facing = world.activeAbility.facing[ai];
-      setActorFacing(world, boss, facing);
-      final ti = world.transform.indexOf(boss);
-      if (_isCharge(key) &&
-          world.activeAbility.phase[ai] == AbilityPhase.active) {
-        world.transform.velX[ti] = facing == Facing.left
-            ? -_chargeSpeed
-            : _chargeSpeed;
-      } else if (key == 'shoggoth.tentacle_sweep') {
-        final ii = world.engagementIntent.indexOf(boss);
-        final dx =
-            world.engagementIntent.desiredTargetX[ii] -
-            world.transform.posX[ti];
-        final vx = world.transform.velX[ti];
-        final capped = vx.sign == dx.sign
-            ? dx.sign * math.min(vx.abs(), dx.abs() * tickHz)
-            : 0.0;
-        world.transform.velX[ti] = capped;
-        if (vx != 0 && WorldSupportView(world).isGrounded(boss)) {
-          world.transform.velY[ti] *= capped / vx;
-        }
-      }
     }
   }
 }

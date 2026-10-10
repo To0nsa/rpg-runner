@@ -88,7 +88,13 @@ void main() {
       test(
         'living minions select $expected at $distance/$height/$direct, $hz Hz',
         () {
-          final f = ShoggothCombatFixture(hz: hz, bossX: 100)..direct = direct;
+          final f = ShoggothCombatFixture(
+            hz: hz,
+            bossX: 100,
+            wall: !direct,
+            wallX: 100 + distance / 2,
+            wallWidth: 4,
+          );
           _minion(f);
           f.placePlayer(f.x + distance, y: f.playerY + height);
           // Make repositioning eligible to verify ranged support takes precedence.

@@ -17,8 +17,8 @@ import 'boss_status_scaling.dart';
 /// Voidborn Goddess tuning used by the runtime catalog and source-backed editor.
 const voidbornGoddessArchetype = EnemyArchetype(
   body: BodyDef(
-    useGravity: true,
-    ignoreCeilings: true,
+    useGravity: false,
+    ignoreCeilings: false,
     sideMask: BodyDef.sideLeft | BodyDef.sideRight,
   ),
   collider: _voidbornGoddessCollider,
@@ -40,7 +40,7 @@ const voidbornGoddessArchetype = EnemyArchetype(
   hitAnimSeconds: .3,
   deathAnimSeconds: 1.4,
   spawnAnimSeconds: 0.5,
-  deathBehavior: DeathBehavior.groundImpactThenDeath,
+  deathBehavior: DeathBehavior.instant,
   preserveReleasedSpellsOnDefeat: true,
   primaryMeleeAbilityId: 'goddess.claw_combo',
   primaryCastAbilityId: 'goddess.orb',
@@ -60,9 +60,6 @@ const ColliderAabbDef _voidbornGoddessCollider = ColliderAabbDef(
 );
 
 /// Shared terrain policy derived from this enemy's authored collider.
-final voidbornGoddessTerrainProfile = createGroundedEnemyTerrainProfile(
+final voidbornGoddessTerrainProfile = createFlyingEnemyTerrainProfile(
   capsule: WorldContactCapsuleDef.fromAabb(_voidbornGoddessCollider),
-  canJump: false,
-  maxWalkableSlopeDegrees: 45,
-  minimumSupportUpComponent: 724,
 );

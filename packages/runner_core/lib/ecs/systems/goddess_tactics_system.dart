@@ -14,7 +14,7 @@ import '../combat_target.dart';
 import '../entity_id.dart';
 import '../stores/enemies/goddess_tactics_store.dart';
 import '../world.dart';
-import '../world_support_view.dart';
+import 'boss_flight_system.dart';
 import 'ability_interrupt.dart';
 import 'boss_utility_system.dart';
 import 'enemy_cast_system.dart';
@@ -58,29 +58,22 @@ final class GoddessTacticsSystem {
   }
 
   /// The final hand relinquishes protection before the ordinary exit orb begins.
-  void endBarrage(EcsWorld world, EntityId boss, bool hovering, int tick) {
+  void endBarrage(EcsWorld world, EntityId boss, int tick) {
     final s = _state(world, boss, tick);
     s.clearTransition();
     s.phase = GoddessTactic.exitPending;
-    s.hovering = hovering;
   }
 
   void step(EcsWorld world, EntityId boss, EntityId player, int tick) {
     final s = _state(world, boss, tick);
     final ti = world.transform.indexOf(boss);
-    final ni = world.navIntent.indexOf(boss);
-    final ii = world.engagementIntent.indexOf(boss);
-    world.navIntent.hasPlan[ni] = false;
-    world.engagementIntent.desiredTargetX[ii] = world.transform.posX[ti];
-    world.engagementIntent.speedScale[ii] = 0;
-    world.engagementIntent.meleeRangeX[ii] = 35;
-    // Goddess never jumps or follows a navigation route to chase the player.
-    world.controlLock.addLock(boss, LockFlag.jump | LockFlag.nav, 1, tick);
+    _hold(world, boss, tick);
     final target = combatTarget(world, boss, player);
     final available =
         isLivingCombatActor(world, boss) &&
         !world.arenaSuspension.has(boss) &&
-        !world.controlLock.isLocked(boss, LockFlag.allActions, tick);
+        !world.controlLock.isLocked(boss, LockFlag.allActions, tick) &&
+        !world.controlLock.isStunned(boss, tick);
     if (!available || target == null) {
       _cancel(world, boss, s);
       _hold(world, boss, tick);
@@ -89,7 +82,7 @@ final class GoddessTacticsSystem {
     final ai = world.activeAbility.tryIndexOf(boss);
     if (ai != null &&
         world.activeAbility.abilityId[ai] == 'goddess.claw_combo') {
-      _trackCombo(world, boss, target, ai, ni, ii, tick);
+      _trackCombo(world, boss, target, ai, tick);
       return;
     }
     if (s.phase == GoddessTactic.exitPending) {
@@ -127,6 +120,12 @@ final class GoddessTacticsSystem {
     }
     final targetTi = world.transform.indexOf(target);
     final dx = world.transform.posX[targetTi] - world.transform.posX[ti];
+    final direct = utilities.motion.canFlyDirectlyTo(
+      world,
+      boss,
+      world.transform.posX[targetTi],
+      BossFlightSystem.targetHeight(world, boss, target),
+    );
     final atHeight =
         (world.transform.posY[targetTi] - world.transform.posY[ti]).abs() <= 50;
     var approached = false;
@@ -135,26 +134,22 @@ final class GoddessTacticsSystem {
           (s.approachX - world.transform.posX[ti]).abs() > 1 &&
           dx.abs() > 45 &&
           atHeight &&
-          world.navIntent.canWalkDirectlyToTarget[ni]) {
-        _approachIntent(world, ii, s);
+          direct) {
+        _approachIntent(world, boss, s, tick);
         return;
       }
       s.phase = GoddessTactic.idle;
       approached = true;
     }
-    if (!approached &&
-        dx.abs() > 45 &&
-        dx.abs() <= 70 &&
-        atHeight &&
-        world.navIntent.canWalkDirectlyToTarget[ni]) {
+    if (!approached && dx.abs() > 45 && dx.abs() <= 70 && atHeight && direct) {
       s.phase = GoddessTactic.approach;
       s.approachX =
           world.transform.posX[ti] + dx.sign * math.min(25, dx.abs() - 35);
       s.approachEndTick = tick + (tickHz * .5).ceil();
-      _approachIntent(world, ii, s);
+      _approachIntent(world, boss, s, tick);
       return;
     }
-    final close = dx.abs() <= 45 && atHeight;
+    final close = dx.abs() <= 45 && atHeight && direct;
     final wantsTeleport =
         tick >= s.nextTeleportTick &&
         (close ? s.roll(10) >= 7 : dx.abs() > 240 || s.orbsRemaining == 0);
@@ -167,14 +162,22 @@ final class GoddessTacticsSystem {
     _hold(world, boss, tick);
   }
 
-  void _approachIntent(EcsWorld world, int ii, GoddessTactics s) {
-    world.engagementIntent.desiredTargetX[ii] = s.approachX;
-    world.engagementIntent.speedScale[ii] = .5;
-    world.engagementIntent.arrivalSlowRadiusX[ii] = 0;
+  void _approachIntent(
+    EcsWorld world,
+    EntityId boss,
+    GoddessTactics s,
+    int tick,
+  ) {
+    world.bossFlightIntent.pursue(
+      boss,
+      currentTick: tick,
+      x: s.approachX,
+      y: world.transform.posY[world.transform.indexOf(boss)],
+      horizontalSpeed: BossFlightSystem.comboSpeed,
+      verticalSpeed: 0,
+    );
   }
 
-  // Follow at half ground speed so retreating remains useful during the combo.
-  static const _comboSpeedScale = .5;
   // World units: stop within claw reach without walking through the target.
   static const _comboStandOff = 35.0;
 
@@ -183,8 +186,6 @@ final class GoddessTacticsSystem {
     EntityId boss,
     EntityId target,
     int ai,
-    int ni,
-    int ii,
     int tick,
   ) {
     final active = world.activeAbility;
@@ -217,20 +218,20 @@ final class GoddessTacticsSystem {
     }
     final direction = active.facing[ai] == Facing.right ? 1.0 : -1.0;
     setActorFacing(world, boss, active.facing[ai]);
-    if (!world.navIntent.canWalkDirectlyToTarget[ni] ||
-        !WorldSupportView(world).isGrounded(boss) ||
-        dx * direction <= _comboStandOff) {
-      _hold(world, boss, tick);
-      return;
-    }
-    world.engagementIntent.desiredTargetX[ii] =
-        targetX - direction * _comboStandOff;
-    world.engagementIntent.speedScale[ii] = _comboSpeedScale;
-    world.engagementIntent.arrivalSlowRadiusX[ii] = 0;
+    world.bossFlightIntent.pursue(
+      boss,
+      currentTick: tick,
+      x: dx * direction > _comboStandOff
+          ? targetX - direction * _comboStandOff
+          : world.transform.posX[ti],
+      y: BossFlightSystem.targetHeight(world, boss, target),
+      horizontalSpeed: BossFlightSystem.comboSpeed,
+      verticalSpeed: BossFlightSystem.verticalSpeed,
+    );
   }
 
   void _hold(EcsWorld world, EntityId boss, int tick) {
-    world.controlLock.addLock(boss, LockFlag.move, 1, tick);
+    world.bossFlightIntent.hover(boss, tick);
   }
 
   bool _commit(
@@ -397,8 +398,6 @@ final class GoddessTacticsSystem {
           s.nextTeleportTick = tick + tickHz;
           continue;
         }
-        world.gravityControl.removeEntity(boss);
-        s.hovering = false;
         s.destination = null;
         s.phase = GoddessTactic.teleportIn;
         _setTeleportAction(world, boss, s, 'goddess.reposition_in', tick);
@@ -422,48 +421,6 @@ final class GoddessTacticsSystem {
         startDeferredCooldown: true,
       );
     }
-    if (s.hovering) world.gravityControl.removeEntity(boss);
     s.clearTransition();
-  }
-
-  /// Bound pursuit displacement, preserve each swipe's facing after locomotion,
-  /// and retain the post-barrage casting hover before the single terrain step.
-  void composeMotion(EcsWorld world) {
-    for (var i = 0; i < world.goddessTactics.states.length; i++) {
-      final s = world.goddessTactics.states[i];
-      final boss = world.goddessTactics.denseEntities[i];
-      final ti = world.transform.indexOf(boss);
-      final ai = world.activeAbility.tryIndexOf(boss);
-      if (ai != null &&
-          world.activeAbility.abilityId[ai] == 'goddess.claw_combo') {
-        // Shared locomotion may turn toward its target; the strike owns facing
-        // until its next tracking window so the sprite and capsules agree.
-        setActorFacing(world, boss, world.activeAbility.facing[ai]);
-        final ii = world.engagementIntent.indexOf(boss);
-        final dx =
-            world.engagementIntent.desiredTargetX[ii] -
-            world.transform.posX[ti];
-        final vx = world.transform.velX[ti];
-        final capped = vx.sign == dx.sign
-            ? dx.sign * math.min(vx.abs(), dx.abs() * tickHz)
-            : 0.0;
-        world.transform.velX[ti] = capped;
-        if (vx != 0 && WorldSupportView(world).isGrounded(boss)) {
-          world.transform.velY[ti] *= capped / vx;
-        }
-        continue;
-      }
-      if (s.hovering) {
-        world.transform.velX[ti] = 0;
-        world.transform.velY[ti] = 0;
-        world.gravityControl.setSuppressForTicks(boss, 1);
-      } else if (s.phase == GoddessTactic.approach) {
-        final dx = s.approachX - world.transform.posX[ti];
-        final vx = world.transform.velX[ti];
-        world.transform.velX[ti] = vx.sign == dx.sign
-            ? dx.sign * math.min(vx.abs(), dx.abs() * tickHz)
-            : 0;
-      }
-    }
   }
 }

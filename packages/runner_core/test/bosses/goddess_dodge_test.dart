@@ -201,8 +201,21 @@ void main() {
     }
   }
 
+  test('flying dodge accepts clear air above a gap', () {
+    final f = GoddessCombatFixture(blocked: 'gap', bossX: 280);
+    for (var hit = 0; hit < 6; hit++) {
+      f.queue();
+    }
+    f.damage(10);
+    expect(f.action, 'goddess.dodge');
+    f.prepare(18);
+    expect(f.x, 335);
+    expect(f.action, 'goddess.claw_combo');
+    expect(f.world.body.useGravity[f.world.body.indexOf(f.boss)], isFalse);
+  });
+
   test('distant dodge uses the only legal side when the other is blocked', () {
-    for (final blocked in ['arena edge', 'gap', 'wall']) {
+    for (final blocked in ['arena edge', 'wall']) {
       final f = GoddessCombatFixture(blocked: blocked, bossX: 100);
       for (var hit = 0; hit < 6; hit++) {
         f.queue();
@@ -315,7 +328,7 @@ void main() {
     expect(f.action, isNull);
   });
 
-  for (final blocked in ['arena edge', 'gap', 'wall']) {
+  for (final blocked in ['arena edge', 'wall']) {
     test('$blocked rejects a dodge without spending its cadence', () {
       final f = GoddessCombatFixture(
         blocked: blocked,

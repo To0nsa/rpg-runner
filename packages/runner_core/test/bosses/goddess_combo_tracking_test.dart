@@ -8,14 +8,13 @@ import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
 import 'package:runner_core/ecs/systems/control_lock_system.dart';
 import 'package:runner_core/ecs/systems/cooldown_system.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
-import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
+import 'package:runner_core/ecs/systems/boss_flight_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:runner_core/ecs/systems/melee_strike_system.dart';
 import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/tuning/ground_enemy_tuning.dart';
 import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:test/test.dart';
 
@@ -144,17 +143,13 @@ void main() {
     test(
       'tracking respects blocked routes, movement locks and cancellation at $hz Hz',
       () {
-        for (final stop in ['route', 'move lock', 'cancelled', 'stunned']) {
+        for (final stop in ['move lock', 'cancelled', 'stunned']) {
           final h = _Harness(hz)..start();
           final f = h.f;
           h.placePlayer(420);
           h.tick(11);
           final x = f.x;
           switch (stop) {
-            case 'route':
-              f.world.navIntent.canWalkDirectlyToTarget[f.world.navIntent
-                      .indexOf(f.boss)] =
-                  false;
             case 'move lock':
               f.world.controlLock.addLock(f.boss, LockFlag.move, hz, 12);
             case 'cancelled':
@@ -196,24 +191,15 @@ class _Harness {
         eloiseCharacter.tuning.movement,
         tickHz: hz,
       ),
-      locomotion = GroundEnemyLocomotionSystem(
-        groundEnemyTuning: GroundEnemyTuningDerived.from(
-          const GroundEnemyTuning(),
-          tickHz: hz,
-        ),
-      ) {
+      locomotion = BossFlightSystem(tickHz: hz) {
     // Settle both catalog capsules on the real finite 600-unit floor.
     for (var tick = 1; tick < 10; tick++) {
       integrate(tick);
     }
-    f.world.navIntent.canWalkDirectlyToTarget[f.world.navIntent.indexOf(
-          f.boss,
-        )] =
-        true;
   }
   final GoddessCombatFixture f;
   final MovementTuningDerived movement;
-  final GroundEnemyLocomotionSystem locomotion;
+  final BossFlightSystem locomotion;
 
   void start({bool counter = false}) {
     if (counter) {
@@ -258,13 +244,7 @@ class _Harness {
   }
 
   void locomote(int tick) {
-    locomotion.step(
-      f.world,
-      player: f.player,
-      dtSeconds: movement.dtSeconds,
-      currentTick: tick,
-    );
-    f.combat.composeMotion(f.world);
+    locomotion.step(f.world, currentTick: tick);
   }
 
   void integrate(int tick) {

@@ -123,6 +123,10 @@ abstract interface class WorldMotionAuthority {
   /// intentionally invisible to this query.
   double? flyingTerrainReferenceY(EcsWorld world, EntityId entity);
 
+  /// Whether a flying actor's full capsule can travel straight to a world-space
+  /// body position. Uses its catalog collision profile without mutating motion.
+  bool canFlyDirectlyTo(EcsWorld world, EntityId entity, double x, double y);
+
   /// Previews and ranks the bounded solid-clearance steering candidates.
   ///
   /// Velocities use world units per second, target coordinates use world
@@ -257,13 +261,13 @@ TerrainBodyDisposition terrainBodyDisposition(
       case EnemyId.hashash:
       case EnemyId.derf:
       case EnemyId.bringerOfDeath:
-      case EnemyId.voidbornGoddess:
-      case EnemyId.shoggoth:
       case EnemyId.voidcaller:
       case EnemyId.shoggothMinion:
       case EnemyId.voidTentacle:
         return TerrainBodyDisposition.terrainGroundedEnemy;
       case EnemyId.unocoDemon:
+      case EnemyId.voidbornGoddess:
+      case EnemyId.shoggoth:
         return TerrainBodyDisposition.terrainFlyingEnemy;
     }
   }
@@ -908,6 +912,47 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       }
     }
     return bestY == null ? null : bestY / terrainPhysicsTicksPerWorldUnit;
+  }
+
+  @override
+  bool canFlyDirectlyTo(EcsWorld world, EntityId entity, double x, double y) {
+    final ei = world.enemy.tryIndexOf(entity);
+    final ti = world.transform.tryIndexOf(entity);
+    final ci = world.worldContactCapsule.tryIndexOf(entity);
+    if (ei == null || ti == null || ci == null) return false;
+    final scratch = _publication.enemyScratch[world.enemy.enemyId[ei]]!;
+    if (scratch.motionKind != EnemyTerrainMotionKind.flyingDynamic) {
+      return false;
+    }
+    final capsule = world.worldContactCapsule;
+    final facing = _facingOffsetSign(world, entity);
+    final ox = capsule.offsetXTicks[ci] * facing;
+    final oy = capsule.offsetYTicks[ci];
+    final cx = physicsCoordinateToTicks(world.transform.posX[ti]) + ox;
+    final cy = physicsCoordinateToTicks(world.transform.posY[ti]) + oy;
+    final tx = physicsCoordinateToTicks(x) + ox;
+    final ty = physicsCoordinateToTicks(y) + oy;
+    scratch.controller.moveAtValues(
+      centerXTicks: cx,
+      centerYTicks: cy,
+      radiusTicks: capsule.radiusTicks[ci],
+      verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks[ci],
+      displacementXTicks: tx - cx,
+      displacementYTicks: ty - cy,
+      gravityYTicks: 0,
+      surfaceDirectionSign: facing,
+      mode: TerrainMotionMode.worldSpace,
+      beganGrounded: false,
+      priorSupportEdgeId: null,
+      priorSupportGeometryVersion: -1,
+      lastValidCapsuleCenterXTicks: cx,
+      lastValidCapsuleCenterYTicks: cy,
+      out: _flyingPreviewResult,
+    );
+    // A preview may depenetrate an initially touching capsule by one skin.
+    const tolerance = terrainCollisionSkinTicks + terrainContactEpsilonTicks;
+    return (_flyingPreviewResult.finalCenterXTicks - tx).abs() <= tolerance &&
+        (_flyingPreviewResult.finalCenterYTicks - ty).abs() <= tolerance;
   }
 
   @override

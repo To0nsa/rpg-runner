@@ -8,7 +8,6 @@ class GoddessBarrageStore extends SparseSet {
   final List<int> endTick = [];
   final List<bool> fromLeft = [];
   final List<bool> positioned = [];
-  final List<bool> hovering = [];
 
   @override
   void onDenseAdded(int denseIndex) {
@@ -18,7 +17,6 @@ class GoddessBarrageStore extends SparseSet {
     endTick.add(-1);
     fromLeft.add(true);
     positioned.add(false);
-    hovering.add(false);
   }
 
   @override
@@ -29,13 +27,11 @@ class GoddessBarrageStore extends SparseSet {
     endTick[removeIndex] = endTick[lastIndex];
     fromLeft[removeIndex] = fromLeft[lastIndex];
     positioned[removeIndex] = positioned[lastIndex];
-    hovering[removeIndex] = hovering[lastIndex];
     commitTick.removeLast();
     firstHandTick.removeLast();
     nextHand.removeLast();
     endTick.removeLast();
     fromLeft.removeLast();
     positioned.removeLast();
-    hovering.removeLast();
   }
 }

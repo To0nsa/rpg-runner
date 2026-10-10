@@ -28,12 +28,17 @@ GameCore ancientGodTestCore(
   double minX = 24,
   double maxX = 576,
   double spawnX = 440,
+  double playerStartX = 300,
   PlayerCharacterDefinition? character,
 }) => GameCore(
   seed: seed,
   tickHz: hz,
   playerCharacter: character ?? PlayerCharacterRegistry.eloise,
   levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
+    tuning: LevelRegistry.byId(LevelId.field).tuning.copyWith(
+      track: LevelRegistry.byId(LevelId.field).tuning.track
+          .copyWith(playerStartX: playerStartX),
+    ),
     noEnemyChunks: 0,
     earlyPatternChunks: 0,
     clearAssembly: true,
@@ -65,8 +70,8 @@ void main() {
   ]) {
     for (final hz in [30, 60, 90]) {
       test('${boss.name} enters, fights and stays confined at $hz Hz', () {
-        final a = ancientGodTestCore(boss, hz: hz);
-        final b = ancientGodTestCore(boss, hz: hz);
+        final a = ancientGodTestCore(boss, hz: hz, playerStartX: 175);
+        final b = ancientGodTestCore(boss, hz: hz, playerStartX: 175);
         final animations = <AnimKey>{};
         final observedSummons = <EnemyId>{};
         final tentacleX = <int, double>{};

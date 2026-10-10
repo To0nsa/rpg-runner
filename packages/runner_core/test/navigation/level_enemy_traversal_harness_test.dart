@@ -17,7 +17,9 @@ void main() {
     continuationChunkKey: 'field_default_normal_001',
   );
 
-  for (final enemyId in EnemyId.values) {
+  // Arena flyers use their own combat flight controller and encounter tests.
+  final harnessEnemies = [...groundNavigatingEnemyIds, EnemyId.unocoDemon];
+  for (final enemyId in harnessEnemies) {
     test('flat control ${enemyId.name} crosses every seam', () {
       final harness = EnemyTraversalHarness(flat, enemyId);
       expect(harness.traverse(), isNull);
@@ -29,7 +31,7 @@ void main() {
   }
 
   final finishCatalog = levelTraversalFinishCatalog();
-  for (final enemyId in EnemyId.values) {
+  for (final enemyId in harnessEnemies) {
     test('${enemyId.name} crosses the clear single-chunk finish', () {
       final route = LevelTraversalRoute.chunks(
         level: level,

@@ -17,8 +17,8 @@ import 'boss_status_scaling.dart';
 /// Shoggoth tuning used by the runtime catalog and source-backed editor.
 const shoggothArchetype = EnemyArchetype(
   body: BodyDef(
-    useGravity: true,
-    ignoreCeilings: true,
+    useGravity: false,
+    ignoreCeilings: false,
     sideMask: BodyDef.sideLeft | BodyDef.sideRight,
   ),
   collider: _shoggothCollider,
@@ -41,7 +41,7 @@ const shoggothArchetype = EnemyArchetype(
   hitAnimSeconds: .3,
   deathAnimSeconds: 0.8,
   spawnAnimSeconds: 0.9,
-  deathBehavior: DeathBehavior.groundImpactThenDeath,
+  deathBehavior: DeathBehavior.instant,
   primaryMeleeAbilityId: 'shoggoth.tentacle_sweep',
   primaryCastAbilityId: 'shoggoth.orb',
   castTargetPolicy: AiCastAimPolicy.targetCenter,
@@ -60,9 +60,6 @@ const ColliderAabbDef _shoggothCollider = ColliderAabbDef(
 );
 
 /// Shared terrain policy derived from this enemy's authored collider.
-final shoggothTerrainProfile = createGroundedEnemyTerrainProfile(
+final shoggothTerrainProfile = createFlyingEnemyTerrainProfile(
   capsule: WorldContactCapsuleDef.fromAabb(_shoggothCollider),
-  canJump: false,
-  maxWalkableSlopeDegrees: 45,
-  minimumSupportUpComponent: 724,
 );

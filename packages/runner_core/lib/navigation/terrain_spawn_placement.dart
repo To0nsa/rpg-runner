@@ -6,6 +6,7 @@ import '../collision/terrain/terrain_edge_index.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../collision/terrain/terrain_polygon.dart';
+import '../collision/terrain/terrain_polygon_queries.dart';
 import '../collision/terrain/terrain_query_buffer.dart';
 import '../collision/terrain/terrain_traversal_cache.dart';
 import '../collision/terrain/terrain_traversal_profile.dart';
@@ -821,45 +822,9 @@ bool _aabbPointInsidePolygon(TerrainAabb bounds, List<TerrainPoint> vertices) {
     TerrainPoint(bounds.minX, bounds.maxY),
     TerrainPoint(bounds.maxX, bounds.maxY),
   ];
-  return points.any((point) => _pointStrictlyInsidePolygon(point, vertices));
-}
-
-bool _pointStrictlyInsidePolygon(
-  TerrainPoint point,
-  List<TerrainPoint> vertices,
-) {
-  var inside = false;
-  for (
-    var currentIndex = 0, previousIndex = vertices.length - 1;
-    currentIndex < vertices.length;
-    previousIndex = currentIndex, currentIndex += 1
-  ) {
-    final current = vertices[currentIndex];
-    final previous = vertices[previousIndex];
-    final edgeX = current.xTicks - previous.xTicks;
-    final edgeY = current.yTicks - previous.yTicks;
-    final relativeX = point.xTicks - previous.xTicks;
-    final relativeY = point.yTicks - previous.yTicks;
-    if (edgeX * relativeY - edgeY * relativeX == 0 &&
-        point.xTicks >= math.min(previous.xTicks, current.xTicks) &&
-        point.xTicks <= math.max(previous.xTicks, current.xTicks) &&
-        point.yTicks >= math.min(previous.yTicks, current.yTicks) &&
-        point.yTicks <= math.max(previous.yTicks, current.yTicks)) {
-      return false;
-    }
-    final crossesY =
-        (current.yTicks > point.yTicks) != (previous.yTicks > point.yTicks);
-    if (!crossesY) continue;
-    final left =
-        (point.xTicks - current.xTicks) * (previous.yTicks - current.yTicks);
-    final right =
-        (previous.xTicks - current.xTicks) * (point.yTicks - current.yTicks);
-    final crossesRight = previous.yTicks > current.yTicks
-        ? left < right
-        : left > right;
-    if (crossesRight) inside = !inside;
-  }
-  return inside;
+  return points.any(
+    (point) => terrainPointStrictlyInsidePolygon(point, vertices),
+  );
 }
 
 int _divideCeil(int numerator, int positiveDenominator) =>
