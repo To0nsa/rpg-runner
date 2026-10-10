@@ -454,7 +454,7 @@ void main() {
             .firstOrNull;
         final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
         finalPhase |=
-            before.bossArena != null && before.bossArena!.hp100 <= 9100;
+            before.bossArena != null && before.bossArena!.hp100 <= 10500;
         // Earn all three waves using ordinary attacks, then bait a charge by making
         // space. Jump over the committed first pass and let its counter finish.
         final escape = direct.playerPosX < 90
@@ -570,7 +570,7 @@ void main() {
       );
       expect(result.runEnded, isNull);
       final a = direct.buildSnapshot(), b = replay.buildSnapshot();
-      expect(a.bossArena!.hpMax100, 26000);
+      expect(a.bossArena!.hpMax100, 30000);
       expect(b.bossArena!.hp100, a.bossArena!.hp100);
       expect(b.hud.hp, a.hud.hp);
       expect(

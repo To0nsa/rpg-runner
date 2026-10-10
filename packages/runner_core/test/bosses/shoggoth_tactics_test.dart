@@ -38,7 +38,7 @@ void main() {
       'health thresholds produce capped swarms once, including burst damage, $hz Hz',
       () {
         for (final burst in [false, true]) {
-          final f = ShoggothCombatFixture(hz: hz)..hp = burst ? 9000 : 20800;
+          final f = ShoggothCombatFixture(hz: hz)..hp = burst ? 9000 : 24000;
           f.decide(10);
           expect(f.action, 'shoggoth.summon');
           expect(f.state.phasesReached, burst ? 3 : 1);
@@ -48,15 +48,15 @@ void main() {
           for (var tick = 11; tick < 10 + hz * 20; tick++) {
             if (tick == 10 + hz) {
               expect(f.utilities.livingSummons(f.world, f.boss), 2);
-              if (!burst) f.hp = 15600;
+              if (!burst) f.hp = 18000;
             }
             if (tick == 10 + hz * 4) {
               expect(f.utilities.livingSummons(f.world, f.boss), 3);
-              if (!burst) f.hp = 10400;
+              if (!burst) f.hp = 12000;
             }
             if (tick == 10 + hz * 7) {
               expect(f.utilities.livingSummons(f.world, f.boss), 4);
-              f.hp = 26000;
+              f.hp = 30000;
             }
             f.decide(tick);
             final count = f.utilities.livingSummons(f.world, f.boss);
@@ -85,7 +85,7 @@ void main() {
       f.placePlayer(f.x + 45);
       f.decide(10);
       expect(f.action, 'shoggoth.tentacle_sweep');
-      f.hp = 9100;
+      f.hp = 10500;
       final end = 10 + f.world.activeAbility.totalTicks[f.ai];
       var summoned = false;
       for (var tick = 11; tick < 10 + 3 * hz; tick++) {
@@ -104,7 +104,7 @@ void main() {
     test(
       'failed admission retains phase; cancelled summon cannot repeat it, $hz Hz',
       () {
-        final f = ShoggothCombatFixture(hz: hz)..hp = 20800;
+        final f = ShoggothCombatFixture(hz: hz)..hp = 24000;
         f.world.actorMotionBounds.removeEntity(f.boss);
         f.decide(10);
         expect(f.action, isNull);
@@ -211,7 +211,7 @@ void main() {
       () {
         final f = ShoggothCombatFixture(hz: hz, bossX: 150);
         f.state.phasesReached = f.state.phasesCommitted = 3;
-        f.hp = 9100;
+        f.hp = 10500;
         f.placePlayer(300);
         f.tick(10);
         expect(f.action, 'shoggoth.spinning_charge');
@@ -295,7 +295,7 @@ void main() {
       test('$interruption cannot revive a return charge, $hz Hz', () {
         final f = ShoggothCombatFixture(hz: hz, bossX: 150);
         f.state.phasesReached = f.state.phasesCommitted = 3;
-        f.hp = 9100;
+        f.hp = 10500;
         f.placePlayer(300);
         f.tick(10);
         final end = f.state.chainEndTick;

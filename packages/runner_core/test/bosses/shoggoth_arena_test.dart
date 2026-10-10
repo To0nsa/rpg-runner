@@ -49,7 +49,7 @@ void main() {
             final summons = <int>{};
             var defeated = false;
             var released = false;
-            var lowestBossHp = 26000;
+            var lowestBossHp = 30000;
             for (var n = 0; n < hz * 90 && !core.gameOver; n++) {
               final wasDefeated = defeated;
               final before = core.buildSnapshot();
@@ -58,7 +58,7 @@ void main() {
                   .firstOrNull;
               final arena = before.bossArena;
               if (arena?.enemyId == EnemyId.shoggoth) {
-                expect(arena!.hpMax100, 26000);
+                expect(arena!.hpMax100, 30000);
                 lowestBossHp = arena.hp100 < lowestBossHp
                     ? arena.hp100
                     : lowestBossHp;
@@ -69,7 +69,7 @@ void main() {
               )) {
                 summons.add(summon.id);
                 expect(summon.pos.x, inInclusiveRange(24, 576));
-                expect(lowestBossHp, lessThanOrEqualTo(20800));
+                expect(lowestBossHp, lessThanOrEqualTo(24000));
               }
               if (boss != null) expect(boss.pos.x, inInclusiveRange(16, 584));
               if (defeated) {

@@ -153,7 +153,7 @@ Hit reactions do not replace active boss attack art.
 
 Prepared compatibility `2026.10.11` replaces Shoggoth's modulo rotation with
 `ShoggothCombatSystem` and lifecycle-registered `ShoggothTacticsStore`.
-The catalog has 26000 fixed-point health (260 HP). Native 1.0x actor scale uses
+The catalog has 30000 fixed-point health (300 HP). Native 1.0x actor scale uses
 a 32-by-52 collider with a six-unit downward center offset, and matching sweep
 and spin capsules. Ground contact places the transform 32 units above the floor
 (plus terrain collision skin), lowering the spin core from about 53 to 35 units

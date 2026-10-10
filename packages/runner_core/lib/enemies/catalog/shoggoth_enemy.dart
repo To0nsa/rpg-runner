@@ -23,7 +23,7 @@ const shoggothArchetype = EnemyArchetype(
   ),
   collider: _shoggothCollider,
   // Finite encounter health; summons grant no kill points.
-  health: HealthDef(hp: 26000, hpMax: 26000, regenPerSecond100: 0),
+  health: HealthDef(hp: 30000, hpMax: 30000, regenPerSecond100: 0),
   mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
   stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
   renderAnim: ShoggothRenderCatalog.actor,

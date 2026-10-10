@@ -18,7 +18,7 @@ Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
 Goddess uses **1.0x sprite scale** and **300 HP**. Shoggoth also uses
-**1.0x scale**, with **260 HP**; Voidcaller has **120 HP** at **1.5x scale**.
+**1.0x scale**, with **300 HP**; Voidcaller has **120 HP** at **1.5x scale**.
 All three have no passive health regeneration and have Stun immunity.
 Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
@@ -129,7 +129,7 @@ landed projectile, and a lethal hit never triggers a counter.
 ## Shoggoth
 
 Prepared compatibility `2026.10.11` gives Shoggoth an advancing melee kit with
-health-triggered minions and a final charge phase. He has **260 HP** and retains
+health-triggered minions and a final charge phase. He has **300 HP** and retains
 permanent flight with solid-terrain collision. His 1.0x sprite scale
 and matching 32-by-52 body keep his spin and tentacle arcs at standing-player
 height; both melee art and damage shapes use that same scale.
@@ -140,7 +140,7 @@ height; both melee art and damage shapes use that same scale.
 | Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units through unobstructed space at a fixed height). Three hit windows can each deal 6 physical damage (18 total). Recovery lasts 0.4 seconds. |
 | Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and three hits of 6 damage (18 total), and 0.8-second stationary recovery. |
 | Void orb | Turns toward the player during the 0.7-second cast and releases from the tips of his hands toward the current target center. The released orb flies straight at 340 units/second and deals 7.2 dark damage. |
-| Invoke minions | Three 0.7-second summon casts: at 80% HP (208 HP), up to two living minions; at 60% (156 HP), up to three; at 40% (104 HP), up to four. Surviving minions count toward each cap. |
+| Invoke minions | Three 0.7-second summon casts: at 80% HP (240 HP), up to two living minions; at 60% (180 HP), up to three; at 40% (120 HP), up to four. Surviving minions count toward each cap. |
 | Vanish and return | After three continuous seconds beyond 300 horizontal units or without a clear direct flight path, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
 With a clear flight path and within 50 vertical units of the target, he
@@ -186,7 +186,7 @@ other minions, so blocked space can reduce the number admitted. Minions have
 10 HP, bite for 3 physical damage, last up to 12 seconds, and grant no kill points.
 Killing them buys space: he does not replenish them between these three casts.
 
-The charge frenzy begins at 35% HP (91 HP), independently of the summon waves.
+The charge frenzy begins at 35% HP (105 HP), independently of the summon waves.
 The first, third and subsequent alternating charges in that phase can
 return only if the player is behind the completed pass, more than 20 and at most
 260 units away, at melee height, with a clear flight path. Otherwise he

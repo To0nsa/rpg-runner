@@ -10,12 +10,12 @@ import '../test_support/shoggoth_combat_fixture.dart';
 void main() {
   for (final hz in [30, 60, 90]) {
     for (final (hp, phases) in [
-      (20801, 0),
-      (20800, 1),
-      (15601, 1),
-      (15600, 2),
-      (10401, 2),
-      (10400, 3),
+      (24001, 0),
+      (24000, 1),
+      (18001, 1),
+      (18000, 2),
+      (12001, 2),
+      (12000, 3),
     ]) {
       test('HP $hp earns $phases summon waves at $hz Hz', () {
         final f = ShoggothCombatFixture(hz: hz)..hp = hp;
@@ -27,14 +27,14 @@ void main() {
     test(
       '35% charge milestone is independent of waves and survives healing at $hz Hz',
       () {
-        final f = ShoggothCombatFixture(hz: hz)..hp = 9101;
+        final f = ShoggothCombatFixture(hz: hz)..hp = 10501;
         f.decide(10);
         expect(f.state.phasesReached, 3);
         expect(f.state.frenzyReached, isFalse);
-        f.hp = 9100;
+        f.hp = 10500;
         f.decide(11);
         expect(f.state.frenzyReached, isTrue);
-        f.hp = 26000;
+        f.hp = 30000;
         f.decide(12);
         expect(f.state.phasesReached, 3);
         expect(f.state.frenzyReached, isTrue);
@@ -130,7 +130,7 @@ void main() {
       });
     }
     test('pending waves outrank ranged support at $hz Hz', () {
-      final f = ShoggothCombatFixture(hz: hz)..hp = 15600;
+      final f = ShoggothCombatFixture(hz: hz)..hp = 18000;
       f.state.phasesReached = f.state.phasesCommitted = 1;
       _minion(f);
       f.decide(10);
@@ -161,7 +161,7 @@ void main() {
     test(
       'minions suppress a queued distant return without interrupting the first charge at $hz Hz',
       () {
-        final f = ShoggothCombatFixture(hz: hz, bossX: 150)..hp = 9100;
+        final f = ShoggothCombatFixture(hz: hz, bossX: 150)..hp = 10500;
         f.state.phasesReached = f.state.phasesCommitted = 3;
         f.placePlayer(300);
         f.tick(10);
