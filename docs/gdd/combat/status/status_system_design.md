@@ -50,8 +50,8 @@ These are shared defaults. Every status effect can have its strength, duration,
 and applicable secondary settings tuned on its source ability or item. Bundled
 effects can differ independently: poison's damage and slow need not share the
 same duration. Tuning one source does not change another source's effect.
-Death Pillar explicitly authors 25% Weaken for three seconds, while Dark Bolt
-inherits the shared 50% / five-second default. See
+Death Pillar, Goddess's orb/hands and Shoggoth's orb explicitly author 25% Weaken
+for three seconds, while Dark Bolt inherits the shared 50% / five-second default. See
 [status tuning](../../../tdd/status_effect_tuning.md) for the authoring contract.
 
 | Profile | Effects |

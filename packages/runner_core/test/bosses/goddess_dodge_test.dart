@@ -15,6 +15,7 @@ void main() {
     final b = ancientGodTestCore(EnemyId.voidbornGoddess);
     var vanished = false;
     var countered = false;
+    var closeDodge = false;
     double? floorBodyY;
     for (var n = 0; n < 3000 && !a.gameOver; n++) {
       final before = a.buildSnapshot();
@@ -55,13 +56,22 @@ void main() {
       final actor = after.entities
           .where((e) => e.enemyId == EnemyId.voidbornGoddess)
           .firstOrNull;
-      if (actor?.anim == AnimKey.teleportOut) vanished = true;
+      if (actor?.anim == AnimKey.teleportOut) {
+        vanished = true;
+        if (boss?.anim != AnimKey.teleportOut) {
+          closeDodge = (actor!.pos.x - after.playerEntity!.pos.x).abs() <= 45;
+        }
+      }
       if (boss?.anim == AnimKey.teleportOut && actor?.anim == AnimKey.strike) {
-        expect(
-          (boss!.pos.x - player.pos.x) * (actor!.pos.x - player.pos.x),
-          lessThan(0),
-        );
-        expect((actor.pos.x - player.pos.x).abs(), closeTo(35, 1));
+        // Knockback can make the next dodge distant; only close dodges must
+        // cross the player, while both land in counter range before movement.
+        if (closeDodge) {
+          expect(
+            (boss!.pos.x - player.pos.x) * (actor!.pos.x - player.pos.x),
+            lessThan(0),
+          );
+        }
+        expect((actor!.pos.x - player.pos.x).abs(), closeTo(35, 1));
         countered = true;
         break;
       }

@@ -62,12 +62,30 @@ void main() {
                 ? 0.0
                 : boss.pos.x - before.playerEntity!.pos.x;
             final tick = core.tick + 1;
+            final playerX = before.playerEntity!.pos.x;
+            // The authored arena has a gap at 222..270. Jump when approaching
+            // it or when a shove would carry the player off its edge.
+            final crossGap =
+                authored &&
+                attack &&
+                (dx > 0 && playerX > 170 && playerX < 222 ||
+                    dx < 0 && playerX > 270 && playerX < 322);
+            final knockedTowardGap =
+                authored &&
+                (playerX > 270 &&
+                        playerX < 390 &&
+                        (before.playerEntity!.vel?.x ?? 0) < -100 ||
+                    playerX > 102 &&
+                        playerX < 222 &&
+                        (before.playerEntity!.vel?.x ?? 0) > 100 &&
+                        dx < 0);
             core.applyCommands([
               MoveAxisCommand(
                 tick: tick,
                 axis: attack && dx.abs() > 20 ? dx.sign : 0,
               ),
               AimDirCommand(tick: tick, x: dx >= 0 ? 1 : -1, y: 0),
+              if (crossGap || knockedTowardGap) JumpPressedCommand(tick: tick),
               if (attack && n % (hz / 3).ceil() == 0)
                 StrikePressedCommand(tick: tick),
               if (attack && n % (hz * .75).ceil() == 0)
@@ -142,6 +160,12 @@ void main() {
               break;
             }
           }
+          expect(
+            supportedMarks,
+            isNotNull,
+            reason:
+                'HP=${core.buildSnapshot().hud.hp}, boss=${core.buildSnapshot().bossArena?.hp100}, player=${core.buildSnapshot().playerEntity?.pos}, tick=${core.tick}',
+          );
           expect(supportedMarks, isNotEmpty);
           expect(hands, hasLength(supportedMarks!.length));
           final xs = hands.map((e) => e.pos.x).toList();

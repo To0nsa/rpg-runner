@@ -1,14 +1,21 @@
+/// Which authored hit may carry a shove; a missed finisher never falls back.
+enum KnockbackTrigger { everyHit, comboFinisher }
+
 /// Optional horizontal displacement after positive HP loss.
 ///
 /// Distance is unobstructed world-space travel; terrain and body velocity caps
 /// may shorten it. Duration is quantized upward to whole simulation ticks.
 class KnockbackDef {
-  const KnockbackDef({required this.distance, required this.durationSeconds})
-    : assert(distance > 0 && distance < double.infinity),
-      assert(durationSeconds > 0 && durationSeconds < double.infinity);
+  const KnockbackDef({
+    required this.distance,
+    required this.durationSeconds,
+    this.trigger = KnockbackTrigger.everyHit,
+  }) : assert(distance > 0 && distance < double.infinity),
+       assert(durationSeconds > 0 && durationSeconds < double.infinity);
 
   final double distance;
   final double durationSeconds;
+  final KnockbackTrigger trigger;
 }
 
 /// Captured launch origin, retained even if the attacking entity retires.
@@ -26,12 +33,20 @@ class KnockbackSource {
   final double originX;
   final int fallbackDirectionX;
 
-  KnockbackHit resolve(double targetX) => KnockbackHit(
-    effect: effect,
-    directionX: targetX == originX
-        ? fallbackDirectionX
-        : (targetX > originX ? 1 : -1),
-  );
+  /// Freezes the push direction at contact. Finisher-only effects require the
+  /// last authored combo window, regardless of how many earlier strikes landed.
+  /// Returns null when that trigger is not met.
+  KnockbackHit? resolve(double targetX, {bool isComboFinisher = false}) {
+    if (effect.trigger == KnockbackTrigger.comboFinisher && !isComboFinisher) {
+      return null;
+    }
+    return KnockbackHit(
+      effect: effect,
+      directionX: targetX == originX
+          ? fallbackDirectionX
+          : (targetX > originX ? 1 : -1),
+    );
+  }
 }
 
 /// Contact-time direction, frozen before damage middleware is evaluated.

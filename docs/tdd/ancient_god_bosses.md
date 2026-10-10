@@ -210,6 +210,24 @@ at release. Turning spends no resources, advances no action index and changes no
 cast/cooldown clock. The projectile executor contains no Shoggoth branch, and
 released projectiles retain their normal independent flight and collision.
 
+## Combo finishers and spell effects
+
+Goddess's claws and Shoggoth's sweep, spinning charge and return charge author
+`KnockbackTrigger.comboFinisher`. The shared hitbox resolver supplies whether
+contact belongs to the final authored strike; only that strike resolves the
+captured knockback source. No boss identity check or hit-count shortcut is used.
+The fourth claw and second sweep/spin each push 112 world units over 0.28 seconds,
+subject to normal damage acceptance, body caps and terrain. See
+[combat knockback](combat_knockback.md) for motion and cancellation rules.
+
+Both orb payloads and `goddess.eruption` use the same shove with the default
+per-hit trigger. Each carries an `onHit` Weaken proc with source-local magnitude
+2500 basis points and duration three seconds, matching Death Pillar. The existing
+status store and snapshot mask drive live/ghost feedback. Released Goddess
+spells retain these frozen payloads after owner death under her existing policy.
+These deterministic changes belong to prepared compatibility `2026.10.11`;
+client and worker share the same Core. No command or replay encoding changes.
+
 ## Lifecycle and tick dependencies
 
 `BossCombatStateStore` and `BossSummonStore` are lifecycle-registered sparse

@@ -1,5 +1,8 @@
 import '../../combat/voidborn_goddess_pose_catalog.dart';
 import '../../combat/damage_type.dart';
+import '../../combat/knockback.dart';
+import '../../combat/status/status.dart';
+import '../../weapons/weapon_proc.dart';
 import '../../snapshots/enums.dart';
 import '../ability_def.dart';
 import '../../projectiles/projectile_id.dart';
@@ -47,6 +50,12 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     ),
     baseDamage: 500,
     baseDamageType: DamageType.physical,
+    // Bringer-strength push only on the authored final strike.
+    knockback: const KnockbackDef(
+      distance: 112,
+      durationSeconds: .28,
+      trigger: KnockbackTrigger.comboFinisher,
+    ),
     windupTicks: 24,
     activeTicks: 54,
     recoveryTicks: 18,
@@ -62,6 +71,19 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     ),
     baseDamage: 720,
     baseDamageType: DamageType.dark,
+    knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
+    procs: const [
+      WeaponProc(
+        hook: ProcHook.onHit,
+        statusProfileId: StatusProfileId.weakenOnHit,
+        statusTuning: StatusProfileTuning(
+          weaken: StatusApplicationTuning(
+            magnitude: 2500, // -25% outgoing damage, matching Death Pillar.
+            durationSeconds: 3,
+          ),
+        ),
+      ),
+    ],
     // 0.45 seconds at 60 Hz: a brisk cast with a visible release warning.
     windupTicks: 27,
     activeTicks: 6,
@@ -83,6 +105,19 @@ final Map<AbilityKey, AbilityDef> voidbornGoddessAbilityDefs = {
     ),
     baseDamage: 1200,
     baseDamageType: DamageType.dark,
+    knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
+    procs: const [
+      WeaponProc(
+        hook: ProcHook.onHit,
+        statusProfileId: StatusProfileId.weakenOnHit,
+        statusTuning: StatusProfileTuning(
+          weaken: StatusApplicationTuning(
+            magnitude: 2500, // -25% outgoing damage, matching Death Pillar.
+            durationSeconds: 3,
+          ),
+        ),
+      ),
+    ],
     windupTicks: 60,
     activeTicks: 240,
     recoveryTicks: 36,

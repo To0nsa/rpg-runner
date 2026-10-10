@@ -178,6 +178,10 @@ class HitboxDamageSystem {
             procs: hitboxes.procs[hi],
             knockback: hitboxes.knockback[hi]?.resolve(
               world.transform.posX[world.transform.indexOf(target)],
+              isComboFinisher:
+                  comboWindow > 0 &&
+                  comboWindow ==
+                      hitboxes.profile[hi]?.combo?.strikeStartFrames.length,
             ),
             source: owner == 0 ? null : owner,
             comboHit: comboWindow <= 0

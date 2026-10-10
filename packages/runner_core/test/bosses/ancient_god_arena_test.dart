@@ -191,7 +191,20 @@ void main() {
                 boss == EnemyId.voidbornGoddess &&
                 (actor?.anim == AnimKey.strike ||
                     actor?.anim == AnimKey.teleportOut);
+            final evadeOrb =
+                boss == EnemyId.voidbornGoddess &&
+                actor?.anim == AnimKey.cast &&
+                // Release frame 8 is exposed as 48 animation ticks at 60 Hz;
+                // jumping earlier lets the cast track the airborne player.
+                (actor?.animFrame ?? 0) >= 48;
             final playerX = s.playerEntity!.pos.x;
+            final avoidHands =
+                boss == EnemyId.voidbornGoddess &&
+                actor?.anim == AnimKey.ranged;
+            // Stand between warning marks instead of letting the first slap
+            // knock the player along the advancing hand sweep.
+            final handGapX =
+                119.2 + ((playerX - 119.2) / 90.4).round().clamp(0, 4) * 90.4;
             final escapeDirection = playerX < 70
                 ? 1.0
                 : playerX > 530
@@ -200,7 +213,11 @@ void main() {
             core.applyCommands([
               MoveAxisCommand(
                 tick: t,
-                axis: evadeCombo
+                axis: avoidHands
+                    ? ((handGapX - playerX).abs() > 2
+                          ? (handGapX - playerX).sign
+                          : 0)
+                    : evadeCombo
                     ? escapeDirection
                     : dx.abs() > 20
                     ? dx.sign
@@ -214,8 +231,11 @@ void main() {
                   dx.abs() < 90)
                 JumpPressedCommand(tick: t),
               if (evadeCombo && dx.abs() < 55) DashPressedCommand(tick: t),
-              if (!evadeCombo && n % 20 == 0) StrikePressedCommand(tick: t),
-              if (!evadeCombo && n % 45 == 0) ProjectilePressedCommand(tick: t),
+              if (evadeOrb) JumpPressedCommand(tick: t),
+              if (!evadeCombo && !avoidHands && n % 20 == 0)
+                StrikePressedCommand(tick: t),
+              if (!evadeCombo && !avoidHands && n % 45 == 0)
+                ProjectilePressedCommand(tick: t),
             ]);
             core.stepOneTick();
             final after = core.buildSnapshot();

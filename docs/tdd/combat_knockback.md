@@ -6,6 +6,13 @@ Melee, projectile and target-point commits carry the definition through their
 frozen payload and intent. Mobility contact damage reads the same ability field.
 No enemy identity or arena-specific condition selects the effect.
 
+`KnockbackDef.trigger` defaults to `KnockbackTrigger.everyHit`. The optional
+`comboFinisher` trigger resolves only when contact is in the final one-based
+authored combo window. It uses the profile's strike count and current hit ledger,
+never a count of successful hits: missing the finisher causes no shove, while
+landing only the finisher still shoves. Non-combo hits cannot activate this
+trigger. Ordinary damage, combo protection and hit-once rules are unchanged.
+
 Attack execution captures the attacker's world X and horizontal fallback in
 `KnockbackSource`. A pillar uses its caster's origin rather than its own center.
 Hit resolution freezes the sign away from that origin in `KnockbackHit`; equal
@@ -44,3 +51,11 @@ prepared `2026.10.8` compatibility release. Client and replay worker must consum
 the same Core; commands, replay encoding and score format are unchanged by this
 follow-up. See [boss arena contracts](boss_arenas.md) and
 [Bringer tuning](../gdd/bringer_of_death.md).
+
+Prepared compatibility `2026.10.11` applies 112 world units over 0.28 seconds
+(the same tuning as Bringer) to Goddess's fourth claw swipe and the second
+strike of Shoggoth's sweep, spinning charge and return charge. Both orbs and
+each Goddess hand impact carry the same shove on every accepted damaging hit.
+Those spells also carry the ordinary `weakenOnHit` proc tuned to 25% outgoing
+damage reduction for three seconds; resistance and status immunity remain
+separate, and only knockback requires positive nonlethal HP loss.

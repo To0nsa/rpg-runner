@@ -183,6 +183,70 @@ void main() {
       });
     }
 
+    for (final bossId in [EnemyId.voidbornGoddess, EnemyId.shoggoth]) {
+      test('$bossId spell knockback and dark Weaken replay at $hz Hz', () {
+        final direct = _core(hz, bossId: bossId),
+            replay = _core(hz, bossId: bossId);
+        final frames = <ReplayCommandFrameV1>[];
+        int? hitTick;
+        double? hitX;
+        for (var n = 0; n < 20 * hz && !direct.gameOver; n++) {
+          final tick = direct.tick + 1;
+          frames.add(ReplayCommandFrameV1(tick: tick));
+          direct.applyCommands(const []);
+          direct.stepOneTick();
+          final player = direct.buildSnapshot().playerEntity!;
+          if ((player.statusVisualMask & EntityStatusVisualMask.weaken) != 0 &&
+              hitTick == null) {
+            hitTick = tick;
+            hitX = player.pos.x;
+          }
+          if (hitTick != null && tick >= hitTick + (.3 * hz).ceil()) break;
+        }
+        expect(
+          hitTick,
+          isNotNull,
+          reason: 'A real boss spell must apply the dark status.',
+        );
+        expect(
+          (direct.playerPosX - hitX!).abs(),
+          greaterThan(5),
+          reason:
+              'The accepted spell must move the player through Core terrain.',
+        );
+        final result = runReplaySimulation(
+          core: replay,
+          totalTicks: direct.tick,
+          commandStream: frames,
+        );
+        expect(result.runEnded, isNull);
+        final a = direct.buildSnapshot(), b = replay.buildSnapshot();
+        expect(b.hud.hp, a.hud.hp);
+        expect(
+          b.entities.map(
+            (e) => [
+              e.id,
+              e.pos.x,
+              e.pos.y,
+              e.anim,
+              e.animFrame,
+              e.statusVisualMask,
+            ],
+          ),
+          a.entities.map(
+            (e) => [
+              e.id,
+              e.pos.x,
+              e.pos.y,
+              e.anim,
+              e.animFrame,
+              e.statusVisualMask,
+            ],
+          ),
+        );
+      });
+    }
+
     test('Shoggoth swarms and final-phase return charge replay at $hz Hz', () {
       final direct = _core(hz, bossId: EnemyId.shoggoth);
       final replay = _core(hz, bossId: EnemyId.shoggoth);
@@ -236,7 +300,8 @@ void main() {
             finalPhase &&
             boss?.anim == AnimKey.strike2 &&
             chargeTicks.isNotEmpty &&
-            tick == chargeTicks.last + 1;
+            // A late-warning jump clears both halves, including the finisher.
+            tick == chargeTicks.last + (.35 * hz).ceil();
         final dash =
             finalPhase &&
             minionsAlive &&
@@ -391,7 +456,11 @@ void main() {
             tick - secondHitTick,
             lessThanOrEqualTo((8 * hz / 60).ceil() + 1),
           );
-          expect((actor.pos.x - direct.playerPosX).abs(), closeTo(35, 1));
+          // The dodge commits before this tick's player knockback movement.
+          expect(
+            (actor.pos.x - before.playerEntity!.pos.x).abs(),
+            closeTo(35, 1),
+          );
           countered = true;
           break;
         }

@@ -47,6 +47,24 @@ void main() {
     });
   }
 
+  test(
+    'finisher trigger rejects ordinary contact and earlier combo windows',
+    () {
+      const source = KnockbackSource(
+        effect: KnockbackDef(
+          distance: 112,
+          durationSeconds: .28,
+          trigger: KnockbackTrigger.comboFinisher,
+        ),
+        originX: 50,
+        fallbackDirectionX: -1,
+      );
+      expect(source.resolve(60), isNull);
+      expect(source.resolve(60, isComboFinisher: false), isNull);
+      expect(source.resolve(60, isComboFinisher: true)!.directionX, 1);
+    },
+  );
+
   test('invulnerability, full resistance and canceled hits do not shove', () {
     for (final mode in ['invulnerable', 'resistant', 'canceled', 'lethal']) {
       final world = EcsWorld();
@@ -130,9 +148,9 @@ void main() {
         originX: 50,
         fallbackDirectionX: -1,
       );
-      expect(source.resolve(40).directionX, -1);
-      expect(source.resolve(60).directionX, 1);
-      expect(source.resolve(50).directionX, -1);
+      expect(source.resolve(40)!.directionX, -1);
+      expect(source.resolve(60)!.directionX, 1);
+      expect(source.resolve(50)!.directionX, -1);
     },
   );
 
