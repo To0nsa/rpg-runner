@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
+import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
+import 'package:runner_core/track/staged_terrain_stream_bindings.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/track/staged_terrain_catalog.dart';
 import 'package:runner_core/track/staged_terrain_preparer.dart';
@@ -56,6 +60,93 @@ void main() {
         }
       });
     }
+  }
+
+  test(
+    'publishes the nearest result while the following job is pending',
+    () async {
+      final worker = _ControlledPreparation();
+      final preparer = _preparerWithWorker(worker);
+      addTearDown(preparer.dispose);
+      addTearDown(worker.close);
+      final streamer = _streamer(LevelId.field);
+      _step(streamer, 0);
+      final window = streamer.upcomingSelections(viewWidth: 600, count: 2);
+      final pending = preparer.prepare(window);
+      expect(
+        worker.started,
+        0,
+        reason: 'handoff stays outside the frame stack',
+      );
+      final first = await worker.next();
+      first.complete();
+      final second = await worker.next();
+      expect(preparer.stats.ready, 1);
+      final candidate = preparer.take(window.first, geometryVersion: 8);
+      expect(candidate, isNotNull);
+      _expectSamePublication(candidate!, _build(window.first, 8));
+      final latest = preparer.prepare([window.last]);
+      second.complete();
+      await Future.wait([pending, latest]);
+      expect(worker.started, 2);
+      expect(preparer.stats.ready, 1);
+      expect(preparer.take(window.last, geometryVersion: 9), isNotNull);
+    },
+  );
+
+  test(
+    'replaces queued work after the current candidate, discarding stale output',
+    () async {
+      final worker = _ControlledPreparation();
+      final preparer = _preparerWithWorker(worker);
+      addTearDown(preparer.dispose);
+      addTearDown(worker.close);
+      final streamer = _streamer(LevelId.field);
+      _step(streamer, 0);
+      final old = streamer.upcomingSelections(viewWidth: 600, count: 8);
+      final pending = preparer.prepare(old);
+      final first = await worker.next();
+      _step(streamer, 12000);
+      final replacement = streamer.upcomingSelections(viewWidth: 600, count: 1);
+      final latest = preparer.prepare(replacement);
+      first.complete();
+      final next = await worker.next();
+      expect(preparer.stats.ready, 0);
+      expect(next.bindings.first.chunkIndex, replacement.first.first.index);
+      next.complete();
+      await Future.wait([pending, latest]);
+      expect(worker.started, 2);
+      expect(preparer.take(old.first, geometryVersion: 2), isNull);
+      expect(preparer.take(replacement.first, geometryVersion: 3), isNotNull);
+    },
+  );
+
+  for (final stop in ['dispose', 'disable', 'worker error']) {
+    test('$stop prevents late publication and further jobs', () async {
+      final worker = _ControlledPreparation();
+      final preparer = _preparerWithWorker(worker);
+      addTearDown(preparer.dispose);
+      addTearDown(worker.close);
+      final streamer = _streamer(LevelId.field);
+      _step(streamer, 0);
+      final window = streamer.upcomingSelections(viewWidth: 600, count: 8);
+      final pending = preparer.prepare(window);
+      final first = await worker.next();
+      if (stop == 'dispose') preparer.dispose();
+      if (stop == 'disable') preparer.disable(StateError('admission failed'));
+      if (stop == 'worker error') {
+        first.completer.completeError(StateError('worker failed'));
+      } else {
+        first.complete();
+      }
+      await pending;
+      await preparer.prepare(window);
+      expect(worker.started, 1);
+      expect(preparer.stats.ready, 0);
+      expect(preparer.take(window.first, geometryVersion: 2), isNull);
+      if (stop != 'dispose')
+        expect(preparer.stats.lastError, contains('failed'));
+    });
   }
 
   test('prepared Forest publications exactly match synchronous builds', () async {
@@ -236,5 +327,53 @@ void _expectSamePublication(
   expect(
     actual.renderSnapshot.polygons.map((p) => p.sourceId),
     expected.renderSnapshot.polygons.map((p) => p.sourceId),
+  );
+}
+
+StagedTerrainPreparer _preparerWithWorker(_ControlledPreparation worker) =>
+    StagedTerrainPreparer(
+      catalog: StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain),
+      groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+      prepareCandidate: worker.prepare,
+    );
+
+class _ControlledPreparation {
+  final _requests = StreamController<_PendingCandidate>();
+  late final _iterator = StreamIterator(_requests.stream);
+  int started = 0;
+
+  Future<StagedTerrainStreamCandidate> prepare(
+    List<StagedTerrainChunkBinding> bindings,
+    List<TerrainSurfaceGraphBuildProfile> profiles,
+  ) {
+    started += 1;
+    final request = _PendingCandidate(bindings, profiles);
+    _requests.add(request);
+    return request.completer.future;
+  }
+
+  Future<_PendingCandidate> next() async {
+    if (!await _iterator.moveNext()) throw StateError('worker closed');
+    return _iterator.current;
+  }
+
+  Future<void> close() async {
+    await _iterator.cancel();
+    await _requests.close();
+  }
+}
+
+class _PendingCandidate {
+  _PendingCandidate(this.bindings, this.profiles);
+  final List<StagedTerrainChunkBinding> bindings;
+  final List<TerrainSurfaceGraphBuildProfile> profiles;
+  final completer = Completer<StagedTerrainStreamCandidate>();
+
+  void complete() => completer.complete(
+    const StagedTerrainStreamCandidateBuilder().buildFromBindings(
+      bindings: bindings,
+      geometryVersion: 0,
+      groundEnemyProfiles: profiles,
+    ),
   );
 }

@@ -567,15 +567,18 @@ Graph rebinding rejects a different node-list identity. New geometry and new
 graphs still pass the full normal constructor validation in the worker.
 
 The ready cache retains at most eight selections per simulation. Only one
-bounded worker batch is in flight; concurrent requests replace its target
-window and obsolete results are discarded. Changed selections trigger refills.
+candidate is in flight. Selections are processed nearest first and each complete
+result becomes available immediately. Concurrent requests replace the queue;
+after every handoff the preparer reselects the nearest missing candidate and
+discards obsolete output. Disabled/disposed runs reject late results and cannot
+start another job. Changed selections trigger refills.
 Binding and isolate handoff are queued after the current frame/simulation stack;
 the tick only updates the desired window and consumes already prepared data.
 `RunnerFlameGame` awaits the live run's first window during loading. The run
 widget starts the ghost's preparation at initialization and awaits it before
 Start. Each simulation owns its cache; controller shutdown, ghost completion,
 replacement, and widget disposal release it. A worker already in progress can
-finish but cannot retain results or schedule another batch after disposal.
+finish but cannot retain results or schedule another job after disposal.
 
 The run route keeps its loading presentation above the Flame view until the
 initial terrain, parallax, player, static prefabs, and render registries have

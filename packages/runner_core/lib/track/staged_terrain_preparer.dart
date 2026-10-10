@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 
 import '../navigation/types/terrain_surface_graph.dart';
@@ -15,12 +16,15 @@ final class StagedTerrainPreparer {
   StagedTerrainPreparer({
     required this.catalog,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
-  }) : groundEnemyProfiles = List.unmodifiable(groundEnemyProfiles);
+    TerrainCandidatePreparation prepareCandidate = prepareTerrainCandidate,
+  }) : groundEnemyProfiles = List.unmodifiable(groundEnemyProfiles),
+       _prepareCandidate = prepareCandidate;
 
   /// Eight spawn/cull states cover at least four future chunk boundaries with
   /// the normal margins, including both sides of an exact shared boundary.
   static const selectionCapacity = 8;
 
+  final TerrainCandidatePreparation _prepareCandidate;
   final StagedTerrainCatalog catalog;
   final List<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles;
   final Map<String, StagedTerrainStreamCandidate> _ready = {};
@@ -54,7 +58,8 @@ final class StagedTerrainPreparer {
   }
 
   /// Replaces the target window and waits until its current missing states are
-  /// prepared. Concurrent calls coalesce; obsolete results are discarded.
+  /// prepared. Selections must be ordered nearest first. Concurrent calls replace
+  /// the queue; each complete result is available before later jobs finish.
   ///
   /// Worker failures (including unsupported isolates) disable preparation for
   /// this instance and remain visible in [stats]. They never suppress a required
@@ -75,27 +80,27 @@ final class StagedTerrainPreparer {
 
   Future<void> _fill() async {
     try {
-      while (!_disposed) {
-        final missing = _wanted.entries
-            .where((entry) => !_ready.containsKey(entry.key))
-            .toList();
-        if (missing.isEmpty) return;
-        final request = _PreparationRequest(
-          selections: [
-            for (final entry in missing)
-              const StagedTerrainStreamBindingBuilder().build(
-                catalog: catalog,
-                activeChunks: entry.value,
-              ),
-          ],
-          profiles: groundEnemyProfiles,
-        );
-        final candidates = await _prepareInIsolate(request);
-        if (_disposed) return;
-        for (var i = 0; i < missing.length; i += 1) {
-          final key = missing[i].key;
-          if (_wanted.containsKey(key)) _ready[key] = candidates[i];
+      while (!_disposed && _lastError == null) {
+        MapEntry<String, List<ActiveTrackChunkSnapshot>>? next;
+        for (final entry in _wanted.entries) {
+          if (!_ready.containsKey(entry.key)) {
+            next = entry;
+            break;
+          }
         }
+        if (next == null) return;
+        final bindings = const StagedTerrainStreamBindingBuilder().build(
+          catalog: catalog,
+          activeChunks: next.value,
+        );
+        final candidate = await _prepareCandidate(
+          bindings,
+          groundEnemyProfiles,
+        );
+        if (_disposed || _lastError != null) return;
+        if (_wanted.containsKey(next.key)) _ready[next.key] = candidate;
+        // Re-read the latest queue after every handoff. A replaced window must
+        // not wait for obsolete selections, nor for the rest of an old batch.
       }
     } catch (error) {
       disable(error);
@@ -127,23 +132,25 @@ String _selectionKey(List<ActiveTrackChunkSnapshot> selection) => selection
     )
     .join('|');
 
-final class _PreparationRequest {
-  const _PreparationRequest({required this.selections, required this.profiles});
-  final List<List<StagedTerrainChunkBinding>> selections;
-  final List<TerrainSurfaceGraphBuildProfile> profiles;
-}
+/// Builds one complete candidate from admitted, immutable preparation inputs.
+/// Implementations must preserve the exact synchronous builder's output and
+/// complete only after all collision, navigation and render records are ready.
+typedef TerrainCandidatePreparation =
+    Future<StagedTerrainStreamCandidate> Function(
+      List<StagedTerrainChunkBinding> bindings,
+      List<TerrainSurfaceGraphBuildProfile> profiles,
+    );
 
-// Keep the closure outside the preparer so it cannot capture the run/catalog.
-Future<List<StagedTerrainStreamCandidate>> _prepareInIsolate(
-  _PreparationRequest request,
+/// Transfers one complete candidate back from a short-lived background isolate.
+/// Keeping the closure outside the preparer prevents capturing live run state.
+Future<StagedTerrainStreamCandidate> prepareTerrainCandidate(
+  List<StagedTerrainChunkBinding> bindings,
+  List<TerrainSurfaceGraphBuildProfile> profiles,
 ) => Isolate.run(
-  () => [
-    for (final bindings in request.selections)
-      const StagedTerrainStreamCandidateBuilder().buildFromBindings(
-        bindings: bindings,
-        geometryVersion: 0,
-        groundEnemyProfiles: request.profiles,
-      ),
-  ],
+  () => const StagedTerrainStreamCandidateBuilder().buildFromBindings(
+    bindings: bindings,
+    geometryVersion: 0,
+    groundEnemyProfiles: profiles,
+  ),
   debugName: 'terrain-preparation',
 );
