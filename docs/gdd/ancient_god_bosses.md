@@ -17,9 +17,10 @@ The corrections below are deployed in `2026.10.10`: aligned native beam pieces,
 Goddess's corner hand barrage and distinct damage windows per swing; see the
 [October 8 evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
 
-Goddess uses **1.0x sprite scale** and **300 HP**; Shoggoth has **260 HP** and Voidcaller has
-120 HP; both share Bringer of Death's **1.5x scale**. All three have no passive
-health regeneration and have Stun immunity. Prepared compatibility `2026.10.11` also
+Goddess uses **1.0x sprite scale** and **300 HP**. Shoggoth also uses
+**1.0x scale**, with **260 HP**; Voidcaller has **120 HP** at **1.5x scale**.
+All three have no passive health regeneration and have Stun immunity.
+Prepared compatibility `2026.10.11` also
 gives them Silence immunity and halves the strength of other harmful statuses,
 keeping duration unchanged, as described in [Bringer's defenses](bringer_of_death.md).
 Beneficial effects retain their full strength, and summoned minions and tentacles
@@ -115,11 +116,13 @@ landed projectile, and a lethal hit never triggers a counter.
 
 Prepared compatibility `2026.10.11` gives Shoggoth an advancing melee kit with
 health-triggered minions and a final charge phase. He has **260 HP** and retains
-his 1.5x sprite scale, ordinary gravity, terrain collision and inability to jump.
+ordinary gravity, terrain collision and inability to jump. His 1.0x sprite scale
+and matching 32-by-52 body keep his spin and tentacle arcs at standing-player
+height; both melee art and damage shapes use that same scale.
 
 | Action | Default behavior |
 | --- | --- |
-| Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. During the 0.4-second windup he can advance up to 24 units at half shared ground speed, stopping 65 units from the player. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. The attack and its 0.3-second recovery hold position. |
+| Tentacle sweep | Two rotating sweeps, each dealing 7 physical damage. During the 0.4-second windup he can advance up to 24 units at half shared ground speed, stopping 45 units from the player. He may turn during harmless frames or at a new sweep; each live sweep keeps its direction. The attack and its 0.3-second recovery hold position. |
 | Spinning charge | Tracks facing during a 0.5-second warning, then commits to one direction for 0.6 seconds at 360 units/second (216 units on unobstructed flat ground). Two arc passes can each deal 6 physical damage. Recovery lasts 0.4 seconds. |
 | Return charge | After entering the final phase, alternating charge attempts can follow their completed first pass with a return toward the player. The return has its own full 0.5-second warning, the same movement and damage, and 0.8-second stationary recovery. |
 | Void orb | Captures the target center when casting begins and flies straight at 340 units/second; 6 dark damage and a 0.7-second cast. |
@@ -127,9 +130,9 @@ his 1.5x sprite scale, ordinary gravity, terrain collision and inability to jump
 | Vanish and return | After three continuous seconds beyond 300 horizontal units or without a directly walkable approach, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
 On directly walkable ground and within 50 vertical units of the target, he
-chooses a sweep within 100 horizontal units and a charge from there through
+chooses a sweep within 70 horizontal units and a charge from there through
 260 units. Beyond charge range, above him, or behind an obstruction, he uses
-orbs. Between actions he pursues at 0.8 of shared ground speed toward a 65-unit
+orbs. Between actions he pursues at 0.8 of shared ground speed toward a 45-unit
 stand-off. The sweep's short approach endpoint stays fixed if the player retreats.
 Charge warning frames can turn; a launched charge cannot steer. Walls and arena
 bounds stop charge movement, and gravity continues normally.

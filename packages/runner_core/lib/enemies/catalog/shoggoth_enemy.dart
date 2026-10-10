@@ -27,7 +27,8 @@ const shoggothArchetype = EnemyArchetype(
   mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
   stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
   renderAnim: ShoggothRenderCatalog.actor,
-  renderScale: 1.5,
+  // Native scale keeps the spinning body at standing-player torso height.
+  renderScale: 1.0,
   animProfile: AnimProfile(
     supportsCast: true,
     supportsRanged: true,
@@ -53,9 +54,9 @@ const shoggothArchetype = EnemyArchetype(
 );
 
 const ColliderAabbDef _shoggothCollider = ColliderAabbDef(
-  halfX: 24,
-  halfY: 39,
-  offsetY: 9,
+  halfX: 16,
+  halfY: 26,
+  offsetY: 6,
 );
 
 /// Shared terrain policy derived from this enemy's authored collider.

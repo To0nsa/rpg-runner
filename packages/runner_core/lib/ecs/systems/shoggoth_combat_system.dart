@@ -30,7 +30,8 @@ final class ShoggothCombatSystem extends BossCombatSystem {
   EnemyId get enemyId => EnemyId.shoggoth;
   late final _melee = AiMeleeCommitter(tickHz: tickHz);
 
-  static const _standOff = 65.0;
+  // World-unit spacing keeps the native-scale tentacle arcs within body reach.
+  static const _standOff = 45.0;
   static const _chargeSpeed = 360.0;
 
   /// Inspect identity before the phase system clears completed actions. A clear,
@@ -156,7 +157,7 @@ final class ShoggothCombatSystem extends BossCombatSystem {
           continue;
         }
         choice = 'shoggoth.orb';
-      } else if (atHeight && direct && dx.abs() <= 100) {
+      } else if (atHeight && direct && dx.abs() <= 70) {
         choice = 'shoggoth.tentacle_sweep';
       } else if (atHeight && direct && dx.abs() <= 260) {
         choice = 'shoggoth.spinning_charge';

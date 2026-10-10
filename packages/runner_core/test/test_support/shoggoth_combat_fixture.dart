@@ -17,6 +17,7 @@ import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/players/player_catalog.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
@@ -30,11 +31,16 @@ import 'package:test/test.dart';
 /// Tests control target placement and the navigation result explicitly; authored
 /// arena integration separately exercises the production navigation system.
 final class ShoggothCombatFixture {
-  ShoggothCombatFixture({this.hz = 60, double bossX = 200, bool wall = false}) {
-    final tuning = eloiseCharacter.tuning;
+  ShoggothCombatFixture({
+    this.hz = 60,
+    double bossX = 200,
+    bool wall = false,
+    PlayerCharacterDefinition character = eloiseCharacter,
+  }) {
+    final tuning = character.tuning;
     movement = MovementTuningDerived.from(tuning.movement, tickHz: hz);
     final archetype = PlayerCatalogDerived.from(
-      eloiseCharacter.catalog,
+      character.catalog,
       movement: movement,
       resources: ResourceTuningDerived.from(tuning.resource),
     ).archetype;

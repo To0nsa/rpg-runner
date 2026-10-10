@@ -34,7 +34,10 @@ void main() {
         EnemyId.voidTentacle,
       ]) {
         final entry = actors.entryFor(id)!;
-        expect(entry.renderScale.x, 1.5);
+        expect(
+          entry.renderScale.x,
+          id == EnemyId.voidbornGoddess || id == EnemyId.shoggoth ? 1.0 : 1.5,
+        );
         for (final animation in entry.animSet.animations.values) {
           for (final frame in animation.frames) {
             final s = frame.sprite;
@@ -152,7 +155,7 @@ void main() {
           animation.frames[index].sprite.render(
             canvas,
             position: position,
-            size: set.frameSize * 1.5,
+            size: set.frameSize * entry.renderScale.x,
             anchor: set.anchorFor(key),
           );
           final a = const EnemyCatalog().get(id).collider;

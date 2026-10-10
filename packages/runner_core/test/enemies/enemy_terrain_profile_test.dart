@@ -57,12 +57,12 @@ void main() {
             offsetY: 7.0,
           ),
           EnemyId.voidbornGoddess: (
-            radius: 13.5,
-            spine: 27,
+            radius: 9,
+            spine: 18,
             offsetX: 0,
             offsetY: 0,
           ),
-          EnemyId.shoggoth: (radius: 24, spine: 15, offsetX: 0, offsetY: 9),
+          EnemyId.shoggoth: (radius: 16, spine: 10, offsetX: 0, offsetY: 6),
           EnemyId.voidcaller: (radius: 24, spine: 21, offsetX: 0, offsetY: 0),
           EnemyId.shoggothMinion: (
             radius: 10.5,

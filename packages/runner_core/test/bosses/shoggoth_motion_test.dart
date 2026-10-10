@@ -17,6 +17,7 @@ void main() {
       'sweep advances at most 24 units in windup and holds through strikes/recovery, $hz Hz',
       () {
         final f = ShoggothCombatFixture(hz: hz);
+        f.placePlayer(f.x + 70);
         final start = f.x;
         f.tick(10);
         expect(f.action, 'shoggoth.tentacle_sweep');
@@ -41,7 +42,7 @@ void main() {
       'sweeps turn between strikes without flipping a live arc or repeating damage, $hz Hz',
       () {
         final f = ShoggothCombatFixture(hz: hz);
-        f.placePlayer(f.x + 65);
+        f.placePlayer(f.x + 45);
         f.decide(10);
         final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
         final profile = ShoggothPoseCatalog.shoggothSweep;
@@ -64,7 +65,7 @@ void main() {
             windows.add(window);
           }
           final direction = expectedFacing == Facing.right ? 1 : -1;
-          f.placePlayer(f.x + (newStrike ? direction : -direction) * 65);
+          f.placePlayer(f.x + (newStrike ? direction : -direction) * 45);
           f.decide(10 + age);
           f.locomote(10 + age);
           resolveCombatPoses(f.world, 10 + age, tickHz: hz);
@@ -116,7 +117,7 @@ void main() {
           f.placePlayer(wall ? 300 : 580);
           f.tick(10);
           final end = 10 + f.world.activeAbility.totalTicks[f.ai];
-          final boundary = wall ? 326.0 : 576.0;
+          final boundary = wall ? 334.0 : 584.0;
           for (var tick = 11; tick < end; tick++) {
             f.tick(tick);
             expect(f.x, lessThanOrEqualTo(boundary + .01));

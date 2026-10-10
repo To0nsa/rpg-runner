@@ -28,7 +28,7 @@ void main() {
   for (final hz in [30, 60, 90]) {
     for (final (id, key, x, y, expectedHits, damagePerHit) in [
       (EnemyId.voidbornGoddess, 'goddess.claw_combo', -21.33, -5.33, 4, 500),
-      (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -65.0, -10.0, 2, 700),
+      (EnemyId.shoggoth, 'shoggoth.tentacle_sweep', -43.33, -6.67, 2, 700),
       (EnemyId.shoggoth, 'shoggoth.spinning_charge', 0.0, -5.0, 2, 600),
       (EnemyId.shoggoth, 'shoggoth.return_charge', 0.0, -5.0, 2, 600),
     ]) {
@@ -216,6 +216,13 @@ void main() {
               execute +
               ((frame - 3) * f.world.activeAbility.activeTicks[ai] / 6).ceil();
           f.world.transform.setPosXY(f.player, -sign * x, y);
+          f.hit(tick);
+          expect(
+            f.world.damageQueue.target,
+            isEmpty,
+            reason: 'the previous enlarged arc must not leave invisible reach',
+          );
+          f.world.transform.setPosXY(f.player, -sign * x / 1.5, y / 1.5);
           f.hit(tick);
           expect(f.world.damageQueue.target, [f.player]);
           expect(f.world.damageQueue.amount100, [600]);

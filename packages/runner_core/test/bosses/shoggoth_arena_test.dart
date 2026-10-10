@@ -71,7 +71,7 @@ void main() {
                 expect(summon.pos.x, inInclusiveRange(24, 576));
                 expect(lowestBossHp, lessThanOrEqualTo(18200));
               }
-              if (boss != null) expect(boss.pos.x, inInclusiveRange(24, 576));
+              if (boss != null) expect(boss.pos.x, inInclusiveRange(16, 584));
               if (defeated) {
                 if (wasDefeated) {
                   expect(

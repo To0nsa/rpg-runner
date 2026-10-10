@@ -11,8 +11,8 @@ import '../test_support/shoggoth_combat_fixture.dart';
 void main() {
   for (final hz in [30, 60, 90]) {
     for (final (distance, height, direct, expected) in [
-      (100.0, 0.0, true, 'shoggoth.tentacle_sweep'),
-      (101.0, 0.0, true, 'shoggoth.spinning_charge'),
+      (70.0, 0.0, true, 'shoggoth.tentacle_sweep'),
+      (71.0, 0.0, true, 'shoggoth.spinning_charge'),
       (260.0, 0.0, true, 'shoggoth.spinning_charge'),
       (261.0, 0.0, true, 'shoggoth.orb'),
       (150.0, -100.0, true, 'shoggoth.orb'),
@@ -69,6 +69,7 @@ void main() {
 
     test('phases wait for attack recovery and cooldown, $hz Hz', () {
       final f = ShoggothCombatFixture(hz: hz);
+      f.placePlayer(f.x + 45);
       f.decide(10);
       expect(f.action, 'shoggoth.tentacle_sweep');
       f.hp = 9100;

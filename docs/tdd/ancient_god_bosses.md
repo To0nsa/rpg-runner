@@ -117,12 +117,17 @@ Hit reactions do not replace active boss attack art.
 
 Prepared compatibility `2026.10.11` replaces Shoggoth's modulo rotation with
 `ShoggothCombatSystem` and lifecycle-registered `ShoggothTacticsStore`.
-The catalog has 26000 fixed-point health (260 HP). Decisions use current combat
+The catalog has 26000 fixed-point health (260 HP). Native 1.0x actor scale uses
+a 32-by-52 collider with a six-unit downward center offset, and matching sweep
+and spin capsules. Ground contact places the transform 32 units above the floor
+(plus terrain collision skin), lowering the spin core from about 53 to 35 units
+above ground. Damage geometry and renderer scale change together; the terrain
+profile still derives from the same collider. Decisions use current combat
 target identity and published navigation: at vertical separation <=50, directly
-walkable targets within 100 units select a sweep; targets through 260 units
+walkable targets within 70 units select a sweep; targets through 260 units
 select a charge. Other targets select an orb. Ordinary cooldown and active
 ability gates remain authoritative. Pursuit retains 0.8 shared ground speed and
-65-unit spacing, with no change to terrain/navigation capabilities.
+45-unit spacing, retaining the existing jump and slope policies.
 
 Integer comparisons `hp * 100 <= hpMax * 70` and `hp * 100 <= hpMax * 35`
 record reached phases during actions and cooldowns. The maximum reached count
@@ -134,7 +139,7 @@ minion in that tick's motion roster. Expiry, owner destruction and attack cleanu
 use the shared summon lifecycle.
 
 Sweep preparation captures an endpoint at most 24 units ahead and no closer than
-65 units to the captured target. During windup only, grounded direct walking
+45 units to the captured target. During windup only, grounded direct walking
 approaches it at 0.5 speed; remaining displacement and live target spacing cap
 velocity. The endpoint never follows a retreating target. Windup/harmless frames
 and new combo strike windows may retarget facing; a live strike cannot turn.
@@ -337,8 +342,10 @@ The [asset map](../../assets/images/entities/enemies/ancient_god_pack/ASSET_MAP.
 records verified exported frame regions and discrepancies with Aseprite tags.
 Goddess has 300 HP (30000 fixed-point current and maximum health), with no
 passive regeneration. Her actor art uses 1.0x scale, with a matching 18-by-54
-body collider, scaled claw geometry and 35-world-unit approach stand-off. The other actors,
-projectiles and impact art retain 1.5x scale. Source rectangles and pivots
+body collider, scaled claw geometry and 35-world-unit approach stand-off.
+Shoggoth also uses 1.0x actor scale, with a matching 32-by-52 body and
+rescaled melee capsules. Voidcaller, summons, projectiles and impact art retain
+1.5x scale. Source rectangles and pivots
 remain source-pixel coordinates. Collider and attack dimensions are world units.
 Ground-enemy jump templates use the terrain capsule's quantized radius and
 spine, keeping graph and collision dimensions identical at fractional scales.
@@ -378,6 +385,15 @@ with `--check` to detect stale outputs; never hand-edit generated catalogs.
 The [October 9 Shoggoth verification](../verification/shoggoth-boss-2026-10-09.md)
 records the new phase, movement, teleport, arena and replay checks, including
 the unrelated failures in the broader boss run and the limits of local evidence.
+
+The October 10 scale correction adds 48 grounded attack cases: sweeps, normal
+charges, return charges and orbs against both characters in both facings at
+30/60/90 Hz. Targets retain catalog bodies and ordinary floor contact, including
+terrain collision skin. Real-PNG checks require sweep and front/rear spin pixels
+within the middle 60% of a standing player's body, and render
+`.tmp/shoggoth_height_preview.png` for visual inspection. Matching capsule tests
+reject the previous enlarged arc's invisible reach. The 21 Shoggoth arena cases
+and three phase/return-charge replay cases also pass with the smaller body.
 
 Arena tests cover deterministic duplicate runs at 30/60/90 Hz, introduction,
 confinement, teleport/return, summon caps and lifetime, stationary tentacles,

@@ -2,7 +2,7 @@ import '../snapshots/enums.dart';
 import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
-/// Damage geometry in world units at Shoggoth's 1.5x art scale.
+/// Damage geometry in world units at Shoggoth's native 1.0x art scale.
 abstract final class ShoggothPoseCatalog {
   static const shoggothSweep = CombatStrikeProfile(
     combo: CombatCombo(strikeStartFrames: [5, 7]),
@@ -14,9 +14,12 @@ abstract final class ShoggothPoseCatalog {
       [],
       [],
       [],
-      [CombatCapsule(-68, -20, -64, 30, 7)],
-      [CombatCapsule(40, 20, 24, 58, 7)],
-      [CombatCapsule(-70, -22, -64, 26, 7), CombatCapsule(32, 18, 42, 30, 6)],
+      [CombatCapsule(-45.33, -13.33, -42.67, 20, 4.67)],
+      [CombatCapsule(26.67, 13.33, 16, 38.67, 4.67)],
+      [
+        CombatCapsule(-46.67, -14.67, -42.67, 17.33, 4.67),
+        CombatCapsule(21.33, 12, 28, 20, 4),
+      ],
       [],
       [],
       [],
@@ -30,29 +33,32 @@ abstract final class ShoggothPoseCatalog {
       [],
       [],
       [],
-      [CombatCapsule(-25, -5, 25, -5, 12), CombatCapsule(-84, 8, -24, 22, 7)],
       [
-        CombatCapsule(-25, -5, 25, -5, 12),
-        CombatCapsule(-104, -9, -110, 6, 5),
-        CombatCapsule(-110, 6, -99, 16, 5),
-        CombatCapsule(-99, 16, -67, 24, 5),
+        CombatCapsule(-16.67, -3.33, 16.67, -3.33, 8),
+        CombatCapsule(-56, 5.33, -16, 14.67, 4.67),
       ],
       [
-        CombatCapsule(-25, -5, 25, -5, 12),
-        CombatCapsule(-100, -12, -72, -19, 3),
+        CombatCapsule(-16.67, -3.33, 16.67, -3.33, 8),
+        CombatCapsule(-69.33, -6, -73.33, 4, 3.33),
+        CombatCapsule(-73.33, 4, -66, 10.67, 3.33),
+        CombatCapsule(-66, 10.67, -44.67, 16, 3.33),
       ],
       [
-        CombatCapsule(-25, -5, 25, -5, 12),
-        CombatCapsule(64, -6, 90, 2, 5),
-        CombatCapsule(90, 2, 82, 18, 6),
-        CombatCapsule(82, 18, 64, 23, 5),
+        CombatCapsule(-16.67, -3.33, 16.67, -3.33, 8),
+        CombatCapsule(-66.67, -8, -48, -12.67, 2),
       ],
       [
-        CombatCapsule(-25, -5, 25, -5, 12),
-        CombatCapsule(-15, 26, 34, 22, 6),
-        CombatCapsule(34, 22, 67, 9, 7),
+        CombatCapsule(-16.67, -3.33, 16.67, -3.33, 8),
+        CombatCapsule(42.67, -4, 60, 1.33, 3.33),
+        CombatCapsule(60, 1.33, 54.67, 12, 4),
+        CombatCapsule(54.67, 12, 42.67, 15.33, 3.33),
       ],
-      [CombatCapsule(-20, -14, 20, -14, 15)],
+      [
+        CombatCapsule(-16.67, -3.33, 16.67, -3.33, 8),
+        CombatCapsule(-10, 17.33, 22.67, 14.67, 4),
+        CombatCapsule(22.67, 14.67, 44.67, 6, 4.67),
+      ],
+      [CombatCapsule(-13.33, -9.33, 13.33, -9.33, 10)],
       [],
       [],
       [],
