@@ -92,6 +92,18 @@ combat-body center captured on the collision tick, in both live and ghost views.
 The burst remains at that position and adds no area damage or target tracking.
 Client and replay worker must ship matching Core selection and tuning.
 
+Goddess refreshes ordinary and post-barrage `goddess.orb` casts after terrain
+movement and self abilities, immediately before projectile launch. The current
+combat target collider center determines actor/action facing (with a two-unit
+horizontal dead zone) and the pending projectile direction. Her existing
+30-unit radial launch offset is retained. Cast start, release time and cooldown
+remain unchanged. Released orbs retain their launch direction even while her
+casting animation continues to face the target. Pending releases require the
+matching action start tick, a living available caster and a living selected
+target; interruption, replacement, suspension or action lock cancels the pending
+shot. This is part of prepared compatibility `2026.10.11` and uses the same Core
+phase in client and replay worker.
+
 Before tactical decisions, Goddess observes current/max health using integer
 comparisons `hp * 4 <= hpMax * quarter` for quarters 3, 2 and 1. Her persistent
 health-phase store retains the maximum number reached and the number of accepted
@@ -205,7 +217,7 @@ execute a stale utility intent.
 | Boss decisions after shared engagement selection, before locomotion | Commit one action and set boss stand-off; keep tentacles planted |
 | Spin motion composition after ordinary locomotion, before movement/knockback/gravity/terrain | Apply one committed horizontal charge, then retain the single terrain integration owner |
 | Goddess hover/pursuit composition alongside spin composition | Suppress hover gravity, retain combo-facing ownership and cap pursuit velocity before knockback and one terrain integration |
-| Shoggoth cast refresh after motion/self abilities, immediately before projectile launch | Mirror the authored hand origin and aim from final target positions, including a release-tick crossing |
+| Shoggoth and Goddess orb refresh after motion/self abilities, immediately before projectile launch | Turn and aim from final target positions, including a release-tick crossing; Shoggoth also mirrors his authored hand origin |
 | Arena isolation before damage; defeat after damage, before death cleanup | Owned summons participate; outside attacks stay excluded; player loss takes precedence |
 
 AI timings are ceil-scaled from 60 Hz authoring ticks. Target-point effects

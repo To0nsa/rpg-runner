@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:run_protocol/replay_blob.dart';
 import 'package:runner_core/bosses/boss_arena_definition.dart';
 import 'package:runner_core/commands/command.dart';
@@ -8,6 +10,7 @@ import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
@@ -54,11 +57,10 @@ GameCore _core(
 
 void main() {
   for (final hz in [30, 60, 90]) {
-    test(
-      'Shoggoth turns during casting and releases from his hands in replay, $hz Hz',
-      () {
-        final direct = _core(hz, bossId: EnemyId.shoggoth);
-        final replay = _core(hz, bossId: EnemyId.shoggoth);
+    for (final bossId in [EnemyId.shoggoth, EnemyId.voidbornGoddess]) {
+      test('$bossId turns during casting and aims at release in replay, $hz Hz', () {
+        final direct = _core(hz, bossId: bossId);
+        final replay = _core(hz, bossId: bossId);
         final frames = <ReplayCommandFrameV1>[];
         final seenOrbs = <int>{};
         Facing? castFacing;
@@ -70,7 +72,7 @@ void main() {
         for (var n = 0; n < hz * 40 && !direct.gameOver; n++) {
           final before = direct.buildSnapshot();
           final boss = before.entities
-              .where((e) => e.enemyId == EnemyId.shoggoth)
+              .where((e) => e.enemyId == bossId)
               .firstOrNull;
           final dx = boss == null ? 0.0 : boss.pos.x - direct.playerPosX;
           final casting = boss?.anim == AnimKey.cast;
@@ -97,7 +99,7 @@ void main() {
           direct.stepOneTick();
           final after = direct.buildSnapshot();
           final actor = after.entities
-              .where((e) => e.enemyId == EnemyId.shoggoth)
+              .where((e) => e.enemyId == bossId)
               .firstOrNull;
           if (actor?.anim == AnimKey.cast) {
             if (!wasCasting) {
@@ -108,18 +110,34 @@ void main() {
             turned |= actor!.facing != castFacing;
           }
           for (final orb in after.entities.where(
-            (e) => e.projectileId == ProjectileId.shoggothOrb,
+            (e) =>
+                e.projectileId ==
+                (bossId == EnemyId.shoggoth
+                    ? ProjectileId.shoggothOrb
+                    : ProjectileId.goddessOrb),
           )) {
             if (!seenOrbs.add(orb.id)) continue;
             expect(actor, isNotNull);
-            expect(
-              orb.pos.x,
-              closeTo(
-                actor!.pos.x + (actor.facing == Facing.left ? -35 : 35),
-                1e-9,
-              ),
-            );
-            expect(orb.pos.y, closeTo(actor.pos.y + 14, 1e-9));
+            if (bossId == EnemyId.shoggoth) {
+              expect(
+                orb.pos.x,
+                closeTo(
+                  actor!.pos.x + (actor.facing == Facing.left ? -35 : 35),
+                  1e-9,
+                ),
+              );
+              expect(orb.pos.y, closeTo(actor.pos.y + 14, 1e-9));
+            } else {
+              final target = after.playerEntity!;
+              final dx =
+                  target.pos.x + eloiseCatalog.colliderOffsetX - actor!.pos.x;
+              final dy =
+                  target.pos.y + eloiseCatalog.colliderOffsetY - actor.pos.y;
+              final length = math.sqrt(dx * dx + dy * dy);
+              expect(actor.facing, dx > 0 ? Facing.right : Facing.left);
+              expect(orb.pos.x, closeTo(actor.pos.x + 30 * dx / length, 1e-9));
+              expect(orb.pos.y, closeTo(actor.pos.y + 30 * dy / length, 1e-9));
+            }
             if (turned && actor.anim == AnimKey.cast) verifiedRelease = true;
           }
           wasCasting = actor?.anim == AnimKey.cast;
@@ -162,8 +180,8 @@ void main() {
             ],
           ),
         );
-      },
-    );
+      });
+    }
 
     test('Shoggoth swarms and final-phase return charge replay at $hz Hz', () {
       final direct = _core(hz, bossId: EnemyId.shoggoth);

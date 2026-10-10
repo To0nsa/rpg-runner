@@ -38,8 +38,12 @@ death presentation, exit and victory blessing reuse the
 | Claw combo | Four visible swipes that follow and turn toward the player between hits, each able to deal 5 physical damage per target; 0.4-second windup |
 | Reactive dodge | Evades one eligible direct player attack every 4–6 attacks, with a newly randomized interval after each dodge. Vanishes for about 0.13 seconds, teleports 35 units from the player, then counters with her four-swipe claw combo |
 | Projectile counter | After taking damage from two consecutive player projectiles, uses the same quick teleport and claw combo. Both projectile hits deal damage; a landed melee or direct spell hit breaks the streak |
-| Void orb | Flies straight toward the target position captured when casting starts; 7.2 dark damage; 0.45-second cast and 480 world units/second flight. The orb follows its aim line, and its explosion is centered over the struck body, expanding across the player silhouette. |
+| Void orb | Turns toward the player throughout the 0.45-second cast and aims at the current target center until release; the orb then flies straight at 480 world units/second and deals 7.2 dark damage. The orb follows its aim line, and its explosion is centered over the struck body, expanding across the player silhouette. |
 | Hand barrage | Casts once at each 75%, 50% and 25% HP threshold. Teleports to an upper arena corner away from the captured target, then sends six hands across fixed floor marks at 0.35-second intervals after a 1-second preparation. Each hand warns for about 0.6 seconds (ten effect frames) and slaps once for 12 dark damage. She animates and remains invincible through the final hand, then casts one orb and teleports to medium range; at least six seconds between commits |
+
+Crossing behind Goddess during an orb cast makes her turn, including on the
+release tick. Turning preserves the cast clock; launched orbs do not home. This
+also applies to her hovering orb after the hand barrage.
 
 Released orbs and hands remain active and dangerous after her death until they
 hit or finish their normal lifetime. Dying cancels casts she has not released.
@@ -189,8 +193,8 @@ with space from the player and other summons. A blocked summon creates nothing.
 
 Listed cast/windup times use 60 Hz authoring ticks. Core scales and quantizes
 them at 30, 60 and 90 Hz. Effect frames use quantized 80 ms steps, shared by art
-and damage. Shoggoth tracks his orb target until release; other spells capture
-their target at commitment. Released projectiles never home onto later player
+and damage. Goddess and Shoggoth track their orb targets until release; other
+spells capture their target at commitment. Released projectiles never home onto later player
 movement. Goddess claws and Shoggoth sweeps can retarget between distinct swipes
 while each live swipe retains its direction and hit ledger. Utility actions deal no direct damage.
 Consecutive poses of one swing share its hit ledger. In prepared source

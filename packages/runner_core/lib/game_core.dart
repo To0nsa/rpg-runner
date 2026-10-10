@@ -1849,8 +1849,9 @@ class GameCore {
     // Convert intents into actual hitboxes/projectiles/target-point impacts.
     // Self abilities first so buffs/blocks/i-frames can affect spawns & downstream combat deterministically.
     _meleeStrikeSystem.step(_world, currentTick: tick);
-    // Resolve the casting hand and target side from this tick's final positions.
+    // Resolve orb aim, facing and casting origins from this tick's final positions.
     _shoggothCombat.refreshOrbCast(_world, player: _player, currentTick: tick);
+    _goddessCombat.refreshOrbCast(_world, player: _player, currentTick: tick);
     _projectileLaunchSystem.step(_world, currentTick: tick);
     _targetPointImpactSystem.step(_world, currentTick: tick);
 

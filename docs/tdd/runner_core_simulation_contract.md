@@ -122,6 +122,9 @@ His orb cast refresh runs after terrain movement and self abilities, immediately
 before projectile launch. It turns the actor and aims a still-pending shot from
 the mirrored hand tip using the current target center. Exact action identity
 and eligibility guard release; an already released orb retains its direction.
+Goddess uses the same final-position refresh for ordinary and post-barrage orbs,
+retaining her radial launch offset while turning and aiming at the current target
+center until release. Both bosses preserve cast timing and released trajectories.
 Shared projectile intents default body-relative X/Y offsets to zero, preserving
 other casters. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 

@@ -15,6 +15,7 @@ import '../entity_id.dart';
 import '../world.dart';
 import 'ability_interrupt.dart';
 import 'boss_combat_system.dart';
+import 'enemy_cast_system.dart';
 import 'enemy_melee_system.dart';
 import 'goddess_tactics_system.dart';
 import '../../util/vec2.dart';
@@ -72,6 +73,65 @@ final class VoidbornGoddessCombatSystem extends BossCombatSystem {
     required int currentTick,
   }) {
     _tactics.prepare(world, player, currentTick);
+  }
+
+  /// After movement and self abilities, face the current target and refresh this
+  /// activation's pending orb. Turning preserves cast timing; released orbs keep
+  /// their direction. Call immediately before projectile launch.
+  void refreshOrbCast(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
+    for (final boss in world.bossCombat.denseEntities) {
+      if (world.enemy.enemyId[world.enemy.indexOf(boss)] != enemyId) continue;
+      final intents = world.projectileIntent;
+      final pi = intents.indexOf(boss);
+      final active = world.activeAbility;
+      final ai = active.indexOf(boss);
+      final target = combatTarget(world, boss, player);
+      final casting =
+          active.abilityId[ai] == 'goddess.orb' &&
+          isLivingCombatActor(world, boss) &&
+          !world.arenaSuspension.has(boss) &&
+          !world.controlLock.isLocked(boss, LockFlag.allActions, currentTick) &&
+          !world.controlLock.isStunned(boss, currentTick) &&
+          target != null;
+      final pending =
+          intents.abilityId[pi] == 'goddess.orb' && intents.tick[pi] >= 0;
+      if (pending &&
+          (!casting || intents.commitTick[pi] != active.startTick[ai])) {
+        intents.tick[pi] = -1;
+        intents.commitTick[pi] = -1;
+      }
+      if (!casting) continue;
+      final ti = world.transform.indexOf(boss);
+      final targetTi = world.transform.indexOf(target);
+      final center = aiActorCenter(
+        world,
+        target,
+        fallbackX: world.transform.posX[targetTi],
+        fallbackY: world.transform.posY[targetTi],
+      );
+      final dx = center.$1 - world.transform.posX[ti];
+      // Match claw/Shoggoth tracking without jitter when bodies overlap.
+      if (dx.abs() > 2) {
+        active.facing[ai] = dx > 0 ? Facing.right : Facing.left;
+      }
+      final facing = active.facing[ai];
+      setActorFacing(world, boss, facing);
+      if (intents.tick[pi] < currentTick ||
+          intents.abilityId[pi] != 'goddess.orb' ||
+          intents.commitTick[pi] != active.startTick[ai]) {
+        continue;
+      }
+      intents.dirX[pi] =
+          center.$1 - world.transform.posX[ti] - intents.sourceOffsetX[pi];
+      intents.dirY[pi] =
+          center.$2 - world.transform.posY[ti] - intents.sourceOffsetY[pi];
+      intents.fallbackDirX[pi] = facing == Facing.left ? -1 : 1;
+      intents.fallbackDirY[pi] = 0;
+    }
   }
 
   late final _counterMelee = AiMeleeCommitter(tickHz: tickHz);
