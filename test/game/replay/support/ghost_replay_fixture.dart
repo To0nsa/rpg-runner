@@ -1,3 +1,4 @@
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -12,7 +13,11 @@ ReplayBlobV1 ghostReplayFixture({
   int totalTicks = 900,
   int seed = 1337,
 }) {
-  const loadout = EquippedLoadoutDef();
+  // A charge timeout supplies transient events even in enemy-free openings.
+  const loadout = EquippedLoadoutDef(
+    abilityPrimaryId: 'eloise.bloodletter_cleave',
+  );
+  final primaryHeldBit = 1 << AbilitySlot.primary.index;
   return ReplayBlobV1.withComputedDigest(
     runSessionId: 'ghost_worker_fixture',
     boardId: boardKey == null ? null : 'ghost_board',
@@ -41,10 +46,12 @@ ReplayBlobV1 ghostReplayFixture({
         ReplayCommandFrameV1(
           tick: tick,
           moveAxis: 1,
+          abilitySlotHeldChangedMask: tick == 1 ? primaryHeldBit : 0,
+          abilitySlotHeldValueMask: tick == 1 ? primaryHeldBit : 0,
           pressedMask:
               (tick % 45 == 0 ? 1 : 0) |
               (tick % 80 == 0 ? 2 : 0) |
-              (tick % 60 == 0 ? 4 : 0) |
+              (tick > 180 && tick % 60 == 0 ? 4 : 0) |
               (tick % 35 == 0 ? 8 : 0) |
               (tick % 90 == 0 ? 32 : 0),
         ),
