@@ -33,10 +33,7 @@ void main() {
                     clearFirstChunkKey: true,
                     assembly: LevelAssemblyDefinition(
                       loopSegments: false,
-                      segments: forest.assembly!.segments.sublist(
-                        start,
-                        start + 2,
-                      ),
+                      segments: [forest.assembly!.segments[start]],
                     ),
                   ),
                 )

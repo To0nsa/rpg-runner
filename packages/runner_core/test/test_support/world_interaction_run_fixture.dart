@@ -1,15 +1,17 @@
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/playtest/level_playtest_scenario.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
+import 'package:runner_core/track/chunk_pattern_tier.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
 
-/// Normal and captured hosts share a real seeded Forest opening. The test-only
-/// initial placement starts airborne above its third-chunk shrine; all contact
+/// Normal and captured hosts share a fixed three-chunk Forest opening. The test-only
+/// initial placement starts airborne above its second-chunk shrine; all contact
 /// thereafter is resolved by actual player physics. This is a mechanic fixture,
 /// not evidence of traversing the preceding route.
 GameCore worldInteractionRunCore(
@@ -19,6 +21,27 @@ GameCore worldInteractionRunCore(
 }) {
   final level = LevelRegistry.byId(LevelId.forest).copyWith(
     noEnemyChunks: 9999,
+    assembly: const LevelAssemblyDefinition(
+      loopSegments: false,
+      segments: [
+        LevelAssemblySegment(
+          segmentId: 'opening',
+          groupId: 'default',
+          difficulty: ChunkPatternTier.early,
+          minChunkCount: 3,
+          maxChunkCount: 3,
+          requireDistinctChunks: true,
+        ),
+        LevelAssemblySegment(
+          segmentId: 'continuation',
+          groupId: 'rocky_grove',
+          difficulty: ChunkPatternTier.easy,
+          minChunkCount: 1,
+          maxChunkCount: 1,
+          requireDistinctChunks: true,
+        ),
+      ],
+    ),
     tuning: const CoreTuning(camera: CameraTuning(speedLagMulX: 0)),
   );
   final core = editor
@@ -28,14 +51,14 @@ GameCore worldInteractionRunCore(
             terrainChunks: stagedAuthoredTerrain.chunks.where(
               (c) => c.levelId == 'forest' && c.status == 'active',
             ),
-            seed: 15,
+            seed: 21,
             tickHz: tickHz,
             playerCharacter: character,
             equippedLoadout: const EquippedLoadoutDef(),
           ),
         )
       : GameCore(
-          seed: 15,
+          seed: 21,
           tickHz: tickHz,
           levelDefinition: level,
           playerCharacter: character,

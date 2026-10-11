@@ -142,9 +142,11 @@ void main() {
     expect(transformedDerfs, isNotEmpty);
     expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));
+    // Compatibility 2026.10.11 keeps post-hit eligibility after protection
+    // expires, so later ordinary hits renew it throughout this trace.
     expect(
       digest,
-      '9669158bbd76a858fb347798510037d93db7f2c9f6ea3ca4eb4723b7e8d22ec2',
+      'a96d812b3d9c212a91a532ffae125d4f76b498026145cdf5aeeb1392e0bfe749',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

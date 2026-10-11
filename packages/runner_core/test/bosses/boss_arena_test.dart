@@ -571,7 +571,7 @@ void main() {
     PlayerCharacterRegistry.eloiseWip,
   ]) {
     for (final hz in [30, 60, 90]) {
-      for (final platformX in [175.0, 215.0, 255.0]) {
+      for (final platformX in [369.0, 409.0, 449.0]) {
         test(
           '${character.id.name} pillar expels platform camper x=$platformX at $hz Hz while boss stays grounded',
           () {
@@ -591,8 +591,8 @@ void main() {
                 .singleWhere((e) => e.enemyId == EnemyId.bringerOfDeath)
                 .pos
                 .y;
-            // The authored platform top is 133; the arena floor is 224.
-            core.setPlayerPosXYUnsafeForTest(platformX, core.playerPosY - 91);
+            // The authored platform top is 129; the arena floor is 224.
+            core.setPlayerPosXYUnsafeForTest(platformX, core.playerPosY - 95);
             core.setPlayerVelXY(0, 0);
             _step(core);
             expect(core.playerGrounded, isTrue);
@@ -607,7 +607,7 @@ void main() {
                   in core.drainEvents().whereType<SpellImpactEvent>()) {
                 if (event.impactId == SpellImpactId.deathPillar &&
                     (event.pos.x - platformX).abs() < 1) {
-                  expect(event.pos.y, 133);
+                  expect(event.pos.y, 129);
                   markedPlatform = true;
                 }
               }

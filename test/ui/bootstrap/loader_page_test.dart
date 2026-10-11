@@ -118,10 +118,9 @@ class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Provider<AppServices>(
+    return ChangeNotifierProvider<AppServices>(
       create: (_) =>
           AppServices(initialize: () async {}, createAppState: () => appState),
-      dispose: (_, services) => services.dispose(),
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
         home: LoaderPage(

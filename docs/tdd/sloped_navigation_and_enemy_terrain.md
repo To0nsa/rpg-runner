@@ -931,6 +931,11 @@ normal `GameCore`, and replay construction now consume the admitted artifact.
 
 ## Reviewed Phase 3 Scenario Signatures
 
+The `2026.10.11` Bringer size reduction from 1.5x to 1.2x changes the catalog
+graph signature and its containing enemy-run signature. Rebuilding with only
+Bringer's preceding capsule reproduces both preceding hashes exactly; the
+surface signature and all 15 scenario records remain unchanged.
+
 `enemy-terrain-run-v1` is a Core-owned canonical record format backed by the
 complete `SG-E01` through `SG-E15` matrix. It binds the reviewed
 `nav-surfaces-v1` and `nav-graphs-v1` hashes to ordered schedules, quantized

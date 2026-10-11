@@ -6,11 +6,12 @@ as visual references; the damage, timing and AI below are gameplay defaults.
 The [video](https://www.youtube.com/watch?v=0rPsM1DjEuc) demonstrates all three
 kits; its animation showcase does not specify damage or combat balance.
 They are available in Chunk Creator's **Mandatory boss arena → Boss** selector.
-Forest places one easy arena for each boss immediately after Bringer of Death:
-**Bringer → Voidborn Goddess → Shoggoth → Voidcaller → enchanted forest**.
-Each new room reuses the existing 600-by-270 Forest arena terrain and scenery,
-with its own chunk, arena identity and mandatory assembly group. Each victory
-restores 20% of maximum health, mana and stamina, capped at the resource maximum.
+Current Forest source places **Bringer at the end of easy, Shoggoth at the end
+of normal, and Goddess at the end of hard**, with ordinary sections between
+them. Voidcaller's authored room remains selectable content but is not in the
+Forest assembly. Each 600-by-270 room has independent terrain, scenery, arena
+identity and assembly group. Easy, normal and hard victories restore 20%, 40%
+and 60% of maximum health, mana and stamina respectively, capped at the maximum.
 These encounters first deployed in gameplay compatibility `2026.10.9`; see the
 [release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 The corrections below are deployed in `2026.10.10`: aligned native beam pieces,

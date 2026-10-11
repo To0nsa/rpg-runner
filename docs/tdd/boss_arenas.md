@@ -9,11 +9,14 @@ were deployed in `2026.10.9`; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 The Normal victory restoration below is a later source change.
 
-The `2026.10.9` Forest assembly follows Bringer with one easy chunk each for
-Voidborn Goddess, Shoggoth and Voidcaller, in that order, then continues into
-the enchanted forest. Dedicated single-candidate groups make all four arenas
-mandatory and consecutive. Boss behavior depends on actor identity and arena
-bounds, not a particular chunk key.
+Current `2026.10.11` source schedules single-candidate Bringer, Shoggoth and
+Goddess groups at the easy, normal and hard milestones, separated by ordinary
+sections. Voidcaller's room remains authored but is not scheduled. The final
+Goddess section repeats after the first complete assembly. Boss behavior depends
+on actor identity and arena bounds, not a particular chunk key. The seeded
+sequence test verifies this production ordering; its separate compressed combat
+fixture preserves continuous player state across the three actual rooms but
+does not claim player traversal of the intervening ordinary sections.
 
 ## Ownership and authored contract
 

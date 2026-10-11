@@ -52,11 +52,17 @@ camp 002 now shares the hard variant's 16-unit-left anvil position to open the
 crate approach. Hard Rocky Grove 008 uses a 96-unit-wide gap foothold raised
 28 units, preserving open gaps on both sides and existing movement limits.
 
-Forest's hard progression now alternates five distinct Rocky Grove sections of
-3–6 chunks with one enchanted-forest chunk, all five remaining hard ruin chunks,
-all four hard training-camp chunks, and all three hard woodcamp chunks, in that
-order. The final 3–6-chunk grove section repeats with a fresh distinct selection.
-The two removed hard ruin chunks are absent from the runtime catalog.
+The current `2026.10.11` source separates the boss milestones: Bringer ends the
+easy phase, Shoggoth ends the normal phase, and Goddess ends the hard phase.
+Voidcaller's authored arena remains available but is not scheduled in Forest.
+The opening chooses 1–11 distinct early chunks with the fixed first chunk.
+Rocky Grove sections now choose 1–3 distinct chunks. Each difficulty includes
+the authored camp, ruin, woodcamp and enchanted-forest sections; hard uses all
+five remaining ruin chunks, four training-camp chunks and three woodcamp chunks.
+After the first complete assembly, the final Goddess section repeats. The
+removed hard ruin chunks remain absent from the runtime catalog. Boss room
+geometry and scenery are the current authored versions, including Bringer's
+moved platform and Goddess's open floor gap.
 
 Revised hard layouts add a Hashash in the ruins, Unoco and Grojib in the training
 camp, and a warrior/Grojib rescue encounter in the woodcamp. The revised grove,
