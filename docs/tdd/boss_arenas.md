@@ -116,6 +116,55 @@ while render-only entrance shake adds a small visual offset. Purple boundary
 cues and the boss HUD are presentation only. `BossArenaSnapshot.enemyId` carries
 the required catalog identity so the HUD shows the selected boss's name.
 
+## Combat resource supply
+
+`EnemyArchetype.resourceSupply` optionally attaches a
+`BossResourceSupplyDefinition` to any required boss. Goddess enables one pickup
+at 5000 basis points (50%) of remaining maximum health; the shared arena and
+supply systems never branch on her identity. Other bosses remain opted out.
+This is part of prepared `2026.10.11` source and requires matching client,
+issuer and replay-worker release artifacts before deployment. Wire commands,
+snapshots and scoring formats are unchanged.
+
+After damage and fatal culls, `BossArenaSystem.resolve` settles loss/defeat first.
+`BossResourceSupplySystem` then receives only an active combat occurrence,
+identified by its streamed chunk index, boss entity and world bounds. A positive
+HP fraction at or below the configured threshold earns one gem. Crossing it in
+a large hit works; a lethal hit or player death cancels supply. Healing never
+rearms consumption. Introduction, defeat presentation, release and run end do
+not grant gems. Repeated authored arenas receive independent occurrence state.
+
+The shared `ResourceRestoration.lowestStat` selector compares integer fractions
+without division. Supply considers mana then stamina, excludes absent or
+zero-maximum pools, and uses candidate order for ties. Both full pools still
+produce a mana gem for later use. Ambient selection retains health/mana/stamina
+priority. The resource is chosen at successful spawn and remains fixed.
+Collection uses the existing restoration entity, snapshot variant, gem art and
+`RestorationItemSystem`: the standard tuning restores 30% of the current maximum,
+rounded down and capped. There is no resource-depletion gate, recurring timer,
+or automatic refill at the boss milestone.
+
+`BossResourceSupplySpawnAdapter` prefers a candidate 64 world units toward the
+arena center, then the opposite side; 96 and 32 units provide ordered fallbacks.
+Each candidate stays on the player's current terrain support and uses the normal
+item placement/exclusion rules plus a full player-capsule walking preview inside
+arena bounds. The preview does not move the player or consume RNG. This avoids
+placing supply on an overhead platform, beyond a gap, or behind an impassable
+wall. Airborne/stale support or blocked candidates keep the milestone pending
+until a valid grounded placement exists, even if the boss heals meanwhile.
+
+Spawning follows this tick's collection phase, so collection starts next tick.
+There is at most one supply gem per occurrence. `BossResourcePickupStore` marks
+only supply-owned entities and is registered with world destruction: collection
+clears ownership before entity-ID reuse. Leaving combat removes leftovers and
+cancels pending supply without touching ambient pickups or victory blessings.
+Targeted tests cover threshold boundaries, skipped thresholds, healing, resource
+ratios, blocked placement, recycling, repeat occurrences, Goddess combat and
+collection on authored Field terrain at 30/60/90 Hz, and worker command replay.
+The combat fixture uses large finite player pools and zero mana/stamina regen
+to isolate collection from survival tuning; it does not validate the Forest
+arena's gap traversal or complete a normal-loadout run.
+
 ## Victory blessing
 
 When the required boss is positively defeated, the arena records the normal

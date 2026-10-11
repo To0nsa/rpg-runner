@@ -38,6 +38,21 @@ death presentation, exit and victory blessing reuse the
 
 ## Voidborn Goddess
 
+At **50% remaining health**, Goddess earns one resource gem for the player.
+It restores **30% of maximum mana or stamina**, choosing whichever resource has
+the lower remaining percentage when the gem appears. Equal percentages choose
+mana; health is excluded. Its color/type stays fixed until collection, and
+restoration cannot exceed the resource maximum.
+
+The gem appears a short walk away on the player's current reachable surface,
+preferably toward the arena center. If the player is airborne or nearby
+placement is blocked, it waits for a valid position. The player must collect it.
+It happens once per fight, including when damage skips directly below half
+health; healing does not earn another. A killing blow grants no combat gem,
+and an uncollected gem disappears when combat ends. Victory's full resource
+refill remains separate. This shared encounter mechanic can be enabled for
+other bosses through catalog configuration; only Goddess currently enables it.
+
 | Action | Default behavior |
 | --- | --- |
 | Claw combo | Four visible swipes that follow and turn toward the player between hits, each able to deal 5 physical damage per target; 0.4-second windup |

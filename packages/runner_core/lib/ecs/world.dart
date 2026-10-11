@@ -59,6 +59,7 @@ import 'stores/swim_state_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
+import 'stores/boss_resource_pickup_store.dart';
 import 'stores/status/dot_store.dart';
 import 'stores/status/damage_reduction_store.dart';
 import 'stores/status/drench_store.dart';
@@ -259,6 +260,9 @@ class EcsWorld {
   /// Defines an item that restores stats (health/mana) when collected.
   late final RestorationItemStore restorationItem = _register(
     RestorationItemStore(),
+  );
+  late final BossResourcePickupStore bossResourcePickup = _register(
+    BossResourcePickupStore(),
   );
 
   /// Allows an entity to control or defy gravity.

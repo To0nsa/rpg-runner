@@ -163,6 +163,17 @@ same-tick rescue and finalizes unresolved groups and stops surviving section
 guards before death freeze or final stats. See [encounter contracts](npc_encounter_contracts.md) for the delivered
 controller, actor integration and streaming-retention contract.
 
+Boss combat resource supply resolves immediately after arena loss/defeat in
+phase 14. Catalog configuration enables an inclusive health milestone; Goddess
+uses 50%. Consumption belongs to the streamed arena occurrence, and healing
+cannot rearm it. Placement previews the player's current support without
+changing motion or RNG, deferring airborne/blocked attempts. The selected
+mana/stamina gem uses ordinary pickup collection starting on the next tick.
+Registered ownership clears it on combat/run end and entity destruction.
+This changes replayed resource outcomes in prepared `2026.10.11` and requires
+matching client/issuer/worker artifacts. See
+[combat resource supply](boss_arenas.md#combat-resource-supply).
+
 Combat spatial lookup resolves current vulnerable body poses before rebuilding
 `DamageableTargetCache`. Live damageable actors require faction, transform,
 authored collider, and immutable `WorldContactCapsuleStore` state. The separate

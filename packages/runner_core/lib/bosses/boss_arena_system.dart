@@ -14,6 +14,7 @@ import '../snapshots/enums.dart';
 import '../track/track_streamer.dart';
 import '../track/chunk_pattern_tier.dart';
 import '../tuning/utils/anim_tuning.dart';
+import 'boss_resource_supply_system.dart';
 
 /// Mandatory arena ownership, independent of ambient spawns and NPC rescues.
 /// Entry stops horizontal travel; camera framing precedes the boss introduction.
@@ -30,6 +31,29 @@ final class BossArenaSystem {
   double? get cameraStopX => _current?.cameraCenterX;
   bool get failed => _current?.phase == BossArenaPhase.failed;
   bool get arenaFramed => _current?.framed ?? false;
+
+  /// Supply is exposed only for the current combat occurrence, independently
+  /// of the boss's attack phases. Resolve fatal outcomes before consuming it.
+  BossResourceSupplyEncounter? get resourceSupplyEncounter {
+    final arena = _current;
+    if (arena == null ||
+        arena.phase != BossArenaPhase.combat ||
+        arena.boss == null) {
+      return null;
+    }
+    final definition = const EnemyCatalog()
+        .get(arena.chunk.bossArena!.enemyId)
+        .resourceSupply;
+    if (definition == null) return null;
+    return BossResourceSupplyEncounter(
+      occurrence: arena.chunk.index,
+      boss: arena.boss!,
+      minX: arena.minX,
+      maxX: arena.maxX,
+      definition: definition,
+    );
+  }
+
   bool retainsChunk(int index) => _arenas[index]?.retained ?? false;
   bool retainsActor(EcsWorld world, EntityId entity) =>
       _current != null && _belongs(world, entity, _current!);

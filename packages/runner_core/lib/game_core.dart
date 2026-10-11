@@ -20,6 +20,8 @@ import 'camera/autoscroll_camera.dart';
 import 'bosses/boss_arena_system.dart';
 import 'bosses/boss_victory_blessing_system.dart';
 import 'bosses/boss_arena_spawn_adapter.dart';
+import 'bosses/boss_resource_supply_system.dart';
+import 'bosses/boss_resource_supply_spawn_adapter.dart';
 import 'ecs/systems/bringer_combat_system.dart';
 import 'ecs/systems/boss_utility_system.dart';
 import 'ecs/systems/voidborn_goddess_combat_system.dart';
@@ -49,6 +51,7 @@ import 'contracts/render_contract.dart';
 import 'ecs/collider_aabb_utils.dart';
 import 'ecs/entity_factory.dart';
 import 'ecs/entity_id.dart';
+import 'ecs/resource_restoration.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/stores/restoration_item_store.dart';
@@ -991,6 +994,16 @@ class GameCore {
   );
   final EncounterSystem _encounters = EncounterSystem();
   late final _bossArenas = BossArenaSystem(tickHz: tickHz);
+  final _bossResourceSupply = BossResourceSupplySystem();
+  late final _bossResourceSupplySpawns = BossResourceSupplySpawnAdapter(
+    motion: _worldMotionAuthority,
+    runtimeBundle: () =>
+        (_worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority)
+            .terrainRuntimeBundle,
+    spawns: _spawnService,
+    playerProfile: _playerArchetype.terrainTraversalProfile,
+    tuning: _restorationItemTuning,
+  );
   late final _bossArenaSpawns = BossArenaSpawnAdapter(
     motion: _worldMotionAuthority,
     spawns: _spawnService,
@@ -2111,6 +2124,18 @@ class GameCore {
     );
     _flushEncounterOutcomes();
     _bossArenas.resolve(_world, playerDead: _isPlayerDead());
+    // Final damage/death outcomes gate supply; collection starts next tick.
+    _bossResourceSupply.step(
+      _world,
+      player: _player,
+      encounter: _bossArenas.resourceSupplyEncounter,
+      spawn: (encounter, stat) => _bossResourceSupplySpawns.spawn(
+        _world,
+        player: _player,
+        encounter: encounter,
+        stat: stat,
+      ),
+    );
     if (_bossArenas.failed && !_isPlayerDead()) {
       _endRun(RunEndReason.bossEncounterFailed);
       return;
@@ -2438,6 +2463,7 @@ class GameCore {
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     _encounters.endRun(_world, tick: tick);
     _bossArenas.endRun(_world, _player);
+    _bossResourceSupply.endCombat(_world);
     _bossVictoryBlessing.endRun();
     _flushEncounterOutcomes();
     gameOver = true;
@@ -2579,55 +2605,14 @@ class GameCore {
   // Resource Helpers
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Returns the player's most depleted resource stat.
-  ///
-  /// Used by restoration item spawning to bias item type toward what
-  /// the player needs most. Compares ratios (current/max) to handle
-  /// resources with different maximum values fairly.
-  ///
-  /// **Tie-breaking priority**: When ratios are equal, the first resource
-  /// checked wins: health > mana > stamina. This is intentional—health
-  /// is prioritized as the most critical survival resource.
-  RestorationStat _lowestResourceStat() {
-    final hi = _world.health.tryIndexOf(_player);
-    final mi = _world.mana.tryIndexOf(_player);
-    final si = _world.stamina.tryIndexOf(_player);
-    if (hi == null || mi == null || si == null) {
-      return RestorationStat.health;
-    }
-
-    // Start with health as baseline.
-    var best = RestorationStat.health;
-    var bestValue = _world.health.hp[hi];
-    var bestMax = _world.health.hpMax[hi];
-
-    // Compare mana ratio.
-    final mana = _world.mana.mana[mi];
-    final manaMax = _world.mana.manaMax[mi];
-    if (_ratioLess(mana, manaMax, bestValue, bestMax)) {
-      best = RestorationStat.mana;
-      bestValue = mana;
-      bestMax = manaMax;
-    }
-
-    // Compare stamina ratio.
-    final stamina = _world.stamina.stamina[si];
-    final staminaMax = _world.stamina.staminaMax[si];
-    if (_ratioLess(stamina, staminaMax, bestValue, bestMax)) {
-      best = RestorationStat.stamina;
-    }
-
-    return best;
-  }
-
-  /// Compares two ratios without division: (valueA / maxA) < (valueB / maxB).
-  ///
-  /// Cross-multiplies to avoid division: valueA * maxB < valueB * maxA.
-  bool _ratioLess(int valueA, int maxA, int valueB, int maxB) {
-    if (maxA <= 0) return false; // Invalid ratio A, can't be less.
-    if (maxB <= 0) return true; // Invalid ratio B, A wins by default.
-    return valueA * maxB < valueB * maxA;
-  }
+  /// Ambient pickups prioritize health, then mana, then stamina on equal ratios.
+  RestorationStat _lowestResourceStat() =>
+      ResourceRestoration.lowestStat(
+        _world,
+        entity: _player,
+        candidates: RestorationStat.values,
+      ) ??
+      RestorationStat.health;
 
   int _damagePulseIntensityBp(int appliedAmount100) {
     if (appliedAmount100 <= 0) return 0;

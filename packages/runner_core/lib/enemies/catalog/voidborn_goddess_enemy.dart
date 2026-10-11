@@ -1,4 +1,5 @@
 import '../../anim/anim_resolver.dart';
+import '../../bosses/boss_resource_supply_definition.dart';
 import '../../combat/ai_cast_aim_policy.dart';
 import '../../ecs/stores/body_store.dart';
 import '../../ecs/stores/collider_aabb_store.dart';
@@ -42,6 +43,8 @@ const voidbornGoddessArchetype = EnemyArchetype(
   spawnAnimSeconds: 0.5,
   deathBehavior: DeathBehavior.instant,
   preserveReleasedSpellsOnDefeat: true,
+  // One resource gem at half health supports the second half of the fight.
+  resourceSupply: BossResourceSupplyDefinition(healthThresholdBp: 5000),
   primaryMeleeAbilityId: 'goddess.claw_combo',
   primaryCastAbilityId: 'goddess.orb',
   castTargetPolicy: AiCastAimPolicy.targetCenter,

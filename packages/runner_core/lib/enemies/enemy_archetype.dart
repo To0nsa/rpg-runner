@@ -1,5 +1,6 @@
 import '../abilities/ability_def.dart';
 import '../anim/anim_resolver.dart';
+import '../bosses/boss_resource_supply_definition.dart';
 import '../combat/ai_cast_aim_policy.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../ecs/stores/body_store.dart';
@@ -42,6 +43,7 @@ class EnemyArchetype {
     this.spawnAnimSeconds = 0.0,
     this.deathBehavior = DeathBehavior.instant,
     this.preserveReleasedSpellsOnDefeat = false,
+    this.resourceSupply,
     this.primaryCastAbilityId,
     this.castOriginOffset,
     this.castTargetPolicy = AiCastAimPolicy.predictedTargetCenter,
@@ -95,6 +97,9 @@ class EnemyArchetype {
   /// Arena defeat preserves this actor's launched projectiles and world-anchored
   /// spells until their normal impact/expiry. Pending casts and melee still end.
   final bool preserveReleasedSpellsOnDefeat;
+
+  /// Optional arena-owned health milestone; ordinary spawns never grant supply.
+  final BossResourceSupplyDefinition? resourceSupply;
 
   /// Optional primary cast ability for this enemy.
   final AbilityKey? primaryCastAbilityId;
