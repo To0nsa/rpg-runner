@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../app/ui_routes.dart';
 import '../state/app/app_state.dart';
 import '../state/run/run_start_remote_exception.dart';
+import 'run_startup_diagnostics.dart';
 
 /// Shared preflight for hub starts, leaderboard races, and restarts.
 ///
@@ -24,6 +25,7 @@ class RunStartPreparation extends ChangeNotifier {
   /// Returns null on failure, disposal, or an already-running attempt.
   Future<RunStartDescriptor?> prepare() async {
     if (_disposed || _inFlight) return null;
+    final watch = RunStartupDiagnostics.enabled ? (Stopwatch()..start()) : null;
     _inFlight = true;
     _error = null;
     notifyListeners();
@@ -58,6 +60,12 @@ class RunStartPreparation extends ChangeNotifier {
       }
       return null;
     } finally {
+      if (watch != null) {
+        RunStartupDiagnostics.emit('preflight', {
+          'elapsedMs': watch.elapsedMicroseconds / 1000,
+          'succeeded': _error == null && !_disposed,
+        });
+      }
       _inFlight = false;
       if (!_disposed) notifyListeners();
     }

@@ -133,6 +133,20 @@ prepared-state count and image count. Durations overlap and must not be summed.
 See [startup audit and measurements](../verification/run_startup_2026-10-11.md)
 for the measured workload and its limits.
 
+Device diagnosis can opt into `--dart-define=RUN_STARTUP_TRACE=true` in debug or
+profile builds. `RunStartupDiagnostics` emits local JSON lines for preflight,
+ownership/auth/ticket waits, recorder opening, construction, world milestones
+and final readiness. It excludes account IDs, tickets and replay contents and
+is disabled in release builds. Timings include overlapping wall waits; phase
+logging is diagnostic, not a progress clock or readiness dependency.
+
+The gameplay benchmark accepts native options through `BENCHMARK_OPTIONS` in
+a Dart define file. `compareWarmup=1` repeats each filtered scenario in serial,
+parallel, parallel, serial order with the same command tape when
+`scriptedInput=1`. Keep the phone awake and unlocked for the entire capture;
+discard passes interrupted by device suspension. These controls remain in the
+standalone benchmark.
+
 ## Verification
 
 Focused tests cover both readiness completion orders, required failures, first-tick

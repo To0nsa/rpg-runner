@@ -79,14 +79,23 @@ final class _AppStateRunStartController extends _AppStateController {
         ghostEntryId: ghostEntryId,
       );
     }
-    await ensureOwnershipSyncedBeforeRunStart();
-    final session = await _ensureAuthSession();
+    await RunStartupDiagnostics.measure(
+      'ownershipSync',
+      ensureOwnershipSyncedBeforeRunStart,
+    );
+    final session = await RunStartupDiagnostics.measure(
+      'auth',
+      _ensureAuthSession,
+    );
     // Restart flows pass expectedMode/expectedLevelId and still require a
     // live canonical read so stale restarts fail fast.
     if (expectedMode != null || expectedLevelId != null) {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
+      final canonical = await RunStartupDiagnostics.measure(
+        'restartCanonical',
+        () => _ownershipApi.loadCanonicalState(
+          userId: session.userId,
+          sessionId: session.sessionId,
+        ),
       );
       _applyCanonicalState(canonical);
     }
@@ -122,12 +131,15 @@ final class _AppStateRunStartController extends _AppStateController {
           );
     final resolvedTicket =
         runTicket ??
-        await _runSessionApi.createRunSession(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          mode: mode,
-          levelId: levelId,
-          gameCompatVersion: _defaultGameCompatVersion,
+        await RunStartupDiagnostics.measure<RunTicket>(
+          'ticketCreate',
+          () => _runSessionApi.createRunSession(
+            userId: session.userId,
+            sessionId: session.sessionId,
+            mode: mode,
+            levelId: levelId,
+            gameCompatVersion: _defaultGameCompatVersion,
+          ),
         );
     final descriptor = _runStartDescriptorFromTicket(resolvedTicket);
     if (!mode.requiresBoard || descriptor.boardId == null) {
@@ -157,7 +169,9 @@ final class _AppStateRunStartController extends _AppStateController {
     // Join the exact request already paid for by hub warmup. Invalidated work
     // cannot repopulate the cache or authorize a start with changed selections.
     final pending = _runTicketPrefetchInFlight[key];
-    if (pending != null) await pending;
+    if (pending != null) {
+      await RunStartupDiagnostics.measure('ticketPrefetchJoin', () => pending);
+    }
     if (!_isRunTicketPrefetchKeyCurrent(key) ||
         _selection.selectedRunMode != mode ||
         _selection.selectedLevelId != levelId ||

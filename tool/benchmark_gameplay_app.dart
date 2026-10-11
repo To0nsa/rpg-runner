@@ -3,6 +3,9 @@ import 'dart:convert';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:rpg_runner/game/debug/render_debug_flags.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -20,10 +23,24 @@ import 'package:rpg_runner/game/runner_flame_game.dart';
 
 /// Autonomous smoke runs with normal gameplay and real assets.
 /// Death ends each attempt; this is not a level-completion or boss-combat gate.
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+  RenderDebugFlags.drawActorHitboxes = false;
   runApp(const MaterialApp(home: _GameplayBenchmark()));
 }
+
+// Native profile builds accept the same options as browser queries.
+final _benchmarkOptions = {
+  ...Uri.splitQueryString(const String.fromEnvironment('BENCHMARK_OPTIONS')),
+  ...Uri.base.queryParameters,
+};
 
 class _GameplayBenchmark extends StatefulWidget {
   const _GameplayBenchmark();
@@ -34,21 +51,35 @@ class _GameplayBenchmark extends StatefulWidget {
 class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
   late final _scenarios =
       [
-        (LevelId.forest, 857469563, PlayerCharacterRegistry.eloise),
-        (LevelId.forest, 42, PlayerCharacterRegistry.eloise),
-        (LevelId.field, 42, PlayerCharacterRegistry.eloise),
-        (LevelId.new_level, 42, PlayerCharacterRegistry.eloise),
-        for (final player in PlayerCharacterRegistry.all)
-          if (player.id != PlayerCharacterRegistry.eloise.id)
-            (LevelId.forest, 857469563, player),
-      ].where((scenario) {
-        final query = Uri.base.queryParameters;
-        return (query['level'] == null || scenario.$1.name == query['level']) &&
-            (query['seed'] == null ||
-                scenario.$2.toString() == query['seed']) &&
-            (query['character'] == null ||
-                scenario.$3.id.name == query['character']);
-      }).toList();
+            (LevelId.forest, 857469563, PlayerCharacterRegistry.eloise),
+            (LevelId.forest, 42, PlayerCharacterRegistry.eloise),
+            (LevelId.field, 42, PlayerCharacterRegistry.eloise),
+            (LevelId.new_level, 42, PlayerCharacterRegistry.eloise),
+            for (final player in PlayerCharacterRegistry.all)
+              if (player.id != PlayerCharacterRegistry.eloise.id)
+                (LevelId.forest, 857469563, player),
+          ]
+          .where((scenario) {
+            final query = _benchmarkOptions;
+            return (query['level'] == null ||
+                    scenario.$1.name == query['level']) &&
+                (query['seed'] == null ||
+                    scenario.$2.toString() == query['seed']) &&
+                (query['character'] == null ||
+                    scenario.$3.id.name == query['character']);
+          })
+          .expand(
+            (scenario) => [
+              // Serial, parallel, parallel, serial in one build/process.
+              for (
+                var repeat = 0;
+                repeat < (_benchmarkOptions['compareWarmup'] == '1' ? 4 : 1);
+                repeat++
+              )
+                scenario,
+            ],
+          )
+          .toList();
   final _rows = <Map<String, Object?>>[];
   final _aim = ValueNotifier(AimPreviewState.inactive);
   GameController? _controller;
@@ -70,27 +101,31 @@ class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
       playerCharacter: player,
       terrainPreparation: (bindings, profiles) async {
         final delayMs =
-            int.tryParse(Uri.base.queryParameters['terrainDelayMs'] ?? '') ?? 0;
+            int.tryParse(_benchmarkOptions['terrainDelayMs'] ?? '') ?? 0;
         if (delayMs > 0) {
           await Future<void>.delayed(Duration(milliseconds: delayMs));
         }
         return prepareTerrainCandidate(bindings, profiles);
       },
     );
-    final controller = Uri.base.queryParameters['coldTerrain'] == '1'
+    final fullWarmup = _benchmarkOptions['compareWarmup'] == '1'
+        ? _rows.length % 4 == 0 || _rows.length % 4 == 3
+        : _benchmarkOptions['fullWarmup'] == '1';
+    final controller = _benchmarkOptions['coldTerrain'] == '1'
         ? _ColdTerrainController(core: core)
-        : Uri.base.queryParameters['fullWarmup'] == '1'
+        : fullWarmup
         ? _FullTerrainController(core: core)
         : GameController(core: core);
     _controller = controller;
     _game = _BenchmarkGame(
       core: core,
+      fullWarmup: fullWarmup,
       coreConstructionMicros: startupWatch.elapsedMicroseconds,
       startupWatch: startupWatch,
       levelId: levelId,
       seed: seed,
       controller: controller,
-      input: Uri.base.queryParameters['scriptedInput'] == '1'
+      input: _benchmarkOptions['scriptedInput'] == '1'
           ? _ScriptedBenchmarkInput(controller: controller)
           : RunnerInputRouter(controller: controller),
       playerCharacter: player,
@@ -196,6 +231,7 @@ class _ScriptedBenchmarkInput extends RunnerInputRouter {
 class _BenchmarkGame extends RunnerFlameGame {
   _BenchmarkGame({
     required this.core,
+    required this.fullWarmup,
     required this.coreConstructionMicros,
     required this.startupWatch,
     required this.levelId,
@@ -222,6 +258,7 @@ class _BenchmarkGame extends RunnerFlameGame {
   }
 
   final GameCore core;
+  final bool fullWarmup;
   final int coreConstructionMicros;
   final Stopwatch startupWatch;
   int _startupMicros = 0;
@@ -234,7 +271,7 @@ class _BenchmarkGame extends RunnerFlameGame {
   final _geometryVersions = <int>{};
   int _frames = 0;
   int _maxEntities = 0;
-  final bool _scripted = Uri.base.queryParameters['scriptedInput'] == '1';
+  final bool _scripted = _benchmarkOptions['scriptedInput'] == '1';
   int? _firstTerrainWaitTick;
   bool _started = false;
   bool _finished = false;
@@ -334,13 +371,13 @@ class _BenchmarkGame extends RunnerFlameGame {
       'terrainWaits': _terrainWaits,
       'firstTerrainWaitTick': _firstTerrainWaitTick,
       'scriptedInput': _scripted,
-      'fullWarmup': Uri.base.queryParameters['fullWarmup'] == '1',
+      'fullWarmup': fullWarmup,
       'terrainWaitFrames': _terrainWaitFrames,
       'terrainWaitWallMs': _terrainWaitWatch.elapsedMicroseconds / 1000,
       'terrainFailures': _terrainFailures,
-      'coldTerrain': Uri.base.queryParameters['coldTerrain'] == '1',
+      'coldTerrain': _benchmarkOptions['coldTerrain'] == '1',
       'terrainDelayMs':
-          int.tryParse(Uri.base.queryParameters['terrainDelayMs'] ?? '') ?? 0,
+          int.tryParse(_benchmarkOptions['terrainDelayMs'] ?? '') ?? 0,
     };
     unawaited(Future<void>(() => complete(row)));
   }

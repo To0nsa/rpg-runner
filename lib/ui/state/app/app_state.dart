@@ -31,6 +31,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/run_ticket.dart';
 
 import '../../app/ui_routes.dart';
+import '../../run/run_startup_diagnostics.dart';
 import '../profile/account_deletion_api.dart';
 import '../auth/auth_api.dart';
 import '../boards/ghost_api.dart';

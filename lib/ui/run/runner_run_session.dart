@@ -18,6 +18,7 @@ import '../../game/runner_flame_game.dart';
 import '../app/ui_routes.dart';
 import '../state/ownership/selection_state.dart';
 import '../state/run/local_replay_artifact_store.dart';
+import 'run_startup_diagnostics.dart';
 
 /// The required dependency that prevented a run from becoming playable.
 enum RunStartupFailure { world, recorder }
@@ -57,6 +58,7 @@ class RunnerRunSession extends ChangeNotifier {
       ),
       tickHz: descriptor.tickHz,
     )..setPaused(true);
+    _constructionMicros = _startupWatch?.elapsedMicroseconds;
     input = RunnerInputRouter(controller: controller);
     if (!descriptor.isDeveloperPractice) {
       controller.addAppliedCommandFrameListener(_recordFrame);
@@ -84,6 +86,11 @@ class RunnerRunSession extends ChangeNotifier {
   }
 
   final RunStartDescriptor descriptor;
+  final Stopwatch? _startupWatch = RunStartupDiagnostics.enabled
+      ? (Stopwatch()..start())
+      : null;
+  int? _constructionMicros;
+  bool _startupReported = false;
   late final GameController controller;
   late final RunnerInputRouter input;
   late final RunnerFlameGame game;
@@ -133,16 +140,19 @@ class RunnerRunSession extends ChangeNotifier {
     Future<RunRecorder> Function(RunRecorderHeader) create,
   ) async {
     try {
-      _recorder = await create(
-        RunRecorderHeader(
-          runSessionId: descriptor.runSessionId,
-          boardId: descriptor.boardId,
-          boardKey: descriptor.boardKey,
-          tickHz: descriptor.tickHz,
-          seed: descriptor.seed,
-          levelId: descriptor.levelId.name,
-          playerCharacterId: descriptor.playerCharacterId.name,
-          loadoutSnapshot: _loadoutSnapshot(descriptor.equippedLoadout),
+      _recorder = await RunStartupDiagnostics.measure(
+        'recorder',
+        () => create(
+          RunRecorderHeader(
+            runSessionId: descriptor.runSessionId,
+            boardId: descriptor.boardId,
+            boardKey: descriptor.boardKey,
+            tickHz: descriptor.tickHz,
+            seed: descriptor.seed,
+            levelId: descriptor.levelId.name,
+            playerCharacterId: descriptor.playerCharacterId.name,
+            loadoutSnapshot: _loadoutSnapshot(descriptor.equippedLoadout),
+          ),
         ),
       );
     } catch (error, stack) {
@@ -153,7 +163,10 @@ class RunnerRunSession extends ChangeNotifier {
         maxFrames: 12,
       );
     }
-    if (!_stopped) notifyListeners();
+    if (!_stopped) {
+      _reportStartup();
+      notifyListeners();
+    }
   }
 
   static Future<RunRecorder> _createRecorder(RunRecorderHeader header) =>
@@ -181,7 +194,35 @@ class RunnerRunSession extends ChangeNotifier {
   }
 
   void _onWorldChanged() {
-    if (!_stopped) notifyListeners();
+    if (!_stopped) {
+      _reportStartup();
+      notifyListeners();
+    }
+  }
+
+  void _reportStartup() {
+    final watch = _startupWatch;
+    if (watch == null || _startupReported) return;
+    final ready = isReady;
+    RunStartupDiagnostics.emit(ready ? 'ready' : 'worldProgress', {
+      'elapsedMs': watch.elapsedMicroseconds / 1000,
+      'worldPhase': game.loadState.value.phase.name,
+      if (ready) ...{
+        'constructionMs': (_constructionMicros ?? 0) / 1000,
+        'level': descriptor.levelId.name,
+        'seed': descriptor.seed,
+        'character': descriptor.playerCharacterId.name,
+        'developerPractice': descriptor.isDeveloperPractice,
+        'tasksMs': game.loadTimings.map(
+          (name, duration) => MapEntry(name, duration.inMicroseconds / 1000),
+        ),
+        'imageCount': game.images.keys.length,
+      },
+    });
+    if (ready) {
+      watch.stop();
+      _startupReported = true;
+    }
   }
 
   void _advanceGhost() => _ghost?.advanceToTick(controller.tick);
