@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:runner_core/commands/command.dart';
 
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -42,39 +40,12 @@ void main() {
             );
             expect(after.bossArena, isNull);
             expect(after.bossVictoryBlessing!.startTick, core.tick);
-            expect(after.bossVictoryBlessing!.restorationBp, 2000);
+            expect(after.bossVictoryBlessing!.restorationBp, 10000);
             expect(events, hasLength(1));
             expect(events.single.followEntityId, after.playerEntity!.id);
-            expect(
-              after.hud.hp,
-              greaterThanOrEqualTo(
-                min(before.hud.hpMax, before.hud.hp + before.hud.hpMax * .2) -
-                    .001,
-              ),
-            );
-            expect(
-              after.hud.mana,
-              greaterThanOrEqualTo(
-                min(
-                      before.hud.manaMax,
-                      before.hud.mana + before.hud.manaMax * .2,
-                    ) -
-                    .001,
-              ),
-            );
-            expect(
-              after.hud.stamina,
-              greaterThanOrEqualTo(
-                min(
-                      before.hud.staminaMax,
-                      before.hud.stamina + before.hud.staminaMax * .2,
-                    ) -
-                    .001,
-              ),
-            );
-            expect(after.hud.hp, lessThanOrEqualTo(after.hud.hpMax));
-            expect(after.hud.mana, lessThanOrEqualTo(after.hud.manaMax));
-            expect(after.hud.stamina, lessThanOrEqualTo(after.hud.staminaMax));
+            expect(after.hud.hp, after.hud.hpMax);
+            expect(after.hud.mana, after.hud.manaMax);
+            expect(after.hud.stamina, after.hud.staminaMax);
             expect(after.playerEntity!.controlLockMask, 0);
             final notice = after.bossVictoryBlessing;
             core.paused = true;

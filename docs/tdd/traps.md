@@ -134,8 +134,12 @@ Frame transitions into nonharmful art do not repeat the prior pose's damage.
 Darts use the common projectile motion, nearest swept hit, damage, status and
 lifetime systems through the reusable `spawnProjectile` registration helper.
 The trap adapter supplies environmental targeting, placement impact damage
-(default 1 HP Poison), a horizontal 340-pixel/second launch and gravity scale
-0.15. Darts have physical bodies and use the existing ballistic terrain sweep;
+(default 1 HP Poison), a horizontal 400-pixel/second launch and gravity scale
+0.10. The shallower arc increases ground-level reach while retaining downward
+motion. This local tuning change alters replayed trajectories and requires a
+coordinated client/Functions/worker compatibility release before deployment;
+command formats and system ordering are unchanged.
+Darts have physical bodies and use the existing ballistic terrain sweep;
 terrain impact despawns them that tick. A six-second lifetime is fallback
 cleanup for deep gaps. Spawn copies damage so launcher retirement cannot change
 a live projectile. Contact traps also read the placement's damage.

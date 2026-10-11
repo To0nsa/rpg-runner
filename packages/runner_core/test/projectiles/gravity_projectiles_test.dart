@@ -95,6 +95,12 @@ void main() {
             expect(samples.last.$1.sign, direction);
             expect(samples.last.$2, lessThanOrEqualTo(222));
             expect(samples.any((s) => s.$4 > 0), isTrue);
+            if (!spear) {
+              // From 32 px above this floor, the shallow arc reaches roughly
+              // 280 px in either direction before the terrain sweep stops it.
+              expect(samples.last.$1.abs(), inInclusiveRange(270, 285));
+              expect(samples.first.$1, closeTo(direction * 400 / hz, 1 / 1024));
+            }
           },
         );
       }

@@ -14,10 +14,12 @@ abstract final class TrapCatalog {
   };
   static TrapDefinition get(TrapId id) => _definitions[id]!;
 
-  /// Horizontal launch speed in world pixels/second keeps nearby darts readable.
-  static const double dartSpeed = 340;
-  /// Light downward acceleration preserves the launcher's close-range path.
-  static const double dartGravityScale = .15;
+  /// World pixels/second: a brisk launch that still leaves time to react.
+  static const double dartSpeed = 400;
+
+  /// Fraction of level gravity: a shallow arc carries darts farther over ground.
+  static const double dartGravityScale = .10;
+
   /// Seconds: terrain impacts normally end flight; gaps retain bounded cleanup.
   static const double dartLifetimeSeconds = 6;
   static const int dartDamage100 = 100;

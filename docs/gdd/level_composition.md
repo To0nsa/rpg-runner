@@ -43,8 +43,8 @@ The `2026.10.9` release adds three consecutive easy arenas immediately after
 Bringer of Death: Voidborn Goddess, Shoggoth, then Voidcaller. Each dedicated
 assembly group selects exactly one room, so seeds preserve this order before
 the existing easy enchanted forest. The three new rooms reuse Bringer's Forest
-terrain and scenery with independent encounter identities. Each easy boss
-victory restores 20% of maximum health, mana and stamina; see
+terrain and scenery with independent encounter identities. The current local
+victory tuning refills health, mana and stamina to 100% on every difficulty; see
 [Ancient God bosses](ancient_god_bosses.md).
 
 The new seeded routes exposed two older clearance problems. Normal training

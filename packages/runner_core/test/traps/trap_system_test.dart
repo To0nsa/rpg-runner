@@ -282,7 +282,7 @@ void main() {
         ProjectileSystem().step(f.world, movement);
         expect(
           f.world.transform.posX[f.world.transform.indexOf(dart)],
-          closeTo(200 + (22 + 340 / 60) * sign, 1 / 1024),
+          closeTo(200 + (22 + 400 / 60) * sign, 1 / 1024),
         );
         hit.step(f.world, f.grid, currentTick: 31);
         expect(f.world.damageQueue.target, [victim]);

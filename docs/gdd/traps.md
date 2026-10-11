@@ -38,9 +38,11 @@ chosen depth. Cancellation on leaving view returns it to the lowered pose.
 
 Timing rounds cumulative animation boundaries up to a simulation tick. Spike
 and Axe can damage both player and enemies once each per cycle; a blocked
-attempt still counts. Darts launch horizontally at 340 world pixels/second and
-drop gently under 15% of level gravity. They end on the first living actor or
-terrain surface they hit. A six-second fallback bounds flight into deep gaps.
+attempt still counts. Darts launch horizontally at 400 world pixels/second and
+drop gently under 10% of level gravity, giving them a faster, longer flight over
+ground. This flight tuning is a local source change, not yet deployed.
+They end on the first living actor or terrain surface they hit. A six-second
+fallback bounds flight into deep gaps.
 
 A successful dart applies five 2 HP Poison pulses, one per second, plus 25%
 movement Slow for five seconds. Acid resistance mitigates impact and Poison

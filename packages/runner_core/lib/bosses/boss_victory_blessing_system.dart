@@ -16,22 +16,23 @@ import '../util/vec2.dart';
 final class BossVictoryBlessingDefinition {
   const BossVictoryBlessingDefinition({
     this.id = BossVictoryBlessingId.forestLadies,
-    this.restorationBp = 6000,
-    this.easyRestorationBp = 2000,
-    this.normalRestorationBp = 4000,
+    this.restorationBp = 10000,
+    this.easyRestorationBp = 10000,
+    this.normalRestorationBp = 10000,
     this.effectId = SpellImpactId.holyBlessing,
   }) : assert(restorationBp >= 0 && restorationBp <= 10000),
        assert(easyRestorationBp >= 0 && easyRestorationBp <= 10000),
        assert(normalRestorationBp >= 0 && normalRestorationBp <= 10000);
   final BossVictoryBlessingId id;
 
-  /// Basis points of each current maximum in early and hard chunks.
+  /// Basis points of each current maximum in early and hard chunks; defaults to
+  /// 100% so every boss victory starts the next section with full resources.
   final int restorationBp;
 
-  /// Basis points of each maximum in easy chunks: 20% leaves post-boss attrition.
+  /// Basis points of each maximum in easy chunks; defaults to a full refill.
   final int easyRestorationBp;
 
-  /// Basis points of each maximum in normal chunks: 40% gives moderate recovery.
+  /// Basis points of each maximum in normal chunks; defaults to a full refill.
   final int normalRestorationBp;
   final SpellImpactId effectId;
 }

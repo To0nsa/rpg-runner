@@ -7,7 +7,7 @@ compatibility `2026.10.8` and score partition `score-v4`; see the
 The original tuning and additional [Ancient God bosses](ancient_god_bosses.md)
 were deployed in `2026.10.9`; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
-The Normal victory restoration below is a later source change.
+The full victory restoration below is a local source change, not yet deployed.
 
 Current `2026.10.11` source schedules single-candidate Bringer, Shoggoth and
 Goddess groups at the easy, normal and hard milestones, separated by ordinary
@@ -127,12 +127,15 @@ timing; it does not wait for the blessing effect.
 
 `BossVictoryBlessingSystem` owns reward eligibility and deduplication,
 independently of enemy identity. Its default definition names the Dames de la
-forêt and restores 2,000 basis points (20%) of each current maximum in easy
-chunks: health, mana and stamina. Normal chunks restore 4,000 basis points (40%);
-hard and early chunks retain 6,000 basis points (60%).
+forêt and restores 10,000 basis points (100%) of each current maximum on every
+difficulty: health, mana and stamina. Capping at the current maximum makes this
+a full refill after every surviving victory.
 `ActiveTrackChunkSnapshot.tier` preserves the selected tier after pool fallback;
 the arena passes it to the reward system rather than resampling player/camera
 position after release. The snapshot reports the actual applied percentage.
+This tuning changes replayed resource outcomes and requires a coordinated
+client/Functions/worker compatibility release before deployment; command and
+snapshot formats and system ordering are unchanged.
 The shared `ResourceRestoration.restorePercent` helper also
 serves restoration pickups. It rounds down in the pool's integer units and caps
 at the current maximum, preserving equipment, regeneration rates and fractional

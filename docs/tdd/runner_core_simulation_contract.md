@@ -465,10 +465,13 @@ Only a verified completed boss death strip requests a grant. The living-player
 check precedes the shared percentage restore, so it cannot reverse fatal damage.
 One streamed arena occurrence grants once; its Core-timed notice survives arena
 release and pauses with the simulation. The defeated chunk's captured resolved
-tier selects 20% restoration in easy chunks, 40% in normal chunks and 60% in
-hard and early chunks. Current maximum health, mana and stamina are restored
-and capped without changing regeneration state. The original boss feature
-shipped in `2026.10.8`; the Normal 40% rate is a later source change.
+tier selects the configured reward; all tiers now default to 100% restoration
+of current maximum health, mana and stamina, capped without changing
+regeneration state. The original boss feature shipped in `2026.10.8`; the full
+refill is a local source change requiring a coordinated gameplay compatibility
+release. The same release must include trap darts' 400-world-pixel/second speed
+and 0.10 gravity scale, which change replayed trajectories. Tick ordering,
+command encoding and snapshot shapes are unchanged.
 See [boss arena contracts](boss_arenas.md).
 
 ## Outputs and consumers
@@ -621,9 +624,8 @@ dedicated arena section, and regenerates the matching 80-chunk catalog.
 The source revision `2026.10.9` keeps that authored catalog and enlarges Bringer,
 its body and both attack shapes by 1.5x; it increases pursuit speed by 20% and
 accelerates both attack cycles by 1.5x, with 2x faster pillar effect frames.
-The boss keeps shared melee spacing for the enlarged blade, and easy-chunk
-victory blessings restore 20% of maxima, normal restores 40%, and hard and early
-retain 60%.
+The boss keeps shared melee spacing for the enlarged blade. Its earlier
+tier-based victory restoration is superseded by the full-refill rule above.
 Death Pillar also captures the first upward terrain surface below its aim point
 at commitment. Its bottom pivot and translated damage shapes share that fixed
 surface anchor through the effect. The shared surface index resolves floors,

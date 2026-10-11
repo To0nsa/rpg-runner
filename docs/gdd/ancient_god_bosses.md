@@ -10,8 +10,9 @@ Current Forest source places **Bringer at the end of easy, Shoggoth at the end
 of normal, and Goddess at the end of hard**, with ordinary sections between
 them. Voidcaller's authored room remains selectable content but is not in the
 Forest assembly. Each 600-by-270 room has independent terrain, scenery, arena
-identity and assembly group. Easy, normal and hard victories restore 20%, 40%
-and 60% of maximum health, mana and stamina respectively, capped at the maximum.
+identity and assembly group. Victories on every difficulty refill health, mana
+and stamina to 100% of their current maxima. This full-refill tuning is a local
+source change, not yet deployed.
 These encounters first deployed in gameplay compatibility `2026.10.9`; see the
 [release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 The corrections below are deployed in `2026.10.10`: aligned native beam pieces,

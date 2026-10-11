@@ -15,29 +15,31 @@ import 'package:test/test.dart';
 
 void main() {
   for (final hz in [30, 60, 90]) {
-    test('easy restores 20 percent once, rounds down and caps at $hz Hz', () {
-      final f = _Fixture();
-      f.world.health.hpMax[0] = 10001;
-      f.world.mana.manaMax[0] = 11501;
-      f.world.stamina.staminaMax[0] = 13001;
-      final blessing = BossVictoryBlessingSystem(tickHz: hz)
-        ..request(3, ChunkPatternTier.easy);
-      blessing.step(f.world, player: f.player, tick: 100, emit: f.events.add);
-      expect(f.resources, [4000, 3300, 3600]);
-      expect(blessing.snapshot(100)!.restorationBp, 2000);
-      blessing.request(3, ChunkPatternTier.hard);
-      blessing.step(f.world, player: f.player, tick: 101, emit: f.events.add);
-      expect(f.resources, [4000, 3300, 3600]);
-      expect(f.events, hasLength(1));
-      f.world.health.hp[0] = 9500;
-      f.world.mana.mana[0] = 11000;
-      f.world.stamina.stamina[0] = 12500;
-      blessing.request(4, ChunkPatternTier.easy);
-      blessing.step(f.world, player: f.player, tick: 102, emit: f.events.add);
-      expect(f.resources, [10001, 11501, 13001]);
-    });
+    for (final tier in ChunkPatternTier.values) {
+      test('$tier fully refills resources once per victory at $hz Hz', () {
+        final f = _Fixture();
+        f.world.health.hpMax[0] = 10001;
+        f.world.mana.manaMax[0] = 11501;
+        f.world.stamina.staminaMax[0] = 13001;
+        final blessing = BossVictoryBlessingSystem(tickHz: hz)
+          ..request(3, tier);
+        blessing.step(f.world, player: f.player, tick: 100, emit: f.events.add);
+        expect(f.resources, [10001, 11501, 13001]);
+        expect(blessing.snapshot(100)!.restorationBp, 10000);
+        f.world.health.hp[0] = 9500;
+        f.world.mana.mana[0] = 0;
+        f.world.stamina.stamina[0] = 0;
+        blessing.request(3, ChunkPatternTier.hard);
+        blessing.step(f.world, player: f.player, tick: 101, emit: f.events.add);
+        expect(f.resources, [9500, 0, 0]);
+        expect(f.events, hasLength(1));
+        blessing.request(4, tier);
+        blessing.step(f.world, player: f.player, tick: 102, emit: f.events.add);
+        expect(f.resources, [10001, 11501, 13001]);
+      });
+    }
     test(
-      'normal restores 40 percent and hard restores 60 percent at $hz Hz',
+      'full restoration preserves regeneration and feedback lifecycle at $hz Hz',
       () {
         final f = _Fixture();
         f.world.levelBlessings.grant(
@@ -48,7 +50,7 @@ void main() {
         final blessing = BossVictoryBlessingSystem(tickHz: hz);
         blessing.request(3, ChunkPatternTier.normal);
         blessing.step(f.world, player: f.player, tick: 100, emit: f.events.add);
-        expect(f.resources, [6000, 5600, 6200]);
+        expect(f.resources, [10000, 11500, 13000]);
         expect(f.world.health.regenAccumulator.single, 7);
         expect(f.world.levelBlessings.healthRegen100.single, 10);
         expect(f.world.health.regenPerSecond100.single, 50);
@@ -58,7 +60,7 @@ void main() {
         expect(event.followEntityId, f.player);
         expect(event.followOffset, const Vec2(0, 24));
         final notice = blessing.snapshot(100)!;
-        expect(notice.restorationBp, 4000);
+        expect(notice.restorationBp, 10000);
         expect(
           notice.durationTicks,
           hz == 30
@@ -71,12 +73,12 @@ void main() {
         expect(blessing.snapshot(100 + notice.durationTicks), isNull);
         blessing.request(3, ChunkPatternTier.normal);
         blessing.step(f.world, player: f.player, tick: 101, emit: f.events.add);
-        expect(f.resources, [6000, 5600, 6200]);
+        expect(f.resources, [10000, 11500, 13000]);
         expect(f.events, hasLength(1));
         blessing.request(4, ChunkPatternTier.hard);
         blessing.step(f.world, player: f.player, tick: 102, emit: f.events.add);
         expect(f.resources, [10000, 11500, 13000]);
-        expect(blessing.snapshot(102)!.restorationBp, 6000);
+        expect(blessing.snapshot(102)!.restorationBp, 10000);
         expect(f.events, hasLength(2));
         blessing.endRun();
         expect(blessing.snapshot(102), isNull);
@@ -107,7 +109,7 @@ void main() {
     },
   );
 
-  test('odd maxima round down in fixed point and full resources still show blessing', () {
+  test('odd maxima refill exactly and full resources still show blessing', () {
     final f = _Fixture();
     f.world.health.hpMax[0] = 10001;
     f.world.mana.manaMax[0] = 11501;
@@ -115,10 +117,7 @@ void main() {
     final blessing = BossVictoryBlessingSystem(tickHz: 60)
       ..request(3, ChunkPatternTier.normal);
     blessing.step(f.world, player: f.player, tick: 100, emit: f.events.add);
-    expect(f.resources, [6000, 5600, 6200]);
-    f.world.health.hp[0] = 10001;
-    f.world.mana.mana[0] = 11501;
-    f.world.stamina.stamina[0] = 13001;
+    expect(f.resources, [10001, 11501, 13001]);
     blessing.request(4, ChunkPatternTier.normal);
     blessing.step(f.world, player: f.player, tick: 101, emit: f.events.add);
     expect(f.resources, [10001, 11501, 13001]);

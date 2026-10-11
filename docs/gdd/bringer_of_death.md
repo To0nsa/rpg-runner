@@ -8,7 +8,7 @@ The original encounter is deployed as gameplay `2026.10.8` with `score-v4`; see 
 The three following boss rooms and their original tuning were deployed in
 `2026.10.9` across the client, Functions and replay worker; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
-The Normal victory restoration below is a later source change.
+The full victory restoration below is a local source change, not yet deployed.
 
 The 600-by-270 arena fills one gameplay viewport. Its flat floor and raised
 one-way platform give the player room to reposition. On entry, the player stops
@@ -88,10 +88,8 @@ stamina, equipment and cooldowns carry into and out of the fight. Regeneration
 and the run clock continue; this is an encounter hold, not a whole-game pause.
 The exit stays closed until Bringer is defeated and his death presentation
 finishes. The Dames de la forêt then bless the surviving player, instantly
-restoring 20% of maximum health, mana and stamina in easy chunks, capped at each
-maximum. Normal chunks restore 40%; hard and early chunks restore 60%.
-For example, in the easy Forest arena, 20 HP out of 100 becomes 40 HP;
-90 becomes 100.
+refilling health, mana and stamina to 100% on every difficulty.
+For example, both 20 HP and 90 HP out of 100 become 100 HP after victory.
 The calculation uses the player's current equipment-adjusted maxima.
 
 The golden Holy VFX 02 animation rises around the player's feet and follows
