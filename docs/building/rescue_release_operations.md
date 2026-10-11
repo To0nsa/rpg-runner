@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.10` was deployed October 8, 2026 from frozen commit `10f85b4c`;
-see [current production evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release).
+Status: `2026.10.11` was deployed October 11, 2026 from frozen commit `90d1becc`;
+see [current production evidence](../verification/game-compat-2026.10.11-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.10](../verification/boss-combat-corrections-2026-10-08.md#production-release),
 [2026.10.9](../verification/ancient-god-bosses-2026-10-07.md#production-release),
 [2026.10.8](../verification/forest_boss_arena.md#production-release-2026108),
 [2026.10.7](../verification/game-compat-2026.10.7-production.md),
@@ -13,6 +14,30 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed release: 2026.10.11
+
+The latest combat, boss, Forest progression, terrain preparation and run-startup
+changes are deployed with `rules-v2`, `score-v4`, `ghost-v1` and format 1.
+The owner authorized deployment and cancellation when necessary.
+
+- [x] Align stale release regressions with current authored content and combat
+  contracts, and freeze `90d1becc` without changing production gameplay.
+- [x] Pass coordinated preparation, current dependency audit, generated freshness
+  and the release web build. Retry the Core runner's temporary-directory cleanup
+  failure successfully; preserve the failed attempt separately.
+- [x] Build the immutable worker and pass all nine strict benchmark gates.
+- [x] Pause issuance through the documented missing-image rebuild; verify zero
+  active runs and settled rewards. No cancellations or resets were needed.
+- [x] Deploy Functions, worker and Hosting; verify all six boards and exact live
+  web bytes, restore both queues and matching issuance, and save the baseline.
+- [x] Verify all 26 Functions ACTIVE, healthy worker/issuer revisions serving 100%,
+  issuer pause gate absent, and all 199 accepted runs/rewards preserved.
+- [x] Confirm the release-mode guard disables actor/projectile/trap debug overlays.
+- [ ] Complete linked Play Games gameplay/replay/settlement/leaderboard/ghost and
+  live retired-version smoke. Browser automation reached the same existing
+  unsupported-services startup error before and after publishing; no native
+  package was built or installed. Keep this checklist active.
 
 ## Deployed release: 2026.10.10
 

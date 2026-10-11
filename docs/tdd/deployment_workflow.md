@@ -9,57 +9,28 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.10`, with corrected beam
-alignment, Goddess's corner hand barrage and distinct strike windows. It retains
-the independent Ancient God bosses in three Forest arenas after Bringer,
-1.5x boss tuning and 20% easy-arena victory restoration.
-Its ranked tuple is `rules-v2`, `score-v4`, and `ghost-v1`; replay and command
-formats remain 1. See the
-[October 8 production evidence](../verification/boss-combat-corrections-2026-10-08.md#production-release)
-for frozen commit `10f85b4c`, artifacts and live cutover checks. Two reviewed
-unsubmitted tickets were cancelled under owner authorization; all 199 validated
-runs and settled rewards were preserved. Controlled signed-in gameplay remains
-unverified because browser automation was unavailable. The
-[release checklist](../building/rescue_release_operations.md) retains the
-outstanding linked Play Games smoke checks.
+The current production release is gameplay `2026.10.11`, deployed October 11
+from frozen commit `90d1becc`. Its ranked tuple is `rules-v2`, `score-v4`, and
+`ghost-v1`; replay and command formats remain 1. See the
+[production evidence](../verification/game-compat-2026.10.11-production.md)
+for preparation, immutable artifacts and the completed coordinated cutover.
+All 199 accepted runs and settled rewards were preserved; no runs needed
+cancellation. Both queues and normal ticket issuance are restored.
 
-Prepared source compatibility `2026.10.11` fixes post-hit invulnerability expiry
-and adds shared explicit combo provenance. Only later strikes from the same
-attacker and combo activation bypass that combo's protection. This changes
-replayed combat outcomes and requires a coordinated client/Functions/worker
-cutover; it has not been deployed by the source change. The ranked tuple and
-replay/command formats above remain unchanged.
-This prepared release gives Goddess stationary range-based casting, bounded
-close approaches, voluntary teleports with destination cues, and a reactive
-dodge every 4–6 eligible player attacks followed by a claw combo. She also
-teleports and counters two consecutive damaging player-projectile hits;
-both hits land, and direct melee/spell hits break that streak. Either successful
-reactive trigger resets both counters and rerolls the attack interval. Normal and
-reactive combos follow the player on walkable ground and may turn between
-swipes, retaining per-hit damage ownership and final recovery. Its
-seeded interval rerolls after each dodge; beyond claw range either legal landing
-side can be chosen. It adds
-continuous barrage casting with invulnerability and a vulnerable orb/teleport exit,
-and speeds up her orb. Orb art and generated collision capsules are centered on
-the aim line; live and ghost explosions center over the struck body. Her health
-is 300 HP and actor scale is 1.0x with matching
-body and claws. See [boss behavior](ancient_god_bosses.md#catalogs-and-authority).
-Shoggoth joins this prepared release with 300 HP, distance-based attacks,
-360-unit/second charges, bounded advancing sweeps, one-time 70/35% minion waves,
-conditional final-phase return charges and captured teleport destination cues.
-The normal and return charge retain independent combo provenance and full
-warnings. His orb tracks the target through cast release and launches from the
-mirrored hand tip after terrain movement. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
-Direct player impacts now emit feedback per accepted hit, including combos.
-Goddess's fixed-mark hand barrage now releases every 0.35 seconds, uses a
-nominal 0.6-second warning per hand, and deals 12 dark damage per slap.
-Her authored damage is 5 physical per claw swipe, 7.2 dark per orb and 12 dark
-per hand, before ordinary damage modifiers.
-Her released orbs and world-anchored hands persist through death until normal
-impact or expiry, with enemy attribution retained after caster despawn.
-Its active damage shapes cover the visible palm and fingers for each hand pose.
-The barrage is now exclusive to one cast at each 75/50/25% HP threshold (180,
-120 and 60 HP), with pending crossings retained through existing action gates.
+The release includes post-hit invulnerability expiry and explicit combo
+provenance, current Goddess/Shoggoth combat, and the revised Forest progression:
+Bringer after easy sections, Shoggoth after normal sections and Goddess after
+hard sections. Voidcaller remains authored but unscheduled. Current tuning and
+combat contracts live in [boss behavior](ancient_god_bosses.md) and
+[level composition](../gdd/level_composition.md), alongside the published
+[terrain preparation](terrain_streaming_performance.md) and
+[run-startup](run_startup.md) changes.
+
+The release web build disables render debug overlays through its release-mode
+guard. Browser startup still stops at the pre-existing unsupported-services
+message, so controlled signed-in gameplay remains unverified. The
+[release checklist](../building/rescue_release_operations.md) retains the
+outstanding linked Play Games smoke checks; no native package was installed.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug
