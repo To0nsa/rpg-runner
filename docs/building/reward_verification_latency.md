@@ -1,8 +1,10 @@
 # Reward verification latency
 
-Status: implemented in source for `2026.10.11.1`; local validation completed with
-two independently reproduced pre-existing terrain failures. Production rollout,
-target-device measurements and end-to-end latency remain open. October 11, 2026.
+Status: `2026.10.11.1` deployed October 11, 2026; the exact final-image benchmark
+and coordinated cutover passed. The owner accepted the two independently
+reproduced terrain failures for this release; they remain unresolved. Target-device
+measurements, representative route coverage and controlled end-to-end latency
+remain open. See [production evidence](../verification/game-compat-2026.10.11.1-production.md).
 
 Implemented contracts: [prepared navigation](../tdd/prepared_navigation.md) and
 [reward completion](../tdd/reward_settlement_operations.md). The evidence below
@@ -92,8 +94,9 @@ Raw replay data stays outside tracked documentation.
 
 ## Seed pools and coverage
 
-The existing Practice issuer uses a fresh random seed; competitive and weekly
-tickets take their seed from the immutable board manifest. Both client and
+At the diagnostic baseline, Practice issuance used a fresh random seed;
+competitive and weekly tickets took their seed from the immutable board manifest.
+Both client and
 worker use Core's terrain candidate builder. The game's preparer has a bounded,
 run-owned cache; it is not a server cache or persistent content artifact.
 
@@ -129,7 +132,7 @@ terrain state is prepared becomes a product requirement, evaluate fixed tail
 loops per course or a finite course finish as separate gameplay changes.
 Neither change is necessary for the initial background-reward experience.
 
-## Architecture to implement
+## Original architecture recommendation
 
 1. Keep authored geometry and deterministic route selection authoritative in
    Core. Build cheap world geometry, surfaces and lookup structures normally.
@@ -175,8 +178,8 @@ notify the player in the current screen without interrupting gameplay. Pending
 gold remains unspendable, and retries must never produce another payout.
 
 Move retry/completion ownership into the app's authenticated session lifetime.
-Currently the periodic status timer is run-widget-owned, is stopped on dispose,
-and initial app warmup performs a pending-submission pass. No continuous
+At the diagnostic baseline, the periodic status timer was run-widget-owned and
+stopped on dispose; initial app warmup performed a pending-submission pass. No continuous
 app-owned completion watcher was found. Resume/later canonical refresh can
 catch up, but leaving Game Over should not be the reason a wallet stays stale.
 
@@ -227,13 +230,18 @@ Measure upload-grant/finalize/status/ownership Functions as well as the worker.
 - [x] Offline preparation, source fingerprint, Docker/web release integration,
   cache invalidation, matched `2026.10.11.1` tuple and startup-probe configuration.
 - [x] Implemented TDD/GDD and embedding API documentation.
-- [ ] Exact final-image one-CPU/512-MiB gate and target-phone measurements.
+- [x] Exact final-image one-CPU/512-MiB gate; all nine checks passed in the
+  production image build. This is a limited throughput fixture, not full-run combat.
+- [ ] Target-phone measurements.
 - [ ] Representative full-run coverage for every curated route, both characters,
   loadouts, bosses and retained/skipped selections. The finite artifact inventory
   is not proof that every selection is a hit; fallback remains mandatory.
-- [ ] Resolve the two authored-terrain traversal failures before a content release.
-- [ ] Authorized coordinated cutover and live acceptance, once-only settlement,
-  background wallet catch-up, leaderboard/ghost independence and cold/warm timings.
+- [ ] Resolve the two authored-terrain traversal failures. The owner accepted
+  them only for the `2026.10.11.1` release; normal test gates remain unchanged.
+- [x] Authorized coordinated cutover; Functions, worker, Hosting and all six
+  boards verified, queues and issuance restored, all 204 settled runs preserved.
+- [ ] Controlled live acceptance, once-only settlement, background wallet
+  catch-up, leaderboard/ghost independence and cold/warm timings.
 
 The provisional warm-service target remains p95 below three seconds from durable
 finalization to visible verified reward for the declared prepared workload.
@@ -286,5 +294,5 @@ four mobile enemies; arena bosses and full player/combat flows are separate.
 
 Logs and local probes remain under `.tmp/navigation-*` and
 `.tmp/reward-verification-2026-10-11/`; they contain historical local input and are
-not release artifacts. No production deployment or warm-instance billing change
-was performed.
+not release artifacts. These local measurements preceded the production rollout
+linked above. No warm-instance billing change was performed.

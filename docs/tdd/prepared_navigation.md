@@ -1,7 +1,10 @@
 # Prepared navigation and reward verification
 
-Implemented in source for compatibility `2026.10.11.1`. Production cutover and
-device/end-to-end measurements remain release gates. Acceptance still requires
+Deployed for compatibility `2026.10.11.1` on October 11, 2026; see the
+[production evidence](../verification/game-compat-2026.10.11.1-production.md).
+The exact-image benchmark passed. Device, route-coverage and controlled
+end-to-end measurements remain open; the owner accepted two known authored-terrain
+traversal failures for this cutover. Replay acceptance still requires
 the authenticated ticket, digest-verified replay and deterministic Core; client
 terrain and navigation uploads are never authority.
 

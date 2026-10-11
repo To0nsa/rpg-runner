@@ -9,28 +9,26 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.11`, deployed October 11
-from frozen commit `90d1becc`. Its ranked tuple is `rules-v2`, `score-v4`, and
+The current production release is gameplay `2026.10.11.1`, deployed October 11
+from frozen commit `6ac2a73a`. Its ranked tuple is `rules-v2`, `score-v4`, and
 `ghost-v1`; replay and command formats remain 1. See the
-[production evidence](../verification/game-compat-2026.10.11-production.md)
-for preparation, immutable artifacts and the completed coordinated cutover.
-All 199 accepted runs and settled rewards were preserved; no runs needed
-cancellation. Both queues and normal ticket issuance are restored.
+[production evidence](../verification/game-compat-2026.10.11.1-production.md)
+for preparation, immutable artifacts, the coordinated cutover and the two
+owner-accepted traversal failures. Those failures remain unresolved; their
+release-only exclusions do not change the normal preparation recipe.
 
-The release includes post-hit invulnerability expiry and explicit combo
-provenance, current Goddess/Shoggoth combat, and the revised Forest progression:
-Bringer after easy sections, Shoggoth after normal sections and Goddess after
-hard sections. Voidcaller remains authored but unscheduled. Current tuning and
-combat contracts live in [boss behavior](ancient_god_bosses.md) and
-[level composition](../gdd/level_composition.md), alongside the published
-[terrain preparation](terrain_streaming_performance.md) and
-[run-startup](run_startup.md) changes.
+The release includes [prepared navigation and curated Practice routes](prepared_navigation.md),
+[app-owned reward completion](reward_settlement_operations.md), current Forest
+authoring and the bootstrap recovery repair. Runtime source matches main
+`28a4a7f5`. All 204 accepted runs and settled rewards were preserved; one old
+unsubmitted ticket was cancelled under owner authorization. Both queues and
+normal ticket issuance are restored, with all six new-version boards ready.
 
 The release web build disables render debug overlays through its release-mode
-guard. Browser startup still stops at the pre-existing unsupported-services
+guard. Fresh browser startup still stops at the pre-existing unsupported-services
 message, so controlled signed-in gameplay remains unverified. The
-[release checklist](../building/rescue_release_operations.md) retains the
-outstanding linked Play Games smoke checks; no native package was installed.
+[release checklist](../building/rescue_release_operations.md) retains the linked
+Play Games smoke checks; no native package was installed by this release.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug

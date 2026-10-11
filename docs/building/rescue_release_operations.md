@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.11` was deployed October 11, 2026 from frozen commit `90d1becc`;
-see [current production evidence](../verification/game-compat-2026.10.11-production.md).
+Status: `2026.10.11.1` was deployed October 11, 2026 from frozen commit `6ac2a73a`;
+see [current production evidence](../verification/game-compat-2026.10.11.1-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.11](../verification/game-compat-2026.10.11-production.md),
 [2026.10.10](../verification/boss-combat-corrections-2026-10-08.md#production-release),
 [2026.10.9](../verification/ancient-god-bosses-2026-10-07.md#production-release),
 [2026.10.8](../verification/forest_boss_arena.md#production-release-2026108),
@@ -14,6 +15,28 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed release: 2026.10.11.1
+
+Prepared navigation, curated Practice routes, app-owned reward completion,
+current Forest authoring and the bootstrap recovery repair are deployed with
+`rules-v2`, `score-v4`, `ghost-v1` and format 1.
+
+- [x] Freeze `6ac2a73a`; validate the repaired client and all required components.
+  Record exactly two owner-accepted traversal exclusions in the detached recipe;
+  retain the normal recipe on main and keep both failures unresolved.
+- [x] Build the final 60,620-graph worker pack and pass all nine strict image gates.
+- [x] Pause issuance, recheck the outstanding ticket and cancel one unsubmitted
+  old-version run under owner authorization. Preserve all 204 settled runs/rewards.
+- [x] Deploy Functions, worker and Hosting; verify six boards and matching live
+  artifacts, restore both queues and issuance, and save the production baseline.
+- [x] Verify 26 ACTIVE Functions, healthy worker/issuer revisions serving 100%,
+  no issuer pause override and zero active runs or pending/quarantined settlement.
+- [ ] Complete linked Play Games gameplay/replay/settlement, background wallet
+  catch-up, leaderboard/ghost and live retired-version smoke. Browser startup
+  still reports its pre-existing unsupported-services message; no native package
+  was installed. Device and latency measurements remain in the
+  [rollout plan](reward_verification_latency.md).
 
 ## Deployed release: 2026.10.11
 
