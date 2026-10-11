@@ -3,6 +3,7 @@ library;
 
 import '../collision/terrain/terrain_geometry.dart';
 import '../navigation/terrain_runtime_bundle.dart';
+import '../navigation/terrain_graph_materializer.dart';
 import '../navigation/types/terrain_surface_graph.dart';
 import 'staged_terrain_catalog.dart';
 import 'staged_terrain_world_geometry.dart';
@@ -50,10 +51,13 @@ final class StagedTerrainRuntimeBundleBuilder {
   TerrainRuntimeBundle buildFromGeometry({
     required TerrainGeometry geometry,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
   }) {
     return TerrainRuntimeBundle.build(
       geometry: geometry,
       groundEnemyProfiles: groundEnemyProfiles,
+      graphMaterializer: graphMaterializer,
     );
   }
 }

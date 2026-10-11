@@ -8,9 +8,95 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
 import 'package:runner_core/navigation/types/terrain_navigation_surface.dart';
 import 'package:test/test.dart';
+import 'package:crypto/crypto.dart';
+import 'package:runner_core/navigation/terrain_graph_artifact.dart';
+import 'package:runner_core/navigation/terrain_graph_materializer.dart';
 
 void main() {
   group('TerrainRuntimeBundle', () {
+    test('offline construction materializes only accessed profiles and preserves all signatures', () {
+      final requests = <String>[];
+      final geometry = _geometry(version: 7, includeIsland: true);
+      final profiles = buildDefaultGroundEnemyTerrainGraphProfiles();
+      final lazy = TerrainRuntimeBundle.build(
+        geometry: geometry,
+        groundEnemyProfiles: profiles,
+        graphMaterializer: TerrainGraphMaterializer.onDemand(
+          lookup: (_, _, p) {
+            requests.add(p.profileKey);
+            return null;
+          },
+        ),
+      );
+      expect(requests, isEmpty);
+      final rebound = lazy.withGeometryVersion(8);
+      expect(requests, isEmpty);
+      final first = rebound.grojibGraph;
+      expect(rebound.grojibGraph, same(first));
+      expect(requests, ['grojib']);
+      expect(first.geometryVersion, 8);
+      expect(rebound.graphSignature(), _bundle(geometry).graphSignature());
+      expect(requests.toSet().length, profiles.length);
+    });
+
+    test('binary graph artifacts preserve exact CSR and reject corruption and changed inputs', () {
+      final bundle = _bundle(_geometry(version: 1, includeIsland: true));
+      final other = _bundle(_geometry(version: 9, includeIsland: true));
+      final changed = _bundle(_geometry(version: 1, includeIsland: false));
+      for (final graph in bundle.graphPublication.graphs) {
+        final profile = graph.buildProfile;
+        final key = terrainGraphArtifactKey(
+          geometry: bundle.geometry,
+          surfaces: bundle.surfaceSet,
+          profile: profile,
+        );
+        final bytes = TerrainGraphArtifactCodec.encode(key: key, graph: graph);
+        final digest = sha256.convert(bytes).toString();
+        final sameKey = terrainGraphArtifactKey(
+          geometry: other.geometry,
+          surfaces: other.surfaceSet,
+          profile: profile,
+        );
+        expect(sameKey, key);
+        final decoded = TerrainGraphArtifactCodec.decode(
+          bytes: bytes,
+          expectedSha256: digest,
+          key: sameKey,
+          surfaces: other.surfaceSet,
+          profile: profile,
+        );
+        expect(decoded.signature(), graph.signature());
+        expect(decoded.surfaceSet, same(other.surfaceSet));
+        final changedKey = terrainGraphArtifactKey(
+          geometry: changed.geometry,
+          surfaces: changed.surfaceSet,
+          profile: profile,
+        );
+        expect(changedKey, isNot(key));
+        expect(
+          () => TerrainGraphArtifactCodec.decode(
+            bytes: bytes,
+            expectedSha256: digest,
+            key: changedKey,
+            surfaces: changed.surfaceSet,
+            profile: profile,
+          ),
+          throwsFormatException,
+        );
+        bytes[bytes.length - 1] ^= 1;
+        expect(
+          () => TerrainGraphArtifactCodec.decode(
+            bytes: bytes,
+            expectedSha256: digest,
+            key: key,
+            surfaces: bundle.surfaceSet,
+            profile: profile,
+          ),
+          throwsFormatException,
+        );
+      }
+    });
+
     test('mirrored zero offsets retain canonical integer encoding', () {
       final profiles = buildDefaultGroundEnemyTerrainGraphProfiles();
       for (final profile in profiles) {

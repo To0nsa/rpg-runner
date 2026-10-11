@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/navigation/terrain_graph_materializer.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
@@ -11,6 +12,7 @@ import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'replay_simulation.dart';
+import 'navigation_artifact_store.dart';
 
 /// Runs the deployment-shaped local replay throughput benchmark.
 ///
@@ -65,7 +67,15 @@ _ReplayBenchmarkMeasurement _measureLevel({
 }) {
   final recorded = _recordFrames(levelId: levelId, config: config);
   final stopwatch = Stopwatch()..start();
-  final core = _buildCore(levelId: levelId, config: config);
+  final core = _buildCore(
+    levelId: levelId,
+    config: config,
+    graphMaterializer: NavigationArtifactStore(
+      directory:
+          Platform.environment['NAVIGATION_ARTIFACT_DIRECTORY'] ??
+          '/navigation',
+    ).materializer,
+  );
   final simulation = runReplaySimulation(
     core: core,
     totalTicks: config.ticks,
@@ -142,6 +152,8 @@ _RecordedReplay _recordFrames({
 GameCore _buildCore({
   required LevelId levelId,
   required _ReplayBenchmarkConfig config,
+  TerrainGraphMaterializer graphMaterializer =
+      const TerrainGraphMaterializer.eager(),
 }) {
   final registered = LevelRegistry.byId(levelId);
   final baseTuning = registered.tuning;
@@ -158,6 +170,7 @@ GameCore _buildCore({
     score: baseTuning.score,
   );
   return GameCore(
+    graphMaterializer: graphMaterializer,
     seed: config.seed,
     runId: 1,
     tickHz: config.tickHz,

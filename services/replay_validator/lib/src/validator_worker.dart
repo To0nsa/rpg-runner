@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/navigation/terrain_graph_materializer.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
@@ -79,6 +80,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     this.incidentModeRetryDelay = const Duration(minutes: 15),
     this.orphanedTaskRepairDelay = const Duration(minutes: 15),
     this.limits = const ReplayValidationLimits(),
+    this.graphMaterializer = const TerrainGraphMaterializer.onDemand(),
     int Function()? clockMs,
     int Function()? monotonicClockMicros,
   }) : settlementDispatcher =
@@ -111,12 +113,15 @@ class DeterministicValidatorWorker implements ValidatorWorker {
   final Duration incidentModeRetryDelay;
   final Duration orphanedTaskRepairDelay;
   final ReplayValidationLimits limits;
+  final TerrainGraphMaterializer graphMaterializer;
   final int Function() _clockMs;
   final int Function() _monotonicClockMicros;
 
   static const Duration _ticketValidity = Duration(hours: 24);
   static const Duration _allowedAuthorityClockSkew = Duration(minutes: 5);
-  static const Set<String> _supportedGameCompatVersions = <String>{'2026.10.11'};
+  static const Set<String> _supportedGameCompatVersions = <String>{
+    '2026.10.11.1',
+  };
 
   static const Set<String> _supportedRulesetVersions = <String>{'rules-v2'};
   static const Set<String> _supportedScoreVersions = <String>{'score-v4'};
@@ -1005,6 +1010,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     );
     final loadout = _loadoutFromSnapshot(ticket.loadoutSnapshot);
     final core = GameCore(
+      graphMaterializer: graphMaterializer,
       seed: ticket.seed,
       runId: 1,
       tickHz: ticket.tickHz,

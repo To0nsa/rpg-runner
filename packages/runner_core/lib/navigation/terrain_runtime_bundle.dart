@@ -10,6 +10,7 @@ import '../snapshots/enums.dart';
 import '../tuning/ground_enemy_tuning.dart';
 import '../tuning/physics_tuning.dart';
 import 'terrain_placement_query.dart';
+import 'terrain_graph_materializer.dart';
 import 'terrain_surface_extractor.dart';
 import 'terrain_surface_graph_builder.dart';
 import 'terrain_surface_spatial_index.dart';
@@ -19,22 +20,41 @@ import 'utils/jump_template.dart';
 
 /// Immutable, version-coherent terrain data published to runtime consumers.
 ///
-/// Every derived index and enemy graph is built before this object can be
-/// observed. A world-motion authority may therefore replace one bundle with
-/// another through a single reference write at a tick boundary.
+/// Collision and shared surfaces are complete before publication. Live builds
+/// also materialize all graphs; offline builds may resolve an immutable graph
+/// on first access without changing its inputs or canonical result.
 final class TerrainRuntimeBundle {
   factory TerrainRuntimeBundle.build({
     required TerrainGeometry geometry,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
   }) {
     final assembly = _TerrainRuntimeBundleAssembly(
       geometry: geometry,
       groundEnemyProfiles: groundEnemyProfiles,
     );
-    return assembly.complete([
-      for (final profile in assembly.profiles)
-        assembly.graphBuilder.build(profile),
-    ]);
+    final profiles = {
+      for (final profile in assembly.profiles) profile.profileKey: profile,
+    };
+    TerrainSurfaceGraph resolve(String key) {
+      final profile = profiles[key]!;
+      return graphMaterializer.lookup?.call(
+            geometry,
+            assembly.surfaceSet,
+            profile,
+          ) ??
+          assembly.graphBuilder.build(profile);
+    }
+
+    final publication = graphMaterializer.deferred
+        ? TerrainSurfaceGraphPublication.deferred(
+            surfaceSet: assembly.surfaceSet,
+            profileKeys: profiles.keys,
+            resolve: resolve,
+          )
+        : TerrainSurfaceGraphPublication(profiles.keys.map(resolve));
+    return assembly.completePublication(publication);
   }
 
   /// Prepares the exact bundle with event-queue yields during graph construction.
@@ -42,6 +62,7 @@ final class TerrainRuntimeBundle {
   static Future<TerrainRuntimeBundle> buildCooperatively({
     required TerrainGeometry geometry,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+    TerrainGraphLookup? graphLookup,
   }) async {
     final assembly = _TerrainRuntimeBundleAssembly(
       geometry: geometry,
@@ -50,7 +71,10 @@ final class TerrainRuntimeBundle {
     final graphs = <TerrainSurfaceGraph>[];
     for (final profile in assembly.profiles) {
       await yieldCooperativeWork();
-      graphs.add(await assembly.graphBuilder.buildCooperatively(profile));
+      graphs.add(
+        graphLookup?.call(geometry, assembly.surfaceSet, profile) ??
+            await assembly.graphBuilder.buildCooperatively(profile),
+      );
     }
     return assembly.complete(graphs);
   }
@@ -110,10 +134,7 @@ final class TerrainRuntimeBundle {
         surfaceSet: nextSurfaces,
         cellSizeWorld: surfaceIndex.cellSizeWorld,
       ),
-      graphPublication: TerrainSurfaceGraphPublication(<TerrainSurfaceGraph>[
-        for (final graph in graphPublication.graphs)
-          graph.withSurfaceSetVersion(nextSurfaces),
-      ]),
+      graphPublication: graphPublication.withSurfaceSetVersion(nextSurfaces),
       graphProfiles: graphProfiles,
     );
   }
@@ -166,7 +187,12 @@ final class _TerrainRuntimeBundleAssembly {
   );
 
   TerrainRuntimeBundle complete(List<TerrainSurfaceGraph> graphs) {
-    final graphPublication = TerrainSurfaceGraphPublication(graphs);
+    return completePublication(TerrainSurfaceGraphPublication(graphs));
+  }
+
+  TerrainRuntimeBundle completePublication(
+    TerrainSurfaceGraphPublication graphPublication,
+  ) {
     if (surfaceSet.geometryVersion != geometry.version ||
         surfaceIndex.geometryVersion != geometry.version ||
         graphPublication.geometryVersion != geometry.version ||

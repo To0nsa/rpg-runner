@@ -8,6 +8,7 @@ library;
 
 import 'ecs/systems/derf_transformation_system.dart';
 import 'navigation/actor_navigation_profiles.dart';
+import 'navigation/terrain_graph_materializer.dart';
 import 'ecs/systems/npc_ai_system.dart';
 import 'ecs/systems/npc_guard_system.dart';
 import 'encounters/encounter_spawn_adapter.dart';
@@ -188,8 +189,12 @@ class GameCore {
   /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
   /// - [terrainPreparation]: Host worker for exact immutable terrain candidates;
   ///   never authored content, recorded input or simulation authority.
+  /// - [graphMaterializer]: Offline replay may resolve graphs on first use;
+  ///   live hosts retain eager, pre-step terrain readiness.
   GameCore({
     TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
     required int seed,
     int runId = 0,
     int tickHz = defaultTickHz,
@@ -203,6 +208,7 @@ class GameCore {
     AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
   }) : this._fromLevel(
          terrainPreparation: terrainPreparation,
+         graphMaterializer: graphMaterializer,
          seed: seed,
          runId: runId,
          tickHz: tickHz,
@@ -314,6 +320,8 @@ class GameCore {
 
   GameCore._fromLevel({
     TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
     required this.seed,
     required this.runId,
     required this.tickHz,
@@ -328,6 +336,7 @@ class GameCore {
     required TerrainGeometry? terrainHarnessGeometry,
     required StagedTerrainCatalog? stagedTerrainCatalogOverride,
   }) : _terrainPreparation = terrainPreparation,
+       _graphMaterializer = graphMaterializer,
        _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
@@ -1101,6 +1110,7 @@ class GameCore {
   late final StagedTerrainCatalog? _stagedTerrainCatalog;
   StagedTerrainStreamCandidate? _stagedTerrainCandidate;
   final TerrainCandidatePreparation _terrainPreparation;
+  final TerrainGraphMaterializer _graphMaterializer;
   StagedTerrainPreparer? _terrainPreparer;
   bool _requiresPreparedTicks = false;
   int? _preparedTick;
@@ -2279,6 +2289,7 @@ class GameCore {
             activeChunks: activeChunks,
             geometryVersion: _nextStagedTerrainGeometryVersion,
             groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+            graphMaterializer: _graphMaterializer,
           );
     }
     _nextStagedTerrainGeometryVersion += 1;

@@ -16,6 +16,7 @@ import 'run_session_repository.dart';
 import 'settlement_dispatcher.dart';
 import 'validated_replay_archiver.dart';
 import 'validator_worker.dart';
+import 'navigation_artifact_store.dart';
 
 class ReplayValidatorApp {
   ReplayValidatorApp({
@@ -101,6 +102,9 @@ class ReplayValidatorApp {
     return ReplayValidatorApp(
       port: parsedPort ?? 8080,
       worker: DeterministicValidatorWorker(
+        graphMaterializer: NavigationArtifactStore(
+          directory: readEnv('NAVIGATION_ARTIFACT_DIRECTORY') ?? '/navigation',
+        ).materializer,
         replayLoader: GoogleCloudStorageReplayLoader(
           bucketName: replayStorageBucket,
           apiProvider: apiProvider,
@@ -177,16 +181,17 @@ class ReplayValidatorApp {
   }
 
   Future<Response> _ready(Request request) async {
-    return _json(ready ? HttpStatus.ok : HttpStatus.serviceUnavailable, <
-      String,
-      Object?
-    >{
-      'status': ready ? 'ready' : 'not_ready',
-      'service': 'replay-validator',
-      if (!ready)
-        'message':
-            readinessMessage ?? 'Replay validator workers are not configured.',
-    });
+    return _json(
+      ready ? HttpStatus.ok : HttpStatus.serviceUnavailable,
+      <String, Object?>{
+        'status': ready ? 'ready' : 'not_ready',
+        'service': 'replay-validator',
+        if (!ready)
+          'message':
+              readinessMessage ??
+              'Replay validator workers are not configured.',
+      },
+    );
   }
 
   Future<Response> _validateTask(Request request) async {

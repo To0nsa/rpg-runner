@@ -6,6 +6,7 @@ import '../util/cooperative_work_yield.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import '../collision/terrain/terrain_geometry.dart';
 import '../navigation/terrain_runtime_bundle.dart';
+import '../navigation/terrain_graph_materializer.dart';
 import '../navigation/terrain_spawn_placement.dart';
 import '../navigation/types/terrain_surface_graph.dart';
 import '../snapshots/staged_terrain_render_snapshot.dart';
@@ -110,6 +111,8 @@ final class StagedTerrainStreamCandidateBuilder {
     required Iterable<ActiveTrackChunkSnapshot> activeChunks,
     required int geometryVersion,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
   }) {
     final bindings = _streamBindingBuilder.build(
       catalog: catalog,
@@ -119,6 +122,7 @@ final class StagedTerrainStreamCandidateBuilder {
       bindings: bindings,
       geometryVersion: geometryVersion,
       groundEnemyProfiles: groundEnemyProfiles,
+      graphMaterializer: graphMaterializer,
     );
   }
 
@@ -130,6 +134,8 @@ final class StagedTerrainStreamCandidateBuilder {
     required List<StagedTerrainChunkBinding> bindings,
     required int geometryVersion,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
   }) {
     bindings = List<StagedTerrainChunkBinding>.unmodifiable(bindings);
     final geometry = _worldGeometryBuilder.build(
@@ -139,6 +145,7 @@ final class StagedTerrainStreamCandidateBuilder {
     final runtimeBundle = _runtimeBundleBuilder.buildFromGeometry(
       geometry: geometry,
       groundEnemyProfiles: groundEnemyProfiles,
+      graphMaterializer: graphMaterializer,
     );
     return _complete(bindings, geometry, runtimeBundle);
   }
@@ -149,6 +156,7 @@ final class StagedTerrainStreamCandidateBuilder {
     required List<StagedTerrainChunkBinding> bindings,
     required int geometryVersion,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,
+    TerrainGraphLookup? graphLookup,
   }) async {
     bindings = List<StagedTerrainChunkBinding>.unmodifiable(bindings);
     final profiles = List<TerrainSurfaceGraphBuildProfile>.unmodifiable(
@@ -162,6 +170,7 @@ final class StagedTerrainStreamCandidateBuilder {
     final runtimeBundle = await TerrainRuntimeBundle.buildCooperatively(
       geometry: geometry,
       groundEnemyProfiles: profiles,
+      graphLookup: graphLookup,
     );
     await yieldCooperativeWork();
     return _complete(bindings, geometry, runtimeBundle);

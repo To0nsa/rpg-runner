@@ -41,6 +41,7 @@ function Invoke-ReleaseComponent {
       if (-not $siteKey -or $siteKey.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($siteKey.Value)) {
         throw "Production web configuration requires FIREBASE_APP_CHECK_WEB_SITE_KEY."
       }
+      Invoke-ReleaseCommand dart @("run", "packages/runner_core/tool/prepare_navigation.dart", "--client") $Root $log | Out-Null
       Invoke-ReleaseCommand flutter @("build", "web", "--release", "--no-pub",
         "--dart-define-from-file=web/production_defines.json") $Root $log | Out-Null
     }
@@ -53,6 +54,7 @@ function Invoke-ReleaseComponent {
       Invoke-ReleaseCommand $probe @() $directory $log | Out-Null
     }
     "content-freshness" {
+      Invoke-ReleaseCommand dart @("run", "packages/runner_core/tool/update_navigation_revision.dart", "--check") $Root $log | Out-Null
       Invoke-ReleaseCommand dart @("run", "tool/generate_chunk_runtime_data.dart", "--dry-run") $Root $log | Out-Null
     }
     default {

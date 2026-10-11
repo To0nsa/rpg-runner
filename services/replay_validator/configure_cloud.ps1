@@ -144,7 +144,7 @@ Invoke-Gcloud @(
   "--timeout=240s",
   "--concurrency=1",
   "--max-instances=10",
-  "--startup-probe=httpGet.path=/ready,httpGet.port=8080,periodSeconds=5,timeoutSeconds=2,failureThreshold=12",
+  "--startup-probe=httpGet.path=/ready,httpGet.port=8080,periodSeconds=1,timeoutSeconds=1,failureThreshold=60",
   "--liveness-probe=httpGet.path=/live,httpGet.port=8080,periodSeconds=30,timeoutSeconds=2,failureThreshold=3",
   "--set-env-vars=$environmentVariables"
 )

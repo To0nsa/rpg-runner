@@ -60,7 +60,7 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts prepared game compatibility `2026.10.11`;
+The validator source accepts prepared game compatibility `2026.10.11.1`;
 replay/command format `1`, `rules-v2`, `score-v4`, and `ghost-v1` are the
 supported ranked tuple. This source includes mandatory boss arenas, whose
 entrance, defeat credit and excluded survival-score ticks are replayed through
@@ -398,3 +398,20 @@ Healthy signals:
 - queue task `lastAttempt.responseStatus` is not `HTTP status code 501/403`
 - `runSessionLoadStatus` may briefly return `settlement_pending`, then moves to
   terminal `validated` only after the Functions-owned wallet settlement
+
+
+## Prepared navigation
+
+The Docker build generates trusted navigation pieces from
+`functions/src/runs/navigation_routes.json` into `/navigation`. The worker uses
+on-demand graphs with a 32 MiB byte cache; missing or invalid pieces use the same
+Core builder. `NAVIGATION_ARTIFACT_DIRECTORY` overrides the directory for local
+measurements. No client-supplied graph data is trusted. See the
+[artifact/rotation contract](../../docs/tdd/prepared_navigation.md).
+
+For a local digest-verified replay comparison, compile and run
+`tool/benchmark_reward_verification.dart <replay.json[.gz]> <capture-directory>`.
+It reports eager/on-demand/prepared cold/warm timings and asserts equal outcomes.
+It captures only that replay's used graphs and does not certify route coverage.
+The strict final-image benchmark and authorized coordinated cutover remain
+required release gates; local AOT results do not replace container evidence.

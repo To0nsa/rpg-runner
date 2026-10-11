@@ -3,7 +3,11 @@
 Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
-- [Current implementation plans](building/README.md): NPC rescue production smoke.
+- [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted
+  graph packs, curated Practice routes, on-demand verification and app-owned
+  wallet catch-up; [remaining rollout gates](building/reward_verification_latency.md).
+- [Current implementation plans](building/README.md): reward verification latency
+  and NPC rescue production smoke.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;

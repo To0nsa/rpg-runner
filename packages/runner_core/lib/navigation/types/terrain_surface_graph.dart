@@ -450,6 +450,25 @@ class TerrainSurfaceGraph {
 
 /// Validated publication of multiple profile views over one node instance.
 class TerrainSurfaceGraphPublication {
+  /// Resolves immutable profile views on first access, in offline simulations.
+  /// Enumeration materializes all profiles in canonical order. Live preparation
+  /// must enumerate before publishing so graph work never enters a frame step.
+  factory TerrainSurfaceGraphPublication.deferred({
+    required TerrainSurfaceSet surfaceSet,
+    required Iterable<String> profileKeys,
+    required TerrainSurfaceGraph Function(String) resolve,
+  }) {
+    final keys = profileKeys.toList()..sort();
+    if (keys.isEmpty || keys.toSet().length != keys.length) {
+      throw ArgumentError('Graph profile keys must be nonempty and unique.');
+    }
+    return TerrainSurfaceGraphPublication._deferred(
+      surfaceSet: surfaceSet,
+      keys: List.unmodifiable(keys),
+      resolve: resolve,
+    );
+  }
+
   factory TerrainSurfaceGraphPublication(
     Iterable<TerrainSurfaceGraph> graphViews,
   ) {
@@ -474,7 +493,7 @@ class TerrainSurfaceGraphPublication {
     }
     return TerrainSurfaceGraphPublication._(
       surfaceSet: sharedSet,
-      graphs: UnmodifiableListView<TerrainSurfaceGraph>(graphs),
+      keys: List.unmodifiable(graphs.map((graph) => graph.profileKey)),
       byProfileKey: Map<String, TerrainSurfaceGraph>.unmodifiable(
         <String, TerrainSurfaceGraph>{
           for (final graph in graphs) graph.profileKey: graph,
@@ -483,25 +502,53 @@ class TerrainSurfaceGraphPublication {
     );
   }
 
-  const TerrainSurfaceGraphPublication._({
+  TerrainSurfaceGraphPublication._({
     required this.surfaceSet,
-    required this.graphs,
+    required List<String> keys,
     required Map<String, TerrainSurfaceGraph> byProfileKey,
-  }) : _byProfileKey = byProfileKey;
+  }) : _keys = keys,
+       _byProfileKey = byProfileKey,
+       _resolve = null;
+
+  TerrainSurfaceGraphPublication._deferred({
+    required this.surfaceSet,
+    required List<String> keys,
+    required TerrainSurfaceGraph Function(String) resolve,
+  }) : _keys = keys,
+       _byProfileKey = {},
+       _resolve = resolve;
 
   final TerrainSurfaceSet surfaceSet;
-  final List<TerrainSurfaceGraph> graphs;
+  final List<String> _keys;
+  final TerrainSurfaceGraph Function(String)? _resolve;
+  List<TerrainSurfaceGraph> get graphs =>
+      List.unmodifiable(_keys.map((key) => this[key]));
   final Map<String, TerrainSurfaceGraph> _byProfileKey;
 
   int get geometryVersion => surfaceSet.geometryVersion;
 
   TerrainSurfaceGraph operator [](String profileKey) {
     final graph = _byProfileKey[profileKey];
-    if (graph == null) {
+    if (graph != null) return graph;
+    if (!_keys.contains(profileKey) || _resolve == null) {
       throw StateError('No terrain graph view exists for $profileKey.');
     }
-    return graph;
+    final resolved = _resolve(profileKey);
+    if (resolved.profileKey != profileKey ||
+        !identical(resolved.surfaceSet, surfaceSet)) {
+      throw StateError('Resolved graph does not match its publication.');
+    }
+    return _byProfileKey[profileKey] = resolved;
   }
+
+  /// Rebinds publication versions without forcing unused deferred profiles.
+  TerrainSurfaceGraphPublication withSurfaceSetVersion(
+    TerrainSurfaceSet next,
+  ) => TerrainSurfaceGraphPublication.deferred(
+    surfaceSet: next,
+    profileKeys: _keys,
+    resolve: (key) => this[key].withSurfaceSetVersion(next),
+  );
 
   List<String> canonicalRecords() => List<String>.unmodifiable(<String>[
     for (final graph in graphs) ...graph.canonicalRecords(),

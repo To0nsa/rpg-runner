@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Reward verification latency](reward_verification_latency.md): implementation
+  delivered in source; local parity and lifecycle checks, two unrelated existing
+  terrain regressions, and remaining device/container/live rollout measurements.
+
 - [Completed Forest boss arena](../archive/2026-10-06/building/forest_boss_arena.md):
   merged into `master` and deployed in `2026.10.8` / `score-v4`; see
   [production verification](../verification/forest_boss_arena.md#production-release-2026108).

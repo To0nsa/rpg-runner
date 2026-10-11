@@ -297,7 +297,7 @@ async function ensureBoardForWindow(args: {
   }
 }
 
-function buildDeterministicSeed(args: {
+export function buildDeterministicSeed(args: {
   mode: RankedBoardMode;
   levelId: string;
   windowId: string;

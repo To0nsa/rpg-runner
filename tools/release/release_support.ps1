@@ -79,7 +79,7 @@ function Get-ReleaseContract {
     @("scoreVersion", "Score", "Score"),
     @("ghostVersion", "Ghost", "Ghost")
   )) {
-    $match = [regex]::Match($worker, "_supported$($entry[1])Versions\s*=\s*<String>\{\s*'([^']+)'\s*\}")
+    $match = [regex]::Match($worker, "_supported$($entry[1])Versions\s*=\s*<String>\{\s*'([^']+)'\s*,?\s*\}")
     if (-not $match.Success) { throw "Worker must declare one supported $($entry[0]) for coordinated release." }
     $value = $match.Groups[1].Value
     if ($entry[2]) {

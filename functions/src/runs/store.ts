@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
@@ -25,6 +25,8 @@ import {
   type RunModeValue,
 } from "./mode.js";
 import { assertSupportedGameCompatVersion } from "./compatibility.js";
+import { canonicalDocRef } from "../ownership/firestore_paths.js";
+import { choosePracticeSeed, practiceRoutePoolId } from "./practice_routes.js";
 
 const runSessionsCollection = "run_sessions";
 const runSessionIssuedState = "issued";
@@ -226,7 +228,8 @@ export async function createRunSession(
       runSessionId,
       uid: args.uid,
       mode: snapshot.mode,
-      seed: randomInt(1, 0x7fffffff),
+      // Assigned with route history in the issuance transaction below.
+      seed: 0,
       tickHz: defaultTickHz,
       gameCompatVersion: args.gameCompatVersion,
       levelId: snapshot.levelId,
@@ -295,6 +298,17 @@ export async function createRunSession(
         activeLimit: activeLimit ?? null,
         wouldRejectActiveLimit,
       } as const;
+    }
+    if (snapshot.mode === "practice") {
+      const profileRef = canonicalDocRef(args.db, args.uid, canonicalState.profileId);
+      const profile = await tx.get(profileRef);
+      const previousSeed: unknown = profile.get(`practiceRouteHistory.${snapshot.levelId}.seed`);
+      runTicket.seed = choosePracticeSeed(snapshot.levelId, previousSeed);
+      // Metadata does not mutate ownership or advance its command revision.
+      // The existing ownership document/account deletion lifecycle owns it.
+      tx.set(profileRef, { practiceRouteHistory: {
+        [snapshot.levelId]: { seed: runTicket.seed, poolId: practiceRoutePoolId },
+      } }, { merge: true });
     }
     tx.create(runSessionRef, runSessionDoc);
     return {

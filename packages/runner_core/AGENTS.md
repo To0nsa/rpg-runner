@@ -100,6 +100,11 @@ phase, casting and placement tests.
 ## Documentation and workflows
 
 - Package orientation: `packages/runner_core/README.md`
+- Prepared navigation: `docs/tdd/prepared_navigation.md`. Regenerate the algorithm
+  fingerprint with `dart run packages/runner_core/tool/update_navigation_revision.dart`
+  after graph-builder, extractor, codec or transitive Core dependency edits;
+  release freshness uses `--check`. Keep live candidates complete before admission;
+  on-demand materialization is an offline replay policy.
 - Simulation invariants: `docs/tdd/runner_core_simulation_contract.md`
 - Animation timing: `docs/tdd/animation_data_flow_and_timing.md`
 - Active implementation work belongs in `docs/building/**`, never as a TODO

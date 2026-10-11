@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "poolId": "practice-2026-10-a",
+  "tickHz": 60,
+  "horizonChunks": 128,
+  "clientHorizonChunks": 8,
+  "practiceSeeds": {
+    "field": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "forest": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "additionalRoutes": [
+    {
+      "mode": "competitive",
+      "levelId": "field",
+      "windowId": "2026-10",
+      "gameCompatVersion": "2026.10.11.1",
+      "seed": 1515134029
+    },
+    {
+      "mode": "competitive",
+      "levelId": "field",
+      "windowId": "2026-11",
+      "gameCompatVersion": "2026.10.11.1",
+      "seed": 1428034624
+    },
+    {
+      "mode": "competitive",
+      "levelId": "forest",
+      "windowId": "2026-10",
+      "gameCompatVersion": "2026.10.11.1",
+      "seed": 412884107
+    },
+    {
+      "mode": "competitive",
+      "levelId": "forest",
+      "windowId": "2026-11",
+      "gameCompatVersion": "2026.10.11.1",
+      "seed": 989446935
+    },
+    {
+      "mode": "weekly",
+      "levelId": "field",
+      "windowId": "2026-W41",
+      "gameCompatVersion": "2026.10.11.1",
+      "seed": 1715791752
+    },
+    {
+      "mode": "weekly",
+      "levelId": "field",
+      "windowId": "2026-W42",
+      "gameCompatVersion": "2026.10.11.1",
+      "seed": 1732512331
+    }
+  ]
+}

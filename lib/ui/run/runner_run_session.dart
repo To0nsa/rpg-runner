@@ -15,6 +15,7 @@ import '../../game/replay/buffered_ghost_playback.dart';
 import '../../game/replay/ghost_render_frame.dart';
 import '../../game/replay/run_recorder.dart';
 import '../../game/runner_flame_game.dart';
+import '../../game/terrain/prepared_terrain_assets.dart';
 import '../app/ui_routes.dart';
 import '../state/ownership/selection_state.dart';
 import '../state/run/local_replay_artifact_store.dart';
@@ -49,6 +50,7 @@ class RunnerRunSession extends ChangeNotifier {
     );
     controller = GameController(
       core: GameCore(
+        terrainPreparation: PreparedTerrainAssets().prepare,
         seed: descriptor.seed,
         runId: descriptor.runId,
         tickHz: descriptor.tickHz,

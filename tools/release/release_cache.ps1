@@ -29,9 +29,9 @@ function Get-ReleaseInputHashes {
     workspace = '^(pubspec\.(yaml|lock)$|analysis_options\.yaml$|packages/[^/]+/pubspec\.yaml$)'
     simulation = '^(packages/(runner_core|runner_content_pipeline)/(lib/|pubspec\.yaml$)|assets/authoring/|tool/)'
     protocol = '^(packages/run_protocol/(lib/|pubspec\.yaml$)|functions/src/(runs|boards|leaderboards|ghosts)/|functions/src/.*/(contracts|validators)\.ts$)'
-    client = '^(lib/|web/|assets/|packages/[^/]+/(lib/|pubspec\.yaml$)|pubspec\.(yaml|lock)$)'
+    client = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|lib/|web/|assets/|packages/[^/]+/(lib/|pubspec\.yaml$)|pubspec\.(yaml|lock)$)'
     functions = '^(functions/(src/|package\.json$|tsconfig\.json$)|firestore\.|firebase\.json$|package\.json$|pnpm-[^/]+\.yaml$)'
-    worker = '^(services/replay_validator/(lib/|bin/|pubspec\.(yaml|lock)$|Dockerfile$|cloudbuild\.yaml$)|packages/(runner_core|run_protocol)/(lib/|pubspec\.yaml$)|\.dockerignore$|\.gcloudignore$)'
+    worker = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|services/replay_validator/(lib/|bin/|pubspec\.(yaml|lock)$|Dockerfile$|cloudbuild\.yaml$)|packages/(runner_core|run_protocol)/(lib/|pubspec\.yaml$)|\.dockerignore$|\.gcloudignore$)'
     infrastructure = '^(firebase\.json$|\.firebaserc$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
   }
   $result = [ordered]@{}
@@ -56,14 +56,14 @@ function Get-ReleaseComponentInputs {
   $pattern = switch ($Component) {
     "functions-build" { '^(functions/(src/|package\.json$|tsconfig\.json$)|package\.json$|pnpm-[^/]+\.yaml$)' }
     "functions-checks" { '^(functions/(src/|test/|tool/|package\.json$|tsconfig.*\.json$)|firebase\.test\.json$|firestore\.|package\.json$|pnpm-[^/]+\.yaml$|packages/run_protocol/lib/)' }
-    "client-build" { "^($workspace|lib/|web/|assets/|$runtime)" }
+    "client-build" { "^($workspace|lib/|web/|assets/|$runtime|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }
     "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|tool/|services/replay_validator/(lib/|bin/|test/|pubspec\.(yaml|lock)$)|$runtime)" }
     "core-checks" { "^($workspace|packages/runner_core/|assets/authoring/)" }
     "protocol-checks" { "^($workspace|packages/run_protocol/)" }
     "content-checks" { "^($workspace|packages/runner_content_pipeline/|packages/runner_core/lib/|assets/authoring/)" }
     "terrain-checks" { "^($workspace|packages/terrain_materials/)" }
     "validator-checks" { '^(services/replay_validator/|packages/(runner_core|run_protocol)/(lib/|pubspec\.yaml$)|analysis_options\.yaml$)' }
-    "content-freshness" { "^($workspace|tool/|assets/authoring/|$runtime)" }
+    "content-freshness" { "^($workspace|tool/|packages/runner_core/tool/|assets/authoring/|$runtime)" }
     default { throw "Unknown release component: $Component" }
   }
   $selected = @($paths | Where-Object { $_ -match $pattern })

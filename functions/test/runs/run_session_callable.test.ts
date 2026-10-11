@@ -18,6 +18,7 @@ import { createRunSession } from "../../src/runs/store.js";
 
 import { currentGameCompatVersion } from "../../src/runs/compatibility.js";
 import { resolveBoardProvisioningConfig } from "../../src/boards/provisioning.js";
+import { practiceSeedsForLevel } from "../../src/runs/practice_routes.js";
 
 const currentScoreVersion = resolveBoardProvisioningConfig({}).scoreVersion;
 
@@ -36,6 +37,21 @@ const app = initializeApp({ projectId }, appName);
 const db = getFirestore(app);
 
 const uid = "uid_run_owner";
+
+test("Practice rotation is atomic and retries retain the issued seed", async () => {
+  await loadOrCreateCanonicalState({ db, uid });
+  let previous: unknown;
+  for (let i = 0; i < 5; i++) {
+    const args = { db, uid, mode: "practice" as const, levelId: "field",
+      gameCompatVersion: currentGameCompatVersion, clientRequestId: `rotation_${i}` };
+    const first = await createRunSession(args);
+    const again = await createRunSession(args);
+    assert.deepEqual(again, first);
+    assert.ok(practiceSeedsForLevel("field").includes(first.runTicket.seed as number));
+    assert.notEqual(first.runTicket.seed, previous);
+    previous = first.runTicket.seed;
+  }
+});
 
 beforeEach(async () => {
   await Promise.all([

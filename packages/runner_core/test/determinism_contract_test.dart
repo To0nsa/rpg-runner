@@ -8,6 +8,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:test/test.dart';
+import 'package:runner_core/navigation/terrain_graph_materializer.dart';
 
 String _snapshotDigest(GameCore core) {
   final s = core.buildSnapshot();
@@ -63,13 +64,17 @@ void _runDeterminismScenario({
   required int seed,
   required LevelDefinition level,
   required PlayerCharacterDefinition playerCharacter,
+  int tickHz = 60,
 }) {
   final a = GameCore(
+    tickHz: tickHz,
     seed: seed,
     levelDefinition: level,
     playerCharacter: playerCharacter,
   );
   final b = GameCore(
+    tickHz: tickHz,
+    graphMaterializer: const TerrainGraphMaterializer.onDemand(),
     seed: seed,
     levelDefinition: level,
     playerCharacter: playerCharacter,
@@ -104,6 +109,10 @@ void _runDeterminismScenario({
   expect(endA.stats.collectibles, endB.stats.collectibles);
   expect(endA.stats.collectibleScore, endB.stats.collectibleScore);
   expect(endA.stats.enemyKillCounts, endB.stats.enemyKillCounts);
+  expect(endA.reason, endB.reason);
+  expect(endA.goldEarned, endB.goldEarned);
+  expect(endA.stats.rescuedNpcs, endB.stats.rescuedNpcs);
+  expect(endA.stats.rescuePoints, endB.stats.rescuePoints);
 
   final scoreA = buildRunScoreBreakdown(
     tick: endA.tick,
@@ -137,6 +146,20 @@ void _runDeterminismScenario({
 }
 
 void main() {
+  for (final level in [LevelId.field, LevelId.forest]) {
+    for (final character in PlayerCharacterId.values) {
+      for (final hz in [30, 90]) {
+        test('eager/on-demand parity $level $character ${hz}Hz', () {
+          _runDeterminismScenario(
+            seed: 16,
+            level: LevelRegistry.byId(level),
+            playerCharacter: PlayerCharacterRegistry.resolve(character),
+            tickHz: hz,
+          );
+        });
+      }
+    }
+  }
   final playerCharacter = PlayerCharacterRegistry.resolve(
     PlayerCharacterId.eloise,
   );

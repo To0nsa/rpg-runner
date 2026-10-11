@@ -43,6 +43,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring
+- App-owned background reward completion, curated Practice routes and
+  [trusted prepared navigation](docs/tdd/prepared_navigation.md). Before a mobile
+  release build, run `dart run packages/runner_core/tool/prepare_navigation.dart --client`.
 - Board-backed leaderboards, replay validation, and ghost publication
 - Backend-authenticated player profile plus ownership/progression persistence via Firebase Functions + Firestore
 - 100+ Dart test files (`*_test.dart`) in `test/`

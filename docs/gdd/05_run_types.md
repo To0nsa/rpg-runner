@@ -34,8 +34,8 @@ UI documents describe *where buttons live*; this document defines *what the mode
 
 Each level supports **two run types**, plus a featured weekly mode:
 
-1) **Practice (Random Seed)**
-- Random seed for variety.
+1) **Practice (Curated Routes)**
+- Random choice from a release-curated pool for variety and prepared verification.
 - No leaderboard submission.
 - No ghost submission.
 
@@ -52,13 +52,18 @@ Each level supports **two run types**, plus a featured weekly mode:
 
 ---
 
-## 4. Practice (Random Seed)
+## 4. Practice (Curated Routes)
 
 ### Purpose
 Variety, learning, farming, experimentation. Zero pressure.
 
 ### Rules
-- **Seed:** random per run.
+- **Seed:** the backend selects from 16 seeds per level, excluding the previously
+  issued seed. Prefetch counts as issuance, so played routes can still repeat.
+  The pool rotates through reviewed content releases.
+- **Length:** unchanged; the prepared prefix does not cap endless runs. Later
+  terrain uses normal deterministic generation. Local Developer Practice keeps
+  its unrestricted seeds.
 - **Leaderboard:** **disabled** (no submission).
 - **Ghosts:** **disabled** (no submission, no racing ghosts).
 - **Rewards:** enabled (normal progression rewards).  

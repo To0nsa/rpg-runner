@@ -106,6 +106,9 @@ resources/
 *.swo
 
 # Agent / tooling outputs
+assets/navigation/*.rng
+assets/navigation/manifest.json
+assets/navigation/preparation.json
 tools/output/src-bundle-flutter.txt
 tools/output/tree.txt
 
