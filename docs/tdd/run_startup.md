@@ -17,6 +17,12 @@ and submission, and requires only world readiness. Restarts remain local.
   read and issues a new ticket for a restart.
 - AppState and its existing APIs remain responsible for auth, ownership sync,
   ticket prefetch/consumption, ticket issuance, and ghost artifact retrieval.
+  A start joins an in-flight prefetch for the exact authenticated user, ownership
+  revision, mode, level, character, loadout and compatibility key before consuming
+  its ticket once. Failed, expired or mismatched prefetch falls back to foreground
+  issuance. Canonical/auth invalidation fences late results even if the eventual
+  key compares equal. Selection/session changes during the wait reject the start.
+  A still-valid cached ticket suppresses redundant warmup requests.
   Cancelling a UI request prevents navigation and subsequent preparation steps;
   it does not revoke backend calls that have already been issued.
 - RunnerRunSession owns the local GameController, input router, aim models,
@@ -25,6 +31,14 @@ and submission, and requires only world readiness. Restarts remain local.
   haptics, and completed-run submission UI.
 - RunnerFlameGame owns render readiness. Its registries own asset requirements;
   Core owns terrain selection and the existing bounded preparation cache.
+
+## App bootstrap
+
+After authentication (and flush-before-refresh on resume), profile and canonical
+ownership reads run concurrently. Both must succeed before either result is
+published. Existing disposal/account-change guards, ownership revision checks,
+and outbox projection still apply. Studio splash and cold-start loader minimum
+branding durations are unchanged; run loading has no artificial minimum.
 
 ## Readiness and failures
 

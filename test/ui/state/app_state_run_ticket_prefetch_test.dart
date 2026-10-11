@@ -16,6 +16,7 @@ import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
@@ -24,6 +25,118 @@ import 'package:rpg_runner/ui/scoped/scoped_preferred_orientations.dart';
 import 'package:rpg_runner/ui/scoped/scoped_system_ui_mode.dart';
 
 void main() {
+  test('selection changes during a joined prefetch reject the old start', () async {
+    final api = _RecordingRunSessionApi(holdResponses: true);
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: api,
+    );
+    addTearDown(state.dispose);
+    final prefetch = state.startRunTicketPrefetchForCurrentSelection();
+    await _waitForCalls(api, minimumCalls: 1);
+    final start = state.prepareRunStartDescriptor();
+    final rejected = expectLater(start, throwsA(isA<RunStartRemoteException>()));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await state.setLevel(LevelId.forest);
+    api.completePending();
+    await prefetch;
+    await rejected;
+    expect(api.createRunSessionCalls, 1);
+  });
+
+  test('run start joins an unfinished exact prefetch', () async {
+    final api = _RecordingRunSessionApi(holdResponses: true);
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: api,
+    );
+    addTearDown(state.dispose);
+    final prefetch = state.startRunTicketPrefetchForCurrentSelection();
+    await _waitForCalls(api, minimumCalls: 1);
+    var completed = false;
+    final start = state.prepareRunStartDescriptor().then((value) {
+      completed = true;
+      return value;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(completed, isFalse);
+    expect(api.createRunSessionCalls, 1);
+    api.completePending();
+    await prefetch;
+    expect((await start).runSessionId, 'run_session_1');
+    expect(api.createRunSessionCalls, 1);
+  });
+
+  test('failed in-flight prefetch falls back to foreground issuance', () async {
+    final api = _RecordingRunSessionApi(holdResponses: true);
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: api,
+    );
+    addTearDown(state.dispose);
+    final prefetch = state.startRunTicketPrefetchForCurrentSelection();
+    await _waitForCalls(api, minimumCalls: 1);
+    final start = state.prepareRunStartDescriptor();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    api.holdResponses = false;
+    api.failPending();
+    await prefetch;
+    expect((await start).runSessionId, 'run_session_2');
+    expect(api.createRunSessionCalls, 2);
+  });
+
+  test(
+    'canonical refresh fences a late prefetch with an unchanged key',
+    () async {
+      final api = _RecordingRunSessionApi(holdResponses: true);
+      final state = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: api,
+      );
+      addTearDown(state.dispose);
+      final prefetch = state.startRunTicketPrefetchForCurrentSelection();
+      await _waitForCalls(api, minimumCalls: 1);
+      await state.bootstrap(force: true);
+      api.holdResponses = false;
+      api.completePending();
+      await prefetch;
+      expect(
+        (await state.prepareRunStartDescriptor()).runSessionId,
+        'run_session_2',
+      );
+      expect(api.createRunSessionCalls, 2);
+    },
+  );
+
+  test('two starts cannot consume the same pending ticket', () async {
+    final api = _RecordingRunSessionApi(holdResponses: true);
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: api,
+    );
+    addTearDown(state.dispose);
+    final prefetch = state.startRunTicketPrefetchForCurrentSelection();
+    await _waitForCalls(api, minimumCalls: 1);
+    final first = state.prepareRunStartDescriptor();
+    final second = state.prepareRunStartDescriptor();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(api.createRunSessionCalls, 1);
+    api.holdResponses = false;
+    api.completePending();
+    await prefetch;
+    final descriptors = await Future.wait([first, second]);
+    expect(descriptors.map((d) => d.runSessionId).toSet(), {
+      'run_session_1',
+      'run_session_2',
+    });
+    expect(api.createRunSessionCalls, 2);
+  });
+
   test(
     'prefetch concurrent requests issue only one run-session call',
     () async {
@@ -458,12 +571,13 @@ void main() {
 class _RecordingRunSessionApi implements RunSessionApi {
   _RecordingRunSessionApi({this.holdResponses = false, this.ticketBuilder});
 
-  final bool holdResponses;
+  bool holdResponses;
   final RunTicket Function(_RunSessionRequest request)? ticketBuilder;
   int createRunSessionCalls = 0;
   final List<RunMode> requestedModes = <RunMode>[];
   final List<LevelId> requestedLevels = <LevelId>[];
   Completer<RunTicket>? _pendingTicket;
+  _RunSessionRequest? _pendingRequest;
 
   @override
   Future<RunTicket> createRunSession({
@@ -476,10 +590,6 @@ class _RecordingRunSessionApi implements RunSessionApi {
     createRunSessionCalls += 1;
     requestedModes.add(mode);
     requestedLevels.add(levelId);
-    if (holdResponses) {
-      _pendingTicket ??= Completer<RunTicket>();
-      return _pendingTicket!.future;
-    }
     final request = _RunSessionRequest(
       callIndex: createRunSessionCalls,
       userId: userId,
@@ -487,6 +597,11 @@ class _RecordingRunSessionApi implements RunSessionApi {
       levelId: levelId,
       gameCompatVersion: gameCompatVersion,
     );
+    if (holdResponses) {
+      _pendingRequest = request;
+      _pendingTicket ??= Completer<RunTicket>();
+      return _pendingTicket!.future;
+    }
     final customTicket = ticketBuilder?.call(request);
     if (customTicket != null) {
       return Future<RunTicket>.value(customTicket);
@@ -507,18 +622,14 @@ class _RecordingRunSessionApi implements RunSessionApi {
     }
     pending.complete(
       _ticketForRequest(
-        request: _RunSessionRequest(
-          callIndex: createRunSessionCalls,
-          userId: 'user_1',
-          mode: requestedModes.last,
-          levelId: requestedLevels.last,
-          gameCompatVersion: '2026.10.7',
-        ),
+        request: _pendingRequest!,
         runSessionId: 'run_session_$createRunSessionCalls',
         expiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
       ),
     );
   }
+
+  void failPending() => _pendingTicket!.completeError(StateError('offline'));
 
   @override
   Future<RunUploadGrant> createUploadGrant({

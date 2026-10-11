@@ -30,14 +30,21 @@ final class _AppStateAuthProfileController extends _AppStateController {
     }
     final session = await _ensureAuthSession();
     final revisionBeforeLoad = _ownershipRevision;
-    final loadedProfile = await _profileRemoteApi.loadProfile(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    final canonical = await _ownershipApi.loadCanonicalState(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
+    late final UserProfile loadedProfile;
+    late final OwnershipCanonicalState canonical;
+    // Both reads depend on auth and the preceding flush, not on one another.
+    // Drain both before publishing so a failure cannot leave partial state.
+    await Future.wait<void>([
+      _profileRemoteApi
+          .loadProfile(userId: session.userId, sessionId: session.sessionId)
+          .then((value) => loadedProfile = value),
+      _ownershipApi
+          .loadCanonicalState(
+            userId: session.userId,
+            sessionId: session.sessionId,
+          )
+          .then((value) => canonical = value),
+    ]);
     if (_app._disposed || _app._accountDeletionAccepted) return;
     if (_authSession.userId != session.userId) {
       throw StateError('The signed-in player changed during startup.');

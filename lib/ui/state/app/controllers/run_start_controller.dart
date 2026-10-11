@@ -32,20 +32,30 @@ final class _AppStateRunStartController extends _AppStateController {
       mode: mode,
       levelId: effectiveLevelId,
     );
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (!_shouldIssueRunTicketPrefetchRequest(key: key, nowMs: nowMs)) {
-      return;
-    }
     final existing = _runTicketPrefetchInFlight[key];
     if (existing != null) {
       await existing;
+      return;
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cached = _runTicketPrefetchCache[key];
+    if (cached != null &&
+        _isRunTicketEligibleForPrefetchCache(runTicket: cached, nowMs: nowMs) &&
+        _matchesRunTicketPrefetchKey(ticket: cached, key: key)) {
+      return;
+    }
+    if (!_shouldIssueRunTicketPrefetchRequest(key: key, nowMs: nowMs)) {
       return;
     }
     final completion = Completer<void>();
     _runTicketPrefetchInFlight[key] = completion.future;
     _runTicketPrefetchLastRequestedAtMsByKey[key] = nowMs;
     try {
-      await _runTicketPrefetchForKey(key: key, session: session);
+      await _runTicketPrefetchForKey(
+        key: key,
+        session: session,
+        request: completion.future,
+      );
       completion.complete();
     } catch (error, stackTrace) {
       completion.completeError(error, stackTrace);
@@ -105,8 +115,8 @@ final class _AppStateRunStartController extends _AppStateController {
     _requireAvailableLevel(levelId);
     final runTicket = expectedMode != null || expectedLevelId != null
         ? null
-        : _takeValidPrefetchedRunTicket(
-            userId: session.userId,
+        : await _takeValidPrefetchedRunTicket(
+            session: session,
             mode: mode,
             levelId: levelId,
           );
@@ -134,16 +144,30 @@ final class _AppStateRunStartController extends _AppStateController {
     return descriptor.copyWith(ghostReplayBootstrap: ghostReplayBootstrap);
   }
 
-  RunTicket? _takeValidPrefetchedRunTicket({
-    required String userId,
+  Future<RunTicket?> _takeValidPrefetchedRunTicket({
+    required AuthSession session,
     required RunMode mode,
     required LevelId levelId,
-  }) {
+  }) async {
     final key = _runTicketPrefetchKeyFor(
-      userId: userId,
+      userId: session.userId,
       mode: mode,
       levelId: levelId,
     );
+    // Join the exact request already paid for by hub warmup. Invalidated work
+    // cannot repopulate the cache or authorize a start with changed selections.
+    final pending = _runTicketPrefetchInFlight[key];
+    if (pending != null) await pending;
+    if (!_isRunTicketPrefetchKeyCurrent(key) ||
+        _selection.selectedRunMode != mode ||
+        _selection.selectedLevelId != levelId ||
+        _authSession.sessionId != session.sessionId ||
+        _ownershipSyncStatus.pendingCount != 0) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message: 'Run selection changed during preparation. Please try again.',
+      );
+    }
     final cached = _runTicketPrefetchCache.remove(key);
     _runTicketPrefetchLruClockByKey.remove(key);
     if (cached == null) {
@@ -330,6 +354,7 @@ final class _AppStateRunStartController extends _AppStateController {
   Future<void> _runTicketPrefetchForKey({
     required _RunTicketPrefetchKey key,
     required AuthSession session,
+    required Future<void> request,
   }) async {
     try {
       final runTicket = await _runSessionApi.createRunSession(
@@ -346,7 +371,8 @@ final class _AppStateRunStartController extends _AppStateController {
       )) {
         return;
       }
-      if (!_isRunTicketPrefetchKeyCurrent(key)) {
+      if (!identical(_runTicketPrefetchInFlight[key], request) ||
+          !_isRunTicketPrefetchKeyCurrent(key)) {
         return;
       }
       _storeRunTicketPrefetch(key: key, runTicket: runTicket);
@@ -363,7 +389,9 @@ final class _AppStateRunStartController extends _AppStateController {
   }
 
   bool _isRunTicketPrefetchKeyCurrent(_RunTicketPrefetchKey key) {
-    if (_authSession.userId != key.userId) {
+    if (_app._disposed ||
+        _app._accountDeletionAccepted ||
+        _authSession.userId != key.userId) {
       return false;
     }
     final effectiveLevelId = _effectiveLevelForMode(

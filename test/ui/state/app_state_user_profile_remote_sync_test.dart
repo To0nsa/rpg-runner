@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
@@ -9,7 +11,71 @@ import 'package:rpg_runner/ui/state/profile/user_profile.dart';
 import 'package:rpg_runner/ui/state/profile/user_profile_remote_api.dart';
 
 void main() {
-  test('bootstrap loads remote profile before canonical ownership', () async {
+  test(
+    'bootstrap overlaps reads and publishes only after both succeed',
+    () async {
+      final profileGate = Completer<void>();
+      final ownershipGate = Completer<void>();
+      final profile = _FakeUserProfileRemoteApi(
+        loadedProfile: const UserProfile(
+          displayName: 'ParallelHero',
+          displayNameLastChangedAtMs: 0,
+          namePromptCompleted: true,
+        ),
+        loadGate: profileGate.future,
+      );
+      final ownership = _NoopOwnershipApi(loadGate: ownershipGate.future);
+      final state = AppState(
+        authApi: const _StaticAuthApi(),
+        loadoutOwnershipApi: ownership,
+        userProfileRemoteApi: profile,
+      );
+      addTearDown(state.dispose);
+      final loading = state.bootstrap();
+      await Future<void>.delayed(Duration.zero);
+      expect(profile.loadCalls, 1);
+      expect(ownership.loadCanonicalStateCalls, 1);
+      expect(state.isBootstrapped, isFalse);
+      ownershipGate.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(state.progression.gold, ProgressionState.initial.gold);
+      profileGate.complete();
+      await loading;
+      expect(state.profile.displayName, 'ParallelHero');
+      expect(state.progression.gold, 5);
+    },
+  );
+
+  test(
+    'parallel bootstrap failure never publishes a successful sibling read',
+    () async {
+      final gate = Completer<void>();
+      final profile = _FakeUserProfileRemoteApi(
+        loadedProfile: const UserProfile(
+          displayName: 'NotPublished',
+          displayNameLastChangedAtMs: 0,
+          namePromptCompleted: true,
+        ),
+        loadGate: gate.future,
+      );
+      final state = AppState(
+        authApi: const _StaticAuthApi(),
+        loadoutOwnershipApi: _NoopOwnershipApi(
+          loadCanonicalError: StateError('offline'),
+        ),
+        userProfileRemoteApi: profile,
+      );
+      addTearDown(state.dispose);
+      final checked = expectLater(state.bootstrap(), throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      gate.complete();
+      await checked;
+      expect(state.isBootstrapped, isFalse);
+      expect(state.profile.displayName, isEmpty);
+    },
+  );
+
+  test('bootstrap loads remote profile and canonical ownership', () async {
     final remoteApi = _FakeUserProfileRemoteApi(
       loadedProfile: const UserProfile(
         displayName: 'RemoteHero',
@@ -133,35 +199,32 @@ void main() {
     },
   );
 
-  test(
-    'applyDefaults keeps local canonical defaults when ownership fallback fails',
-    () async {
-      final remoteApi = _FakeUserProfileRemoteApi(
-        loadedProfile: const UserProfile(
-          displayName: 'RemoteHero',
-          displayNameLastChangedAtMs: 123,
-          namePromptCompleted: true,
-        ),
-      );
-      final ownershipApi = _NoopOwnershipApi(
-        loadCanonicalError: StateError('ownership load failed'),
-      );
-      final appState = AppState(
-        authApi: const _StaticAuthApi(),
-        loadoutOwnershipApi: ownershipApi,
-        userProfileRemoteApi: remoteApi,
-      );
+  test('applyDefaults keeps local canonical defaults when ownership fallback fails', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: 'RemoteHero',
+        displayNameLastChangedAtMs: 123,
+        namePromptCompleted: true,
+      ),
+    );
+    final ownershipApi = _NoopOwnershipApi(
+      loadCanonicalError: StateError('ownership load failed'),
+    );
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileRemoteApi: remoteApi,
+    );
 
-      await appState.applyDefaults();
+    await appState.applyDefaults();
 
-      expect(appState.isBootstrapped, isTrue);
-      expect(appState.profile.displayName, 'RemoteHero');
-      expect(appState.selection, SelectionState.defaults);
-      expect(appState.progression, ProgressionState.initial);
-      expect(appState.profileId, defaultOwnershipProfileId);
-      expect(appState.ownershipRevision, 0);
-    },
-  );
+    expect(appState.isBootstrapped, isTrue);
+    expect(appState.profile.displayName, 'RemoteHero');
+    expect(appState.selection, SelectionState.defaults);
+    expect(appState.progression, ProgressionState.initial);
+    expect(appState.profileId, defaultOwnershipProfileId);
+    expect(appState.ownershipRevision, 0);
+  });
 }
 
 class _StaticAuthApi implements AuthApi {
@@ -198,7 +261,9 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _NoopOwnershipApi implements LoadoutOwnershipApi {
-  _NoopOwnershipApi({this.loadCanonicalError});
+  _NoopOwnershipApi({this.loadCanonicalError, this.loadGate});
+
+  final Future<void>? loadGate;
 
   final Object? loadCanonicalError;
   final OwnershipCanonicalState _canonical = OwnershipCanonicalState(
@@ -221,6 +286,7 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
       throw error;
     }
     loadCanonicalStateCalls += 1;
+    await loadGate;
     return _canonical;
   }
 
@@ -283,8 +349,10 @@ class _FakeUserProfileRemoteApi implements UserProfileRemoteApi {
     required this.loadedProfile,
     this.loadError,
     this.updateError,
+    this.loadGate,
   }) : _currentProfile = loadedProfile;
 
+  final Future<void>? loadGate;
   final UserProfile loadedProfile;
   final Object? loadError;
   final Object? updateError;
@@ -302,6 +370,7 @@ class _FakeUserProfileRemoteApi implements UserProfileRemoteApi {
       throw error;
     }
     loadCalls += 1;
+    await loadGate;
     return _currentProfile;
   }
 
