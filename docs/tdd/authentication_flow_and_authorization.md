@@ -156,6 +156,20 @@ UI entry point:
 
 ### Local Android sign-in troubleshooting
 
+The native bridge resolves `play_games_server_client_id` first, then falls back
+to the `default_web_client_id` generated from `android/app/google-services.json`.
+Both resources are looked up by name with `getIdentifier()`. The resource keep
+rules in `android/app/src/main/res/raw/com_example_rpg_runner_auth_keep.xml`
+preserve these values when present so release resource shrinking cannot remove
+them. Keep the rules aligned with the bridge's resource names.
+
+If the bridge reports `missing-web-client-id`, it has not attempted Play Games
+sign-in. Check that the configured web client ID reaches the packaged APK,
+not just the generated Google Services resources. For release-only failures,
+inspect `build/app/outputs/mapping/release/resources.txt` and the APK resource
+table (`aapt2 dump resources`) for `default_web_client_id` or the explicit
+override. Rebuild and reinstall after correcting configuration or keep rules.
+
 If the native bridge reports `play-games-not-authenticated`, the rejection
 occurs before a server auth code is exchanged with Firebase. Verify the Play
 Games Android credential uses the built application's package name and signing
