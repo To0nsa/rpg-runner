@@ -20,7 +20,7 @@
     },
     {
       "levelId": "forest",
-      "revision": 248,
+      "revision": 383,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "boss_bringer_of_death", "boss_shoggoth", "boss_voidborn_goddess", "boss_voidcaller", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
@@ -42,7 +42,7 @@
             "segmentId": "default",
             "groupId": "default",
             "difficulty": "early",
-            "minChunkCount": 11,
+            "minChunkCount": 1,
             "maxChunkCount": 11,
             "requireDistinctChunks": true
           },
@@ -50,8 +50,8 @@
             "segmentId": "default_2_3",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 2,
-            "maxChunkCount": 4,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -66,8 +66,8 @@
             "segmentId": "default_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 6,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -82,8 +82,8 @@
             "segmentId": "default_2_3_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 2,
-            "maxChunkCount": 4,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -98,40 +98,8 @@
             "segmentId": "default_2_3_2_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 2,
-            "maxChunkCount": 4,
-            "requireDistinctChunks": true
-          },
-          {
-            "segmentId": "bringer_of_death_arena",
-            "groupId": "boss_bringer_of_death",
-            "difficulty": "easy",
             "minChunkCount": 1,
-            "maxChunkCount": 1,
-            "requireDistinctChunks": true
-          },
-          {
-            "segmentId": "voidborn_goddess_arena",
-            "groupId": "boss_voidborn_goddess",
-            "difficulty": "easy",
-            "minChunkCount": 1,
-            "maxChunkCount": 1,
-            "requireDistinctChunks": true
-          },
-          {
-            "segmentId": "shoggoth_arena",
-            "groupId": "boss_shoggoth",
-            "difficulty": "easy",
-            "minChunkCount": 1,
-            "maxChunkCount": 1,
-            "requireDistinctChunks": true
-          },
-          {
-            "segmentId": "voidcaller_arena",
-            "groupId": "boss_voidcaller",
-            "difficulty": "easy",
-            "minChunkCount": 1,
-            "maxChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -143,11 +111,19 @@
             "requireDistinctChunks": true
           },
           {
+            "segmentId": "bringer_of_death_arena",
+            "groupId": "boss_bringer_of_death",
+            "difficulty": "easy",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
             "segmentId": "ruin_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -162,8 +138,8 @@
             "segmentId": "ruin_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -178,8 +154,8 @@
             "segmentId": "ruin_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -194,8 +170,8 @@
             "segmentId": "ruin_2_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -210,16 +186,24 @@
             "segmentId": "ruin_2_2_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "shoggoth_arena",
+            "groupId": "boss_shoggoth",
+            "difficulty": "normal",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
             "requireDistinctChunks": true
           },
           {
             "segmentId": "default_5",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -234,8 +218,8 @@
             "segmentId": "default_5_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -250,8 +234,8 @@
             "segmentId": "default_5_2_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -266,8 +250,8 @@
             "segmentId": "default_5_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
             "requireDistinctChunks": true
           },
           {
@@ -282,8 +266,16 @@
             "segmentId": "default_5_2_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 1,
+            "maxChunkCount": 3,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "voidborn_goddess_arena",
+            "groupId": "boss_voidborn_goddess",
+            "difficulty": "hard",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
             "requireDistinctChunks": true
           }
         ]

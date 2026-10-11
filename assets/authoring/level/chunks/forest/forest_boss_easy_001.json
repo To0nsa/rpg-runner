@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_boss_easy_001",
   "id": "forest_boss_easy_001",
-  "revision": 25,
+  "revision": 132,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,57 +14,205 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
-      "x": 215,
-      "y": 149,
-      "zIndex": 0,
-      "snapToGrid": false
+      "prefabId": "crystal_world_dead_tree_01",
+      "prefabKey": "crystal_world_dead_tree_01",
+      "x": 122,
+      "y": 131,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.5
     },
     {
       "prefabId": "crystal_world_dead_tree_02",
       "prefabKey": "crystal_world_dead_tree_02",
-      "x": 67,
+      "x": 483,
+      "y": 136,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.4
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 409,
+      "y": 145,
+      "zIndex": -21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_white_crystal_01",
+      "prefabKey": "crystal_world_white_crystal_01",
+      "x": 390,
+      "y": 124,
+      "zIndex": -20,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "cimetery_bush_02",
+      "prefabKey": "cimetery_bush_02",
+      "x": 156,
+      "y": 178,
+      "zIndex": -20,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_02",
+      "prefabKey": "crystal_world_pink_moss_02",
+      "x": 466,
+      "y": 72,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_13",
+      "prefabKey": "crystal_world_pink_moss_13",
+      "x": 150,
+      "y": 77,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_12",
+      "prefabKey": "crystal_world_pink_moss_12",
+      "x": 98,
+      "y": 80,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_11",
+      "prefabKey": "crystal_world_pink_moss_11",
+      "x": 496,
+      "y": 83,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "rotationDegrees": 311.0
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_14",
+      "prefabKey": "crystal_world_pink_moss_14",
+      "x": 456,
+      "y": 117,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_03",
+      "prefabKey": "crystal_world_pink_moss_03",
+      "x": 524,
+      "y": 123,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_10",
+      "prefabKey": "crystal_world_pink_moss_10",
+      "x": 379,
+      "y": 124,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_white_crystal_01",
+      "prefabKey": "crystal_world_white_crystal_01",
+      "x": 424,
+      "y": 124,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_09",
+      "prefabKey": "crystal_world_pink_moss_09",
+      "x": 499,
+      "y": 158,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "rotationDegrees": 330.0
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_01",
+      "prefabKey": "crystal_world_pink_moss_01",
+      "x": 462,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_08",
+      "prefabKey": "crystal_world_pink_moss_08",
+      "x": 338,
       "y": 161,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "crystal_world_dead_tree_01",
-      "prefabKey": "crystal_world_dead_tree_01",
-      "x": 419,
-      "y": 165,
+      "prefabId": "crystal_world_pink_moss_04",
+      "prefabKey": "crystal_world_pink_moss_04",
+      "x": 407,
+      "y": 178,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "high_forest_bush_02",
-      "prefabKey": "high_forest_bush_02",
-      "x": 389,
-      "y": 200,
+      "prefabId": "crystal_world_pink_flower_01",
+      "prefabKey": "crystal_world_pink_flower_01",
+      "x": 229,
+      "y": 209,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_herb_05",
-      "prefabKey": "dark_forest_herb_05",
-      "x": 321,
-      "y": 221,
+      "prefabId": "crystal_world_crystal_world_pink_flower_06",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_06",
+      "x": 470,
+      "y": 210,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_herb_03",
-      "prefabKey": "dark_forest_herb_03",
-      "x": 469,
-      "y": 223,
+      "prefabId": "crystal_world_crystal_world_pink_flower_04",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_04",
+      "x": 67,
+      "y": 212,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_herb_01",
-      "prefabKey": "dark_forest_herb_01",
-      "x": 399,
+      "prefabId": "crystal_world_crystal_world_pink_flower_03",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_03",
+      "x": 244,
+      "y": 212,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_crystal_world_pink_flower_02",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_02",
+      "x": 492,
+      "y": 216,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_crystal_world_pink_flower_05",
+      "prefabKey": "crystal_world_crystal_world_pink_flower_05",
+      "x": 140,
+      "y": 217,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_05",
+      "prefabKey": "crystal_world_pink_moss_05",
+      "x": 292,
+      "y": 217,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "crystal_world_pink_moss_07",
+      "prefabKey": "crystal_world_pink_moss_07",
+      "x": 400,
       "y": 224,
       "zIndex": 0,
       "snapToGrid": false

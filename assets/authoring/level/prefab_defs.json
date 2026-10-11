@@ -9899,7 +9899,7 @@
     {
       "prefabKey": "gandalf_hardcore_angel_statue_01",
       "id": "gandalf_hardcore_angel_statue_01",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {

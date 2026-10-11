@@ -2,70 +2,122 @@
   "schemaVersion": 2,
   "chunkKey": "forest_voidborn_goddess_easy_001",
   "id": "forest_voidborn_goddess_easy_001",
-  "revision": 1,
+  "revision": 76,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
   "width": 600,
   "height": 270,
-  "difficulty": "easy",
+  "difficulty": "hard",
   "assemblyGroupId": "boss_voidborn_goddess",
   "tags": [],
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
-      "x": 215,
+      "prefabId": "grimstone_platformer_32x32_tree_04",
+      "prefabKey": "grimstone_platformer_32x32_tree_04",
+      "x": 354,
+      "y": 115,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 2.3
+    },
+    {
+      "prefabId": "grimstone_platformer_32x32_tree_01",
+      "prefabKey": "grimstone_platformer_32x32_tree_01",
+      "x": 534,
+      "y": 147,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 2.5
+    },
+    {
+      "prefabId": "grimstone_platformer_32x32_tree_02",
+      "prefabKey": "grimstone_platformer_32x32_tree_02",
+      "x": 171,
       "y": 149,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 2.5
+    },
+    {
+      "prefabId": "grimstone_platformer_32x32_hedge_01",
+      "prefabKey": "grimstone_platformer_32x32_hedge_01",
+      "x": 509,
+      "y": 210,
+      "zIndex": -21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "grimstone_platformer_32x32_hedge_01",
+      "prefabKey": "grimstone_platformer_32x32_hedge_01",
+      "x": 341,
+      "y": 211,
+      "zIndex": -21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "gandalf_hardcore_flowering_tree_01",
+      "prefabKey": "gandalf_hardcore_flowering_tree_01",
+      "x": 433,
+      "y": 169,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "crystal_world_dead_tree_02",
-      "prefabKey": "crystal_world_dead_tree_02",
-      "x": 67,
-      "y": 161,
+      "prefabId": "gandalf_hardcore_angel_statue_01",
+      "prefabKey": "gandalf_hardcore_angel_statue_01",
+      "x": 114,
+      "y": 177,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "grimstone_platformer_32x32_garden_pot_01",
+      "prefabKey": "grimstone_platformer_32x32_garden_pot_01",
+      "x": 192,
+      "y": 208,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "crystal_world_dead_tree_01",
-      "prefabKey": "crystal_world_dead_tree_01",
-      "x": 419,
-      "y": 165,
+      "prefabId": "grimstone_platformer_32x32_garden_pot_01",
+      "prefabKey": "grimstone_platformer_32x32_garden_pot_01",
+      "x": 40,
+      "y": 209,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "high_forest_bush_02",
-      "prefabKey": "high_forest_bush_02",
-      "x": 389,
-      "y": 200,
+      "prefabId": "grimstone_platformer_32x32_garden_pot_02",
+      "prefabKey": "grimstone_platformer_32x32_garden_pot_02",
+      "x": 112,
+      "y": 209,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_herb_05",
-      "prefabKey": "dark_forest_herb_05",
-      "x": 321,
-      "y": 221,
+      "prefabId": "gandalf_hardcore_garden_pot_01",
+      "prefabKey": "gandalf_hardcore_garden_pot_01",
+      "x": 398,
+      "y": 209,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_herb_03",
-      "prefabKey": "dark_forest_herb_03",
-      "x": 469,
-      "y": 223,
+      "prefabId": "gandalf_hardcore_garden_pot_02",
+      "prefabKey": "gandalf_hardcore_garden_pot_02",
+      "x": 449,
+      "y": 209,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "dark_forest_herb_01",
-      "prefabKey": "dark_forest_herb_01",
-      "x": 399,
-      "y": 224,
+      "prefabId": "gandalf_hardcore_garden_pot_04",
+      "prefabKey": "gandalf_hardcore_garden_pot_04",
+      "x": 426,
+      "y": 210,
       "zIndex": 0,
       "snapToGrid": false
     }
@@ -81,6 +133,54 @@
           "y": 224
         },
         {
+          "x": 222,
+          "y": 224
+        },
+        {
+          "x": 222,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 222,
+          "y": 224
+        },
+        {
+          "x": 270,
+          "y": 224
+        },
+        {
+          "x": 270,
+          "y": 270
+        },
+        {
+          "x": 222,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_003",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 270,
+          "y": 224
+        },
+        {
           "x": 600,
           "y": 224
         },
@@ -89,7 +189,7 @@
           "y": 270
         },
         {
-          "x": 0,
+          "x": 270,
           "y": 270
         }
       ],
