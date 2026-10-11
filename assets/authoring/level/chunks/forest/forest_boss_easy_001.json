@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_boss_easy_001",
   "id": "forest_boss_easy_001",
-  "revision": 132,
+  "revision": 134,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -134,22 +134,6 @@
       "prefabKey": "crystal_world_pink_moss_01",
       "x": 462,
       "y": 160,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_pink_moss_08",
-      "prefabKey": "crystal_world_pink_moss_08",
-      "x": 338,
-      "y": 161,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_pink_moss_04",
-      "prefabKey": "crystal_world_pink_moss_04",
-      "x": 407,
-      "y": 178,
       "zIndex": 0,
       "snapToGrid": false
     },

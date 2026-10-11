@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_002",
   "id": "forest_rocky_grove_hard_002",
-  "revision": 47,
+  "revision": 49,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -13,14 +13,6 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [
-    {
-      "prefabId": "tiny_swords_ground_platform_06_32x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_06_32x32_platform",
-      "x": 429,
-      "y": 70,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
     {
       "prefabId": "pixel_fantasy_caves_small_rock_09",
       "prefabKey": "pixel_fantasy_caves_small_rock_09",
@@ -46,10 +38,10 @@
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
-      "x": 408,
-      "y": 192,
+      "prefabId": "tiny_swords_ground_platform_06_32x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_06_32x32_platform",
+      "x": 423,
+      "y": 176,
       "zIndex": 0,
       "snapToGrid": false
     },

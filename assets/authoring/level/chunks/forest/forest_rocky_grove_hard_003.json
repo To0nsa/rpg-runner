@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_003",
   "id": "forest_rocky_grove_hard_003",
-  "revision": 24,
+  "revision": 25,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -76,7 +76,7 @@
     },
     {
       "shapeId": "solid_001",
-      "collisionMode": "solid",
+      "collisionMode": "none",
       "vertices": [
         {
           "x": 488,
