@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/components/enemies/enemy_render_registry.dart';
 import 'package:rpg_runner/game/components/camera_space_snapped_sprite_animation.dart';
 import 'package:rpg_runner/game/components/spell_impacts/spell_impact_render_registry.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
@@ -25,8 +26,44 @@ void main() {
       final entry = actors.entryFor(EnemyId.bringerOfDeath)!;
       final scaledView = entry.createView();
       await scaledView.onLoad();
-      expect(scaledView.scale.x, 1.5);
-      expect(scaledView.scale.y, 1.5);
+      expect(scaledView.scale.x, closeTo(1.2, 0.0001));
+      expect(scaledView.scale.y, closeTo(1.2, 0.0001));
+      final sheet = await images.load(
+        'entities/enemies/bringer_of_death/sheet.png',
+      );
+      final pixels = (await sheet.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final render = entry.renderAnim;
+      final collider = const EnemyCatalog()
+          .get(EnemyId.bringerOfDeath)
+          .collider;
+      const groundY = 224.0;
+      final bodyY = groundY - collider.offsetY - collider.halfY;
+      for (final row in [0, 1]) {
+        for (var frame = 0; frame < 8; frame++) {
+          var lowestBodyPixel = -1;
+          for (var y = 0; y < render.frameHeight; y++) {
+            for (var x = 70; x < 130; x++) {
+              final pixel =
+                  ((row * render.frameHeight + y) * sheet.width +
+                      frame * render.frameWidth +
+                      x) *
+                  4;
+              if (pixels.getUint8(pixel + 3) != 0) lowestBodyPixel = y;
+            }
+          }
+          final footY =
+              bodyY +
+              (lowestBodyPixel - render.anchorPoint.y) * scaledView.scale.y;
+          expect(lowestBodyPixel, greaterThan(0));
+          expect(
+            (groundY - footY).abs(),
+            lessThanOrEqualTo(2),
+            reason: 'Bringer row $row frame $frame must touch the floor',
+          );
+        }
+      }
       final animations = entry.animSet.animations;
       expect(animations[AnimKey.spawn]!.frames.length, 10);
       expect(animations[AnimKey.spawn]!.frames.first.sprite.srcPosition.x, 840);

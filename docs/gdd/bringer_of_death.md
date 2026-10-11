@@ -5,9 +5,10 @@ Bringer of Death is Forest's first mandatory boss, fought in
 Voidborn Goddess, Shoggoth and Voidcaller, then the enchanted forest.
 The original encounter is deployed as gameplay `2026.10.8` with `score-v4`; see the
 [production evidence](../verification/forest_boss_arena.md#production-release-2026108).
-The tuning below and the three following boss rooms are deployed in `2026.10.9`
-across the client, Functions and replay worker; see the
+The three following boss rooms and their original tuning were deployed in
+`2026.10.9` across the client, Functions and replay worker; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
+The Normal victory restoration below is a later source change.
 
 The 600-by-270 arena fills one gameplay viewport. Its flat floor and raised
 one-way platform give the player room to reposition. On entry, the player stops
@@ -27,8 +28,9 @@ camera shakes and device haptic pulses where supported. The center stays clear
 so the apparition remains visible. This reusable boss-entrance feedback follows
 the entrance clock and does not extend the control hold.
 
-Bringer and Death Pillar are 1.5x their original width and height, with matching
-body and attack collision shapes. Bringer has 120 HP and no passive health
+Bringer is 1.2x his original width and height, with a matching body and ground
+contact shape. His Scythe Sweep and Death Pillar retain their 1.5x attack reach
+and spell presentation. Bringer has 120 HP and no passive health
 regeneration. His ground pursuit is 20% faster than the original encounter
 (1.2 of shared ground speed on direct routes, with 0.72 fallback approach speed).
 He pursues on the ground and keeps the shared melee stand-off distance so the
@@ -87,8 +89,9 @@ and the run clock continue; this is an encounter hold, not a whole-game pause.
 The exit stays closed until Bringer is defeated and his death presentation
 finishes. The Dames de la forêt then bless the surviving player, instantly
 restoring 20% of maximum health, mana and stamina in easy chunks, capped at each
-maximum. Other chunk difficulties retain the 60% restoration. For example, in
-the easy Forest arena, 20 HP out of 100 becomes 40 HP; 90 becomes 100.
+maximum. Normal chunks restore 40%; hard and early chunks restore 60%.
+For example, in the easy Forest arena, 20 HP out of 100 becomes 40 HP;
+90 becomes 100.
 The calculation uses the player's current equipment-adjusted maxima.
 
 The golden Holy VFX 02 animation rises around the player's feet and follows

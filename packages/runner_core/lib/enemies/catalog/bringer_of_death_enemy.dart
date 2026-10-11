@@ -32,7 +32,7 @@ const bringerArchetype = EnemyArchetype(
   mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
   stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
   renderAnim: _bringerRenderAnim,
-  renderScale: 1.5,
+  renderScale: 1.2,
   animProfile: AnimProfile(
     supportsCast: true,
     supportsWalk: true,
@@ -58,11 +58,11 @@ const bringerArchetype = EnemyArchetype(
 );
 
 const ColliderAabbDef _bringerCollider = ColliderAabbDef(
-  // World units at 1.5x source size, matching the enlarged boss presentation.
-  halfX: 18,
-  halfY: 40.5,
+  // Keep ground contact and vulnerable bounds at the sprite's 1.2x size.
+  halfX: 14.4,
+  halfY: 32.4,
   offsetX: 0,
-  offsetY: -4.5,
+  offsetY: -3.6,
 );
 
 /// Shared terrain policy derived from this enemy's authored collider.

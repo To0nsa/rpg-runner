@@ -4,9 +4,10 @@ Forest's `forest_boss_easy_001` contains the first mandatory boss encounter,
 Bringer of Death. The original implementation is deployed with gameplay
 compatibility `2026.10.8` and score partition `score-v4`; see the
 [production evidence](../verification/forest_boss_arena.md#production-release-2026108).
-The tuning and additional [Ancient God bosses](ancient_god_bosses.md) are deployed
-in `2026.10.9`; see the
+The original tuning and additional [Ancient God bosses](ancient_god_bosses.md)
+were deployed in `2026.10.9`; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
+The Normal victory restoration below is a later source change.
 
 The `2026.10.9` Forest assembly follows Bringer with one easy chunk each for
 Voidborn Goddess, Shoggoth and Voidcaller, in that order, then continues into
@@ -124,7 +125,8 @@ timing; it does not wait for the blessing effect.
 `BossVictoryBlessingSystem` owns reward eligibility and deduplication,
 independently of enemy identity. Its default definition names the Dames de la
 forêt and restores 2,000 basis points (20%) of each current maximum in easy
-chunks: health, mana and stamina. Other tiers retain 6,000 basis points (60%).
+chunks: health, mana and stamina. Normal chunks restore 4,000 basis points (40%);
+hard and early chunks retain 6,000 basis points (60%).
 `ActiveTrackChunkSnapshot.tier` preserves the selected tier after pool fallback;
 the arena passes it to the reward system rather than resampling player/camera
 position after release. The snapshot reports the actual applied percentage.
@@ -185,13 +187,14 @@ metadata handles wrapped Attack, Hurt, Death and Cast sequences and explicit
 reverse-order spawn rectangles. The body anchor is `(104, 68)`; the immutable
 terrain capsule and vulnerable body remain separate from the scythe's attack
 capsules. Committed attack art cannot be replaced by ordinary hit reactions.
-The boss render scale is 1.5. Its AABB half-extents `(18, 40.5)` and offset
-`(0, -4.5)` scale the original body by the same factor; the derived terrain
-capsule is `(radius=18, halfSpine=22.5)`. Blade endpoints/radii and pillar
-endpoints/radius are authored at 1.5x original size. The spell-impact registry
-uses the matching 1.5 render scale. Source rectangles and pivots stay in source
-pixels. Direct ground approach uses a 1.2 speed multiplier, 20% above the full
-speed previously applied by direct navigation plans. Fallback steering uses 0.72,
+The boss render scale is 1.2. Its AABB half-extents `(14.4, 32.4)` and offset
+`(0, -3.6)` scale the original body by the same factor; the derived terrain
+capsule is `(radius=14.4, halfSpine=18)`. This keeps the feet of the idle and
+walk frames on the grounded collider's support. Blade endpoints/radii and pillar
+endpoints/radius retain their authored 1.5x original size; the spell-impact
+registry also retains its 1.5 render scale. Source rectangles and pivots stay
+in source pixels. Direct ground approach uses a 1.2 speed multiplier, 20% above
+the full speed previously applied by direct navigation plans. Fallback steering uses 0.72,
 20% above its original 0.6 multiplier.
 For reachable ground targets, it uses the existing ground-enemy stand-off ratio
 against the scaled blade reach, avoiding pursuit underneath the larger blade.

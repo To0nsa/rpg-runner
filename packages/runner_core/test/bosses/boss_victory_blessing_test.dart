@@ -37,7 +37,7 @@ void main() {
       expect(f.resources, [10001, 11501, 13001]);
     });
     test(
-      'restores 60 percent of maxima once and preserves shrine rates at $hz Hz',
+      'normal restores 40 percent and hard restores 60 percent at $hz Hz',
       () {
         final f = _Fixture();
         f.world.levelBlessings.grant(
@@ -48,7 +48,7 @@ void main() {
         final blessing = BossVictoryBlessingSystem(tickHz: hz);
         blessing.request(3, ChunkPatternTier.normal);
         blessing.step(f.world, player: f.player, tick: 100, emit: f.events.add);
-        expect(f.resources, [8000, 7900, 8800]);
+        expect(f.resources, [6000, 5600, 6200]);
         expect(f.world.health.regenAccumulator.single, 7);
         expect(f.world.levelBlessings.healthRegen100.single, 10);
         expect(f.world.health.regenPerSecond100.single, 50);
@@ -58,7 +58,7 @@ void main() {
         expect(event.followEntityId, f.player);
         expect(event.followOffset, const Vec2(0, 24));
         final notice = blessing.snapshot(100)!;
-        expect(notice.restorationBp, 6000);
+        expect(notice.restorationBp, 4000);
         expect(
           notice.durationTicks,
           hz == 30
@@ -71,11 +71,12 @@ void main() {
         expect(blessing.snapshot(100 + notice.durationTicks), isNull);
         blessing.request(3, ChunkPatternTier.normal);
         blessing.step(f.world, player: f.player, tick: 101, emit: f.events.add);
-        expect(f.resources, [8000, 7900, 8800]);
+        expect(f.resources, [6000, 5600, 6200]);
         expect(f.events, hasLength(1));
         blessing.request(4, ChunkPatternTier.hard);
         blessing.step(f.world, player: f.player, tick: 102, emit: f.events.add);
         expect(f.resources, [10000, 11500, 13000]);
+        expect(blessing.snapshot(102)!.restorationBp, 6000);
         expect(f.events, hasLength(2));
         blessing.endRun();
         expect(blessing.snapshot(102), isNull);
@@ -114,7 +115,7 @@ void main() {
     final blessing = BossVictoryBlessingSystem(tickHz: 60)
       ..request(3, ChunkPatternTier.normal);
     blessing.step(f.world, player: f.player, tick: 100, emit: f.events.add);
-    expect(f.resources, [8000, 7900, 8800]);
+    expect(f.resources, [6000, 5600, 6200]);
     f.world.health.hp[0] = 10001;
     f.world.mana.mana[0] = 11501;
     f.world.stamina.stamina[0] = 13001;

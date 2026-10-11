@@ -72,10 +72,10 @@ void main() {
           ),
           EnemyId.voidTentacle: (radius: 15, spine: 21, offsetX: 0, offsetY: 0),
           EnemyId.bringerOfDeath: (
-            radius: 18.0,
-            spine: 22.5,
+            radius: 14.4,
+            spine: 18.0,
             offsetX: 0.0,
-            offsetY: -4.5,
+            offsetY: -3.6,
           ),
         };
     final bodyCenter = TerrainPoint.fromWorld(100, 200);

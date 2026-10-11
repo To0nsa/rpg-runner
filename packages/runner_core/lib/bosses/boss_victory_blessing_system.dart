@@ -18,16 +18,21 @@ final class BossVictoryBlessingDefinition {
     this.id = BossVictoryBlessingId.forestLadies,
     this.restorationBp = 6000,
     this.easyRestorationBp = 2000,
+    this.normalRestorationBp = 4000,
     this.effectId = SpellImpactId.holyBlessing,
   }) : assert(restorationBp >= 0 && restorationBp <= 10000),
-       assert(easyRestorationBp >= 0 && easyRestorationBp <= 10000);
+       assert(easyRestorationBp >= 0 && easyRestorationBp <= 10000),
+       assert(normalRestorationBp >= 0 && normalRestorationBp <= 10000);
   final BossVictoryBlessingId id;
 
-  /// Basis points of each current maximum in non-easy tiers, capped at the maximum.
+  /// Basis points of each current maximum in early and hard chunks.
   final int restorationBp;
 
   /// Basis points of each maximum in easy chunks: 20% leaves post-boss attrition.
   final int easyRestorationBp;
+
+  /// Basis points of each maximum in normal chunks: 40% gives moderate recovery.
+  final int normalRestorationBp;
   final SpellImpactId effectId;
 }
 
@@ -59,9 +64,12 @@ final class BossVictoryBlessingSystem {
     assert(_pendingReward == null || _pendingReward!.occurrence == occurrence);
     _pendingReward = (
       occurrence: occurrence,
-      restorationBp: tier == ChunkPatternTier.easy
-          ? definition.easyRestorationBp
-          : definition.restorationBp,
+      restorationBp: switch (tier) {
+        ChunkPatternTier.easy => definition.easyRestorationBp,
+        ChunkPatternTier.normal => definition.normalRestorationBp,
+        ChunkPatternTier.early ||
+        ChunkPatternTier.hard => definition.restorationBp,
+      },
     );
   }
 
