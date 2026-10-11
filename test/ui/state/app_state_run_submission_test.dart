@@ -19,6 +19,182 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
   test(
+    'final receipts survive a failed wallet refresh and are acknowledged once',
+    () async {
+      final api = _FakeRunSessionApi(
+        finalizeStatus: SubmissionStatus(
+          runSessionId: 'receipt',
+          state: RunSessionState.validated,
+          updatedAtMs: 2000,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 9,
+            effectiveGoldDelta: 9,
+            spendableGoldDelta: 9,
+            updatedAtMs: 2000,
+          ),
+        ),
+      );
+      final ownership = _StaticOwnershipApi();
+      final spool = _InMemorySpoolStore();
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownership,
+        runSessionApi: api,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: api,
+          spoolStore: spool,
+          replayUploader: _NoopReplayUploader(),
+        ),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      ownership.setCanonicalState(_canonicalWithGold(gold: 9, revision: 2));
+      ownership.failNextLoad = true;
+      await app.submitRunReplay(
+        runSessionId: 'receipt',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/receipt.json',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+      );
+      expect(app.progression.gold, 0);
+      expect(await spool.load(runSessionId: 'receipt'), isNotNull);
+      await app.refreshRunSubmissionStatus(runSessionId: 'receipt');
+      expect(app.progression.gold, 9);
+      expect(await spool.load(runSessionId: 'receipt'), isNull);
+    },
+  );
+
+  test(
+    'wallet result from an old account cannot overwrite the current player',
+    () async {
+      final api = _MutableRunSessionApi(
+        finalizeStatus: SubmissionStatus(
+          runSessionId: 'old',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 1000,
+        ),
+      );
+      final auth = _StaticAuthApi.authenticated();
+      final ownership = _StaticOwnershipApi();
+      final app = AppState(
+        authApi: auth,
+        loadoutOwnershipApi: ownership,
+        runSessionApi: api,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: api,
+          spoolStore: _InMemorySpoolStore(),
+          replayUploader: _NoopReplayUploader(),
+        ),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      await app.submitRunReplay(
+        runSessionId: 'old',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/old.json',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+      );
+      api.setLoadStatus(
+        SubmissionStatus(
+          runSessionId: 'old',
+          state: RunSessionState.validated,
+          updatedAtMs: 2000,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 99,
+            effectiveGoldDelta: 99,
+            spendableGoldDelta: 99,
+            updatedAtMs: 2000,
+          ),
+        ),
+      );
+      ownership.setCanonicalState(_canonicalWithGold(gold: 99, revision: 2));
+      final gate = Completer<void>();
+      ownership.nextLoadGate = gate.future;
+      final refresh = app.refreshRunSubmissionStatus(runSessionId: 'old');
+      await Future<void>.delayed(Duration.zero);
+      auth._session = const AuthSession(
+        userId: 'u2',
+        sessionId: 's2',
+        isAnonymous: true,
+        expiresAtMs: 0,
+      );
+      ownership.setCanonicalState(_canonicalWithGold(gold: 3, revision: 1));
+      await app.bootstrap(force: true);
+      gate.complete();
+      await refresh;
+      expect(app.authSession.userId, 'u2');
+      expect(app.progression.gold, 3);
+      expect(app.runSubmissionStatusFor('old'), isNull);
+    },
+  );
+
+  testWidgets(
+    'foreground rewards complete without a run widget and resume after inactivity',
+    (tester) async {
+      final api = _MutableRunSessionApi(
+        finalizeStatus: SubmissionStatus(
+          runSessionId: 'background',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 1000,
+        ),
+      );
+      final spool = _InMemorySpoolStore();
+      final ownership = _StaticOwnershipApi();
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownership,
+        runSessionApi: api,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: api,
+          spoolStore: spool,
+          replayUploader: _NoopReplayUploader(),
+        ),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      await app.journalRunReplay(
+        runSessionId: 'background',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/background.json',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+      );
+      app.setRunSubmissionForeground(true);
+      await tester.pump(Duration.zero);
+      expect(api.createUploadGrantCallCount, 1);
+      app.setRunSubmissionForeground(false);
+      ownership.setCanonicalState(_canonicalWithGold(gold: 12, revision: 2));
+      api.setLoadStatus(
+        SubmissionStatus(
+          runSessionId: 'background',
+          state: RunSessionState.validated,
+          updatedAtMs: 2000,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 12,
+            effectiveGoldDelta: 12,
+            spendableGoldDelta: 12,
+            updatedAtMs: 2000,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 2));
+      expect(app.progression.gold, 0);
+      app.setRunSubmissionForeground(true);
+      await tester.pump(const Duration(seconds: 2));
+      expect(app.progression.gold, 12);
+      expect(await spool.load(runSessionId: 'background'), isNull);
+      final reads = ownership.loadCanonicalStateCallCount;
+      await app.refreshRunSubmissionStatus(runSessionId: 'background');
+      expect(ownership.loadCanonicalStateCallCount, reads);
+    },
+  );
+
+  test(
     'journalRunReplay persists the replay before any remote submission',
     () async {
       final runSessionApi = _FakeRunSessionApi(
@@ -191,50 +367,47 @@ void main() {
     );
   });
 
-  test(
-    'submitRunReplay does not update canonical gold while submission is in flight',
-    () async {
-      final finalizeGate = Completer<void>();
-      final runSessionApi = _BlockingFinalizeRunSessionApi(
-        finalizeStatus: SubmissionStatus(
-          runSessionId: 'run_immediate_gold',
-          state: RunSessionState.pendingValidation,
-          updatedAtMs: 5000,
-        ),
-        finalizeGate: finalizeGate.future,
-      );
-      final coordinator = RunSubmissionCoordinator(
-        runSessionApi: runSessionApi,
-        spoolStore: _InMemorySpoolStore(),
-        replayUploader: _NoopReplayUploader(),
-        clock: () => 5000,
-      );
-      final appState = AppState(
-        authApi: _StaticAuthApi.authenticated(),
-        loadoutOwnershipApi: _StaticOwnershipApi(),
-        runSessionApi: runSessionApi,
-        runSubmissionCoordinator: coordinator,
-      );
-      await appState.bootstrap(force: true);
-
-      final submitFuture = appState.submitRunReplay(
+  test('submitRunReplay does not update canonical gold while submission is in flight', () async {
+    final finalizeGate = Completer<void>();
+    final runSessionApi = _BlockingFinalizeRunSessionApi(
+      finalizeStatus: SubmissionStatus(
         runSessionId: 'run_immediate_gold',
-        runMode: RunMode.practice,
-        replayFilePath: '/tmp/replay_immediate_gold.json',
-        canonicalSha256:
-            'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-        contentLengthBytes: 1024,
-        provisionalSummary: const <String, Object?>{'goldEarned': 31},
-      );
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: 5000,
+      ),
+      finalizeGate: finalizeGate.future,
+    );
+    final coordinator = RunSubmissionCoordinator(
+      runSessionApi: runSessionApi,
+      spoolStore: _InMemorySpoolStore(),
+      replayUploader: _NoopReplayUploader(),
+      clock: () => 5000,
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _StaticOwnershipApi(),
+      runSessionApi: runSessionApi,
+      runSubmissionCoordinator: coordinator,
+    );
+    await appState.bootstrap(force: true);
 
-      await Future<void>.delayed(Duration.zero);
-      expect(appState.progression.gold, 0);
+    final submitFuture = appState.submitRunReplay(
+      runSessionId: 'run_immediate_gold',
+      runMode: RunMode.practice,
+      replayFilePath: '/tmp/replay_immediate_gold.json',
+      canonicalSha256:
+          'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      contentLengthBytes: 1024,
+      provisionalSummary: const <String, Object?>{'goldEarned': 31},
+    );
 
-      finalizeGate.complete();
-      await submitFuture;
-      expect(appState.progression.gold, 0);
-    },
-  );
+    await Future<void>.delayed(Duration.zero);
+    expect(appState.progression.gold, 0);
+
+    finalizeGate.complete();
+    await submitFuture;
+    expect(appState.progression.gold, 0);
+  });
 
   test(
     'submitRunReplay syncs canonical gold when submission reward is final',
@@ -588,7 +761,7 @@ class _StaticAuthApi implements AuthApi {
     );
   }
 
-  final AuthSession _session;
+  AuthSession _session;
 
   @override
   Future<void> clearSession() async {}
@@ -617,6 +790,8 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
 
   OwnershipCanonicalState _canonical;
   int loadCanonicalStateCallCount = 0;
+  bool failNextLoad = false;
+  Future<void>? nextLoadGate;
 
   void setCanonicalState(OwnershipCanonicalState canonical) {
     _canonical = canonical;
@@ -633,7 +808,15 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
     required String sessionId,
   }) async {
     loadCanonicalStateCallCount += 1;
-    return _canonical;
+    if (failNextLoad) {
+      failNextLoad = false;
+      throw StateError('offline');
+    }
+    final result = _canonical;
+    final gate = nextLoadGate;
+    nextLoadGate = null;
+    if (gate != null) await gate;
+    return result;
   }
 
   @override

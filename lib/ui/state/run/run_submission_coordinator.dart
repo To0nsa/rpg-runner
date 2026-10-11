@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:run_protocol/run_mode.dart';
+import 'package:run_protocol/submission_status.dart'
+    show SubmissionRewardStatus;
 
 import 'local_replay_artifact_store.dart';
 import 'pending_run_submission.dart';
@@ -447,7 +449,18 @@ class RunSubmissionCoordinator {
       );
 
       if (submissionStatus.isTerminal) {
-        await _removeSubmission(runSessionId: runSessionId);
+        if (submissionStatus.reward?.status ==
+            SubmissionRewardStatus.finalReward) {
+          await _persistSubmission(
+            submission: pending.copyWith(
+              step: PendingRunSubmissionStep.awaitingServerStatus,
+              updatedAtMs: _clock(),
+              finalizedAtMs: _clock(),
+            ),
+          );
+        } else {
+          await _removeSubmission(runSessionId: runSessionId);
+        }
         return RunSubmissionStatus.fromServerStatus(
           submissionStatus,
           nowMs: _clock(),
@@ -540,6 +553,11 @@ class RunSubmissionCoordinator {
     return _retryBackoffSchedule[index];
   }
 
+  /// Removes a final reward receipt only after canonical ownership was loaded.
+  /// Until then it survives app closure and is retried by the foreground queue.
+  Future<void> acknowledgeFinalReward({required String runSessionId}) =>
+      _removeSubmission(runSessionId: runSessionId);
+
   bool _isRetryDeferred(PendingRunSubmission pending, int nowMs) {
     return pending.step == PendingRunSubmissionStep.retryScheduled &&
         pending.nextAttemptAtMs > nowMs;
@@ -602,7 +620,9 @@ class RunSubmissionCoordinator {
       runSessionId: runSessionId,
     );
     if (status.isTerminal) {
-      await _removeSubmission(runSessionId: runSessionId);
+      if (status.reward?.status != SubmissionRewardStatus.finalReward) {
+        await _removeSubmission(runSessionId: runSessionId);
+      }
       return RunSubmissionStatus.fromServerStatus(
         status,
         nowMs: nowMs,

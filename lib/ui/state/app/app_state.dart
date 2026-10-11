@@ -41,6 +41,7 @@ import '../boards/run_boards_api.dart';
 import '../run/run_submission_coordinator.dart';
 import '../run/run_submission_spool_store.dart';
 import '../run/run_submission_status.dart';
+import '../run/run_submission_scheduler.dart';
 import '../run/run_session_api.dart';
 import '../run/run_start_remote_exception.dart';
 import '../ownership/loadout_ownership_api.dart';
@@ -261,6 +262,7 @@ class AppState extends ChangeNotifier {
   int? _ownershipSyncStatusUpdatedAtMs;
   final Map<String, RunSubmissionStatus> _runSubmissionStatuses =
       <String, RunSubmissionStatus>{};
+  RunSubmissionStatus? _latestVerifiedReward;
   final Map<_RunTicketPrefetchKey, RunTicket> _runTicketPrefetchCache =
       <_RunTicketPrefetchKey, RunTicket>{};
   final Map<_RunTicketPrefetchKey, Future<void>> _runTicketPrefetchInFlight =
@@ -287,6 +289,10 @@ class AppState extends ChangeNotifier {
   int get ownershipRevision => _ownershipRevision;
   OwnershipSyncPolicy get ownershipSyncPolicy => _ownershipSyncPolicy;
   OwnershipSyncStatus get ownershipSyncStatus => _ownershipSyncStatus;
+
+  /// Latest newly acknowledged reward; canonical gold is already refreshed.
+  /// Presentation may announce it once without blocking navigation or play.
+  RunSubmissionStatus? get latestVerifiedReward => _latestVerifiedReward;
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
 
@@ -413,8 +419,8 @@ class AppState extends ChangeNotifier {
 
   /// Persists a finalized replay locally before any network work begins.
   ///
-  /// A player may safely leave the run after this completes: bootstrap will
-  /// resume uploading the retained replay on a later app launch.
+  /// A player may safely leave the run after this completes. Foreground app
+  /// processing continues across routes; later launches recover from the spool.
   Future<RunSubmissionStatus> journalRunReplay({
     required String runSessionId,
     required RunMode runMode,
@@ -449,6 +455,12 @@ class AppState extends ChangeNotifier {
 
   Future<List<RunSubmissionStatus>> processPendingRunSubmissions() =>
       _runSubmissionController.processPendingRunSubmissions();
+
+  /// Keeps durable replay delivery and reward refresh alive across routes.
+  /// Embedders must pass false while inactive and true on foreground resume.
+  /// Developer Practice never starts online submission work.
+  void setRunSubmissionForeground(bool foreground) =>
+      _runSubmissionController.setForeground(foreground);
 
   Future<OnlineLeaderboardBoard> loadOnlineLeaderboardBoard({
     required RunMode mode,
@@ -609,6 +621,7 @@ class AppState extends ChangeNotifier {
       _ownershipSyncStatusUpdatedAtMs = null;
     }
     if (userChanged) {
+      _runSubmissionController.resetAccount();
       _ownershipFlushTimer?.cancel();
       _ownershipFlushTimer = null;
       _ownershipSyncStatus = OwnershipSyncStatus.idle;
@@ -684,6 +697,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _runSubmissionController.dispose();
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;
     _clearRunTicketPrefetchState();

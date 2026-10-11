@@ -59,6 +59,9 @@ final class _AppStateAuthProfileController extends _AppStateController {
     if (_app._disposed || _app._accountDeletionAccepted) return;
     _bootstrapped = true;
     _notifyListeners();
+    if (_app._runSubmissionController._foreground) {
+      unawaited(_resumePendingRunSubmissions());
+    }
   }
 
   Future<void> applyDefaults() async {
@@ -155,6 +158,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
     }
 
     _acceptedDeletionResult = result;
+    _app._runSubmissionController.resetAccount();
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;
     _selection = SelectionState.defaults;

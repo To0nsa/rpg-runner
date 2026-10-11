@@ -31,6 +31,9 @@ import 'state/ownership/selection_state.dart';
 /// render preparation are released when the route closes.
 /// Runtime terrain waits preserve the same run and recorder, hold simulation
 /// before the next tick, and offer retry/exit if preparation fails.
+/// Authenticated hosts keep their AppState alive after this route closes and
+/// forward lifecycle changes to AppState.setRunSubmissionForeground so durable
+/// reward verification can finish and refresh ownership on subsequent screens.
 /// Mandatory boss arenas keep this route and its run session alive while Core
 /// holds entrance controls and later resumes normal running after the fight.
 Route<void> createRunnerGameRoute({

@@ -250,6 +250,13 @@ Current local scoreboard store uses:
 
 ## 8. Determinism / anti-cheat posture (sane defaults)
 
+Verification continues after leaving Game Over, visiting the hub or starting
+another run. Pending gold remains unspendable. After server settlement and wallet
+refresh, a brief nonblocking "X gold verified" notification appears. Verification
+never gates navigation. Inactive apps suspend polling; resume/restart recovers
+durable submissions. Retries do not issue another payout. Score collection
+animation remains a visual flow and does not authorize rewards.
+
 - Score must be computed from authoritative run stats (ticks, distance, kills, pickups).
 - Avoid wall-clock time (`DateTime.now`, `Stopwatch`) in score computation.
 - For Competitive/Weekly submissions:

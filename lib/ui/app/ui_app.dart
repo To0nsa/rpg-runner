@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../assets/ui_asset_lifecycle.dart';
 import '../levels/level_id_ui.dart';
 import '../state/app/app_state.dart';
+import '../state/run/run_submission_status.dart';
 import '../state/ownership/ownership_sync_policy.dart';
 import '../theme/ui_theme.dart';
 import 'app_services.dart';
@@ -26,6 +27,9 @@ class UiApp extends StatefulWidget {
 
 class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  AppState? _rewardAppState;
+  RunSubmissionStatus? _lastReward;
   late final _theme = createUiTheme();
   late final _routeObserver = UiRouteObserver(
     onPageChanged: _handlePageChanged,
@@ -44,14 +48,49 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.services.addListener(_bindRewardNotifications);
+    _bindRewardNotifications();
     unawaited(_configureDisplay());
   }
 
   @override
   void dispose() {
+    widget.services.removeListener(_bindRewardNotifications);
+    _rewardAppState?.removeListener(_onRewardCompleted);
     WidgetsBinding.instance.removeObserver(this);
     widget.services.dispose();
     super.dispose();
+  }
+
+  void _bindRewardNotifications() {
+    final app = widget.services.readyAppState;
+    if (identical(app, _rewardAppState)) return;
+    _rewardAppState?.removeListener(_onRewardCompleted);
+    _rewardAppState = app;
+    _lastReward = app?.latestVerifiedReward;
+    app?.addListener(_onRewardCompleted);
+  }
+
+  void _onRewardCompleted() {
+    final app = _rewardAppState;
+    final reward = app?.latestVerifiedReward;
+    if (reward == null || identical(reward, _lastReward)) return;
+    _lastReward = reward;
+    if (reward.spendableGoldDelta <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !identical(app, _rewardAppState) ||
+          !identical(app?.latestVerifiedReward, reward)) {
+        return;
+      }
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text('${reward.spendableGoldDelta} gold verified'),
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    });
   }
 
   Future<void> _configureDisplay() async {
@@ -89,6 +128,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final appState = widget.services.readyAppState;
     if (widget.services.isSwitchingProfile) return;
+    appState?.setRunSubmissionForeground(state == AppLifecycleState.resumed);
     if (state == AppLifecycleState.resumed) {
       _applyGlobalSystemUiMode();
       if (_isStartupRoute || appState == null) return;
@@ -122,6 +162,10 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
 
   void _handlePageChanged(String? name) {
     _currentRouteName = name;
+    widget.services.readyAppState?.setRunSubmissionForeground(
+      WidgetsBinding.instance.lifecycleState == null ||
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+    );
     _applyGlobalSystemUiMode();
     if (name == UiRoutes.hub) {
       widget.services.readyAppState?.startWarmup();
@@ -194,6 +238,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             ? const SizedBox.shrink()
             : _StableHorizontalSafePadding(child: child),
         navigatorKey: _navigatorKey,
+        scaffoldMessengerKey: _messengerKey,
         initialRoute: UiRoutes.brandSplash,
         onGenerateInitialRoutes: UiRouter.onGenerateInitialRoutes,
         onGenerateRoute: UiRouter.onGenerateRoute,

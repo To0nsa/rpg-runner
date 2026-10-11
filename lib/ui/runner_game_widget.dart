@@ -59,6 +59,8 @@ import 'viewport/viewport_metrics.dart';
 ///
 /// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
 /// resumes lifecycle-paused play while preserving manual pauses and ready state.
+/// Reward completion belongs to AppState and continues after this widget closes;
+/// embedding hosts must forward app foreground state to AppState.
 /// Boss entrances hold controls within the active Core run; the replay clock
 /// continues, and defeating the boss restores ordinary route progression.
 ///
@@ -142,12 +144,6 @@ class RunnerGameWidget extends StatefulWidget {
 
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
-  // One-second checks cover the normal immediate settlement path; after ten
-  // seconds, five-second polling avoids a long-lived mobile/network hot loop.
-  static const Duration _initialSubmissionPollInterval = Duration(seconds: 1);
-  static const Duration _initialSubmissionPollWindow = Duration(seconds: 10);
-  static const Duration _steadySubmissionPollInterval = Duration(seconds: 5);
-
   final UiHaptics _haptics = const UiHapticsService();
   late BossEntranceHapticsBinding _bossEntranceHaptics;
   bool _pausedByLifecycle = false;
@@ -163,10 +159,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   RunMode get _runMode => _descriptor.runMode;
   int? _provisionalGoldEarned;
   RunSubmissionStatus? _runSubmissionStatus;
-  Timer? _runSubmissionPollTimer;
-  bool _runSubmissionPollInFlight = false;
-  DateTime? _runSubmissionPollingStartedAt;
-  bool _runSubmissionPollingFast = false;
+  AppState? _submissionAppState;
   String? _runSubmissionRunSessionId;
   bool _runReplayJournaled = false;
   bool _runReplayJournalInFlight = false;
@@ -213,10 +206,34 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final appState = _maybeAppState();
+    if (identical(appState, _submissionAppState)) return;
+    _submissionAppState?.removeListener(_onSubmissionChanged);
+    _submissionAppState = appState;
+    appState?.addListener(_onSubmissionChanged);
+    appState?.setRunSubmissionForeground(
+      WidgetsBinding.instance.lifecycleState == null ||
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+    );
+  }
+
+  void _onSubmissionChanged() {
+    if (!mounted) return;
+    final status = _submissionAppState?.runSubmissionStatusFor(_runSessionId);
+    if (status == null) return;
+    setState(() => _runSubmissionStatus = status);
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) =>
       _onLifecycle(state);
 
   void _onLifecycle(AppLifecycleState state) {
+    _submissionAppState?.setRunSubmissionForeground(
+      state == AppLifecycleState.resumed,
+    );
     final runLoaded = _session.isReady;
     final uiState = _buildUiState(runLoaded: runLoaded);
     if (state == AppLifecycleState.resumed) {
@@ -436,12 +453,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         _runReplayJournalError = null;
         _runSubmissionStatus = journaledStatus;
       });
-      unawaited(
-        _processJournaledReplayForValidation(
-          appState: appState,
-          runSessionId: _runSessionId,
-        ),
-      );
     } catch (error) {
       debugPrint(
         'Replay journaling failed for runSessionId=$_runSessionId: $error',
@@ -460,38 +471,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     }
   }
 
-  Future<void> _processJournaledReplayForValidation({
-    required AppState appState,
-    required String runSessionId,
-  }) async {
-    try {
-      final status = await appState.processJournaledRunReplay(
-        runSessionId: runSessionId,
-      );
-      if (!mounted || runSessionId != _runSessionId) return;
-      setState(() => _runSubmissionStatus = status);
-      _scheduleSubmissionStatusPolling(
-        appState: appState,
-        runSessionId: runSessionId,
-        initialStatus: status,
-      );
-    } catch (error) {
-      debugPrint(
-        'Replay submission processing failed for runSessionId=$runSessionId: '
-        '$error',
-      );
-      if (!mounted || runSessionId != _runSessionId) return;
-      setState(() {
-        _runSubmissionStatus = RunSubmissionStatus(
-          runSessionId: runSessionId,
-          phase: RunSubmissionPhase.internalError,
-          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
-          message: '$error',
-        );
-      });
-    }
-  }
-
   Map<String, Object?> _buildReplayProvisionalSummary(RunEndedEvent event) {
     return <String, Object?>{
       'runId': event.runId,
@@ -505,103 +484,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       'rescuedNpcs': event.stats.rescuedNpcs,
       'rescuePoints': event.stats.rescuePoints,
     };
-  }
-
-  void _scheduleSubmissionStatusPolling({
-    required AppState appState,
-    required String runSessionId,
-    required RunSubmissionStatus initialStatus,
-  }) {
-    _stopSubmissionStatusPolling();
-    if (initialStatus.isTerminal) {
-      return;
-    }
-    _runSubmissionPollingStartedAt = DateTime.now();
-    _runSubmissionPollingFast = true;
-    _startSubmissionStatusPollingTimer(
-      interval: _initialSubmissionPollInterval,
-      appState: appState,
-      runSessionId: runSessionId,
-    );
-  }
-
-  void _startSubmissionStatusPollingTimer({
-    required Duration interval,
-    required AppState appState,
-    required String runSessionId,
-  }) {
-    _runSubmissionPollTimer = Timer.periodic(interval, (_) {
-      unawaited(
-        _refreshSubmissionStatus(
-          appState: appState,
-          runSessionId: runSessionId,
-        ),
-      );
-    });
-  }
-
-  Future<void> _refreshSubmissionStatus({
-    required AppState appState,
-    required String runSessionId,
-  }) async {
-    if (_runSubmissionPollInFlight) {
-      return;
-    }
-    _runSubmissionPollInFlight = true;
-    try {
-      final status = await appState.refreshRunSubmissionStatus(
-        runSessionId: runSessionId,
-      );
-      if (!mounted || runSessionId != _runSessionId) {
-        return;
-      }
-      setState(() => _runSubmissionStatus = status);
-      if (status.isTerminal) {
-        _stopSubmissionStatusPolling();
-      }
-    } catch (error) {
-      debugPrint(
-        'Replay status refresh failed for runSessionId=$runSessionId: $error',
-      );
-    } finally {
-      _runSubmissionPollInFlight = false;
-      _backOffSubmissionStatusPollingIfNeeded(
-        appState: appState,
-        runSessionId: runSessionId,
-      );
-    }
-  }
-
-  void _backOffSubmissionStatusPollingIfNeeded({
-    required AppState appState,
-    required String runSessionId,
-  }) {
-    if (runSessionId != _runSessionId) {
-      return;
-    }
-    final startedAt = _runSubmissionPollingStartedAt;
-    if (!_runSubmissionPollingFast || startedAt == null) {
-      return;
-    }
-    if (DateTime.now().difference(startedAt) < _initialSubmissionPollWindow) {
-      return;
-    }
-    _runSubmissionPollTimer?.cancel();
-    _runSubmissionPollTimer = null;
-    _runSubmissionPollingFast = false;
-    _startSubmissionStatusPollingTimer(
-      interval: _steadySubmissionPollInterval,
-      appState: appState,
-      runSessionId: runSessionId,
-    );
-  }
-
-  void _stopSubmissionStatusPolling() {
-    _runSubmissionPollTimer?.cancel();
-    _runSubmissionPollTimer = null;
-    _runSubmissionPollInFlight = false;
-    _runSubmissionPollingStartedAt = null;
-    _runSubmissionPollingFast = false;
   }
 
   RunnerGameUiState _buildUiState({required bool runLoaded}) {
@@ -691,7 +573,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         debugPrint('Run cleanup failed: $error');
       }),
     );
-    _stopSubmissionStatusPolling();
 
     setState(() {
       _pausedByLifecycle = false;
@@ -808,7 +689,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _disposeGame() {
     _bossEntranceHaptics.dispose();
-    _stopSubmissionStatusPolling();
     _clearInputs();
     _controller.removeEventListener(_handleGameEvent);
     _controller.removeListener(_onControllerTick);
@@ -820,6 +700,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   @override
   void dispose() {
+    _submissionAppState?.removeListener(_onSubmissionChanged);
     WidgetsBinding.instance.removeObserver(this);
     _restartPreparation?.dispose();
     _restartPreparation = null;

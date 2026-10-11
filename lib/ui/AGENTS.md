@@ -89,6 +89,8 @@ must not bypass a resume refresh. Hub warmup starts only after bootstrap.
   auth + ownership preflight
 - creating remote run sessions and consuming server-issued run tickets
 - submitting completed run replays for asynchronous validation
+- foreground, app-owned submission retries and reward completion across routes;
+  the durable final receipt remains until canonical ownership is refreshed
 - loading active boards, leaderboards, ranks, and ghost manifests
 - awarding run gold back into remote progression through validated run flows
 - handling account deletion reset flow

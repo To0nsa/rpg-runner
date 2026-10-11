@@ -2,6 +2,54 @@ part of 'package:rpg_runner/ui/state/app/app_state.dart';
 
 final class _AppStateRunSubmissionController extends _AppStateController {
   _AppStateRunSubmissionController(super._app);
+  late final _scheduler = RunSubmissionScheduler(process: _pump);
+  final Map<String, Future<RunSubmissionStatus>> _inFlight = {};
+  final Set<String> _acknowledged = {};
+  int _generation = 0;
+  bool _foreground = false;
+  Future<void>? _discovery;
+
+  bool _isCurrent(AuthSession session, int generation) =>
+      generation == _generation &&
+      !_app._disposed &&
+      !_app._accountDeletionAccepted &&
+      _authSession.userId == session.userId;
+
+  void setForeground(bool foreground) {
+    if (_app.isDeveloperMode ||
+        _app._disposed ||
+        _app._accountDeletionAccepted) {
+      return;
+    }
+    if (_foreground == foreground) return;
+    _foreground = foreground;
+    _scheduler.setForeground(foreground);
+    if (foreground) unawaited(_resumePendingRunSubmissions());
+  }
+
+  void resetAccount() {
+    _generation += 1;
+    _scheduler.clear();
+    _inFlight.clear();
+    _acknowledged.clear();
+    _app._latestVerifiedReward = null;
+    _discovery = null;
+  }
+
+  void dispose() {
+    _generation += 1;
+    _scheduler.dispose();
+  }
+
+  Future<int?> _pump(String id) async {
+    final status = await refreshRunSubmissionStatus(runSessionId: id);
+    if (status.isTerminal &&
+        (!status.isRewardFinal || _acknowledged.contains(id))) {
+      return null;
+    }
+    return status.nextRetryAtMs ?? 0;
+  }
+
   Future<RunSubmissionStatus> submitRunReplay({
     required String runSessionId,
     required RunMode runMode,
@@ -33,6 +81,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     Map<String, Object?>? provisionalSummary,
   }) async {
     final session = await _ensureAuthSession();
+    final generation = _generation;
     final pending = await _runSubmissionCoordinator.enqueueSubmission(
       userId: session.userId,
       runSessionId: runSessionId,
@@ -43,73 +92,113 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       contentType: contentType,
       provisionalSummary: provisionalSummary,
     );
-    _runSubmissionStatuses[runSessionId] = RunSubmissionStatus.fromPending(
-      pending,
-    );
+    final status = RunSubmissionStatus.fromPending(pending);
+    if (!_isCurrent(session, generation)) return status;
+    _runSubmissionStatuses[runSessionId] = status;
+    _scheduler.track(runSessionId);
     _notifyListeners();
     return _runSubmissionStatuses[runSessionId]!;
   }
 
   Future<RunSubmissionStatus> processJournaledRunReplay({
     required String runSessionId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final status = await _runSubmissionCoordinator.processRunSession(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      runSessionId: runSessionId,
-    );
-    _runSubmissionStatuses[runSessionId] = status;
-    await _syncCanonicalAfterSubmissionStatuses(
-      session: session,
-      statuses: <RunSubmissionStatus>[status],
-    );
-    _notifyListeners();
-    return status;
-  }
+  }) => refreshRunSubmissionStatus(runSessionId: runSessionId);
 
   Future<RunSubmissionStatus> refreshRunSubmissionStatus({
     required String runSessionId,
   }) async {
+    final active = _inFlight[runSessionId];
+    if (active != null) return active;
+    final pending = _refresh(runSessionId);
+    _inFlight[runSessionId] = pending;
+    try {
+      return await pending;
+    } finally {
+      if (identical(_inFlight[runSessionId], pending)) {
+        _inFlight.remove(runSessionId);
+      }
+    }
+  }
+
+  Future<RunSubmissionStatus> _refresh(String runSessionId) async {
     final session = await _ensureAuthSession();
-    final status = await _runSubmissionCoordinator.refreshRunSessionStatus(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      runSessionId: runSessionId,
-    );
+    final generation = _generation;
+    final known = _runSubmissionStatuses[runSessionId];
+    if (known != null &&
+        known.isTerminal &&
+        (!known.isRewardFinal || _acknowledged.contains(runSessionId))) {
+      return known;
+    }
+    _scheduler.track(runSessionId);
+    final status = known?.isRewardFinal == true
+        ? known!
+        : await _runSubmissionCoordinator.refreshRunSessionStatus(
+            userId: session.userId,
+            sessionId: session.sessionId,
+            runSessionId: runSessionId,
+          );
+    if (!_isCurrent(session, generation)) return status;
     _runSubmissionStatuses[runSessionId] = status;
+    _notifyListeners();
     await _syncCanonicalAfterSubmissionStatuses(
       session: session,
+      generation: generation,
       statuses: <RunSubmissionStatus>[status],
     );
+    if (!_isCurrent(session, generation)) return status;
+    if (status.isTerminal &&
+        (!status.isRewardFinal || _acknowledged.contains(runSessionId))) {
+      _scheduler.forget(runSessionId);
+    }
     _notifyListeners();
     return status;
   }
 
   Future<List<RunSubmissionStatus>> processPendingRunSubmissions() async {
     final session = await _ensureAuthSession();
-    final statuses = await _runSubmissionCoordinator.processReadySubmissions(
+    final generation = _generation;
+    final local = await _runSubmissionCoordinator.loadLocalStatuses(
       userId: session.userId,
-      sessionId: session.sessionId,
     );
-    if (statuses.isEmpty) {
-      return const <RunSubmissionStatus>[];
+    final statuses = <RunSubmissionStatus>[];
+    for (final status in local) {
+      if (!_isCurrent(session, generation)) break;
+      statuses.add(
+        await refreshRunSubmissionStatus(runSessionId: status.runSessionId),
+      );
     }
-    for (final status in statuses) {
-      _runSubmissionStatuses[status.runSessionId] = status;
-    }
-    await _syncCanonicalAfterSubmissionStatuses(
-      session: session,
-      statuses: statuses,
-    );
-    _notifyListeners();
     return statuses;
   }
 
   @override
   Future<void> _resumePendingRunSubmissions() async {
+    final active = _discovery;
+    if (active != null) return active;
+    final pending = _discover();
+    _discovery = pending;
     try {
-      await processPendingRunSubmissions();
+      await pending;
+    } finally {
+      if (identical(_discovery, pending)) _discovery = null;
+    }
+  }
+
+  Future<void> _discover() async {
+    try {
+      final session = await _ensureAuthSession();
+      final generation = _generation;
+      final statuses = await _runSubmissionCoordinator.loadLocalStatuses(
+        userId: session.userId,
+      );
+      if (!_isCurrent(session, generation)) return;
+      for (final status in statuses) {
+        _runSubmissionStatuses.putIfAbsent(status.runSessionId, () => status);
+        _scheduler.track(
+          status.runSessionId,
+          notBeforeMs: status.nextRetryAtMs,
+        );
+      }
+      _notifyListeners();
     } catch (error) {
       debugPrint('Pending replay submission resume failed: $error');
     }
@@ -117,6 +206,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
 
   Future<void> _syncCanonicalAfterSubmissionStatuses({
     required AuthSession session,
+    required int generation,
     required Iterable<RunSubmissionStatus> statuses,
   }) async {
     final shouldRefreshCanonical = statuses.any(
@@ -130,7 +220,23 @@ final class _AppStateRunSubmissionController extends _AppStateController {
         userId: session.userId,
         sessionId: session.sessionId,
       );
-      _applyCanonicalState(canonical);
+      if (!_isCurrent(session, generation)) return;
+      if (canonical.revision >= _ownershipRevision) {
+        _applyCanonicalState(canonical);
+        await _reconcileSelectionProjectionFromOutbox(
+          ownerUserId: session.userId,
+        );
+      }
+      if (!_isCurrent(session, generation)) return;
+      for (final status in statuses.where((status) => status.isRewardFinal)) {
+        await _runSubmissionCoordinator.acknowledgeFinalReward(
+          runSessionId: status.runSessionId,
+        );
+        if (!_isCurrent(session, generation)) return;
+        if (_acknowledged.add(status.runSessionId)) {
+          _app._latestVerifiedReward = status;
+        }
+      }
     } catch (error) {
       debugPrint(
         'Run submission canonical sync failed after final reward status: $error',

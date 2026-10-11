@@ -50,6 +50,28 @@ leave the disposition retryable; during pre-release cost containment the
 15-minute schedule remains the retry cadence. Before public release, remeasure
 this fallback path and restore the production cadence and alert timing.
 
+## Client completion lifetime
+
+`AppState` owns one foreground submission scheduler across run, hub and meta
+routes. `RunnerGameWidget` observes status; disposing it does not stop upload,
+verification or canonical wallet refresh. The app shell suspends scheduling
+outside the resumed lifecycle and rediscovers the account's durable spool on
+resume. Embedders forward this lifecycle using `setRunSubmissionForeground`.
+Developer Practice never activates the queue.
+
+The queue deduplicates each run's in-flight operation, spaces background
+requests by at least one second globally, and backs off delayed runs. Long-lived
+pending runs share one status request per minute. A new run retains fast checks.
+Upload retries preserve the coordinator's durable retry deadline. Account
+changes, accepted deletion and disposal fence late status and ownership writes.
+
+A final reward receipt stays in the spool until canonical ownership loads and
+local pending selection is reapplied. Failed refreshes retry even after leaving
+Game Over or restarting the app. Successful acknowledgement removes the receipt;
+repeated status requests do not reload the same acknowledged reward. The app
+announces newly verified gold without interrupting play. Provisional gold remains
+unspendable; this client lifecycle cannot grant rewards.
+
 ## Observability contract
 
 Functions emit Cloud Logging entries with message `run_settlement` and these
