@@ -71,7 +71,7 @@ class GhostPlaybackRunner {
   /// Prepares upcoming terrain before real-time playback; offline replay may
   /// omit this without changing any commands, snapshots, or run results.
   Future<void> prepareTerrainAhead() =>
-      _disposed ? Future<void>.value() : _core.prepareTerrainAhead();
+      _disposed ? Future<void>.value() : _core.prepareTerrainForRun();
 
   /// Cooperative UI-thread playback must admit each tick before applying its
   /// recorded commands. Offline/native worker playback can remain synchronous.

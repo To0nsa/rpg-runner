@@ -30,7 +30,7 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Terrain streaming performance](tdd/terrain_streaming_performance.md): October
   freeze diagnosis, incremental preparation, portable spatial queries, and local
   browser regression/performance evidence. The fixes have not been deployed.
-- [Run startup](tdd/run_startup.md): shared preflight, world/recorder readiness, loading recovery, and run-owned assets.
+- [Run startup](tdd/run_startup.md): shared preflight, world/recorder readiness, loading recovery, and run-owned assets. See the [startup audit and local measurements](verification/run_startup_2026-10-11.md) for ticket reuse, bounded asset loading and native terrain preparation.
 - [Developer Practice](tdd/developer_practice.md): debug Options toggle, persistent
   fully unlocked local profile, and Practice without backend sessions or rewards.
 - [Forest boss arenas](tdd/boss_arenas.md) and [Bringer gameplay](gdd/bringer_of_death.md):

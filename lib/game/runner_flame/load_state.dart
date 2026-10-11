@@ -7,6 +7,7 @@ enum RunLoadPhase {
   playerAnimationsLoaded,
   registriesLoaded,
   ghostPrepared,
+  terrainPreparing,
   worldReady,
   failed,
 }

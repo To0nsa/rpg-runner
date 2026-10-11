@@ -46,8 +46,10 @@ import 'viewport/viewport_metrics.dart';
 /// ghost preparation, and replay-recorder initialization. HUD, controls, and
 /// Start appear only after all required preparation succeeds. Required failures
 /// offer retry at tick zero with the same ticket, plus the host's exit callback.
-/// Start never waits on pending ghost asset or terrain work. A bounded native
-/// worker computes ghost ticks ahead; only presentation follows the live tick.
+/// The complete initial terrain window is ready before Start. Native startup
+/// builds independent terrain candidates concurrently; browser work cooperates
+/// with rendering. A bounded native worker computes ghost ticks ahead; only
+/// presentation follows the live tick.
 /// Debug-only developer Practice skips recording and account submission while
 /// preserving the normal simulation, loading, controls and score breakdown.
 ///

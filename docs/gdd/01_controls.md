@@ -298,6 +298,15 @@ Rule:
 
 ---
 
+## Loading before a run
+
+Before “Tap to start”, loading messages distinguish preparation of game art,
+terrain, a selected ghost, and replay recording. Ready appears as soon as required
+startup work succeeds, without a minimum run-loading duration. The initial path
+is fully prepared before Start; later path preparation runs in the background.
+A loading failure offers Retry and Exit; retry keeps the selected run at its
+starting point.
+
 ## Terrain preparation during a run
 
 If the next part of the path is still loading, the game holds the current pose

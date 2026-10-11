@@ -113,10 +113,10 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Awaits Core's first terrain preparation window before interactive play.
-  /// Subsequent windows refill without changing fixed-tick simulation results.
+  /// Awaits the complete startup window using native preparation parallelism.
+  /// Runtime refills and live tick admission preserve their existing bounds.
   Future<void> prepareTerrainAhead() =>
-      _isShutdown ? Future<void>.value() : _core.prepareTerrainAhead();
+      _isShutdown ? Future<void>.value() : _core.prepareTerrainForRun();
 
   /// Fixed simulation tick frequency.
   final int tickHz;

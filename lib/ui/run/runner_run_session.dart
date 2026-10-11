@@ -113,10 +113,13 @@ class RunnerRunSession extends ChangeNotifier {
     return _recorderError == null ? null : RunStartupFailure.recorder;
   }
 
-  String get loadingMessage =>
-      game.loadState.value.phase == RunLoadPhase.worldReady
-      ? 'Preparing replay recorder...'
-      : 'Building level...';
+  String get loadingMessage => switch (game.loadState.value.phase) {
+    RunLoadPhase.worldReady => 'Preparing replay recorder...',
+    RunLoadPhase.terrainPreparing => 'Preparing terrain...',
+    RunLoadPhase.registriesLoaded => 'Preparing ghost...',
+    RunLoadPhase.playerAnimationsLoaded => 'Loading game art...',
+    _ => 'Building level...',
+  };
 
   String? get errorMessage => switch (failure) {
     RunStartupFailure.world =>

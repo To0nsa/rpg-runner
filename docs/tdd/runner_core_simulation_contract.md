@@ -261,13 +261,14 @@ fixtures compile one deterministic flat polygon at the level's authored ground
 reference. The test/tool-only `GameCore.terrainMotionHarness` factory remains
 available only to inject focused polygon geometry.
 
-Interactive hosts opt into `GameCore.prepareTerrainAhead()` during loading.
-Core projects eight upcoming spawn/cull selection states and builds complete
-candidates from admitted bindings in a background Dart isolate. Publication
-still uses the actual scheduler selection and live monotonic geometry version;
-cache readiness cannot change the publication tick, RNG, commands, or results.
-A miss uses the original synchronous builder. Headless validation does not need
-to enable preparation. See [terrain preparation](sloped_navigation_and_enemy_terrain.md#background-terrain-preparation)
+Interactive hosts use `GameCore.prepareTerrainForRun()` during loading. It awaits
+all eight upcoming spawn/cull selection states using two native workers or one
+cooperative browser lane. Runtime refills and explicit `prepareTerrainAhead()`
+calls retain one worker. Publication still uses the actual scheduler selection
+and live monotonic geometry version; cache readiness cannot change the
+publication tick, RNG, commands, or results.
+An offline miss uses the original synchronous builder; live ticks await admission.
+Headless validation does not need to enable preparation. See [terrain preparation](sloped_navigation_and_enemy_terrain.md#background-terrain-preparation)
 for matching, capacity, failure, and lifetime rules.
 
 `LevelDefinition.identity`, `GameCore.levelIdentity`, and

@@ -3,7 +3,8 @@
 // hosts provide a server-issued ticket and an exit path (see the widget/route).
 // Debug-only developer Practice uses an explicit local descriptor, requires
 // world readiness only and never records, submits or rewards a run.
-// Runtime terrain readiness holds missing publications before simulation;
+// Startup awaits the complete initial terrain window with bounded native
+// parallelism. Runtime readiness holds missing publications before simulation;
 // failure recovery retries within the same run and recorder.
 // Boss entrances and arena completion remain inside that same run session.
 //

@@ -25,25 +25,31 @@ import 'package:rpg_runner/ui/scoped/scoped_preferred_orientations.dart';
 import 'package:rpg_runner/ui/scoped/scoped_system_ui_mode.dart';
 
 void main() {
-  test('selection changes during a joined prefetch reject the old start', () async {
-    final api = _RecordingRunSessionApi(holdResponses: true);
-    final state = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: api,
-    );
-    addTearDown(state.dispose);
-    final prefetch = state.startRunTicketPrefetchForCurrentSelection();
-    await _waitForCalls(api, minimumCalls: 1);
-    final start = state.prepareRunStartDescriptor();
-    final rejected = expectLater(start, throwsA(isA<RunStartRemoteException>()));
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-    await state.setLevel(LevelId.forest);
-    api.completePending();
-    await prefetch;
-    await rejected;
-    expect(api.createRunSessionCalls, 1);
-  });
+  test(
+    'selection changes during a joined prefetch reject the old start',
+    () async {
+      final api = _RecordingRunSessionApi(holdResponses: true);
+      final state = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: api,
+      );
+      addTearDown(state.dispose);
+      final prefetch = state.startRunTicketPrefetchForCurrentSelection();
+      await _waitForCalls(api, minimumCalls: 1);
+      final start = state.prepareRunStartDescriptor();
+      final rejected = expectLater(
+        start,
+        throwsA(isA<RunStartRemoteException>()),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await state.setLevel(LevelId.forest);
+      api.completePending();
+      await prefetch;
+      await rejected;
+      expect(api.createRunSessionCalls, 1);
+    },
+  );
 
   test('run start joins an unfinished exact prefetch', () async {
     final api = _RecordingRunSessionApi(holdResponses: true);

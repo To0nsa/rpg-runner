@@ -1172,10 +1172,29 @@ class GameCore {
     _preparedTick = tick + 1;
   }
 
+  /// Awaits the complete startup terrain window, parallelizing native builds.
+  /// Live hosts still call [prepareNextTick] before every tick. This advances no
+  /// simulation, reports startup failure, and cannot restart work after shutdown.
+  Future<void> prepareTerrainForRun() async {
+    if (_stagedTerrainCatalog == null) return;
+    final preparer = _ensureTerrainPreparer();
+    await preparer.prepareForRun(
+      _trackManager.upcomingSelections(
+        viewWidth: virtualWidth.toDouble(),
+        count: StagedTerrainPreparer.selectionCapacity,
+      ),
+    );
+    if (!identical(preparer, _terrainPreparer)) return;
+    final error = preparer.stats.lastError;
+    if (error != null) {
+      throw StateError('Initial terrain preparation failed: $error');
+    }
+  }
+
   /// Opts this run into bounded background preparation and awaits its window.
   ///
-  /// Interactive hosts await this during loading and call [prepareNextTick]
-  /// before each live tick. Headless replay can keep the synchronous path.
+  /// Interactive startup uses [prepareTerrainForRun]; this full-window wait is
+  /// also available to benchmarks. Headless replay can keep the synchronous path.
   /// Speculation never changes selected chunks or publication ticks.
   Future<void> prepareTerrainAhead() {
     final catalog = _stagedTerrainCatalog;

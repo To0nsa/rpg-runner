@@ -25,6 +25,8 @@ import 'state/ownership/selection_state.dart';
 /// outlines are prepared and any online replay recorder has opened its file. Required
 /// loading failures offer retry and exit; retries before Start reuse the ticket
 /// after closing the previous attempt. HUD and controls appear only when ready.
+/// The complete initial terrain window is awaited; native startup builds use
+/// bounded parallelism while runtime terrain admission stays enforced.
 /// Ghost precomputation never advances live gameplay; its run-owned worker and
 /// render preparation are released when the route closes.
 /// Runtime terrain waits preserve the same run and recorder, hold simulation

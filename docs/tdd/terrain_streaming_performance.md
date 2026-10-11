@@ -62,8 +62,10 @@ between ready-cache replenishments lasted 30.6 seconds. Preparation now dispatch
 one nearest missing selection at a time, publishes each complete result
 immediately, and re-reads the latest requested window before dispatching again.
 Obsolete output is discarded. Disable/dispose rejects late output and prevents
-new jobs. The cache remains bounded to eight selections with one job in flight.
-The first window is still awaited during loading. Offline synchronous stepping
+new jobs. Runtime refills keep one job in flight with at most eight cached
+selections. Startup now awaits the same full window using two native workers or
+one cooperative browser lane; see the [startup audit](../verification/run_startup_2026-10-11.md).
+Offline synchronous stepping
 remains available; interactive misses now use the readiness boundary below.
 
 Graph construction now uses per-build profile caches, bounded exact placement
@@ -107,9 +109,9 @@ An exact cache hit is reserved for that tick. A miss prioritizes the required
 selection ahead of speculative work and returns a future for that selection
 alone. The currently running job can finish first; obsolete results are discarded.
 A completed reservation survives a later speculative failure until consumed.
-Only one worker runs per preparer, with at most eight cached candidates plus the
-single candidate reserved by Core. Catalog binding and preparation dispatch
-remain outside the frame stack.
+During live play one worker runs per preparer, with at most eight cached
+candidates plus the single candidate reserved by Core. Catalog binding and
+preparation dispatch remain outside the frame stack.
 
 Calling the readiness API permanently enables Core's prepared-tick guard.
 Live terrain replacement accepts only the reserved exact selection; it cannot

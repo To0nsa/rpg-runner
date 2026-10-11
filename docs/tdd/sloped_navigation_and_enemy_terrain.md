@@ -602,17 +602,20 @@ identities; publication does not sort or revalidate every unchanged edge.
 Graph rebinding rejects a different node-list identity. New geometry and new
 graphs still pass the full normal constructor validation in the worker.
 
-The ready cache retains at most eight selections per simulation. Only one
-candidate is in flight. Selections are processed nearest first and each complete
-result becomes available immediately. Concurrent requests replace the queue;
+The ready cache retains at most eight selections per simulation. Runtime refills
+keep one candidate in flight. Selections are processed nearest first and each
+complete result becomes available immediately. Concurrent requests replace the queue;
 after every handoff the preparer reselects the nearest missing candidate and
 discards obsolete output. Disabled/disposed runs reject late results and cannot
 start another job. Changed selections trigger refills.
 Binding and preparation dispatch are queued after the current frame/simulation stack;
 the tick only updates the desired window and consumes already prepared data.
-`RunnerFlameGame` awaits the live run's first window during loading. The run
-widget starts the ghost's preparation at initialization and awaits it before
-Start. Each simulation owns its cache; controller shutdown, ghost completion,
+`RunnerFlameGame` uses `GameCore.prepareTerrainForRun()` to await all eight states
+during loading. Startup permits two native workers, while browsers and runtime
+refills retain one. Every job retains exact-selection identity; failures and
+shutdown fence and drain all started work. The run widget starts the ghost's
+preparation at initialization and awaits it before Start. Each simulation owns
+its cache; controller shutdown, ghost completion,
 replacement, and widget disposal release it. A worker already in progress can
 finish but cannot retain results or schedule another job after disposal.
 

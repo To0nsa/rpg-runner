@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/track/staged_terrain_preparer.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -30,15 +32,23 @@ class _GameplayBenchmark extends StatefulWidget {
 }
 
 class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
-  final _scenarios = [
-    (LevelId.forest, 857469563, PlayerCharacterRegistry.eloise),
-    (LevelId.forest, 42, PlayerCharacterRegistry.eloise),
-    (LevelId.field, 42, PlayerCharacterRegistry.eloise),
-    (LevelId.new_level, 42, PlayerCharacterRegistry.eloise),
-    for (final player in PlayerCharacterRegistry.all)
-      if (player.id != PlayerCharacterRegistry.eloise.id)
-        (LevelId.forest, 857469563, player),
-  ];
+  late final _scenarios =
+      [
+        (LevelId.forest, 857469563, PlayerCharacterRegistry.eloise),
+        (LevelId.forest, 42, PlayerCharacterRegistry.eloise),
+        (LevelId.field, 42, PlayerCharacterRegistry.eloise),
+        (LevelId.new_level, 42, PlayerCharacterRegistry.eloise),
+        for (final player in PlayerCharacterRegistry.all)
+          if (player.id != PlayerCharacterRegistry.eloise.id)
+            (LevelId.forest, 857469563, player),
+      ].where((scenario) {
+        final query = Uri.base.queryParameters;
+        return (query['level'] == null || scenario.$1.name == query['level']) &&
+            (query['seed'] == null ||
+                scenario.$2.toString() == query['seed']) &&
+            (query['character'] == null ||
+                scenario.$3.id.name == query['character']);
+      }).toList();
   final _rows = <Map<String, Object?>>[];
   final _aim = ValueNotifier(AimPreviewState.inactive);
   GameController? _controller;
@@ -53,6 +63,7 @@ class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
 
   void _startNext() {
     final (levelId, seed, player) = _scenarios[_rows.length];
+    final startupWatch = Stopwatch()..start();
     final core = GameCore(
       seed: seed,
       levelDefinition: LevelRegistry.byId(levelId),
@@ -68,14 +79,20 @@ class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
     );
     final controller = Uri.base.queryParameters['coldTerrain'] == '1'
         ? _ColdTerrainController(core: core)
+        : Uri.base.queryParameters['fullWarmup'] == '1'
+        ? _FullTerrainController(core: core)
         : GameController(core: core);
     _controller = controller;
     _game = _BenchmarkGame(
       core: core,
+      coreConstructionMicros: startupWatch.elapsedMicroseconds,
+      startupWatch: startupWatch,
       levelId: levelId,
       seed: seed,
       controller: controller,
-      input: RunnerInputRouter(controller: controller),
+      input: Uri.base.queryParameters['scriptedInput'] == '1'
+          ? _ScriptedBenchmarkInput(controller: controller)
+          : RunnerInputRouter(controller: controller),
       playerCharacter: player,
       aim: _aim,
       complete: _completeAttempt,
@@ -136,9 +153,51 @@ class _ColdTerrainController extends GameController {
   Future<void> prepareTerrainAhead() async {}
 }
 
+// Comparison controls stay in tooling; production always uses its startup gate.
+class _FullTerrainController extends GameController {
+  _FullTerrainController({required super.core}) : _core = core;
+  final GameCore _core;
+  @override
+  Future<void> prepareTerrainAhead() => _core.prepareTerrainAhead();
+}
+
+// A fixed command tape makes warmup comparisons independent of rendered frame
+// count, terrain waits, and catch-up. Commands still use live controller admission.
+class _ScriptedBenchmarkInput extends RunnerInputRouter {
+  _ScriptedBenchmarkInput({required super.controller}) {
+    for (var tick = 1; tick <= 1800; tick++) {
+      controller.enqueue(MoveAxisCommand(tick: tick, axis: 1));
+      controller.enqueue(AimDirCommand(tick: tick, x: 0.8, y: -0.6));
+      if (tick % 32 == 1) controller.enqueue(JumpPressedCommand(tick: tick));
+      for (final (slot, period, release) in [
+        (AbilitySlot.primary, 48, 8),
+        (AbilitySlot.projectile, 110, 17),
+        (AbilitySlot.secondary, 180, 12),
+        (AbilitySlot.mobility, 220, 5),
+      ]) {
+        if (tick % period == 1 || tick % period == release) {
+          controller.enqueue(
+            AbilitySlotHeldCommand(
+              tick: tick,
+              slot: slot,
+              held: tick % period == 1,
+            ),
+          );
+        }
+      }
+      if (tick % 240 == 1) controller.enqueue(SpellPressedCommand(tick: tick));
+    }
+  }
+
+  @override
+  void pumpHeldInputs() {}
+}
+
 class _BenchmarkGame extends RunnerFlameGame {
   _BenchmarkGame({
     required this.core,
+    required this.coreConstructionMicros,
+    required this.startupWatch,
     required this.levelId,
     required this.seed,
     required super.controller,
@@ -163,6 +222,10 @@ class _BenchmarkGame extends RunnerFlameGame {
   }
 
   final GameCore core;
+  final int coreConstructionMicros;
+  final Stopwatch startupWatch;
+  int _startupMicros = 0;
+  int _startupPrepared = 0;
   final LevelId levelId;
   final int seed;
   final void Function(Map<String, Object?>) complete;
@@ -171,6 +234,8 @@ class _BenchmarkGame extends RunnerFlameGame {
   final _geometryVersions = <int>{};
   int _frames = 0;
   int _maxEntities = 0;
+  final bool _scripted = Uri.base.queryParameters['scriptedInput'] == '1';
+  int? _firstTerrainWaitTick;
   bool _started = false;
   bool _finished = false;
   final _terrainWaitWatch = Stopwatch();
@@ -182,6 +247,9 @@ class _BenchmarkGame extends RunnerFlameGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    startupWatch.stop();
+    _startupMicros = startupWatch.elapsedMicroseconds;
+    _startupPrepared = core.terrainPreparationStats?.completed ?? 0;
     controller.setPaused(false);
     debugPrint(
       'GAMEPLAY_BENCHMARK_ACTIVE '
@@ -193,7 +261,7 @@ class _BenchmarkGame extends RunnerFlameGame {
 
   @override
   void update(double dt) {
-    if (_started && !_finished) {
+    if (_started && !_finished && !_scripted) {
       _actions.setMoveAxis(1);
       if (_frames % 32 == 0) {
         _actions.triggerAction(RunnerGameplayAction.jump);
@@ -215,6 +283,7 @@ class _BenchmarkGame extends RunnerFlameGame {
       _terrainWaitFrames++;
       if (_lastReadiness != readiness) {
         _terrainWaits++;
+        _firstTerrainWaitTick ??= controller.tick;
         _terrainWaitWatch.start();
       }
     } else {
@@ -230,7 +299,12 @@ class _BenchmarkGame extends RunnerFlameGame {
     }
     final geometry = snapshot.stagedTerrainRenderSnapshot;
     if (geometry != null) _geometryVersions.add(geometry.geometryVersion);
-    if (!snapshot.gameOver && _watch.elapsed.inSeconds < 45) return;
+    if (!snapshot.gameOver &&
+        (_scripted
+            ? snapshot.tick < 1800 && _watch.elapsed.inSeconds < 90
+            : _watch.elapsed.inSeconds < 45)) {
+      return;
+    }
     _finished = true;
     _watch.stop();
     _actions.cancelAll();
@@ -240,6 +314,13 @@ class _BenchmarkGame extends RunnerFlameGame {
       'level': levelId.name,
       'seed': seed,
       'character': playerCharacter.id.name,
+      'startupTasksMs': loadTimings.map(
+        (name, elapsed) => MapEntry(name, elapsed.inMicroseconds / 1000),
+      ),
+      'startupMs': _startupMicros / 1000,
+      'coreConstructionMs': coreConstructionMicros / 1000,
+      'startupPrepared': _startupPrepared,
+      'imageCount': images.keys.length,
       'ticks': snapshot.tick,
       'wallMs': _watch.elapsedMicroseconds / 1000,
       'frames': _frames,
@@ -251,6 +332,9 @@ class _BenchmarkGame extends RunnerFlameGame {
       'misses': stats?.misses,
       'preparationError': stats?.lastError,
       'terrainWaits': _terrainWaits,
+      'firstTerrainWaitTick': _firstTerrainWaitTick,
+      'scriptedInput': _scripted,
+      'fullWarmup': Uri.base.queryParameters['fullWarmup'] == '1',
       'terrainWaitFrames': _terrainWaitFrames,
       'terrainWaitWallMs': _terrainWaitWatch.elapsedMicroseconds / 1000,
       'terrainFailures': _terrainFailures,

@@ -46,6 +46,7 @@ import 'runner_flame/ghost_layer_system.dart';
 import 'replay/ghost_render_frame.dart';
 import 'runner_flame/live_world_sync_system.dart';
 import 'runner_flame/load_state.dart';
+import 'runner_flame/run_asset_preloader.dart';
 import 'runner_flame/render_constants.dart';
 import 'themes/parallax_theme_registry.dart';
 import 'themes/parallax_theme.dart';
@@ -88,6 +89,7 @@ class RunnerFlameGame extends FlameGame {
     // A closing run must never dispose or retain pending loads for its successor.
     images = imageCache ?? Images();
     _playerAnimations = PlayerAnimationLibrary(images);
+    _assetPreloader = RunAssetPreloader(images);
     _liveWorldSync = LiveWorldSyncSystem(
       controller: controller,
       world: world,
@@ -145,6 +147,22 @@ class RunnerFlameGame extends FlameGame {
   final Future<Iterable<ActorFrameSnapshot>>? ghostPreparation;
 
   late final PlayerAnimationLibrary _playerAnimations;
+  late final RunAssetPreloader _assetPreloader;
+  final Map<String, Duration> _loadTimings = {};
+
+  /// Elapsed startup task times for profiling, including overlapping work.
+  /// These are wall durations, not additive CPU costs or gameplay inputs.
+  Map<String, Duration> get loadTimings => Map.unmodifiable(_loadTimings);
+
+  Future<T> _measureLoad<T>(String name, Future<T> Function() action) async {
+    final watch = Stopwatch()..start();
+    try {
+      return await action();
+    } finally {
+      _loadTimings[name] = watch.elapsed;
+    }
+  }
+
   bool _removed = false;
 
   /// The selected player character definition for this run (render-only usage).
@@ -223,8 +241,26 @@ class RunnerFlameGame extends FlameGame {
   Future<void> _loadWorld() async {
     await super.onLoad();
     if (_removed) return;
+    var terrainReady = false;
+    await Future.wait<void>([
+      _measureLoad('terrain', controller.prepareTerrainAhead).then((_) {
+        terrainReady = true;
+      }),
+      _measureLoad('scene', _loadScene).then((_) {
+        if (!terrainReady) _setLoadState(RunLoadPhase.terrainPreparing, 0.95);
+      }),
+    ]);
+    if (_removed) {
+      images.clearCache();
+      return;
+    }
+    _setLoadState(RunLoadPhase.worldReady, 1.0);
+  }
+
+  Future<void> _loadScene() async {
     await world.add(_bossArenaBarriers);
     await world.add(_teleportDestinationCues);
+    if (_removed) return;
     _ghostLayer.attachListeners();
 
     assert(() {
@@ -250,25 +286,61 @@ class RunnerFlameGame extends FlameGame {
     final parallaxLoad = _backgroundParallax?.loaded ?? Future<void>.value();
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
-    late final SpriteAnimSet playerAnimations;
     Iterable<ActorFrameSnapshot> ghostPreviews = const [];
     await Future.wait<void>(<Future<void>>[
-      _playerAnimations.load(playerCharacter.renderAnim).then((animations) {
-        playerAnimations = animations;
-        _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
-      }),
+      _measureLoad(
+        'player',
+        () => _assetPreloader.load(
+          playerCharacter.renderAnim.sourcesByKey.values,
+          () async {
+            final animations = await _playerAnimations.load(
+              playerCharacter.renderAnim,
+            );
+            if (_removed) return;
+            await _liveWorldSync.mountPlayer(animations);
+            _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
+          },
+        ),
+      ),
+      _measureLoad(
+        'prefabs',
+        () => _liveWorldSync.mountStaticPrefabSprites(
+          controller.snapshot.staticPrefabSprites,
+        ),
+      ),
       if (ghostPreparation != null)
         ghostPreparation!.then((frames) {
           ghostPreviews = frames;
         }),
-      controller.prepareTerrainAhead(),
-      _enemyRenderRegistry.load(images),
-      _npcRenderRegistry.load(images),
-      _projectileRenderRegistry.load(images),
-      _spellImpactRenderRegistry.load(images),
-      _pickupRenderRegistry.load(images),
-      _trapRenderRegistry.load(images),
-      _interactionRegistry.load(images),
+      for (final (name, paths, load) in [
+        ('enemies', _enemyRenderRegistry.assetPaths, _enemyRenderRegistry.load),
+        ('npcs', _npcRenderRegistry.assetPaths, _npcRenderRegistry.load),
+        (
+          'projectiles',
+          _projectileRenderRegistry.assetPaths,
+          _projectileRenderRegistry.load,
+        ),
+        (
+          'impacts',
+          _spellImpactRenderRegistry.assetPaths,
+          _spellImpactRenderRegistry.load,
+        ),
+        (
+          'pickups',
+          _pickupRenderRegistry.assetPaths,
+          _pickupRenderRegistry.load,
+        ),
+        ('traps', _trapRenderRegistry.assetPaths, _trapRenderRegistry.load),
+        (
+          'interactions',
+          _interactionRegistry.assetPaths,
+          _interactionRegistry.load,
+        ),
+      ])
+        _measureLoad(
+          name,
+          () => _assetPreloader.load(paths, () => load(images)),
+        ),
       if (RenderDebugFlags.canUseRenderDebug)
         Future<void>.value(camera.viewfinder.add(_trapHitboxes)),
       terrainLoad,
@@ -280,21 +352,16 @@ class RunnerFlameGame extends FlameGame {
       return;
     }
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
-    await _ghostLayer.prepareForRun(previewFrames: ghostPreviews);
+    await _measureLoad(
+      'ghost',
+      () => _ghostLayer.prepareForRun(previewFrames: ghostPreviews),
+    );
     if (_removed) {
       images.clearCache();
       return;
     }
     _setLoadState(RunLoadPhase.ghostPrepared, 0.9);
 
-    await _liveWorldSync.mountPlayer(playerAnimations);
-    await _liveWorldSync.mountStaticPrefabSprites(
-      controller.snapshot.staticPrefabSprites,
-    );
-    if (_removed) {
-      images.clearCache();
-      return;
-    }
     _trapViews.sync(
       controller.snapshot.traps,
       cameraCenter: camera.viewfinder.position,
@@ -330,8 +397,6 @@ class RunnerFlameGame extends FlameGame {
           ..strokeCap = StrokeCap.round,
       )..priority = priorityMeleeAimRay,
     );
-
-    _setLoadState(RunLoadPhase.worldReady, 1.0);
   }
 
   @override
@@ -516,11 +581,12 @@ class RunnerFlameGame extends FlameGame {
   /// The Flame widget still owns removal/disposal and final image cleanup.
   void cancelPreparation() {
     _removed = true;
+    _assetPreloader.cancel();
   }
 
   @override
   void onRemove() {
-    _removed = true;
+    cancelPreparation();
     _ghostLayer.detachListeners();
     _ghostLayer.clearViews();
     controller.removeEventListener(_eventFeedback.handleGameEvent);

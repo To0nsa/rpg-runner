@@ -44,10 +44,11 @@ branding durations are unchanged; run loading has no artificial minimum.
 
 The controller begins paused at tick zero. World loading starts player images,
 render registries, terrain preparation, background loading, and optional ghost
-preparation concurrently. It then awaits ghost visual preparation and mounts the
-initial player/static scene before publishing worldReady. RunLoadState.failed
-retains the original required-load error and stack for diagnostics. The widget
-handles Flame's error future while the session presents the recovery state.
+preparation concurrently. Player and static-prefab mounting overlap registry
+loading. Scene readiness includes all required art and selected ghost visual
+preparation; worldReady additionally waits for initial terrain readiness.
+RunLoadState.failed retains the required-load error and stack for diagnostics.
+The widget handles Flame's error future while the session presents recovery.
 
 The session becomes ready only when the world is ready AND the replay recorder
 has initialized. RunRecorder.create starts its lazy file consumer with an empty
@@ -101,17 +102,43 @@ images are now decoded by their run-owned registries/cache without that earlier
 awaited duplicate pass. Live and ghost player views still share the run's
 PlayerAnimationLibrary. Registry coverage and terrain lookahead limits are unchanged.
 
-Independent local tasks overlap rather than waiting for player animations before
-starting registries and terrain preparation. This removes serial work from the
-startup path; it is not a measured device-specific loading-time guarantee.
-Internal progress remains milestone-based and the UI shows an indeterminate
-spinner with a phase label. There is no minimum run-loading delay.
+RunAssetPreloader consumes the registries' existing manifests into that same
+run-owned Flame Images cache. It deduplicates paths across groups and permits
+eight concurrent catalog reads/decodes. Each registry constructs its sprites
+when its own sources are ready; groups do not wait for unrelated images. Terrain
+and parallax loading remain independent. Cancelling startup rejects queued
+catalog work; already-running decodes drain before the closing load clears its
+cache. A retry owns a new cache/preloader, including after a failed image.
+
+GameCore.prepareTerrainForRun awaits the complete eight-state lookahead. Native
+startup uses two independent isolate workers; browsers retain one cooperative
+lane. Each finished candidate is immediately available under its exact selection
+key. The next job is chosen from the latest requested window. Startup completion
+still drains every worker; shutdown/failure prevents queued work and rejects late
+results. Runtime refills retain one worker, the eight-state cache, and per-tick
+admission. Live and ghost startup share this boundary. Initial worker errors fail
+loading instead of being silently deferred until the first terrain miss.
+
+The explicit GameCore.prepareTerrainAhead API retains one worker for ordinary
+refills and serial benchmark controls. Reducing the awaited window was rejected:
+a fixed-input browser experiment traded earlier readiness for a later terrain
+wait. The shipped startup gate preserves the existing preparation headroom.
+
+There is no minimum run-loading delay. Progress remains milestone-based and the
+UI uses an indeterminate spinner. Once the scene is ready it can specifically
+report terrain preparation; art, ghost and recorder waits also have phase labels.
+RunnerFlameGame.loadTimings records overlapping wall durations by task. The
+standalone gameplay benchmark includes constructor time, time to world-ready,
+prepared-state count and image count. Durations overlap and must not be summed.
+See [startup audit and measurements](../verification/run_startup_2026-10-11.md)
+for the measured workload and its limits.
 
 ## Verification
 
 Focused tests cover both readiness completion orders, required failures, first-tick
 recording, world and recorder retry, late completion after exit, duplicate preflight
-requests, cancellation during selection/ticket retrieval, hub/leaderboard routing,
+requests, in-flight prefetch consumption/invalidation, parallel bootstrap reads,
+cancellation during selection/ticket retrieval, hub/leaderboard routing,
 recorder file-open errors, ghost readiness/cleanup, and existing terrain-render
 readiness. Lifecycle regressions cover the full background/return sequence,
 frozen ticks, cleared movement input, manual pauses, and pre-start readiness.

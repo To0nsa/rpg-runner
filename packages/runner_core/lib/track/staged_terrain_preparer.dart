@@ -32,6 +32,7 @@ final class StagedTerrainPreparer {
   final Map<String, StagedTerrainStreamCandidate> _ready = {};
   Map<String, List<ActiveTrackChunkSnapshot>> _wanted = {};
   Future<void>? _pending;
+  final Set<String> _inFlight = {};
   ({
     String key,
     List<ActiveTrackChunkSnapshot> selection,
@@ -88,7 +89,22 @@ final class StagedTerrainPreparer {
   /// Speculative failures remain visible in [stats]. A required request fails
   /// explicitly so a live host can offer recovery without constructing terrain
   /// on its frame stack.
-  Future<void> prepare(List<List<ActiveTrackChunkSnapshot>> selections) {
+  Future<void> prepare(List<List<ActiveTrackChunkSnapshot>> selections) =>
+      _prepare(selections, concurrency: 1);
+
+  /// Awaits the complete startup window with two native workers, or one
+  /// cooperative browser lane. Runtime refills still use [prepare]'s one worker.
+  /// Cancellation/failure drains already-started jobs without publishing them.
+  Future<void> prepareForRun(List<List<ActiveTrackChunkSnapshot>> selections) =>
+      _prepare(
+        selections,
+        concurrency: preparation.startupPreparationConcurrency,
+      );
+
+  Future<void> _prepare(
+    List<List<ActiveTrackChunkSnapshot>> selections, {
+    required int concurrency,
+  }) {
     if (selections.length > selectionCapacity) {
       throw ArgumentError('Terrain preparation window exceeds capacity.');
     }
@@ -104,7 +120,7 @@ final class StagedTerrainPreparer {
     _wanted = Map.fromEntries(targets.entries.take(selectionCapacity));
     _ready.removeWhere((key, _) => !_wanted.containsKey(key));
     // Binding and isolate handoff run after the current simulation/frame stack.
-    return _pending ??= Future<void>(_fill);
+    return _pending ??= Future<void>(() => _fill(concurrency));
   }
 
   /// Reserves a required selection ahead of speculative work. There can be only
@@ -149,42 +165,62 @@ final class StagedTerrainPreparer {
     return completion.future;
   }
 
-  Future<void> _fill() async {
+  Future<void> _fill(int concurrency) async {
+    try {
+      await Future.wait<void>([
+        for (var lane = 0; lane < concurrency; lane++) _fillLane(),
+      ]);
+    } finally {
+      // A completed drain cannot absorb a new request without starting a pump.
+      _pending = null;
+    }
+  }
+
+  Future<void> _fillLane() async {
     try {
       while (!_disposed && _lastError == null) {
         MapEntry<String, List<ActiveTrackChunkSnapshot>>? next;
         for (final entry in _wanted.entries) {
-          if (!_ready.containsKey(entry.key)) {
+          if (!_ready.containsKey(entry.key) &&
+              !_inFlight.contains(entry.key)) {
             next = entry;
             break;
           }
         }
         if (next == null) return;
-        final bindings = const StagedTerrainStreamBindingBuilder().build(
-          catalog: catalog,
-          activeChunks: next.value,
-        );
-        final watch = Stopwatch()..start();
-        final candidate = await _prepareCandidate(
-          bindings,
-          groundEnemyProfiles,
-        );
-        watch.stop();
-        _completed += 1;
-        _lastPreparationMicros = watch.elapsedMicroseconds;
-        if (_lastPreparationMicros > _maxPreparationMicros) {
-          _maxPreparationMicros = _lastPreparationMicros;
-        }
-        if (_disposed || _lastError != null || !_wanted.containsKey(next.key)) {
-          _discarded += 1;
-        } else {
-          _ready[next.key] = candidate;
-          final required = _required;
-          if (required?.key == next.key && !required!.completion.isCompleted) {
-            _requiredTimeout?.cancel();
-            _requiredTimeout = null;
-            required.completion.complete();
+        _inFlight.add(next.key);
+        try {
+          final bindings = const StagedTerrainStreamBindingBuilder().build(
+            catalog: catalog,
+            activeChunks: next.value,
+          );
+          final watch = Stopwatch()..start();
+          final candidate = await _prepareCandidate(
+            bindings,
+            groundEnemyProfiles,
+          );
+          watch.stop();
+          _completed += 1;
+          _lastPreparationMicros = watch.elapsedMicroseconds;
+          if (_lastPreparationMicros > _maxPreparationMicros) {
+            _maxPreparationMicros = _lastPreparationMicros;
           }
+          if (_disposed ||
+              _lastError != null ||
+              !_wanted.containsKey(next.key)) {
+            _discarded += 1;
+          } else {
+            _ready[next.key] = candidate;
+            final required = _required;
+            if (required?.key == next.key &&
+                !required!.completion.isCompleted) {
+              _requiredTimeout?.cancel();
+              _requiredTimeout = null;
+              required.completion.complete();
+            }
+          }
+        } finally {
+          _inFlight.remove(next.key);
         }
         if (_disposed || _lastError != null) return;
         // Re-read the latest queue after every handoff. A replaced window must
@@ -192,10 +228,6 @@ final class StagedTerrainPreparer {
       }
     } catch (error) {
       disable(error);
-    } finally {
-      // Release ownership before the drain future completes. A new request in
-      // that completion gap must start its own pump, not join a finished one.
-      _pending = null;
     }
   }
 
