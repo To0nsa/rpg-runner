@@ -206,6 +206,58 @@ class TrackStreamer {
     return null;
   }
 
+  /// Projects the exact selection of the next [step], without mutating cursors,
+  /// emitting spawns or changing the active snapshot. An unchanged selection
+  /// returns [activeChunks] itself. Retention must reflect the state at streaming.
+  List<ActiveTrackChunkSnapshot> selectionForStep({
+    required double cameraLeft,
+    required double cameraRight,
+    bool Function(int chunkIndex)? retainChunk,
+  }) {
+    if (!tuning.enabled) return activeChunks;
+    final spawnLimit = cameraRight + tuning.spawnAheadMargin;
+    final cullLimit = cameraLeft - tuning.cullBehindMargin;
+    if (_nextChunkStartX > spawnLimit &&
+        (_active.isEmpty ||
+            _active.first.endX >= cullLimit ||
+            (retainChunk?.call(_active.first.index) ?? false))) {
+      return activeChunks;
+    }
+    final selected = List<ActiveTrackChunkSnapshot>.of(activeChunks);
+    var nextIndex = _nextChunkIndex;
+    var nextStart = _nextChunkStartX;
+    while (nextStart <= spawnLimit) {
+      final choice = patternSource.selectionFor(
+        seed: seed,
+        chunkIndex: nextIndex,
+        tier: _tierForChunkIndex(nextIndex),
+      );
+      final pattern = choice.pattern;
+      selected.add(
+        ActiveTrackChunkSnapshot(
+          index: nextIndex,
+          startX: nextStart,
+          endX: nextStart + tuning.chunkWidth,
+          patternName: pattern.name,
+          chunkKey: pattern.chunkKey,
+          tier: choice.tier,
+          assembly: choice.assembly,
+          traps: List.unmodifiable(pattern.traps),
+          encounters: List.unmodifiable(pattern.encounters),
+          bossArena: pattern.bossArena,
+        ),
+      );
+      nextIndex += 1;
+      nextStart += tuning.chunkWidth;
+    }
+    while (selected.isNotEmpty &&
+        selected.first.endX < cullLimit &&
+        !(retainChunk?.call(selected.first.index) ?? false)) {
+      selected.removeAt(0);
+    }
+    return List.unmodifiable(selected);
+  }
+
   /// Projects the next [count] selection states for a forward-moving camera.
   ///
   /// Uses world-unit [viewWidth] and the live scheduler cursors without moving

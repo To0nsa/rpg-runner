@@ -114,6 +114,19 @@ class TrackManager {
   ChunkPatternTier? difficultyAtWorldX(double worldX) =>
       _trackStreamer?.difficultyAtWorldX(worldX);
 
+  /// Projects the exact next stream step without scheduler or ECS mutations.
+  List<ActiveTrackChunkSnapshot> selectionForStep({
+    required double cameraLeft,
+    required double cameraRight,
+    bool Function(int chunkIndex)? retainChunk,
+  }) =>
+      _trackStreamer?.selectionForStep(
+        cameraLeft: cameraLeft,
+        cameraRight: cameraRight,
+        retainChunk: retainChunk,
+      ) ??
+      activeChunks;
+
   /// Projects future selections without applying scheduler or ECS mutations.
   /// See [TrackStreamer.upcomingSelections] for boundary and matching rules.
   List<List<ActiveTrackChunkSnapshot>> upcomingSelections({

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/track/staged_terrain_preparer.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
@@ -56,8 +57,18 @@ class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
       seed: seed,
       levelDefinition: LevelRegistry.byId(levelId),
       playerCharacter: player,
+      terrainPreparation: (bindings, profiles) async {
+        final delayMs =
+            int.tryParse(Uri.base.queryParameters['terrainDelayMs'] ?? '') ?? 0;
+        if (delayMs > 0) {
+          await Future<void>.delayed(Duration(milliseconds: delayMs));
+        }
+        return prepareTerrainCandidate(bindings, profiles);
+      },
     );
-    final controller = GameController(core: core);
+    final controller = Uri.base.queryParameters['coldTerrain'] == '1'
+        ? _ColdTerrainController(core: core)
+        : GameController(core: core);
     _controller = controller;
     _game = _BenchmarkGame(
       core: core,
@@ -117,6 +128,14 @@ class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
   );
 }
 
+// Deliberately omit the startup cache only in this standalone fault-injection
+// harness. Live stepping still uses the unmodified production controller.
+class _ColdTerrainController extends GameController {
+  _ColdTerrainController({required super.core});
+  @override
+  Future<void> prepareTerrainAhead() async {}
+}
+
 class _BenchmarkGame extends RunnerFlameGame {
   _BenchmarkGame({
     required this.core,
@@ -154,6 +173,11 @@ class _BenchmarkGame extends RunnerFlameGame {
   int _maxEntities = 0;
   bool _started = false;
   bool _finished = false;
+  final _terrainWaitWatch = Stopwatch();
+  int _terrainWaits = 0;
+  int _terrainWaitFrames = 0;
+  int _terrainFailures = 0;
+  TerrainReadiness _lastReadiness = TerrainReadiness.ready;
 
   @override
   Future<void> onLoad() async {
@@ -186,6 +210,20 @@ class _BenchmarkGame extends RunnerFlameGame {
     super.update(dt);
     if (!_started || _finished) return;
     _frames++;
+    final readiness = controller.terrainReadiness;
+    if (readiness == TerrainReadiness.preparing) {
+      _terrainWaitFrames++;
+      if (_lastReadiness != readiness) {
+        _terrainWaits++;
+        _terrainWaitWatch.start();
+      }
+    } else {
+      _terrainWaitWatch.stop();
+    }
+    if (readiness == TerrainReadiness.failed && _lastReadiness != readiness) {
+      _terrainFailures++;
+    }
+    _lastReadiness = readiness;
     final snapshot = controller.snapshot;
     if (snapshot.entities.length > _maxEntities) {
       _maxEntities = snapshot.entities.length;
@@ -212,6 +250,13 @@ class _BenchmarkGame extends RunnerFlameGame {
       'hits': stats?.hits,
       'misses': stats?.misses,
       'preparationError': stats?.lastError,
+      'terrainWaits': _terrainWaits,
+      'terrainWaitFrames': _terrainWaitFrames,
+      'terrainWaitWallMs': _terrainWaitWatch.elapsedMicroseconds / 1000,
+      'terrainFailures': _terrainFailures,
+      'coldTerrain': Uri.base.queryParameters['coldTerrain'] == '1',
+      'terrainDelayMs':
+          int.tryParse(Uri.base.queryParameters['terrainDelayMs'] ?? '') ?? 0,
     };
     unawaited(Future<void>(() => complete(row)));
   }

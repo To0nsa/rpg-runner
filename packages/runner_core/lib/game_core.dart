@@ -183,7 +183,10 @@ class GameCore {
   /// - [tickHz]: Fixed tick rate (default 60). Higher = smoother but more CPU.
   /// - [levelDefinition]: Selected level configuration (required).
   /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
+  /// - [terrainPreparation]: Host worker for exact immutable terrain candidates;
+  ///   never authored content, recorded input or simulation authority.
   GameCore({
+    TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
     required int seed,
     int runId = 0,
     int tickHz = defaultTickHz,
@@ -196,6 +199,7 @@ class GameCore {
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
     AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
   }) : this._fromLevel(
+         terrainPreparation: terrainPreparation,
          seed: seed,
          runId: runId,
          tickHz: tickHz,
@@ -306,6 +310,7 @@ class GameCore {
   }
 
   GameCore._fromLevel({
+    TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
     required this.seed,
     required this.runId,
     required this.tickHz,
@@ -319,7 +324,8 @@ class GameCore {
     required EquippedLoadoutDef? equippedLoadoutOverride,
     required TerrainGeometry? terrainHarnessGeometry,
     required StagedTerrainCatalog? stagedTerrainCatalogOverride,
-  }) : _levelDefinition = levelDefinition,
+  }) : _terrainPreparation = terrainPreparation,
+       _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
          tickHz: tickHz,
@@ -1081,20 +1087,100 @@ class GameCore {
   final StagedTerrainCatalog? _stagedTerrainCatalogOverride;
   late final StagedTerrainCatalog? _stagedTerrainCatalog;
   StagedTerrainStreamCandidate? _stagedTerrainCandidate;
+  final TerrainCandidatePreparation _terrainPreparation;
   StagedTerrainPreparer? _terrainPreparer;
+  bool _requiresPreparedTicks = false;
+  int? _preparedTick;
+  Future<void>? _requiredTerrain;
+  StagedTerrainStreamCandidate? _reservedTerrain;
+  List<ActiveTrackChunkSnapshot>? _reservedSelection;
+
+  StagedTerrainPreparer _ensureTerrainPreparer() =>
+      _terrainPreparer ??= StagedTerrainPreparer(
+        catalog: _stagedTerrainCatalog!,
+        groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+        prepareCandidate: _terrainPreparation,
+      );
+
+  /// Admits the next tick for a live host, or returns a future to wait for before
+  /// applying commands. This permanently enables the prepared-tick guard.
+  ///
+  /// Projection includes encounter expiry and boss retention without changing
+  /// either system. Waiting changes no tick, input, event, RNG or world state.
+  /// Once ready, call [stepOneTick] exactly once, then admit the following tick.
+  /// Offline callers may omit this API and use synchronous construction.
+  Future<void>? prepareNextTick() {
+    _requiresPreparedTicks = true;
+    if (paused || gameOver || _preparedTick == tick + 1) return null;
+    if (_requiredTerrain != null) return _requiredTerrain;
+    if (_stagedTerrainCatalog == null || _deathAnimTicksLeft > 0) {
+      _preparedTick = tick + 1;
+      return null;
+    }
+    final cameraLeft = _camera.left();
+    final selection = _trackManager.selectionForStep(
+      cameraLeft: cameraLeft,
+      cameraRight: _camera.right(),
+      retainChunk: (index) =>
+          _encounters.retainsChunkAfterExpiry(index, cameraLeft: cameraLeft) ||
+          _bossArenas.retainsChunk(index),
+    );
+    if (identical(selection, _trackManager.activeChunks)) {
+      _preparedTick = tick + 1;
+      return null;
+    }
+    final preparer = _ensureTerrainPreparer();
+    final candidate = preparer.take(
+      selection,
+      geometryVersion: _nextStagedTerrainGeometryVersion,
+    );
+    if (candidate != null) {
+      _reserveTerrain(selection, candidate);
+      return null;
+    }
+    return _requiredTerrain = _awaitRequiredTerrain(preparer, selection);
+  }
+
+  Future<void> _awaitRequiredTerrain(
+    StagedTerrainPreparer preparer,
+    List<ActiveTrackChunkSnapshot> selection,
+  ) async {
+    try {
+      await preparer.requireSelection(selection);
+      if (!identical(preparer, _terrainPreparer)) {
+        throw StateError('Terrain preparation owner changed.');
+      }
+      final candidate = preparer.take(
+        selection,
+        geometryVersion: _nextStagedTerrainGeometryVersion,
+      );
+      if (candidate == null) {
+        throw StateError('Required terrain was not published.');
+      }
+      _reserveTerrain(selection, candidate);
+    } finally {
+      if (identical(preparer, _terrainPreparer)) _requiredTerrain = null;
+    }
+  }
+
+  void _reserveTerrain(
+    List<ActiveTrackChunkSnapshot> selection,
+    StagedTerrainStreamCandidate candidate,
+  ) {
+    _reservedSelection = selection;
+    _reservedTerrain = candidate;
+    _preparedTick = tick + 1;
+  }
 
   /// Opts this run into bounded background preparation and awaits its window.
   ///
-  /// Interactive hosts await this during loading. Headless replay can keep the
-  /// synchronous path. Readiness never changes selected chunks, publication
-  /// ticks, navigation decisions, or errors from the actual terrain build.
+  /// Interactive hosts await this during loading and call [prepareNextTick]
+  /// before each live tick. Headless replay can keep the synchronous path.
+  /// Speculation never changes selected chunks or publication ticks.
   Future<void> prepareTerrainAhead() {
     final catalog = _stagedTerrainCatalog;
     if (catalog == null) return Future<void>.value();
-    final preparer = _terrainPreparer ??= StagedTerrainPreparer(
-      catalog: catalog,
-      groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
-    );
+    final preparer = _ensureTerrainPreparer();
     if (preparer.stats.lastError != null) return Future<void>.value();
     try {
       return preparer.prepare(
@@ -1114,10 +1200,15 @@ class GameCore {
       _terrainPreparer?.stats;
 
   /// Releases prepared terrain when the interactive owner closes this run.
-  /// Core remains usable through the exact synchronous construction path.
+  /// The prepared-tick guard remains enabled for live callers. A retry creates
+  /// a fresh preparer through [prepareNextTick], without resetting gameplay.
   void stopTerrainPreparation() {
     _terrainPreparer?.dispose();
     _terrainPreparer = null;
+    _requiredTerrain = null;
+    _preparedTick = null;
+    _reservedTerrain = null;
+    _reservedSelection = null;
   }
 
   int _nextStagedTerrainGeometryVersion = 1;
@@ -1434,6 +1525,9 @@ class GameCore {
   /// tick. This keeps replay scheduling authority inside Core instead of
   /// relying on each caller to enforce it.
   void applyCommands(List<Command> commands) {
+    if (_requiresPreparedTicks && _preparedTick != tick + 1) {
+      throw StateError('Live commands require prepareNextTick first.');
+    }
     final expectedTick = tick + 1;
     for (final command in commands) {
       if (command.tick != expectedTick) {
@@ -1562,6 +1656,10 @@ class GameCore {
   void stepOneTick() {
     // Don't advance if paused or game already over.
     if (paused || gameOver) return;
+    if (_requiresPreparedTicks && _preparedTick != tick + 1) {
+      throw StateError('Live tick requires prepareNextTick before commands.');
+    }
+    _preparedTick = null;
 
     if (_deathAnimTicksLeft > 0) {
       tick += 1;
@@ -2107,17 +2205,38 @@ class GameCore {
         'polygon-terrain key.',
       );
     }
-    _stagedTerrainCandidate =
-        _terrainPreparer?.take(
-          activeChunks,
-          geometryVersion: _nextStagedTerrainGeometryVersion,
-        ) ??
-        const StagedTerrainStreamCandidateBuilder().build(
-          catalog: catalog,
-          activeChunks: activeChunks,
-          geometryVersion: _nextStagedTerrainGeometryVersion,
-          groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+    if (_requiresPreparedTicks) {
+      final reserved = _reservedSelection;
+      if (_reservedTerrain == null ||
+          reserved == null ||
+          reserved.length != activeChunks.length ||
+          !Iterable<int>.generate(reserved.length).every(
+            (i) =>
+                reserved[i].index == activeChunks[i].index &&
+                reserved[i].chunkKey == activeChunks[i].chunkKey &&
+                reserved[i].startX == activeChunks[i].startX &&
+                reserved[i].endX == activeChunks[i].endX,
+          )) {
+        throw StateError(
+          'Live terrain publication does not match its reservation.',
         );
+      }
+      _stagedTerrainCandidate = _reservedTerrain;
+      _reservedTerrain = null;
+      _reservedSelection = null;
+    } else {
+      _stagedTerrainCandidate =
+          _terrainPreparer?.take(
+            activeChunks,
+            geometryVersion: _nextStagedTerrainGeometryVersion,
+          ) ??
+          const StagedTerrainStreamCandidateBuilder().build(
+            catalog: catalog,
+            activeChunks: activeChunks,
+            geometryVersion: _nextStagedTerrainGeometryVersion,
+            groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+          );
+    }
     _nextStagedTerrainGeometryVersion += 1;
   }
 

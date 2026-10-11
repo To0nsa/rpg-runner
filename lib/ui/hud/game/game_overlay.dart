@@ -11,6 +11,7 @@ import 'package:runner_core/abilities/ability_def.dart';
 
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';
+import 'terrain_loading_overlay.dart';
 import 'ready_overlay.dart';
 import 'boss_arena_hud.dart';
 import 'top_center_hud_overlay.dart';
@@ -86,7 +87,9 @@ class GameOverlay extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         IgnorePointer(
-          ignoring: !uiState.isRunning,
+          ignoring:
+              !uiState.isRunning ||
+              controller.terrainReadiness == TerrainReadiness.failed,
           child: RunnerControlsOverlay(
             onMoveAxis: input.setMoveAxis,
             onJumpPressed: () => input.triggerAction(RunnerGameplayAction.jump),
@@ -177,6 +180,12 @@ class GameOverlay extends StatelessWidget {
           onExit: onExitConfirmExit,
         ),
         ReadyOverlay(visible: uiState.showReadyOverlay, onTap: onStart),
+        if (uiState.isRunning)
+          TerrainLoadingOverlay(
+            readiness: controller.terrainReadiness,
+            onRetry: controller.retryTerrainPreparation,
+            onExit: showExitButton ? onExit : null,
+          ),
         Align(
           alignment: Alignment.topLeft,
           child: Padding(

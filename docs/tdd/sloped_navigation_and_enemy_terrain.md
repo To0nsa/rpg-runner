@@ -623,10 +623,23 @@ run session additionally awaits replay-recorder initialization. The player HUD,
 controls, and ready prompt are not mounted before both boundaries succeed;
 see [run startup](run_startup.md).
 
-A cold cache, a jump beyond the window, or failed preparation uses
-the original synchronous build. Speculative failures are diagnostic only and
-cannot make a future invalid selection fail an earlier simulation tick; actual
-selection admission still fails normally. Ready/hit/miss/error statistics,
+Live hosts call `GameCore.prepareNextTick()` before consuming commands or
+recording a tick. It projects the exact next selection, including encounter
+expiry and boss retention, and reserves its candidate. A cold or out-of-window
+selection is prepared asynchronously with priority over speculative work.
+The controller holds the last completed pose and preserves queued inputs while
+waiting. It discards elapsed wait time and never automatically unpauses a run.
+
+The readiness API enables a permanent prepared-tick guard: live replacement
+must consume the exact reservation and cannot call the synchronous builder.
+Worker/admission failures and a 30-second required-selection timeout surface
+Retry/Exit; retry replaces only the preparer, preserving the Core and run session.
+Shutdown fences pending results. Browser cooperative ghosts use the same guard;
+offline stepping and native ghost workers can still build synchronously.
+See the [readiness contract](terrain_streaming_performance.md#live-terrain-readiness-boundary)
+for lifecycle, input and recovery ownership.
+
+Ready/hit/miss/error statistics,
 completed/discarded candidate counts and worker latency in microseconds are
 profiling evidence, never snapshot or replay state. Latency includes scheduling,
 isolate handoff/return or cooperative yields, rather than only builder CPU time. This removes navigation

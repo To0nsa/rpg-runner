@@ -51,6 +51,10 @@ import 'viewport/viewport_metrics.dart';
 /// Debug-only developer Practice skips recording and account submission while
 /// preserving the normal simulation, loading, controls and score breakdown.
 ///
+/// During play, missing terrain holds the next tick asynchronously and keeps
+/// controls mounted. Runtime failure offers same-run retry and exit; it never
+/// restarts the ticket or recorder. Waits do not accrue catch-up time.
+///
 /// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
 /// resumes lifecycle-paused play while preserving manual pauses and ready state.
 /// Boss entrances hold controls within the active Core run; the replay clock
@@ -243,7 +247,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _actions.pumpHeldInputs();
   }
 
+  TerrainReadiness _lastTerrainReadiness = TerrainReadiness.ready;
+
   void _onControllerTick() {
+    final readiness = _controller.terrainReadiness;
+    if (readiness != _lastTerrainReadiness) {
+      _lastTerrainReadiness = readiness;
+      if (readiness == TerrainReadiness.failed) _clearInputs();
+    }
     _emitChargeHaptics();
 
     final damageTick = _controller.snapshot.hud.lastDamageTick;

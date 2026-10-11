@@ -15,6 +15,135 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('exact projection covers skipped boundaries and retained chunks', () {
+    for (final id in LevelRegistry.compiledLevelIds) {
+      final streamer = _streamer(id);
+      _step(streamer, 0);
+      for (final x in <double>[0, 600, 1200, 1200.5, 4200, 9600.5, 12000]) {
+        for (final retain in [true, false]) {
+          final before = streamer.activeChunks;
+          final retained = before.isEmpty ? -1 : before.first.index;
+          final projected = streamer.selectionForStep(
+            cameraLeft: x,
+            cameraRight: x + 600,
+            retainChunk: (index) => retain && index == retained,
+          );
+          expect(streamer.activeChunks, same(before));
+          streamer.step(
+            cameraLeft: x,
+            cameraRight: x + 600,
+            retainChunk: (index) => retain && index == retained,
+            spawnEnemy: (_) {},
+          );
+          expect(
+            _selection(projected),
+            _selection(streamer.activeChunks),
+            reason: 'undefined x=$x retained=$retain',
+          );
+          expect(
+            streamer.selectionForStep(
+              cameraLeft: x,
+              cameraRight: x + 600,
+              retainChunk: (index) => retain && index == retained,
+            ),
+            same(streamer.activeChunks),
+          );
+        }
+      }
+    }
+  });
+
+  test(
+    'required selection jumps the queue and unblocks before the window',
+    () async {
+      final worker = _ControlledPreparation();
+      final preparer = _preparerWithWorker(worker);
+      addTearDown(preparer.dispose);
+      addTearDown(worker.close);
+      final streamer = _streamer(LevelId.field);
+      _step(streamer, 0);
+      final window = streamer.upcomingSelections(viewWidth: 600, count: 8);
+      final speculative = preparer.prepare(window);
+      final first = await worker.next();
+      final selection = streamer.selectionForStep(
+        cameraLeft: 4200.5,
+        cameraRight: 4800.5,
+        retainChunk: (_) => true,
+      );
+      final required = preparer.requireSelection(selection);
+      expect(preparer.requireSelection(selection), same(required));
+      first.complete();
+      final urgent = await worker.next();
+      expect(
+        urgent.bindings.map((b) => b.chunkIndex),
+        selection.map((c) => c.index),
+      );
+      urgent.complete();
+      await required;
+      final later = await worker.next();
+      expect(preparer.stats.completed, 2);
+      expect(preparer.take(selection, geometryVersion: 4), isNotNull);
+      preparer.dispose();
+      later.complete();
+      await speculative;
+      expect(preparer.stats.ready, 0);
+    },
+  );
+
+  test(
+    'later speculative failure cannot revoke a completed reservation',
+    () async {
+      final worker = _ControlledPreparation();
+      final preparer = _preparerWithWorker(worker);
+      addTearDown(preparer.dispose);
+      addTearDown(worker.close);
+      final streamer = _streamer(LevelId.field);
+      _step(streamer, 0);
+      final window = streamer.upcomingSelections(viewWidth: 600, count: 2);
+      final speculative = preparer.prepare(window);
+      final required = preparer.requireSelection(window.first);
+      final first = await worker.next();
+      first.complete();
+      final second = await worker.next();
+      second.completer.completeError(StateError('later content failed'));
+      await speculative;
+      await required;
+      expect(preparer.stats.lastError, contains('later content failed'));
+      expect(preparer.take(window.first, geometryVersion: 3), isNotNull);
+    },
+  );
+
+  for (final stop in ['dispose', 'error', 'timeout']) {
+    test(
+      'required selection reports $stop and rejects late publication',
+      () async {
+        final worker = _ControlledPreparation();
+        final preparer = _preparerWithWorker(worker);
+        addTearDown(preparer.dispose);
+        addTearDown(worker.close);
+        final streamer = _streamer(LevelId.field);
+        _step(streamer, 0);
+        final selected = streamer
+            .upcomingSelections(viewWidth: 600, count: 1)
+            .single;
+        final pending = preparer.requireSelection(
+          selected,
+          timeout: stop == 'timeout'
+              ? const Duration(milliseconds: 50)
+              : const Duration(seconds: 30),
+        );
+        final rejected = expectLater(pending, throwsA(anything));
+        final first = await worker.next();
+        if (stop == 'dispose') preparer.dispose();
+        if (stop == 'error') preparer.disable(StateError('worker failed'));
+        await rejected;
+        first.complete();
+        await Future<void>.delayed(Duration.zero);
+        expect(preparer.stats.ready, 0);
+      },
+    );
+  }
+
   for (final id in LevelRegistry.compiledLevelIds) {
     for (final tuning in const [
       TrackTuning(),

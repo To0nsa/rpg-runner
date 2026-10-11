@@ -40,10 +40,10 @@ this work occurs during loading and its duration depends on device conditions.
 
 The benchmark does not simulate actors or render the world. Its final timed
 section excludes deferred binding/handoff and background CPU; those still
-need full-game frame profiling. A cache miss or failed preparation
-falls back to exact synchronous construction and can still stall. The fix
-does not promise zero stalls from arbitrary camera jumps, rendering, OS work,
-or device throttling.
+need full-game frame profiling. That September implementation still used
+synchronous construction on a miss. The live readiness boundary below now
+removes that fallback; rendering, OS work and device throttling remain separate
+sources of frame delays.
 
 ## October regression and preparation changes
 
@@ -63,8 +63,8 @@ one nearest missing selection at a time, publishes each complete result
 immediately, and re-reads the latest requested window before dispatching again.
 Obsolete output is discarded. Disable/dispose rejects late output and prevents
 new jobs. The cache remains bounded to eight selections with one job in flight.
-The first window is still awaited during loading and the exact synchronous
-fallback remains available for cold, failed or out-of-window selections.
+The first window is still awaited during loading. Offline synchronous stepping
+remains available; interactive misses now use the readiness boundary below.
 
 Graph construction now uses per-build profile caches, bounded exact placement
 memoization and lazy ordered landing candidates. Full trajectory and grounded
@@ -94,6 +94,46 @@ placement checks reject points outside cached polygon bounds before testing the
 polygon loop. Seed mixing uses exact partial products, and graph profiles
 normalize mirrored zero; native canonical surface/graph results remain the
 reference for browser parity.
+
+## Live terrain readiness boundary
+
+Every live controller tick calls `GameCore.prepareNextTick()` before removing
+queued input, applying commands or notifying the replay recorder. Core projects
+the exact next selection from the current camera and stream cursors, including
+encounter expiry and boss retention. This projection emits no spawns or events.
+Unlike speculative lookahead, it covers skipped boundaries and retained chunks.
+
+An exact cache hit is reserved for that tick. A miss prioritizes the required
+selection ahead of speculative work and returns a future for that selection
+alone. The currently running job can finish first; obsolete results are discarded.
+A completed reservation survives a later speculative failure until consumed.
+Only one worker runs per preparer, with at most eight cached candidates plus the
+single candidate reserved by Core. Catalog binding and preparation dispatch
+remain outside the frame stack.
+
+Calling the readiness API permanently enables Core's prepared-tick guard.
+Live terrain replacement accepts only the reserved exact selection; it cannot
+enter the synchronous builder. Initial Core construction and offline callers
+that never enable prepared ticks retain synchronous construction. Native ghost
+workers run off the UI isolate; cooperative browser ghosts admit each tick
+before applying its recorded commands.
+
+The controller exposes ready/preparing/failed host state independently of
+gameplay pause. During a wait it retains queued input, holds the latest completed
+snapshot, and stops the accumulator. Completion never steps Core or unpauses a
+manual/lifecycle pause. The first frame spanning the wait is discarded, so time
+spent waiting cannot produce a catch-up burst. Input releases can still update
+the pending tick; replay frames are emitted once, only when that tick executes.
+Ticks, score, combat clocks, RNG and publication order remain deterministic.
+
+The UI keeps controls mounted and shows “Preparing the path…” during a wait.
+A worker/admission failure or a 30-second required-selection timeout offers Retry
+and the host's Exit action. Failure cancels held/pending controls through the
+normal input router. Retry replaces preparation infrastructure in the same run,
+with the same Core, ticket, recorder and next tick; it does not restart gameplay.
+Pause and exit remain available. Shutdown, disposal and give-up fence pending
+results. A disposed native job may finish but cannot publish into the closed or
+replacement preparer.
 
 ## September gameplay capture discipline
 
@@ -213,6 +253,26 @@ so those expectations were not regenerated as part of this performance change.
 The focused browser suites above pass; this is not a claim that the entire
 repository or all existing authored-content goldens passed.
 
+## Readiness regression validation
+
+The readiness change passed 44 Core Chrome tests covering exact selection
+projection (including skipped boundaries and retention), encounter expiry,
+required-job priority, timeout/disposal/failure, reservation preservation and
+synchronous/cooperative publication parity. Another 81 focused Flutter Chrome
+checks passed across controller input/recording, forced misses, pause, retry,
+shutdown/disposal/give-up, cold cooperative ghost replay, buffering and the
+runtime recovery overlay. Focused static analysis and a release browser build
+also pass.
+
+A broader route-startup fixture was attempted but is not passing evidence:
+its browser image loading remained at `parallaxMounted`, before player
+animations loaded, even after extended cooperative pumping. Supplying local
+renderer/game assets did not resolve it. Its developer-profile case also uses
+native filesystem storage and cannot run in Chrome. These fixture limitations
+are separate from the passing readiness checks and the release captures; no
+phone or native runtime tests were used. Logs and temporary browser entrypoints
+are retained under `.tmp/terrain-readiness`.
+
 ## Reproduction and validation
 
 From the repository root:
@@ -238,6 +298,7 @@ node tool/capture_browser_benchmark.mjs build/terrain-benchmark-web .tmp/terrain
 
 flutter build web --release -t tool/benchmark_gameplay_app.dart --output build/gameplay-benchmark-web
 node tool/capture_browser_benchmark.mjs build/gameplay-benchmark-web .tmp/gameplay-browser.json GAMEPLAY
+node tool/capture_browser_benchmark.mjs build/gameplay-benchmark-web .tmp/gameplay-cold-terrain.json GAMEPLAY "coldTerrain=1&terrainDelayMs=1000"
 ```
 
 The capture tool serves only on loopback, uses a fresh headless Chrome profile,
@@ -258,7 +319,11 @@ Flame scene and asset loading. Five autonomous attempts cover Forest seeds 42
 and 857469563, Field, `new_level`, and both characters. Each ends at actual death
 or 45 seconds; no immortality, teleporting or geometry changes are used. Report
 ticks and distance reached, rather than claiming level completion or boss-combat
-coverage. Desktop results do not replace a later passive installed-app capture.
+coverage. The optional cold-terrain capture skips startup cache warming only in
+the benchmark controller and delays each preparation job; live stepping uses the
+production controller. Rows report terrain waits, rendered frames while waiting,
+wait duration and failures. This exercises responsive preparation misses even
+when ordinary lookahead has enough headroom. Desktop results do not replace a later passive installed-app capture.
 
 September validation included exact graph/geometry parity through complex Forest
 selections, immutable record identity and substitution rejection, spawn/cull

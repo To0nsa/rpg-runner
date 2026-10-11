@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
@@ -15,7 +17,7 @@ import 'test_tunings.dart';
 void main() {
   test(
     'Core events reach each subscriber once and retain the terminal result',
-    () {
+    () async {
       final level = testFieldLevel(tuning: noAutoscrollTuning);
       final core = GameCore(
         levelDefinition: level,
@@ -46,6 +48,26 @@ void main() {
           controller.enqueue(command);
         }
         controller.advanceFrame(1 / controller.tickHz);
+        if (controller.terrainReadiness == TerrainReadiness.preparing) {
+          final ready = Completer<void>();
+          void onReadinessChanged() {
+            if (controller.terrainReadiness == TerrainReadiness.preparing) {
+              return;
+            }
+            controller.removeListener(onReadinessChanged);
+            if (controller.terrainReadiness == TerrainReadiness.failed) {
+              ready.completeError(controller.terrainError!);
+            } else {
+              ready.complete();
+            }
+          }
+
+          controller.addListener(onReadinessChanged);
+          await ready.future;
+          controller.advanceFrame(0); // Discard the frame spanning the wait.
+          controller.advanceFrame(1 / controller.tickHz);
+        }
+        expect(controller.tick, tick);
         reference.applyCommands(commands);
         reference.stepOneTick();
         expected.addAll(reference.drainEvents());

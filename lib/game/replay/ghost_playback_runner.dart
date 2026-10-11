@@ -73,6 +73,11 @@ class GhostPlaybackRunner {
   Future<void> prepareTerrainAhead() =>
       _disposed ? Future<void>.value() : _core.prepareTerrainAhead();
 
+  /// Cooperative UI-thread playback must admit each tick before applying its
+  /// recorded commands. Offline/native worker playback can remain synchronous.
+  Future<void>? prepareNextTick() =>
+      _disposed || _completed ? null : _core.prepareNextTick();
+
   /// Releases background terrain work when the owning run or ghost closes.
   void dispose() {
     _disposed = true;

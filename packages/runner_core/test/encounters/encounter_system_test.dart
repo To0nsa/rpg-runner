@@ -17,6 +17,22 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('retention forecast respects expiry without ending encounters', () {
+    final f = _Fixture();
+    final key = f.add();
+    f.activate();
+    const boundary = 1200.0;
+    expect(
+      f.system.retainsChunkAfterExpiry(0, cameraLeft: boundary - 0.1),
+      isTrue,
+    );
+    expect(f.system.retainsChunkAfterExpiry(0, cameraLeft: boundary), isFalse);
+    expect(f.system.phase(key), EncounterPhase.active);
+    expect(f.system.retainsChunk(0), isTrue);
+    f.system.expire(f.world, cameraLeft: boundary, tick: 2);
+    expect(f.system.retainsChunk(0), isFalse);
+  });
+
   test(
     'cached occurrence order includes registration and excludes retirement',
     () {

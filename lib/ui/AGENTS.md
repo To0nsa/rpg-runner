@@ -112,6 +112,9 @@ The run route is a UI-owned assembly of lower layers:
   requires world readiness only. Required load failures offer retry and exit.
 - `RunStartPreparation` coordinates hub, leaderboard, and restart preflight through AppState
 - `RunnerGameRoute` scopes orientation and system UI behavior for embedded or routed runs
+- Runtime terrain waits preserve the same session and recorder. Keep controls
+  mounted for hold releases; failure cancels input and offers same-run retry.
+  Do not route runtime recovery through startup session replacement.
 - HUD and controls read snapshots and send input through the existing router/controller path
 - boss entrance haptics use the run-owned binding under `haptics/`; dispose it
   before replacing or disposing its controller, and retain pulse deduplication

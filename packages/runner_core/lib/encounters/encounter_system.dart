@@ -320,6 +320,16 @@ final class EncounterSystem {
     (state) => state.occurrence.chunkIndex == chunkIndex && state.unresolved,
   );
 
+  /// Forecasts retention at the next streaming phase, after [expire], without
+  /// ending encounters or publishing events while the host waits for terrain.
+  bool retainsChunkAfterExpiry(int chunkIndex, {required double cameraLeft}) =>
+      _states.values.any(
+        (state) =>
+            state.occurrence.chunkIndex == chunkIndex &&
+            state.unresolved &&
+            cameraLeft < state.occurrence.abandonmentX,
+      );
+
   /// Streamer retires chunks in ascending order, after expiry. Terminal records
   /// need no permanent tombstones: the monotonic index prevents reactivation.
   void retireChunk(EcsWorld world, int chunkIndex) {

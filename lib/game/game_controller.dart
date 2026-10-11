@@ -6,6 +6,7 @@
 // - Runs a fixed-tick simulation loop using an accumulator
 // - Exposes (`prevSnapshot`, `snapshot`, `alpha`) for render interpolation
 // - Dispatches transient `GameEvent`s to Render/UI listeners
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -24,6 +25,9 @@ import 'tick_input_frame.dart';
 
 typedef GameEventListener = void Function(GameEvent event);
 typedef AppliedCommandFrameListener = void Function(ReplayCommandFrameV1 frame);
+
+/// Host pacing only; never recorded as gameplay pause or replay data.
+enum TerrainReadiness { ready, preparing, failed }
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
 class GameController extends ChangeNotifier {
@@ -46,6 +50,68 @@ class GameController extends ChangeNotifier {
 
   final GameCore _core;
   bool _isShutdown = false;
+  TerrainReadiness _terrainReadiness = TerrainReadiness.ready;
+  Object? _terrainError;
+  int _terrainWaitGeneration = 0;
+  bool _discardNextFrameDelta = false;
+
+  /// Runtime loading state, independent of manual and lifecycle pause.
+  TerrainReadiness get terrainReadiness => _terrainReadiness;
+  Object? get terrainError => _terrainError;
+
+  /// Retries the missing publication in this same run, before the same tick.
+  void retryTerrainPreparation() {
+    if (_isShutdown ||
+        _core.gameOver ||
+        _terrainReadiness != TerrainReadiness.failed) {
+      return;
+    }
+    _terrainWaitGeneration += 1;
+    _core.stopTerrainPreparation();
+    _terrainReadiness = TerrainReadiness.ready;
+    _terrainError = null;
+    _discardNextFrameDelta = true;
+    _accumulatorSeconds = 0;
+    notifyListeners();
+  }
+
+  bool _admitNextTick() {
+    Future<void>? pending;
+    try {
+      pending = _core.prepareNextTick();
+    } catch (error, stack) {
+      pending = Future<void>.error(error, stack);
+    }
+    if (pending == null) return true;
+    _terrainReadiness = TerrainReadiness.preparing;
+    _accumulatorSeconds = 0;
+    // Hold the last completed pose, including when a previous tick in this
+    // frame succeeded. The eventual resume still has adjacent snapshots.
+    _prev = _curr;
+    final generation = ++_terrainWaitGeneration;
+    unawaited(_waitForTerrain(pending, generation));
+    notifyListeners();
+    return false;
+  }
+
+  Future<void> _waitForTerrain(Future<void> pending, int generation) async {
+    Object? failure;
+    try {
+      await pending;
+    } catch (error) {
+      failure = error;
+    }
+    if (_isShutdown || _core.gameOver || generation != _terrainWaitGeneration) {
+      return;
+    }
+    _terrainError = failure;
+    _terrainReadiness = failure == null
+        ? TerrainReadiness.ready
+        : TerrainReadiness.failed;
+    _accumulatorSeconds = 0;
+    _discardNextFrameDelta = true;
+    notifyListeners();
+  }
 
   /// Awaits Core's first terrain preparation window before interactive play.
   /// Subsequent windows refill without changing fixed-tick simulation results.
@@ -113,6 +179,7 @@ class GameController extends ChangeNotifier {
 
   /// Enqueues a command to be applied at its declared tick.
   void enqueue(Command command) {
+    if (_isShutdown || _core.gameOver) return;
     final frame = _inputsByTick.putIfAbsent(
       command.tick,
       () => TickInputFrame(),
@@ -163,7 +230,7 @@ class GameController extends ChangeNotifier {
 
   /// Pauses/unpauses the simulation.
   void setPaused(bool value) {
-    if (_core.paused == value) return;
+    if (_isShutdown || _core.paused == value) return;
     _core.paused = value;
     _accumulatorSeconds = 0;
     _prev = _core.buildSnapshot();
@@ -210,7 +277,11 @@ class GameController extends ChangeNotifier {
   ///
   /// Triggers a [RunEndedEvent] with the current score and resets interpolation.
   void giveUp() {
-    if (_core.gameOver) return;
+    if (_isShutdown || _core.gameOver) return;
+    _terrainWaitGeneration += 1;
+    _core.stopTerrainPreparation();
+    _terrainReadiness = TerrainReadiness.ready;
+    _terrainError = null;
     _core.giveUp();
     _accumulatorSeconds = 0;
 
@@ -227,12 +298,21 @@ class GameController extends ChangeNotifier {
   /// [dtSeconds] is clamped to [dtFrameMaxSeconds] (default 100ms) to avoid
   /// "spiral of death" when the app resumes from background or after a lag spike.
   void advanceFrame(double dtSeconds, {double dtFrameMaxSeconds = 0.1}) {
-    if (dtSeconds.isNaN || dtSeconds.isInfinite) return;
-    if (_core.paused) {
+    if (_isShutdown ||
+        _core.gameOver ||
+        dtSeconds.isNaN ||
+        dtSeconds.isInfinite) {
+      return;
+    }
+    if (_core.paused || _terrainReadiness != TerrainReadiness.ready) {
       _accumulatorSeconds = 0;
       return;
     }
 
+    if (_discardNextFrameDelta) {
+      _discardNextFrameDelta = false;
+      return;
+    }
     final clamped = max(0.0, min(dtSeconds, dtFrameMaxSeconds));
     _accumulatorSeconds += clamped;
 
@@ -244,6 +324,7 @@ class GameController extends ChangeNotifier {
         _accumulatorSeconds = 0;
         break;
       }
+      if (!_admitNextTick()) break;
       final nextTick = _core.tick + 1;
       final input = _inputsByTick.remove(nextTick) ?? _frameScratch;
       _applyTickInput(nextTick, input);

@@ -297,3 +297,15 @@ Rule:
 - Bonus does not create new models; it inherits the equipped ability’s model.
 
 ---
+
+## Terrain preparation during a run
+
+If the next part of the path is still loading, the game holds the current pose
+and shows “Preparing the path…”. Gameplay time, enemies, damage and score stop
+together. Controls stay mounted: queued actions remain buffered and releasing
+an ability still releases its hold. Play resumes from the same point without
+speeding up to catch up. Manual pause and backgrounding keep their usual rules.
+
+If preparation fails, the run remains held and offers Retry and Exit. Held and
+pending controls are canceled so recovery cannot fire a stale action. Retry
+continues the same run from the held point; Exit uses the normal confirmation.

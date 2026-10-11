@@ -11,9 +11,9 @@ import 'terrain_candidate_preparation_native.dart'
 
 /// Run-owned, bounded preparation of exact future terrain publications.
 ///
-/// Readiness never controls simulation: [take] returns null on a miss, and the
-/// caller must synchronously build the actual selection. Only admitted bindings
-/// and immutable profiles enter the worker; no live Core or scheduler is sent.
+/// [requireSelection] prioritizes an exact live selection and completes as soon
+/// as it is available. The host may wait before a tick; preparation never moves
+/// the simulation. Only immutable bindings and profiles enter the worker.
 final class StagedTerrainPreparer {
   StagedTerrainPreparer({
     required this.catalog,
@@ -32,6 +32,13 @@ final class StagedTerrainPreparer {
   final Map<String, StagedTerrainStreamCandidate> _ready = {};
   Map<String, List<ActiveTrackChunkSnapshot>> _wanted = {};
   Future<void>? _pending;
+  ({
+    String key,
+    List<ActiveTrackChunkSnapshot> selection,
+    Completer<void> completion,
+  })?
+  _required;
+  Timer? _requiredTimeout;
   bool _disposed = false;
   Object? _lastError;
   int _hits = 0;
@@ -58,10 +65,17 @@ final class StagedTerrainPreparer {
     List<ActiveTrackChunkSnapshot> selection, {
     required int geometryVersion,
   }) {
-    final candidate = _ready.remove(_selectionKey(selection));
+    final key = _selectionKey(selection);
+    final candidate = _ready.remove(key);
     if (candidate == null) {
       _misses += 1;
       return null;
+    }
+    _wanted.remove(key);
+    if (_required?.key == key) {
+      _required = null;
+      _requiredTimeout?.cancel();
+      _requiredTimeout = null;
     }
     _hits += 1;
     return candidate.withGeometryVersion(geometryVersion);
@@ -71,21 +85,68 @@ final class StagedTerrainPreparer {
   /// prepared. Selections must be ordered nearest first. Concurrent calls replace
   /// the queue; each complete result is available before later jobs finish.
   ///
-  /// Preparation failures disable preparation for
-  /// this instance and remain visible in [stats]. They never suppress a required
-  /// synchronous build or change the simulation's error behavior.
+  /// Speculative failures remain visible in [stats]. A required request fails
+  /// explicitly so a live host can offer recovery without constructing terrain
+  /// on its frame stack.
   Future<void> prepare(List<List<ActiveTrackChunkSnapshot>> selections) {
     if (selections.length > selectionCapacity) {
       throw ArgumentError('Terrain preparation window exceeds capacity.');
     }
     if (_disposed || _lastError != null) return Future<void>.value();
-    _wanted = {
+    final required = _required;
+    final targets = {
+      if (required != null) required.key: required.selection,
       for (final selection in selections)
-        _selectionKey(selection): List.unmodifiable(selection),
+        _selectionKey(selection): List<ActiveTrackChunkSnapshot>.unmodifiable(
+          selection,
+        ),
     };
+    _wanted = Map.fromEntries(targets.entries.take(selectionCapacity));
     _ready.removeWhere((key, _) => !_wanted.containsKey(key));
     // Binding and isolate handoff run after the current simulation/frame stack.
     return _pending ??= Future<void>(_fill);
+  }
+
+  /// Reserves a required selection ahead of speculative work. There can be only
+  /// one outstanding live tick; repeated requests for it share the same future.
+  /// The candidate remains protected until [take]. A dead worker fails after
+  /// [timeout], allowing the owner to replace this preparer and retry.
+  Future<void> requireSelection(
+    List<ActiveTrackChunkSnapshot> selection, {
+    Duration timeout = const Duration(seconds: 30),
+  }) {
+    if (_disposed) {
+      return Future.error(StateError('Terrain preparation disposed.'));
+    }
+    if (_lastError != null) return Future.error(_lastError!);
+    final key = _selectionKey(selection);
+    final required = _required;
+    if (required != null) {
+      if (required.key != key) {
+        return Future.error(
+          StateError('A different terrain selection is pending.'),
+        );
+      }
+      return required.completion.future;
+    }
+    final completion = Completer<void>();
+    _required = (
+      key: key,
+      selection: List.unmodifiable(selection),
+      completion: completion,
+    );
+    if (_ready.containsKey(key)) {
+      completion.complete();
+    } else {
+      _requiredTimeout = Timer(
+        timeout,
+        () => disable(
+          TimeoutException('Required terrain preparation timed out.', timeout),
+        ),
+      );
+    }
+    unawaited(prepare(_wanted.values.toList()));
+    return completion.future;
   }
 
   Future<void> _fill() async {
@@ -118,6 +179,12 @@ final class StagedTerrainPreparer {
           _discarded += 1;
         } else {
           _ready[next.key] = candidate;
+          final required = _required;
+          if (required?.key == next.key && !required!.completion.isCompleted) {
+            _requiredTimeout?.cancel();
+            _requiredTimeout = null;
+            required.completion.complete();
+          }
         }
         if (_disposed || _lastError != null) return;
         // Re-read the latest queue after every handoff. A replaced window must
@@ -136,14 +203,31 @@ final class StagedTerrainPreparer {
   /// simulation tick. Actual selected content still follows normal admission.
   void disable(Object error) {
     _lastError = error;
-    _ready.clear();
+    // A later speculative failure cannot revoke an already completed live
+    // reservation before its awaiting owner consumes it.
+    final reservedKey = _required?.completion.isCompleted == true
+        ? _required!.key
+        : null;
+    _failRequired(error);
+    _ready.removeWhere((key, _) => key != reservedKey);
     _wanted.clear();
+  }
+
+  void _failRequired(Object error) {
+    _requiredTimeout?.cancel();
+    _requiredTimeout = null;
+    final required = _required;
+    _required = null;
+    if (required != null && !required.completion.isCompleted) {
+      required.completion.completeError(error);
+    }
   }
 
   /// Releases retained data and prevents refills after the owning run closes.
   /// An already-running worker may finish; its bounded result is discarded.
   void dispose() {
     _disposed = true;
+    _failRequired(StateError('Terrain preparation disposed.'));
     _ready.clear();
     _wanted.clear();
   }

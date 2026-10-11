@@ -12,7 +12,51 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 
 import 'package:rpg_runner/game/replay/ghost_playback_runner.dart';
 
+import 'support/ghost_replay_fixture.dart';
+
 void main() {
+  test(
+    'cold cooperative admission preserves every recorded tick and event',
+    () async {
+      final replay = ghostReplayFixture(seed: 42);
+      final prepared = GhostPlaybackRunner.fromReplayBlob(replay);
+      final reference = GhostPlaybackRunner.fromReplayBlob(replay);
+      addTearDown(prepared.dispose);
+      addTearDown(reference.dispose);
+      var waits = 0;
+      for (
+        var tick = 0;
+        tick <= replay.totalTicks && !prepared.isComplete;
+        tick++
+      ) {
+        if (tick > 0) {
+          final pending = prepared.prepareNextTick();
+          if (pending != null) {
+            waits++;
+            final before = prepared.snapshot;
+            await pending;
+            expect(prepared.snapshot, same(before));
+          }
+        }
+        prepared.advanceToTick(tick);
+        reference.advanceToTick(tick);
+        expect(
+          actorFrameFields(prepared.snapshot),
+          actorFrameFields(reference.snapshot),
+          reason: 'tick $tick',
+        );
+        expect(
+          prepared.drainedEvents.map(eventFields),
+          reference.drainedEvents.map(eventFields),
+        );
+        prepared.clearDrainedEvents();
+        reference.clearDrainedEvents();
+      }
+      expect(waits, greaterThan(0), reason: 'Start with no speculative cache.');
+      expect(prepared.isComplete, isTrue);
+    },
+  );
+
   test('empty replay finalizes once and freezes its initial pose', () {
     final runner = GhostPlaybackRunner.fromReplayBlob(
       _buildReplayBlob(runSessionId: 'empty', totalTicks: 0),

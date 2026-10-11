@@ -68,6 +68,11 @@ Rules:
 - held ability slot transitions
 - buffering to avoid starvation during frame hitches
 
+Live controller ticks must call Core's `prepareNextTick` before removing or
+applying input and before recording a frame. Terrain waits are host pacing,
+separate from gameplay pause; discard their elapsed time and fence completion
+after shutdown. Cooperative browser ghosts use the same readiness boundary.
+
 Do not bypass that machinery with ad-hoc command scheduling from random widgets or Flame callbacks. Extend the router or controller when input behavior changes.
 
 ## Asset And Registry Discipline

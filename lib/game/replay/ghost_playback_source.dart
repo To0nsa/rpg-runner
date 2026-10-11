@@ -98,10 +98,22 @@ class _CooperativeGhostPlaybackSource implements GhostPlaybackSource {
         _producer = _Producer(replay);
         await _producer!.runner.prepareTerrainAhead();
       }
+      final producer = _producer;
+      if (_disposed || producer == null) {
+        throw StateError('Ghost playback source disposed.');
+      }
       final samples = <GhostPlaybackSample>[];
       final slice = Stopwatch()..start();
       while (!_disposed && samples.length < maxFrames) {
-        final sample = _producer!.next();
+        if (!producer._initial && !producer.runner.isComplete) {
+          final pending = producer.runner.prepareNextTick();
+          if (pending != null) {
+            await pending;
+            if (_disposed) throw StateError('Ghost playback source disposed.');
+            slice.reset();
+          }
+        }
+        final sample = producer.next();
         if (sample == null) break;
         samples.add(sample);
         if (sample.isComplete) break;
