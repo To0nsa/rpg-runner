@@ -273,6 +273,37 @@ are separate from the passing readiness checks and the release captures; no
 phone or native runtime tests were used. Logs and temporary browser entrypoints
 are retained under `.tmp/terrain-readiness`.
 
+### Release browser smoke captures for readiness
+
+The built readiness artifact retains the eight-state startup warmup; concurrent
+startup optimization edits in the shared working tree are excluded from this
+feature commit and these captures. Five attempts cover Forest seeds 42 and
+857469563, Field, `new_level`, and both characters.
+
+| Capture | Published transitions | Cache misses / waits | Frames during waits | Preparation/runtime errors |
+| --- | ---: | ---: | ---: | ---: |
+| Normal warmup | 28 | 0 / 0 | 0 | 0 |
+| Empty cache + 1,000 ms delay per job | 45 | 33 / 33 | 8,544 | 0 |
+
+The delayed run covered 197.057 active wall seconds, including 85.221 seconds
+waiting for preparation. Rendering continued during the waits; one Forest
+attempt reached the 45-second harness limit with its final request still pending.
+Controller regressions separately verify no tick/input/recorder mutation during
+a wait, no catch-up on completion, and exact offline replay parity. Scripted
+actions depend on rendered frames, so the two smoke captures do not represent
+identical command tapes.
+
+These are functional smoke results, not a clean performance comparison.
+Concurrent startup builds/tests were observed in this workspace; an earlier
+contended capture was discarded and the task's orphaned test browser was closed.
+The delayed capture still recorded 14 long tasks and an 875 ms maximum RAF gap.
+Eleven long tasks occurred in the first 2.3 seconds of the first scene; later
+tasks included 54 ms and 70 ms samples. The normal capture recorded 22 long tasks
+and a 10,812.1 ms maximum RAF gap despite zero preparation misses. This evidence
+does not establish their cause or a frame-time guarantee. Keep the complete logs
+and JSON under `.tmp/terrain-readiness`; a later isolated capture is needed for
+reliable frame timing. No phone was accessed.
+
 ## Reproduction and validation
 
 From the repository root:
