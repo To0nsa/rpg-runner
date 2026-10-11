@@ -132,9 +132,9 @@ void main() {
     },
   );
 
-  testWidgets(
+  test(
     'foreground rewards complete without a run widget and resume after inactivity',
-    (tester) async {
+    () async {
       final api = _MutableRunSessionApi(
         finalizeStatus: SubmissionStatus(
           runSessionId: 'background',
@@ -156,6 +156,18 @@ void main() {
       );
       addTearDown(app.dispose);
       await app.bootstrap();
+      final submitted = Completer<void>();
+      final rewardCompleted = Completer<void>();
+      app.addListener(() {
+        if (!submitted.isCompleted &&
+            app.runSubmissionStatusFor('background')?.phase ==
+                RunSubmissionPhase.pendingValidation) {
+          submitted.complete();
+        }
+        if (!rewardCompleted.isCompleted && app.progression.gold == 12) {
+          rewardCompleted.complete();
+        }
+      });
       await app.journalRunReplay(
         runSessionId: 'background',
         runMode: RunMode.practice,
@@ -164,7 +176,7 @@ void main() {
         contentLengthBytes: 256,
       );
       app.setRunSubmissionForeground(true);
-      await tester.pump(Duration.zero);
+      await submitted.future.timeout(const Duration(seconds: 5));
       expect(api.createUploadGrantCallCount, 1);
       app.setRunSubmissionForeground(false);
       ownership.setCanonicalState(_canonicalWithGold(gold: 12, revision: 2));
@@ -182,10 +194,11 @@ void main() {
           ),
         ),
       );
-      await tester.pump(const Duration(seconds: 2));
+      // The app scheduler uses wall time; widget pumping advances only timers.
+      await Future<void>.delayed(const Duration(seconds: 2));
       expect(app.progression.gold, 0);
       app.setRunSubmissionForeground(true);
-      await tester.pump(const Duration(seconds: 2));
+      await rewardCompleted.future.timeout(const Duration(seconds: 5));
       expect(app.progression.gold, 12);
       expect(await spool.load(runSessionId: 'background'), isNull);
       final reads = ownership.loadCanonicalStateCallCount;

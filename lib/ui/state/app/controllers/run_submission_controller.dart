@@ -24,7 +24,10 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     if (_foreground == foreground) return;
     _foreground = foreground;
     _scheduler.setForeground(foreground);
-    if (foreground) unawaited(_resumePendingRunSubmissions());
+    // Bootstrap owns sign-in; lifecycle recovery must not retry a failed login.
+    if (foreground && _bootstrapped) {
+      unawaited(_resumePendingRunSubmissions());
+    }
   }
 
   void resetAccount() {

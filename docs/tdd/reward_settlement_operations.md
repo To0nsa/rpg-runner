@@ -57,6 +57,9 @@ routes. `RunnerGameWidget` observes status; disposing it does not stop upload,
 verification or canonical wallet refresh. The app shell suspends scheduling
 outside the resumed lifecycle and rediscovers the account's durable spool on
 resume. Embedders forward this lifecycle using `setRunSubmissionForeground`.
+Recovery waits for successful bootstrap before discovering the spool. A resume
+event during failed sign-in cannot start another authentication attempt; explicit
+bootstrap retry owns sign-in and starts discovery after success when foreground.
 Developer Practice never activates the queue.
 
 The queue deduplicates each run's in-flight operation, spaces background

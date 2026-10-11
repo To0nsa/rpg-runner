@@ -102,6 +102,11 @@ void main() {
         tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
         isFalse,
       );
+      fixture.auth.error = null;
+      await tester.tap(find.text('Retry Play Games sign-in'));
+      await tester.pumpAndSettle();
+      expect(fixture.services.appState.isBootstrapped, isTrue);
+      expect(find.byType(ProfileNameSetupPage), findsOneWidget);
     },
   );
 
