@@ -1,6 +1,7 @@
 # Run startup audit and optimization — 2026-10-11
 
-Status: implemented and locally verified; no deployment or phone measurement.
+Status: implemented and verified locally and on the connected Android phone.
+No backend/Hosting deployment was performed.
 The source worktree includes existing authored Forest changes. Measurements use
 that local content, not a claim about the currently deployed catalog.
 
@@ -55,6 +56,95 @@ dart compile exe tool/benchmark_run_startup.dart -o .tmp/run-startup.exe
 
 The benchmark fails if startup does not finish at tick zero with eight ready
 states and no worker error. It emits constructor and terrain timings separately.
+
+## Connected phone diagnosis
+
+The connected CPH2465 (Android 15, SM6375) was initially running an older debug APK in Developer
+Practice. The updated normal app was installed over it without clearing app data.
+Opt-in startup markers captured the actual hub-to-run and restart paths; a run
+was started and played to its natural gap death. Developer Practice makes no
+backend ticket request and opens no replay recorder.
+
+| Debug app path | Preflight | Core/controller construction | Scene | Terrain | Local ready |
+| --- | --- | --- | --- | --- | --- |
+| First run, seed 677668716 | 16 ms | 3394 ms | 951 ms | 6489 ms | 10063 ms |
+| Restart, seed 474047557 | 0.47 ms | 514 ms | 477 ms | 5230 ms | 5793 ms |
+
+Scene and terrain overlap. Local ready starts at session construction; preflight
+is separate. These seeds differ, and debug mode includes JIT/cold-code overhead:
+the drop on restart is not a controlled estimate of the optimization's benefit.
+The first run's construction delay also occurs before the first world milestone.
+
+For the controlled comparison, the same phone ran the real Core, controller,
+Flame renderer and asset catalogs in a native profile APK, with fixed tick-stamped
+input, Eloise, and Forest seeds 857469563 and 42. The planned order per seed was
+serial, parallel, parallel, serial; each attempt owned a fresh Core and image
+cache. Seed 857469563 completed all four passes and seed 42 completed its first
+serial/parallel pair before the device locked. Debug hitbox
+overlays were disabled in this standalone benchmark. It excludes authentication,
+recorder I/O, route transitions and app-shell startup.
+
+| Forest seed | Serial world-ready samples | Two-worker world-ready samples | Mean reduction |
+| --- | --- | --- | --- |
+| 857469563 | 4356, 3748 ms | 2576, 2625 ms | 36% |
+| 42 | 4589 ms | 2937 ms | 36% (one pair) |
+
+Terrain preparation itself averaged 3784 → 2352 ms for seed 857469563 and
+4439 → 2788 ms for seed 42, a 37–38% reduction. Profile construction ranged from
+138–286 ms. Scene loading ranged from 366–787 ms and overlapped terrain. The
+first serial run also had a colder process/asset path; the reverse-order serial
+repeat remains visible in the table rather than being discarded.
+
+All six completed passes started with eight prepared states, ended naturally,
+and had zero terrain waits, zero misses and no preparation errors. Seed 857469563
+ended at tick 1086 / distance 3779.4736328125, with seven geometry versions and
+six terrain hits in every pass. Seed 42 ended at tick 784 / distance
+2565.849609375, with five geometry versions and four hits in both passes.
+Those are finite gameplay samples ending in death, not complete-level coverage.
+The device reported thermal status 0 before and after capture; it was USB powered.
+No CPU/timeline payload was downloaded during play. Profile measurements came
+from the device while unrelated validation/build commands ran on the host PC.
+
+The capture timed out after the phone auto-locked during its seventh attempt.
+Only the six completed pre-lock passes above are evidence; the two outstanding
+repeats are not claimed as completed. Unlock was requested, but was unavailable
+before the handoff. The normal instrumented debug app was reinstalled, preserving
+app data, and the original keep-awake setting (0) was restored. No post-suspension
+measurement contributes to the table.
+
+Reproduce the actual app markers with:
+
+~~~powershell
+flutter build apk --debug --target-platform android-arm64 --no-pub --dart-define=RUN_STARTUP_TRACE=true
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+adb shell am start -W -n com.example.rpg_runner/.MainActivity
+adb logcat -v raw -s flutter
+~~~
+
+Launch through the hub and retain only RUN_STARTUP_TRACE lines. Do not infer
+remote timings from Developer Practice. The diagnostics also cover ownership,
+auth, joined prefetch, foreground ticket creation, restart canonical reads and
+recorder opening when an online run actually exercises those paths.
+
+For the controlled native comparison, put the following in a temporary JSON
+Dart define file (a file avoids shell interpretation of ampersands on Windows):
+
+~~~json
+{"BENCHMARK_OPTIONS":"level=forest&character=eloise&scriptedInput=1&compareWarmup=1"}
+~~~
+
+~~~powershell
+flutter build apk --profile --target-platform android-arm64 --no-pub -t tool/benchmark_gameplay_app.dart --dart-define-from-file=.tmp/phone-benchmark.json
+adb install -r build/app/outputs/flutter-apk/app-profile.apk
+adb shell am force-stop com.example.rpg_runner
+adb shell am start -W -n com.example.rpg_runner/.MainActivity
+adb logcat -v raw -s flutter
+~~~
+
+Retain the eight GAMEPLAY_BENCHMARK_ROW records. Keep the phone awake and unlocked;
+record and restore any temporary keep-awake setting. Installing the benchmark
+replaces this local package's executable, so reinstall the normal app APK after
+measurement. App data does not need to be cleared.
 
 ## Browser experiment and retained startup headroom
 
@@ -114,17 +204,21 @@ remains the existing no-warmup diagnostic. Those controls are tooling only.
 - Generated-content freshness passed with 83 chunk files, three level definitions,
   three parallax themes and three terrain materials. No content was regenerated
   as part of this change.
-- Targeted Dart analysis passed with no issues.
-- The final release-web benchmark compiled successfully, including cooperative
-  browser startup scheduling.
+- Targeted Dart analysis passed with no issues. A further 42 focused startup,
+  readiness/recovery and ticket tests passed with device tracing enabled.
+- The release-web benchmark compiled successfully, including cooperative
+  browser startup scheduling. Native profile and normal instrumented debug APKs
+  also compiled, installed and launched on the connected phone.
 
 ## Remaining costs and limits
 
 Forest graph construction still dominates browser startup. Initial Core
 construction also remains synchronous. Asset loading is overlapped, but this
-capture does not isolate its speedup from renderer/browser variation. No live
-Firebase latency, cold Function instance, selected-ghost download, low-end device,
-peak-memory or full-run comparison was measured. The fixed browser tape ends at
+capture does not isolate its speedup from renderer/browser variation. The phone
+comparison confirms faster local readiness on one device; it does not measure
+live Firebase latency, cold Function instances, selected-ghost download, recorder
+I/O, peak memory or a full level. Debug app observations must not be reported as
+release performance. The fixed browser tape ends at
 its actual death at tick 784; it is not a traversal or complete-level assertion.
 
 Authentication already coalesces shared work and can reuse its token. Existing
