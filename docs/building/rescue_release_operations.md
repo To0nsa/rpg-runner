@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.11.1` was deployed October 11, 2026 from frozen commit `6ac2a73a`;
-see [current production evidence](../verification/game-compat-2026.10.11.1-production.md).
+Status: `2026.10.12` was deployed October 12, 2026 UTC from frozen commit `77525d31`;
+see [current production evidence](../verification/game-compat-2026.10.12-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.11.1](../verification/game-compat-2026.10.11.1-production.md),
 [2026.10.11](../verification/game-compat-2026.10.11-production.md),
 [2026.10.10](../verification/boss-combat-corrections-2026-10-08.md#production-release),
 [2026.10.9](../verification/ancient-god-bosses-2026-10-07.md#production-release),
@@ -16,7 +17,7 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
-## Prepared release: 2026.10.12
+## Deployed release: 2026.10.12
 
 The owner authorized deployment of Forest revision 389 on October 12, 2026,
 requested focused validation and accepted traversal failures for this release.
@@ -41,19 +42,23 @@ for exact test scope and omitted suites.
 The 21:04:40 UTC read-only inventory observed 226 accepted validations with settled
 rewards and four issued `2026.10.11.1` tickets. The owner approved cancelling
 only the four reviewed unsubmitted tickets after a fresh paused-state recheck.
-No cancellation or production cutover has been applied yet.
+The four approved tickets were cancelled at 22:16:13 UTC after that recheck.
+All 226 accepted runs and settled rewards were preserved. Issuance and both queues
+are restored; the final inventory has zero active runs or unsettled rewards.
 
 - [x] Regenerate runtime content and align matching source and route seeds.
 - [x] Freeze the release snapshot.
 - [x] Run focused content, route, compatibility and replay checks in a detached
   release recipe; report omitted suites and traversal failures separately.
 - [x] Build the production web client.
-- [ ] Build and strictly benchmark the exact worker image; Cloud Build
-  `1068079f-4923-413b-95e2-c051aa7bf0b2` is in progress.
-- [ ] Pause issuance, recheck/cancel only the four authorized unsubmitted tickets,
+- [x] Build the 93,600-graph worker image and pass all nine strict benchmark gates;
+  Cloud Build `1068079f-4923-413b-95e2-c051aa7bf0b2` succeeded.
+- [x] Pause issuance, recheck/cancel only the four authorized unsubmitted tickets,
   drain, deploy matching artifacts and boards, verify live readiness, and restore
   both queues and issuance.
-- [ ] Record immutable artifacts and final live results.
+- [x] Record immutable artifacts and final live results: 26 ACTIVE Functions,
+  both queues RUNNING, all six boards ready, healthy worker/issuer traffic and
+  matching live web bytes.
 - [ ] Complete controlled signed-in gameplay/replay/settlement/ghost smoke.
 
 ## Deployed release: 2026.10.11.1

@@ -1,12 +1,14 @@
 # Prepared navigation and reward verification
 
-Deployed for compatibility `2026.10.11.1` on October 11, 2026; see the
-[production evidence](../verification/game-compat-2026.10.11.1-production.md).
-The exact-image benchmark passed. Device, route-coverage and controlled
-end-to-end measurements remain open; the owner accepted two known authored-terrain
-traversal failures for this cutover. Replay acceptance still requires
-the authenticated ticket, digest-verified replay and deterministic Core; client
-terrain and navigation uploads are never authority.
+Current production compatibility is `2026.10.12`, deployed October 12, 2026 UTC;
+see the [production evidence](../verification/game-compat-2026.10.12-production.md).
+The client pack has 3,720 graphs and the worker pack has 93,600 across the declared
+38 routes; their horizons are 8 and 128 chunks respectively. The exact-image
+benchmark passed. Device, exhaustive route coverage and controlled end-to-end
+measurements remain open; the owner accepted three Field traversal failures for
+this cutover. Replay acceptance still requires the authenticated ticket,
+digest-verified replay and deterministic Core; client terrain and navigation
+uploads are never authority.
 
 ## Materialization and artifact trust
 

@@ -1,9 +1,12 @@
 # Release verification: gameplay 2026.10.12
 
-Status: prepared; image build and production cutover are in progress. Production
-still runs 2026.10.11.1. The owner authorized deployment, requested focused
-validation, accepted traversal failures and separately approved cancelling the
-four reviewed unsubmitted old-version tickets after a fresh cutover recheck.
+Deployed October 12, 2026 UTC (October 13 in Helsinki) through the canonical
+release workflow to `rpg-runner-d7add` / `europe-west1`: Firebase Functions,
+Cloud Run replay validation and [web Hosting](https://rpg-runner-d7add.web.app).
+Normal issuance and both queues are restored. The owner authorized deployment,
+requested focused validation, accepted traversal failures and approved cancelling
+exactly four reviewed unsubmitted old-version tickets. Their records were retained;
+all 226 accepted runs and settled rewards were preserved.
 
 ## Frozen source and authored changes
 
@@ -57,7 +60,7 @@ Current-source generator dry-run freshness remained a required gate.
 Client navigation: 3,720 graphs, 25,179,855 bytes, 38 declared routes and an
 8-chunk horizon. This is an artifact inventory, not exhaustive route coverage.
 
-Prepared `main.dart.js` SHA-256:
+Prepared and downloaded live `main.dart.js` SHA-256:
 `9098548edfb43d6d717d44f96c96859619a1db2d2c4548d881676437c8e46665`.
 
 ### Separately recorded traversal diagnostics
@@ -71,33 +74,73 @@ No movement capability, tolerance or runtime geometry was weakened to pass them.
 The other seeds and full matrix were omitted. Pursuit diagnostics do not establish
 player, spawn/combat, arena-boss, camera, rendering or performance acceptance.
 
-## Image build
+## Immutable artifacts and cutover
 
-Cloud Build `1068079f-4923-413b-95e2-c051aa7bf0b2` started at
-2026-10-12 21:18:10 UTC. Its final-image benchmark and immutable image identity
-are pending.
+Cloud Build `1068079f-4923-413b-95e2-c051aa7bf0b2` succeeded, running from
+2026-10-12 21:18:10 to 22:10:14 UTC. It prepared 93,600 worker navigation graphs
+across 38 declared routes and a 128-chunk horizon. All nine strict 36,000-tick
+benchmark gates passed in the exact final image at one CPU / 512 MiB.
+The no-ambient-enemy fixture proves throughput/determinism for its input script;
+Forest ended near its opening and Field at 1,614.94 distance units. It does not
+establish complete player/combat traversal or live reward latency.
 
-## Pre-cutover live evidence
+Worker image:
+`europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator@sha256:629a34a0e16f8cea6d3c8cc941c090f3a60410ece4e8de68b3eed017f46b7342`.
+Healthy revision `replay-validator-00054-dvp` serves 100% of traffic.
+Healthy issuer revision `runsessioncreate-00059-52x` serves 100% of traffic;
+its serving revision has no `RUN_SUPPORTED_GAME_COMPAT_VERSIONS` override.
+Downloaded Hosting JavaScript exactly matches the prepared hash above.
 
-Read-only inventory at 2026-10-12 21:04:40 UTC found 280 session records:
-226 validated, 26 cancelled, 24 expired and four issued old-version tickets.
-All 226 accepted validations had settled reward grants. There was no pending or
-quarantined settlement. The current release's six boards are not yet published.
+| Stage | October 12 UTC |
+| --- | --- |
+| Preparation complete | 21:16:57 |
+| Image build started / succeeded | 21:18:10 / 22:10:14 |
+| Issuance paused | 22:15:47 |
+| Four approved tickets cancelled | 22:16:13 |
+| Functions deployed | 22:21:27 |
+| Worker configuration complete | 22:24:37 |
+| Hosting deployed | 22:25:12 |
+| Issuance restored | 22:31:29 |
+| Production baseline verified | 22:31:40 |
+| Serving issuer verified | 22:32:30 |
+| Final live inventory | 22:32:36 |
 
-The four-ticket candidate identity hash is
+The previous issuer image had been removed by managed cleanup. PauseIssuance
+used its existing recovery path to rebuild the prepared issuer with the explicit
+pause gate, then verified its healthy serving revision. The backend cutover
+excluded `runSessionCreate`; normal issuance was restored only after matching
+worker/web artifacts and all six boards were ready.
+
+## Production state and data preservation
+
+The pre-cutover inventory at 21:04:40 UTC contained 280 sessions: 226 validated,
+26 cancelled, 24 expired and four issued old-version tickets. The owner-approved
+candidate identity hash was
 `eb4a98a74b1ed7dc58a276f6d45de2f98fe185441167f5ba0ab7b4910f4b9191`.
-Cancellation has not yet been applied. The guarded operation requires healthy
-paused issuance, the exact approved set, unchanged session versions/update times,
-no upload/validation lease, no replay object and no reward or validation document.
+The guarded cancellation at 22:16:13 UTC rechecked healthy paused issuance, the
+exact set, session update times, absent upload/validation leases, absent replay
+objects, and absent reward/validation documents before its conditional transaction.
+It retained all four session records and wrote no profile, reward or validated-run
+document. No data reset occurred.
 
-Local evidence is in the frozen checkout's
-`.tmp/releases/rpg-runner-d7add/eac5b845203b2841c288bad61b13354bb655c56e86ee78d66e8c512c1489f2e4/`.
+Final inspection at 22:32:36 UTC found 26 ACTIVE Functions, both queues RUNNING,
+all six expected current/next boards, zero active sessions and no pending or
+quarantined settlement. The 280 records now comprise 226 validated, 30 cancelled
+and 24 expired. All 226 accepted validations and settled grants remain intact.
+
+Evidence is in the frozen checkout's
+`.tmp/releases/rpg-runner-d7add/eac5b845203b2841c288bad61b13354bb655c56e86ee78d66e8c512c1489f2e4/`:
+component/freshness logs, separately waived traversal diagnostics, Cloud Build
+and exact-image benchmark output, cancellation authorization/application receipts,
+before/drained/deployed/final inventories, live web bytes, final issuer checks,
+and the verified production baseline.
 
 ## Remaining live acceptance
 
-Image publication/benchmark, cutover, final live artifact checks and restoration
-of issuance remain pending. Controlled signed-in Play Games issuance, replay
-acceptance, once-only settlement, background wallet catch-up, leaderboard/ghost
-playback and retired-version rejection are not yet verified by this release.
-No native package has been built or installed. The prior web unsupported-services
-startup limitation remains historical evidence until retested.
+Controlled signed-in Play Games issuance, replay acceptance, once-only settlement,
+background wallet catch-up, leaderboard/ghost playback, live retired-version
+rejection and target-device performance remain unverified by this release.
+No controlled accepted replay was produced after cutover, and no native package
+was built or installed. The previous web unsupported-services startup limitation
+was not retested; historical browser observations are not current smoke evidence.
+The [release checklist](../building/rescue_release_operations.md) remains active.

@@ -9,26 +9,26 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.11.1`, deployed October 11
-from frozen commit `6ac2a73a`. Its ranked tuple is `rules-v2`, `score-v4`, and
-`ghost-v1`; replay and command formats remain 1. See the
-[production evidence](../verification/game-compat-2026.10.11.1-production.md)
-for preparation, immutable artifacts, the coordinated cutover and the two
-owner-accepted traversal failures. Those failures remain unresolved; their
-release-only exclusions do not change the normal preparation recipe.
+The current production release is gameplay `2026.10.12`, deployed October 12,
+2026 UTC from frozen commit `77525d31`. Its ranked tuple is `rules-v2`,
+`score-v4`, and `ghost-v1`; replay and command formats remain 1. See the
+[production evidence](../verification/game-compat-2026.10.12-production.md)
+for the owner-authorized focused validation scope, immutable artifacts,
+coordinated cutover and three unresolved, owner-waived Field traversal failures.
+The normal preparation recipe remains unchanged.
 
-The release includes [prepared navigation and curated Practice routes](prepared_navigation.md),
-[app-owned reward completion](reward_settlement_operations.md), current Forest
-authoring and the bootstrap recovery repair. Runtime source matches main
-`28a4a7f5`. All 204 accepted runs and settled rewards were preserved; one old
-unsubmitted ticket was cancelled under owner authorization. Both queues and
-normal ticket issuance are restored, with all six new-version boards ready.
+The release includes Field's authored loop and ground height 224, Forest's final
+nine distinct hard Rocky Grove chunks, regenerated runtime content and refreshed
+prepared routes. Runtime source matches main `bca13b47`. All 226 accepted runs
+and settled rewards were preserved; exactly four reviewed unsubmitted tickets
+were cancelled under owner authorization. Both queues and normal issuance are
+restored, with all six new-version boards ready. The previous issuer image was
+missing, so the existing paused-rebuild recovery path was used.
 
-The release web build disables render debug overlays through its release-mode
-guard. Fresh browser startup still stops at the pre-existing unsupported-services
-message, so controlled signed-in gameplay remains unverified. The
-[release checklist](../building/rescue_release_operations.md) retains the linked
-Play Games smoke checks; no native package was installed by this release.
+The live worker and downloaded web artifact match the prepared release. Controlled
+signed-in gameplay remains unverified, and the previous browser startup limitation
+was not retested. The [release checklist](../building/rescue_release_operations.md)
+retains linked Play Games smoke checks; no native package was built or installed.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug
