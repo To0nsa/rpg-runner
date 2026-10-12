@@ -30,19 +30,31 @@ boundaries and its spawn reference at 224. Content generation admits 87 chunks
 and all three levels. Regenerated client/Core terrain includes the saved prefab
 and encounter authoring.
 
-Focused Functions build/test compilation and seven compatibility, retirement
-and route-seed checks passed. Read-only live inspection observed 205 accepted
-validations with settled rewards and one issued `2026.10.11.1` ticket expiring
-October 13 at 05:02:34 UTC. No runs were cancelled.
+Preparation completed in frozen commit `77525d31` at October 12 21:16:57 UTC.
+The focused client, Core, Functions and validator checks, shared-package suites,
+production audit, web build and generated-content freshness passed. Seed-42
+traversal diagnostics passed Forest Grojib and Field Unoco; Field Grojib, Hashash
+and Derf still stall in `field_default_easy_007`. These are owner-waived failures,
+not passing evidence. See [release verification](../verification/game-compat-2026.10.12-production.md)
+for exact test scope and omitted suites.
+
+The 21:04:40 UTC read-only inventory observed 226 accepted validations with settled
+rewards and four issued `2026.10.11.1` tickets. The owner approved cancelling
+only the four reviewed unsubmitted tickets after a fresh paused-state recheck.
+No cancellation or production cutover has been applied yet.
 
 - [x] Regenerate runtime content and align matching source and route seeds.
-- [ ] Freeze the release snapshot.
-- [ ] Run focused content, route, compatibility and replay checks in a detached
+- [x] Freeze the release snapshot.
+- [x] Run focused content, route, compatibility and replay checks in a detached
   release recipe; report omitted suites and traversal failures separately.
-- [ ] Build the web client and exact benchmarked worker image.
-- [ ] Pause issuance, drain without cancellation, deploy matching artifacts and
-  boards, verify live readiness, and restore both queues and issuance.
-- [ ] Record immutable artifacts and live results; complete signed-in smoke.
+- [x] Build the production web client.
+- [ ] Build and strictly benchmark the exact worker image; Cloud Build
+  `1068079f-4923-413b-95e2-c051aa7bf0b2` is in progress.
+- [ ] Pause issuance, recheck/cancel only the four authorized unsubmitted tickets,
+  drain, deploy matching artifacts and boards, verify live readiness, and restore
+  both queues and issuance.
+- [ ] Record immutable artifacts and final live results.
+- [ ] Complete controlled signed-in gameplay/replay/settlement/ghost smoke.
 
 ## Deployed release: 2026.10.11.1
 
