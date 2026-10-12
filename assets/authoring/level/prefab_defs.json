@@ -302,6 +302,54 @@
       ]
     },
     {
+      "id": "country_village_house_01",
+      "sourceImagePath": "assets/images/level/atlases/country_village/props.png",
+      "x": 192,
+      "y": 0,
+      "width": 144,
+      "height": 128,
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
+      "id": "country_village_market_01",
+      "sourceImagePath": "assets/images/level/atlases/country_village/props.png",
+      "x": 192,
+      "y": 128,
+      "width": 112,
+      "height": 64,
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
+      "id": "country_village_tree_01",
+      "sourceImagePath": "assets/images/level/atlases/country_village/props.png",
+      "x": 0,
+      "y": 0,
+      "width": 112,
+      "height": 128,
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
+      "id": "country_village_tree_02",
+      "sourceImagePath": "assets/images/level/atlases/country_village/props.png",
+      "x": 112,
+      "y": 16,
+      "width": 80,
+      "height": 112,
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
       "id": "crystal_world_black_rock_01",
       "sourceImagePath": "assets/images/level/atlases/crystal_world/rocks.png",
       "x": 352,
@@ -4154,6 +4202,30 @@
       ]
     },
     {
+      "id": "tiny_swords_cart_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 32,
+      "y": 288,
+      "width": 96,
+      "height": 64,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "id": "tiny_swords_cart_wheel_01",
+      "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
+      "x": 128,
+      "y": 288,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
       "id": "tiny_swords_chair_01",
       "sourceImagePath": "assets/images/level/atlases/tiny_swords/village_props.png",
       "x": 392,
@@ -6515,6 +6587,78 @@
       "tags": [
         "cimetery",
         "statue"
+      ]
+    },
+    {
+      "prefabKey": "country_village_house_01",
+      "id": "country_village_house_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "country_village_house_01"
+      },
+      "anchorXPx": 72,
+      "anchorYPx": 64,
+      "collisionShapes": [],
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "country_village_market_01",
+      "id": "country_village_market_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "country_village_market_01"
+      },
+      "anchorXPx": 56,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "country_village_tree_01",
+      "id": "country_village_tree_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "country_village_tree_01"
+      },
+      "anchorXPx": 56,
+      "anchorYPx": 64,
+      "collisionShapes": [],
+      "tags": [
+        "country_village",
+        "props"
+      ]
+    },
+    {
+      "prefabKey": "country_village_tree_02",
+      "id": "country_village_tree_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "decoration",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "country_village_tree_02"
+      },
+      "anchorXPx": 40,
+      "anchorYPx": 56,
+      "collisionShapes": [],
+      "tags": [
+        "country_village",
+        "props"
       ]
     },
     {
@@ -15888,6 +16032,42 @@
       },
       "anchorXPx": 64,
       "anchorYPx": 24,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_cart_01",
+      "id": "tiny_swords_cart_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_cart_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 32,
+      "collisionShapes": [],
+      "tags": [
+        "tiny_swords",
+        "village_props"
+      ]
+    },
+    {
+      "prefabKey": "tiny_swords_cart_wheel_01",
+      "id": "tiny_swords_cart_wheel_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "tiny_swords_cart_wheel_01"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
       "collisionShapes": [],
       "tags": [
         "tiny_swords",

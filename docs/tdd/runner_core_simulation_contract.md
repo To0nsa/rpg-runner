@@ -602,6 +602,14 @@ this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
 
+Gameplay compatibility `2026.10.12` regenerates Forest revision 389 with a
+nine-chunk distinct hard Rocky Grove section after Goddess. The existing final-
+section continuation policy now repeats that grove section. Client, Functions
+and worker must switch together; replay/command formats and ranked rules, score
+and ghost versions remain unchanged. Field also switches to its authored
+one-early/seven-distinct-easy loop with a shared 224-unit ground reference and
+matching compiled boundaries. Both levels are generated in the same release.
+
 Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
 The subsequent Forest spawn revision uses gameplay `2026.09.9`; removing enemy
 placements changes deterministic replay outcomes and requires matching client

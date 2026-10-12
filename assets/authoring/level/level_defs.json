@@ -3,12 +3,12 @@
   "levels": [
     {
       "levelId": "field",
-      "revision": 10,
+      "revision": 15,
       "displayName": "Field",
       "visualThemeId": "field",
       "chunkThemeGroups": ["default", "cimetery", "field", "grove", "rocky_grove", "ruins"],
       "cameraCenterY": 135,
-      "groundTopY": 222,
+      "groundTopY": 224,
       "terrainHeightStepPx": 24,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
@@ -16,7 +16,28 @@
       "noEnemyChunks": 3,
       "enumOrdinal": 20,
       "includeInBuild": true,
-      "status": "active"
+      "status": "active",
+      "assembly": {
+        "loopSegments": true,
+        "segments": [
+          {
+            "segmentId": "default",
+            "groupId": "default",
+            "difficulty": "early",
+            "minChunkCount": 1,
+            "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "default_2",
+            "groupId": "default",
+            "difficulty": "easy",
+            "minChunkCount": 7,
+            "maxChunkCount": 7,
+            "requireDistinctChunks": true
+          }
+        ]
+      }
     },
     {
       "levelId": "forest",

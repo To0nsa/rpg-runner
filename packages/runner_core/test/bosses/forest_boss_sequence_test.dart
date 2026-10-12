@@ -49,7 +49,14 @@ void main() {
           route.keys[route.keys.indexOf(_keys[1]) + 1],
           startsWith('forest_rocky_grove_hard_'),
         );
-        expect(route.keys.last, _keys.last);
+        final finale = route.keys.sublist(route.keys.indexOf(_keys.last) + 1);
+        expect(finale, hasLength(9));
+        expect(finale.toSet(), hasLength(9));
+        expect(finale, everyElement(startsWith('forest_rocky_grove_hard_')));
+        expect(
+          route.continuationChunkKey,
+          startsWith('forest_rocky_grove_hard_'),
+        );
         // ignore: avoid_print
         print(
           'FOREST_BOSS_ROUTE seed=$seed chunks=${route.keys.length} '

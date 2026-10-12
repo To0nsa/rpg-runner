@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_003",
   "id": "forest_rocky_grove_hard_003",
-  "revision": 25,
+  "revision": 30,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -80,14 +80,14 @@
       "vertices": [
         {
           "x": 488,
-          "y": 224
+          "y": 225
         },
         {
-          "x": 600,
-          "y": 224
+          "x": 580,
+          "y": 225
         },
         {
-          "x": 600,
+          "x": 580,
           "y": 270
         },
         {
@@ -97,6 +97,30 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 580,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 580,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
     }
   ]
 }

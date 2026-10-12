@@ -52,7 +52,7 @@ camp 002 now shares the hard variant's 16-unit-left anvil position to open the
 crate approach. Hard Rocky Grove 008 uses a 96-unit-wide gap foothold raised
 28 units, preserving open gaps on both sides and existing movement limits.
 
-The current `2026.10.11` source separates the boss milestones: Bringer ends the
+The `2026.10.11` source separates the boss milestones: Bringer ends the
 easy phase, Shoggoth ends the normal phase, and Goddess ends the hard phase.
 Voidcaller's authored arena remains available but is not scheduled in Forest.
 The opening chooses 1–11 distinct early chunks with the fixed first chunk.
@@ -83,6 +83,11 @@ is widened to 96 units, raised 28 units and moved 32 units left so Derf lands on
 its flat surface. These repairs preserve the existing enemy jump, speed and
 collision limits. Exact incoming transitions remain traversal regressions
 alongside the complete seeded Forest assembly.
+
+The `2026.10.12` Forest revision 389 appends nine distinct hard Rocky Grove
+chunks after Goddess. This becomes the repeating final section: subsequent
+section occurrences select the nine grove layouts again, instead of repeating
+the Goddess arena. Earlier sections, boss milestones and scoring are unchanged.
 
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
@@ -123,6 +128,15 @@ then Hard indefinitely, with normal missing-tier fallback. Explicit sections
 override that selection without resetting global chunk indexes. The enemy-free
 opening still suppresses enemies only for the first configured number of chunks;
 terrain hazards remain active.
+
+## Field authored loop
+
+The `2026.10.12` Field content uses ground height 224 in both its level
+configuration and chunk boundaries. Its repeating assembly contains one early
+chunk followed by seven distinct easy chunks. The first three chunks of the
+run suppress enemies and rescue encounters; subsequent loops do not reset that
+opening protection. Internal gaps and authored participant positions remain
+part of their chunks.
 
 ## Camera pacing by difficulty
 

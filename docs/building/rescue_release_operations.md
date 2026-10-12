@@ -16,6 +16,34 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
 
+## Prepared release: 2026.10.12
+
+The owner authorized deployment of Forest revision 389 on October 12, 2026,
+requested focused validation and accepted traversal failures for this release.
+The nine distinct hard Rocky Grove chunks after Goddess become the repeating
+final section. Gameplay compatibility changes together across client, Functions
+and worker; rules-v2, score-v4, ghost-v1 and replay/command format 1 remain.
+
+The owner repaired the Forest exit landing, preserving all nine distinct chunks.
+Field now uses one early chunk and seven distinct easy chunks with all ground
+boundaries and its spawn reference at 224. Content generation admits 87 chunks
+and all three levels. Regenerated client/Core terrain includes the saved prefab
+and encounter authoring.
+
+Focused Functions build/test compilation and seven compatibility, retirement
+and route-seed checks passed. Read-only live inspection observed 205 accepted
+validations with settled rewards and one issued `2026.10.11.1` ticket expiring
+October 13 at 05:02:34 UTC. No runs were cancelled.
+
+- [x] Regenerate runtime content and align matching source and route seeds.
+- [ ] Freeze the release snapshot.
+- [ ] Run focused content, route, compatibility and replay checks in a detached
+  release recipe; report omitted suites and traversal failures separately.
+- [ ] Build the web client and exact benchmarked worker image.
+- [ ] Pause issuance, drain without cancellation, deploy matching artifacts and
+  boards, verify live readiness, and restore both queues and issuance.
+- [ ] Record immutable artifacts and live results; complete signed-in smoke.
+
 ## Deployed release: 2026.10.11.1
 
 Prepared navigation, curated Practice routes, app-owned reward completion,

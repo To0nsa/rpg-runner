@@ -297,6 +297,14 @@ class LevelRegistry {
                 maxChunkCount: 1,
                 requireDistinctChunks: true,
               ),
+              LevelAssemblySegment(
+                segmentId: 'default_5_2_2_2_2_2',
+                groupId: 'rocky_grove',
+                difficulty: ChunkPatternTier.hard,
+                minChunkCount: 9,
+                maxChunkCount: 9,
+                requireDistinctChunks: true,
+              ),
             ],
           ),
         );
@@ -307,12 +315,33 @@ class LevelRegistry {
             LevelId.field.name,
           ),
           cameraCenterY: 135.0,
-          groundTopY: 222.0,
+          groundTopY: 224.0,
           earlyPatternChunks: 3,
           easyPatternChunks: 0,
           normalPatternChunks: 0,
           noEnemyChunks: 3,
           visualThemeId: 'field',
+          assembly: const LevelAssemblyDefinition(
+            loopSegments: true,
+            segments: <LevelAssemblySegment>[
+              LevelAssemblySegment(
+                segmentId: 'default',
+                groupId: 'default',
+                difficulty: ChunkPatternTier.early,
+                minChunkCount: 1,
+                maxChunkCount: 1,
+                requireDistinctChunks: true,
+              ),
+              LevelAssemblySegment(
+                segmentId: 'default_2',
+                groupId: 'default',
+                difficulty: ChunkPatternTier.easy,
+                minChunkCount: 7,
+                maxChunkCount: 7,
+                requireDistinctChunks: true,
+              ),
+            ],
+          ),
         );
       case LevelId.new_level:
         return LevelDefinition(

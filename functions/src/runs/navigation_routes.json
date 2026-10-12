@@ -47,43 +47,43 @@
       "mode": "competitive",
       "levelId": "field",
       "windowId": "2026-10",
-      "gameCompatVersion": "2026.10.11.1",
-      "seed": 1515134029
+      "gameCompatVersion": "2026.10.12",
+      "seed": 1142208886
     },
     {
       "mode": "competitive",
       "levelId": "field",
       "windowId": "2026-11",
-      "gameCompatVersion": "2026.10.11.1",
-      "seed": 1428034624
+      "gameCompatVersion": "2026.10.12",
+      "seed": 1673792497
     },
     {
       "mode": "competitive",
       "levelId": "forest",
       "windowId": "2026-10",
-      "gameCompatVersion": "2026.10.11.1",
-      "seed": 412884107
+      "gameCompatVersion": "2026.10.12",
+      "seed": 991643444
     },
     {
       "mode": "competitive",
       "levelId": "forest",
       "windowId": "2026-11",
-      "gameCompatVersion": "2026.10.11.1",
-      "seed": 989446935
-    },
-    {
-      "mode": "weekly",
-      "levelId": "field",
-      "windowId": "2026-W41",
-      "gameCompatVersion": "2026.10.11.1",
-      "seed": 1715791752
+      "gameCompatVersion": "2026.10.12",
+      "seed": 949411087
     },
     {
       "mode": "weekly",
       "levelId": "field",
       "windowId": "2026-W42",
-      "gameCompatVersion": "2026.10.11.1",
-      "seed": 1732512331
+      "gameCompatVersion": "2026.10.12",
+      "seed": 2115653518
+    },
+    {
+      "mode": "weekly",
+      "levelId": "field",
+      "windowId": "2026-W43",
+      "gameCompatVersion": "2026.10.12",
+      "seed": 190369210
     }
   ]
 }

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "field_default_easy_002",
+  "id": "field_default_easy_002",
+  "revision": 30,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "summer_scroller_tileset_tree_01",
+      "prefabKey": "summer_scroller_tileset_tree_01",
+      "x": 366,
+      "y": 144,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.7
+    },
+    {
+      "prefabId": "summer_scroller_tileset_direction_post_01",
+      "prefabKey": "summer_scroller_tileset_direction_post_01",
+      "x": 162,
+      "y": 186,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "summer_scroller_tileset_bush_01",
+      "prefabKey": "summer_scroller_tileset_bush_01",
+      "x": 403,
+      "y": 195,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "summer_scroller_tileset_right_direction_01",
+      "prefabKey": "summer_scroller_tileset_right_direction_01",
+      "x": 166,
+      "y": 172,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 223,
+          "y": 224
+        },
+        {
+          "x": 223,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 223,
+          "y": 224
+        },
+        {
+          "x": 317,
+          "y": 224
+        },
+        {
+          "x": 317,
+          "y": 270
+        },
+        {
+          "x": 223,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 317,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 317,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

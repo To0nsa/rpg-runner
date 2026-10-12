@@ -1,18 +1,16 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "field_default_hard_002",
-  "id": "field_default_hard_002",
-  "revision": 2,
+  "chunkKey": "field_default_easy_004",
+  "id": "field_default_easy_004",
+  "revision": 19,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
   "width": 600,
   "height": 270,
-  "difficulty": "hard",
+  "difficulty": "easy",
   "assemblyGroupId": "default",
-  "tags": [
-    "rescue"
-  ],
+  "tags": [],
   "tileLayers": [],
   "prefabs": [],
   "markers": [],
@@ -23,11 +21,11 @@
       "vertices": [
         {
           "x": 0,
-          "y": 222
+          "y": 224
         },
         {
           "x": 600,
-          "y": 222
+          "y": 224
         },
         {
           "x": 600,
@@ -44,51 +42,44 @@
   ],
   "encounters": [
     {
-      "id": "roadside_rescue",
-      "name": "Roadside rescue",
+      "id": "encounter",
+      "name": "Rescue encounter",
       "trigger": {
-        "x": 160,
+        "x": 0,
         "y": 0,
-        "width": 224,
-        "height": 222
+        "width": 128,
+        "height": 270
       },
       "targetPolicy": "preferEncounterNpcs",
       "npcs": [
         {
-          "id": "archer",
+          "id": "huntress2",
           "npcId": "huntress2",
-          "x": 224,
-          "facing": "right",
-          "placement": "ground"
-        },
-        {
-          "id": "huntress",
-          "npcId": "huntress",
-          "x": 272,
+          "x": 246,
           "facing": "right",
           "placement": "ground"
         },
         {
           "id": "warrior",
           "npcId": "warrior",
-          "x": 352,
+          "x": 188,
           "facing": "right",
           "placement": "ground"
         }
       ],
       "enemies": [
         {
-          "id": "ambusher",
+          "id": "enemy",
           "enemyId": "hashash",
-          "x": 528,
-          "facing": "left",
+          "x": 507,
+          "facing": "right",
           "placement": "ground"
         },
         {
-          "id": "raider",
+          "id": "enemy_2",
           "enemyId": "grojib",
           "x": 432,
-          "facing": "left",
+          "facing": "right",
           "placement": "ground"
         }
       ]

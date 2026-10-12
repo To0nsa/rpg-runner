@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "field_default_early_001",
+  "id": "field_default_early_001",
+  "revision": 40,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "country_village_house_01",
+      "prefabKey": "country_village_house_01",
+      "x": 106,
+      "y": 128,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5,
+      "flipX": true
+    },
+    {
+      "prefabId": "country_village_tree_02",
+      "prefabKey": "country_village_tree_02",
+      "x": 36,
+      "y": 169,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_lamp_post_01",
+      "prefabKey": "ancient_forest_lamp_post_01",
+      "x": 253,
+      "y": 185,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8,
+      "flipX": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

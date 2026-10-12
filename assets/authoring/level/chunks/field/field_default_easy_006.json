@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "field_default_easy_006",
+  "id": "field_default_easy_006",
+  "revision": 43,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "tiny_swords_tree_02",
+      "prefabKey": "tiny_swords_tree_02",
+      "x": 205,
+      "y": 136,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_tree_01",
+      "prefabKey": "tiny_swords_tree_01",
+      "x": 441,
+      "y": 151,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 42,
+      "y": 190,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 75,
+      "y": 191,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_01",
+      "prefabKey": "tiny_swords_sunflower_01",
+      "x": 29,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_01",
+      "prefabKey": "tiny_swords_sunflower_01",
+      "x": 57,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_01",
+      "prefabKey": "tiny_swords_sunflower_01",
+      "x": 93,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 108,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_01",
+      "prefabKey": "tiny_swords_sunflower_01",
+      "x": 124,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "high_forest_bush_02",
+      "prefabKey": "high_forest_bush_02",
+      "x": 533,
+      "y": 199,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "high_forest_bush_02",
+      "prefabKey": "high_forest_bush_02",
+      "x": 197,
+      "y": 201,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 317,
+      "y": 112,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}
