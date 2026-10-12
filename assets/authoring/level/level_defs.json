@@ -20,7 +20,7 @@
     },
     {
       "levelId": "forest",
-      "revision": 383,
+      "revision": 389,
       "displayName": "Forest",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "boss_bringer_of_death", "boss_shoggoth", "boss_voidborn_goddess", "boss_voidcaller", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
@@ -276,6 +276,14 @@
             "difficulty": "hard",
             "minChunkCount": 1,
             "maxChunkCount": 1,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "default_5_2_2_2_2_2",
+            "groupId": "rocky_grove",
+            "difficulty": "hard",
+            "minChunkCount": 9,
+            "maxChunkCount": 9,
             "requireDistinctChunks": true
           }
         ]
