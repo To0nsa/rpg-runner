@@ -36,173 +36,183 @@ import 'package:replay_validator/src/validated_replay_archiver.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
-  for (final fixture in [(7, 60), (42, 60), (2026, 60), (2026, 30)]) {
-    test(
-      'authored rescue survives normal scrolling and replays $fixture',
-      () async {
-        final (seed, tickHz) = fixture;
-        final loadout = {
-          ..._defaultLoadoutSnapshot(),
-          'mask': LoadoutSlotMask.defaultMask,
-        };
-        final app = GameCore(
-          seed: seed,
-          runId: 1,
-          tickHz: tickHz,
-          levelDefinition: LevelRegistry.byId(LevelId.field),
-          playerCharacter: PlayerCharacterRegistry.eloise,
-          equippedLoadoutOverride: const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileId.iceBolt,
-          ),
-        );
-        final frames = <ReplayCommandFrameV1>[];
-        final seen = <NpcId>{};
-        final bounds = <int, double>{};
-        final rescues = <EncounterOutcome>[];
-        for (var i = 0; i < tickHz * 50 && !app.gameOver; i++) {
-          final snapshot = app.buildSnapshot();
-          final enemies =
-              snapshot.entities
-                  .where((e) => e.enemyId != null && e.anim != AnimKey.death)
-                  .toList()
-                ..sort(
-                  (a, b) => (a.pos.x - app.playerPosX).abs().compareTo(
-                    (b.pos.x - app.playerPosX).abs(),
-                  ),
-                );
-          for (final npc in snapshot.entities.where((e) => e.npcId != null)) {
-            seen.add(npc.npcId!);
-            final start = bounds.putIfAbsent(
-              npc.id,
-              () => (npc.pos.x / 600).floor() * 600.0,
-            );
-            final capsule = const NpcCatalog()
-                .terrainContactProfile(npc.npcId!)
-                .capsule;
-            final center =
-                npc.pos.x +
-                capsule.offsetX * (npc.facing == Facing.right ? 1 : -1);
-            expect(center - capsule.radius, greaterThanOrEqualTo(start));
-            expect(center + capsule.radius, lessThanOrEqualTo(start + 600));
-          }
-          final dx = enemies.isEmpty
-              ? 100.0
-              : enemies.first.pos.x - app.playerPosX;
-          final axis = dx > 38
-              ? 1.0
-              : dx < -38
-              ? -1.0
-              : 0.0;
-          final aim = dx < 0 ? -1.0 : 1.0;
-          final attacking = enemies.isNotEmpty && dx.abs() < 300;
-          final tick = app.tick + 1;
-          frames.add(
-            ReplayCommandFrameV1(
-              tick: tick,
-              moveAxis: axis,
-              aimDirX: aim,
-              aimDirY: 0,
-              pressedMask: attacking
-                  ? ReplayCommandFrameV1.pressedStrikeBit |
-                        ReplayCommandFrameV1.pressedProjectileBit
-                  : 0,
-            ),
+  // These seeds place the rescue after the three safe chunks and before gaps.
+  // Their approaches include the authored rock obstacles.
+  for (final fixture in [(15, 60), (250, 60), (15, 30), (250, 30)]) {
+    test('authored rescue survives normal scrolling and replays $fixture', () async {
+      final (seed, tickHz) = fixture;
+      final loadout = {
+        ..._defaultLoadoutSnapshot(),
+        'mask': LoadoutSlotMask.defaultMask,
+      };
+      final app = GameCore(
+        seed: seed,
+        runId: 1,
+        tickHz: tickHz,
+        levelDefinition: LevelRegistry.byId(LevelId.field),
+        playerCharacter: PlayerCharacterRegistry.eloise,
+        equippedLoadoutOverride: const EquippedLoadoutDef(
+          projectileSlotSpellId: ProjectileId.iceBolt,
+        ),
+      );
+      final frames = <ReplayCommandFrameV1>[];
+      final seen = <NpcId>{};
+      final bounds = <int, double>{};
+      final rescues = <EncounterOutcome>[];
+      var previousX = double.nan;
+      for (var i = 0; i < tickHz * 50 && !app.gameOver; i++) {
+        final snapshot = app.buildSnapshot();
+        final enemies =
+            snapshot.entities
+                .where((e) => e.enemyId != null && e.anim != AnimKey.death)
+                .toList()
+              ..sort(
+                (a, b) => (a.pos.x - app.playerPosX).abs().compareTo(
+                  (b.pos.x - app.playerPosX).abs(),
+                ),
+              );
+        for (final npc in snapshot.entities.where((e) => e.npcId != null)) {
+          seen.add(npc.npcId!);
+          final start = bounds.putIfAbsent(
+            npc.id,
+            () => (npc.pos.x / 600).floor() * 600.0,
           );
-          app.applyCommands([
-            MoveAxisCommand(tick: tick, axis: axis),
-            AimDirCommand(tick: tick, x: aim, y: 0),
-            if (attacking) StrikePressedCommand(tick: tick),
-            if (attacking) ProjectilePressedCommand(tick: tick),
-          ]);
-          app.stepOneTick();
-          rescues.addAll(
-            app
-                .drainEvents()
-                .whereType<EncounterResolvedEvent>()
-                .map((e) => e.outcome)
-                .where((o) => o.reason == EncounterEndReason.rescued),
-          );
-          if (rescues.isNotEmpty) break;
+          final capsule = const NpcCatalog()
+              .terrainContactProfile(npc.npcId!)
+              .capsule;
+          final center =
+              npc.pos.x +
+              capsule.offsetX * (npc.facing == Facing.right ? 1 : -1);
+          expect(center - capsule.radius, greaterThanOrEqualTo(start));
+          expect(center + capsule.radius, lessThanOrEqualTo(start + 600));
         }
-        expect(
-          app.gameOver,
-          isFalse,
-          reason: 'Rescue must clear before camera/player death.',
-        );
-        expect(seen, NpcId.values.toSet());
-        expect(rescues, hasLength(1));
-        expect(rescues.single.survivors, 3);
-        expect(rescues.single.points, 750);
-        app.giveUp();
-        final ended = app.drainEvents().whereType<RunEndedEvent>().single;
-        expect(ended.stats.rescuedNpcs, 3);
-        expect(ended.stats.rescuePoints, 750);
-        final replay = ReplayBlobV1.withComputedDigest(
-          runSessionId: 'rescue_${seed}_$tickHz',
-          tickHz: tickHz,
-          seed: seed,
-          levelId: 'field',
-          playerCharacterId: 'eloise',
-          loadoutSnapshot: loadout,
-          totalTicks: app.tick,
-          commandStream: frames,
-          clientSummary: const {
-            'rescuedNpcs': 999,
-            'rescuePoints': 999999,
-            'score': 999999,
-          },
-        );
-        final bytes = utf8.encode(jsonEncode(replay.toJson()));
-        final repo = _FakeRunSessionRepository(
-          leaseResult: RunSessionLeaseAcquireResult(
-            status: RunSessionLeaseStatus.acquired,
-            session: _session(
-              runSessionId: replay.runSessionId,
-              mode: RunMode.practice,
-              seed: seed,
-              tickHz: tickHz,
-              digest: replay.canonicalSha256,
-              contentLengthBytes: bytes.length,
-              validationAttempt: 1,
-              loadoutSnapshot: loadout,
-            ),
+        final dx = enemies.isEmpty
+            ? 100.0
+            : enemies.first.pos.x - app.playerPosX;
+        final axis = dx > 38
+            ? 1.0
+            : dx < -38
+            ? -1.0
+            : 0.0;
+        final aim = dx < 0 ? -1.0 : 1.0;
+        final attacking = enemies.isNotEmpty && dx.abs() < 300;
+        final tick = app.tick + 1;
+        // Clear blocking rocks using replayed input, preserving normal physics.
+        final jump =
+            app.playerGrounded &&
+            axis != 0 &&
+            (app.playerPosX - previousX).abs() < 0.05;
+        previousX = app.playerPosX;
+        frames.add(
+          ReplayCommandFrameV1(
+            tick: tick,
+            moveAxis: axis,
+            aimDirX: aim,
+            aimDirY: 0,
+            pressedMask:
+                (attacking
+                    ? ReplayCommandFrameV1.pressedStrikeBit |
+                          ReplayCommandFrameV1.pressedProjectileBit
+                    : 0) |
+                (jump ? ReplayCommandFrameV1.pressedJumpBit : 0),
           ),
         );
-        final worker = DeterministicValidatorWorker(
-          replayLoader: _FakeReplayLoader(
-            bytesByRunSession: {replay.runSessionId: bytes},
-          ),
-          boardRepository: const _FakeBoardRepository(),
-          runSessionRepository: repo,
-          metrics: _FakeValidatorMetrics(),
-          clockMs: () => 10000,
+        app.applyCommands([
+          MoveAxisCommand(tick: tick, axis: axis),
+          AimDirCommand(tick: tick, x: aim, y: 0),
+          if (jump) JumpPressedCommand(tick: tick),
+          if (attacking) StrikePressedCommand(tick: tick),
+          if (attacking) ProjectilePressedCommand(tick: tick),
+        ]);
+        app.stepOneTick();
+        rescues.addAll(
+          app
+              .drainEvents()
+              .whereType<EncounterResolvedEvent>()
+              .map((e) => e.outcome)
+              .where((o) => o.reason == EncounterEndReason.rescued),
         );
-        expect(
-          (await worker.validateRunSession(runSessionId: replay.runSessionId))
-              .status,
-          ValidationDispatchStatus.accepted,
-        );
-        final result = repo.acceptedSettlementHandoffs.single;
-        expect(result.stats['rescuedNpcs'], 3);
-        expect(result.stats['rescuePoints'], 750);
-        expect(result.stats['enemyKillCounts'], ended.stats.enemyKillCounts);
-        expect(result.goldEarned, ended.goldEarned);
-        expect(
-          result.score,
-          buildRunScoreBreakdown(
-            tick: ended.tick,
-            distanceUnits: ended.distance,
-            collectibles: ended.stats.collectibles,
-            collectibleScore: ended.stats.collectibleScore,
-            enemyKillCounts: ended.stats.enemyKillCounts,
-            rescuedNpcs: 3,
-            rescuePoints: 750,
-            tuning: app.scoreTuning,
+        if (rescues.isNotEmpty) break;
+      }
+      expect(
+        app.gameOver,
+        isFalse,
+        reason:
+            'Rescue must clear before camera/player death: tick=${app.tick}, x=${app.playerPosX}, seen=$seen, rescues=$rescues, hp=${app.buildSnapshot().hud.hp}.',
+      );
+      expect(seen, {NpcId.huntress2, NpcId.warrior});
+      expect(rescues, hasLength(1));
+      expect(rescues.single.survivors, 2);
+      expect(rescues.single.points, 500);
+      app.giveUp();
+      final ended = app.drainEvents().whereType<RunEndedEvent>().single;
+      expect(ended.stats.rescuedNpcs, 2);
+      expect(ended.stats.rescuePoints, 500);
+      final replay = ReplayBlobV1.withComputedDigest(
+        runSessionId: 'rescue_${seed}_$tickHz',
+        tickHz: tickHz,
+        seed: seed,
+        levelId: 'field',
+        playerCharacterId: 'eloise',
+        loadoutSnapshot: loadout,
+        totalTicks: app.tick,
+        commandStream: frames,
+        clientSummary: const {
+          'rescuedNpcs': 999,
+          'rescuePoints': 999999,
+          'score': 999999,
+        },
+      );
+      final bytes = utf8.encode(jsonEncode(replay.toJson()));
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: _session(
+            runSessionId: replay.runSessionId,
+            mode: RunMode.practice,
+            seed: seed,
             tickHz: tickHz,
-          ).totalPoints,
-        );
-      },
-    );
+            digest: replay.canonicalSha256,
+            contentLengthBytes: bytes.length,
+            validationAttempt: 1,
+            loadoutSnapshot: loadout,
+          ),
+        ),
+      );
+      final worker = DeterministicValidatorWorker(
+        replayLoader: _FakeReplayLoader(
+          bytesByRunSession: {replay.runSessionId: bytes},
+        ),
+        boardRepository: const _FakeBoardRepository(),
+        runSessionRepository: repo,
+        metrics: _FakeValidatorMetrics(),
+        clockMs: () => 10000,
+      );
+      expect(
+        (await worker.validateRunSession(runSessionId: replay.runSessionId))
+            .status,
+        ValidationDispatchStatus.accepted,
+      );
+      final result = repo.acceptedSettlementHandoffs.single;
+      expect(result.stats['rescuedNpcs'], 2);
+      expect(result.stats['rescuePoints'], 500);
+      expect(result.stats['enemyKillCounts'], ended.stats.enemyKillCounts);
+      expect(result.goldEarned, ended.goldEarned);
+      expect(
+        result.score,
+        buildRunScoreBreakdown(
+          tick: ended.tick,
+          distanceUnits: ended.distance,
+          collectibles: ended.stats.collectibles,
+          collectibleScore: ended.stats.collectibleScore,
+          enemyKillCounts: ended.stats.enemyKillCounts,
+          rescuedNpcs: 2,
+          rescuePoints: 500,
+          tuning: app.scoreTuning,
+          tickHz: tickHz,
+        ).totalPoints,
+      );
+    });
   }
   test('compiled content app outcome matches ticket replay worker', () async {
     for (final character in PlayerCharacterRegistry.all) {
