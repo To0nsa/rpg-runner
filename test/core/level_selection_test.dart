@@ -10,6 +10,9 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
+import 'package:runner_core/track/connected_chunk_pattern_source.dart';
+import 'package:runner_core/track/staged_authored_terrain.dart';
+import 'package:runner_core/track/staged_terrain_catalog.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
@@ -49,27 +52,6 @@ void _runDeterministicLevelScript(GameCore a, GameCore b) {
     b.stepOneTick();
     expect(_snapshotSignature(a), _snapshotSignature(b));
   }
-}
-
-ChunkPatternTier _tierForLevelChunkIndex(
-  int chunkIndex, {
-  required int earlyPatternChunks,
-  required int easyPatternChunks,
-  required int normalPatternChunks,
-}) {
-  if (chunkIndex < earlyPatternChunks) {
-    return ChunkPatternTier.early;
-  }
-  final easyStart = earlyPatternChunks;
-  final normalStart = easyStart + easyPatternChunks;
-  final hardStart = normalStart + normalPatternChunks;
-  if (chunkIndex < normalStart) {
-    return ChunkPatternTier.easy;
-  }
-  if (chunkIndex < hardStart) {
-    return ChunkPatternTier.normal;
-  }
-  return ChunkPatternTier.hard;
 }
 
 void main() {
@@ -125,48 +107,28 @@ void main() {
     _runDeterministicLevelScript(a, b);
   });
 
-  test(
-    'field level selects normal then hard chunks without an authored assembly',
-    () {
-      final level = LevelRegistry.byId(LevelId.field);
-      expect(level.assembly, isNull);
-
-      final selections = <ChunkPatternSelection>[
-        for (var chunkIndex = 0; chunkIndex < 6; chunkIndex += 1)
-          level.chunkPatternSource.selectionFor(
-            seed: 7,
-            chunkIndex: chunkIndex,
-            tier: _tierForLevelChunkIndex(
-              chunkIndex,
-              earlyPatternChunks: level.earlyPatternChunks,
-              easyPatternChunks: level.easyPatternChunks,
-              normalPatternChunks: level.normalPatternChunks,
-            ),
-          ),
+  test('field loops an early chunk and seven distinct easy chunks at 224', () {
+    final level = LevelRegistry.byId(LevelId.field);
+    expect(level.groundTopY, 224);
+    expect(level.noEnemyChunks, 3);
+    expect(level.assembly!.loopSegments, isTrue);
+    final source = ConnectedChunkPatternSource.forLevel(
+      level: level,
+      catalog: StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain),
+    );
+    for (final seed in [7, 42, 2026]) {
+      final keys = [
+        for (var index = 0; index < 16; index++)
+          source.explainSelection(seed: seed, chunkIndex: index).chunk.chunkKey,
       ];
-
-      expect(
-        selections
-            .take(level.earlyPatternChunks)
-            .map((selection) => selection.pattern.name)
-            .toSet(),
-        {'field_default_normal_001', 'field_default_normal_002'},
-      );
-      expect(
-        selections
-            .skip(level.earlyPatternChunks)
-            .map((selection) => selection.pattern.name)
-            .toSet(),
-        {'field_default_hard_001', 'field_default_hard_002'},
-      );
-      expect(
-        selections
-            .map((selection) => selection.pattern.assemblyGroupId)
-            .toList(),
-        everyElement('default'),
-      );
-    },
-  );
+      for (final offset in [0, 8]) {
+        expect(keys[offset], 'field_default_early_001');
+        expect(keys.sublist(offset + 1, offset + 8).toSet(), {
+          for (var i = 1; i <= 7; i++) 'field_default_easy_00$i',
+        });
+      }
+    }
+  });
 
   test(
     'snapshot visualThemeId remains level-scoped with authored assembly',
@@ -174,15 +136,15 @@ void main() {
       final level = LevelRegistry.byId(LevelId.field).copyWith(
         tuning: const CoreTuning(camera: CameraTuning(), track: TrackTuning()),
         chunkPatternSource: const ChunkPatternListSource(
-          normalPatterns: <ChunkPattern>[
+          easyPatterns: <ChunkPattern>[
             ChunkPattern(
-              name: 'field_default_normal_001',
-              chunkKey: 'field_default_normal_001',
+              name: 'field_default_easy_004',
+              chunkKey: 'field_default_easy_004',
             ),
           ],
-          easyPatterns: <ChunkPattern>[],
           hardPatterns: <ChunkPattern>[],
         ),
+        clearFirstChunkKey: true,
         earlyPatternChunks: 0,
         easyPatternChunks: 0,
         normalPatternChunks: 0,
@@ -193,6 +155,7 @@ void main() {
             LevelAssemblySegment(
               segmentId: 'forest_run',
               groupId: 'default',
+              difficulty: ChunkPatternTier.easy,
               minChunkCount: 1,
               maxChunkCount: 1,
               requireDistinctChunks: false,

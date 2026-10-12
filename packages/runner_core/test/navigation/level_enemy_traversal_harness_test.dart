@@ -13,8 +13,8 @@ void main() {
   final flat = LevelTraversalRoute.chunks(
     level: level,
     seed: 7,
-    chunkKeys: List.filled(3, 'field_default_normal_001'),
-    continuationChunkKey: 'field_default_normal_001',
+    chunkKeys: List.filled(3, 'field_default_easy_004'),
+    continuationChunkKey: 'field_default_easy_004',
   );
 
   // Arena flyers use their own combat flight controller and encounter tests.
@@ -122,11 +122,11 @@ void main() {
       allOf(
         contains('level=field grojib seed=42'),
         contains('no forward progress for 600 ticks'),
-        contains('field_default_normal_001'),
+        contains('field_default_easy_004'),
         contains('speedX=0.1'),
         contains('graph current='),
         contains(
-          'route=field_default_normal_001 -> field_default_normal_001 -> field_default_normal_001',
+          'route=field_default_easy_004 -> field_default_easy_004 -> field_default_easy_004',
         ),
       ),
     );
