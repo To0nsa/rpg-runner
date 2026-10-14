@@ -19,6 +19,7 @@ void main() {
     final haptics = UiHapticsService(driver: driver);
 
     haptics.trigger(UiHapticsCue.chargeHalfTierReached);
+    haptics.trigger(UiHapticsCue.playerLandedHit);
     haptics.trigger(UiHapticsCue.chargeFullTierReached);
     haptics.trigger(UiHapticsCue.holdAbilityStaminaDepleted);
     haptics.trigger(UiHapticsCue.holdAbilityTimedOut);
@@ -26,7 +27,14 @@ void main() {
 
     expect(
       driver.calls,
-      equals(<String>['selection', 'light', 'medium', 'heavy', 'medium']),
+      equals(<String>[
+        'selection',
+        'selection',
+        'light',
+        'medium',
+        'heavy',
+        'medium',
+      ]),
     );
   });
 

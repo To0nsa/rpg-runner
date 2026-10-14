@@ -155,6 +155,7 @@ Object eventFields(GameEvent e) => [
       e.artFacingDir,
     ],
     PlayerImpactFeedbackEvent() => [e.tick, e.amount100, e.sourceKind],
+    PlayerLandedHitFeedbackEvent() => [e.tick],
     AbilityHoldEndedEvent() => [
       e.tick,
       e.entity,

@@ -21,6 +21,17 @@ class PlayerImpactFeedbackEvent extends GameEvent {
   final DeathSourceKind sourceKind;
 }
 
+/// Confirms player-owned direct damage against an enemy for local feedback.
+///
+/// At most one event is emitted per simulation tick, even for multi-target hits.
+/// It does not change damage, scoring, or replay outcomes.
+class PlayerLandedHitFeedbackEvent extends GameEvent {
+  const PlayerLandedHitFeedbackEvent({required this.tick});
+
+  /// Simulation tick when the first qualifying hit was applied.
+  final int tick;
+}
+
 /// Visual pulse categories consumed by the render layer.
 enum EntityVisualCueKind { directHit, dotPulse, resourcePulse }
 

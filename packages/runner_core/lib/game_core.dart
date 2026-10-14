@@ -40,6 +40,7 @@ import 'combat/middleware/goddess_dodge_middleware.dart';
 import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
+import 'combat/damage_credit.dart';
 import 'combat/projectile_aim_visibility.dart';
 import 'combat/target_point_surface_query.dart';
 import 'combat/status/status.dart';
@@ -116,6 +117,7 @@ import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'events/entity_visual_cue_coalescer.dart';
 import 'events/player_impact_feedback_gate.dart';
+import 'events/player_landed_hit_feedback_gate.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_identity.dart';
 import 'navigation/terrain_spawn_placement.dart';
@@ -660,6 +662,7 @@ class GameCore {
       rngSeed: seed,
     );
     _playerImpactFeedbackGate = const PlayerImpactFeedbackGate();
+    _playerLandedHitFeedbackGate = PlayerLandedHitFeedbackGate();
     _entityVisualCueCoalescer = EntityVisualCueCoalescer();
     _statusSystem = StatusSystem(
       tickHz: tickHz,
@@ -1268,6 +1271,7 @@ class GameCore {
   /// Pending events to be consumed by UI (drained each frame).
   final List<GameEvent> _events = <GameEvent>[];
   late final PlayerImpactFeedbackGate _playerImpactFeedbackGate;
+  late final PlayerLandedHitFeedbackGate _playerLandedHitFeedbackGate;
   late final EntityVisualCueCoalescer _entityVisualCueCoalescer;
 
   // ─── Scratch/Tracking State ───
@@ -2063,6 +2067,7 @@ class GameCore {
             required int appliedAmount100,
             required DeathSourceKind sourceKind,
             required DamageType damageType,
+            required DamageCredit credit,
           }) {
             _goddessCombat.onDamageApplied(
               _world,
@@ -2078,6 +2083,15 @@ class GameCore {
               sourceKind: sourceKind,
             );
             if (impact != null) _events.add(impact);
+            final landedHit = _playerLandedHitFeedbackGate
+                .eventForAppliedDamage(
+                  tick: tick,
+                  enemyTarget: _world.enemy.has(target),
+                  credit: credit,
+                  appliedAmount100: appliedAmount100,
+                  sourceKind: sourceKind,
+                );
+            if (landedHit != null) _events.add(landedHit);
             final kind = sourceKind == DeathSourceKind.statusEffect
                 ? EntityVisualCueKind.dotPulse
                 : EntityVisualCueKind.directHit;

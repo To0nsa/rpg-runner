@@ -146,6 +146,7 @@ void main() {
               required appliedAmount100,
               required sourceKind,
               required damageType,
+              required credit,
             }) {
               callbacks++;
               expect(appliedAmount100, 750);

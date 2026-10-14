@@ -38,6 +38,12 @@ separate channel for camera/haptics/border feedback:
   - preserve separate accepted hits even on the same simulation tick
   - no time throttle; misses and blocked hits do not emit feedback
 
+Accepted player-owned direct damage to an enemy emits
+`PlayerLandedHitFeedbackEvent` for a light attack-confirmation haptic. Melee and
+projectile hits use the same ownership credit, including a projectile whose
+source entity has expired. Blocked hits, other attackers, and damage-over-time
+ticks produce no cue. Multi-target damage shares one cue per simulation tick.
+
 ### Render Layer
 
 Render styling lives in `CombatFeedbackTuning`:
@@ -72,7 +78,7 @@ intensityBp = clamp(scaled, 2000, 10000) if restoredAmount100 > 0 else 0
 This is independent from `PlayerImpactFeedbackGate`, which emits camera/haptics/
 border feedback for every accepted direct player hit without coalescing.
 
-## Player Impact Feedback Mapping
+## Player Impact and Landed Hit Feedback Mapping
 
 `PlayerImpactFeedbackEvent` is consumed independently from entity cue pulses.
 
@@ -96,6 +102,11 @@ shakeIntensity01 = sqrt(normalized)
 - border pulse:
   - increments `playerImpactFeedbackSignal`, consumed by
     `PlayerImpactBorderOverlay`
+
+Outgoing landed-hit feedback uses `UiHapticsCue.playerLandedHit` and the
+`selectionClick` channel. This remains lighter than the incoming player-hit
+cue, whose minimum channel is `lightImpact`. It adds no screen shake or border
+pulse to ordinary outgoing hits.
 
 ## Current Render Mapping
 
@@ -134,6 +145,7 @@ Current defaults:
   - `packages/runner_core/lib/game_core.dart`
   - `packages/runner_core/lib/events/entity_visual_cue_coalescer.dart`
   - `packages/runner_core/lib/events/player_impact_feedback_gate.dart`
+  - `packages/runner_core/lib/events/player_landed_hit_feedback_gate.dart`
   - `packages/runner_core/lib/events/feedback_events.dart`
 - Render mapping/tuning:
   - `lib/game/tuning/combat_feedback_tuning.dart`
@@ -141,4 +153,5 @@ Current defaults:
   - `lib/game/components/sprite_anim/deterministic_anim_view.dart`
 - UI impact mapping:
   - `lib/ui/runner_game_widget.dart`
+  - `lib/ui/haptics/haptics_service.dart`
   - `lib/ui/hud/game/player_impact_border_overlay.dart`

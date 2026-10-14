@@ -8,6 +8,7 @@ enum UiHapticsCue {
   holdAbilityTimedOut,
   holdAbilityStaminaDepleted,
   playerHit,
+  playerLandedHit,
   bossEntrancePulse,
 }
 

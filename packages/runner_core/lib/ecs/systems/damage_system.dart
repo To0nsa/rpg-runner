@@ -16,14 +16,17 @@ import '../entity_id.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
 
-/// Positive HP loss after defenses and forced interrupts, before status/i-frames.
+/// Reports an accepted hit after protection, defense, and resistance checks.
+/// [appliedAmount100] is post-mitigation damage before remaining-HP clamping.
 /// [source] is the request's source entity, or null for unattributed/detached hits.
+/// [credit] retains player ownership for hits whose source entity has expired.
 typedef DamageAppliedCallback = void Function({
   required int target,
   required EntityId? source,
   required int appliedAmount100,
   required DeathSourceKind sourceKind,
   required DamageType damageType,
+  required DamageCredit credit,
 });
 
 /// Positive HP reduction after all defenses, capped by the target's remaining HP.
@@ -233,6 +236,7 @@ class DamageSystem {
           appliedAmount100: appliedAmount,
           sourceKind: sourceKind,
           damageType: damageType,
+          credit: queue.credit[i],
         );
 
         world.reactiveDamageEventQueue.add(

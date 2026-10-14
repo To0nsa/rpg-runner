@@ -375,6 +375,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _handleGameEvent(GameEvent event) {
+    if (event is PlayerLandedHitFeedbackEvent) {
+      _haptics.trigger(UiHapticsCue.playerLandedHit);
+      return;
+    }
     if (event is PlayerImpactFeedbackEvent) {
       _haptics.trigger(
         UiHapticsCue.playerHit,

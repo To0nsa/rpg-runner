@@ -174,6 +174,7 @@ final class GoddessCombatFixture {
             required appliedAmount100,
             required sourceKind,
             required damageType,
+            required credit,
           }) => combat.onDamageApplied(
             world,
             target: target,

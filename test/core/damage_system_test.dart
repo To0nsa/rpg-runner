@@ -6,6 +6,7 @@ import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/abilities/ability_def.dart'
     show AbilitySlot, CooldownGroup, WeaponType;
 import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/combat/damage_credit.dart';
 import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -61,6 +62,7 @@ void main() {
     final callbackTargets = <int>[];
     final callbackAmounts = <int>[];
     final callbackKinds = <DeathSourceKind>[];
+    final callbackCredits = <DamageCredit>[];
     final attacker = world.createEntity();
     final callbackSources = <int?>[];
 
@@ -78,6 +80,7 @@ void main() {
         amount100: 300,
         source: attacker,
         sourceKind: DeathSourceKind.projectile,
+        credit: DamageCredit.player,
       ),
     );
 
@@ -91,17 +94,20 @@ void main() {
             required appliedAmount100,
             required sourceKind,
             required damageType,
+            required credit,
           }) {
             callbackTargets.add(target);
             callbackSources.add(source);
             callbackAmounts.add(appliedAmount100);
             callbackKinds.add(sourceKind);
+            callbackCredits.add(credit);
           },
     );
 
     expect(callbackTargets, equals(<int>[target]));
     expect(callbackSources, [attacker]);
     expect(callbackAmounts, equals(<int>[300]));
+    expect(callbackCredits, [DamageCredit.player]);
     expect(
       callbackKinds,
       equals(<DeathSourceKind>[DeathSourceKind.projectile]),
@@ -111,7 +117,8 @@ void main() {
   test('DamageSystem applies global defense from equipped loadout', () {
     final world = EcsWorld();
     final resolver = CharacterStatsResolver(
-      weapons: const _DefenseWeaponCatalog(),      spellBooks: const _FlatSpellBookCatalog(),
+      weapons: const _DefenseWeaponCatalog(),
+      spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _FlatAccessoryCatalog(),
     );
     final damage = DamageSystem(
@@ -143,7 +150,8 @@ void main() {
   test('DamageSystem combines store typed mod with gear typed resistance', () {
     final world = EcsWorld();
     final resolver = CharacterStatsResolver(
-      weapons: const _FlatWeaponCatalog(),      spellBooks: const _FlatSpellBookCatalog(),
+      weapons: const _FlatWeaponCatalog(),
+      spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _TypedResistanceAccessoryCatalog(),
     );
     final damage = DamageSystem(

@@ -546,6 +546,13 @@ Blocked hits, non-player damage and status-effect ticks emit no player-impact
 feedback. UI and render consume each event for vibration, border pulse and
 camera shake; entity color pulses retain their separate per-tick coalescer.
 
+The same accepted-damage callback carries `DamageCredit`, preserving player
+ownership for melee and projectile damage after its source entity retires.
+Positive direct damage credited to the player against an enemy emits one
+`PlayerLandedHitFeedbackEvent` per simulation tick. Other attackers, blocked
+hits, and status-effect ticks do not emit it. UI maps this transient event to
+a light haptic; the event does not alter gameplay or replay outcomes.
+
 Streaming-enabled normal and replay construction expose the selected staged
 candidate's `StagedTerrainRenderSnapshot` and use its matching collision,
 support, placement, and graph bundle. The snapshot renders direct Chunk
