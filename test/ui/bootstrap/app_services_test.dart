@@ -14,6 +14,7 @@ void main() {
       addTearDown(fixture.services.dispose);
       final first = fixture.services.initialize();
       final second = fixture.services.initialize();
+      await Future<void>.delayed(Duration.zero);
       expect(fixture.initializationCalls, 1);
       expect(fixture.stateCreations, 0);
       fixture.initializationGate!.complete();

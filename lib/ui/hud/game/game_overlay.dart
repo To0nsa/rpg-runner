@@ -6,6 +6,7 @@ import '../../../game/input/aim_preview.dart';
 import '../../../game/input/runner_gameplay_action.dart';
 import '../../../game/input/runner_semantic_action_dispatcher.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
+import '../../controls/movement_control_mode.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
 
@@ -39,9 +40,13 @@ class GameOverlay extends StatelessWidget {
     required this.exitConfirmOpen,
     required this.onExitConfirmResume,
     required this.onExitConfirmExit,
+    this.movementControlMode = MovementControlMode.arrows,
+    this.movementInputEpoch = 0,
   });
 
   final GameController controller;
+  final MovementControlMode movementControlMode;
+  final int movementInputEpoch;
   final RunnerSemanticActionDispatcher input;
   final AimPreviewModel projectileAimPreview;
   final AimPreviewModel meleeAimPreview;
@@ -91,6 +96,11 @@ class GameOverlay extends StatelessWidget {
               !uiState.isRunning ||
               controller.terrainReadiness == TerrainReadiness.failed,
           child: RunnerControlsOverlay(
+            movementInputEpoch: movementInputEpoch,
+            movementControlMode: movementControlMode,
+            movementEnabled:
+                uiState.isRunning &&
+                controller.terrainReadiness != TerrainReadiness.failed,
             onMoveAxis: input.setMoveAxis,
             onJumpPressed: () => input.triggerAction(RunnerGameplayAction.jump),
             onMobilityPressed: () =>

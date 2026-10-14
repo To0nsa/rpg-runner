@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../firebase_app_check_bootstrap.dart';
 import '../../firebase_options.dart';
 import '../state/app/app_state.dart';
+import '../state/settings/control_settings.dart';
 import '../state/developer/developer_profile_store.dart';
 import '../state/auth/firebase_auth_api.dart';
 import '../state/boards/firebase_ghost_api.dart';
@@ -20,6 +21,7 @@ import 'app_services.dart';
 /// Builds the standalone app's production dependencies without starting I/O.
 /// Firebase and App Check must both initialize before any client is created.
 AppServices createFirebaseAppServices() => AppServices(
+  controlSettingsStore: SharedPrefsControlSettingsStore(),
   developerProfileStore: kDebugMode ? SharedPrefsDeveloperProfileStore() : null,
   initialize: () async {
     // App Check can fail after Firebase succeeds; retry that stage safely.

@@ -14,6 +14,7 @@ import '../pages/selectLevel/level_setup_page.dart';
 import '../pages/selectCharacter/loadout_setup_page.dart';
 import '../bootstrap/profile_name_setup_page.dart';
 import '../runner_game_route.dart';
+import '../controls/movement_control_mode.dart';
 import 'ui_routes.dart';
 
 class UiRouter {
@@ -32,7 +33,10 @@ class UiRouter {
     return args is T ? args : fallback;
   }
 
-  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+  static Route<dynamic> onGenerateRoute(
+    RouteSettings settings, {
+    MovementControlMode movementControlMode = MovementControlMode.arrows,
+  }) {
     switch (settings.name) {
       case UiRoutes.brandSplash:
         return _pageRoute(settings, const BrandSplashScreen());
@@ -67,6 +71,7 @@ class UiRouter {
         final args = settings.arguments;
         if (args is RunStartDescriptor) {
           return createRunnerGameRoute(
+            movementControlMode: movementControlMode,
             runSessionId: args.runSessionId,
             runId: args.runId,
             seed: args.seed,

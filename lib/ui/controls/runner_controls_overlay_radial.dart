@@ -2,11 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+
 import '../../game/input/aim_preview.dart';
+
 import 'package:runner_core/snapshots/enums.dart';
+
 import 'action_button.dart';
 import 'ability_slot_visual_spec.dart';
 import 'controls_tuning.dart';
+import 'movement_control_mode.dart';
 import 'directional_action_button.dart';
 import 'hold_action_button.dart';
 import '../components/gameIcon/game_icon.dart';
@@ -27,6 +31,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   const RunnerControlsOverlay({
     super.key,
     required this.onMoveAxis,
+    this.movementControlMode = MovementControlMode.arrows,
+    this.movementEnabled = true,
+    this.movementInputEpoch = 0,
     required this.onJumpPressed,
     required this.onMobilityPressed,
     required this.onMobilityCommitted,
@@ -83,6 +90,11 @@ class RunnerControlsOverlay extends StatelessWidget {
   });
 
   final ValueChanged<double> onMoveAxis;
+  final MovementControlMode movementControlMode;
+  final bool movementEnabled;
+
+  /// Changes whenever the run cancels input, even across a frameless pause.
+  final int movementInputEpoch;
   final VoidCallback onJumpPressed;
   final VoidCallback onMobilityPressed;
   final VoidCallback onMobilityCommitted;
@@ -181,7 +193,13 @@ class RunnerControlsOverlay extends StatelessWidget {
         Positioned(
           left: themedTuning.layout.edgePadding,
           bottom: themedTuning.layout.bottomEdgePadding,
-          child: MovementControl(tuning: themedTuning, onMoveAxis: onMoveAxis),
+          child: MovementControl(
+            tuning: themedTuning,
+            onMoveAxis: onMoveAxis,
+            mode: movementControlMode,
+            inputEpoch: movementInputEpoch,
+            enabled: movementEnabled,
+          ),
         ),
         if (hasProjectileSlot)
           Positioned(
@@ -424,6 +442,7 @@ ControlsTuning _resolveRunControlsTuning({
   return ControlsTuning(
     layout: base.layout,
     moveButtons: base.moveButtons,
+    moveJoystick: base.moveJoystick,
     style: ControlsStyleTuning(
       actionButton: actionButtons.resolveAction(
         base: baseStyle.actionButton,

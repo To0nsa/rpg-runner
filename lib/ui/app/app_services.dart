@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../state/app/app_state.dart';
+import '../state/settings/control_settings.dart';
 import '../state/developer/developer_profile_store.dart';
 import '../state/ownership/ownership_sync_policy.dart';
 
@@ -16,11 +17,16 @@ class AppServices extends ChangeNotifier {
     required Future<void> Function() initialize,
     required AppState Function() createAppState,
     DeveloperProfileStore? developerProfileStore,
+    ControlSettingsStore? controlSettingsStore,
   }) : _initialize = initialize,
+       controlSettings = ControlSettings(store: controlSettingsStore),
        _createAppState = createAppState,
        _developerProfileStore = developerProfileStore;
 
   final Future<void> Function() _initialize;
+
+  /// Device preferences survive replacement of the authenticated app state.
+  final ControlSettings controlSettings;
   final AppState Function() _createAppState;
   final DeveloperProfileStore? _developerProfileStore;
   bool _switchingProfile = false;
@@ -60,6 +66,8 @@ class AppServices extends ChangeNotifier {
   }
 
   Future<AppState> _initializeState() async {
+    await controlSettings.load();
+    if (_disposed) throw StateError('App services have been disposed.');
     if (developerModeAvailable && await _developerProfileStore!.loadEnabled()) {
       if (_disposed) throw StateError('App services have been disposed.');
       return _appState = AppState.developer(store: _developerProfileStore);
@@ -114,6 +122,7 @@ class AppServices extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    controlSettings.dispose();
     _appState?.dispose();
     _appState = null;
     super.dispose();

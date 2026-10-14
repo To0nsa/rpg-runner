@@ -241,7 +241,10 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
         scaffoldMessengerKey: _messengerKey,
         initialRoute: UiRoutes.brandSplash,
         onGenerateInitialRoutes: UiRouter.onGenerateInitialRoutes,
-        onGenerateRoute: UiRouter.onGenerateRoute,
+        onGenerateRoute: (settings) => UiRouter.onGenerateRoute(
+          settings,
+          movementControlMode: widget.services.controlSettings.movementMode,
+        ),
         navigatorObservers: [_routeObserver],
       ),
     );

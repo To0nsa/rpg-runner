@@ -538,6 +538,13 @@ Keep non-run features separate so they never pollute the Play Hub, while remaini
 
 **Purpose:** settings only.
 
+The header uses the shared compact selector, as on Leaderboards, with
+**Settings** and **Controls** tabs. Settings is the initial tab and contains
+the existing debug-only Developer mode switch. Controls is available in all
+builds and offers **Arrows** (default) or **Joystick** for backward/forward
+movement. The choice is saved on the device and changes the in-run control's
+presentation only; both send identical full-strength directional input.
+
 **Scope**
 
 - Controls, audio, video/accessibility, account/data, legal/credits

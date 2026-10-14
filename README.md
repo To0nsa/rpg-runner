@@ -43,6 +43,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring
+- Options with Settings/Controls tabs and a saved arrows-or-joystick movement
+  choice; both controls use identical full-strength directional input
 - App-owned background reward completion, curated Practice routes and
   [trusted prepared navigation](docs/tdd/prepared_navigation.md). Before a mobile
   release build, run `dart run packages/runner_core/tool/prepare_navigation.dart --client`.
@@ -72,7 +74,7 @@ flutter run
 ```
 
 For gameplay iteration on a connected phone, use a debug launch
-(`flutter run -d <device-id>`), sign in, and enable **Options > Developer mode**.
+(`flutter run -d <device-id>`), sign in, and enable **Options > Settings > Developer mode**.
 This switches the existing screens to a local profile with all playable gear
 and abilities, with Practice as the only run mode. The toggle and developer
 loadouts survive hot restart, app relaunch and ordinary rebuilds. Once enabled,

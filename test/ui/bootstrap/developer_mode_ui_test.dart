@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/app/app_services.dart';
 import 'package:rpg_runner/ui/app/ui_app.dart';
@@ -12,6 +13,11 @@ import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
 import 'package:rpg_runner/ui/state/profile/user_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
+import 'package:rpg_runner/ui/state/settings/control_settings.dart';
+import 'package:rpg_runner/ui/runner_game_widget.dart';
+import 'package:rpg_runner/ui/controls/move_joystick.dart';
+import 'package:rpg_runner/ui/controls/move_buttons.dart';
 
 import '../../test_support/app_startup_fakes.dart';
 
@@ -47,6 +53,7 @@ void main() {
           loadoutOwnershipApi: fixture.ownership,
         ),
         developerProfileStore: SharedPrefsDeveloperProfileStore(),
+        controlSettingsStore: SharedPrefsControlSettingsStore(),
       );
       await mount(tester, services);
       expect(find.byType(PlayHubPage), findsOneWidget);
@@ -54,6 +61,21 @@ void main() {
       await tester.tap(find.byTooltip('Options'));
       await tester.pumpAndSettle();
       expect(find.byType(OptionsPage), findsOneWidget);
+      await tester.tap(find.text('CONTROLS'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Switch), findsNothing);
+      await tester.tap(find.text('Joystick'));
+      await tester.pumpAndSettle();
+      expect(
+        services.controlSettings.movementMode,
+        MovementControlMode.joystick,
+      );
+      expect(
+        await SharedPrefsControlSettingsStore().loadMovementMode(),
+        MovementControlMode.joystick,
+      );
+      await tester.tap(find.text('SETTINGS'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
       expect(find.byType(PlayHubPage), findsOneWidget);
@@ -77,6 +99,10 @@ void main() {
       expect(find.text('Real Player'), findsOneWidget);
       expect(services.appState.isDeveloperMode, isFalse);
       expect(
+        services.controlSettings.movementMode,
+        MovementControlMode.joystick,
+      );
+      expect(
         tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
         isFalse,
       );
@@ -88,14 +114,28 @@ void main() {
   testWidgets(
     'saved developer mode reaches the existing hub without online services',
     (tester) async {
+      const charging = MethodChannel('dev.fluttercommunity.plus/charging');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        charging,
+        (_) async => null,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          charging,
+          null,
+        ),
+      );
       final store = SharedPrefsDeveloperProfileStore();
       await store.saveEnabled(true);
+      final controlsStore = SharedPrefsControlSettingsStore();
+      await controlsStore.saveMovementMode(MovementControlMode.joystick);
       final services = AppServices(
         initialize: () async =>
             throw StateError('Must not initialize Firebase'),
         createAppState: () =>
             throw StateError('Must not construct online state'),
         developerProfileStore: store,
+        controlSettingsStore: controlsStore,
       );
       await mount(tester, services);
       await tester.pumpAndSettle();
@@ -113,6 +153,29 @@ void main() {
       expect(find.byType(LevelSetupPage), findsOneWidget);
       expect(find.text('PRACTICE'), findsOneWidget);
       expect(find.text('COMPETITIVE'), findsNothing);
+      final descriptor = await services.appState.prepareRunStartDescriptor();
+      tester
+          .state<NavigatorState>(find.byType(Navigator))
+          .pushNamed(UiRoutes.run, arguments: descriptor);
+      for (
+        var i = 0;
+        i < 800 && find.text('Tap to start').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        expect(tester.takeException(), isNull);
+      }
+      expect(
+        tester
+            .widget<RunnerGameWidget>(find.byType(RunnerGameWidget))
+            .movementControlMode,
+        MovementControlMode.joystick,
+      );
+      expect(find.byType(MoveJoystick), findsOneWidget);
+      expect(find.byType(MoveButtons), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     },
@@ -133,6 +196,10 @@ void main() {
     expect(find.byType(OptionsPage), findsOneWidget);
     expect(find.byType(Switch), findsNothing);
     expect(find.text('Developer mode'), findsNothing);
+    await tester.tap(find.text('CONTROLS'));
+    await tester.pumpAndSettle();
+    expect(find.text('Arrows'), findsOneWidget);
+    expect(find.text('Joystick'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });

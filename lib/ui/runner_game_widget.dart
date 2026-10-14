@@ -22,6 +22,7 @@ import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
 import 'bootstrap/loader_content.dart';
 import 'components/loader_shell.dart';
+import 'controls/movement_control_mode.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'haptics/haptics_cue.dart';
@@ -81,6 +82,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.boardKey,
     this.ghostReplayBootstrap,
     this.isDeveloperPractice = false,
+    this.movementControlMode = MovementControlMode.arrows,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -125,6 +127,10 @@ class RunnerGameWidget extends StatefulWidget {
   /// Debug-only local Practice, without recording, rewards or leaderboard writes.
   final bool isDeveloperPractice;
 
+  /// Touch movement presentation, retained on restart. Both modes emit only
+  /// -1, 0 or 1; hosts may select a mode without providing app settings services.
+  final MovementControlMode movementControlMode;
+
   final VoidCallback? onExit;
   final bool showExitButton;
 
@@ -147,6 +153,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   final UiHaptics _haptics = const UiHapticsService();
   late BossEntranceHapticsBinding _bossEntranceHaptics;
   bool _pausedByLifecycle = false;
+  int _movementInputEpoch = 0;
   bool _started = false;
   bool _exitConfirmOpen = false;
   bool _pausedBeforeExitConfirm = false;
@@ -253,6 +260,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _clearInputs() {
+    _movementInputEpoch++;
     _actions.cancelAll();
     _projectileAimPreview.end();
     _meleeAimPreview.end();
@@ -795,6 +803,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   );
                 }
                 return GameOverlay(
+                  movementInputEpoch: _movementInputEpoch,
+                  movementControlMode: widget.movementControlMode,
                   controller: _controller,
                   input: _actions,
                   projectileAimPreview: _projectileAimPreview,

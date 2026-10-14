@@ -16,8 +16,63 @@ import 'package:rpg_runner/ui/runner_game_widget.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
+import 'package:rpg_runner/ui/controls/move_joystick.dart';
+import 'package:rpg_runner/ui/controls/move_buttons.dart';
+import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
 
 void main() {
+  for (final mode in MovementControlMode.values) {
+    testWidgets(
+      '$mode records digital movement and clears touch across frameless resume',
+      (tester) async {
+        final recorder = _Recorder();
+        final session = await _readySession(
+          tester,
+          recorder,
+          movementControlMode: mode,
+        );
+        await tester.tap(find.text('Tap to start'));
+        await tester.pump(const Duration(milliseconds: 40));
+        final finder = mode == MovementControlMode.arrows
+            ? find.byType(MoveButtons)
+            : find.byType(MoveJoystick);
+        final rect = tester.getRect(finder);
+        final finger = await tester.startGesture(
+          rect.centerRight - const Offset(8, 0),
+        );
+        await tester.pump(const Duration(milliseconds: 40));
+        expect(recorder.frames.last.moveAxis, 1);
+        await finger.moveTo(rect.centerLeft + const Offset(8, 0));
+        await tester.pump(const Duration(milliseconds: 40));
+        expect(recorder.frames.last.moveAxis, -1);
+        final beforePause = recorder.frames.length;
+        _background(tester);
+        _resume(tester);
+        await tester.pump();
+        await finger.moveTo(rect.centerRight - const Offset(8, 0));
+        await tester.pump(const Duration(milliseconds: 40));
+        expect(session.controller.snapshot.paused, isFalse);
+        expect(
+          recorder.frames
+              .skip(beforePause)
+              .every((frame) => frame.moveAxis == null || frame.moveAxis == 0),
+          isTrue,
+        );
+        await finger.up();
+        final fresh = await tester.startGesture(
+          rect.centerRight - const Offset(8, 0),
+        );
+        await tester.pump(const Duration(milliseconds: 40));
+        expect(recorder.frames.last.moveAxis, 1);
+        await fresh.up();
+        await tester.pump(const Duration(milliseconds: 40));
+        expect(recorder.frames.last.moveAxis ?? 0, 0);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      },
+    );
+  }
+
   testWidgets(
     'developer Practice plays, ends and restarts without recording or submission',
     (tester) async {
@@ -31,18 +86,23 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider<AppState>.value(
           value: state,
-          child: _app((descriptor) {
-            final session = RunnerRunSession(
-              descriptor: descriptor,
-              createRecorder: (_) async =>
-                  throw StateError('Developer recording is forbidden'),
-            );
-            sessions.add(session);
-            return session;
-          }, isDeveloperPractice: true),
+          child: _app(
+            (descriptor) {
+              final session = RunnerRunSession(
+                descriptor: descriptor,
+                createRecorder: (_) async =>
+                    throw StateError('Developer recording is forbidden'),
+              );
+              sessions.add(session);
+              return session;
+            },
+            isDeveloperPractice: true,
+            movementControlMode: MovementControlMode.joystick,
+          ),
         ),
       );
       await _until(tester, () => sessions.single.isReady);
+      expect(find.byType(MoveJoystick), findsOneWidget);
       await tester.tap(find.text('Tap to start'));
       await tester.pump(const Duration(milliseconds: 40));
       expect(sessions.single.controller.tick, greaterThan(0));
@@ -63,6 +123,8 @@ void main() {
       await tester.tap(find.text('Restart'));
       await _until(tester, () => sessions.length == 2 && sessions.last.isReady);
       expect(sessions.last.descriptor.isDeveloperPractice, isTrue);
+      expect(find.byType(MoveJoystick), findsOneWidget);
+      expect(find.byType(MoveButtons), findsNothing);
       expect(
         sessions.last.descriptor.runSessionId,
         isNot(sessions.first.descriptor.runSessionId),
@@ -292,6 +354,7 @@ void main() {
 Widget _app(
   RunnerRunSession Function(RunStartDescriptor) create, {
   bool isDeveloperPractice = false,
+  MovementControlMode movementControlMode = MovementControlMode.arrows,
 }) => MaterialApp(
   theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
   home: Scaffold(
@@ -302,14 +365,16 @@ Widget _app(
       levelId: LevelId.field,
       sessionFactory: create,
       isDeveloperPractice: isDeveloperPractice,
+      movementControlMode: movementControlMode,
     ),
   ),
 );
 
 Future<RunnerRunSession> _readySession(
   WidgetTester tester,
-  _Recorder recorder,
-) async {
+  _Recorder recorder, {
+  MovementControlMode movementControlMode = MovementControlMode.arrows,
+}) async {
   late RunnerRunSession session;
   await tester.pumpWidget(
     _app((descriptor) {
@@ -317,7 +382,7 @@ Future<RunnerRunSession> _readySession(
         descriptor: descriptor,
         createRecorder: (_) async => recorder,
       );
-    }),
+    }, movementControlMode: movementControlMode),
   );
   await _until(tester, () => session.isReady);
   return session;

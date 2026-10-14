@@ -11,6 +11,7 @@ class ControlsTuning {
     this.layout = const ControlsLayoutTuning(),
     this.style = const ControlsStyleTuning(),
     this.moveButtons = const MoveButtonsTuning(),
+    this.moveJoystick = const MoveJoystickTuning(),
   });
 
   /// Geometry and spacing configuration.
@@ -21,6 +22,7 @@ class ControlsTuning {
 
   /// Move button geometry + visual tuning.
   final MoveButtonsTuning moveButtons;
+  final MoveJoystickTuning moveJoystick;
 
   /// Baseline preset used by the run HUD.
   static const defaults = ControlsTuning();
@@ -115,6 +117,23 @@ class MoveButtonsTuning {
   final Color borderColor;
   final double borderWidth;
   final double borderRadius;
+}
+
+/// Fixed horizontal joystick geometry in logical pixels. The deadzone only
+/// selects neutral versus full-strength movement; it never scales speed.
+@immutable
+class MoveJoystickTuning {
+  const MoveJoystickTuning({
+    this.size = 96,
+    this.thumbSize = 40,
+    this.deadzone = 8,
+  }) : assert(size > thumbSize),
+       assert(thumbSize > 0),
+       assert(deadzone >= 0 && deadzone < (size - thumbSize) / 2);
+
+  final double size;
+  final double thumbSize;
+  final double deadzone;
 }
 
 /// Paint tuning for cooldown arcs drawn around circular buttons.

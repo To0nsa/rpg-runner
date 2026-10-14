@@ -3,7 +3,7 @@
 Status: Implemented shared input boundary; the Windows Chunk and Level Creators
 mount the tooling-only desktop host, while the product game does not yet mount it.
 
-Last updated: September 9, 2026
+Last updated: October 14, 2026
 
 ## Purpose
 
@@ -88,6 +88,44 @@ does not call commit, and a new begin, explicit cancel, or `cancelAll` discards
 any pending eligibility.
 
 ## Movement and held-source aggregation
+
+### Touch presentation and device preference
+
+Options uses `AppSegmentedControl` for Settings/Controls and the movement-mode
+choice. `AppServices` owns `ControlSettings` separately from `AppState`, so
+profile replacement does not reset device preferences. Production injects
+`SharedPrefsControlSettingsStore`; initialization restores the choice before
+ready routes, including Developer Practice. The key is
+`controls.movement_mode.v1`, with stable `arrows` / `joystick` values. Missing,
+unknown or malformed values fall back to arrows. Writes are serialized by a
+saving guard, publish only after success, and surface failure in Options while
+retaining the previous selection. Hosts without a store use in-memory settings.
+
+`UiApp` supplies the current choice when `UiRouter` creates a run route.
+`createRunnerGameRoute` and `RunnerGameWidget` expose `movementControlMode`
+(default arrows) for embedded hosts. It flows through `GameOverlay` and
+`RunnerControlsOverlay` into `MovementControl`, and survives same-widget
+restarts. Preference storage stays outside the run descriptor, Core, backend,
+and replay contracts.
+
+`MovementControl` selects `MoveButtons` or `MoveJoystick`, sharing the movement
+callback and palette. Both emit **only -1, 0, 1**. The fixed joystick uses a
+96-pixel base, a 40-pixel thumb and an 8-pixel horizontal neutral deadzone (all
+logical pixels, in `MoveJoystickTuning`). Drag magnitude animates the thumb,
+but beyond the deadzone its sign produces full-strength input. Vertical drag
+does not affect direction. The first pointer owns the stick until up/cancel;
+other pointers cannot take it over or interfere with action controls.
+
+The existing semantic dispatcher and router still schedule all movement.
+Gameplay speed, acceleration, collision, timing and replay encoding are
+unchanged. The run clears input on pause, lifecycle loss and exit. It also
+increments a movement input epoch so UI pointer state is discarded even when
+background/resume occurs without an intervening frame. Disabling movement or
+changing presentation similarly neutralizes the axis and resets pointer state.
+Runtime terrain waits preserve mounted controls and release delivery; terrain
+failure follows the existing cancellation path.
+
+### Desktop aggregation
 
 Touch movement continues to supply a horizontal axis. Desktop movement uses
 held left/right actions:

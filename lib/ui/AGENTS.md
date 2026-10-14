@@ -30,6 +30,8 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
   Firebase-backed implementations, and app-state controllers
 - `lib/ui/state/run/`: run-session API, replay-submission spool/coordinator,
   and submission status values
+- `lib/ui/state/settings/`: device-wide control preferences, owned by
+  `AppServices` independently of account/developer profile replacement
 - `lib/ui/state/boards/`: active-board, leaderboard, ghost manifest, and ghost
   replay cache clients
 - `lib/ui/assets/`: menu preview cache and warmup lifecycle
@@ -118,6 +120,9 @@ The run route is a UI-owned assembly of lower layers:
   mounted for hold releases; failure cancels input and offers same-run retry.
   Do not route runtime recovery through startup session replacement.
 - HUD and controls read snapshots and send input through the existing router/controller path
+- Movement presentation is selected by `MovementControlMode`; arrows and the
+  horizontal joystick must emit the same digital -1/0/1 axis. Keep preferences
+  outside gameplay/replay descriptors, and preserve pointer cancellation epochs.
 - boss entrance haptics use the run-owned binding under `haptics/`; dispose it
   before replacing or disposing its controller, and retain pulse deduplication
   across pause/resume

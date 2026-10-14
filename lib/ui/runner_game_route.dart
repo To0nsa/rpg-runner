@@ -7,6 +7,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:run_protocol/board_key.dart';
 
 import 'runner_game_widget.dart';
+import 'controls/movement_control_mode.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
 import 'state/boards/ghost_replay_cache.dart';
@@ -36,6 +37,8 @@ import 'state/ownership/selection_state.dart';
 /// reward verification can finish and refresh ownership on subsequent screens.
 /// Mandatory boss arenas keep this route and its run session alive while Core
 /// holds entrance controls and later resumes normal running after the fight.
+/// [movementControlMode] selects touch presentation; both modes emit the same
+/// full-strength movement commands. The host owns persistence of this choice.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,
@@ -49,6 +52,7 @@ Route<void> createRunnerGameRoute({
   BoardKey? boardKey,
   GhostReplayBootstrap? ghostReplayBootstrap,
   bool isDeveloperPractice = false,
+  MovementControlMode movementControlMode = MovementControlMode.arrows,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
@@ -74,6 +78,7 @@ Route<void> createRunnerGameRoute({
     settings: settings,
     builder: (context) {
       Widget child = RunnerGameWidget(
+        movementControlMode: movementControlMode,
         runSessionId: runSessionId,
         runId: runId,
         seed: seed,

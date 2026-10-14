@@ -5,12 +5,41 @@ import '../../app/app_services.dart';
 import '../../app/ui_routes.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../components/app_segmented_control.dart';
+import '../../controls/movement_control_mode.dart';
+import '../../state/settings/control_settings.dart';
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 
 /// App options, including the local profile switch in development builds.
-class OptionsPage extends StatelessWidget {
+class OptionsPage extends StatefulWidget {
   const OptionsPage({super.key});
+
+  @override
+  State<OptionsPage> createState() => _OptionsPageState();
+}
+
+enum _OptionsTab { settings, controls }
+
+class _OptionsPageState extends State<OptionsPage> {
+  _OptionsTab _tab = _OptionsTab.settings;
+
+  Future<void> _setMovementMode(
+    ControlSettings settings,
+    MovementControlMode mode,
+  ) async {
+    try {
+      await settings.setMovementMode(mode);
+    } catch (error, stack) {
+      debugPrint('Control settings save failed: $error\n$stack');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save controls. Please try again.'),
+        ),
+      );
+    }
+  }
 
   Future<void> _switchProfile(BuildContext context, bool enabled) async {
     final services = context.read<AppServices>();
@@ -43,8 +72,49 @@ class OptionsPage extends StatelessWidget {
       canPop: !services.isSwitchingProfile,
       child: MenuScaffold(
         title: 'Options',
+        centerAppBarTitle: true,
+        appBarTitle: AppSegmentedControl<_OptionsTab>(
+          values: _OptionsTab.values,
+          selected: _tab,
+          size: AppSegmentedControlSize.sm,
+          enabled: !services.isSwitchingProfile,
+          onChanged: (tab) => setState(() => _tab = tab),
+          labelBuilder: (_, tab) => Text(switch (tab) {
+            _OptionsTab.settings => 'SETTINGS',
+            _OptionsTab.controls => 'CONTROLS',
+          }),
+        ),
         child: MenuLayout(
-          child: services.developerModeAvailable
+          child: _tab == _OptionsTab.controls
+              ? ListenableBuilder(
+                  listenable: services.controlSettings,
+                  builder: (context, _) {
+                    final settings = services.controlSettings;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Movement', style: ui.text.headline),
+                        SizedBox(height: ui.space.md),
+                        AppSegmentedControl<MovementControlMode>(
+                          values: MovementControlMode.values,
+                          selected: settings.movementMode,
+                          enabled: !settings.isSaving,
+                          onChanged: (mode) => _setMovementMode(settings, mode),
+                          labelBuilder: (_, mode) => Text(switch (mode) {
+                            MovementControlMode.arrows => 'Arrows',
+                            MovementControlMode.joystick => 'Joystick',
+                          }),
+                        ),
+                        SizedBox(height: ui.space.md),
+                        Text(
+                          'Choose how to move backward and forward. Both controls use the same movement speed.',
+                          style: ui.text.body,
+                        ),
+                      ],
+                    );
+                  },
+                )
+              : services.developerModeAvailable
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -63,7 +133,7 @@ class OptionsPage extends StatelessWidget {
                       const Center(child: CircularProgressIndicator()),
                   ],
                 )
-              : Text('No options available yet.', style: ui.text.body),
+              : Text('No additional settings available.', style: ui.text.body),
         ),
       ),
     );

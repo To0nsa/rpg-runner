@@ -21,11 +21,23 @@
 
 ### Left thumb: Movement
 
-- **Joystick, X-axis only** → continuous axis in `[-1, 1]`.
+- **Arrows or fixed horizontal joystick**, selected in Options → Controls.
+- Both emit only `-1`, `0`, or `1`: backward, neutral, or forward. The choice
+  changes touch presentation, never movement speed, acceleration or abilities.
 - Movement is allowed unless a **hard lock** exists (e.g., stun).
 
 **Current implementation**
-- Default is a **fixed joystick** (`FixedJoystick`): no deadzone; axis is proportional to horizontal drag, clamped to `[-1, 1]`.
+- Default is **Arrows**. Holding both arrows or neither produces neutral input;
+  sliding between them changes direction without lifting.
+- The joystick has a fixed base and a horizontally moving thumb. Displacement
+  within 8 logical pixels of its center is neutral; beyond that it produces the
+  same full-strength direction as an arrow. Vertical displacement is ignored.
+- Releasing or cancelling the controlling touch returns movement to neutral.
+  A second touch cannot take over the stick; action buttons remain usable.
+- The selection is saved on the device, shared by account and Developer mode,
+  and applied to subsequent runs and their restarts.
+- Pausing, backgrounding, input cancellation or switching presentation clears
+  held movement; resuming requires a new movement touch.
 - Continuous axis is scheduled ahead with a small input lead/buffer (see §7).
 
 ### Right thumb: Actions
