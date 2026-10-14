@@ -11,7 +11,7 @@ void main() {
     for (var hit = 0; hit < 4; hit++) {
       haptics.trigger(UiHapticsCue.playerHit);
     }
-    expect(driver.calls, List.filled(4, 'medium'));
+    expect(driver.calls, List.filled(4, 'vibration'));
   });
 
   test('maps cues to default intensity channels', () {
@@ -23,6 +23,7 @@ void main() {
     haptics.trigger(UiHapticsCue.chargeFullTierReached);
     haptics.trigger(UiHapticsCue.holdAbilityStaminaDepleted);
     haptics.trigger(UiHapticsCue.holdAbilityTimedOut);
+    haptics.trigger(UiHapticsCue.playerHit);
     haptics.trigger(UiHapticsCue.bossEntrancePulse);
 
     expect(
@@ -33,6 +34,7 @@ void main() {
         'light',
         'medium',
         'heavy',
+        'vibration',
         'medium',
       ]),
     );
@@ -61,6 +63,9 @@ void main() {
 
 class _FakeHapticsDriver implements UiHapticsDriver {
   final List<String> calls = <String>[];
+
+  @override
+  void vibrate() => calls.add('vibration');
 
   @override
   void heavyImpact() => calls.add('heavy');

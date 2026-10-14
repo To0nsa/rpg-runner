@@ -23,6 +23,8 @@ class UiHapticsService implements UiHaptics {
     if (!enabled) return;
     final intensity = intensityOverride ?? _defaultIntensityFor(cue);
     switch (intensity) {
+      case UiHapticsIntensity.vibration:
+        driver.vibrate();
       case UiHapticsIntensity.selection:
         driver.selectionClick();
       case UiHapticsIntensity.light:
@@ -46,6 +48,7 @@ class UiHapticsService implements UiHaptics {
       case UiHapticsCue.holdAbilityStaminaDepleted:
         return UiHapticsIntensity.medium;
       case UiHapticsCue.playerHit:
+        return UiHapticsIntensity.vibration;
       case UiHapticsCue.bossEntrancePulse:
         return UiHapticsIntensity.medium;
     }

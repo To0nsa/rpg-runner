@@ -310,11 +310,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _lastChargeTier = nextTier;
   }
 
-  UiHapticsIntensity _impactHapticsIntensity(int amount100) {
-    if (amount100 >= 1400) return UiHapticsIntensity.heavy;
-    return UiHapticsIntensity.medium;
-  }
-
   AppState? _maybeAppState() {
     try {
       return Provider.of<AppState>(context, listen: false);
@@ -379,10 +374,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return;
     }
     if (event is PlayerImpactFeedbackEvent) {
-      _haptics.trigger(
-        UiHapticsCue.playerHit,
-        intensityOverride: _impactHapticsIntensity(event.amount100),
-      );
+      _haptics.trigger(UiHapticsCue.playerHit);
       _playerImpactFeedbackSignal.value = _playerImpactFeedbackSignal.value + 1;
       return;
     }

@@ -12,5 +12,5 @@ enum UiHapticsCue {
   bossEntrancePulse,
 }
 
-/// Relative haptic intensity.
-enum UiHapticsIntensity { selection, light, medium, heavy }
+/// Platform haptic channels used by UI cues.
+enum UiHapticsIntensity { selection, light, medium, heavy, vibration }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 ///
 /// This indirection keeps UI feedback logic testable and centralized.
 abstract interface class UiHapticsDriver {
+  void vibrate();
   void selectionClick();
   void lightImpact();
   void mediumImpact();
@@ -13,6 +14,9 @@ abstract interface class UiHapticsDriver {
 /// System-backed haptics driver using Flutter's platform channels.
 class SystemUiHapticsDriver implements UiHapticsDriver {
   const SystemUiHapticsDriver();
+
+  @override
+  void vibrate() => HapticFeedback.vibrate();
 
   @override
   void heavyImpact() => HapticFeedback.heavyImpact();

@@ -95,17 +95,16 @@ shakeIntensity01 = sqrt(normalized)
 
 `RunnerGameWidget` consumes the same event stream:
 
-- haptics intensity:
-  - `heavy` when `amount100 >= 1400`
-  - `medium` otherwise
+- haptics: one standard vibration when the player takes a direct hit
 - border pulse:
   - increments `playerImpactFeedbackSignal`, consumed by
     `PlayerImpactBorderOverlay`
 
 Outgoing landed-hit feedback uses `UiHapticsCue.playerLandedHit` and the
-`lightImpact` channel. This remains lighter than the incoming player-hit
-cue, whose minimum channel is `mediumImpact`. It adds no screen shake or border
-pulse to ordinary outgoing hits.
+`lightImpact` channel. Incoming player hits use Flutter's standard vibration
+(`LONG_PRESS` on Android), so the two cues remain distinct on devices where
+`mediumImpact` feels weaker than `lightImpact`. Ordinary outgoing hits add no
+screen shake or border pulse.
 
 ## Current Render Mapping
 
