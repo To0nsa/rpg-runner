@@ -89,6 +89,32 @@ any pending eligibility.
 
 ## Movement and held-source aggregation
 
+### Action-control presentation
+
+The run HUD and the Skills radial preview share `abilityRadialLayoutSpec` and
+the circular control shell. Its Lucide symbols identify slots (sword, shield,
+bow/arrow, wind/dash, upward jump, magic wand). Controls contain no visible
+labels or authored skill images; their names remain semantic accessibility
+labels. Skill lists, details, and store cards retain `GameIcon.ability` artwork.
+
+`SnapshotBuilder` publishes an immutable, complete `abilityCostsBySlot` map in
+`PlayerHudSnapshot`, using the same resolved commit costs as affordability.
+Jump exposes its air cost while an air jump is available. The Skills preview
+uses `resolveEffectiveAbilityCostForLoadout`, which shares payload selection
+with the runtime store resolver. `ControlResourceUsage` also includes authored
+hold stamina drain; the menu preview includes both ground and air-jump costs.
+These values only select colors. Core affordability, slot validity, input modes,
+and cooldown ticks continue to determine whether an action can begin.
+
+`UiActionButtonTheme` mutes the shared health/mana/stamina bar colors with a
+charcoal overlay. Fills are approximately 58% opaque, allowing the scene to show
+through. Free actions use neutral charcoal; multiple resources use a single
+translucent gradient without a second fill underneath. Symbols dim on cooldown
+and when unaffordable, and the
+cooldown ring remains visible. The Skills selection ring is a quiet solid
+outline with no backing disk. Symbol size scales with the touch target,
+independently of skill art.
+
 ### Touch presentation and device preference
 
 Options uses `AppSegmentedControl` for Settings/Controls and the movement-mode

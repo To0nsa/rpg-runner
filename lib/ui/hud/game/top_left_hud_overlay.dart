@@ -1,3 +1,5 @@
+import '../../theme/ui_resource_colors.dart';
+
 import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
@@ -88,9 +90,9 @@ class _HudBarsPainter extends CustomPainter {
     ..color = const Color(0xFFFFFFFF)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1;
-  static final Paint _hp = Paint()..color = const Color(0xFFDC4440);
-  static final Paint _mana = Paint()..color = const Color(0xFF2D98DA);
-  static final Paint _stamina = Paint()..color = const Color(0xFF4CD137);
+  static final Paint _hp = Paint()..color = UiResourceColors.health;
+  static final Paint _mana = Paint()..color = UiResourceColors.mana;
+  static final Paint _stamina = Paint()..color = UiResourceColors.stamina;
 
   @override
   void paint(Canvas canvas, Size size) {

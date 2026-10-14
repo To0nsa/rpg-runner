@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/snapshots/enums.dart';
+
 import '../../../game/input/aim_preview.dart';
 import '../action_button.dart';
 import '../ability_slot_visual_spec.dart';
 import '../controls_tuning.dart';
+import '../control_resource_usage.dart';
 import '../directional_action_button.dart';
 import '../hold_action_button.dart';
 
@@ -33,7 +35,7 @@ class MeleeControl extends StatelessWidget {
     required this.cancelHitboxRect,
     required this.forceCancelSignal,
     this.label,
-    this.iconWidget,
+    this.resources = ControlResourceUsage.none,
   });
 
   final ControlsTuning tuning;
@@ -57,7 +59,7 @@ class MeleeControl extends StatelessWidget {
   final ValueListenable<Rect?> cancelHitboxRect;
   final ValueListenable<int> forceCancelSignal;
   final String? label;
-  final Widget? iconWidget;
+  final ControlResourceUsage resources;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +72,7 @@ class MeleeControl extends StatelessWidget {
       return ActionButton(
         label: resolvedLabel,
         icon: slot.icon,
-        iconWidget: iconWidget,
+        resources: resources,
         onPressed: onPressed,
         tuning: action,
         cooldownRing: cooldownRing,
@@ -84,7 +86,7 @@ class MeleeControl extends StatelessWidget {
       return HoldActionButton(
         label: resolvedLabel,
         icon: slot.icon,
-        iconWidget: iconWidget,
+        resources: resources,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
         tuning: action,
@@ -99,7 +101,7 @@ class MeleeControl extends StatelessWidget {
       return HoldActionButton(
         label: resolvedLabel,
         icon: slot.icon,
-        iconWidget: iconWidget,
+        resources: resources,
         onHoldStart: onChargeHoldStart,
         onHoldEnd: onChargeHoldEnd,
         onRelease: onCommitted,
@@ -114,7 +116,7 @@ class MeleeControl extends StatelessWidget {
     return DirectionalActionButton(
       label: resolvedLabel,
       icon: slot.icon,
-      iconWidget: iconWidget,
+      resources: resources,
       onHoldStart: onChargeHoldStart,
       onHoldEnd: onChargeHoldEnd,
       onAimDir: onAimDir,

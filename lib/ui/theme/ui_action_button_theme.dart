@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../controls/controls_tuning.dart';
-import 'ui_tokens.dart';
+import '../controls/control_resource_usage.dart';
+import 'ui_resource_colors.dart';
 
 enum UiActionButtonSurface { run, selection }
 
@@ -11,43 +12,41 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
     required this.run,
     required this.selection,
     required this.selectionRing,
+    this.resourceOverlay = const Color(0xB820242B),
   });
 
   final UiActionButtonVisual run;
   final UiActionButtonVisual selection;
   final UiActionButtonSelectionRing selectionRing;
 
-  static final UiActionButtonTheme standard = _buildStandard(UiTokens.standard);
+  /// Charcoal over the vitals colors keeps the action wheel subdued.
+  final Color resourceOverlay;
 
-  static UiActionButtonTheme _buildStandard(UiTokens ui) {
-    final labelFontSize = (ui.text.label.fontSize ?? 12) * (2 / 3);
-    final labelGap = ui.space.xxs * 0.5;
+  /// Muted resource hues; the control surface supplies their final opacity.
+  List<Color> resourceBackgrounds(ControlResourceUsage resources) => [
+    if (resources.health)
+      Color.alphaBlend(resourceOverlay, UiResourceColors.health),
+    if (resources.mana)
+      Color.alphaBlend(resourceOverlay, UiResourceColors.mana),
+    if (resources.stamina)
+      Color.alphaBlend(resourceOverlay, UiResourceColors.stamina),
+  ];
+
+  static final UiActionButtonTheme standard = _buildStandard();
+
+  static UiActionButtonTheme _buildStandard() {
     return UiActionButtonTheme(
-      run: UiActionButtonVisual(
-        backgroundColor: ui.colors.shadow.withValues(alpha: 0.2),
-        foregroundColor: UiBrandPalette.steelBlueForeground,
-        labelFontSize: labelFontSize,
-        labelGap: labelGap,
+      run: const UiActionButtonVisual(
+        backgroundColor: Color(0x94292D33),
+        foregroundColor: Color(0xFFE5E8EB),
       ),
-      selection: UiActionButtonVisual(
-        backgroundColor: ui.colors.textPrimary,
-        foregroundColor: ui.colors.background,
-        labelFontSize: labelFontSize,
-        labelGap: labelGap,
+      selection: const UiActionButtonVisual(
+        backgroundColor: Color(0x94292D33),
+        foregroundColor: Color(0xFFE5E8EB),
       ),
       selectionRing: const UiActionButtonSelectionRing(
         outerScale: 1.08,
-        gradientColors: <Color>[
-          UiBrandPalette.wornGoldInsetBorder,
-          UiBrandPalette.crimsonDanger,
-          UiBrandPalette.wornGoldBorder,
-          UiBrandPalette.wornGoldInsetBorder,
-        ],
-        gradientStops: <double>[0.0, 0.42, 0.78, 1.0],
-        glowColor: UiBrandPalette.crimsonDanger,
-        glowAlpha: 1.0,
-        glowBlurRadius: 8,
-        glowSpreadRadius: 2,
+        color: Color(0xFFADB8C2),
       ),
     );
   }
@@ -67,8 +66,6 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
       size: base.size,
       backgroundColor: visual.backgroundColor,
       foregroundColor: visual.foregroundColor,
-      labelFontSize: visual.labelFontSize,
-      labelGap: visual.labelGap,
     );
   }
 
@@ -82,8 +79,6 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
       deadzoneRadius: base.deadzoneRadius,
       backgroundColor: visual.backgroundColor,
       foregroundColor: visual.foregroundColor,
-      labelFontSize: visual.labelFontSize,
-      labelGap: visual.labelGap,
     );
   }
 
@@ -92,11 +87,13 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
     UiActionButtonVisual? run,
     UiActionButtonVisual? selection,
     UiActionButtonSelectionRing? selectionRing,
+    Color? resourceOverlay,
   }) {
     return UiActionButtonTheme(
       run: run ?? this.run,
       selection: selection ?? this.selection,
       selectionRing: selectionRing ?? this.selectionRing,
+      resourceOverlay: resourceOverlay ?? this.resourceOverlay,
     );
   }
 
@@ -115,35 +112,21 @@ class UiActionButtonVisual {
   const UiActionButtonVisual({
     required this.backgroundColor,
     required this.foregroundColor,
-    required this.labelFontSize,
-    required this.labelGap,
   });
 
   final Color backgroundColor;
   final Color foregroundColor;
-  final double labelFontSize;
-  final double labelGap;
 }
 
 @immutable
 class UiActionButtonSelectionRing {
   const UiActionButtonSelectionRing({
     required this.outerScale,
-    required this.gradientColors,
-    required this.gradientStops,
-    required this.glowColor,
-    required this.glowAlpha,
-    required this.glowBlurRadius,
-    required this.glowSpreadRadius,
+    required this.color,
   });
 
   final double outerScale;
-  final List<Color> gradientColors;
-  final List<double> gradientStops;
-  final Color glowColor;
-  final double glowAlpha;
-  final double glowBlurRadius;
-  final double glowSpreadRadius;
+  final Color color;
 }
 
 extension UiActionButtonThemeContext on BuildContext {

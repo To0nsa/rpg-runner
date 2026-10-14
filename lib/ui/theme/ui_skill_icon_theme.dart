@@ -2,34 +2,15 @@ import 'package:flutter/material.dart';
 
 @immutable
 class UiSkillIconTheme extends ThemeExtension<UiSkillIconTheme> {
-  const UiSkillIconTheme({
-    required this.listIconSize,
-    required this.selectionRadialIconSize,
-    required this.runRadialIconSize,
-  });
+  const UiSkillIconTheme({required this.listIconSize});
 
   final double listIconSize;
-  final double selectionRadialIconSize;
-  final double runRadialIconSize;
 
-  static const UiSkillIconTheme standard = UiSkillIconTheme(
-    listIconSize: 32,
-    selectionRadialIconSize: 64,
-    runRadialIconSize: 48,
-  );
+  static const UiSkillIconTheme standard = UiSkillIconTheme(listIconSize: 32);
 
   @override
-  UiSkillIconTheme copyWith({
-    double? listIconSize,
-    double? selectionRadialIconSize,
-    double? runRadialIconSize,
-  }) {
-    return UiSkillIconTheme(
-      listIconSize: listIconSize ?? this.listIconSize,
-      selectionRadialIconSize:
-          selectionRadialIconSize ?? this.selectionRadialIconSize,
-      runRadialIconSize: runRadialIconSize ?? this.runRadialIconSize,
-    );
+  UiSkillIconTheme copyWith({double? listIconSize}) {
+    return UiSkillIconTheme(listIconSize: listIconSize ?? this.listIconSize);
   }
 
   @override

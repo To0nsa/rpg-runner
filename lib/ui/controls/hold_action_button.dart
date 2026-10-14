@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'control_button_visuals.dart';
 import 'controls_tuning.dart';
+import 'control_resource_usage.dart';
+import '../theme/ui_action_button_theme.dart';
 
 /// Circular action button that starts on pointer-down and ends on release.
 ///
@@ -13,7 +15,7 @@ class HoldActionButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.icon,
-    this.iconWidget,
+    this.resources = ControlResourceUsage.none,
     required this.onHoldStart,
     required this.onHoldEnd,
     this.onRelease,
@@ -27,7 +29,7 @@ class HoldActionButton extends StatefulWidget {
 
   final String label;
   final IconData icon;
-  final Widget? iconWidget;
+  final ControlResourceUsage resources;
   final VoidCallback onHoldStart;
   final VoidCallback onHoldEnd;
   final VoidCallback? onRelease;
@@ -52,9 +54,13 @@ class _HoldActionButtonState extends State<HoldActionButton> {
       cooldownTicksLeft: widget.cooldownTicksLeft,
       backgroundColor: widget.tuning.backgroundColor,
       foregroundColor: widget.tuning.foregroundColor,
+      resources: widget.resources,
+      theme: context.actionButtons,
     );
 
     return ControlButtonShell(
+      label: widget.label,
+      interactable: visual.interactable,
       size: widget.size,
       cooldownTicksLeft: widget.cooldownTicksLeft,
       cooldownTicksTotal: widget.cooldownTicksTotal,
@@ -65,16 +71,11 @@ class _HoldActionButtonState extends State<HoldActionButton> {
           onPointerDown: _handlePointerDown,
           onPointerUp: _handlePointerUp,
           onPointerCancel: _handlePointerCancel,
-          child: Material(
-            color: visual.backgroundColor,
-            shape: const CircleBorder(),
+          child: ControlButtonSurface(
+            visual: visual,
             child: ControlButtonContent(
-              label: widget.label,
               icon: widget.icon,
-              iconWidget: widget.iconWidget,
               foregroundColor: visual.foregroundColor,
-              labelFontSize: widget.tuning.labelFontSize,
-              labelGap: widget.tuning.labelGap,
             ),
           ),
         ),

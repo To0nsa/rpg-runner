@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'control_button_visuals.dart';
 import 'controls_tuning.dart';
+import 'control_resource_usage.dart';
+import '../theme/ui_action_button_theme.dart';
 
 /// Circular tap action control used by the combat HUD.
 ///
@@ -12,7 +14,7 @@ class ActionButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.icon,
-    this.iconWidget,
+    this.resources = ControlResourceUsage.none,
     required this.onPressed,
     required this.tuning,
     required this.size,
@@ -24,7 +26,7 @@ class ActionButton extends StatelessWidget {
 
   final String label;
   final IconData icon;
-  final Widget? iconWidget;
+  final ControlResourceUsage resources;
   final VoidCallback onPressed;
   final ActionButtonTuning tuning;
   final CooldownRingTuning cooldownRing;
@@ -40,27 +42,27 @@ class ActionButton extends StatelessWidget {
       cooldownTicksLeft: cooldownTicksLeft,
       backgroundColor: tuning.backgroundColor,
       foregroundColor: tuning.foregroundColor,
+      resources: resources,
+      theme: context.actionButtons,
     );
 
     return ControlButtonShell(
+      label: label,
+      interactable: visual.interactable,
+      onSemanticTap: onPressed,
       size: size,
       cooldownTicksLeft: cooldownTicksLeft,
       cooldownTicksTotal: cooldownTicksTotal,
       cooldownRing: cooldownRing,
-      child: Material(
-        color: visual.backgroundColor,
-        shape: const CircleBorder(),
+      child: ControlButtonSurface(
+        visual: visual,
         child: InkWell(
           customBorder: const CircleBorder(),
           onTapDown: visual.interactable ? (_) => onPressed() : null,
           onTap: null,
           child: ControlButtonContent(
-            label: label,
             icon: icon,
-            iconWidget: iconWidget,
             foregroundColor: visual.foregroundColor,
-            labelFontSize: tuning.labelFontSize,
-            labelGap: tuning.labelGap,
           ),
         ),
       ),

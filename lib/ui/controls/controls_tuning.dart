@@ -187,15 +187,11 @@ class ActionButtonTuning {
     this.size = 52,
     this.backgroundColor = const Color(0x33000000),
     this.foregroundColor = const Color(0xFFFFFFFF),
-    this.labelFontSize = 8,
-    this.labelGap = 2,
   });
 
   final double size;
   final Color backgroundColor;
   final Color foregroundColor;
-  final double labelFontSize;
-  final double labelGap;
 }
 
 /// Visual tuning for directional action buttons and their deadzone radius.
@@ -206,14 +202,10 @@ class DirectionalActionButtonTuning {
     this.deadzoneRadius = 12,
     this.backgroundColor = const Color(0x33000000),
     this.foregroundColor = const Color(0xFFFFFFFF),
-    this.labelFontSize = 8,
-    this.labelGap = 2,
   });
 
   final double size;
   final double deadzoneRadius;
   final Color backgroundColor;
   final Color foregroundColor;
-  final double labelFontSize;
-  final double labelGap;
 }

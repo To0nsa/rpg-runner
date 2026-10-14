@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+
 import 'layout/controls_radial_layout.dart';
 
 /// Visual family used to resolve slot button size/tuning.
@@ -97,42 +99,42 @@ const AbilityRadialLayoutSpec abilityRadialLayoutSpec = AbilityRadialLayoutSpec(
     AbilityRadialSlotSpec(
       slot: AbilitySlot.primary,
       label: 'Sword',
-      icon: Icons.sports_martial_arts_rounded,
+      icon: LucideIcons.sword400,
       anchor: AbilityRadialAnchor.melee,
       family: AbilityRadialSlotFamily.directional,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.secondary,
       label: 'Shield',
-      icon: Icons.shield,
+      icon: LucideIcons.shield400,
       anchor: AbilityRadialAnchor.secondary,
       family: AbilityRadialSlotFamily.action,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.projectile,
       label: 'Projectile',
-      icon: Icons.auto_awesome,
+      icon: LucideIcons.bowArrow400,
       anchor: AbilityRadialAnchor.projectile,
       family: AbilityRadialSlotFamily.directional,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.mobility,
       label: 'Mobility',
-      icon: Icons.flash_on,
+      icon: LucideIcons.wind400,
       anchor: AbilityRadialAnchor.dash,
       family: AbilityRadialSlotFamily.action,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.jump,
       label: 'Jump',
-      icon: Icons.arrow_upward,
+      icon: LucideIcons.arrowUpFromLine400,
       anchor: AbilityRadialAnchor.jump,
       family: AbilityRadialSlotFamily.jump,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.spell,
       label: 'Spell',
-      icon: Icons.star,
+      icon: LucideIcons.wandSparkles400,
       anchor: AbilityRadialAnchor.spell,
       family: AbilityRadialSlotFamily.action,
     ),

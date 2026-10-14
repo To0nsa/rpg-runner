@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+
 import '../action_button.dart';
 import '../ability_slot_visual_spec.dart';
 import '../controls_tuning.dart';
+import '../control_resource_usage.dart';
 
 /// Tap-only spell slot control (self-targeted spells).
 class SpellControl extends StatelessWidget {
@@ -16,7 +18,7 @@ class SpellControl extends StatelessWidget {
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     this.label,
-    this.iconWidget,
+    this.resources = ControlResourceUsage.none,
   });
 
   final ControlsTuning tuning;
@@ -26,7 +28,7 @@ class SpellControl extends StatelessWidget {
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
   final String? label;
-  final Widget? iconWidget;
+  final ControlResourceUsage resources;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,7 @@ class SpellControl extends StatelessWidget {
     return ActionButton(
       label: resolvedLabel,
       icon: slot.icon,
-      iconWidget: iconWidget,
+      resources: resources,
       onPressed: onPressed,
       tuning: action,
       cooldownRing: cooldownRing,

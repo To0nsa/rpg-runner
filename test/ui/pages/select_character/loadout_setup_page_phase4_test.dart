@@ -12,6 +12,11 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_skill_icon_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
+import 'package:rpg_runner/ui/components/gameIcon/game_icon.dart';
+import 'package:rpg_runner/ui/controls/action_button.dart';
+import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_radial_pane.dart';
 
 void main() {
   testWidgets(
@@ -46,6 +51,43 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Bloodletter Slash'), findsOneWidget);
+      final radial = find.byType(SkillsRadialPane);
+      expect(
+        find.descendant(of: radial, matching: find.byType(Text)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: radial, matching: find.byType(GameIcon)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: radial, matching: find.byType(ActionButton)),
+        findsNWidgets(6),
+      );
+      // Skill-list and detail artwork is separate from control symbols.
+      expect(find.byType(GameIcon), findsWidgets);
+      await tester.tap(
+        find.descendant(
+          of: radial,
+          matching: find.byIcon(
+            abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile).icon,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SkillsRadialPane>(radial).selectedSlot,
+        AbilitySlot.projectile,
+      );
+      await tester.tap(
+        find.descendant(
+          of: radial,
+          matching: find.byIcon(
+            abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary).icon,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
       expect(
         find.byKey(
           const ValueKey<String>(

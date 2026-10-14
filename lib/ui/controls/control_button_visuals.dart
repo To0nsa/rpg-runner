@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'cooldown_ring.dart';
 import 'controls_tuning.dart';
+import 'control_resource_usage.dart';
+import '../theme/ui_action_button_theme.dart';
 
 /// Resolved visual state for a control button.
 ///
@@ -12,6 +14,7 @@ class ControlButtonVisualState {
     required this.interactable,
     required this.backgroundColor,
     required this.foregroundColor,
+    required this.backgroundGradient,
   });
 
   factory ControlButtonVisualState.resolve({
@@ -19,14 +22,30 @@ class ControlButtonVisualState {
     required int cooldownTicksLeft,
     required Color backgroundColor,
     required Color foregroundColor,
+    required ControlResourceUsage resources,
+    required UiActionButtonTheme theme,
   }) {
+    final resourceColors = theme.resourceBackgrounds(resources);
+    final colors = resourceColors.isEmpty
+        ? [backgroundColor]
+        : [
+            for (final color in resourceColors)
+              color.withValues(alpha: backgroundColor.a),
+          ];
+    final resolvedColors = [
+      for (final color in colors)
+        affordable ? color : _disabledBackground(color),
+    ];
     return ControlButtonVisualState._(
       interactable: affordable && cooldownTicksLeft <= 0,
-      backgroundColor: affordable
-          ? backgroundColor
-          : _disabledBackground(backgroundColor),
+      backgroundColor: resolvedColors.first,
+      backgroundGradient: resolvedColors.length > 1
+          ? LinearGradient(colors: resolvedColors)
+          : null,
       foregroundColor: affordable
-          ? foregroundColor
+          ? (cooldownTicksLeft > 0
+                ? foregroundColor.withValues(alpha: 0.55)
+                : foregroundColor)
           : _disabledForeground(foregroundColor),
     );
   }
@@ -34,6 +53,38 @@ class ControlButtonVisualState {
   final bool interactable;
   final Color backgroundColor;
   final Color foregroundColor;
+  final Gradient? backgroundGradient;
+}
+
+/// Shared paint surface so tap, hold, and aim controls show identical resources.
+class ControlButtonSurface extends StatelessWidget {
+  const ControlButtonSurface({
+    super.key,
+    required this.visual,
+    required this.child,
+  });
+
+  final ControlButtonVisualState visual;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    // A mixed-resource gradient must be the only fill or its alpha compounds.
+    color: visual.backgroundGradient == null
+        ? visual.backgroundColor
+        : Colors.transparent,
+    shape: const CircleBorder(),
+    child: Ink(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: visual.backgroundGradient,
+        border: Border.all(
+          color: visual.foregroundColor.withValues(alpha: 0.18),
+        ),
+      ),
+      child: child,
+    ),
+  );
 }
 
 /// Shared circular shell used by action controls.
@@ -49,6 +100,9 @@ class ControlButtonShell extends StatelessWidget {
     required this.cooldownTicksTotal,
     required this.cooldownRing,
     required this.child,
+    required this.label,
+    required this.interactable,
+    this.onSemanticTap,
   });
 
   final double size;
@@ -56,77 +110,62 @@ class ControlButtonShell extends StatelessWidget {
   final int cooldownTicksTotal;
   final CooldownRingTuning cooldownRing;
   final Widget child;
+  final String label;
+  final bool interactable;
+  final VoidCallback? onSemanticTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          child,
-          IgnorePointer(
-            child: CooldownRing(
-              cooldownTicksLeft: cooldownTicksLeft,
-              cooldownTicksTotal: cooldownTicksTotal,
-              tuning: cooldownRing,
-            ),
+    return Semantics(
+      label: label,
+      button: true,
+      enabled: interactable,
+      onTap: interactable ? onSemanticTap : null,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              child,
+              IgnorePointer(
+                child: CooldownRing(
+                  cooldownTicksLeft: cooldownTicksLeft,
+                  cooldownTicksTotal: cooldownTicksTotal,
+                  tuning: cooldownRing,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Shared icon + label content for circular control buttons.
+/// A centered slot symbol, sized relative to the circular touch target.
 class ControlButtonContent extends StatelessWidget {
   const ControlButtonContent({
     super.key,
-    required this.label,
     required this.icon,
-    this.iconWidget,
     required this.foregroundColor,
-    required this.labelFontSize,
-    required this.labelGap,
   });
 
-  final String label;
   final IconData icon;
-  final Widget? iconWidget;
   final Color foregroundColor;
-  final double labelFontSize;
-  final double labelGap;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final labelBottomOffset = constraints.maxHeight * 0.05 + labelGap;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Center(child: iconWidget ?? Icon(icon, color: foregroundColor)),
-              if (label.isNotEmpty)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: labelBottomOffset,
-                  child: IgnorePointer(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: labelFontSize,
-                        color: foregroundColor,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-            ],
+          return Center(
+            child: Icon(
+              icon,
+              color: foregroundColor,
+              size: (constraints.biggest.shortestSide * 0.52).clamp(24.0, 44.0),
+            ),
           );
         },
       ),

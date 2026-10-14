@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/effective_ability_cost.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/meta/ability_ownership_state.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+
 import '../../app/ui_routes.dart';
+import '../../controls/control_resource_usage.dart';
 import '../../state/app/app_state.dart';
 import '../../text/ability_tooltip_context_helper.dart';
 import '../../text/ability_tooltip_builder.dart';
@@ -59,10 +63,22 @@ class _SkillsBarState extends State<SkillsBar> {
       overrideSelectedSource: isProjectileSlot,
     );
     final equippedAbilityId = abilityIdForSlot(loadout, selectedSlot);
-    final equippedAbilityIdsBySlot = <AbilitySlot, AbilityKey>{
-      for (final slot in AbilitySlot.values)
-        slot: abilityIdForSlot(loadout, slot),
-    };
+    final resourcesBySlot = <AbilitySlot, ControlResourceUsage>{};
+    for (final slot in availableSlots) {
+      final ability = AbilityCatalog.shared.resolve(
+        abilityIdForSlot(loadout, slot),
+      );
+      resourcesBySlot[slot] = ControlResourceUsage.forPreview(
+        ability: ability,
+        cost: ability == null
+            ? AbilityResourceCost.zero
+            : resolveEffectiveAbilityCostForLoadout(
+                ability: ability,
+                loadout: loadout,
+                slot: slot,
+              ),
+      );
+    }
     final inspectedAbilityId = _resolveInspectedAbilityId(
       candidates,
       equippedAbilityId: equippedAbilityId,
@@ -128,7 +144,7 @@ class _SkillsBarState extends State<SkillsBar> {
                 child: SkillsRadialPane(
                   availableSlots: availableSlots,
                   selectedSlot: selectedSlot,
-                  equippedAbilityIdsBySlot: equippedAbilityIdsBySlot,
+                  resourcesBySlot: resourcesBySlot,
                   onSelectSlot: _onSelectSlot,
                 ),
               ),

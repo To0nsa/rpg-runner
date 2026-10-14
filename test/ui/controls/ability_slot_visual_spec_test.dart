@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
@@ -13,7 +13,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary).icon,
-      Icons.sports_martial_arts_rounded,
+      LucideIcons.sword400,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary).family,
@@ -26,7 +26,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.secondary).icon,
-      Icons.shield,
+      LucideIcons.shield400,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.secondary).family,
@@ -39,7 +39,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile).icon,
-      Icons.auto_awesome,
+      LucideIcons.bowArrow400,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile).family,
@@ -52,7 +52,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility).icon,
-      Icons.flash_on,
+      LucideIcons.wind400,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility).family,
@@ -62,7 +62,7 @@ void main() {
     expect(abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).label, 'Jump');
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).icon,
-      Icons.arrow_upward,
+      LucideIcons.arrowUpFromLine400,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).family,
@@ -72,7 +72,7 @@ void main() {
     expect(abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).label, 'Spell');
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).icon,
-      Icons.star,
+      LucideIcons.wandSparkles400,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).family,

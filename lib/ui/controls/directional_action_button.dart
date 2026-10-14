@@ -7,6 +7,8 @@ import '../../game/input/aim_preview.dart';
 import '../../game/input/aim_quantizer.dart';
 import 'control_button_visuals.dart';
 import 'controls_tuning.dart';
+import 'control_resource_usage.dart';
+import '../theme/ui_action_button_theme.dart';
 
 /// Circular directional action control for aim + release commit input.
 ///
@@ -18,7 +20,7 @@ class DirectionalActionButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.icon,
-    this.iconWidget,
+    this.resources = ControlResourceUsage.none,
     required this.onAimDir,
     required this.onAimClear,
     required this.onCommit,
@@ -38,7 +40,7 @@ class DirectionalActionButton extends StatefulWidget {
 
   final String label;
   final IconData icon;
-  final Widget? iconWidget;
+  final ControlResourceUsage resources;
   final void Function(double x, double y) onAimDir;
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
@@ -88,9 +90,13 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
       cooldownTicksLeft: widget.cooldownTicksLeft,
       backgroundColor: widget.tuning.backgroundColor,
       foregroundColor: widget.tuning.foregroundColor,
+      resources: widget.resources,
+      theme: context.actionButtons,
     );
 
     return ControlButtonShell(
+      label: widget.label,
+      interactable: visual.interactable,
       size: widget.size,
       cooldownTicksLeft: widget.cooldownTicksLeft,
       cooldownTicksTotal: widget.cooldownTicksTotal,
@@ -102,16 +108,11 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
           onPointerMove: _handlePointerMove,
           onPointerUp: _handlePointerUp,
           onPointerCancel: _handlePointerCancel,
-          child: Material(
-            color: visual.backgroundColor,
-            shape: const CircleBorder(),
+          child: ControlButtonSurface(
+            visual: visual,
             child: ControlButtonContent(
-              label: widget.label,
               icon: widget.icon,
-              iconWidget: widget.iconWidget,
               foregroundColor: visual.foregroundColor,
-              labelFontSize: widget.tuning.labelFontSize,
-              labelGap: widget.tuning.labelGap,
             ),
           ),
         ),

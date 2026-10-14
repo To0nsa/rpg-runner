@@ -8,7 +8,10 @@ import '../../../game/input/runner_semantic_action_dispatcher.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
 import '../../controls/movement_control_mode.dart';
 
+import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
+
+import '../../controls/control_resource_usage.dart';
 
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';
@@ -151,7 +154,13 @@ class GameOverlay extends StatelessWidget {
                 input.beginAction(RunnerGameplayAction.primary),
             onMeleeChargeHoldEnd: () =>
                 input.endAction(RunnerGameplayAction.primary),
-            equippedAbilityIdsBySlot: equippedAbilityIdsBySlot,
+            resourcesBySlot: {
+              for (final entry in equippedAbilityIdsBySlot.entries)
+                entry.key: ControlResourceUsage.fromAbility(
+                  ability: AbilityCatalog.shared.resolve(entry.value),
+                  cost: hud.abilityCostsBySlot[entry.key]!,
+                ),
+            },
             meleeAimPreview: meleeAimPreview,
             aimCancelHitboxRect: aimCancelHitboxRect,
             meleeAffordable: meleeAffordable,

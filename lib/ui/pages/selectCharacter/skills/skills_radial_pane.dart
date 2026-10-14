@@ -3,26 +3,26 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+
 import '../../../controls/action_button.dart';
 import '../../../controls/ability_slot_visual_spec.dart';
 import '../../../controls/controls_tuning.dart';
 import '../../../controls/layout/controls_radial_layout.dart';
-import '../../../components/gameIcon/game_icon.dart';
+import '../../../controls/control_resource_usage.dart';
 import '../../../theme/ui_action_button_theme.dart';
-import '../../../theme/ui_skill_icon_theme.dart';
 
 class SkillsRadialPane extends StatelessWidget {
   const SkillsRadialPane({
     super.key,
     required this.availableSlots,
     required this.selectedSlot,
-    required this.equippedAbilityIdsBySlot,
+    required this.resourcesBySlot,
     required this.onSelectSlot,
   });
 
   final List<AbilitySlot> availableSlots;
   final AbilitySlot selectedSlot;
-  final Map<AbilitySlot, AbilityKey> equippedAbilityIdsBySlot;
+  final Map<AbilitySlot, ControlResourceUsage> resourcesBySlot;
   final ValueChanged<AbilitySlot> onSelectSlot;
 
   @override
@@ -48,7 +48,8 @@ class SkillsRadialPane extends StatelessWidget {
                         .buttonTop,
                     child: _ActionSlotButton(
                       slot: slot,
-                      abilityId: equippedAbilityIdsBySlot[slot],
+                      resources:
+                          resourcesBySlot[slot] ?? ControlResourceUsage.none,
                       selected: slot == selectedSlot,
                       onSelectSlot: onSelectSlot,
                       buttonSize: _selectionActionSlotGeometry
@@ -67,14 +68,14 @@ class SkillsRadialPane extends StatelessWidget {
 class _ActionSlotButton extends StatelessWidget {
   const _ActionSlotButton({
     required this.slot,
-    required this.abilityId,
+    required this.resources,
     required this.selected,
     required this.onSelectSlot,
     required this.buttonSize,
   });
 
   final AbilitySlot slot;
-  final AbilityKey? abilityId;
+  final ControlResourceUsage resources;
   final bool selected;
   final ValueChanged<AbilitySlot> onSelectSlot;
   final double buttonSize;
@@ -82,7 +83,6 @@ class _ActionSlotButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actionButtons = context.actionButtons;
-    final iconSize = context.skillIcons.selectionRadialIconSize;
     final slotVisual = abilityRadialLayoutSpec.slotSpec(slot);
     final buttonTuning = _actionButtonTuningForSelectionSlot(
       slot: slot,
@@ -96,54 +96,46 @@ class _ActionSlotButton extends StatelessWidget {
       ),
     );
     final button = ActionButton(
-      label: slotVisual.label.toUpperCase(),
+      label: slotVisual.label,
       icon: slotVisual.icon,
-      iconWidget: GameIcon.ability(abilityId: abilityId, size: iconSize),
+      resources: resources,
       onPressed: () => onSelectSlot(slot),
       tuning: buttonTuning,
       cooldownRing: _selectionControlsTuning.style.cooldownRing,
       size: buttonSize,
     );
 
-    if (!selected) return button;
+    if (!selected) return Semantics(selected: false, child: button);
 
     final ring = actionButtons.selectionRing;
     final outerSize = buttonSize * ring.outerScale;
     final ringOffset = (outerSize - buttonSize) / 2;
 
-    return SizedBox(
-      width: buttonSize,
-      height: buttonSize,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: -ringOffset,
-            top: -ringOffset,
-            width: outerSize,
-            height: outerSize,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: ring.gradientColors,
-                    stops: ring.gradientStops,
-                    transform: const GradientRotation(-math.pi / 2),
+    return Semantics(
+      selected: true,
+      child: SizedBox(
+        width: buttonSize,
+        height: buttonSize,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: -ringOffset,
+              top: -ringOffset,
+              width: outerSize,
+              height: outerSize,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: ring.color, width: ringOffset),
                   ),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: ring.glowColor.withValues(alpha: ring.glowAlpha),
-                      blurRadius: ring.glowBlurRadius,
-                      spreadRadius: ring.glowSpreadRadius,
-                    ),
-                  ],
                 ),
               ),
             ),
-          ),
-          Positioned.fill(child: button),
-        ],
+            Positioned.fill(child: button),
+          ],
+        ),
       ),
     );
   }
@@ -260,7 +252,7 @@ _ActionSlotGeometry _buildActionSlotsGeometry({
 /// Resolves action button visuals for the selection wheel.
 ///
 /// Directional slots reuse directional sizing metrics but are rendered with the
-/// same high-contrast palette as regular selection buttons.
+/// same resource palette as regular selection buttons.
 ActionButtonTuning _actionButtonTuningForSelectionSlot({
   required AbilitySlot slot,
   required ActionButtonTuning actionTuning,
@@ -272,8 +264,6 @@ ActionButtonTuning _actionButtonTuningForSelectionSlot({
       size: directionalTuning.size,
       backgroundColor: directionalTuning.backgroundColor,
       foregroundColor: directionalTuning.foregroundColor,
-      labelFontSize: directionalTuning.labelFontSize,
-      labelGap: directionalTuning.labelGap,
     );
   }
   return actionTuning;

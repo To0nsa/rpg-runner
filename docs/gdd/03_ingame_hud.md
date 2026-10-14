@@ -136,6 +136,14 @@ This split is deliberate so HUD doesn’t need to scan entities.
 * Input model: `AbilityInputMode` per slot. 
 * The targeting model contract is defined in controls doc (tap vs aim+commit) and must remain consistent across abilities.
 
+The six action controls display stable slot symbols without visible text. Their
+translucent backgrounds use the matching resource-bar colors under a charcoal
+overlay;
+multiple resource costs blend those muted colors, and free actions stay grey.
+Cooldown rings and dimmed symbols communicate readiness. The Skills control
+preview uses the same symbols and palette, while individual skill artwork stays
+in the lists and details. See [control presentation](01_controls.md#8-button-layout-current-overlay).
+
 ---
 
 ## 4. Context overlays (stateful HUD)
@@ -226,8 +234,8 @@ For aim+commit abilities:
 * Status effects on player (icons only, no scrolling list): stun/bleed/burn/slow, etc.
 * "Danger" cues:
   * behind-camera threat (soft indicator near left edge)
-* Loadout identity:
-  * slot icons based on equipped ability (not text labels)
+* Loadout identity remains available through the Skills list and details;
+  in-run control symbols consistently identify action slots.
 
 ### 7.2 Contract-first approach
 

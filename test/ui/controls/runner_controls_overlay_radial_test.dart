@@ -1,3 +1,8 @@
+import 'package:rpg_runner/ui/controls/control_resource_usage.dart';
+import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
+import 'package:rpg_runner/ui/controls/control_button_visuals.dart';
+import 'package:rpg_runner/ui/components/gameIcon/game_icon.dart';
+import 'package:rpg_runner/ui/theme/ui_action_button_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -15,6 +20,49 @@ import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 
 void main() {
+  testWidgets('all six controls show symbols and resource tints without text', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+    expect(find.byType(Text), findsNothing);
+    expect(find.byType(GameIcon), findsNothing);
+    for (final slot in abilityRadialLayoutSpec.slots) {
+      expect(find.byIcon(slot.icon), findsOneWidget);
+      expect(find.bySemanticsLabel(slot.label), findsOneWidget);
+    }
+    final mana = tester.widget<ControlButtonSurface>(
+      find.descendant(
+        of: find.bySemanticsLabel('Projectile'),
+        matching: find.byType(ControlButtonSurface),
+      ),
+    );
+    final stamina = tester.widget<ControlButtonSurface>(
+      find.descendant(
+        of: find.bySemanticsLabel('Sword'),
+        matching: find.byType(ControlButtonSurface),
+      ),
+    );
+    final theme = UiActionButtonTheme.standard;
+    expect(
+      mana.visual.backgroundColor,
+      theme
+          .resourceBackgrounds(const ControlResourceUsage(mana: true))
+          .single
+          .withValues(alpha: theme.run.backgroundColor.a),
+    );
+    expect(
+      stamina.visual.backgroundColor,
+      theme
+          .resourceBackgrounds(const ControlResourceUsage(stamina: true))
+          .single
+          .withValues(alpha: theme.run.backgroundColor.a),
+    );
+  });
+
   testWidgets(
     'floating movement captures the lower-left area and leaves actions usable',
     (tester) async {
@@ -38,7 +86,7 @@ void main() {
       expect(harness.movementAxes.last, 1);
       await tester.tap(
         find.ancestor(
-          of: find.text('JUMP'),
+          of: find.bySemanticsLabel('Jump'),
           matching: find.byType(ActionButton),
         ),
         pointer: 2,
@@ -78,7 +126,7 @@ void main() {
       );
 
       final bonus = _positionedFor(tester, find.byType(SpellControl));
-      final shield = _positionedFor(tester, find.text('SHIELD'));
+      final shield = _positionedFor(tester, find.bySemanticsLabel('Shield'));
 
       expect(bonus.right, closeTo(shield.right!, 0.001));
       expect(
@@ -343,7 +391,7 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
     );
 
-    expect(find.text('PROJECTILE'), findsNothing);
+    expect(find.bySemanticsLabel('Projectile'), findsNothing);
     // Baseline directional controls are projectile + melee.
     expect(find.byType(DirectionalActionButton), findsOneWidget);
   });
@@ -359,7 +407,7 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
     );
 
-    expect(find.text('SHIELD'), findsNothing);
+    expect(find.bySemanticsLabel('Shield'), findsNothing);
   });
 
   testWidgets('production slot modes emit the expected callback edges', (
@@ -374,7 +422,7 @@ void main() {
 
     Future<void> pressAndRelease(String label) async {
       final gesture = await tester.startGesture(
-        tester.getCenter(find.text(label)),
+        tester.getCenter(find.bySemanticsLabel(label)),
       );
       await tester.pump();
       await gesture.up();
@@ -387,12 +435,12 @@ void main() {
     harness.mobilityInputMode = AbilityInputMode.tap;
     await pumpOverlay();
 
-    await pressAndRelease('SWORD');
-    await pressAndRelease('PROJECTILE');
-    await pressAndRelease('SHIELD');
-    await pressAndRelease('MOBILITY');
-    await pressAndRelease('SPELL');
-    await pressAndRelease('JUMP');
+    await pressAndRelease('Sword');
+    await pressAndRelease('Projectile');
+    await pressAndRelease('Shield');
+    await pressAndRelease('Mobility');
+    await pressAndRelease('Spell');
+    await pressAndRelease('Jump');
 
     expect(harness.gameplayEdges, <String>[
       'primary.press',
@@ -409,8 +457,8 @@ void main() {
     harness.projectileInputMode = AbilityInputMode.holdAimRelease;
     await pumpOverlay();
 
-    await pressAndRelease('SWORD');
-    await pressAndRelease('PROJECTILE');
+    await pressAndRelease('Sword');
+    await pressAndRelease('Projectile');
 
     expect(
       harness.gameplayEdges.where((edge) => !edge.startsWith('aim.')),
@@ -439,8 +487,8 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
     );
 
-    await tester.tap(find.text('SWORD'), warnIfMissed: false);
-    await tester.tap(find.text('PROJECTILE'), warnIfMissed: false);
+    await tester.tap(find.bySemanticsLabel('Sword'), warnIfMissed: false);
+    await tester.tap(find.bySemanticsLabel('Projectile'), warnIfMissed: false);
     await tester.pump();
 
     expect(harness.gameplayEdges, isEmpty);
@@ -556,13 +604,13 @@ class _OverlayHarness {
       forceAimCancelSignal: forceCancelSignal,
       hasSecondarySlot: hasSecondarySlot,
       hasProjectileSlot: hasProjectileSlot,
-      equippedAbilityIdsBySlot: const <AbilitySlot, AbilityKey>{
-        AbilitySlot.primary: 'eloise.bloodletter_slash',
-        AbilitySlot.secondary: 'eloise.aegis_riposte',
-        AbilitySlot.projectile: 'eloise.quick_shot',
-        AbilitySlot.mobility: 'eloise.dash',
-        AbilitySlot.spell: 'eloise.arcane_haste',
-        AbilitySlot.jump: 'eloise.jump',
+      resourcesBySlot: const <AbilitySlot, ControlResourceUsage>{
+        AbilitySlot.primary: ControlResourceUsage(stamina: true),
+        AbilitySlot.secondary: ControlResourceUsage(stamina: true),
+        AbilitySlot.projectile: ControlResourceUsage(mana: true),
+        AbilitySlot.mobility: ControlResourceUsage(stamina: true),
+        AbilitySlot.spell: ControlResourceUsage(mana: true),
+        AbilitySlot.jump: ControlResourceUsage(stamina: true),
       },
     );
   }
