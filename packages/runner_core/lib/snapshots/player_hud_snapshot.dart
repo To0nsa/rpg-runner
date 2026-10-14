@@ -51,6 +51,7 @@ class PlayerHudSnapshot {
     required this.abilityMobilityId,
     required this.abilitySpellId,
     required this.abilityJumpId,
+    required this.abilityCostsBySlot,
     this.blessings = const [],
   });
 
@@ -179,4 +180,9 @@ class PlayerHudSnapshot {
 
   /// Equipped jump-slot ability id for current player loadout.
   final AbilityKey abilityJumpId;
+
+  /// Resolved commit costs for the current payloads, in fixed-point units.
+  /// Jump uses its air cost when an air jump is available. Hold drains remain
+  /// authored on the ability definition; this map never controls affordability.
+  final Map<AbilitySlot, AbilityResourceCost> abilityCostsBySlot;
 }

@@ -2,8 +2,32 @@ import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../projectiles/projectile_catalog.dart';
 import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_catalog.dart';
+import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_catalog.dart';
+import '../weapons/weapon_id.dart';
 import 'ability_def.dart';
+
+/// Resolves menu/loadout-preview costs through the same payload rules as ECS.
+AbilityResourceCost resolveEffectiveAbilityCostForLoadout({
+  required AbilityDef ability,
+  required EquippedLoadoutDef loadout,
+  required AbilitySlot slot,
+  WeaponCatalog weapons = const WeaponCatalog(),
+  ProjectileCatalog projectiles = const ProjectileCatalog(),
+  SpellBookCatalog spellBooks = const SpellBookCatalog(),
+}) => ability.resolveCostForWeaponType(
+  _resolvePayloadWeaponType(
+    ability: ability,
+    mainWeaponId: loadout.mainWeaponId,
+    offhandWeaponId: loadout.offhandWeaponId,
+    spellBookId: loadout.spellBookId,
+    selectedSpellId: loadout.projectileSlotSpellId,
+    slot: slot,
+    weapons: weapons,
+    projectiles: projectiles,
+    spellBooks: spellBooks,
+  ),
+);
 
 /// Resolves the effective commit cost for [ability] in [slot] for one loadout.
 ///
@@ -41,29 +65,49 @@ WeaponType? resolvePayloadWeaponTypeForAbilitySlot({
   required WeaponCatalog weapons,
   required ProjectileCatalog projectiles,
   required SpellBookCatalog spellBooks,
+}) => _resolvePayloadWeaponType(
+  ability: ability,
+  mainWeaponId: loadout.mainWeaponId[loadoutIndex],
+  offhandWeaponId: loadout.offhandWeaponId[loadoutIndex],
+  spellBookId: loadout.spellBookId[loadoutIndex],
+  selectedSpellId: loadout.projectileSlotSpellId[loadoutIndex],
+  slot: slot,
+  weapons: weapons,
+  projectiles: projectiles,
+  spellBooks: spellBooks,
+);
+
+WeaponType? _resolvePayloadWeaponType({
+  required AbilityDef ability,
+  required WeaponId mainWeaponId,
+  required WeaponId offhandWeaponId,
+  required SpellBookId spellBookId,
+  required ProjectileId selectedSpellId,
+  required AbilitySlot slot,
+  required WeaponCatalog weapons,
+  required ProjectileCatalog projectiles,
+  required SpellBookCatalog spellBooks,
 }) {
   switch (ability.payloadSource) {
     case AbilityPayloadSource.none:
       return null;
     case AbilityPayloadSource.primaryWeapon:
-      return weapons.tryGet(loadout.mainWeaponId[loadoutIndex])?.weaponType;
+      return weapons.tryGet(mainWeaponId)?.weaponType;
     case AbilityPayloadSource.secondaryWeapon:
-      final mainId = loadout.mainWeaponId[loadoutIndex];
-      final main = weapons.tryGet(mainId);
+      final main = weapons.tryGet(mainWeaponId);
       if (main != null && main.isTwoHanded) return main.weaponType;
-      return weapons.tryGet(loadout.offhandWeaponId[loadoutIndex])?.weaponType;
+      return weapons.tryGet(offhandWeaponId)?.weaponType;
     case AbilityPayloadSource.projectile:
-      final projectileId = resolveProjectilePayloadForAbilitySlot(
+      final projectileId = _resolveProjectilePayload(
         ability: ability,
-        loadout: loadout,
-        loadoutIndex: loadoutIndex,
+        selectedSpellId: selectedSpellId,
         slot: slot,
         projectiles: projectiles,
       );
       if (projectileId == null) return null;
       return projectiles.tryGet(projectileId)?.weaponType;
     case AbilityPayloadSource.spellBook:
-      return spellBooks.tryGet(loadout.spellBookId[loadoutIndex])?.weaponType;
+      return spellBooks.tryGet(spellBookId)?.weaponType;
   }
 }
 
@@ -76,9 +120,20 @@ ProjectileId? resolveProjectilePayloadForAbilitySlot({
   required int loadoutIndex,
   required AbilitySlot slot,
   required ProjectileCatalog projectiles,
+}) => _resolveProjectilePayload(
+  ability: ability,
+  selectedSpellId: loadout.projectileSlotSpellId[loadoutIndex],
+  slot: slot,
+  projectiles: projectiles,
+);
+
+ProjectileId? _resolveProjectilePayload({
+  required AbilityDef ability,
+  required ProjectileId selectedSpellId,
+  required AbilitySlot slot,
+  required ProjectileCatalog projectiles,
 }) {
   if (slot != AbilitySlot.projectile) return null;
-  final selectedSpellId = loadout.projectileSlotSpellId[loadoutIndex];
   final selectedSpell = projectiles.tryGet(selectedSpellId);
   final supportsSpell =
       selectedSpell != null &&

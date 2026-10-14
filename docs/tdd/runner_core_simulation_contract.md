@@ -525,6 +525,14 @@ intermediate projections. The full live snapshot retains its existing contract.
 Core exposes immutable snapshots through `GameCore.buildSnapshot` and transient
 events through `GameCore.drainEvents`.
 
+`PlayerHudSnapshot.abilityCostsBySlot` contains resolved commit costs for all
+six action slots at the snapshot tick. It honors payload weapon overrides and
+uses the air-jump cost while an air jump is available. The map is immutable;
+HUD consumers use it for resource presentation, while the existing affordability
+flags remain authoritative for input gating. Menu previews use
+`resolveEffectiveAbilityCostForLoadout`, sharing the runtime payload resolver.
+This projection adds no command, replay, or settlement fields.
+
 - Snapshots are renderer/UI-friendly projections of ECS state; consumers treat
   them as read-only.
 - Events are transient feedback and lifecycle records. Render/UI consumers may
