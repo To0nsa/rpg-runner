@@ -21,7 +21,7 @@
 
 ### Left thumb: Movement
 
-- **Arrows or fixed horizontal joystick**, selected in Options → Controls.
+- **Arrows or floating horizontal joystick**, selected in Options → Controls.
 - Both emit only `-1`, `0`, or `1`: backward, neutral, or forward. The choice
   changes touch presentation, never movement speed, acceleration or abilities.
 - Movement is allowed unless a **hard lock** exists (e.g., stun).
@@ -29,9 +29,14 @@
 **Current implementation**
 - Default is **Arrows**. Holding both arrows or neither produces neutral input;
   sliding between them changes direction without lifting.
-- The joystick has a fixed base and a horizontally moving thumb. Displacement
-  within 8 logical pixels of its center is neutral; beyond that it produces the
-  same full-strength direction as an arrow. Vertical displacement is ignored.
+- Touch anywhere in the lower-left quarter of the gameplay area to place the
+  joystick under your finger. Touch-down is neutral; drag left or right to move.
+  Its whole base follows when horizontal drag exceeds the thumb's reach, and
+  follows vertical finger movement without changing movement direction. This
+  lets you reverse relative to the nearby base instead of the original touch.
+- Horizontal displacement within 8 logical pixels of the current base is
+  neutral; beyond that it produces the same full-strength direction as an arrow.
+- On release/cancel the joystick returns to its resting lower-left position.
 - Releasing or cancelling the controlling touch returns movement to neutral.
   A second touch cannot take over the stick; action buttons remain usable.
 - The selection is saved on the device, shared by account and Developer mode,

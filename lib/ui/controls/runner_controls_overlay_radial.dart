@@ -187,18 +187,36 @@ class RunnerControlsOverlay extends StatelessWidget {
       abilityId: equippedAbilityIdsBySlot[slot],
       size: runAbilityIconSize,
     );
+    final movement = MovementControl(
+      tuning: themedTuning,
+      onMoveAxis: onMoveAxis,
+      mode: movementControlMode,
+      inputEpoch: movementInputEpoch,
+      enabled: movementEnabled,
+    );
 
     return Stack(
       children: [
-        Positioned(
-          left: themedTuning.layout.edgePadding,
-          bottom: themedTuning.layout.bottomEdgePadding,
-          child: MovementControl(
-            tuning: themedTuning,
-            onMoveAxis: onMoveAxis,
-            mode: movementControlMode,
-            inputEpoch: movementInputEpoch,
-            enabled: movementEnabled,
+        Positioned.fill(
+          child: Align(
+            alignment: Alignment.bottomLeft,
+            child: FractionallySizedBox(
+              widthFactor: movementControlMode == MovementControlMode.joystick
+                  ? 0.5
+                  : null,
+              heightFactor: movementControlMode == MovementControlMode.joystick
+                  ? 0.5
+                  : null,
+              child: Padding(
+                padding: movementControlMode == MovementControlMode.joystick
+                    ? EdgeInsets.zero
+                    : EdgeInsets.only(
+                        left: themedTuning.layout.edgePadding,
+                        bottom: themedTuning.layout.bottomEdgePadding,
+                      ),
+                child: movement,
+              ),
+            ),
           ),
         ),
         if (hasProjectileSlot)

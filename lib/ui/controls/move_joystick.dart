@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'controls_tuning.dart';
 
-/// Fixed X-only joystick that emits the same -1/0/1 axis as MoveButtons.
+/// Floating X-only joystick that emits the same -1/0/1 axis as MoveButtons.
 /// One pointer owns the stick until release/cancel; other fingers remain free
 /// for actions. Thumb displacement is visual and never scales gameplay input.
+/// Bounded constraints define the touch activation area. The base starts under
+/// the finger and follows horizontal overdrag and vertical motion. Painting can
+/// extend beyond the activation area while the original pointer stays captured.
 class MoveJoystick extends StatefulWidget {
   const MoveJoystick({
     super.key,
     required this.onAxisChanged,
     required this.tuning,
     required this.style,
+    this.restingPadding = EdgeInsets.zero,
   });
 
   final ValueChanged<double> onAxisChanged;
@@ -18,6 +22,9 @@ class MoveJoystick extends StatefulWidget {
 
   /// Shares the movement buttons' colors and border treatment.
   final MoveButtonsTuning style;
+
+  /// Insets from the activation area's left/bottom edges for the idle base.
+  final EdgeInsets restingPadding;
 
   @override
   State<MoveJoystick> createState() => _MoveJoystickState();
@@ -27,16 +34,19 @@ class _MoveJoystickState extends State<MoveJoystick> {
   int? _pointer;
   double _offset = 0;
   double _axis = 0;
+  Offset? _base;
 
   void _update(Offset position) {
     if (!mounted) return;
     final radius = (widget.tuning.size - widget.tuning.thumbSize) / 2;
-    final offset = (position.dx - widget.tuning.size / 2).clamp(
-      -radius,
-      radius,
-    );
+    final offset = (position.dx - _base!.dx).clamp(-radius, radius);
     final axis = offset.abs() <= widget.tuning.deadzone ? 0.0 : offset.sign;
-    setState(() => _offset = offset);
+    setState(() {
+      _offset = offset;
+      // Follow excess travel so reversing never requires returning to the
+      // original touch point. Vertical movement only repositions the artwork.
+      _base = Offset(position.dx - offset, position.dy);
+    });
     _emit(axis);
   }
 
@@ -49,7 +59,10 @@ class _MoveJoystickState extends State<MoveJoystick> {
   void _release(int pointer) {
     if (!mounted || pointer != _pointer) return;
     _pointer = null;
-    setState(() => _offset = 0);
+    setState(() {
+      _offset = 0;
+      _base = null;
+    });
     _emit(0);
   }
 
@@ -67,55 +80,101 @@ class _MoveJoystickState extends State<MoveJoystick> {
       child: Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {
-          if (_pointer != null) return;
+          if (!mounted || _pointer != null) return;
           _pointer = event.pointer;
-          _update(event.localPosition);
+          setState(() => _base = event.localPosition);
         },
         onPointerMove: (event) {
           if (event.pointer == _pointer) _update(event.localPosition);
         },
         onPointerUp: (event) => _release(event.pointer),
         onPointerCancel: (event) => _release(event.pointer),
-        child: Container(
-          width: tuning.size,
-          height: tuning.size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: style.backgroundColor,
-            border: Border.all(
-              color: style.borderColor,
-              width: style.borderWidth,
-            ),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Icon(Icons.chevron_left, color: style.foregroundColor),
-                  Icon(Icons.chevron_right, color: style.foregroundColor),
-                ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.hasBoundedWidth
+                ? constraints.maxWidth
+                : tuning.size;
+            final height = constraints.hasBoundedHeight
+                ? constraints.maxHeight
+                : tuning.size;
+            final halfWidth = (tuning.size / 2).clamp(0.0, width / 2);
+            final halfHeight = (tuning.size / 2).clamp(0.0, height / 2);
+            final idle = Offset(
+              (widget.restingPadding.left + tuning.size / 2).clamp(
+                halfWidth,
+                width - halfWidth,
               ),
-              Transform.translate(
-                offset: Offset(_offset, 0),
-                child: Container(
-                  width: tuning.thumbSize,
-                  height: tuning.thumbSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: style.foregroundColor.withValues(
-                      alpha: _axis == 0 ? 0.4 : 0.8,
-                    ),
-                    border: Border.all(
-                      color: style.borderColor,
-                      width: style.borderWidth,
+              (height - widget.restingPadding.bottom - tuning.size / 2).clamp(
+                halfHeight,
+                height - halfHeight,
+              ),
+            );
+            final base = _base ?? idle;
+            return SizedBox(
+              width: width,
+              height: height,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: base.dx - tuning.size / 2,
+                    top: base.dy - tuning.size / 2,
+                    child: IgnorePointer(
+                      child: Container(
+                        key: const ValueKey('movement_joystick_base'),
+                        width: tuning.size,
+                        height: tuning.size,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: style.backgroundColor,
+                          border: Border.all(
+                            color: style.borderColor,
+                            width: style.borderWidth,
+                          ),
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Icon(
+                                  Icons.chevron_left,
+                                  color: style.foregroundColor,
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: style.foregroundColor,
+                                ),
+                              ],
+                            ),
+                            Transform.translate(
+                              offset: Offset(_offset, 0),
+                              child: Container(
+                                key: const ValueKey('movement_joystick_thumb'),
+                                width: tuning.thumbSize,
+                                height: tuning.thumbSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: style.foregroundColor.withValues(
+                                    alpha: _axis == 0 ? 0.4 : 0.8,
+                                  ),
+                                  border: Border.all(
+                                    color: style.borderColor,
+                                    width: style.borderWidth,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

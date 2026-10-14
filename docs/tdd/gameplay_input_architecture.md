@@ -109,12 +109,22 @@ restarts. Preference storage stays outside the run descriptor, Core, backend,
 and replay contracts.
 
 `MovementControl` selects `MoveButtons` or `MoveJoystick`, sharing the movement
-callback and palette. Both emit **only -1, 0, 1**. The fixed joystick uses a
+callback and palette. Both emit **only -1, 0, 1**. The floating joystick uses a
 96-pixel base, a 40-pixel thumb and an 8-pixel horizontal neutral deadzone (all
-logical pixels, in `MoveJoystickTuning`). Drag magnitude animates the thumb,
-but beyond the deadzone its sign produces full-strength input. Vertical drag
-does not affect direction. The first pointer owns the stick until up/cancel;
-other pointers cannot take it over or interfere with action controls.
+logical pixels, in `MoveJoystickTuning`). Its stationary hit region covers the
+lower-left quarter of the overlay; action controls are stacked above it. On
+touch-down the base centers under that pointer with neutral input. Horizontal
+displacement is clamped to the thumb's 28-pixel travel radius, and excess travel
+moves the base. The base follows the pointer's Y directly, so vertical drag
+only moves the artwork. Beyond the horizontal deadzone the displacement's sign
+produces full-strength input; reversal is relative to the current base.
+
+The listener stays stationary while the artwork can paint beyond its activation
+area, preserving a stable coordinate space and pointer capture during overdrag.
+The first pointer owns the stick until up/cancel; other pointers cannot take it
+over or interfere with action controls. Release/cancel restores the idle base
+at the existing movement insets. Both presentation modes retain the same
+`MovementControl` element so switching still neutralizes an active gesture.
 
 The existing semantic dispatcher and router still schedule all movement.
 Gameplay speed, acceleration, collision, timing and replay encoding are

@@ -119,7 +119,7 @@ class MoveButtonsTuning {
   final double borderRadius;
 }
 
-/// Fixed horizontal joystick geometry in logical pixels. The deadzone only
+/// Floating horizontal joystick geometry in logical pixels. The deadzone only
 /// selects neutral versus full-strength movement; it never scales speed.
 @immutable
 class MoveJoystickTuning {

@@ -57,6 +57,10 @@ class _MovementControlState extends State<MovementControl> {
             onAxisChanged: widget.onMoveAxis,
             tuning: widget.tuning.moveJoystick,
             style: widget.tuning.moveButtons,
+            restingPadding: EdgeInsets.only(
+              left: widget.tuning.layout.edgePadding,
+              bottom: widget.tuning.layout.bottomEdgePadding,
+            ),
           ),
         },
       ),

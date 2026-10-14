@@ -38,8 +38,13 @@ void main() {
             : find.byType(MoveJoystick);
         final rect = tester.getRect(finder);
         final finger = await tester.startGesture(
-          rect.centerRight - const Offset(8, 0),
+          mode == MovementControlMode.joystick
+              ? rect.center
+              : rect.centerRight - const Offset(8, 0),
         );
+        if (mode == MovementControlMode.joystick) {
+          await finger.moveTo(rect.center + const Offset(20, 0));
+        }
         await tester.pump(const Duration(milliseconds: 40));
         expect(recorder.frames.last.moveAxis, 1);
         await finger.moveTo(rect.centerLeft + const Offset(8, 0));
@@ -60,8 +65,13 @@ void main() {
         );
         await finger.up();
         final fresh = await tester.startGesture(
-          rect.centerRight - const Offset(8, 0),
+          mode == MovementControlMode.joystick
+              ? rect.center
+              : rect.centerRight - const Offset(8, 0),
         );
+        if (mode == MovementControlMode.joystick) {
+          await fresh.moveTo(rect.center + const Offset(20, 0));
+        }
         await tester.pump(const Duration(milliseconds: 40));
         expect(recorder.frames.last.moveAxis, 1);
         await fresh.up();

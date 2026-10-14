@@ -9,8 +9,63 @@ import 'package:rpg_runner/ui/controls/directional_action_button.dart';
 import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';
 import 'package:rpg_runner/ui/controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/ui/controls/widgets/spell_control.dart';
+import 'package:rpg_runner/ui/controls/move_joystick.dart';
+import 'package:rpg_runner/ui/controls/move_buttons.dart';
+import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
+import 'package:rpg_runner/ui/controls/action_button.dart';
 
 void main() {
+  testWidgets(
+    'floating movement captures the lower-left area and leaves actions usable',
+    (tester) async {
+      final harness = _OverlayHarness()
+        ..movementMode = MovementControlMode.joystick;
+      addTearDown(harness.dispose);
+      Future<void> pumpOverlay() => tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
+      await pumpOverlay();
+      expect(
+        tester.getRect(find.byType(MoveJoystick)),
+        const Rect.fromLTWH(0, 160, 240, 160),
+      );
+      final finger = await tester.startGesture(
+        const Offset(60, 220),
+        pointer: 1,
+      );
+      await finger.moveTo(const Offset(400, 220));
+      await tester.pump();
+      expect(harness.movementAxes.last, 1);
+      await tester.tap(
+        find.ancestor(
+          of: find.text('JUMP'),
+          matching: find.byType(ActionButton),
+        ),
+        pointer: 2,
+      );
+      expect(harness.gameplayEdges, contains('jump.press'));
+      expect(harness.movementAxes.last, 1);
+      harness.movementMode = MovementControlMode.arrows;
+      await pumpOverlay();
+      expect(harness.movementAxes.last, 0);
+      expect(
+        tester.getRect(find.byType(MoveButtons)),
+        const Rect.fromLTWH(32, 256, 136, 48),
+      );
+      await finger.up();
+      final arrow = await tester.startGesture(
+        tester.getRect(find.byType(MoveButtons)).centerRight -
+            const Offset(8, 0),
+      );
+      expect(harness.movementAxes.last, 1);
+      harness.movementMode = MovementControlMode.joystick;
+      await pumpOverlay();
+      expect(harness.movementAxes.last, 0);
+      await arrow.up();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'spell control is anchored above Shield control by tuning offset',
     (tester) async {
@@ -237,25 +292,26 @@ void main() {
     },
   );
 
-  testWidgets('mobility hold-aim-release renders directional mobility control', (
-    tester,
-  ) async {
-    final harness = _OverlayHarness();
-    addTearDown(harness.dispose);
+  testWidgets(
+    'mobility hold-aim-release renders directional mobility control',
+    (tester) async {
+      final harness = _OverlayHarness();
+      addTearDown(harness.dispose);
 
-    await tester.pumpWidget(
-      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
-    );
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
 
-    harness.mobilityInputMode = AbilityInputMode.holdAimRelease;
-    await tester.pumpWidget(
-      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
-    );
+      harness.mobilityInputMode = AbilityInputMode.holdAimRelease;
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
 
-    // Projectile + melee directional controls are always present in this harness;
-    // hold-aim-release mobility adds a third one.
-    expect(find.byType(DirectionalActionButton), findsNWidgets(3));
-  });
+      // Projectile + melee directional controls are always present in this harness;
+      // hold-aim-release mobility adds a third one.
+      expect(find.byType(DirectionalActionButton), findsNWidgets(3));
+    },
+  );
 
   testWidgets('mobility hold-release renders non-directional mobility control', (
     tester,
@@ -441,11 +497,14 @@ class _OverlayHarness {
   bool meleeAffordable = true;
   int projectileCooldownTicksLeft = 0;
   final List<String> gameplayEdges = <String>[];
+  MovementControlMode movementMode = MovementControlMode.arrows;
+  final List<double> movementAxes = <double>[];
 
   RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
       tuning: tuning,
-      onMoveAxis: (_) {},
+      movementControlMode: movementMode,
+      onMoveAxis: movementAxes.add,
       onJumpPressed: () => gameplayEdges.add('jump.press'),
       onMobilityPressed: () => gameplayEdges.add('mobility.press'),
       onMobilityCommitted: () => gameplayEdges.add('mobility.commit'),
