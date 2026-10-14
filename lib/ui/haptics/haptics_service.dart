@@ -37,9 +37,9 @@ class UiHapticsService implements UiHaptics {
   UiHapticsIntensity _defaultIntensityFor(UiHapticsCue cue) {
     switch (cue) {
       case UiHapticsCue.chargeHalfTierReached:
-      case UiHapticsCue.playerLandedHit:
         return UiHapticsIntensity.selection;
       case UiHapticsCue.chargeFullTierReached:
+      case UiHapticsCue.playerLandedHit:
         return UiHapticsIntensity.light;
       case UiHapticsCue.holdAbilityTimedOut:
         return UiHapticsIntensity.heavy;

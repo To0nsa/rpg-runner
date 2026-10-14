@@ -29,7 +29,7 @@ void main() {
       driver.calls,
       equals(<String>[
         'selection',
-        'selection',
+        'light',
         'light',
         'medium',
         'heavy',

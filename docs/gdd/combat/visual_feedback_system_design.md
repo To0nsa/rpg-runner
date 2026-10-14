@@ -97,15 +97,14 @@ shakeIntensity01 = sqrt(normalized)
 
 - haptics intensity:
   - `heavy` when `amount100 >= 1400`
-  - `medium` when `amount100 >= 700`
-  - `light` otherwise
+  - `medium` otherwise
 - border pulse:
   - increments `playerImpactFeedbackSignal`, consumed by
     `PlayerImpactBorderOverlay`
 
 Outgoing landed-hit feedback uses `UiHapticsCue.playerLandedHit` and the
-`selectionClick` channel. This remains lighter than the incoming player-hit
-cue, whose minimum channel is `lightImpact`. It adds no screen shake or border
+`lightImpact` channel. This remains lighter than the incoming player-hit
+cue, whose minimum channel is `mediumImpact`. It adds no screen shake or border
 pulse to ordinary outgoing hits.
 
 ## Current Render Mapping

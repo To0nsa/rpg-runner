@@ -312,8 +312,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   UiHapticsIntensity _impactHapticsIntensity(int amount100) {
     if (amount100 >= 1400) return UiHapticsIntensity.heavy;
-    if (amount100 >= 700) return UiHapticsIntensity.medium;
-    return UiHapticsIntensity.light;
+    return UiHapticsIntensity.medium;
   }
 
   AppState? _maybeAppState() {
