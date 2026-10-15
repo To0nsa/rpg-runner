@@ -37,9 +37,11 @@ class GoldDisplay extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (resolvedLabel != null && resolvedLabel.isNotEmpty) ...[
-          Text(
-            resolvedLabel,
-            style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          Flexible(
+            child: Text(
+              resolvedLabel,
+              style: ui.text.body.copyWith(color: ui.colors.textMuted),
+            ),
           ),
           SizedBox(width: ui.space.sm),
         ],

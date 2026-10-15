@@ -23,7 +23,10 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
 - `lib/ui/app/`: `UiApp`, routes, navigation shell, `AppServices` lifetime owner,
   and production dependency construction in `firebase_app_services.dart`
 - `lib/ui/bootstrap/`: startup loader, brand splash, profile-name setup
-- `lib/ui/pages/`: hub, level/setup, town, options, messages, profile, leaderboards
+- `lib/ui/pages/`: hub, level/setup, town map/store, library, options, messages,
+  profile, leaderboards
+- `lib/ui/codex/`: discovery thresholds and world-reference prose; combat values
+  come from Core catalogs, account progress from backend-settled ownership
 - `lib/ui/hud/` and `lib/ui/controls/`: in-run overlays and input widgets
 - `lib/ui/components/`, `lib/ui/text/`, `lib/ui/icons/`, `lib/ui/theme/`: shared design system pieces
 - `lib/ui/state/`: `AppState`, auth/profile/ownership/run/board APIs,

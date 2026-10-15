@@ -8,7 +8,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
-import 'package:rpg_runner/ui/pages/town/town_page.dart';
+import 'package:rpg_runner/ui/pages/town/town_store_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
@@ -332,7 +332,7 @@ class _TestApp extends StatelessWidget {
             UiButtonTheme.standard,
           ],
         ),
-        home: const TownPage(),
+        home: const TownStorePage(),
       ),
     );
   }

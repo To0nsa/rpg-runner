@@ -87,44 +87,38 @@ class _TownStoreCardState extends State<TownStoreCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: ui.space.md,
+              runSpacing: ui.space.sm,
               children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: GoldDisplay(
-                      gold: widget.gold,
-                      label: 'Current Gold',
-                      variant: GoldDisplayVariant.headline,
-                    ),
-                  ),
+                GoldDisplay(
+                  gold: widget.gold,
+                  label: 'Current Gold',
+                  variant: GoldDisplayVariant.headline,
                 ),
-                SizedBox(width: ui.space.md),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Store refreshes left: ${widget.refreshesRemaining}',
-                          style: ui.text.body.copyWith(
-                            color: ui.colors.textMuted,
-                          ),
-                          textAlign: TextAlign.right,
-                          overflow: TextOverflow.ellipsis,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Store refreshes left: ${widget.refreshesRemaining}',
+                        style: ui.text.body.copyWith(
+                          color: ui.colors.textMuted,
                         ),
                       ),
-                      SizedBox(width: ui.space.sm),
-                      AppButton(
-                        label: widget.inFlight ? 'Refreshing...' : 'Refresh',
-                        variant: AppButtonVariant.secondary,
-                        size: AppButtonSize.xxs,
-                        onPressed: widget.canRefresh
-                            ? widget.onRefreshPressed
-                            : null,
-                      ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: ui.space.sm),
+                    AppButton(
+                      label: widget.inFlight ? 'Refreshing...' : 'Refresh',
+                      variant: AppButtonVariant.secondary,
+                      size: AppButtonSize.xxs,
+                      onPressed: widget.canRefresh
+                          ? widget.onRefreshPressed
+                          : null,
+                    ),
+                  ],
                 ),
               ],
             ),

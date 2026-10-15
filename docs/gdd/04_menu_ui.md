@@ -105,7 +105,7 @@ expose this option. See [technical contract](../tdd/developer_practice.md).
 4. **Setup Character Loadout**
 5. **Loadout Lab (Ability Testing)**
 6. **Leaderboards (Browse + Ghost Select)**
-7. **Meta Access (Gold Store / Real Money Store / Library / Options)**
+7. **Town (regional map, Store and Library) / Options**
 
 ### 3.2 Navigation Map
 
@@ -130,7 +130,8 @@ expose this option. See [technical contract](../tdd/developer_practice.md).
   - `Edit Level` → Setup Level (route)
   - `Edit Loadout` → Setup Character Loadout (route)
   - `Weekly` quick button → starts Weekly Challenge directly **if compatible**; otherwise shows “Update required” (does not change `selectedLevelId` by default)
-  - Icons: `Profile`, `Leaderboards`, `Options`, `Library`, `Gold Store`, `Shop` → open those screens directly
+  - Icons: `Profile`, `Leaderboards`, `Options`, `Town` → open those screens
+  - `Town` → Théodonis regional map → `Town Store` or `Library`
 - From Setup Character Loadout:
   - `Try on Dummy` → Loadout Lab
   - `Back` → Play Hub
@@ -145,7 +146,8 @@ expose this option. See [technical contract](../tdd/developer_practice.md).
   - `Back` → Play Hub
   - `Race Ghost` → starts a run with the selected ghost target
 - From Meta access screens:
-  - `Back` → Play Hub
+  - Store or Library `Back` → Town map; Town `Back` → Play Hub
+  - Options `Back` → Play Hub
 
 ### 3.3 Profile name rules
 
@@ -193,9 +195,7 @@ Start fast. Show current setup summaries without clutter.
   - `Profile`
   - `Leaderboards`
   - `Options`
-  - `Library`
-  - `Gold Store`
-  - `Shop`
+  - `Town` (Store and Library)
 
 ### Rules
 
@@ -485,21 +485,20 @@ Provide a dedicated, full-page experience to browse **Competitive/Weekly leaderb
 
 ---
 
-## 4.6 Meta Access (Gold Store / Real Money Store / Library / Options) — No Meta Hub
+## 4.6 Town and Library (implemented)
 
 ### Purpose
 
-Keep non-run features separate so they never pollute the Play Hub, while remaining reachable from the main hub via **small icons only**.
+Keep the Play Hub focused on starting runs. Town groups the Store and Library
+around Théodonis on the regional map extracted from the world-reference PDF.
 
 ### Layout / Navigation
 
-- Access is via **small icons on the Play Hub** (and optionally on Results screen):
-  - `Gold Store` icon → **In-Game Store** screen
-  - `Library` icon → **Library / Codex** screen
-  - `Shop` icon → **Real Money Store** screen
-  - `Options` icon → **Options** screen
-- Deep links are implicit:
-  - tapping an icon opens the destination screen directly (no intermediate hub).
+- `Town` on the Play Hub opens the regional map.
+- `Town Store` and `Library` markers around Théodonis open their respective
+  screens. They indicate services in the city, not precise street addresses.
+- Drag, zoom in/out and reset controls allow map inspection.
+- `Options` remains available directly from the Play Hub.
 
 ### In-Game Store (Gold Store)
 
@@ -508,14 +507,15 @@ Keep non-run features separate so they never pollute the Play Hub, while remaini
 **Scope**
 
 - Buy **gears/items** (weapons / offhand / utility / projectile) using gold
-- Buy **Codex entries** using gold (enemy pages, ability pages, gear pages)
+- Refresh the store through the existing earned-gold refresh flow.
+- Codex discoveries are earned through runs and are never sold here.
 
 **Not here**
 
 - Real money pricing / IAP bundles
 - Anything that compromises leaderboard fairness
 
-### Real Money Store (IAP)
+### Real Money Store (future design)
 
 **Purpose:** monetize without compromising competition/fairness.
 
@@ -531,8 +531,13 @@ Keep non-run features separate so they never pollute the Play Hub, while remaini
 
 **Scope**
 
-- Codex entries (enemies, abilities, gear, statuses)
-- Locked vs unlocked visibility rules
+- Bestiary: ten kills of each regular enemy, five of each boss; attacks,
+  damage types, resistances, weaknesses, behaviour and lore.
+- Places: 10,000 points in one Competitive run, separately for Forest and Field.
+- Journal: Éloïse's black-sky opening, following the PDF timeline.
+- Account-wide confirmed progress, locked-entry requirements and readable
+  discovered entries. See [Codex rules](codex.md) and
+  [persistence contract](../tdd/codex.md).
 
 ### Options
 
@@ -554,8 +559,8 @@ presentation only; both send identical full-strength directional input.
 
 - No meta content is required to start a run.
 - Store screens never block Start Run.
-- Each icon opens its destination in **1 tap** (no intermediate hub).
-- Clear separation: **Gold Store ≠ Real Money Store ≠ Library ≠ Options**.
+- Store and Library are reachable through Town and return to its map.
+- Discovery progress is independent of gold and store purchases.
 
 ---
 
@@ -591,7 +596,7 @@ Must preserve **fair competitive loop** and mastery.
 ### 5.3 Where monetization lives in the UI
 
 - Real money store is its own screen (opened via hub icon).
-- Gold store is its own screen (opened via hub icon).
+- The implemented gold store is its own screen, opened from the Town map.
 - **Post-run Results** may show a single optional entry point:
   - `Watch Ad for Bonus` (only if it doesn’t distract from Retry)
 - Play Hub: **no store panels** by default (keep it play-first).
