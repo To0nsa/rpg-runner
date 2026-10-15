@@ -103,8 +103,39 @@ Jump exposes its air cost while an air jump is available. The Skills preview
 uses `resolveEffectiveAbilityCostForLoadout`, which shares payload selection
 with the runtime store resolver. `ControlResourceUsage` also includes authored
 hold stamina drain; the menu preview includes both ground and air-jump costs.
-These values only select colors. Core affordability, slot validity, input modes,
-and cooldown ticks continue to determine whether an action can begin.
+These values select colors and identify resource shortfalls for presentation.
+Core affordability, slot validity, input modes, and cooldown ticks continue to
+determine whether an action can begin.
+
+`GameOverlay` supplies shortfalls only for valid slots whose authoritative
+affordability flag is false. `ControlResourceUsage.shortfall` compares the
+snapshot resource amounts with resolved commit costs (health spending must
+leave one fixed-point unit). It does not infer ongoing hold drain or change
+action gating. `RunnerControlsOverlay` additionally suppresses warnings during
+cooldown. `ResourceActionFeedback` catches blocked pointer-downs outside the
+disabled tap/hold/aim widget, outlines that control and forwards a UI-only
+warning. No press, hold, release or Core command is emitted by this path.
+Every blocked tap publishes a fresh warning, including repeated identical
+shortfalls. This feedback describes current shortages, not a Core rejection
+event; it is currently specific to the in-run touch controls.
+
+`TopLeftHudOverlay` reads resource values directly from controller snapshots.
+`ResourceBar` owns only interpolation, a recent-health-loss trail and transient
+warnings. Decreases snap immediately; regeneration uses exponential smoothing
+with a 60 ms time constant, so per-tick updates do not restart a tween. Health
+loss holds for 180 ms and drains over 420 ms, independent of regeneration.
+At 0 < health <= 25%, the outline pulses with a 1.6-second period. Tickers stop
+when no visual work remains; pause/end settles values and clears warnings.
+Reduced motion settles values and uses static low-health/450 ms shortfall
+outlines. Maximum changes reset interpolation, and replacing the controller
+remounts the vitals to prevent trails leaking between runs. Resource semantics
+always expose current snapshot values, never interpolated values.
+
+`UiHudTheme` is the shared ThemeExtension for the vitals, timer, score, boss
+panel and pause/exit framing. Its charcoal surface and pale 1-pixel border use
+the same visual family as the action controls. The compact vitals variant
+keeps the top row separate below 600 logical pixels; the boss panel starts at
+86 pixels to clear the taller vitals panel.
 
 `UiActionButtonTheme` mutes the shared health/mana/stamina bar colors with a
 charcoal overlay. Fills are approximately 58% opaque, allowing the scene to show

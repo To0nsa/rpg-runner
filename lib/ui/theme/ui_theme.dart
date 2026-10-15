@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'ui_button_theme.dart';
 import 'ui_hub_theme.dart';
+import 'ui_hud_theme.dart';
 import 'ui_icon_button_theme.dart';
 import 'ui_inline_edit_text_theme.dart';
 import 'ui_inline_icon_button_theme.dart';
@@ -47,6 +48,7 @@ ThemeData createUiTheme() => ThemeData(
   extensions: [
     UiTokens.standard,
     UiHubTheme.standard,
+    UiHudTheme.standard,
     UiButtonTheme.standard,
     UiIconButtonTheme.standard,
     UiInlineIconButtonTheme.standard,

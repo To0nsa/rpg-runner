@@ -5,6 +5,7 @@ import 'package:runner_core/snapshots/boss_victory_blessing_snapshot.dart';
 
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_hud_theme.dart';
 
 /// Encounter feedback reads Core; the entrance never depends on widget timers.
 class BossArenaHud extends StatelessWidget {
@@ -35,7 +36,8 @@ class BossArenaHud extends StatelessWidget {
         child: Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: const EdgeInsets.only(top: 46),
+            // Clear the three-row vitals panel even on narrow landscapes.
+            padding: const EdgeInsets.only(top: 86),
             child: Semantics(
               label: blessing == null
                   ? '$caption, ${arena!.hp100 ~/ 100} health'
@@ -43,10 +45,7 @@ class BossArenaHud extends StatelessWidget {
               child: Container(
                 width: 220,
                 padding: EdgeInsets.all(ui.space.xs),
-                decoration: BoxDecoration(
-                  color: ui.colors.shadow.withValues(alpha: .75),
-                  borderRadius: BorderRadius.circular(ui.radii.sm),
-                ),
+                decoration: context.hudTheme.panelDecoration,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

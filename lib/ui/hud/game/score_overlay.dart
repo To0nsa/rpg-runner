@@ -3,6 +3,7 @@ import 'package:runner_core/scoring/run_distance.dart';
 
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_hud_theme.dart';
 
 class ScoreOverlay extends StatelessWidget {
   const ScoreOverlay({super.key, required this.controller, this.padding});
@@ -34,10 +35,7 @@ class ScoreOverlay extends StatelessWidget {
           child: RepaintBoundary(
             child: Container(
               padding: resolvedPadding,
-              decoration: BoxDecoration(
-                color: ui.colors.shadow.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(ui.radii.sm),
-              ),
+              decoration: context.hudTheme.panelDecoration,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

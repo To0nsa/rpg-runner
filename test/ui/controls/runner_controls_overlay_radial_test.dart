@@ -20,6 +20,48 @@ import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 
 void main() {
+  for (final mode in AbilityInputMode.values) {
+    testWidgets(
+      'resource-blocked $mode warns on every tap without gameplay edges',
+      (tester) async {
+        final harness = _OverlayHarness()
+          ..meleeInputMode = mode
+          ..meleeAffordable = false
+          ..missingResources = {
+            AbilitySlot.primary: const ControlResourceUsage(stamina: true),
+          };
+        addTearDown(harness.dispose);
+        await tester.pumpWidget(
+          _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+        );
+        await tester.tapAt(tester.getCenter(find.bySemanticsLabel('Sword')));
+        await tester.pump();
+        await tester.tapAt(tester.getCenter(find.bySemanticsLabel('Sword')));
+        await tester.pump();
+        expect(harness.shortfalls, hasLength(2));
+        expect(harness.shortfalls.every((missing) => missing.stamina), isTrue);
+        expect(harness.gameplayEdges, isEmpty);
+        await tester.pumpAndSettle();
+      },
+    );
+  }
+
+  testWidgets('cooldown does not warn even if resources are also missing', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness()
+      ..projectileCooldownTicksLeft = 10
+      ..missingResources = {
+        AbilitySlot.projectile: const ControlResourceUsage(mana: true),
+      };
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+    await tester.tap(find.bySemanticsLabel('Projectile'), warnIfMissed: false);
+    expect(harness.shortfalls, isEmpty);
+    expect(harness.gameplayEdges, isEmpty);
+  });
   testWidgets('all six controls show symbols and resource tints without text', (
     tester,
   ) async {
@@ -529,6 +571,8 @@ Positioned _chargeBarPositioned(WidgetTester tester) {
 }
 
 class _OverlayHarness {
+  Map<AbilitySlot, ControlResourceUsage> missingResources = {};
+  final List<ControlResourceUsage> shortfalls = [];
   final AimPreviewModel projectileAimPreview = AimPreviewModel();
   final AimPreviewModel meleeAimPreview = AimPreviewModel();
   final ValueNotifier<Rect?> cancelHitboxRect = ValueNotifier<Rect?>(null);
@@ -550,6 +594,8 @@ class _OverlayHarness {
 
   RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
+      missingResourcesBySlot: missingResources,
+      onResourceShortfall: shortfalls.add,
       tuning: tuning,
       movementControlMode: movementMode,
       onMoveAxis: movementAxes.add,

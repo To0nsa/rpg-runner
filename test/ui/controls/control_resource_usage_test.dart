@@ -8,6 +8,43 @@ import 'package:rpg_runner/ui/theme/ui_action_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_resource_colors.dart';
 
 void main() {
+  test(
+    'shortfalls identify only missing pools and preserve the last health unit',
+    () {
+      const cost = AbilityResourceCost(
+        healthCost100: 1000,
+        manaCost100: 2000,
+        staminaCost100: 3000,
+      );
+      final missing = ControlResourceUsage.shortfall(
+        cost: cost,
+        health: 10,
+        mana: 20,
+        stamina: 29.99,
+      );
+      expect(missing.health, isTrue);
+      expect(missing.mana, isFalse);
+      expect(missing.stamina, isTrue);
+      expect(
+        ControlResourceUsage.shortfall(
+          cost: cost,
+          health: 10.01,
+          mana: 20,
+          stamina: 30,
+        ).isEmpty,
+        isTrue,
+      );
+      expect(
+        ControlResourceUsage.shortfall(
+          cost: AbilityResourceCost.zero,
+          health: 0,
+          mana: 0,
+          stamina: 0,
+        ).isEmpty,
+        isTrue,
+      );
+    },
+  );
   test('free-to-start shield holds still identify stamina', () {
     final ability = AbilityCatalog.shared.resolve('eloise.shield_block')!;
     final usage = ControlResourceUsage.fromAbility(

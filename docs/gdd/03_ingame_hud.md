@@ -58,9 +58,23 @@ This split is deliberate so HUD doesn’t need to scan entities.
 
 **Display**
 
-* **HP bar** (primary), **Stamina bar**, **Mana bar** in a compact stack.
-* Bars are *thin, high-contrast, stable*, with minimal animation (avoid jitter).
-* Subtle "low HP" state (pulse outline, not screen flash spam).
+* **Health**, **Mana**, **Stamina**, in that fixed order, identified by heart,
+  droplet and lightning icons as well as red, blue and green fills.
+* Health is 12 logical pixels tall; mana and stamina are 8. Tracks are 160
+  pixels wide, reduced to 120 below a 600-pixel landscape viewport so the
+  vitals, timer and score remain separate.
+* Vitals, timer, score, boss panel, pause and exit share a translucent charcoal
+  backing, a quiet pale border and rounded corners. The boss panel sits below
+  the top information row.
+* Spending appears immediately. Health loss leaves a pale trail for 180 ms,
+  then drains over 420 ms. Restoration smooths continuously without restarting
+  on every regeneration tick.
+* At or below 25% health (while alive), the health outline pulses gently.
+  Pausing or requesting reduced motion uses a steady outline and immediate
+  resource values instead.
+* Tapping a resource-blocked action briefly outlines the button and each
+  missing resource for 450 ms. Cooldown and invalid-slot blocking do not
+  produce a resource warning. Reduced motion uses a static temporary outline.
 
 **Core mapping**
 

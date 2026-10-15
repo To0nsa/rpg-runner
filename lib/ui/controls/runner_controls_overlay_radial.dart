@@ -14,6 +14,7 @@ import 'movement_control_mode.dart';
 import 'directional_action_button.dart';
 import 'hold_action_button.dart';
 import 'control_resource_usage.dart';
+import 'resource_action_feedback.dart';
 import 'layout/controls_radial_layout.dart';
 import '../theme/ui_action_button_theme.dart';
 import 'widgets/spell_control.dart';
@@ -86,6 +87,8 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.hasSecondarySlot,
     required this.hasProjectileSlot,
     this.tuning = ControlsTuning.fixed,
+    this.missingResourcesBySlot = const {},
+    this.onResourceShortfall,
   });
 
   final ValueChanged<double> onMoveAxis;
@@ -149,6 +152,10 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool hasProjectileSlot;
   final ControlsTuning tuning;
 
+  /// Only valid, resource-blocked slots belong here; cooldowns are filtered below.
+  final Map<AbilitySlot, ControlResourceUsage> missingResourcesBySlot;
+  final ValueChanged<ControlResourceUsage>? onResourceShortfall;
+
   @override
   Widget build(BuildContext context) {
     final themedTuning = _resolveRunControlsTuning(
@@ -181,6 +188,14 @@ class RunnerControlsOverlay extends StatelessWidget {
     );
     String labelFor(AbilitySlot slot) =>
         abilityRadialLayoutSpec.slotSpec(slot).label;
+    Widget feedback(AbilitySlot slot, int cooldown, Widget child) =>
+        ResourceActionFeedback(
+          missing: cooldown > 0
+              ? ControlResourceUsage.none
+              : missingResourcesBySlot[slot] ?? ControlResourceUsage.none,
+          onShortfall: onResourceShortfall,
+          child: child,
+        );
     final movement = MovementControl(
       tuning: themedTuning,
       onMoveAxis: onMoveAxis,
@@ -217,240 +232,266 @@ class RunnerControlsOverlay extends StatelessWidget {
           Positioned(
             right: anchorFor(AbilitySlot.projectile).right,
             bottom: anchorFor(AbilitySlot.projectile).bottom,
-            child: ProjectileControl(
-              tuning: themedTuning,
-              inputMode: projectileInputMode,
-              size: sizeFor(AbilitySlot.projectile),
-              deadzoneRadius: layout.directionalDeadzoneRadius,
-              label: labelFor(AbilitySlot.projectile),
-              resources:
-                  resourcesBySlot[AbilitySlot.projectile] ??
-                  ControlResourceUsage.none,
-              onPressed: onProjectilePressed,
-              onHoldStart: onProjectileHoldStart,
-              onHoldEnd: onProjectileHoldEnd,
-              onAimDir: onAimDir,
-              onAimClear: onAimClear,
-              onCommitted: onProjectileCommitted,
-              aimPreview: projectileAimPreview,
-              affordable: projectileAffordable,
-              cooldownTicksLeft: projectileCooldownTicksLeft,
-              cooldownTicksTotal: projectileCooldownTicksTotal,
-              cancelHitboxRect: aimCancelHitboxRect,
-              forceCancelSignal: forceAimCancelSignal,
+            child: feedback(
+              AbilitySlot.projectile,
+              projectileCooldownTicksLeft,
+              ProjectileControl(
+                tuning: themedTuning,
+                inputMode: projectileInputMode,
+                size: sizeFor(AbilitySlot.projectile),
+                deadzoneRadius: layout.directionalDeadzoneRadius,
+                label: labelFor(AbilitySlot.projectile),
+                resources:
+                    resourcesBySlot[AbilitySlot.projectile] ??
+                    ControlResourceUsage.none,
+                onPressed: onProjectilePressed,
+                onHoldStart: onProjectileHoldStart,
+                onHoldEnd: onProjectileHoldEnd,
+                onAimDir: onAimDir,
+                onAimClear: onAimClear,
+                onCommitted: onProjectileCommitted,
+                aimPreview: projectileAimPreview,
+                affordable: projectileAffordable,
+                cooldownTicksLeft: projectileCooldownTicksLeft,
+                cooldownTicksTotal: projectileCooldownTicksTotal,
+                cancelHitboxRect: aimCancelHitboxRect,
+                forceCancelSignal: forceAimCancelSignal,
+              ),
             ),
           ),
         Positioned(
           right: anchorFor(AbilitySlot.spell).right,
           bottom: anchorFor(AbilitySlot.spell).bottom,
-          child: SpellControl(
-            tuning: themedTuning,
-            size: sizeFor(AbilitySlot.spell),
-            label: labelFor(AbilitySlot.spell),
-            resources:
-                resourcesBySlot[AbilitySlot.spell] ?? ControlResourceUsage.none,
-            onPressed: onSpellPressed,
-            affordable: spellAffordable,
-            cooldownTicksLeft: spellCooldownTicksLeft,
-            cooldownTicksTotal: spellCooldownTicksTotal,
+          child: feedback(
+            AbilitySlot.spell,
+            spellCooldownTicksLeft,
+            SpellControl(
+              tuning: themedTuning,
+              size: sizeFor(AbilitySlot.spell),
+              label: labelFor(AbilitySlot.spell),
+              resources:
+                  resourcesBySlot[AbilitySlot.spell] ??
+                  ControlResourceUsage.none,
+              onPressed: onSpellPressed,
+              affordable: spellAffordable,
+              cooldownTicksLeft: spellCooldownTicksLeft,
+              cooldownTicksTotal: spellCooldownTicksTotal,
+            ),
           ),
         ),
         if (hasSecondarySlot)
           Positioned(
             right: anchorFor(AbilitySlot.secondary).right,
             bottom: anchorFor(AbilitySlot.secondary).bottom,
-            child: secondaryInputMode == AbilityInputMode.holdMaintain
-                ? HoldActionButton(
-                    label: labelFor(AbilitySlot.secondary),
-                    icon: secondarySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.secondary] ??
-                        ControlResourceUsage.none,
-                    onHoldStart: onSecondaryHoldStart,
-                    onHoldEnd: onSecondaryHoldEnd,
-                    tuning: action,
-                    cooldownRing: cooldownRing,
-                    affordable: secondaryAffordable,
-                    cooldownTicksLeft: secondaryCooldownTicksLeft,
-                    cooldownTicksTotal: secondaryCooldownTicksTotal,
-                    size: sizeFor(AbilitySlot.secondary),
-                  )
-                : secondaryInputMode == AbilityInputMode.holdRelease
-                ? HoldActionButton(
-                    label: labelFor(AbilitySlot.secondary),
-                    icon: secondarySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.secondary] ??
-                        ControlResourceUsage.none,
-                    onHoldStart: onSecondaryHoldStart,
-                    onHoldEnd: onSecondaryHoldEnd,
-                    onRelease: onSecondaryCommitted,
-                    tuning: action,
-                    cooldownRing: cooldownRing,
-                    affordable: secondaryAffordable,
-                    cooldownTicksLeft: secondaryCooldownTicksLeft,
-                    cooldownTicksTotal: secondaryCooldownTicksTotal,
-                    size: sizeFor(AbilitySlot.secondary),
-                  )
-                : secondaryInputMode == AbilityInputMode.holdAimRelease
-                ? DirectionalActionButton(
-                    label: labelFor(AbilitySlot.secondary),
-                    icon: secondarySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.secondary] ??
-                        ControlResourceUsage.none,
-                    onHoldStart: onSecondaryHoldStart,
-                    onHoldEnd: onSecondaryHoldEnd,
-                    onAimDir: onAimDir,
-                    onAimClear: onAimClear,
-                    onCommit: onSecondaryCommitted,
-                    projectileAimPreview: meleeAimPreview,
-                    tuning: directional,
-                    cooldownRing: cooldownRing,
-                    cancelHitboxRect: aimCancelHitboxRect,
-                    affordable: secondaryAffordable,
-                    cooldownTicksLeft: secondaryCooldownTicksLeft,
-                    cooldownTicksTotal: secondaryCooldownTicksTotal,
-                    size: sizeFor(
-                      AbilitySlot.secondary,
-                      familyOverride: AbilityRadialSlotFamily.directional,
+            child: feedback(
+              AbilitySlot.secondary,
+              secondaryCooldownTicksLeft,
+              secondaryInputMode == AbilityInputMode.holdMaintain
+                  ? HoldActionButton(
+                      label: labelFor(AbilitySlot.secondary),
+                      icon: secondarySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.secondary] ??
+                          ControlResourceUsage.none,
+                      onHoldStart: onSecondaryHoldStart,
+                      onHoldEnd: onSecondaryHoldEnd,
+                      tuning: action,
+                      cooldownRing: cooldownRing,
+                      affordable: secondaryAffordable,
+                      cooldownTicksLeft: secondaryCooldownTicksLeft,
+                      cooldownTicksTotal: secondaryCooldownTicksTotal,
+                      size: sizeFor(AbilitySlot.secondary),
+                    )
+                  : secondaryInputMode == AbilityInputMode.holdRelease
+                  ? HoldActionButton(
+                      label: labelFor(AbilitySlot.secondary),
+                      icon: secondarySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.secondary] ??
+                          ControlResourceUsage.none,
+                      onHoldStart: onSecondaryHoldStart,
+                      onHoldEnd: onSecondaryHoldEnd,
+                      onRelease: onSecondaryCommitted,
+                      tuning: action,
+                      cooldownRing: cooldownRing,
+                      affordable: secondaryAffordable,
+                      cooldownTicksLeft: secondaryCooldownTicksLeft,
+                      cooldownTicksTotal: secondaryCooldownTicksTotal,
+                      size: sizeFor(AbilitySlot.secondary),
+                    )
+                  : secondaryInputMode == AbilityInputMode.holdAimRelease
+                  ? DirectionalActionButton(
+                      label: labelFor(AbilitySlot.secondary),
+                      icon: secondarySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.secondary] ??
+                          ControlResourceUsage.none,
+                      onHoldStart: onSecondaryHoldStart,
+                      onHoldEnd: onSecondaryHoldEnd,
+                      onAimDir: onAimDir,
+                      onAimClear: onAimClear,
+                      onCommit: onSecondaryCommitted,
+                      projectileAimPreview: meleeAimPreview,
+                      tuning: directional,
+                      cooldownRing: cooldownRing,
+                      cancelHitboxRect: aimCancelHitboxRect,
+                      affordable: secondaryAffordable,
+                      cooldownTicksLeft: secondaryCooldownTicksLeft,
+                      cooldownTicksTotal: secondaryCooldownTicksTotal,
+                      size: sizeFor(
+                        AbilitySlot.secondary,
+                        familyOverride: AbilityRadialSlotFamily.directional,
+                      ),
+                      deadzoneRadius: layout.directionalDeadzoneRadius,
+                      forceCancelSignal: forceAimCancelSignal,
+                    )
+                  : ActionButton(
+                      label: labelFor(AbilitySlot.secondary),
+                      icon: secondarySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.secondary] ??
+                          ControlResourceUsage.none,
+                      onPressed: onSecondaryPressed,
+                      tuning: action,
+                      cooldownRing: cooldownRing,
+                      affordable: secondaryAffordable,
+                      cooldownTicksLeft: secondaryCooldownTicksLeft,
+                      cooldownTicksTotal: secondaryCooldownTicksTotal,
+                      size: sizeFor(AbilitySlot.secondary),
                     ),
-                    deadzoneRadius: layout.directionalDeadzoneRadius,
-                    forceCancelSignal: forceAimCancelSignal,
-                  )
-                : ActionButton(
-                    label: labelFor(AbilitySlot.secondary),
-                    icon: secondarySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.secondary] ??
-                        ControlResourceUsage.none,
-                    onPressed: onSecondaryPressed,
-                    tuning: action,
-                    cooldownRing: cooldownRing,
-                    affordable: secondaryAffordable,
-                    cooldownTicksLeft: secondaryCooldownTicksLeft,
-                    cooldownTicksTotal: secondaryCooldownTicksTotal,
-                    size: sizeFor(AbilitySlot.secondary),
-                  ),
+            ),
           ),
         Positioned(
           right: anchorFor(AbilitySlot.primary).right,
           bottom: anchorFor(AbilitySlot.primary).bottom,
-          child: MeleeControl(
-            tuning: themedTuning,
-            inputMode: meleeInputMode,
-            size: sizeFor(AbilitySlot.primary),
-            deadzoneRadius: layout.directionalDeadzoneRadius,
-            label: labelFor(AbilitySlot.primary),
-            resources:
-                resourcesBySlot[AbilitySlot.primary] ??
-                ControlResourceUsage.none,
-            onPressed: onMeleePressed,
-            onHoldStart: onMeleeHoldStart,
-            onHoldEnd: onMeleeHoldEnd,
-            onChargeHoldStart: onMeleeChargeHoldStart,
-            onChargeHoldEnd: onMeleeChargeHoldEnd,
-            onAimDir: onAimDir,
-            onAimClear: onAimClear,
-            onCommitted: onMeleeCommitted,
-            aimPreview: meleeAimPreview,
-            affordable: meleeAffordable,
-            cooldownTicksLeft: meleeCooldownTicksLeft,
-            cooldownTicksTotal: meleeCooldownTicksTotal,
-            cancelHitboxRect: aimCancelHitboxRect,
-            forceCancelSignal: forceAimCancelSignal,
+          child: feedback(
+            AbilitySlot.primary,
+            meleeCooldownTicksLeft,
+            MeleeControl(
+              tuning: themedTuning,
+              inputMode: meleeInputMode,
+              size: sizeFor(AbilitySlot.primary),
+              deadzoneRadius: layout.directionalDeadzoneRadius,
+              label: labelFor(AbilitySlot.primary),
+              resources:
+                  resourcesBySlot[AbilitySlot.primary] ??
+                  ControlResourceUsage.none,
+              onPressed: onMeleePressed,
+              onHoldStart: onMeleeHoldStart,
+              onHoldEnd: onMeleeHoldEnd,
+              onChargeHoldStart: onMeleeChargeHoldStart,
+              onChargeHoldEnd: onMeleeChargeHoldEnd,
+              onAimDir: onAimDir,
+              onAimClear: onAimClear,
+              onCommitted: onMeleeCommitted,
+              aimPreview: meleeAimPreview,
+              affordable: meleeAffordable,
+              cooldownTicksLeft: meleeCooldownTicksLeft,
+              cooldownTicksTotal: meleeCooldownTicksTotal,
+              cancelHitboxRect: aimCancelHitboxRect,
+              forceCancelSignal: forceAimCancelSignal,
+            ),
           ),
         ),
         Positioned(
           right: anchorFor(AbilitySlot.mobility).right,
           bottom: anchorFor(AbilitySlot.mobility).bottom,
-          child: mobilityInputMode == AbilityInputMode.tap
-              ? ActionButton(
-                  label: labelFor(AbilitySlot.mobility),
-                  icon: mobilitySlot.icon,
-                  resources:
-                      resourcesBySlot[AbilitySlot.mobility] ??
-                      ControlResourceUsage.none,
-                  onPressed: onMobilityPressed,
-                  tuning: action,
-                  cooldownRing: cooldownRing,
-                  affordable: mobilityAffordable,
-                  cooldownTicksLeft: mobilityCooldownTicksLeft,
-                  cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: sizeFor(AbilitySlot.mobility),
-                )
-              : mobilityInputMode == AbilityInputMode.holdMaintain
-              ? HoldActionButton(
-                  label: labelFor(AbilitySlot.mobility),
-                  icon: mobilitySlot.icon,
-                  resources:
-                      resourcesBySlot[AbilitySlot.mobility] ??
-                      ControlResourceUsage.none,
-                  onHoldStart: onMobilityHoldStart,
-                  onHoldEnd: onMobilityHoldEnd,
-                  tuning: action,
-                  cooldownRing: cooldownRing,
-                  affordable: mobilityAffordable,
-                  cooldownTicksLeft: mobilityCooldownTicksLeft,
-                  cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: sizeFor(AbilitySlot.mobility),
-                )
-              : mobilityInputMode == AbilityInputMode.holdRelease
-              ? HoldActionButton(
-                  label: labelFor(AbilitySlot.mobility),
-                  icon: mobilitySlot.icon,
-                  resources:
-                      resourcesBySlot[AbilitySlot.mobility] ??
-                      ControlResourceUsage.none,
-                  onHoldStart: onMobilityHoldStart,
-                  onHoldEnd: onMobilityHoldEnd,
-                  onRelease: onMobilityCommitted,
-                  tuning: action,
-                  cooldownRing: cooldownRing,
-                  affordable: mobilityAffordable,
-                  cooldownTicksLeft: mobilityCooldownTicksLeft,
-                  cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: sizeFor(AbilitySlot.mobility),
-                )
-              : DirectionalActionButton(
-                  label: labelFor(AbilitySlot.mobility),
-                  icon: mobilitySlot.icon,
-                  resources:
-                      resourcesBySlot[AbilitySlot.mobility] ??
-                      ControlResourceUsage.none,
-                  onHoldStart: onMobilityHoldStart,
-                  onHoldEnd: onMobilityHoldEnd,
-                  onAimDir: onAimDir,
-                  onAimClear: onAimClear,
-                  onCommit: onMobilityCommitted,
-                  projectileAimPreview: meleeAimPreview,
-                  tuning: directional,
-                  cooldownRing: cooldownRing,
-                  cancelHitboxRect: aimCancelHitboxRect,
-                  affordable: mobilityAffordable,
-                  cooldownTicksLeft: mobilityCooldownTicksLeft,
-                  cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: sizeFor(
-                    AbilitySlot.mobility,
-                    familyOverride: AbilityRadialSlotFamily.directional,
+          child: feedback(
+            AbilitySlot.mobility,
+            mobilityCooldownTicksLeft,
+            mobilityInputMode == AbilityInputMode.tap
+                ? ActionButton(
+                    label: labelFor(AbilitySlot.mobility),
+                    icon: mobilitySlot.icon,
+                    resources:
+                        resourcesBySlot[AbilitySlot.mobility] ??
+                        ControlResourceUsage.none,
+                    onPressed: onMobilityPressed,
+                    tuning: action,
+                    cooldownRing: cooldownRing,
+                    affordable: mobilityAffordable,
+                    cooldownTicksLeft: mobilityCooldownTicksLeft,
+                    cooldownTicksTotal: mobilityCooldownTicksTotal,
+                    size: sizeFor(AbilitySlot.mobility),
+                  )
+                : mobilityInputMode == AbilityInputMode.holdMaintain
+                ? HoldActionButton(
+                    label: labelFor(AbilitySlot.mobility),
+                    icon: mobilitySlot.icon,
+                    resources:
+                        resourcesBySlot[AbilitySlot.mobility] ??
+                        ControlResourceUsage.none,
+                    onHoldStart: onMobilityHoldStart,
+                    onHoldEnd: onMobilityHoldEnd,
+                    tuning: action,
+                    cooldownRing: cooldownRing,
+                    affordable: mobilityAffordable,
+                    cooldownTicksLeft: mobilityCooldownTicksLeft,
+                    cooldownTicksTotal: mobilityCooldownTicksTotal,
+                    size: sizeFor(AbilitySlot.mobility),
+                  )
+                : mobilityInputMode == AbilityInputMode.holdRelease
+                ? HoldActionButton(
+                    label: labelFor(AbilitySlot.mobility),
+                    icon: mobilitySlot.icon,
+                    resources:
+                        resourcesBySlot[AbilitySlot.mobility] ??
+                        ControlResourceUsage.none,
+                    onHoldStart: onMobilityHoldStart,
+                    onHoldEnd: onMobilityHoldEnd,
+                    onRelease: onMobilityCommitted,
+                    tuning: action,
+                    cooldownRing: cooldownRing,
+                    affordable: mobilityAffordable,
+                    cooldownTicksLeft: mobilityCooldownTicksLeft,
+                    cooldownTicksTotal: mobilityCooldownTicksTotal,
+                    size: sizeFor(AbilitySlot.mobility),
+                  )
+                : DirectionalActionButton(
+                    label: labelFor(AbilitySlot.mobility),
+                    icon: mobilitySlot.icon,
+                    resources:
+                        resourcesBySlot[AbilitySlot.mobility] ??
+                        ControlResourceUsage.none,
+                    onHoldStart: onMobilityHoldStart,
+                    onHoldEnd: onMobilityHoldEnd,
+                    onAimDir: onAimDir,
+                    onAimClear: onAimClear,
+                    onCommit: onMobilityCommitted,
+                    projectileAimPreview: meleeAimPreview,
+                    tuning: directional,
+                    cooldownRing: cooldownRing,
+                    cancelHitboxRect: aimCancelHitboxRect,
+                    affordable: mobilityAffordable,
+                    cooldownTicksLeft: mobilityCooldownTicksLeft,
+                    cooldownTicksTotal: mobilityCooldownTicksTotal,
+                    size: sizeFor(
+                      AbilitySlot.mobility,
+                      familyOverride: AbilityRadialSlotFamily.directional,
+                    ),
+                    deadzoneRadius: layout.directionalDeadzoneRadius,
+                    forceCancelSignal: forceAimCancelSignal,
                   ),
-                  deadzoneRadius: layout.directionalDeadzoneRadius,
-                  forceCancelSignal: forceAimCancelSignal,
-                ),
+          ),
         ),
         Positioned(
           right: anchorFor(AbilitySlot.jump).right,
           bottom: anchorFor(AbilitySlot.jump).bottom,
-          child: ActionButton(
-            label: labelFor(AbilitySlot.jump),
-            icon: jumpSlot.icon,
-            resources:
-                resourcesBySlot[AbilitySlot.jump] ?? ControlResourceUsage.none,
-            onPressed: onJumpPressed,
-            tuning: action,
-            cooldownRing: cooldownRing,
-            affordable: jumpAffordable,
-            size: sizeFor(AbilitySlot.jump),
+          child: feedback(
+            AbilitySlot.jump,
+            0,
+            ActionButton(
+              label: labelFor(AbilitySlot.jump),
+              icon: jumpSlot.icon,
+              resources:
+                  resourcesBySlot[AbilitySlot.jump] ??
+                  ControlResourceUsage.none,
+              onPressed: onJumpPressed,
+              tuning: action,
+              cooldownRing: cooldownRing,
+              affordable: jumpAffordable,
+              size: sizeFor(AbilitySlot.jump),
+            ),
           ),
         ),
         if (chargeBarVisible)

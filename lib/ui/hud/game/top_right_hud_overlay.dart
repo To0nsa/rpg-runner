@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_hud_theme.dart';
 import 'score_overlay.dart';
 
 class TopRightHudOverlay extends StatelessWidget {
@@ -30,6 +31,15 @@ class TopRightHudOverlay extends StatelessWidget {
             if (showExitButton) ...[
               SizedBox(width: ui.space.xs),
               IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: context.hudTheme.background,
+                  side: BorderSide(color: context.hudTheme.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      context.hudTheme.radius,
+                    ),
+                  ),
+                ),
                 onPressed: onExit,
                 icon: const Icon(Icons.close),
                 color: ui.colors.textPrimary,

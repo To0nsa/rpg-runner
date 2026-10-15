@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_hud_theme.dart';
 
 class SurvivalTimerOverlay extends StatelessWidget {
   const SurvivalTimerOverlay({
@@ -39,10 +40,7 @@ class SurvivalTimerOverlay extends StatelessWidget {
           child: RepaintBoundary(
             child: Container(
               padding: resolvedPadding,
-              decoration: BoxDecoration(
-                color: ui.colors.shadow.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(ui.radii.sm),
-              ),
+              decoration: context.hudTheme.panelDecoration,
               child: Text(
                 text,
                 textAlign: TextAlign.center,

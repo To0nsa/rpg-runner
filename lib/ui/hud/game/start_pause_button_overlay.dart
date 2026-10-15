@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../runner_game_ui_state.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_hud_theme.dart';
 
 class StartPauseButtonOverlay extends StatelessWidget {
   const StartPauseButtonOverlay({
@@ -19,6 +20,13 @@ class StartPauseButtonOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     return IconButton(
+      style: IconButton.styleFrom(
+        backgroundColor: context.hudTheme.background,
+        side: BorderSide(color: context.hudTheme.border),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(context.hudTheme.radius),
+        ),
+      ),
       onPressed: uiState.gameOver
           ? null
           : () {

@@ -25,7 +25,7 @@ import 'aim_cancel_button_overlay.dart';
 import 'player_impact_border_overlay.dart';
 import 'boss_entrance_border_overlay.dart';
 
-class GameOverlay extends StatelessWidget {
+class GameOverlay extends StatefulWidget {
   const GameOverlay({
     super.key,
     required this.controller,
@@ -66,7 +66,12 @@ class GameOverlay extends StatelessWidget {
   final VoidCallback onExitConfirmExit;
 
   @override
-  Widget build(BuildContext context) {
+  State<GameOverlay> createState() => _GameOverlayState();
+
+  Widget _buildOverlay(
+    BuildContext context,
+    ValueNotifier<ControlResourceUsage> warnings,
+  ) {
     final hud = controller.snapshot.hud;
     final projectileAffordable =
         hud.canAffordProjectile && hud.projectileSlotValid;
@@ -154,6 +159,34 @@ class GameOverlay extends StatelessWidget {
                 input.beginAction(RunnerGameplayAction.primary),
             onMeleeChargeHoldEnd: () =>
                 input.endAction(RunnerGameplayAction.primary),
+            onResourceShortfall: (missing) =>
+                warnings.value = ControlResourceUsage(
+                  health: missing.health,
+                  mana: missing.mana,
+                  stamina: missing.stamina,
+                ),
+            missingResourcesBySlot: {
+              for (final entry in equippedAbilityIdsBySlot.entries)
+                if (switch (entry.key) {
+                  AbilitySlot.primary =>
+                    hud.meleeSlotValid && !hud.canAffordMelee,
+                  AbilitySlot.secondary =>
+                    hud.secondarySlotValid && !hud.canAffordSecondary,
+                  AbilitySlot.projectile =>
+                    hud.projectileSlotValid && !hud.canAffordProjectile,
+                  AbilitySlot.mobility =>
+                    hud.mobilitySlotValid && !hud.canAffordMobility,
+                  AbilitySlot.spell =>
+                    hud.spellSlotValid && !hud.canAffordSpell,
+                  AbilitySlot.jump => hud.jumpSlotValid && !hud.canAffordJump,
+                })
+                  entry.key: ControlResourceUsage.shortfall(
+                    cost: hud.abilityCostsBySlot[entry.key]!,
+                    health: hud.hp,
+                    mana: hud.mana,
+                    stamina: hud.stamina,
+                  ),
+            },
             resourcesBySlot: {
               for (final entry in equippedAbilityIdsBySlot.entries)
                 entry.key: ControlResourceUsage.fromAbility(
@@ -208,11 +241,14 @@ class GameOverlay extends StatelessWidget {
         Align(
           alignment: Alignment.topLeft,
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [TopLeftHudOverlay(controller: controller)],
+            padding: const EdgeInsets.all(8),
+            child: LayoutBuilder(
+              builder: (context, constraints) => TopLeftHudOverlay(
+                controller: controller,
+                active: uiState.isRunning,
+                compact: constraints.maxWidth < 584,
+                warningSignal: warnings,
+              ),
             ),
           ),
         ),
@@ -243,4 +279,20 @@ class GameOverlay extends StatelessWidget {
       ],
     );
   }
+}
+
+class _GameOverlayState extends State<GameOverlay> {
+  final _warnings = ValueNotifier<ControlResourceUsage>(
+    ControlResourceUsage.none,
+  );
+
+  @override
+  void dispose() {
+    _warnings.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      widget._buildOverlay(context, _warnings);
 }
