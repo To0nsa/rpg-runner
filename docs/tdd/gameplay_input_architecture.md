@@ -146,6 +146,13 @@ out of hit testing. The timer uses Cinzel and score data uses Inter. The compact
 vitals variant keeps the top row separate below 600 logical pixels; the boss
 panel starts at 86 pixels to clear the taller vitals panel.
 
+`GameOverlay` lays out vitals, a flexible timer region and the right-side group
+in one top row so they cannot overlap on compact landscapes. `TopRightHudOverlay`
+orders score, play/pause and exit in an intrinsically sized, stretched row.
+Both controls use `HudIconButton` with a 48-pixel width and minimum height;
+the score panel and controls share the row height. Pause/start and exit retain
+their existing callbacks and confirmation flow.
+
 `UiActionButtonTheme` mutes the shared health/mana/stamina bar colors with a
 dark-iron overlay. Fills are approximately 58% opaque, allowing the scene to show
 through. Free actions use neutral iron; multiple resources use a single

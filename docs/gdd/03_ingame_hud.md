@@ -101,7 +101,10 @@ This split is deliberate so HUD doesn’t need to scan entities.
 
 * **Distance** (primary run metric)
 * **Collectibles count** (optionally show collectibleScore later if it becomes decision-relevant)
+* **Play/pause button**, immediately after the distance/collectibles panel
 * **Exit button (“X”)** (small, top-right corner, always accessible)
+* The panel, play/pause and exit form one row with matching heights. Both
+  buttons use the same 48-pixel width and at least a 48-pixel touch height.
 
 **Exit button rules**
 
@@ -120,14 +123,14 @@ This split is deliberate so HUD doesn’t need to scan entities.
 
 ---
 
-### 3.3 Top-center: Session control + time (always visible while running)
+### 3.3 Top-center: Time (always visible while running)
 
-**Purpose:** provide a single, consistent location for "session state".
+**Purpose:** keep elapsed time readable between vitals and the right-side group.
 
 **Display**
 
 * **Survival timer** (mm:ss)
-* **Pause toggle**
+* The **pause toggle** sits in the top-right group beside run performance.
 * Tiny "paused" tag when paused (avoid full overlay unless needed).
 
 **Core mapping**

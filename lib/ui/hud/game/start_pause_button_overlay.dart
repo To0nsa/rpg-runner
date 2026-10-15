@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../runner_game_ui_state.dart';
-import '../../components/hud_frame.dart';
-import '../../theme/ui_hud_theme.dart';
+import '../../components/hud_icon_button.dart';
 
 class StartPauseButtonOverlay extends StatelessWidget {
   const StartPauseButtonOverlay({
@@ -18,27 +17,18 @@ class StartPauseButtonOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HudPanel(
-      child: IconButton(
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(3)),
-          ),
-        ),
-        onPressed: uiState.gameOver
-            ? null
-            : () {
-                if (!uiState.started) {
-                  onStart();
-                  return;
-                }
-                onTogglePause();
-              },
-        icon: Icon(uiState.paused ? Icons.play_arrow : Icons.pause),
-        color: context.hudTheme.foreground,
-        tooltip: uiState.paused ? 'Play' : 'Pause',
-      ),
+    return HudIconButton(
+      onPressed: uiState.gameOver
+          ? null
+          : () {
+              if (!uiState.started) {
+                onStart();
+                return;
+              }
+              onTogglePause();
+            },
+      icon: uiState.paused ? Icons.play_arrow : Icons.pause,
+      tooltip: uiState.paused ? 'Play' : 'Pause',
     );
   }
 }

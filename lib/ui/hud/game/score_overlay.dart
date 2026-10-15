@@ -40,6 +40,7 @@ class ScoreOverlay extends StatelessWidget {
               padding: resolvedPadding,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Distance ${distanceMeters}m',

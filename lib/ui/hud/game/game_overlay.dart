@@ -18,7 +18,7 @@ import 'pause_overlay.dart';
 import 'terrain_loading_overlay.dart';
 import 'ready_overlay.dart';
 import 'boss_arena_hud.dart';
-import 'top_center_hud_overlay.dart';
+import 'survival_timer_overlay.dart';
 import 'top_left_hud_overlay.dart';
 import 'top_right_hud_overlay.dart';
 import 'aim_cancel_button_overlay.dart';
@@ -240,35 +240,44 @@ class GameOverlay extends StatefulWidget {
             onExit: showExitButton ? onExit : null,
           ),
         Align(
-          alignment: Alignment.topLeft,
+          alignment: Alignment.topCenter,
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: LayoutBuilder(
-              builder: (context, constraints) => TopLeftHudOverlay(
-                controller: controller,
-                active: uiState.isRunning,
-                compact: constraints.maxWidth < 584,
-                warningSignal: warnings,
+              builder: (context, constraints) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TopLeftHudOverlay(
+                    controller: controller,
+                    active: uiState.isRunning,
+                    compact: constraints.maxWidth < 584,
+                    warningSignal: warnings,
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: 1,
+                      child: SurvivalTimerOverlay(controller: controller),
+                    ),
+                  ),
+                  TopRightHudOverlay(
+                    controller: controller,
+                    uiState: uiState,
+                    onStart: onStart,
+                    onTogglePause: onTogglePause,
+                    showExitButton: showExitButton,
+                    onExit: onExit,
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-        TopCenterHudOverlay(
-          controller: controller,
-          uiState: uiState,
-          onStart: onStart,
-          onTogglePause: onTogglePause,
         ),
         BossArenaHud(controller: controller),
         AimCancelButtonOverlay(
           projectileAimPreview: projectileAimPreview,
           meleeAimPreview: meleeAimPreview,
           hitboxRect: aimCancelHitboxRect,
-        ),
-        TopRightHudOverlay(
-          controller: controller,
-          showExitButton: showExitButton,
-          onExit: onExit,
         ),
         Offstage(
           offstage: controller.snapshot.bossArena?.playerHeld ?? false,
