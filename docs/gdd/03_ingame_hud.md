@@ -59,15 +59,16 @@ This split is deliberate so HUD doesn’t need to scan entities.
 **Display**
 
 * **Health**, **Mana**, **Stamina**, in that fixed order, identified by heart,
-  droplet and lightning icons as well as muted rust, slate-blue and grey-green
-  fills. Narrow tracks lift these world colors slightly for readability.
+  droplet and lightning icons as well as muted red, blue and green fills.
+  Mana must remain recognizably blue and stamina recognizably green; muting
+  the palette must not turn either resource grey.
 * Health is 12 logical pixels tall; mana and stamina are 8. Tracks are 160
   pixels wide, reduced to 120 below a 600-pixel landscape viewport so the
   vitals, timer and score remain separate.
 * Vitals, timer, score, boss panel, pause and exit share matte dark-iron backing,
-  stained-gold trim, clipped corners and faint fixed wear. The framing echoes
-  the inset surfaces of the hub, town and loadout menus. The boss panel sits
-  below the top information row.
+  a single subdued gold border and small clipped corners. The palette echoes
+  the hub, town and loadout menus. The boss panel sits below the top information
+  row.
 * The treatment follows the Lothringen brand's `Brand/VisualIdentity.md` and
   `Brand/VisuelTokens.md`: practical, aged and restrained. The timer uses Cinzel,
   compact score data uses Inter, and narrative captions retain Crimson Text.
@@ -161,12 +162,13 @@ button shows a heart when a health-restoration spell (Vital Surge) is equipped,
 and a magic wand for other spells, in both the run HUD and Skills preview. Their
 translucent backgrounds use the matching resource-bar colors under a dark-iron
 overlay. Multiple resource costs blend those muted colors, and free actions
-stay neutral. Worn metal rims, inset scoring and lightly shadowed symbols give
-the buttons a stamped-medallion appearance. Cooldown rings and dimmed symbols
-communicate readiness. The Skills control preview uses the same symbols and
+stay neutral. Single thin metal rims and flat symbols keep the controls quiet.
+Cooldown rings and dimmed symbols communicate readiness. The Skills control
+preview uses the same symbols and
 framing with an aged-gold selection ring, while individual skill artwork stays
-in the lists and details. The floating joystick carries the same rim with
-directional scoring and a dark grip; movement arrows use the shared panel frame.
+in the lists and details. The floating joystick carries the same simple rim and
+a dark grip; movement arrows use the shared panel frame. Frames have no rivets,
+scratches, inset rings or compass marks.
 See [control presentation](01_controls.md#8-button-layout-current-overlay).
 
 ---

@@ -106,8 +106,6 @@ class MoveButtonsTuning {
     this.gap = 8,
     this.backgroundColor = const Color(0xA6151A1F),
     this.foregroundColor = UiWorldPalette.mist200,
-    this.borderColor = UiWorldPalette.gold500,
-    this.borderWidth = 1,
   });
 
   final double buttonWidth;
@@ -115,8 +113,6 @@ class MoveButtonsTuning {
   final double gap;
   final Color backgroundColor;
   final Color foregroundColor;
-  final Color borderColor;
-  final double borderWidth;
 }
 
 /// Floating horizontal joystick geometry in logical pixels. The deadzone only

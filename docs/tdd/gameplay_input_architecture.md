@@ -138,9 +138,10 @@ always expose current snapshot values, never interpolated values.
 `UiHudTheme` is the shared ThemeExtension for the vitals, timer, score, boss
 panel and pause/exit framing. `UiWorldPalette` supplies the muted iron, stained
 gold, ash and mist colors from Lothringen's `Brand/VisuelTokens.md`.
-`HudPanel` paints clipped corners, an inset edge and faint wear; `HudMedallion`
-paints the matching control rims. Their marks are fixed geometry, with no
-animation, image assets, input handlers or gameplay state. Both painters opt
+`HudPanel` paints small clipped corners and a single subdued border;
+`HudMedallion` paints the matching single control rims. Their framing is fixed
+geometry, with no animation, image assets, input handlers or gameplay state.
+Both painters opt
 out of hit testing. The timer uses Cinzel and score data uses Inter. The compact
 vitals variant keeps the top row separate below 600 logical pixels; the boss
 panel starts at 86 pixels to clear the taller vitals panel.
@@ -175,7 +176,7 @@ and replay contracts.
 
 `MovementControl` selects `MoveButtons` or `MoveJoystick`, sharing the movement
 callback and palette. Arrows use `HudPanel`; the joystick uses `HudMedallion`
-with directional scoring on its base and a dark thumb grip. This decoration
+with a single rim on its base and a dark thumb grip. This decoration
 does not change its hit region or input mapping. Both emit **only -1, 0, 1**.
 The floating joystick uses a
 96-pixel base, a 40-pixel thumb and an 8-pixel horizontal neutral deadzone (all

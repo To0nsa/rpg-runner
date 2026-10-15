@@ -6,7 +6,7 @@ import 'ui_world_palette.dart';
 @immutable
 class UiHudTheme extends ThemeExtension<UiHudTheme> {
   const UiHudTheme({
-    this.background = const Color(0xEB151A1F),
+    this.background = const Color(0xD9151A1F),
     this.border = UiWorldPalette.gold500,
     this.track = UiWorldPalette.ink900,
     this.highlight = UiWorldPalette.gold400,

@@ -10,10 +10,7 @@ abstract final class UiResourceColors {
     UiWorldPalette.mist200,
     .2,
   )!;
-  static final mana = Color.lerp(
-    UiWorldPalette.slate500,
-    UiWorldPalette.fog300,
-    .35,
-  )!;
-  static const stamina = UiWorldPalette.fog300;
+  // Preserve familiar blue/green resource cues even in the muted world palette.
+  static const mana = Color(0xFF527FAB);
+  static const stamina = Color(0xFF6C9364);
 }

@@ -123,7 +123,6 @@ class _MoveJoystickState extends State<MoveJoystick> {
                     top: base.dy - tuning.size / 2,
                     child: IgnorePointer(
                       child: HudMedallion(
-                        compass: true,
                         child: Container(
                           key: const ValueKey('movement_joystick_base'),
                           width: tuning.size,
@@ -131,10 +130,6 @@ class _MoveJoystickState extends State<MoveJoystick> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: style.backgroundColor,
-                            border: Border.all(
-                              color: style.borderColor.withValues(alpha: .3),
-                              width: style.borderWidth,
-                            ),
                           ),
                           child: Stack(
                             alignment: Alignment.center,
@@ -156,7 +151,6 @@ class _MoveJoystickState extends State<MoveJoystick> {
                               Transform.translate(
                                 offset: Offset(_offset, 0),
                                 child: HudMedallion(
-                                  compass: false,
                                   child: Container(
                                     key: const ValueKey(
                                       'movement_joystick_thumb',
@@ -168,12 +162,6 @@ class _MoveJoystickState extends State<MoveJoystick> {
                                       color: _axis == 0
                                           ? context.hudTheme.background
                                           : context.hudTheme.wear,
-                                      border: Border.all(
-                                        color: style.borderColor.withValues(
-                                          alpha: .3,
-                                        ),
-                                        width: style.borderWidth,
-                                      ),
                                     ),
                                     child: Icon(
                                       Icons.drag_handle,

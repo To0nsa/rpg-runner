@@ -4,7 +4,6 @@ import 'cooldown_ring.dart';
 import 'controls_tuning.dart';
 import 'control_resource_usage.dart';
 import '../theme/ui_action_button_theme.dart';
-import '../theme/ui_hud_theme.dart';
 import '../components/hud_frame.dart';
 
 /// Resolved visual state for a control button.
@@ -165,13 +164,6 @@ class ControlButtonContent extends StatelessWidget {
             child: Icon(
               icon,
               color: foregroundColor,
-              shadows: [
-                Shadow(
-                  color: context.hudTheme.track,
-                  offset: const Offset(0, 1),
-                  blurRadius: 1,
-                ),
-              ],
               size: (constraints.biggest.shortestSide * 0.52).clamp(24.0, 44.0),
             ),
           );

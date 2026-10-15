@@ -271,11 +271,11 @@ wand for spell (a heart when Vital Surge is equipped). There are no visible
 button labels. Skill-list, detail, and
 store artwork continues to identify individual abilities.
 
-Button backgrounds identify spending: slate-blue for mana, grey-green for
+Button backgrounds identify spending: muted blue for mana, green for
 stamina, and rust for health, using the resource-bar colors under dark iron.
-Worn stained-gold rims and inset scoring connect the controls to the menu UI.
-The fills are
-translucent (about 58% opacity) so the world remains visible through them.
+Single subdued gold rims connect the controls to the menu UI.
+The fills are translucent (about 58% opacity) so the world remains visible
+through them.
 Free actions are neutral iron; actions using multiple resources show a subdued blend.
 Held shields show stamina even when activation is free. In-game jump color
 follows the available ground/air jump; the Skills preview shows both costs.
