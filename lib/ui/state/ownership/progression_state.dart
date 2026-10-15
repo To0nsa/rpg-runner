@@ -1,3 +1,5 @@
+import 'codex_progress.dart';
+
 enum StoreBucket {
   sword,
   shield,
@@ -263,7 +265,8 @@ class WeeklyProgressState {
           currentWindowValidatedRuns ?? this.currentWindowValidatedRuns,
       currentWindowGoldEarned:
           currentWindowGoldEarned ?? this.currentWindowGoldEarned,
-      lifetimeValidatedRuns: lifetimeValidatedRuns ?? this.lifetimeValidatedRuns,
+      lifetimeValidatedRuns:
+          lifetimeValidatedRuns ?? this.lifetimeValidatedRuns,
       lifetimeGoldEarned: lifetimeGoldEarned ?? this.lifetimeGoldEarned,
       lastWindowId: lastWindowId ?? this.lastWindowId,
       lastBoardId: lastBoardId ?? this.lastBoardId,
@@ -317,11 +320,13 @@ class ProgressionState {
     required this.gold,
     this.store = TownStoreState.initial,
     this.weekly = WeeklyProgressState.initial,
+    this.codex = CodexProgress.empty,
   });
 
   final int gold;
   final TownStoreState store;
   final WeeklyProgressState weekly;
+  final CodexProgress codex;
 
   static const ProgressionState initial = ProgressionState(
     gold: 0,
@@ -333,11 +338,13 @@ class ProgressionState {
     int? gold,
     TownStoreState? store,
     WeeklyProgressState? weekly,
+    CodexProgress? codex,
   }) {
     return ProgressionState(
       gold: gold ?? this.gold,
       store: store ?? this.store,
       weekly: weekly ?? this.weekly,
+      codex: codex ?? this.codex,
     );
   }
 
@@ -346,6 +353,7 @@ class ProgressionState {
       'gold': gold,
       'store': store.toJson(),
       'weeklyProgress': weekly.toJson(),
+      'codex': codex.toJson(),
     };
   }
 
@@ -372,6 +380,7 @@ class ProgressionState {
       gold: gold < 0 ? 0 : gold,
       store: store,
       weekly: weekly,
+      codex: CodexProgress.fromJson(json['codex']),
     );
   }
 }

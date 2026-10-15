@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/navigation/terrain_graph_materializer.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -19,6 +20,7 @@ import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/replay_digest.dart';
 import 'package:run_protocol/run_duration.dart';
 import 'package:run_protocol/validated_run.dart';
+import 'package:run_protocol/codex_run_progress.dart';
 
 import 'account_deletion_fence.dart';
 import 'board_repository.dart';
@@ -1069,6 +1071,14 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       tick: runEnded.tick,
       endedReason: runEnded.reason.name,
       goldEarned: runEnded.goldEarned,
+      codex: CodexRunProgress(
+        levelId: ticket.levelId,
+        enemyKills: {
+          for (final id in EnemyId.values)
+            if (runEnded.stats.enemyKillCounts[id.index] > 0)
+              id.name: runEnded.stats.enemyKillCounts[id.index],
+        },
+      ),
       stats: <String, Object?>{
         'collectibles': runEnded.stats.collectibles,
         'collectibleScore': runEnded.stats.collectibleScore,

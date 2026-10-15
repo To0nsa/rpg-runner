@@ -1,6 +1,9 @@
 import 'package:run_protocol/run_protocol.dart';
 
 void main() {
+  _expectArgumentError(
+    () => CodexRunProgress(levelId: 'forest', enemyKills: {'grojib': -1}),
+  );
   final valid = ReplayBlobV1.withComputedDigest(
     runSessionId: 'aot-protocol-probe',
     tickHz: 60,

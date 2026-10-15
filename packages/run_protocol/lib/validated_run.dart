@@ -1,4 +1,5 @@
 import 'board_key.dart';
+import 'codex_run_progress.dart';
 import 'codecs/json_value_copy.dart';
 import 'codecs/json_value_reader.dart';
 import 'replay_digest.dart';
@@ -24,6 +25,7 @@ final class ValidatedRun {
     this.boardKey,
     this.rejectionReason,
     this.replayStorageGeneration,
+    this.codex,
   }) : stats = immutableJsonObject(stats, fieldName: 'stats') {
     _requireNonEmpty(runSessionId, 'runSessionId');
     _requireNonEmpty(uid, 'uid');
@@ -40,6 +42,13 @@ final class ValidatedRun {
     }
     if (accepted && rejectionReason != null) {
       throw ArgumentError('accepted runs must not include rejectionReason.');
+    }
+    if (codex != null &&
+        (!accepted ||
+            (boardKey != null && boardKey!.levelId != codex!.levelId))) {
+      throw ArgumentError(
+        'Codex evidence requires an accepted matching level.',
+      );
     }
     if (!accepted && rejectionReason == null) {
       throw ArgumentError('rejected runs must include rejectionReason.');
@@ -104,6 +113,9 @@ final class ValidatedRun {
   final String endedReason;
   final int goldEarned;
   final Map<String, Object?> stats;
+
+  /// Absent on results produced before Codex tracking was introduced.
+  final CodexRunProgress? codex;
   final String replayDigest;
   final String replayStorageRef;
 
@@ -135,6 +147,7 @@ final class ValidatedRun {
       endedReason: endedReason,
       goldEarned: goldEarned,
       stats: stats,
+      codex: codex,
       replayDigest: replayDigest,
       replayStorageRef: replayStorageRef,
       replayStorageGeneration: replayStorageGeneration,
@@ -159,6 +172,7 @@ final class ValidatedRun {
       'endedReason': endedReason,
       'goldEarned': goldEarned,
       'stats': mutableJsonObjectCopy(stats, fieldName: 'stats'),
+      if (codex != null) 'codex': codex!.toJson(),
       'replayDigest': replayDigest,
       'replayStorageRef': replayStorageRef,
       if (replayStorageGeneration != null)
@@ -169,31 +183,38 @@ final class ValidatedRun {
 
   factory ValidatedRun.fromJson(Object? raw) {
     final json = asObjectMap(raw, fieldName: 'validatedRun');
-    return ValidatedRun(
-      runSessionId: readRequiredString(json, 'runSessionId'),
-      uid: readRequiredString(json, 'uid'),
-      boardId: readOptionalString(json, 'boardId'),
-      boardKey: json['boardKey'] == null
-          ? null
-          : BoardKey.fromJson(json['boardKey']),
-      mode: RunMode.parse(json['mode'], fieldName: 'mode'),
-      accepted: readRequiredBool(json, 'accepted'),
-      rejectionReason: readOptionalString(json, 'rejectionReason'),
-      score: readRequiredInt(json, 'score'),
-      distanceMeters: readRequiredInt(json, 'distanceMeters'),
-      durationSeconds: readRequiredInt(json, 'durationSeconds'),
-      tick: readRequiredInt(json, 'tick'),
-      endedReason: readRequiredString(json, 'endedReason'),
-      goldEarned: readRequiredInt(json, 'goldEarned'),
-      stats: readRequiredObject(json, 'stats'),
-      replayDigest: readRequiredString(json, 'replayDigest'),
-      replayStorageRef: readRequiredString(json, 'replayStorageRef'),
-      replayStorageGeneration: readOptionalString(
-        json,
-        'replayStorageGeneration',
-      ),
-      createdAtMs: readRequiredInt(json, 'createdAtMs'),
-    );
+    try {
+      return ValidatedRun(
+        runSessionId: readRequiredString(json, 'runSessionId'),
+        uid: readRequiredString(json, 'uid'),
+        boardId: readOptionalString(json, 'boardId'),
+        boardKey: json['boardKey'] == null
+            ? null
+            : BoardKey.fromJson(json['boardKey']),
+        mode: RunMode.parse(json['mode'], fieldName: 'mode'),
+        accepted: readRequiredBool(json, 'accepted'),
+        rejectionReason: readOptionalString(json, 'rejectionReason'),
+        score: readRequiredInt(json, 'score'),
+        distanceMeters: readRequiredInt(json, 'distanceMeters'),
+        durationSeconds: readRequiredInt(json, 'durationSeconds'),
+        tick: readRequiredInt(json, 'tick'),
+        endedReason: readRequiredString(json, 'endedReason'),
+        goldEarned: readRequiredInt(json, 'goldEarned'),
+        stats: readRequiredObject(json, 'stats'),
+        codex: json['codex'] == null
+            ? null
+            : CodexRunProgress.fromJson(json['codex']),
+        replayDigest: readRequiredString(json, 'replayDigest'),
+        replayStorageRef: readRequiredString(json, 'replayStorageRef'),
+        replayStorageGeneration: readOptionalString(
+          json,
+          'replayStorageGeneration',
+        ),
+        createdAtMs: readRequiredInt(json, 'createdAtMs'),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 
   static void _requireNonEmpty(String value, String name) {

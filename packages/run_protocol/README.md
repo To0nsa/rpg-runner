@@ -15,6 +15,8 @@ or Cloud Run processing.
 - `BoardKey` and `BoardManifest`: ranked board identity and active-board data
 - `ValidatedRun`, `LeaderboardEntry`, and `SubmissionStatus`: validation and
   projection payloads
+- `CodexRunProgress`: optional accepted-result evidence with a level identity
+  and per-enemy kill counts; omitted on legacy results
 
 Import the public API with:
 

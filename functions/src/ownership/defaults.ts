@@ -112,6 +112,7 @@ export function starterProgression(args: {
   const progression = structuredClone({
     gold: 0,
     awardedRunIds: [],
+    codex: { schemaVersion: 1, enemyKills: {}, competitiveBestScores: {} },
   } satisfies JsonObject);
   normalizeProgressionStore({
     progression,

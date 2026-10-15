@@ -1,5 +1,6 @@
 export 'board_key.dart';
 export 'board_manifest.dart';
+export 'codex_run_progress.dart';
 export 'leaderboard_entry.dart';
 export 'replay_blob.dart';
 export 'replay_digest.dart';

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/ui/state/ownership/codex_progress.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:run_protocol/run_ticket.dart';
@@ -472,7 +473,7 @@ void main() {
   );
 
   test(
-    'refreshRunSubmissionStatus syncs canonical gold when reward settles',
+    'refreshRunSubmissionStatus syncs canonical gold and Codex when reward settles',
     () async {
       final runSessionApi = _MutableRunSessionApi(
         finalizeStatus: SubmissionStatus(
@@ -507,7 +508,14 @@ void main() {
       );
       expect(appState.progression.gold, 0);
 
-      ownershipApi.setCanonicalState(_canonicalWithGold(gold: 23, revision: 2));
+      ownershipApi.setCanonicalState(_canonicalWithGold(
+        gold: 23,
+        revision: 2,
+        codex: CodexProgress(
+          enemyKills: {'grojib': 10},
+          competitiveBestScores: {'forest': 10000},
+        ),
+      ));
       runSessionApi.setLoadStatus(
         SubmissionStatus(
           runSessionId: 'run_refresh_final',
@@ -530,6 +538,8 @@ void main() {
 
       expect(status.isRewardFinal, isTrue);
       expect(appState.progression.gold, 23);
+      expect(appState.progression.codex.enemyKills, {'grojib': 10});
+      expect(appState.progression.codex.competitiveBestScores, {'forest': 10000});
       expect(ownershipApi.loadCanonicalStateCallCount, 2);
     },
   );
@@ -884,12 +894,13 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
 OwnershipCanonicalState _canonicalWithGold({
   required int gold,
   required int revision,
+  CodexProgress codex = CodexProgress.empty,
 }) {
   return OwnershipCanonicalState(
     profileId: 'profile_static',
     revision: revision,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
-    progression: ProgressionState.initial.copyWith(gold: gold),
+    progression: ProgressionState.initial.copyWith(gold: gold, codex: codex),
   );
 }

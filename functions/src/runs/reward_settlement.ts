@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
+import { applyCodexProgress } from "../ownership/codex_progress.js";
 import {
   canonicalMergeWriteData,
   canonicalWriteData,
@@ -153,6 +154,15 @@ export async function settleAcceptedRunSession(args: {
         nowMs,
         settlementGrantId: args.runSessionId,
       });
+      const codexChanged = applyCodexProgress({
+        progression: reconciled.canonicalState.progression,
+        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+        session,
+      });
+      if (codexChanged && !reconciled.canonicalChanged) {
+        reconciled.canonicalState.revision += 1;
+        reconciled.canonicalChanged = true;
+      }
       if (resolvedCanonical.exists && reconciled.canonicalChanged) {
         tx.set(
           resolvedCanonical.canonicalRef,

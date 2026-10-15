@@ -1,4 +1,7 @@
 import 'dart:convert';
+
+import 'package:runner_core/enemies/enemy_id.dart';
+
 import 'dart:io';
 
 import 'package:run_protocol/board_key.dart';
@@ -197,6 +200,12 @@ void main() {
       expect(result.stats['rescuedNpcs'], 2);
       expect(result.stats['rescuePoints'], 500);
       expect(result.stats['enemyKillCounts'], ended.stats.enemyKillCounts);
+      expect(result.codex!.levelId, replay.levelId);
+      expect(result.codex!.enemyKills, {
+        for (final id in EnemyId.values)
+          if (ended.stats.enemyKillCounts[id.index] > 0)
+            id.name: ended.stats.enemyKillCounts[id.index],
+      });
       expect(result.goldEarned, ended.goldEarned);
       expect(
         result.score,

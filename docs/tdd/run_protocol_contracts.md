@@ -21,6 +21,14 @@ The protocol package is the shared wire/value-contract layer for those steps.
 Backend authority remains in `functions/src` and
 `services/replay_validator/lib`.
 
+Accepted results may include `ValidatedRun.codex`, an immutable
+`CodexRunProgress` with schema version 1, ticket level ID and per-run kill
+counts keyed by stable enemy names. Missing legacy evidence remains valid;
+rejected results cannot carry it. Ranked evidence must match the board level.
+Backend settlement accumulates this evidence atomically with the wallet;
+see [Codex persistence](codex.md). This additive result field does not change
+replay canonicalization or digests.
+
 `LeaderboardEntry.ghostEligible` is an internal candidate signal. Its optional
 wire field `ghostAvailable` is the client-facing projection of an active,
 exposed ghost manifest whose identity and source replay evidence match the
