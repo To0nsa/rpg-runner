@@ -150,7 +150,9 @@ This split is deliberate so HUD doesn’t need to scan entities.
 * Input model: `AbilityInputMode` per slot. 
 * The targeting model contract is defined in controls doc (tap vs aim+commit) and must remain consistent across abilities.
 
-The six action controls display stable slot symbols without visible text. Their
+The six action controls display slot symbols without visible text. The spell
+button shows a heart when a health-restoration spell (Vital Surge) is equipped,
+and a magic wand for other spells, in both the run HUD and Skills preview. Their
 translucent backgrounds use the matching resource-bar colors under a charcoal
 overlay;
 multiple resource costs blend those muted colors, and free actions stay grey.

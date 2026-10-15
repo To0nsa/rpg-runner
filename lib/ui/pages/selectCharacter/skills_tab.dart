@@ -142,6 +142,7 @@ class _SkillsBarState extends State<SkillsBar> {
               SizedBox(
                 width: layout.radialWidth,
                 child: SkillsRadialPane(
+                  spellAbilityId: abilityIdForSlot(loadout, AbilitySlot.spell),
                   availableSlots: availableSlots,
                   selectedSlot: selectedSlot,
                   resourcesBySlot: resourcesBySlot,

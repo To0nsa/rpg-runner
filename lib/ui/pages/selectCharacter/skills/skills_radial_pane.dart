@@ -18,12 +18,16 @@ class SkillsRadialPane extends StatelessWidget {
     required this.selectedSlot,
     required this.resourcesBySlot,
     required this.onSelectSlot,
+    this.spellAbilityId,
   });
 
   final List<AbilitySlot> availableSlots;
   final AbilitySlot selectedSlot;
   final Map<AbilitySlot, ControlResourceUsage> resourcesBySlot;
   final ValueChanged<AbilitySlot> onSelectSlot;
+
+  /// Equipped spell, independent of the candidate currently inspected in the list.
+  final AbilityKey? spellAbilityId;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +52,9 @@ class SkillsRadialPane extends StatelessWidget {
                         .buttonTop,
                     child: _ActionSlotButton(
                       slot: slot,
+                      abilityId: slot == AbilitySlot.spell
+                          ? spellAbilityId
+                          : null,
                       resources:
                           resourcesBySlot[slot] ?? ControlResourceUsage.none,
                       selected: slot == selectedSlot,
@@ -68,6 +75,7 @@ class SkillsRadialPane extends StatelessWidget {
 class _ActionSlotButton extends StatelessWidget {
   const _ActionSlotButton({
     required this.slot,
+    this.abilityId,
     required this.resources,
     required this.selected,
     required this.onSelectSlot,
@@ -75,6 +83,7 @@ class _ActionSlotButton extends StatelessWidget {
   });
 
   final AbilitySlot slot;
+  final AbilityKey? abilityId;
   final ControlResourceUsage resources;
   final bool selected;
   final ValueChanged<AbilitySlot> onSelectSlot;
@@ -97,7 +106,7 @@ class _ActionSlotButton extends StatelessWidget {
     );
     final button = ActionButton(
       label: slotVisual.label,
-      icon: slotVisual.icon,
+      icon: abilityRadialLayoutSpec.iconFor(slot, abilityId: abilityId),
       resources: resources,
       onPressed: () => onSelectSlot(slot),
       tuning: buttonTuning,

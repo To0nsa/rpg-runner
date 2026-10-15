@@ -18,6 +18,7 @@ class SpellControl extends StatelessWidget {
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     this.label,
+    this.abilityId,
     this.resources = ControlResourceUsage.none,
   });
 
@@ -28,6 +29,9 @@ class SpellControl extends StatelessWidget {
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
   final String? label;
+
+  /// Equipped spell identity selects its semantic control symbol.
+  final AbilityKey? abilityId;
   final ControlResourceUsage resources;
 
   @override
@@ -38,7 +42,10 @@ class SpellControl extends StatelessWidget {
     final cooldownRing = tuning.style.cooldownRing;
     return ActionButton(
       label: resolvedLabel,
-      icon: slot.icon,
+      icon: abilityRadialLayoutSpec.iconFor(
+        AbilitySlot.spell,
+        abilityId: abilityId,
+      ),
       resources: resources,
       onPressed: onPressed,
       tuning: action,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/combat/status/status.dart';
 
 import 'layout/controls_radial_layout.dart';
 
@@ -47,6 +49,17 @@ class AbilityRadialLayoutSpec {
       if (spec.slot == slot) return spec;
     }
     throw StateError('No AbilityRadialSlotSpec found for slot: $slot');
+  }
+
+  /// Healing spells identify their effect; unknown abilities retain the slot symbol.
+  IconData iconFor(AbilitySlot slot, {AbilityKey? abilityId}) {
+    if (slot == AbilitySlot.spell && abilityId != null) {
+      final ability = AbilityCatalog.shared.resolve(abilityId);
+      if (ability?.selfStatusProfileId == StatusProfileId.restoreHealth) {
+        return LucideIcons.heart400;
+      }
+    }
+    return slotSpec(slot).icon;
   }
 
   ControlsAnchor anchorFor({

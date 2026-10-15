@@ -93,7 +93,11 @@ any pending eligibility.
 
 The run HUD and the Skills radial preview share `abilityRadialLayoutSpec` and
 the circular control shell. Its Lucide symbols identify slots (sword, shield,
-bow/arrow, wind/dash, upward jump, magic wand). Controls contain no visible
+bow/arrow, wind/dash, upward jump, magic wand). `iconFor` resolves the equipped
+spell's authored self-status profile: `restoreHealth` uses a heart, while other
+or unknown spells retain the wand. Both `SpellControl` and the Skills preview
+use this resolver; icon selection does not depend on the resource cost or the
+currently inspected skill. Controls contain no visible
 labels or authored skill images; their names remain semantic accessibility
 labels. Skill lists, details, and store cards retain `GameIcon.ability` artwork.
 

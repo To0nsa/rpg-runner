@@ -89,6 +89,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     this.tuning = ControlsTuning.fixed,
     this.missingResourcesBySlot = const {},
     this.onResourceShortfall,
+    this.spellAbilityId,
   });
 
   final ValueChanged<double> onMoveAxis;
@@ -155,6 +156,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   /// Only valid, resource-blocked slots belong here; cooldowns are filtered below.
   final Map<AbilitySlot, ControlResourceUsage> missingResourcesBySlot;
   final ValueChanged<ControlResourceUsage>? onResourceShortfall;
+
+  /// Equipped spell identity, shared with the Skills preview's icon resolver.
+  final AbilityKey? spellAbilityId;
 
   @override
   Widget build(BuildContext context) {
@@ -266,6 +270,7 @@ class RunnerControlsOverlay extends StatelessWidget {
             AbilitySlot.spell,
             spellCooldownTicksLeft,
             SpellControl(
+              abilityId: spellAbilityId,
               tuning: themedTuning,
               size: sizeFor(AbilitySlot.spell),
               label: labelFor(AbilitySlot.spell),
