@@ -213,6 +213,7 @@ class TrackManager {
       width: sprite.width,
       height: sprite.height,
       zIndex: sprite.zIndex,
+      isDecoration: sprite.isDecoration,
       flipX: sprite.flipX,
       flipY: sprite.flipY,
       rotationDegrees: sprite.rotationDegrees,

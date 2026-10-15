@@ -362,6 +362,7 @@ ChunkVisualSpriteRel _rotateSprite(
     width: sprite.width,
     height: sprite.height,
     zIndex: sprite.zIndex,
+    isDecoration: sprite.isDecoration,
     flipX: sprite.flipX,
     flipY: sprite.flipY,
     rotationDegrees: degrees,
@@ -402,6 +403,7 @@ ChunkVisualSpriteRel _sprite({
     width: width,
     height: height,
     zIndex: placement.zIndex - groundBandZIndex,
+    isDecoration: prefab.kind == 'decoration',
     flipX: placement.flipX,
     flipY: placement.flipY,
   );

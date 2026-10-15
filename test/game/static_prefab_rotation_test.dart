@@ -27,52 +27,101 @@ void main() {
     game.images.add('rotation_test.png', sheet);
     await tester.pumpWidget(GameWidget(game: game));
     await tester.runAsync(() => game.loaded);
-    for (final angle in [0.0, 90.0, 37.5]) {
-      for (final flipX in [false, true]) {
-        for (final flipY in [false, true]) {
-          final view = StaticPrefabSpriteComponent(
-            assetPath: 'rotation_test.png',
-            srcRect: const Rect.fromLTWH(0, 0, 4, 2),
-            position: Vector2(30, 40),
-            size: Vector2(40, 20),
-            flipX: flipX,
-            flipY: flipY,
-            rotationDegrees: angle,
-          );
-          game.world.add(view);
-          await tester.pump();
-          await tester.runAsync(() => view.loaded);
-          game.update(0);
-          final actualRecorder = ui.PictureRecorder();
-          view.renderTree(ui.Canvas(actualRecorder));
-          final expectedRecorder = ui.PictureRecorder();
-          final canvas = ui.Canvas(expectedRecorder)
-            ..translate(50, 50)
-            ..rotate(angle * math.pi / 180)
-            ..scale(flipX ? -1 : 1, flipY ? -1 : 1);
-          canvas.drawImageRect(
-            sheet,
-            const Rect.fromLTWH(0, 0, 4, 2),
-            const Rect.fromLTWH(-20, -10, 40, 20),
-            Paint()..filterQuality = ui.FilterQuality.none,
-          );
-          final actualPicture = actualRecorder.endRecording();
-          final expectedPicture = expectedRecorder.endRecording();
-          await tester.runAsync(() async {
-            final actual = await actualPicture.toImage(100, 100);
-            final expected = await expectedPicture.toImage(100, 100);
-            expect(
-              (await actual.toByteData())!.buffer.asUint8List(),
-              (await expected.toByteData())!.buffer.asUint8List(),
-              reason: 'angle=$angle flipX=$flipX flipY=$flipY',
+    for (final isDecoration in [false, true]) {
+      for (final angle in isDecoration ? [0.0] : [0.0, 90.0, 37.5]) {
+        for (final flipX in isDecoration ? [false] : [false, true]) {
+          for (final flipY in isDecoration ? [false] : [false, true]) {
+            final view = StaticPrefabSpriteComponent(
+              assetPath: 'rotation_test.png',
+              srcRect: const Rect.fromLTWH(0, 0, 4, 2),
+              position: Vector2(30, 40),
+              size: Vector2(40, 20),
+              flipX: flipX,
+              flipY: flipY,
+              rotationDegrees: angle,
+              isDecoration: isDecoration,
             );
-            actual.dispose();
-            expected.dispose();
-          });
-          actualPicture.dispose();
-          expectedPicture.dispose();
-          view.removeFromParent();
-          await tester.pump();
+            game.world.add(view);
+            await tester.pump();
+            await tester.runAsync(() => view.loaded);
+            game.update(0);
+            final actualRecorder = ui.PictureRecorder();
+            view.renderTree(ui.Canvas(actualRecorder));
+            final expectedRecorder = ui.PictureRecorder();
+            final canvas = ui.Canvas(expectedRecorder)
+              ..translate(50, 50)
+              ..rotate(angle * math.pi / 180)
+              ..scale(flipX ? -1 : 1, flipY ? -1 : 1);
+            final expectedPaint = Paint()
+              ..filterQuality = ui.FilterQuality.none;
+            if (isDecoration) {
+              expectedPaint.colorFilter = const ColorFilter.matrix(<double>[
+                0.8,
+                0,
+                0,
+                0,
+                51,
+                0,
+                0.8,
+                0,
+                0,
+                51,
+                0,
+                0,
+                0.8,
+                0,
+                51,
+                0,
+                0,
+                0,
+                1,
+                0,
+              ]);
+            }
+            canvas.drawImageRect(
+              sheet,
+              const Rect.fromLTWH(0, 0, 4, 2),
+              const Rect.fromLTWH(-20, -10, 40, 20),
+              expectedPaint,
+            );
+            final actualPicture = actualRecorder.endRecording();
+            final expectedPicture = expectedRecorder.endRecording();
+            await tester.runAsync(() async {
+              final actual = await actualPicture.toImage(100, 100);
+              final expected = await expectedPicture.toImage(100, 100);
+              final actualPixels = (await actual.toByteData())!.buffer
+                  .asUint8List();
+              expect(
+                actualPixels,
+                (await expected.toByteData())!.buffer.asUint8List(),
+                reason:
+                    'angle=$angle flipX=$flipX flipY=$flipY decoration=$isDecoration',
+              );
+              if (isDecoration) {
+                expect(
+                  actualPixels.sublist(
+                    (45 * 100 + 40) * 4,
+                    (45 * 100 + 40) * 4 + 4,
+                  ),
+                  [255, 51, 51, 255],
+                );
+                expect(
+                  actualPixels.sublist(
+                    (45 * 100 + 60) * 4,
+                    (45 * 100 + 60) * 4 + 4,
+                  ),
+                  [51, 51, 255, 255],
+                );
+                expect(actualPixels.sublist(0, 4), [0, 0, 0, 0]);
+              }
+              actual.dispose();
+              expected.dispose();
+            });
+            actualPicture.dispose();
+            expectedPicture.dispose();
+            view.removeFromParent();
+            await tester.pump();
+          }
         }
       }
     }

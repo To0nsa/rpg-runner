@@ -790,6 +790,9 @@ void _writePatternList(
         ..writeln('        width: ${sprite.width},')
         ..writeln('        height: ${sprite.height},')
         ..writeln('        zIndex: ${sprite.zIndex},');
+      if (sprite.isDecoration) {
+        buffer.writeln('        isDecoration: true,');
+      }
       if (sprite.flipX) {
         buffer.writeln('        flipX: true,');
       }

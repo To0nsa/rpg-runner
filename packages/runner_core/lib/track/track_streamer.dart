@@ -371,6 +371,7 @@ class TrackStreamer {
               width: sprite.width,
               height: sprite.height,
               zIndex: sprite.zIndex,
+              isDecoration: sprite.isDecoration,
               flipX: sprite.flipX,
               flipY: sprite.flipY,
               rotationDegrees: sprite.rotationDegrees,
@@ -615,6 +616,7 @@ class ChunkVisualSpriteWorld {
     required this.width,
     required this.height,
     required this.zIndex,
+    this.isDecoration = false,
     this.flipX = false,
     this.flipY = false,
     this.rotationDegrees = 0,
@@ -630,6 +632,7 @@ class ChunkVisualSpriteWorld {
   final double width;
   final double height;
   final int zIndex;
+  final bool isDecoration;
   final bool flipX;
   final bool flipY;
 

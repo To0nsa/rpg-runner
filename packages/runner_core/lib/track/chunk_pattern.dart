@@ -67,6 +67,7 @@ class ChunkVisualSpriteRel {
     required this.width,
     required this.height,
     this.zIndex = 0,
+    this.isDecoration = false,
     this.flipX = false,
     this.flipY = false,
     this.rotationDegrees = 0,
@@ -87,6 +88,9 @@ class ChunkVisualSpriteRel {
 
   /// Authored prefab z minus the chunk's terrain z; ties paint over terrain.
   final int zIndex;
+
+  /// True only for collision-free authored decoration prefabs.
+  final bool isDecoration;
   final bool flipX;
   final bool flipY;
 

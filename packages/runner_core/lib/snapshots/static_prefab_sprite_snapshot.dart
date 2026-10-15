@@ -13,6 +13,7 @@ class StaticPrefabSpriteSnapshot {
     required this.width,
     required this.height,
     required this.zIndex,
+    this.isDecoration = false,
     this.flipX = false,
     this.flipY = false,
     this.rotationDegrees = 0,
@@ -35,6 +36,9 @@ class StaticPrefabSpriteSnapshot {
   /// Layer relative to the owning chunk's terrain: negative renders behind it;
   /// zero and positive render in front. This is not a Flame component priority.
   final int zIndex;
+
+  /// Identifies collision-free scenery for render-only dimming.
+  final bool isDecoration;
   final bool flipX;
   final bool flipY;
 

@@ -42,6 +42,9 @@ terrain at z `0` has its roots hidden by the grass and soil.
 - Prefab collision never paints or cuts the terrain material. A placed
   Prefab's sprite owns its appearance, while the Chunk terrain keeps the same
   fill and surface strip it had before placement, including at exact contact.
+- Collision-free decoration Prefabs blend 20% toward white, giving passable
+  scenery a paler appearance than solid obstacle and platform Prefabs.
+  Transparency and terrain colors stay unchanged.
 - The `grass_dirt` atlas cells carry a one-pixel export outline. Edge and cap
   regions omit that outward-facing row or column in source space, so device
   scaling and clip rasterization cannot reveal it. The visible grass and rock

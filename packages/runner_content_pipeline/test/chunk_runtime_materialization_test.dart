@@ -6,6 +6,24 @@ import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('only authored decoration sprites carry the dimming flag', () {
+    for (final kind in ['decoration', 'obstacle', 'platform']) {
+      final result = compilePolygonTerrainRuntimeChunkSource(
+        prefabSourcePath: 'prefab.json',
+        prefabContents: _prefabs.replaceFirst('"obstacle"', '"$kind"'),
+        tileSourcePath: 'tile.json',
+        tileContents: _tiles,
+        chunkSourcePath: 'chunk.json',
+        chunkContents: _chunk,
+      );
+      expect(result.issues, isEmpty);
+      expect(
+        result.chunk!.pattern.visualSprites.single.isDecoration,
+        kind == 'decoration',
+      );
+    }
+  });
+
   test('decoration rotation preserves the scaled reflected atlas center and physics', () {
     PolygonTerrainRuntimeChunk compile(double degrees) {
       final source = jsonDecode(_chunk) as Map<String, dynamic>;

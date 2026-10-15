@@ -48,6 +48,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
         width: 80.0,
         height: 112.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -60,6 +61,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
         width: 76.80000000000001,
         height: 128.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
     ],
@@ -97,6 +99,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -109,6 +112,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -121,6 +125,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -142,6 +147,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 108.8,
         height: 163.2,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/summer_scroller_tileset/tiles_summer.png',
@@ -154,6 +160,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 16.0,
         height: 80.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/summer_scroller_tileset/tiles_summer.png',
@@ -166,6 +173,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 144.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/summer_scroller_tileset/tiles_summer.png',
@@ -178,6 +186,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 16.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -301,6 +310,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -313,6 +323,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -325,6 +336,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -337,6 +349,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -349,6 +362,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -361,6 +375,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -373,6 +388,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -385,6 +401,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -397,6 +414,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/high_forest/props_and_terrain.png',
@@ -409,6 +427,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/high_forest/props_and_terrain.png',
@@ -421,6 +440,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -443,6 +463,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 224.0,
         height: 192.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -491,6 +512,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -503,6 +525,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -515,6 +538,7 @@ final List<ChunkPattern> fieldEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -546,6 +570,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 291.2,
         height: 249.60000000000002,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -558,6 +583,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 96.0,
         height: 160.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -591,6 +617,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 153.60000000000002,
         height: 204.8,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -639,6 +666,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 22,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Alchemy Decor.png',
@@ -663,6 +691,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 160.0,
         height: 32.0,
         zIndex: 22,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Alchemy Decor.png',
@@ -687,6 +716,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 22,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/mondstadt/basic.png',
@@ -699,6 +729,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 160.0,
         height: 32.0,
         zIndex: 22,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -721,6 +752,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 224.0,
         height: 160.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props2.png',
@@ -754,6 +786,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 288.0,
         height: 192.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props2.png',
@@ -787,6 +820,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 16.0,
         height: 16.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -835,6 +869,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 128.0,
         height: 96.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -847,6 +882,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 16.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -859,6 +895,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 16.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Tall Grass.png',
@@ -871,6 +908,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 28.799999999999997,
         height: 9.6,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -928,6 +966,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 48.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -940,6 +979,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -953,6 +993,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -965,6 +1006,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -986,6 +1028,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 224.0,
         height: 160.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props2.png',
@@ -998,6 +1041,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 160.0,
         height: 96.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -1044,6 +1088,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -1056,6 +1101,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Tall Grass.png',
@@ -1068,6 +1114,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 96.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -1080,6 +1127,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -1137,6 +1185,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 128.0,
         height: 44.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -1229,6 +1278,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -1241,6 +1291,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: <SpawnMarker>[
@@ -1265,6 +1316,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 120.0,
         height: 192.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1277,6 +1329,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 134.39999999999998,
         height: 179.2,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -1301,6 +1354,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 16.0,
         zIndex: -20,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/cimetery/brush.png',
@@ -1313,6 +1367,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 224.0,
         height: 96.0,
         zIndex: -20,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1325,6 +1380,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 16.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1337,6 +1393,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1349,6 +1406,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 16.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1361,6 +1419,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         rotationDegrees: 311.0,
       ),
       ChunkVisualSpriteRel(
@@ -1374,6 +1433,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1386,6 +1446,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1398,6 +1459,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 80.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1410,6 +1472,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1422,6 +1485,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         rotationDegrees: 330.0,
       ),
       ChunkVisualSpriteRel(
@@ -1435,6 +1499,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1447,6 +1512,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1459,6 +1525,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1471,6 +1538,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1483,6 +1551,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1495,6 +1564,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1507,6 +1577,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1519,6 +1590,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 80.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -1531,6 +1603,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 16.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -1565,6 +1638,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 112.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -1577,6 +1651,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 112.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -1614,6 +1689,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -1627,6 +1703,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/rune_rocks/props.png',
@@ -1639,6 +1716,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 24.0,
         height: 24.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -1651,6 +1729,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 192.0,
         zIndex: 2,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -1663,6 +1742,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 144.0,
         zIndex: 2,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -1684,6 +1764,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -1708,6 +1789,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -1732,6 +1814,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 104.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -1744,6 +1827,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 144.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -1802,6 +1886,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -1826,6 +1911,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 208.0,
         height: 192.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -1872,6 +1958,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/kauzz_forest/environment.png',
@@ -1884,6 +1971,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 144.0,
         height: 176.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -1906,6 +1994,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 144.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -1939,6 +2028,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 192.0,
         height: 176.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -2009,6 +2099,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -2021,6 +2112,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 152.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -2033,6 +2125,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/cimetery/brush.png',
@@ -2045,6 +2138,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 156.79999999999998,
         height: 67.19999999999999,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -2142,6 +2236,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 208.0,
         height: 176.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -2154,6 +2249,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: -4,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -2202,6 +2298,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -2214,6 +2311,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -2235,6 +2333,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 230.39999999999998,
         height: 211.2,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -2247,6 +2346,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 128.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -2283,6 +2383,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -2366,6 +2467,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -2481,6 +2583,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 160.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -2551,6 +2654,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 332.8,
         height: 270.40000000000003,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Large Tent.png',
@@ -2606,6 +2710,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -2618,6 +2723,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -2678,6 +2784,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -2772,6 +2879,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -2796,6 +2904,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -2817,6 +2926,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -2829,6 +2939,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -2841,6 +2952,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -2879,6 +2991,7 @@ final List<ChunkPattern> forestEasyPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -2903,6 +3016,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 48.0,
         height: 80.0,
         zIndex: -23,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -2915,6 +3029,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 56.0,
         height: 152.0,
         zIndex: -22,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -2927,6 +3042,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 144.0,
         height: 192.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/rune_rocks/props.png',
@@ -2951,6 +3067,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 24.0,
         height: 24.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -2963,6 +3080,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -2975,6 +3093,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -2987,6 +3106,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 80.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -2999,6 +3119,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 16.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -3011,6 +3132,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 192.0,
         height: 230.39999999999998,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -3023,6 +3145,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 56.0,
         height: 168.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -3035,6 +3158,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 16.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -3056,6 +3180,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 176.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -3080,6 +3205,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -3105,6 +3231,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 104.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -3118,6 +3245,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 115.2,
         height: 38.400000000000006,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
     ],
@@ -3165,6 +3293,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -3189,6 +3318,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 208.0,
         height: 192.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -3236,6 +3366,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/kauzz_forest/environment.png',
@@ -3248,6 +3379,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 144.0,
         height: 176.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -3282,6 +3414,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 144.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -3327,6 +3460,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 192.0,
         height: 176.0,
         zIndex: -21,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -3393,6 +3527,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 48.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -3405,6 +3540,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 152.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -3417,6 +3553,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 48.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/cimetery/brush.png',
@@ -3429,6 +3566,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 156.79999999999998,
         height: 67.19999999999999,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -3503,6 +3641,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 144.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -3560,6 +3699,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: -4,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/kauzz_forest/environment.png',
@@ -3572,6 +3712,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 208.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -3608,6 +3749,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -3620,6 +3762,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 32.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -3642,6 +3785,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -3654,6 +3798,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 32.0,
         height: 16.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -3752,6 +3897,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -3764,6 +3910,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -3776,6 +3923,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -3797,6 +3945,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 115.2,
         height: 201.6,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -3863,6 +4012,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 144.0,
         height: 192.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -3875,6 +4025,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 112.0,
         height: 179.2,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -3887,6 +4038,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 134.39999999999998,
         height: 179.2,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/high_forest/props_and_terrain.png',
@@ -3899,6 +4051,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -3911,6 +4064,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 80.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -3924,6 +4078,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 80.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -3936,6 +4091,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 104.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -3948,6 +4104,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -3960,6 +4117,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 80.0,
         height: 40.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -3972,6 +4130,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -3984,6 +4143,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 104.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -3997,6 +4157,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 152.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -4009,6 +4170,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 48.0,
         height: 16.0,
         zIndex: 21,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -4081,6 +4243,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -4116,6 +4279,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 288.0,
         height: 192.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Small Tent.png',
@@ -4246,6 +4410,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 160.0,
         height: 160.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -4303,6 +4468,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 332.8,
         height: 270.40000000000003,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Large Tent.png',
@@ -4386,6 +4552,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Birch1.png',
@@ -4398,6 +4565,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 179.20000000000002,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -4410,6 +4578,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -4471,6 +4640,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -4529,6 +4699,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -4553,6 +4724,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 96.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -4582,6 +4754,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 128.0,
         height: 144.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -4594,6 +4767,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 176.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -4606,6 +4780,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 160.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -4644,6 +4819,7 @@ final List<ChunkPattern> forestNormalPatterns = List.unmodifiable(<ChunkPattern>
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -4681,6 +4857,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 112.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4693,6 +4870,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 112.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/rune_rocks/props.png',
@@ -4717,6 +4895,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 24.0,
         height: 24.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4729,6 +4908,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 80.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4741,6 +4921,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -4753,6 +4934,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 64.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -4765,6 +4947,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -4777,6 +4960,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -4789,6 +4973,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4801,6 +4986,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 56.0,
         height: 152.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4813,6 +4999,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 56.0,
         height: 168.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4825,6 +5012,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 208.0,
         height: 192.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/green_woods/trees.png',
@@ -4837,6 +5025,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 144.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/crystal_world/main_lev_build_1.png',
@@ -4849,6 +5038,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -4886,6 +5076,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 3,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -4922,6 +5113,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -4959,6 +5151,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 115.2,
         height: 38.400000000000006,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -4972,6 +5165,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 104.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -4985,6 +5179,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 176.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -5019,6 +5214,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -5055,6 +5251,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 208.0,
         height: 192.0,
         zIndex: 1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -5103,6 +5300,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 144.0,
         height: 176.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -5125,6 +5323,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 144.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -5170,6 +5369,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 192.0,
         height: 176.0,
         zIndex: -21,
+        isDecoration: true,
         flipX: true,
       ),
       ChunkVisualSpriteRel(
@@ -5241,6 +5441,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 48.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/trees.png',
@@ -5253,6 +5454,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 152.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/dark_forest/decorations.png',
@@ -5265,6 +5467,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 48.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/cimetery/brush.png',
@@ -5277,6 +5480,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 156.79999999999998,
         height: 67.19999999999999,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -5394,6 +5598,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -5452,6 +5657,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: -4,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/kauzz_forest/environment.png',
@@ -5464,6 +5670,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 208.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -5500,6 +5707,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -5512,6 +5720,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 16.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -5534,6 +5743,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/fantasy_environment/mixed_biomes.png',
@@ -5546,6 +5756,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 16.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -5644,6 +5855,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -5656,6 +5868,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/ancient_forest/props.png',
@@ -5668,6 +5881,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -5689,6 +5903,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 115.2,
         height: 201.6,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -5760,6 +5975,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/ground.png',
@@ -5887,6 +6103,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -5923,6 +6140,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 288.0,
         height: 192.0,
         zIndex: -24,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Small Tent.png',
@@ -6048,6 +6266,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 160.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -6106,6 +6325,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 332.8,
         height: 270.40000000000003,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Large Tent.png',
@@ -6176,6 +6396,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 147.2,
         height: 220.79999999999998,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/grimstone_platformer_32x32/tiles_grimrock_vegetation.png',
@@ -6188,6 +6409,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 160.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/grimstone_platformer_32x32/tiles_grimrock_vegetation.png',
@@ -6200,6 +6422,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 160.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/grimstone_platformer_32x32/tiles_grimrock_vegetation.png',
@@ -6212,6 +6435,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 32.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/grimstone_platformer_32x32/tiles_grimrock_vegetation.png',
@@ -6224,6 +6448,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 32.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Flowering Tree.png',
@@ -6236,6 +6461,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 112.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Angel Statue.png',
@@ -6260,6 +6486,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/grimstone_platformer_32x32/tiles_grimrock_vegetation.png',
@@ -6272,6 +6499,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/grimstone_platformer_32x32/tiles_grimrock_vegetation.png',
@@ -6284,6 +6512,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Garden Decorations.png',
@@ -6296,6 +6525,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Garden Decorations.png',
@@ -6308,6 +6538,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Garden Decorations.png',
@@ -6320,6 +6551,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 32.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -6342,6 +6574,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/gandalf_hardcore/Birch1.png',
@@ -6354,6 +6587,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 179.20000000000002,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -6366,6 +6600,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/pixel_fantasy_caves/props1.png',
@@ -6414,6 +6649,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -6472,6 +6708,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -6496,6 +6733,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 96.0,
         height: 48.0,
         zIndex: 1,
+        isDecoration: true,
       ),
     ],
     spawnMarkers: const <SpawnMarker>[
@@ -6525,6 +6763,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 160.0,
         height: 64.0,
         zIndex: -21,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -6537,6 +6776,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 128.0,
         height: 144.0,
         zIndex: -1,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/tiny_swords/village_props.png',
@@ -6549,6 +6789,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 176.0,
         height: 176.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',
@@ -6587,6 +6828,7 @@ final List<ChunkPattern> forestHardPatterns = List.unmodifiable(<ChunkPattern>[
         width: 64.0,
         height: 32.0,
         zIndex: 0,
+        isDecoration: true,
       ),
       ChunkVisualSpriteRel(
         assetPath: 'level/atlases/woods/decor.png',

@@ -16,6 +16,44 @@ import 'package:runner_core/util/vec2.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('enemy hit strips advance through every authored frame', () async {
+    final images = Images();
+    addTearDown(images.clearCache);
+    final registry = EnemyRenderRegistry();
+    await registry.load(images);
+    for (final enemyId in EnemyId.values) {
+      final entry = registry.entryFor(enemyId)!;
+      final view = entry.createView();
+      await view.onLoad();
+      final hitKeys = enemyId == EnemyId.derf
+          ? const [AnimKey.casterHit, AnimKey.hit]
+          : const [AnimKey.hit];
+      for (final hitKey in hitKeys) {
+        final hit = entry.animSet.animations[hitKey]!;
+        final ticksPerFrame = entry.animSet.ticksPerFrameFor(hitKey, 60);
+        for (var frame = 0; frame < hit.frames.length; frame++) {
+          view.applySnapshot(
+            EntityRenderSnapshot(
+              id: 1,
+              kind: EntityKind.enemy,
+              enemyId: enemyId,
+              pos: const Vec2(0, 0),
+              facing: Facing.right,
+              anim: hitKey,
+              animFrame: frame * ticksPerFrame,
+              grounded: true,
+            ),
+            tickHz: 60,
+          );
+          expect(view.current, hitKey, reason: '$enemyId frame $frame');
+          expect(view.animationTicker!.currentIndex, frame);
+          view.update(1);
+          expect(view.animationTicker!.currentIndex, frame);
+        }
+      }
+    }
+  });
+
   test('Derf caster and twisted art share a pivot and transformation is tick-driven', () async {
     final images = Images();
     addTearDown(images.clearCache);

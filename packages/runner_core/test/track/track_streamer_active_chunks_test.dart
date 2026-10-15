@@ -23,6 +23,7 @@ void main() {
             width: 40,
             height: 20,
             zIndex: -1,
+            isDecoration: true,
             flipX: true,
             rotationDegrees: 37.5,
           ),
@@ -55,7 +56,11 @@ void main() {
       ]);
       expect(
         streamer.dynamicVisualSprites.every(
-          (s) => s.rotationDegrees == 37.5 && s.flipX && s.y == 9,
+          (s) =>
+              s.rotationDegrees == 37.5 &&
+              s.flipX &&
+              s.y == 9 &&
+              s.isDecoration,
         ),
         isTrue,
       );

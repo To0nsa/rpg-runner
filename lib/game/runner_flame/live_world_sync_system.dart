@@ -139,6 +139,7 @@ class LiveWorldSyncSystem {
         flipX: sprite.flipX,
         flipY: sprite.flipY,
         rotationDegrees: sprite.rotationDegrees,
+        isDecoration: sprite.isDecoration,
       )..priority = priorityStaticPrefabs + sprite.zIndex;
       _staticPrefabSpritesByKey[key] = view;
       world.add(view);
@@ -440,6 +441,7 @@ class _StaticPrefabSpriteKey {
     required this.width,
     required this.height,
     required this.zIndex,
+    required this.isDecoration,
     required this.flipX,
     required this.flipY,
     required this.rotationDegrees,
@@ -457,6 +459,7 @@ class _StaticPrefabSpriteKey {
       width: s.width,
       height: s.height,
       zIndex: s.zIndex,
+      isDecoration: s.isDecoration,
       flipX: s.flipX,
       flipY: s.flipY,
       rotationDegrees: s.rotationDegrees,
@@ -473,6 +476,7 @@ class _StaticPrefabSpriteKey {
   final double width;
   final double height;
   final int zIndex;
+  final bool isDecoration;
   final bool flipX;
   final bool flipY;
   final double rotationDegrees;
@@ -490,6 +494,7 @@ class _StaticPrefabSpriteKey {
         other.width == width &&
         other.height == height &&
         other.zIndex == zIndex &&
+        other.isDecoration == isDecoration &&
         other.flipX == flipX &&
         other.flipY == flipY &&
         other.rotationDegrees == rotationDegrees;
@@ -507,6 +512,7 @@ class _StaticPrefabSpriteKey {
     width,
     height,
     zIndex,
+    isDecoration,
     flipX,
     flipY,
     rotationDegrees,

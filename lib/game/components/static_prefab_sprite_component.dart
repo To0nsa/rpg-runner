@@ -16,12 +16,14 @@ class StaticPrefabSpriteComponent extends PositionComponent
     this.flipX = false,
     this.flipY = false,
     this.rotationDegrees = 0,
+    this.isDecoration = false,
   }) : super(position: position, size: size, anchor: Anchor.topLeft);
 
   final String assetPath;
   final ui.Rect srcRect;
   final bool flipX;
   final bool flipY;
+  final bool isDecoration;
 
   /// Clockwise degrees around the destination center, after local reflections.
   final double rotationDegrees;
@@ -30,6 +32,32 @@ class StaticPrefabSpriteComponent extends PositionComponent
 
   static final ui.Paint _spritePaint = ui.Paint()
     ..filterQuality = ui.FilterQuality.none;
+  // Blend passable scenery 20% toward white (51 of 255) without changing
+  // alpha, so atlas cutouts still reveal the scene beneath them.
+  static final ui.Paint _decorationPaint = ui.Paint()
+    ..filterQuality = ui.FilterQuality.none
+    ..colorFilter = const ui.ColorFilter.matrix(<double>[
+      0.8,
+      0,
+      0,
+      0,
+      51,
+      0,
+      0.8,
+      0,
+      0,
+      51,
+      0,
+      0,
+      0.8,
+      0,
+      51,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ]);
   static final ui.Paint _fallbackPaint = ui.Paint()
     ..color = const ui.Color(0x66FF00FF);
 
@@ -97,7 +125,7 @@ class StaticPrefabSpriteComponent extends PositionComponent
         image,
         srcRect,
         ui.Rect.fromLTWH(0, 0, size.x, size.y),
-        _spritePaint,
+        isDecoration ? _decorationPaint : _spritePaint,
       );
       if (flipX || flipY) {
         canvas.restore();

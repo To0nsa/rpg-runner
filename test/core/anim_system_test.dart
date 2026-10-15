@@ -8,6 +8,7 @@ import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/stores/death_state_store.dart';
+import 'package:runner_core/ecs/stores/enemies/derf_phase_store.dart';
 import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
 import 'package:runner_core/ecs/systems/anim/anim_system.dart';
 import 'package:runner_core/ecs/world.dart';
@@ -21,6 +22,7 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/enemies/death_behavior.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/tuning/utils/anim_tuning.dart' as anim_tuning;
 
 import 'test_spawns.dart';
 
@@ -449,6 +451,113 @@ void main() {
         expect(
           world.controlLock.stunStartTick[cliAfter],
           equals(stunStartBefore),
+        );
+      });
+    });
+
+    group('Enemy hit reactions', () {
+      test('each enemy exposes the complete hit strip after direct damage', () {
+        for (
+          var enemyIndex = 0;
+          enemyIndex < EnemyId.values.length;
+          enemyIndex++
+        ) {
+          final enemyId = EnemyId.values[enemyIndex];
+          final damageTick = 100 + enemyIndex * 300;
+          final archetype = enemyCatalog.get(enemyId);
+          final enemy = EntityFactory(world).createEnemy(
+            enemyId: enemyId,
+            posX: 100,
+            posY: 100,
+            velX: 0,
+            velY: 0,
+            facing: Facing.right,
+            body: archetype.body,
+            collider: archetype.collider,
+            health: archetype.health,
+            mana: archetype.mana,
+            stamina: archetype.stamina,
+          );
+          world.lastDamage.add(enemy);
+          world.lastDamage.tick[world.lastDamage.indexOf(enemy)] = damageTick;
+          final frameCount =
+              archetype.renderAnim.frameCountsByKey[AnimKey.hit]!;
+          final duration = anim_tuning.ticksForKey(
+            key: AnimKey.hit,
+            frameCounts: archetype.renderAnim.frameCountsByKey,
+            stepTimeSecondsByKey: archetype.renderAnim.stepTimeSecondsByKey,
+            tickHz: 60,
+          );
+          final ticksPerFrame = duration ~/ frameCount;
+          final ai = world.animState.indexOf(enemy);
+          final expectedKey = enemyId == EnemyId.derf
+              ? AnimKey.casterHit
+              : AnimKey.hit;
+          for (var frame = 0; frame < frameCount; frame++) {
+            final tick = damageTick + frame * ticksPerFrame;
+            stepEnemies(tick);
+            expect(
+              world.animState.anim[ai],
+              expectedKey,
+              reason: '$enemyId frame $frame',
+            );
+            expect(world.animState.animFrame[ai], frame * ticksPerFrame);
+          }
+          stepEnemies(damageTick + duration);
+          expect(
+            world.animState.anim[ai],
+            isNot(expectedKey),
+            reason: '$enemyId expired',
+          );
+
+          if (enemyId == EnemyId.derf) {
+            world.derfPhase.phase[world.derfPhase.indexOf(enemy)] =
+                DerfPhase.twisted;
+            final twistedDamageTick = damageTick + 100;
+            world.lastDamage.tick[world.lastDamage.indexOf(enemy)] =
+                twistedDamageTick;
+            for (var frame = 0; frame < frameCount; frame++) {
+              stepEnemies(twistedDamageTick + frame * ticksPerFrame);
+              expect(world.animState.anim[ai], AnimKey.hit);
+              expect(world.animState.animFrame[ai], frame * ticksPerFrame);
+            }
+          }
+        }
+      });
+
+      test('Bringer keeps its committed attack pose when damaged', () {
+        final archetype = enemyCatalog.get(EnemyId.bringerOfDeath);
+        final boss = EntityFactory(world).createEnemy(
+          enemyId: EnemyId.bringerOfDeath,
+          posX: 100,
+          posY: 100,
+          velX: 0,
+          velY: 0,
+          facing: Facing.right,
+          body: archetype.body,
+          collider: archetype.collider,
+          health: archetype.health,
+          mana: archetype.mana,
+          stamina: archetype.stamina,
+        );
+        world.activeAbility.set(
+          boss,
+          id: 'bringer.scythe_sweep',
+          slot: AbilitySlot.primary,
+          commitTick: 100,
+          windupTicks: 20,
+          activeTicks: 10,
+          recoveryTicks: 10,
+          facingDir: Facing.right,
+        );
+        world.lastDamage.add(boss);
+        world.lastDamage.tick[world.lastDamage.indexOf(boss)] = 101;
+
+        stepEnemies(102);
+
+        expect(
+          world.animState.anim[world.animState.indexOf(boss)],
+          AnimKey.strike,
         );
       });
     });
