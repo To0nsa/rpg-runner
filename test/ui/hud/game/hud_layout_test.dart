@@ -110,7 +110,12 @@ void main() {
       expect(pause.top, score.top);
       expect(exit.top, score.top);
       expect(pause.height, greaterThanOrEqualTo(48));
-      expect(vitals.bottom, lessThan(boss.top));
+      expect(timer.bottom, lessThan(boss.top));
+      if (size.width < 640) {
+        expect(vitals.bottom, lessThan(boss.top));
+      } else {
+        expect(boss.top - timer.bottom, lessThan(20));
+      }
       expect(vitals.width, size.width < 600 ? 158 : 198);
       expect(tester.takeException(), isNull);
       await tester.tap(find.byTooltip('Pause'));

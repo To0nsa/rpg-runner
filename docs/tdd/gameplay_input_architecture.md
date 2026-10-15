@@ -144,7 +144,8 @@ geometry, with no animation, image assets, input handlers or gameplay state.
 Both painters opt
 out of hit testing. The timer uses Cinzel and score data uses Inter. The compact
 vitals variant keeps the top row separate below 600 logical pixels; the boss
-panel starts at 86 pixels to clear the taller vitals panel.
+panel starts at 54 pixels, close beneath the timer. Below a 640-pixel viewport
+it starts at 82 pixels to clear the taller vitals panel.
 
 `GameOverlay` lays out vitals, a flexible timer region and the right-side group
 in one top row so they cannot overlap on compact landscapes. `TopRightHudOverlay`

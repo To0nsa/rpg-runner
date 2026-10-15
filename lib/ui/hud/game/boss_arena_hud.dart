@@ -38,43 +38,47 @@ class BossArenaHud extends StatelessWidget {
       return IgnorePointer(
         child: Align(
           alignment: Alignment.topCenter,
-          child: Padding(
-            // Clear the three-row vitals panel even on narrow landscapes.
-            padding: const EdgeInsets.only(top: 86),
-            child: Semantics(
-              label: blessing == null
-                  ? '$caption, ${arena!.hp100 ~/ 100} health'
-                  : '$caption, ${blessing.restorationBp ~/ 100} percent health, mana and stamina restored',
-              child: HudPanel(
-                width: 220,
-                padding: EdgeInsets.all(ui.space.xs),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      caption,
-                      textAlign: TextAlign.center,
-                      style: ui.text.body.copyWith(
-                        color: context.hudTheme.foreground,
-                      ),
-                    ),
-                    SizedBox(height: ui.space.xxs),
-                    if (blessing != null)
+          child: LayoutBuilder(
+            builder: (context, constraints) => Padding(
+              // Tuck under the timer; narrow screens still need to clear vitals.
+              padding: EdgeInsets.only(
+                top: constraints.maxWidth < 640 ? 82 : 54,
+              ),
+              child: Semantics(
+                label: blessing == null
+                    ? '$caption, ${arena!.hp100 ~/ 100} health'
+                    : '$caption, ${blessing.restorationBp ~/ 100} percent health, mana and stamina restored',
+                child: HudPanel(
+                  width: 220,
+                  padding: EdgeInsets.all(ui.space.xs),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        '+${blessing.restorationBp ~/ 100} % santé · mana · endurance',
+                        caption,
                         textAlign: TextAlign.center,
                         style: ui.text.body.copyWith(
-                          color: context.hudTheme.highlight,
+                          color: context.hudTheme.foreground,
                         ),
-                      )
-                    else
-                      LinearProgressIndicator(
-                        value: (arena!.hp100 / arena.hpMax100).clamp(0, 1),
-                        color: context.hudTheme.foreground,
-                        backgroundColor: context.hudTheme.track,
-                        minHeight: 6,
                       ),
-                  ],
+                      SizedBox(height: ui.space.xxs),
+                      if (blessing != null)
+                        Text(
+                          '+${blessing.restorationBp ~/ 100} % santé · mana · endurance',
+                          textAlign: TextAlign.center,
+                          style: ui.text.body.copyWith(
+                            color: context.hudTheme.highlight,
+                          ),
+                        )
+                      else
+                        LinearProgressIndicator(
+                          value: (arena!.hp100 / arena.hpMax100).clamp(0, 1),
+                          color: context.hudTheme.foreground,
+                          backgroundColor: context.hudTheme.track,
+                          minHeight: 6,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

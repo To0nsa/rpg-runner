@@ -67,8 +67,8 @@ This split is deliberate so HUD doesn’t need to scan entities.
   vitals, timer and score remain separate.
 * Vitals, timer, score, boss panel, pause and exit share matte dark-iron backing,
   a single subdued gold border and small clipped corners. The palette echoes
-  the hub, town and loadout menus. The boss panel sits below the top information
-  row.
+  the hub, town and loadout menus. The boss panel sits close beneath the timer,
+  dropping just below the vitals on narrow screens to prevent overlap.
 * The treatment follows the Lothringen brand's `Brand/VisualIdentity.md` and
   `Brand/VisuelTokens.md`: practical, aged and restrained. The timer uses Cinzel,
   compact score data uses Inter, and narrative captions retain Crimson Text.
