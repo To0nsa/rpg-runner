@@ -87,7 +87,8 @@ Outside enemies and NPCs cannot interfere during the arena. Player health, mana,
 stamina, equipment and cooldowns carry into and out of the fight. Regeneration
 and the run clock continue; this is an encounter hold, not a whole-game pause.
 The exit stays closed until Bringer is defeated and his death presentation
-finishes. The Dames de la forêt then bless the surviving player, instantly
+finishes. The boss health panel disappears on defeat without a defeat message.
+The Dames de la forêt then bless the surviving player, instantly
 refilling health, mana and stamina to 100% on every difficulty.
 For example, both 20 HP and 90 HP out of 100 become 100 HP after victory.
 The calculation uses the player's current equipment-adjusted maxima.

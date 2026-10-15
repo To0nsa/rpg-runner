@@ -20,6 +20,9 @@ class BossArenaHud extends StatelessWidget {
       final arena = controller.snapshot.bossArena;
       final blessing = controller.snapshot.bossVictoryBlessing;
       if (arena == null && blessing == null) return const SizedBox.shrink();
+      if (arena?.phase == BossArenaPhase.defeated && blessing == null) {
+        return const SizedBox.shrink();
+      }
       final ui = context.ui;
       final caption = blessing != null
           ? switch (blessing.id) {
@@ -29,7 +32,6 @@ class BossArenaHud extends StatelessWidget {
           : switch (arena!.phase) {
               BossArenaPhase.introduction =>
                 '${arena.enemyId.displayName} awakens',
-              BossArenaPhase.defeated => 'Boss defeated · exit opening',
               BossArenaPhase.failed => 'Encounter ended',
               _ => arena.enemyId.displayName,
             };
