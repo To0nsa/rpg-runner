@@ -267,18 +267,20 @@ around it, with spell above shield. The Skills screen mirrors this arrangement.
 
 Both control views use clear light symbols: sword, shield, bow/arrow for
 projectile, wind for mobility, an upward arrow from a line for jump, and a magic
-wand for spell. There are no visible button labels. Skill-list, detail, and
+wand for spell (a heart when Vital Surge is equipped). There are no visible
+button labels. Skill-list, detail, and
 store artwork continues to identify individual abilities.
 
-Button backgrounds identify spending: muted blue for mana, green for stamina,
-and red for health, using the resource-bar colors under charcoal. The fills are
+Button backgrounds identify spending: slate-blue for mana, grey-green for
+stamina, and rust for health, using the resource-bar colors under dark iron.
+Worn stained-gold rims and inset scoring connect the controls to the menu UI.
+The fills are
 translucent (about 58% opacity) so the world remains visible through them.
-Free actions
-are neutral charcoal; actions using multiple resources show a subdued blend.
+Free actions are neutral iron; actions using multiple resources show a subdued blend.
 Held shields show stamina even when activation is free. In-game jump color
 follows the available ground/air jump; the Skills preview shows both costs.
 Cooldowns retain their progress ring and dim the symbol. Resource-gated buttons
-dim further. The selected Skills control has a plain light outline without glow.
+dim further. The selected Skills control has a plain aged-gold outline without glow.
 
 ---
 

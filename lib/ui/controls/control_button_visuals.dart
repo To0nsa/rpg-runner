@@ -4,6 +4,8 @@ import 'cooldown_ring.dart';
 import 'controls_tuning.dart';
 import 'control_resource_usage.dart';
 import '../theme/ui_action_button_theme.dart';
+import '../theme/ui_hud_theme.dart';
+import '../components/hud_frame.dart';
 
 /// Resolved visual state for a control button.
 ///
@@ -68,21 +70,20 @@ class ControlButtonSurface extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Material(
-    // A mixed-resource gradient must be the only fill or its alpha compounds.
-    color: visual.backgroundGradient == null
-        ? visual.backgroundColor
-        : Colors.transparent,
-    shape: const CircleBorder(),
-    child: Ink(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: visual.backgroundGradient,
-        border: Border.all(
-          color: visual.foregroundColor.withValues(alpha: 0.18),
+  Widget build(BuildContext context) => HudMedallion(
+    child: Material(
+      // A mixed-resource gradient must be the only fill or its alpha compounds.
+      color: visual.backgroundGradient == null
+          ? visual.backgroundColor
+          : Colors.transparent,
+      shape: const CircleBorder(),
+      child: Ink(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: visual.backgroundGradient,
         ),
+        child: child,
       ),
-      child: child,
     ),
   );
 }
@@ -164,6 +165,13 @@ class ControlButtonContent extends StatelessWidget {
             child: Icon(
               icon,
               color: foregroundColor,
+              shadows: [
+                Shadow(
+                  color: context.hudTheme.track,
+                  offset: const Offset(0, 1),
+                  blurRadius: 1,
+                ),
+              ],
               size: (constraints.biggest.shortestSide * 0.52).clamp(24.0, 44.0),
             ),
           );

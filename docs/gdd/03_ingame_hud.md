@@ -59,13 +59,19 @@ This split is deliberate so HUD doesn’t need to scan entities.
 **Display**
 
 * **Health**, **Mana**, **Stamina**, in that fixed order, identified by heart,
-  droplet and lightning icons as well as red, blue and green fills.
+  droplet and lightning icons as well as muted rust, slate-blue and grey-green
+  fills. Narrow tracks lift these world colors slightly for readability.
 * Health is 12 logical pixels tall; mana and stamina are 8. Tracks are 160
   pixels wide, reduced to 120 below a 600-pixel landscape viewport so the
   vitals, timer and score remain separate.
-* Vitals, timer, score, boss panel, pause and exit share a translucent charcoal
-  backing, a quiet pale border and rounded corners. The boss panel sits below
-  the top information row.
+* Vitals, timer, score, boss panel, pause and exit share matte dark-iron backing,
+  stained-gold trim, clipped corners and faint fixed wear. The framing echoes
+  the inset surfaces of the hub, town and loadout menus. The boss panel sits
+  below the top information row.
+* The treatment follows the Lothringen brand's `Brand/VisualIdentity.md` and
+  `Brand/VisuelTokens.md`: practical, aged and restrained. The timer uses Cinzel,
+  compact score data uses Inter, and narrative captions retain Crimson Text.
+  Ornament must stay quieter than the content.
 * Spending appears immediately. Health loss leaves a pale trail for 180 ms,
   then drains over 420 ms. Restoration smooths continuously without restarting
   on every regeneration tick.
@@ -153,12 +159,15 @@ This split is deliberate so HUD doesn’t need to scan entities.
 The six action controls display slot symbols without visible text. The spell
 button shows a heart when a health-restoration spell (Vital Surge) is equipped,
 and a magic wand for other spells, in both the run HUD and Skills preview. Their
-translucent backgrounds use the matching resource-bar colors under a charcoal
-overlay;
-multiple resource costs blend those muted colors, and free actions stay grey.
-Cooldown rings and dimmed symbols communicate readiness. The Skills control
-preview uses the same symbols and palette, while individual skill artwork stays
-in the lists and details. See [control presentation](01_controls.md#8-button-layout-current-overlay).
+translucent backgrounds use the matching resource-bar colors under a dark-iron
+overlay. Multiple resource costs blend those muted colors, and free actions
+stay neutral. Worn metal rims, inset scoring and lightly shadowed symbols give
+the buttons a stamped-medallion appearance. Cooldown rings and dimmed symbols
+communicate readiness. The Skills control preview uses the same symbols and
+framing with an aged-gold selection ring, while individual skill artwork stays
+in the lists and details. The floating joystick carries the same rim with
+directional scoring and a dark grip; movement arrows use the shared panel frame.
+See [control presentation](01_controls.md#8-button-layout-current-overlay).
 
 ---
 

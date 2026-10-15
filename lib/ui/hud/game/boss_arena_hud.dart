@@ -6,6 +6,7 @@ import 'package:runner_core/snapshots/boss_victory_blessing_snapshot.dart';
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_hud_theme.dart';
+import '../../components/hud_frame.dart';
 
 /// Encounter feedback reads Core; the entrance never depends on widget timers.
 class BossArenaHud extends StatelessWidget {
@@ -42,10 +43,9 @@ class BossArenaHud extends StatelessWidget {
               label: blessing == null
                   ? '$caption, ${arena!.hp100 ~/ 100} health'
                   : '$caption, ${blessing.restorationBp ~/ 100} percent health, mana and stamina restored',
-              child: Container(
+              child: HudPanel(
                 width: 220,
                 padding: EdgeInsets.all(ui.space.xs),
-                decoration: context.hudTheme.panelDecoration,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -53,7 +53,7 @@ class BossArenaHud extends StatelessWidget {
                       caption,
                       textAlign: TextAlign.center,
                       style: ui.text.body.copyWith(
-                        color: ui.colors.textPrimary,
+                        color: context.hudTheme.foreground,
                       ),
                     ),
                     SizedBox(height: ui.space.xxs),
@@ -62,14 +62,14 @@ class BossArenaHud extends StatelessWidget {
                         '+${blessing.restorationBp ~/ 100} % santé · mana · endurance',
                         textAlign: TextAlign.center,
                         style: ui.text.body.copyWith(
-                          color: const Color(0xFFFFE599),
+                          color: context.hudTheme.highlight,
                         ),
                       )
                     else
                       LinearProgressIndicator(
                         value: (arena!.hp100 / arena.hpMax100).clamp(0, 1),
-                        color: const Color(0xFFB886E8),
-                        backgroundColor: const Color(0xFF34243E),
+                        color: context.hudTheme.foreground,
+                        backgroundColor: context.hudTheme.track,
                         minHeight: 6,
                       ),
                   ],

@@ -4,6 +4,7 @@ import 'package:runner_core/scoring/run_distance.dart';
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_hud_theme.dart';
+import '../../components/hud_frame.dart';
 
 class ScoreOverlay extends StatelessWidget {
   const ScoreOverlay({super.key, required this.controller, this.padding});
@@ -21,7 +22,9 @@ class ScoreOverlay extends StatelessWidget {
           vertical: ui.space.xs - ui.space.xxs / 2,
         );
     final labelStyle = ui.text.body.copyWith(
-      color: ui.colors.textPrimary,
+      fontFamily: 'Inter',
+      fontSize: 11,
+      color: context.hudTheme.foreground,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
     return AnimatedBuilder(
@@ -33,9 +36,8 @@ class ScoreOverlay extends StatelessWidget {
         final collectibles = controller.snapshot.hud.collectibles;
         return IgnorePointer(
           child: RepaintBoundary(
-            child: Container(
+            child: HudPanel(
               padding: resolvedPadding,
-              decoration: context.hudTheme.panelDecoration,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

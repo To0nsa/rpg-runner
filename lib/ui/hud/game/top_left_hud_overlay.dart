@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
 import '../../controls/control_resource_usage.dart';
-import '../../theme/ui_hud_theme.dart';
+import '../../components/hud_frame.dart';
 import '../../theme/ui_tokens.dart';
 import 'level_blessings_hud.dart';
 import 'resource_bar.dart';
@@ -34,10 +34,9 @@ class TopLeftHudOverlay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
+              HudPanel(
                 key: ObjectKey(controller),
                 padding: EdgeInsets.all(ui.space.xs),
-                decoration: context.hudTheme.panelDecoration,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

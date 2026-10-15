@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../../game/game_controller.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_hud_theme.dart';
+import '../../components/hud_frame.dart';
 
 class SurvivalTimerOverlay extends StatelessWidget {
   const SurvivalTimerOverlay({
@@ -38,14 +39,14 @@ class SurvivalTimerOverlay extends StatelessWidget {
 
         return IgnorePointer(
           child: RepaintBoundary(
-            child: Container(
+            child: HudPanel(
               padding: resolvedPadding,
-              decoration: context.hudTheme.panelDecoration,
               child: Text(
                 text,
                 textAlign: TextAlign.center,
                 style: ui.text.headline.copyWith(
-                  color: ui.colors.textPrimary,
+                  fontFamily: 'Cinzel',
+                  color: context.hudTheme.foreground,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),

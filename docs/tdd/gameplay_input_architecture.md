@@ -136,17 +136,21 @@ remounts the vitals to prevent trails leaking between runs. Resource semantics
 always expose current snapshot values, never interpolated values.
 
 `UiHudTheme` is the shared ThemeExtension for the vitals, timer, score, boss
-panel and pause/exit framing. Its charcoal surface and pale 1-pixel border use
-the same visual family as the action controls. The compact vitals variant
-keeps the top row separate below 600 logical pixels; the boss panel starts at
-86 pixels to clear the taller vitals panel.
+panel and pause/exit framing. `UiWorldPalette` supplies the muted iron, stained
+gold, ash and mist colors from Lothringen's `Brand/VisuelTokens.md`.
+`HudPanel` paints clipped corners, an inset edge and faint wear; `HudMedallion`
+paints the matching control rims. Their marks are fixed geometry, with no
+animation, image assets, input handlers or gameplay state. Both painters opt
+out of hit testing. The timer uses Cinzel and score data uses Inter. The compact
+vitals variant keeps the top row separate below 600 logical pixels; the boss
+panel starts at 86 pixels to clear the taller vitals panel.
 
 `UiActionButtonTheme` mutes the shared health/mana/stamina bar colors with a
-charcoal overlay. Fills are approximately 58% opaque, allowing the scene to show
-through. Free actions use neutral charcoal; multiple resources use a single
+dark-iron overlay. Fills are approximately 58% opaque, allowing the scene to show
+through. Free actions use neutral iron; multiple resources use a single
 translucent gradient without a second fill underneath. Symbols dim on cooldown
 and when unaffordable, and the
-cooldown ring remains visible. The Skills selection ring is a quiet solid
+cooldown ring remains visible. The Skills selection ring is a quiet aged-gold
 outline with no backing disk. Symbol size scales with the touch target,
 independently of skill art.
 
@@ -170,7 +174,10 @@ restarts. Preference storage stays outside the run descriptor, Core, backend,
 and replay contracts.
 
 `MovementControl` selects `MoveButtons` or `MoveJoystick`, sharing the movement
-callback and palette. Both emit **only -1, 0, 1**. The floating joystick uses a
+callback and palette. Arrows use `HudPanel`; the joystick uses `HudMedallion`
+with directional scoring on its base and a dark thumb grip. This decoration
+does not change its hit region or input mapping. Both emit **only -1, 0, 1**.
+The floating joystick uses a
 96-pixel base, a 40-pixel thumb and an 8-pixel horizontal neutral deadzone (all
 logical pixels, in `MoveJoystickTuning`). Its stationary hit region covers the
 lower-left quarter of the overlay; action controls are stacked above it. On

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'controls_tuning.dart';
+import '../components/hud_frame.dart';
 
 /// Two holdable movement buttons that emit a horizontal axis in [-1, 1].
 ///
@@ -137,19 +138,15 @@ class _HoldMoveButton extends StatelessWidget {
     return Semantics(
       label: label,
       button: true,
-      child: Container(
+      child: SizedBox(
         width: tuning.buttonWidth,
         height: tuning.buttonHeight,
-        decoration: BoxDecoration(
-          color: base,
-          borderRadius: BorderRadius.circular(tuning.borderRadius),
-          border: Border.all(
-            color: tuning.borderColor,
-            width: tuning.borderWidth,
+        child: HudPanel(
+          child: ColoredBox(
+            color: pressed ? base : Colors.transparent,
+            child: Center(child: Icon(icon, color: tuning.foregroundColor)),
           ),
         ),
-        alignment: Alignment.center,
-        child: Icon(icon, color: tuning.foregroundColor),
       ),
     );
   }

@@ -217,11 +217,11 @@ class _ResourceBarState extends State<ResourceBar>
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: theme.track,
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(1),
                     ),
                     position: DecorationPosition.background,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(1),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -239,13 +239,29 @@ class _ResourceBarState extends State<ResourceBar>
                             key: const ValueKey('resource-fill'),
                             alignment: Alignment.centerLeft,
                             widthFactor: _fill,
-                            child: ColoredBox(color: color),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: color,
+                                border: Border(
+                                  top: BorderSide(
+                                    color: theme.foreground.withValues(
+                                      alpha: .2,
+                                    ),
+                                  ),
+                                  bottom: BorderSide(
+                                    color: theme.track.withValues(alpha: .45),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                           // Paint the frame last so full resources cannot cover it.
                           DecoratedBox(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(3),
-                              border: Border.all(color: border),
+                              borderRadius: BorderRadius.circular(1),
+                              border: Border.all(
+                                color: border.withValues(alpha: .7),
+                              ),
                             ),
                           ),
                         ],

@@ -26,6 +26,14 @@ void main() {
         rootBundle.load('assets/fonts/Crimson_Text/CrimsonText-Bold.ttf'),
       );
     await fonts.load();
+    await (FontLoader('Cinzel')..addFont(
+          rootBundle.load('assets/fonts/Cinzel/static/Cinzel-Regular.ttf'),
+        ))
+        .load();
+    await (FontLoader('Inter')..addFont(
+          rootBundle.load('assets/fonts/Inter/static/Inter_24pt-Regular.ttf'),
+        ))
+        .load();
   });
 
   for (final size in [const Size(480, 320), const Size(844, 390)]) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'controls_tuning.dart';
+import '../components/hud_frame.dart';
+import '../theme/ui_hud_theme.dart';
 
 /// Floating X-only joystick that emits the same -1/0/1 axis as MoveButtons.
 /// One pointer owns the stick until release/cancel; other fingers remain free
@@ -120,53 +122,71 @@ class _MoveJoystickState extends State<MoveJoystick> {
                     left: base.dx - tuning.size / 2,
                     top: base.dy - tuning.size / 2,
                     child: IgnorePointer(
-                      child: Container(
-                        key: const ValueKey('movement_joystick_base'),
-                        width: tuning.size,
-                        height: tuning.size,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: style.backgroundColor,
-                          border: Border.all(
-                            color: style.borderColor,
-                            width: style.borderWidth,
-                          ),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Icon(
-                                  Icons.chevron_left,
-                                  color: style.foregroundColor,
-                                ),
-                                Icon(
-                                  Icons.chevron_right,
-                                  color: style.foregroundColor,
-                                ),
-                              ],
+                      child: HudMedallion(
+                        compass: true,
+                        child: Container(
+                          key: const ValueKey('movement_joystick_base'),
+                          width: tuning.size,
+                          height: tuning.size,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: style.backgroundColor,
+                            border: Border.all(
+                              color: style.borderColor.withValues(alpha: .3),
+                              width: style.borderWidth,
                             ),
-                            Transform.translate(
-                              offset: Offset(_offset, 0),
-                              child: Container(
-                                key: const ValueKey('movement_joystick_thumb'),
-                                width: tuning.thumbSize,
-                                height: tuning.thumbSize,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: style.foregroundColor.withValues(
-                                    alpha: _axis == 0 ? 0.4 : 0.8,
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Icon(
+                                    Icons.chevron_left,
+                                    color: style.foregroundColor,
                                   ),
-                                  border: Border.all(
-                                    color: style.borderColor,
-                                    width: style.borderWidth,
+                                  Icon(
+                                    Icons.chevron_right,
+                                    color: style.foregroundColor,
+                                  ),
+                                ],
+                              ),
+                              Transform.translate(
+                                offset: Offset(_offset, 0),
+                                child: HudMedallion(
+                                  compass: false,
+                                  child: Container(
+                                    key: const ValueKey(
+                                      'movement_joystick_thumb',
+                                    ),
+                                    width: tuning.thumbSize,
+                                    height: tuning.thumbSize,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _axis == 0
+                                          ? context.hudTheme.background
+                                          : context.hudTheme.wear,
+                                      border: Border.all(
+                                        color: style.borderColor.withValues(
+                                          alpha: .3,
+                                        ),
+                                        width: style.borderWidth,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.drag_handle,
+                                      size: 20,
+                                      color: style.foregroundColor.withValues(
+                                        alpha: .65,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

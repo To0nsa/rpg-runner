@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import '../theme/ui_world_palette.dart';
+
 /// Root controls tuning bundle for HUD layout and visuals.
 ///
 /// This object is pure UI configuration; it does not change gameplay rules.
@@ -102,11 +104,10 @@ class MoveButtonsTuning {
     this.buttonWidth = 64,
     this.buttonHeight = 48,
     this.gap = 8,
-    this.backgroundColor = const Color(0x33000000),
-    this.foregroundColor = const Color(0xFFFFFFFF),
-    this.borderColor = const Color(0x55FFFFFF),
+    this.backgroundColor = const Color(0xA6151A1F),
+    this.foregroundColor = UiWorldPalette.mist200,
+    this.borderColor = UiWorldPalette.gold500,
     this.borderWidth = 1,
-    this.borderRadius = 12,
   });
 
   final double buttonWidth;
@@ -116,7 +117,6 @@ class MoveButtonsTuning {
   final Color foregroundColor;
   final Color borderColor;
   final double borderWidth;
-  final double borderRadius;
 }
 
 /// Floating horizontal joystick geometry in logical pixels. The deadzone only
@@ -141,8 +141,8 @@ class MoveJoystickTuning {
 class CooldownRingTuning {
   const CooldownRingTuning({
     this.thickness = 3,
-    this.trackColor = const Color(0x66FFFFFF),
-    this.progressColor = const Color(0xFFFFFFFF),
+    this.trackColor = const Color(0x6655616D),
+    this.progressColor = UiWorldPalette.gold400,
   });
 
   final double thickness;
@@ -157,14 +157,14 @@ class ChargeBarTuning {
     this.width = 84,
     this.height = 14,
     this.padding = 2,
-    this.backgroundColor = const Color(0xAA11161D),
-    this.borderColor = const Color(0xFF2C3A47),
+    this.backgroundColor = const Color(0xEB151A1F),
+    this.borderColor = UiWorldPalette.gold600,
     this.borderWidth = 1,
-    this.outerRadius = 7,
-    this.innerRadius = 5,
-    this.idleColor = const Color(0xFF9FA8B2),
-    this.halfTierColor = const Color(0xFFF0C15A),
-    this.fullTierColor = const Color(0xFF6EDC8C),
+    this.outerRadius = 2,
+    this.innerRadius = 1,
+    this.idleColor = UiWorldPalette.ash500,
+    this.halfTierColor = UiWorldPalette.gold500,
+    this.fullTierColor = UiWorldPalette.fog300,
   });
 
   final double width;

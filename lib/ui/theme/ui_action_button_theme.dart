@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controls/controls_tuning.dart';
 import '../controls/control_resource_usage.dart';
 import 'ui_resource_colors.dart';
+import 'ui_world_palette.dart';
 
 enum UiActionButtonSurface { run, selection }
 
@@ -12,14 +13,14 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
     required this.run,
     required this.selection,
     required this.selectionRing,
-    this.resourceOverlay = const Color(0xB820242B),
+    this.resourceOverlay = const Color(0xB8151A1F),
   });
 
   final UiActionButtonVisual run;
   final UiActionButtonVisual selection;
   final UiActionButtonSelectionRing selectionRing;
 
-  /// Charcoal over the vitals colors keeps the action wheel subdued.
+  /// Brand ink over the vitals colors keeps the action wheel subdued.
   final Color resourceOverlay;
 
   /// Muted resource hues; the control surface supplies their final opacity.
@@ -37,16 +38,16 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
   static UiActionButtonTheme _buildStandard() {
     return UiActionButtonTheme(
       run: const UiActionButtonVisual(
-        backgroundColor: Color(0x94292D33),
-        foregroundColor: Color(0xFFE5E8EB),
+        backgroundColor: Color(0x94151A1F),
+        foregroundColor: UiWorldPalette.mist200,
       ),
       selection: const UiActionButtonVisual(
-        backgroundColor: Color(0x94292D33),
-        foregroundColor: Color(0xFFE5E8EB),
+        backgroundColor: Color(0x94151A1F),
+        foregroundColor: UiWorldPalette.mist200,
       ),
       selectionRing: const UiActionButtonSelectionRing(
         outerScale: 1.08,
-        color: Color(0xFFADB8C2),
+        color: UiWorldPalette.gold500,
       ),
     );
   }
