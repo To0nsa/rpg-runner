@@ -220,6 +220,13 @@ separately reviewed endpoints. Platform configuration, debug-token rules,
 per-UID quotas, and rollback are defined in
 [`callable_abuse_controls.md`](callable_abuse_controls.md).
 
+After activating App Check, startup records one cached token-acquisition
+diagnostic with a five-second deadline. Failure/timeout is recorded without
+blocking account initialization; provider activation failures remain retryable
+startup failures. Callables attach the allowlisted startup snapshot for log
+correlation only. The backend never uses this client-reported context for
+identity, attestation or operation authorization.
+
 For ownership commands, matching the UID is necessary but not sufficient. The
 public callable accepts only selection/loadout/equip and store
 purchase/refresh intents. Gold award, entitlement grant, and reset command

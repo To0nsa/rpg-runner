@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 
+import '../../../firebase_app_check_diagnostics.dart';
 import 'user_profile.dart';
 import 'user_profile_remote_api.dart';
 
@@ -135,6 +136,7 @@ class PluginFirebaseUserProfileRemoteSource
   }) async {
     final callable = _functions.httpsCallable(loadCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
     });
@@ -149,6 +151,7 @@ class PluginFirebaseUserProfileRemoteSource
   }) async {
     final callable = _functions.httpsCallable(updateCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       ...update.toJson(),

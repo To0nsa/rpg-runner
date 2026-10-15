@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 
+import '../../../firebase_app_check_diagnostics.dart';
 import 'account_deletion_api.dart';
 
 /// Firebase-backed [AccountDeletionApi] for user account and data deletion.
@@ -203,6 +204,7 @@ class PluginFirebaseAccountDeletionSource
   }) async {
     final callable = _functions.httpsCallable(deleteCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
     });

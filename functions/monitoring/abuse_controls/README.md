@@ -58,6 +58,15 @@ Quota logs contain only a truncated SHA-256 UID hash. App Check observations
 contain the Firebase app ID but no UID. Logs-based metrics define no extracted
 high-cardinality labels.
 
+For an App Check alert, filter `jsonPayload.message="callable_app_check"` in the
+incident window. Inspect `tokenFailure`, `authStatus`, `appCheckAllowsRequest`,
+`clientReported` and `nextAction`; use the same trace to inspect the SDK's
+verification warning and HTTP outcome. `android_sdk_placeholder` identifies
+the Android SDK's failure sentinel, not an expired JWT. `clientReported` is
+untrusted startup evidence from newer clients; older clients cannot tell the
+server their build mode or provider. See
+[the diagnostic contract and Android checks](../../../docs/tdd/callable_abuse_controls.md#app-check-diagnostics-and-troubleshooting).
+
 When a policy fires, correlate the route/service with App Check status, quota
 decision, 5xx/contention, queue backlog/retry, Storage method/response code, and
 task response-code series. Preserve Auth, UID matching, atomic transactions,

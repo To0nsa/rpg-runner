@@ -5,6 +5,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/board_manifest.dart';
 import 'package:run_protocol/run_mode.dart';
 
+import '../../../firebase_app_check_diagnostics.dart';
 import 'run_boards_api.dart';
 import '../run/run_start_remote_exception.dart';
 
@@ -104,6 +105,7 @@ class PluginFirebaseRunBoardsSource implements FirebaseRunBoardsSource {
   }) async {
     final callable = _functions.httpsCallable(loadCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'mode': mode.name,

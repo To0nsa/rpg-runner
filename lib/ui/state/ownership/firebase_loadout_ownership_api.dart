@@ -1,6 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
 import 'package:runner_core/meta/meta_service.dart';
+
+import '../../../firebase_app_check_diagnostics.dart';
 import 'loadout_ownership_api.dart';
 import 'progression_state.dart';
 import 'selection_state.dart';
@@ -169,6 +171,7 @@ class PluginFirebaseLoadoutOwnershipSource
   }) async {
     final callable = _functions.httpsCallable(loadCanonicalCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
     });
@@ -181,6 +184,7 @@ class PluginFirebaseLoadoutOwnershipSource
   }) async {
     final callable = _functions.httpsCallable(executeCommandCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'command': command.toJson(),
     });
     return _decodeMap(result.data);

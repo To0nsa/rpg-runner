@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/run_mode.dart';
 
+import '../../../firebase_app_check_diagnostics.dart';
 import 'leaderboard_api.dart';
 import '../run/run_start_remote_exception.dart';
 
@@ -183,6 +184,7 @@ class PluginFirebaseLeaderboardSource implements FirebaseLeaderboardSource {
   }) async {
     final callable = _functions.httpsCallable(loadActiveBoardDataCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'mode': mode.name,
@@ -200,6 +202,7 @@ class PluginFirebaseLeaderboardSource implements FirebaseLeaderboardSource {
   }) async {
     final callable = _functions.httpsCallable(loadBoardCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'boardId': boardId,
@@ -215,6 +218,7 @@ class PluginFirebaseLeaderboardSource implements FirebaseLeaderboardSource {
   }) async {
     final callable = _functions.httpsCallable(loadMyRankCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'boardId': boardId,

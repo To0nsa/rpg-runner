@@ -8,6 +8,7 @@ import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 
+import '../../../firebase_app_check_diagnostics.dart';
 import 'run_session_api.dart';
 import 'run_start_remote_exception.dart';
 
@@ -252,6 +253,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
   }) async {
     final callable = _functions.httpsCallable(createCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'clientRequestId': clientRequestId,
@@ -270,6 +272,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
   }) async {
     final callable = _functions.httpsCallable(createUploadGrantCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'runSessionId': runSessionId,
@@ -290,6 +293,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
   }) async {
     final callable = _functions.httpsCallable(finalizeUploadCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'runSessionId': runSessionId,
@@ -310,6 +314,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
   }) async {
     final callable = _functions.httpsCallable(loadStatusCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
       'runSessionId': runSessionId,

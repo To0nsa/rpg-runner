@@ -1,6 +1,8 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 
+import 'firebase_app_check_diagnostics.dart';
+
 const String _webSiteKey = String.fromEnvironment(
   'FIREBASE_APP_CHECK_WEB_SITE_KEY',
 );
@@ -22,7 +24,20 @@ enum AppCheckActivationOutcome {
 /// Release web builds require `FIREBASE_APP_CHECK_WEB_SITE_KEY`. Windows has
 /// no production attestation provider, so only an explicitly configured debug
 /// token is accepted in debug builds.
+/// Records a cached token-acquisition diagnostic with a five-second deadline;
+/// acquisition failures do not enforce App Check on the client.
 Future<AppCheckActivationOutcome> activateFirebaseAppCheck() async {
+  final outcome = await _activateFirebaseAppCheck();
+  await firebaseAppCheckDiagnostics.observeStartup(
+    appId: FirebaseAppCheck.instance.app.options.appId,
+    activated: outcome == AppCheckActivationOutcome.activated,
+    getToken: () => FirebaseAppCheck.instance.getToken(),
+    writeLog: logFirebaseAppCheckStartup,
+  );
+  return outcome;
+}
+
+Future<AppCheckActivationOutcome> _activateFirebaseAppCheck() async {
   if (kIsWeb) {
     if (kDebugMode) {
       await FirebaseAppCheck.instance.activate(

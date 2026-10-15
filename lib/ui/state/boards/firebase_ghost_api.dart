@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 
+import '../../../firebase_app_check_diagnostics.dart';
 import 'ghost_api.dart';
 import '../run/run_start_remote_exception.dart';
 
@@ -92,6 +93,7 @@ class PluginFirebaseGhostSource implements FirebaseGhostSource {
   }) async {
     final callable = _functions.httpsCallable(loadManifestCallableName);
     final result = await callable.call(<String, Object?>{
+      'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'boardId': boardId,
       'entryId': entryId,

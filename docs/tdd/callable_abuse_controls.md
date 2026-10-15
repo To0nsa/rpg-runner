@@ -90,6 +90,69 @@ site key is supplied by the tracked `web/production_defines.json` through
 contains no credentials or debug tokens. Firebase
 App Check exchanges its assessment for a one-hour App Check token.
 
+### App Check diagnostics and troubleshooting
+
+The app performs one cached (not forced) `getToken()` after activation, before
+creating Firebase client adapters. The observation waits at most five seconds;
+token failure or timeout is diagnostic only and does not turn monitoring into
+client enforcement. Provider activation errors still fail initialization. A
+JSON `app_check_startup` record is emitted to device logs in all build modes.
+It records platform, build mode, configured provider, Firebase app ID, token
+acquisition outcome and a classified failure reason. Raw tokens, provider error
+messages and user identity are never included. Unknown errors stay unknown;
+the classifier does not claim to know a Play Integrity verdict.
+
+All app-owned callable adapters attach this snapshot in the optional root
+`clientDiagnostics` field. It is **startup evidence**, not a check of the token
+on each request. Old/embedded clients can omit it. It remains subject to existing
+payload bounds, is ignored by domain parsers, and is never persisted in commands,
+idempotency hashes, run tickets or replays. Server logging allowlists fixed enum
+values and bounded app IDs into `clientReported`; these are untrusted claims,
+never authorization inputs. Only SDK-verified `request.app` supplies the
+top-level verified app ID. Build mode is available; an APK version cannot be
+inferred from old requests or the Cloud Run revision.
+
+`callable_app_check` retains `tokenStatus=verified|missing_or_invalid` and adds:
+
+- `tokenFailure`: `none`, `missing_token`, `android_sdk_placeholder`,
+  `malformed_token`, or `jwt_rejected`. JWT shape alone never means verified.
+- `authStatus`, `rolloutMode`, and `appCheckAllowsRequest`. The last field
+  describes only the App Check gate, not domain authorization or request success.
+- `clientTransportHint`: a fixed user-agent family, not a trusted platform.
+- `clientReported` when supplied, and `nextAction` with troubleshooting guidance.
+
+Gaps are logged at WARNING, verified observations at INFO. Correlate the Cloud
+Logging trace/execution ID with Firebase's verification warning and request HTTP
+status. The existing alert continues counting only SDK verification summaries,
+so the additional warning does not double-count gaps. Enforced rejections occur
+before the handler and still require the SDK's own verification logs.
+
+For debug-provider failures, register the current installation's token under the
+matching Firebase app. Reinstalling/clearing data can change a generated token.
+An explicit `FIREBASE_APP_CHECK_DEBUG_TOKEN` can stabilize developer launches;
+keep it in a gitignored local defines file, never in tracked source or release
+artifacts. For Play Integrity, verify signing **SHA-256** (not just Auth's SHA-1),
+the linked Cloud project, distribution settings and device eligibility. A
+debug-signed locally installed release APK is not proof of a Play-recognized
+production release. See the official
+[debug-provider setup](https://firebase.google.com/docs/app-check/flutter/debug-provider)
+and [Play Integrity requirements](https://firebase.google.com/docs/app-check/android/play-integrity-provider).
+
+On October 15, 2026, the October 14 19:10–19:35 UTC incident window contained
+32 callable verification summaries: all `auth=VALID`, `app=INVALID`, with JWT
+decoding failures. This is consistent with SDK placeholders, but the old logs
+did not retain enough evidence to prove the provider or precise device failure.
+Live Firebase configuration had two SHA-1 registrations and no SHA-256. The
+current release APK's certificate matched the already registered SHA-1
+`74b0816a97fe848635c8bd30f970a918e3eb6a6e`; its SHA-256
+`001f8fe8d465d47b2aa1264fd8a00ac2221875aeef17ce1bfad5d1bf6d91f061`
+was added and read back successfully. Existing certificates, debug tokens,
+Play Integrity policy, alert thresholds and enforcement were preserved. Device
+verification remains pending; registering the certificate alone does not prove
+release or debug attestation now succeeds.
+The diagnostic additions described above are source-verified; deployment of
+the updated Functions and installation of a rebuilt client are still required.
+
 ## Request bounds
 
 Every callable request parser applies the same JSON boundary before domain
@@ -258,7 +321,8 @@ and are never expired by this cleanup.
 
 Structured logs currently emit:
 
-- `callable_app_check`: function, rollout mode, verified/missing status, app ID;
+- `callable_app_check`: function, rollout mode, token failure category, verified
+  app ID, auth status, untrusted client startup context and next diagnostic action;
 - `callable_quota`: route, mode, accepted/would-reject, units, counters,
   configured limits, and a truncated SHA-256 UID hash;
 - `runSessionCreate_active_sessions`;

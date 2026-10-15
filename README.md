@@ -105,6 +105,14 @@ debug keystore has a different SHA-1. See
 [local Android sign-in troubleshooting](docs/tdd/authentication_flow_and_authorization.md#local-android-sign-in-troubleshooting)
 for credential and tester setup checks.
 
+Android App Check is separate from Play Games sign-in: debug installations need
+their debug token registered in Firebase App Check; release/profile builds use
+Play Integrity and require the signing certificate's **SHA-256** in Firebase
+(SHA-1 alone is insufficient). Startup emits a privacy-safe `app_check_startup`
+record, and callable requests carry that startup diagnostic context. See
+[App Check troubleshooting](docs/tdd/callable_abuse_controls.md#app-check-diagnostics-and-troubleshooting)
+before investigating repeated App Check alerts.
+
 The root app and shared Dart packages use one Pub workspace and the root
 `pubspec.lock`. Run their dependency resolution and upgrades from the
 repository root. The editor and Dart-only replay validator are independently
