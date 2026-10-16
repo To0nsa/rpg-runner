@@ -57,6 +57,7 @@ void main() {
     );
     await tester.tap(find.byTooltip('Locations'));
     await tester.pumpAndSettle();
+    expect(find.text('Library · Locations'), findsOneWidget);
     expect(find.text('Know the land'), findsNothing);
     expect(find.textContaining('Reach the required score'), findsNothing);
     expect(find.text('Places'), findsNothing);
@@ -134,26 +135,28 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Journal'));
       await tester.pumpAndSettle();
+      expect(find.text('Library · Journal'), findsOneWidget);
       expect(find.text(CodexCatalog.opening), findsOneWidget);
       expect(find.textContaining('Six centuries'), findsOneWidget);
     },
   );
 
-  testWidgets('boss filter shows only bosses with five-kill goals', (
+  testWidgets('bestiary lists enemies and bosses without filters', (
     tester,
   ) async {
     final app = _CodexAppState();
     addTearDown(app.dispose);
     await tester.pumpWidget(_app(app, const LibraryPage()));
-    await tester.tap(find.text('Bosses'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('codex-enemy-grojib')), findsNothing);
+    expect(find.byKey(const ValueKey('codex-enemy-grojib')), findsOneWidget);
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.text('Library · Bestiary'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('codex-enemy-bringerOfDeath')),
       findsOneWidget,
     );
     expect(find.text('0 / 5'), findsWidgets);
-    expect(find.text('0 / 10'), findsNothing);
+    expect(find.text('0 / 10'), findsWidgets);
   });
 
   for (final size in [const Size(640, 360), const Size(360, 640)]) {

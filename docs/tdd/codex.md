@@ -97,8 +97,10 @@ Locked list rows expose names, idle portraits and requirements, with counts
 inside a trailing progress bar. Status remains in accessibility semantics.
 Entry details and lists scroll; Library and `HubMenuIconColumn` share
 `MenuIconColumn`, which owns the icon-only `AppIconButton` sizing and spacing.
-Library retains section scroll/filter state and exposes selection through
-semantics. All widths use tooltip-labelled icons. Returning from Store
+Library retains section scroll state and exposes selection through semantics
+and the app-bar title (`Library · Bestiary`, `Library · Locations`, or
+`Library · Journal`). Bestiary has no category filter. All widths use
+tooltip-labelled icons. Returning from Store
 or Library returns to the map.
 
 ## Portraits and nested summons

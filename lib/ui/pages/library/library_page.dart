@@ -32,7 +32,7 @@ class _LibraryPageState extends State<LibraryPage> {
     );
     final ui = context.ui;
     return MenuScaffold(
-      title: 'Library',
+      title: 'Library · ${_sectionName(_section)}',
       background: ColoredBox(color: ui.colors.background),
       child: SafeArea(
         top: false,
@@ -87,56 +87,23 @@ class _LibraryPageState extends State<LibraryPage> {
   };
 }
 
-enum _EnemyFilter { all, enemies, bosses }
-
-class _Bestiary extends StatefulWidget {
+class _Bestiary extends StatelessWidget {
   const _Bestiary({required this.progress});
   final CodexProgress progress;
-  @override
-  State<_Bestiary> createState() => _BestiaryState();
-}
-
-class _BestiaryState extends State<_Bestiary> {
-  _EnemyFilter _filter = _EnemyFilter.all;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final entries = CodexCatalog.bestiaryEntries
-        .where(
-          (id) => switch (_filter) {
-            _EnemyFilter.all => true,
-            _EnemyFilter.enemies => !id.isBoss,
-            _EnemyFilter.bosses => id.isBoss,
-          },
-        )
-        .toList();
     return ListView(
       key: const PageStorageKey('codex-bestiary'),
       padding: EdgeInsets.all(ui.space.sm),
       children: [
-        Wrap(
-          spacing: ui.space.xs,
-          children: [
-            for (final filter in _EnemyFilter.values)
-              ChoiceChip(
-                label: Text(switch (filter) {
-                  _EnemyFilter.all => 'All',
-                  _EnemyFilter.enemies => 'Enemies',
-                  _EnemyFilter.bosses => 'Bosses',
-                }),
-                selected: _filter == filter,
-                onSelected: (_) => setState(() => _filter = filter),
-              ),
-          ],
-        ),
-        SizedBox(height: ui.space.sm),
-        for (final id in entries)
+        for (final id in CodexCatalog.bestiaryEntries)
           CodexEntryTile(
             key: ValueKey('codex-enemy-${id.name}'),
             title: id.displayName,
             portrait: EnemyPortrait(enemy: id),
-            current: widget.progress.enemyKills[id.name] ?? 0,
+            current: progress.enemyKills[id.name] ?? 0,
             requiredProgress: CodexCatalog.killsRequired(id),
             progressLabel: 'defeated',
             onPressed: () => Navigator.of(context).push(

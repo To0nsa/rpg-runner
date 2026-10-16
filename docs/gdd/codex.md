@@ -41,8 +41,9 @@ runs are not reconstructed.
 
 The Library shares the main menu's icon column, with identical button sizes
 and spacing: Bestiary, Locations and Journal. Icons use tooltips without
-visible labels or selection boxes. Bestiary supports All, Enemies and Bosses filters and
-lists eight independent entries. Compact cards show an idle enemy portrait,
+visible labels or selection boxes. The app bar names the active section beside
+Library. Bestiary lists all eight independent entries together, without category
+filters. Compact cards show an idle enemy portrait,
 name, and a progress bar to the right with the count and target inside it.
 Locations use the same compact layout with landscape icons and competitive
 score progress. Summary totals, introductory instructions and card status
