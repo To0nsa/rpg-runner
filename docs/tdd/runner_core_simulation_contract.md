@@ -630,6 +630,13 @@ and ghost versions remain unchanged. Field also switches to its authored
 one-early/seven-distinct-easy loop with a shared 224-unit ground reference and
 matching compiled boundaries. Both levels are generated in the same release.
 
+Prepared gameplay compatibility `2026.10.16` pairs Forest revision 496 and the
+86-chunk catalog with matching client, Functions, and replay-worker versions.
+The expanded Forest assembly, repositioned solid prefabs, and revised Field
+content alter deterministic replay inputs. Existing tickets retain their
+original version and cannot be replayed against this catalog; the ranked
+rules, score, ghost, replay, and command formats are unchanged.
+
 Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
 The subsequent Forest spawn revision uses gameplay `2026.09.9`; removing enemy
 placements changes deterministic replay outcomes and requires matching client
@@ -642,7 +649,7 @@ The `2026.10.1` release expands the grove pools and simplifies later Forest
 geometry and blocking prefab pockets. Its 60-chunk authored catalog is
 regenerated into both runtime artifacts before client/worker validation.
 
-The current 80-chunk catalog uses Level/group/difficulty/number identities.
+The authored catalog uses Level/group/difficulty/number identities.
 The Rocky Grove hard pool replaces its three older layouts with nine copies of
 the normal layouts. Rekeying the other sources changes deterministic selection
 and generated terrain identities even where geometry is unchanged. Client and
