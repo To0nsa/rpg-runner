@@ -70,9 +70,7 @@ void main() {
       f.world.transform.setPosXY(f.player, targetX + 22, 0);
       f.resolveHits(firstDamageTick);
       expect(f.world.damageQueue.target, [f.player]);
-      expect(f.world.damageQueue.amount100, [
-        const AbilityCatalog().resolve('bringer.death_pillar')!.baseDamage,
-      ]);
+      expect(f.world.damageQueue.amount100, [1760]);
       for (
         var tick = firstDamageTick + 1;
         tick < executeTick + 16 * step;
@@ -99,13 +97,16 @@ void main() {
         f.world.transform.setPosXY(f.player, 120 * sign, 0);
         f.resolveHits(executeTick);
         expect(f.world.damageQueue.target, [f.player]);
-        expect(f.world.damageQueue.amount100, [
-          const AbilityCatalog().resolve('bringer.scythe_sweep')!.baseDamage,
-        ]);
-        expect(f.world.damageQueue.damageType.single.split(2200), [
-          (type: DamageType.physical, amount100: 1100),
-          (type: DamageType.dark, amount100: 1100),
-        ]);
+        expect(f.world.damageQueue.amount100, [1760]);
+        expect(
+          f.world.damageQueue.damageType.single.split(
+            f.world.damageQueue.amount100.single,
+          ),
+          [
+            (type: DamageType.physical, amount100: 880),
+            (type: DamageType.dark, amount100: 880),
+          ],
+        );
         f.resolveHits(executeTick + 1);
         expect(f.world.damageQueue.length, 1);
         f.world.damageResistance.add(
@@ -118,8 +119,8 @@ void main() {
           invulnerabilityTicksOnHit: hz ~/ 4,
           rngSeed: 1,
         ).step(f.world, currentTick: executeTick + 1);
-        // Default Plainsteel has -5% defense: 2200 -> 2310 -> 1155 physical.
-        expect(before - f.world.health.hp[hi], 577);
+        // Default Plainsteel has -5% defense: 1760 -> 1848 -> 924 physical.
+        expect(before - f.world.health.hp[hi], 462);
         expect(f.world.reactiveDamageEventQueue.length, 1);
       });
     }

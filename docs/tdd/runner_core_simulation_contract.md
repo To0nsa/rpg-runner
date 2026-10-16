@@ -218,7 +218,7 @@ without changing commands, system order or replay format. See
 Mixed damage remains one queued hit. Shared modifiers precede deterministic
 integer splitting; typed resistance applies to each share before their sum takes
 global Vulnerable. Crit/proc RNG and hit side effects run once. Scythe Sweep now
-splits its 2200 base damage equally between physical and dark in the prepared
+splits its 1760 base damage equally between physical and dark in the prepared
 `2026.10.11` release. See [mixed damage](mixed_damage.md) for authoring, rounding
 and representative-type rules; tick order and replay wire formats are unchanged.
 

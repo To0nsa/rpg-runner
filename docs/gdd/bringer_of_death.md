@@ -42,8 +42,8 @@ two attacks:
 
 | Attack | Readable threat | Response window |
 | --- | --- | --- |
-| Scythe Sweep | About 267 ms windup, committed facing and a 1.5x larger blade arc; 22 base damage split into 11 physical + 11 dark | Reposition before the sweep, then punish its recovery; each resistance reduces its own share |
-| Death Pillar | 400 ms cast over the floor or platform below the player's captured position, then six harmless ring frames at 40 ms per source frame; 22 base dark damage | Leave the larger marked position promptly; the spell also threatens the raised platform |
+| Scythe Sweep | About 267 ms windup, committed facing and a 1.5x larger blade arc; 17.6 base damage split into 8.8 physical + 8.8 dark | Reposition before the sweep, then punish its recovery; each resistance reduces its own share |
+| Death Pillar | 400 ms cast over the floor or platform below the player's captured position, then six harmless ring frames at 40 ms per source frame; 17.6 base dark damage | Leave the larger marked position promptly; the spell also threatens the raised platform |
 
 Those timings use 60 Hz authoring ticks and are scaled to the run's tick rate.
 Scythe windup, active window, recovery and cooldown are all 1.5x faster.

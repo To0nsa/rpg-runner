@@ -256,9 +256,10 @@ against the scaled blade reach, avoiding pursuit underneath the larger blade.
 Direct walk plans transfer arrival steering to engagement intent while retaining
 their graph-proven safe surface range, so spacing and speed apply in locomotion.
 
-Scythe Sweep commits facing and uses reviewed blade capsules. Its 2200 total base
-damage is split equally between physical and dark through the shared
-[mixed damage contract](mixed_damage.md). Both attacks
+Scythe Sweep commits facing and uses reviewed blade capsules. Its 1760 total base
+damage (17.6 HP) is split equally between physical and dark through the shared
+[mixed damage contract](mixed_damage.md). Death Pillar also deals 1760 base damage,
+entirely dark. Both attacks
 use the same attack executors as ordinary enemies. The catalog terrain profile's
 `canJump` capability is false for Bringer: its surface graph publishes walk/drop
 edges without jump edges, and shared locomotion rejects upward launch requests

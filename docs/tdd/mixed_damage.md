@@ -56,7 +56,7 @@ resistance or claim to include equipment/charge modifiers.
 
 ## Replay compatibility and validation
 
-Scythe Sweep retains 2200 total base damage but now responds to physical and dark
+Scythe Sweep deals 1760 total base damage and responds to physical and dark
 resistance independently. This gameplay change is included in the already prepared
 `2026.10.11` compatibility release. Client, issuer and worker must be deployed
 together; no wire format, command encoding or tick order changes are introduced.

@@ -23,7 +23,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     cooldownTicks: 72,
     cooldownGroupId: 0,
     animKey: AnimKey.strike,
-    baseDamage: 2200,
+    baseDamage: 1760,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: const DamageTypeMix(physical: 1, dark: 1),
   ),
@@ -46,7 +46,7 @@ final Map<AbilityKey, AbilityDef> bringerAbilityDefs = {
     cooldownTicks: 100,
     cooldownGroupId: 0,
     animKey: AnimKey.cast,
-    baseDamage: 2200,
+    baseDamage: 1760,
     knockback: const KnockbackDef(distance: 112, durationSeconds: .28),
     baseDamageType: DamageType.dark,
     procs: const [
