@@ -23,7 +23,7 @@ class HubMenuIconColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = <MenuIconAction>[
       MenuIconAction(
-        icon: Icons.storefront,
+        icon: Icons.castle,
         tooltip: 'Town',
         onPressed: onTownPressed,
       ),
