@@ -160,10 +160,20 @@ and spin capsules. Ground contact places the transform 32 units above the floor
 above ground. Damage geometry and renderer scale change together; the terrain
 profile still derives from the same collider. Decisions use current combat
 target identity and a read-only full-capsule flight preview: at vertical
-separation <=50, directly reachable targets within 70 units select a sweep; targets through 260 units
-select a charge. Other targets select an orb. Ordinary cooldown and active
+separation <=50, directly reachable targets within 35 horizontal units select
+the existing spinning charge, targets beyond 35 through 70 select a sweep,
+and targets beyond 70 through 260 select a charge. Point-blank selection uses
+the spin's existing body capsules to cover the sweep's inner blind spot without
+enlarging damage geometry or changing its warning, damage, cooldown or movement.
+Other targets select an orb. Ordinary cooldown and active
 ability gates remain authoritative. Between ordinary actions, pursuit uses up to 240
 horizontal and 300 vertical units/second with 45-unit horizontal spacing.
+
+Point-blank regressions resolve actual damage while applying repeated incoming
+hits at 0/10/20/30/35-unit spacing, on both sides and for both player characters
+at 30/60/90 Hz. The validator's `shoggoth_close_range_replay_test.dart` also
+drives continuous strike input through the authored Forest arena and verifies
+retaliation plus matching replay health, positions and animation state.
 
 Each successfully committed Shoggoth action records its ability ID, start tick
 and end tick in `ShoggothTacticsStore`. Before shared phase cleanup, `prepare`
@@ -203,7 +213,8 @@ use the shared summon lifecycle.
 
 After earned summon waves and any due ranged break, living owned summons
 prioritize an orb whenever the target is outside the same clear flight path,
-<=70 horizontal / <=50 vertical melee reach used by sweep selection. This
+<=70 horizontal / <=50 vertical melee reach used by point-blank spin and sweep
+selection. This
 precedes separation-driven teleport and charge selection, including a pending
 return continuation. `BossUtilitySystem.livingSummons`
 excludes dead actors and other owners; expiry is resolved before AI. Existing

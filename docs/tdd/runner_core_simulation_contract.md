@@ -114,7 +114,12 @@ still gate casting; no damage-phase teleport or interruption is introduced.
 
 Shoggoth's prepared `2026.10.11` tactics observe one-time 80/60/40% summon phases,
 admit capped minion waves before terrain preparation, and choose sweeps, charges
-or orbs from the shared combat target and capsule flight-clearance result. Waves
+or orbs from the shared combat target and capsule flight-clearance result.
+Within clear melee reach, targets at most 35 horizontal units away select the
+existing spinning charge to cover the sweep's inner blind spot; targets beyond
+35 through 70 units select a sweep. This deterministic selection change retains
+action clocks, hit geometry and system ordering, and joins the prepared
+client/worker compatibility release. Waves
 cap living owned minions at two, three and four respectively. With living minions, targets
 outside melee reach prioritize orbs over charges/teleports; the separate 35%
 charge milestone survives healing. His sweep follows the live target through

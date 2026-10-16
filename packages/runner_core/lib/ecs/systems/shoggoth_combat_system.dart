@@ -33,6 +33,8 @@ final class ShoggothCombatSystem extends BossCombatSystem {
 
   // World-unit spacing keeps the native-scale tentacle arcs within body reach.
   static const _standOff = 45.0;
+  // World units: the spin's body hit covers targets inside the sweep's arcs.
+  static const _pointBlankRange = 35.0;
   static const _chargeSpeed = 360.0;
   // Completed actions, not strike hits: break sustained melee pressure with an orb.
   static const _meleeActionsBeforeOrb = 5;
@@ -240,7 +242,9 @@ final class ShoggothCombatSystem extends BossCombatSystem {
         }
         choice = 'shoggoth.orb';
       } else if (inMeleeReach) {
-        choice = 'shoggoth.tentacle_sweep';
+        choice = dx.abs() <= _pointBlankRange
+            ? 'shoggoth.spinning_charge'
+            : 'shoggoth.tentacle_sweep';
       } else if (atHeight && direct && dx.abs() <= 260) {
         choice = 'shoggoth.spinning_charge';
       } else {

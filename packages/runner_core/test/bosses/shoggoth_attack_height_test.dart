@@ -1,4 +1,7 @@
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
+import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/ecs/actor_facing.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
 import 'package:runner_core/ecs/systems/enemy_melee_system.dart';
@@ -23,6 +26,57 @@ void main() {
   for (final hz in [30, 60, 90]) {
     for (final character in [eloiseCharacter, eloiseWipCharacter]) {
       for (final facing in Facing.values) {
+        for (final distance in [0.0, 10.0, 20.0, 30.0, 35.0]) {
+          test(
+            'point-blank retaliation at $distance against ${character.id.name}, $facing, $hz Hz',
+            () {
+              final f = ShoggothCombatFixture(
+                hz: hz,
+                bossX: 300,
+                character: character,
+              );
+              final direction = facing == Facing.right ? 1 : -1;
+              f.placePlayer(f.x + direction * distance);
+              setActorFacing(f.world, f.boss, facing);
+              f.tick(10);
+              expect(f.action, 'shoggoth.spinning_charge');
+              final start = f.world.activeAbility.startTick[f.ai];
+              final windup = f.world.activeAbility.windupTicks[f.ai];
+              final total = f.world.activeAbility.totalTicks[f.ai];
+              final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
+              final damage = DamageSystem(
+                invulnerabilityTicksOnHit: hz ~/ 4,
+                rngSeed: 1,
+                tickHz: hz,
+              );
+              final pi = f.world.health.indexOf(f.player);
+              final initialHp = f.world.health.hp[pi];
+              for (var age = 0; age < total; age++) {
+                final tick = 10 + age;
+                if (age > 0) f.tick(tick);
+                resolveCombatPoses(f.world, tick, tickHz: hz);
+                MeleeStrikeSystem().step(f.world, currentTick: tick);
+                HitboxFollowOwnerSystem(tickHz: hz)
+                    .step(f.world, currentTick: tick);
+                grid.rebuild(f.world);
+                HitboxDamageSystem().step(f.world, grid, currentTick: tick);
+                // Continuous accepted incoming hits must not cancel retaliation.
+                f.world.damageQueue.add(
+                  DamageRequest(target: f.boss, source: f.player, amount100: 1),
+                );
+                damage.step(f.world, currentTick: tick);
+                expect(f.world.activeAbility.startTick[f.ai], start);
+                if (age < windup) expect(f.world.health.hp[pi], initialHp);
+              }
+              expect(f.world.health.hp[pi], lessThan(initialHp));
+              expect(
+                f.world.health.hp[f.world.health.indexOf(f.boss)],
+                lessThan(30000),
+              );
+            },
+          );
+        }
+
         test('orb hits grounded ${character.id.name}, $facing, $hz Hz', () {
           final f = ShoggothCombatFixture(
             hz: hz,

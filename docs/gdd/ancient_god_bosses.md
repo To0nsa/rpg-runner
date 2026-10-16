@@ -161,8 +161,12 @@ height; both melee art and damage shapes use that same scale.
 | Vanish and return | After five completed melee actions without an orb, retreats to cast. Also, after three continuous seconds beyond 300 horizontal units or without a clear direct flight path, may relocate 150 units from the captured target. A fixed purple destination mark accompanies the 0.6-second disappearance; the nine-frame return lasts about 0.9 seconds. At least eight seconds between accepted teleports. |
 
 With a clear flight path and within 50 vertical units of the target, he
-chooses a sweep within 70 horizontal units and a charge from there through
-260 units. Beyond charge range, above him, or behind an obstruction, he uses
+chooses a spinning charge within 35 horizontal units, a sweep beyond 35 through
+70 units, and a charge beyond 70 through 260 units. The point-blank spin covers
+the space inside his tentacle arcs, so standing against his body and chaining
+attacks cannot make every retaliation miss. It retains its full 0.5-second
+warning and ordinary cooldown; moving out of its path can still avoid it.
+Beyond charge range, above him, or behind an obstruction, he uses
 orbs. Between actions he flies toward a 45-unit horizontal stand-off at up to
 240 horizontal and 300 vertical units/second. During a sweep he follows the
 player horizontally and vertically, including jumps. Crossing behind a live
@@ -197,7 +201,8 @@ While any of his own minions are alive, targets outside melee reach make him
 prioritize orbs over charges and ordinary separation-driven repositioning.
 Melee reach requires a clear flight path, at most 70 horizontal units and
 50 vertical units. In reach
-he still uses sweeps. Earned summon waves take priority; existing actions finish
+he still uses point-blank spins or sweeps according to distance. Earned summon
+waves take priority; existing actions finish
 normally, including an accepted retreat-and-orb sequence. A queued return charge
 is skipped when the minions need ranged support.
 Once the last minion dies or expires, normal attack selection resumes.

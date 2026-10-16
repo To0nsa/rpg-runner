@@ -11,6 +11,9 @@ import '../test_support/shoggoth_combat_fixture.dart';
 void main() {
   for (final hz in [30, 60, 90]) {
     for (final (distance, height, direct, expected) in [
+      (0.0, 0.0, true, 'shoggoth.spinning_charge'),
+      (35.0, 0.0, true, 'shoggoth.spinning_charge'),
+      (36.0, 0.0, true, 'shoggoth.tentacle_sweep'),
       (70.0, 0.0, true, 'shoggoth.tentacle_sweep'),
       (71.0, 0.0, true, 'shoggoth.spinning_charge'),
       (260.0, 0.0, true, 'shoggoth.spinning_charge'),

@@ -78,6 +78,9 @@ void main() {
       );
     }
     for (final (distance, height, direct, expected) in [
+      (0.0, 0.0, true, 'shoggoth.spinning_charge'),
+      (35.0, 0.0, true, 'shoggoth.spinning_charge'),
+      (36.0, 0.0, true, 'shoggoth.tentacle_sweep'),
       (70.0, 0.0, true, 'shoggoth.tentacle_sweep'),
       (71.0, 0.0, true, 'shoggoth.orb'),
       (200.0, 0.0, true, 'shoggoth.orb'),
