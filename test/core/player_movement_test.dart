@@ -4,7 +4,6 @@ import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
-import 'package:runner_core/levels/level_world_constants.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
@@ -63,7 +62,7 @@ void main() {
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Production terrain owns spawn placement and publishes its quantized
@@ -93,7 +92,7 @@ void main() {
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Put the player high above the floor so coyote time expires before landing.
@@ -139,7 +138,7 @@ void main() {
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Start dashing from the ground.
@@ -278,7 +277,7 @@ void main() {
     final initialHud = core.buildSnapshot().hud;
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 200);
@@ -390,7 +389,7 @@ void main() {
 
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
     expect(core.playerPosY, closeTo(floorY - 0.0625, 1e-9));
     expect(core.playerGrounded, isTrue);
@@ -418,7 +417,7 @@ void main() {
     );
     final catalog = testPlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0));
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 120);
@@ -442,7 +441,7 @@ void main() {
     );
     final catalog = testPlayerCatalog(bodyTemplate: BodyDef(isKinematic: true));
     final floorY =
-        defaultLevelGroundTopYInt.toDouble() -
+        testFieldLevel().groundTopY -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 120);

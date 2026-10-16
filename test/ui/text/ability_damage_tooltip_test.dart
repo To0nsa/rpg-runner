@@ -15,7 +15,7 @@ void main() {
     );
     expect(
       tooltip.description,
-      contains('Base damage: 11 Physical + 11 Dark.'),
+      contains('Base damage: 8.8 Physical + 8.8 Dark.'),
     );
   });
 
