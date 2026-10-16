@@ -176,25 +176,48 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pageBack();
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Zoom in'));
-      await tester.pumpAndSettle();
-      final viewer = tester.widget<InteractiveViewer>(
-        find.byType(InteractiveViewer),
+      expect(find.byTooltip('Zoom in'), findsNothing);
+      expect(find.byTooltip('Zoom out'), findsNothing);
+      expect(find.textContaining('Visit a city service'), findsNothing);
+      final viewerFinder = find.byType(InteractiveViewer);
+      final viewer = tester.widget<InteractiveViewer>(viewerFinder);
+      final initial = viewer.transformationController!.value.clone();
+      final imageSize = tester.getSize(
+        find.byWidgetPredicate(
+          (widget) => widget is Image && widget.image is ResizeImage,
+        ),
       );
+      final viewportSize = tester.getSize(viewerFinder);
+      expect(imageSize.width, greaterThanOrEqualTo(viewportSize.width));
+      expect(imageSize.height, greaterThanOrEqualTo(viewportSize.height));
+      final center = tester.getCenter(viewerFinder);
+      final first = await tester.startGesture(
+        center - const Offset(30, 0),
+        pointer: 1,
+      );
+      final second = await tester.startGesture(
+        center + const Offset(30, 0),
+        pointer: 2,
+      );
+      await tester.pump();
+      await first.moveTo(center - const Offset(60, 0));
+      await second.moveTo(center + const Offset(60, 0));
+      await tester.pump();
+      await first.moveTo(center - const Offset(90, 0));
+      await second.moveTo(center + const Offset(90, 0));
+      await tester.pump();
+      await first.up();
+      await second.up();
+      await tester.pumpAndSettle();
       expect(
         viewer.transformationController!.value.getMaxScaleOnAxis(),
         greaterThan(1),
       );
-      await tester.drag(find.byType(InteractiveViewer), const Offset(40, 20));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Zoom out'));
-      await tester.pumpAndSettle();
-      expect(viewer.transformationController!.value, Matrix4.identity());
-      await tester.tap(find.byTooltip('Zoom in'));
+      await tester.drag(viewerFinder, const Offset(40, 20));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Reset map'));
       await tester.pumpAndSettle();
-      expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
+      expect(viewer.transformationController!.value, initial);
       await tester.tap(find.byKey(const ValueKey('town-library-marker')));
       await tester.pumpAndSettle();
       expect(find.byType(LibraryPage), findsOneWidget);

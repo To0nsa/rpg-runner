@@ -15,14 +15,11 @@ class TownPage extends StatelessWidget {
     return MenuScaffold(
       title: 'Théodonis',
       background: ColoredBox(color: ui.colors.background),
-      child: SafeArea(
-        top: false,
-        child: TownMap(
-          onStorePressed: () =>
-              Navigator.of(context).pushNamed(UiRoutes.townStore),
-          onLibraryPressed: () =>
-              Navigator.of(context).pushNamed(UiRoutes.library),
-        ),
+      child: TownMap(
+        onStorePressed: () =>
+            Navigator.of(context).pushNamed(UiRoutes.townStore),
+        onLibraryPressed: () =>
+            Navigator.of(context).pushNamed(UiRoutes.library),
       ),
     );
   }

@@ -497,7 +497,8 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 - `Town` on the Play Hub opens the city map.
 - `Town Store` and `Library` markers around Théodonis open their respective
   screens. They indicate services in the city, not precise street addresses.
-- Drag, zoom in/out and reset controls allow map inspection.
+- The map fills the view. Drag and pinch gestures allow inspection; only a
+  reset control is shown. Compact service markers have no border/background.
 - `Options` remains available directly from the Play Hub.
 
 ### In-Game Store (Gold Store)
@@ -534,7 +535,8 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 - Bestiary: ten kills of each regular enemy, five of each boss; attacks,
   damage types, resistances, weaknesses, behaviour and lore.
 - Summons appear within their parent boss's unlocked entry.
-- Left-side section navigation; compact portrait/name cards with progress
+- Left-side section navigation reuses the main menu's icon column and sizing;
+  compact portrait/name cards with progress
   counts inside a trailing bar.
 - Locations: 10,000 points in one Competitive run, separately for Forest and Field.
 - Journal: Éloïse's black-sky opening, following the PDF timeline.

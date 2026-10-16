@@ -4,7 +4,7 @@ import 'package:runner_core/enemies/enemy_id.dart';
 
 import '../../codex/codex_catalog.dart';
 import '../../components/menu_scaffold.dart';
-import '../../components/app_icon_button.dart';
+import '../../components/menu_icon_column.dart';
 import 'enemy_portrait.dart';
 import '../../state/app/app_state.dart';
 import '../../state/ownership/codex_progress.dart';
@@ -36,82 +36,45 @@ class _LibraryPageState extends State<LibraryPage> {
       background: ColoredBox(color: ui.colors.background),
       child: SafeArea(
         top: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final showLabels = constraints.maxWidth >= 480;
-            return Row(
-              children: [
-                SizedBox(
-                  width: showLabels ? 96 : 64,
-                  child: Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (final section in _LibrarySection.values)
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: ui.space.xs,
-                              ),
-                              child: Semantics(
-                                selected: section == _section,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: section == _section
-                                        ? ui.colors.cardBackground
-                                        : null,
-                                    border: Border(
-                                      left: BorderSide(
-                                        width: 3,
-                                        color: section == _section
-                                            ? ui.colors.accentStrong
-                                            : Colors.transparent,
-                                      ),
-                                    ),
-                                  ),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: AppIconButton(
-                                      icon: switch (section) {
-                                        _LibrarySection.bestiary => Icons.pets,
-                                        _LibrarySection.locations =>
-                                          Icons.map_outlined,
-                                        _LibrarySection.journal =>
-                                          Icons.auto_stories_outlined,
-                                      },
-                                      tooltip: _sectionName(section),
-                                      label: showLabels
-                                          ? _sectionName(section)
-                                          : null,
-                                      onPressed: () =>
-                                          setState(() => _section = section),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: ui.space.lg),
+          child: Row(
+            children: [
+              SingleChildScrollView(
+                child: MenuIconColumn(
+                  actions: [
+                    for (final section in _LibrarySection.values)
+                      MenuIconAction(
+                        icon: switch (section) {
+                          _LibrarySection.bestiary => Icons.pets,
+                          _LibrarySection.locations => Icons.map_outlined,
+                          _LibrarySection.journal =>
+                            Icons.auto_stories_outlined,
+                        },
+                        tooltip: _sectionName(section),
+                        selected: section == _section,
+                        onPressed: () => setState(() => _section = section),
                       ),
+                  ],
+                ),
+              ),
+              SizedBox(width: ui.space.xs),
+              Expanded(
+                child: IndexedStack(
+                  index: _section.index,
+                  children: [
+                    _Bestiary(progress: progress),
+                    _Locations(progress: progress),
+                    const CodexReadingView(
+                      title: CodexCatalog.openingTitle,
+                      subtitle: 'Éloïse’s expedition • Six centuries before Les Soleils d’or',
+                      paragraphs: [CodexCatalog.opening],
                     ),
-                  ),
+                  ],
                 ),
-                Expanded(
-                  child: IndexedStack(
-                    index: _section.index,
-                    children: [
-                      _Bestiary(progress: progress),
-                      _Locations(progress: progress),
-                      const CodexReadingView(
-                        title: CodexCatalog.openingTitle,
-                        subtitle: 'Éloïse’s expedition • Six centuries before Les Soleils d’or',
-                        paragraphs: [CodexCatalog.opening],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         ),
       ),
     );

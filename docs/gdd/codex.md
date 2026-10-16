@@ -1,8 +1,11 @@
 # Théodonis and the Codex
 
 Town opens the supplied `assets/Théodonis.jpg` city map, with Store and
-Library callouts inside the walled city. The map supports dragging, zooming and
-resetting. The Store points to the market streets and the Library to the large
+Library callouts inside the walled city. The image fills the available view,
+cropping its edges initially; dragging reveals the remaining map. Pinch to
+zoom and a small reset control remain. Service labels use Mist text and icons
+with dark shadows, without borders or backgrounds. There is no instruction
+footer or plus/minus zoom control. The Store points to the market streets and the Library to the large
 northeastern courtyard complex. These are game navigation placements. Back
 from either service returns to Town.
 
@@ -34,8 +37,9 @@ appears; pending, rejected and local Developer Practice runs do not count.
 Progress starts with runs processed by the Codex-enabled backend; historical
 runs are not reconstructed.
 
-The Library uses a left-side icon rail in the main menu style: Bestiary,
-Locations and Journal. Bestiary supports All, Enemies and Bosses filters and
+The Library shares the main menu's icon column, with identical button sizes
+and spacing: Bestiary, Locations and Journal. Icons use tooltips without
+visible labels or selection boxes. Bestiary supports All, Enemies and Bosses filters and
 lists eight independent entries. Compact cards show an idle enemy portrait,
 name, and a progress bar to the right with the count and target inside it.
 Locations use the same compact layout with landscape icons and competitive

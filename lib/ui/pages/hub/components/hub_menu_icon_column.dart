@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../components/app_icon_button.dart';
+import '../../../components/menu_icon_column.dart';
 
 /// Hub navigation icon column shown on the left side of the play hub.
 class HubMenuIconColumn extends StatelessWidget {
@@ -21,57 +21,34 @@ class HubMenuIconColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = <_HubMenuAction>[
-      _HubMenuAction(
+    final actions = <MenuIconAction>[
+      MenuIconAction(
         icon: Icons.storefront,
         tooltip: 'Town',
         onPressed: onTownPressed,
       ),
-      _HubMenuAction(
+      MenuIconAction(
         icon: Icons.person,
         tooltip: 'Profile',
         onPressed: onProfilePressed,
       ),
-      _HubMenuAction(
+      MenuIconAction(
         icon: Icons.leaderboard,
         tooltip: 'Top',
         onPressed: onLeaderboardsPressed,
       ),
-      _HubMenuAction(
+      MenuIconAction(
         icon: Icons.message,
         tooltip: 'Messages',
         onPressed: onMessagesPressed,
       ),
-      _HubMenuAction(
+      MenuIconAction(
         icon: Icons.settings,
         tooltip: 'Options',
         onPressed: onOptionsPressed,
       ),
     ];
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        for (final action in actions)
-          AppIconButton(
-            icon: action.icon,
-            tooltip: action.tooltip,
-            onPressed: action.onPressed,
-          ),
-      ],
-    );
+    return MenuIconColumn(actions: actions);
   }
-}
-
-class _HubMenuAction {
-  const _HubMenuAction({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback? onPressed;
 }

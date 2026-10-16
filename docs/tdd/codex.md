@@ -95,9 +95,10 @@ Routes:
 
 Locked list rows expose names, idle portraits and requirements, with counts
 inside a trailing progress bar. Status remains in accessibility semantics.
-Entry details and lists scroll; the section rail uses the same `AppIconButton`
-as the hub and retains each section’s scroll/filter state. Narrow viewports
-use tooltip-labelled icons; wider views also show labels. Returning from Store
+Entry details and lists scroll; Library and `HubMenuIconColumn` share
+`MenuIconColumn`, which owns the icon-only `AppIconButton` sizing and spacing.
+Library retains section scroll/filter state and exposes selection through
+semantics. All widths use tooltip-labelled icons. Returning from Store
 or Library returns to the map.
 
 ## Portraits and nested summons
@@ -123,13 +124,20 @@ No backend migration or kill-credit change is needed.
 `assets/Théodonis.jpg` is the supplied 4096 × 3072 city map, registered explicitly
 in `pubspec.yaml`. It replaces the PDF regional extraction, which is no longer
 bundled. `TownMap` uses the image’s 4:3 aspect ratio for both artwork and marker
-geometry. Decode width is capped at 2048 pixels to bound display memory.
+geometry. Its unconstrained scene fills the viewport while preserving that
+aspect ratio. The initial transform centers the cropped artwork; pan gestures
+can reveal the full scene. Resize and reset restore the centered transform.
+The map extends to the screen edges below the app bar. Decode width is capped
+at 2048 pixels to bound display memory.
 
 Service anchors use image coordinates: Store `(0.35, 0.49)` in the market
 streets and Library `(0.47, 0.405)` at the northeastern courtyard complex.
 Separate callout lines connect to those anchors and transform with the image.
+Compact transparent text buttons use Mist/Ink palette tokens and retain
+minimum touch targets. Pinch zoom remains; only a reset button is shown.
+No bottom instructions or plus/minus controls consume map space.
 These placements are navigation choices, not additional world-canon claims.
-If loading fails, the service controls remain available over a city-name fallback.
+If loading fails, the service controls remain available over a plain background.
 
 ## Verification
 
@@ -157,3 +165,9 @@ portrait loads (including cache reuse, disposal and late-load fencing). City
 map navigation and zoom checks use the replacement JPEG. Targeted analysis
 and all 15 focused Flutter tests passed. Rendered previews were reviewed at
 normal and small viewport sizes, including enlarged text.
+
+The edge-to-edge map/shared-menu follow-up passed the eight Codex/Town widget
+tests and three existing hub/developer-mode tests. Coverage includes gesture
+zoom, panning, reset to the initial crop, full viewport coverage, both service
+routes and removed zoom/footer controls. Landscape and portrait previews were
+reviewed with the real fonts, including enlarged text.
