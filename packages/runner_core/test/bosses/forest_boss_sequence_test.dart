@@ -44,15 +44,19 @@ void main() {
           ].singleWhere((pattern) => pattern.chunkKey == _keys[i]);
           expect(pattern.bossArena!.enemyId, _bosses[i]);
         }
-        expect(route.keys[first + 1], startsWith('forest_rocky_grove_normal_'));
+        expect(route.keys[first + 1], 'forest_enchanted_forest_easy_001');
         expect(
           route.keys[route.keys.indexOf(_keys[1]) + 1],
           startsWith('forest_rocky_grove_hard_'),
         );
         final finale = route.keys.sublist(route.keys.indexOf(_keys.last) + 1);
-        expect(finale, hasLength(9));
-        expect(finale.toSet(), hasLength(9));
-        expect(finale, everyElement(startsWith('forest_rocky_grove_hard_')));
+        expect(finale, hasLength(10));
+        expect(finale.first, 'forest_enchanted_forest_hard_001');
+        expect(finale.toSet(), hasLength(10));
+        expect(
+          finale.skip(1),
+          everyElement(startsWith('forest_rocky_grove_hard_')),
+        );
         expect(
           route.continuationChunkKey,
           startsWith('forest_rocky_grove_hard_'),

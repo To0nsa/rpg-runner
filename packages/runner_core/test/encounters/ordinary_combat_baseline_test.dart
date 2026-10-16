@@ -19,14 +19,15 @@ void main() {
       levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
         noEnemyChunks: 0,
         earlyPatternChunks: 0,
+        easyPatternChunks: 10,
+        normalPatternChunks: 0,
         clearAssembly: true,
         clearFirstChunkKey: true,
         chunkPatternSource: const ChunkPatternListSource(
-          easyPatterns: [],
-          normalPatterns: [
+          easyPatterns: [
             ChunkPattern(
-              name: 'field_default_normal_001',
-              chunkKey: 'field_default_normal_001',
+              name: 'field_default_easy_004',
+              chunkKey: 'field_default_easy_004',
               spawnMarkers: [
                 SpawnMarker(
                   enemyId: EnemyId.grojib,
@@ -142,11 +143,11 @@ void main() {
     expect(transformedDerfs, isNotEmpty);
     expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));
-    // Compatibility 2026.10.11 keeps post-hit eligibility after protection
-    // expires, so later ordinary hits renew it throughout this trace.
+    // Compatibility 2026.10.16 uses the current flat Field fixture while
+    // retaining post-hit eligibility after protection expires.
     expect(
       digest,
-      'a96d812b3d9c212a91a532ffae125d4f76b498026145cdf5aeeb1392e0bfe749',
+      'e921cbf21248b6010208cae0e311882463dcfd405adaf85ff09498fe1d7a2d40',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

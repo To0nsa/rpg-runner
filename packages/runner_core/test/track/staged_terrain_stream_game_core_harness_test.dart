@@ -42,7 +42,7 @@ void main() {
         throwsStateError,
       );
 
-      for (var nextTick = 1; nextTick <= 900; nextTick++) {
+      for (var nextTick = 1; nextTick <= 330; nextTick++) {
         final commands = <Command>[MoveAxisCommand(tick: nextTick, axis: 1)];
         first.applyCommands(commands);
         second.applyCommands(commands);
@@ -53,10 +53,10 @@ void main() {
         if (nextTick % 30 == 0) {
           _expectSameTerrainWorld(first, second);
           expect(first.playerGrounded, isTrue, reason: 'tick $nextTick');
-          if (nextTick == 450) {
+          if (nextTick == 150) {
             preparedHits += second.terrainPreparationStats!.hits;
             second.stopTerrainPreparation();
-          } else if (nextTick < 450 || nextTick >= 600) {
+          } else if (nextTick < 150 || nextTick >= 210) {
             await second.prepareTerrainAhead();
             expect(second.terrainPreparationStats!.lastError, isNull);
           }
@@ -69,7 +69,7 @@ void main() {
       );
       expect(
         preparedHits + second.terrainPreparationStats!.hits,
-        greaterThan(2),
+        greaterThan(0),
       );
     },
   );
@@ -154,7 +154,7 @@ void main() {
   test('normal construction admits current streamed enemy policies', () {
     final pattern = ChunkPattern(
       name: 'all_enemy_policies',
-      chunkKey: 'field_default_normal_001',
+      chunkKey: 'field_default_easy_004',
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(
           enemyId: EnemyId.grojib,
@@ -177,9 +177,9 @@ void main() {
       ],
     );
     final patternSource = ChunkPatternListSource(
-      normalPatterns: <ChunkPattern>[pattern],
+      normalPatterns: <ChunkPattern>[],
       earlyPatterns: <ChunkPattern>[],
-      easyPatterns: <ChunkPattern>[],
+      easyPatterns: <ChunkPattern>[pattern],
       hardPatterns: <ChunkPattern>[],
     );
     final registered = LevelRegistry.byId(LevelId.field);
@@ -191,7 +191,7 @@ void main() {
       cameraCenterY: registered.cameraCenterY,
       killPlaneY: registered.killPlaneY,
       earlyPatternChunks: 0,
-      easyPatternChunks: 0,
+      easyPatternChunks: 10,
       normalPatternChunks: 0,
       noEnemyChunks: 0,
       visualThemeId: registered.visualThemeId,

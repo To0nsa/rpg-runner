@@ -13,49 +13,52 @@ import 'package:runner_core/traps/trap_id.dart';
 import 'package:runner_core/traps/trap_placement.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
-/// Uses the real compiled flat terrain in both app and captured Level Play.
-/// The explicit matching pattern is test content, never an alternate run option.
+/// Uses real compiled flat terrain in both app and captured Level Play.
 LevelDefinition trapRunLevel(
   TrapId id, {
   int zIndex = TrapPlacement.defaultZIndex,
 }) => LevelDefinition(
   id: LevelId.field,
-  groundTopY: 222,
+  groundTopY: 224,
   noEnemyChunks: 9999,
   earlyPatternChunks: 0,
-  easyPatternChunks: 0,
-  normalPatternChunks: 100,
-  tuning: const CoreTuning(camera: CameraTuning(speedLagMulX: 0)),
+  easyPatternChunks: 100,
+  normalPatternChunks: 0,
+  tuning: const CoreTuning(
+    camera: CameraTuning(speedLagMulX: 0),
+    track: TrackTuning(playerStartX: 300),
+  ),
   chunkPatternSource: ChunkPatternListSource(
-    easyPatterns: [],
+    easyPatterns: [_trapPattern('field_default_easy_004', id, zIndex)],
     hardPatterns: [],
-    normalPatterns: [
-      ChunkPattern(
-        name: 'field_default_normal_001',
-        chunkKey: 'field_default_normal_001',
-        traps: [
-          TrapPlacement(
-            trapId: id,
-            zIndex: zIndex,
-            x: id == TrapId.poisonDarts ? 400 : 300,
-            y: switch (id) {
-              TrapId.spike => 220,
-              TrapId.swingingAxe => 140,
-              TrapId.poisonDarts => 202,
-            },
-            facing: id == TrapId.poisonDarts ? Facing.left : Facing.right,
-            trigger: switch (id) {
-              TrapId.spike => const TrapRect(-40, -40, 80, 48),
-              TrapId.swingingAxe => const TrapRect(-40, 40, 80, 90),
-              TrapId.poisonDarts => const TrapRect(-130, -32, 140, 64),
-            },
-          ),
-        ],
-      ),
-    ],
   ),
 );
+
+ChunkPattern _trapPattern(String chunkKey, TrapId id, int zIndex) =>
+    ChunkPattern(
+      name: chunkKey,
+      chunkKey: chunkKey,
+      traps: [
+        TrapPlacement(
+          trapId: id,
+          zIndex: zIndex,
+          x: id == TrapId.poisonDarts ? 400 : 300,
+          y: switch (id) {
+            TrapId.spike => 220,
+            TrapId.swingingAxe => 140,
+            TrapId.poisonDarts => 202,
+          },
+          facing: id == TrapId.poisonDarts ? Facing.left : Facing.right,
+          trigger: switch (id) {
+            TrapId.spike => const TrapRect(-40, -40, 80, 48),
+            TrapId.swingingAxe => const TrapRect(-40, 40, 80, 90),
+            TrapId.poisonDarts => const TrapRect(-130, -32, 140, 64),
+          },
+        ),
+      ],
+    );
 
 const trapRunSeed = 4401;
 const trapRunLoadout = EquippedLoadoutDef();
@@ -72,7 +75,7 @@ GameCore trapRunCore(
       scenario: LevelPlaytestScenario(
         levelDefinition: level,
         terrainChunks: stagedAuthoredTerrain.chunks.where(
-          (c) => c.chunkKey == 'field_default_normal_001',
+          (c) => c.chunkKey == 'field_default_easy_004',
         ),
         seed: trapRunSeed,
         playerCharacter: character,

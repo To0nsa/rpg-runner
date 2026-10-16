@@ -68,10 +68,10 @@ void main() {
     'Scythe Sweep snapshots power and conversion without multiplying damage',
     () {
       final ability = const AbilityCatalog().resolve('bringer.scythe_sweep')!;
-      expect(ability.baseDamage, 2200);
+      expect(ability.baseDamage, 1760);
       expect(ability.baseDamageType.split(ability.baseDamage), [
-        (type: DamageType.physical, amount100: 1100),
-        (type: DamageType.dark, amount100: 1100),
+        (type: DamageType.physical, amount100: 880),
+        (type: DamageType.dark, amount100: 880),
       ]);
       final payload = HitPayloadBuilder.build(
         ability: ability,
@@ -79,10 +79,10 @@ void main() {
         globalPowerBonusBp: 5000,
         weaponDamageType: DamageType.fire,
       );
-      expect(payload.damage100, 3300);
+      expect(payload.damage100, 2640);
       expect(payload.damageType.split(payload.damage100), [
-        (type: DamageType.fire, amount100: 1650),
-        (type: DamageType.dark, amount100: 1650),
+        (type: DamageType.fire, amount100: 1320),
+        (type: DamageType.dark, amount100: 1320),
       ]);
     },
   );

@@ -21,7 +21,7 @@ void main() {
     );
     final bindings = [
       catalog.bind(
-        chunkKey: 'field_default_normal_001',
+        chunkKey: 'field_default_easy_004',
         chunkIndex: 0,
         worldOriginXTicks: 0,
       ),

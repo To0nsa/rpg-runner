@@ -16,7 +16,7 @@ void main() {
     () {
       const pattern = ChunkPattern(
         name: 'hashash-only',
-        chunkKey: 'field_default_normal_001',
+        chunkKey: 'field_default_easy_004',
         spawnMarkers: <SpawnMarker>[
           SpawnMarker(
             enemyId: EnemyId.hashash,
@@ -27,15 +27,19 @@ void main() {
         ],
       );
       const source = ChunkPatternListSource(
-        normalPatterns: <ChunkPattern>[pattern],
-        easyPatterns: <ChunkPattern>[],
+        normalPatterns: <ChunkPattern>[],
+        easyPatterns: <ChunkPattern>[pattern],
         hardPatterns: <ChunkPattern>[],
       );
 
       final level = LevelRegistry.byId(LevelId.field).copyWith(
         chunkPatternSource: source,
         earlyPatternChunks: 0,
+        easyPatternChunks: 10,
+        normalPatternChunks: 0,
         noEnemyChunks: 0,
+        clearAssembly: true,
+        clearFirstChunkKey: true,
       );
 
       final core = GameCore(

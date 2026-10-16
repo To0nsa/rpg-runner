@@ -169,14 +169,15 @@ GameCore _blockedCore(int hz) => GameCore.terrainMotionHarness(
   levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
     noEnemyChunks: 0,
     earlyPatternChunks: 0,
+    easyPatternChunks: 10,
+    normalPatternChunks: 0,
     clearAssembly: true,
     clearFirstChunkKey: true,
     chunkPatternSource: ChunkPatternListSource(
-      easyPatterns: const [],
-      normalPatterns: [
+      easyPatterns: [
         ChunkPattern(
-          name: 'field_default_normal_001',
-          chunkKey: 'field_default_normal_001',
+          name: 'field_default_easy_004',
+          chunkKey: 'field_default_easy_004',
           bossArena: BossArenaDefinition(
             id: 'blocked_shoggoth',
             enemyId: EnemyId.shoggoth,
@@ -197,7 +198,7 @@ GameCore _blockedCore(int hz) => GameCore.terrainMotionHarness(
         shapeId: 'floor',
       ),
       surfaceKind: 'ground',
-      vertices: [(-1000, 222), (5000, 222), (5000, 600), (-1000, 600)],
+      vertices: [(-1000, 224), (5000, 224), (5000, 600), (-1000, 600)],
     ),
     TerrainPolygonInput.fromWorld(
       sourcePath: 'test/wall',
@@ -207,7 +208,7 @@ GameCore _blockedCore(int hz) => GameCore.terrainMotionHarness(
         shapeId: 'wall',
       ),
       surfaceKind: 'obstacle',
-      vertices: [(365, 0), (400, 0), (400, 222), (365, 222)],
+      vertices: [(365, 0), (400, 0), (400, 224), (365, 224)],
     ),
   ], geometryVersion: 17),
 );

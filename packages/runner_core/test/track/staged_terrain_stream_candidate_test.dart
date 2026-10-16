@@ -160,7 +160,7 @@ void main() {
 TrackStreamer _fieldStreamer() {
   const pattern = ChunkPattern(
     name: 'field',
-    chunkKey: 'field_default_normal_001',
+    chunkKey: 'field_default_easy_004',
   );
   const source = ChunkPatternListSource(
     easyPatterns: <ChunkPattern>[pattern],

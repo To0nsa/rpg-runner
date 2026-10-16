@@ -59,8 +59,8 @@ final class _SectionSource extends ChunkPatternSource {
         repeatsFinalSegment: false,
       ),
       pattern: ChunkPattern(
-        name: 'field_default_normal_001',
-        chunkKey: 'field_default_normal_001',
+        name: 'field_default_easy_004',
+        chunkKey: 'field_default_easy_004',
         encounters: chunkIndex == 0
             ? [
                 EncounterDefinition(

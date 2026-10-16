@@ -39,12 +39,10 @@ void main() {
     final level = trapRunLevel(TrapId.spike).copyWith(
       noEnemyChunks: 0,
       chunkPatternSource: ChunkPatternListSource(
-        easyPatterns: [],
-        hardPatterns: [],
-        normalPatterns: [
+        easyPatterns: [
           ChunkPattern(
-            name: 'field_default_normal_001',
-            chunkKey: 'field_default_normal_001',
+            name: 'field_default_easy_004',
+            chunkKey: 'field_default_easy_004',
             traps: [
               for (var i = 0; i < 8; i++)
                 TrapPlacement(
@@ -66,6 +64,7 @@ void main() {
             ],
           ),
         ],
+        hardPatterns: [],
       ),
     );
     final core = GameCore(
