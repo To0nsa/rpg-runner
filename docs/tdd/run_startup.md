@@ -97,6 +97,10 @@ already applied to Core survive cancellation.
 
 UiAssetLifecycle owns menu previews only. The former whole-catalog Flutter
 precache pass, run preview scopes, and run-exit preview purge are removed.
+`PlayerIdlePreview` retains its load future across ordinary rebuilds and refreshes
+it only when the character or lifecycle owner changes. Pushing the run bootstrap
+route therefore does not restart menu preview loading; loads are requested from
+widget lifecycle callbacks rather than `build`.
 Flutter precaching did not populate the separate Flame Images cache. Runtime
 images are now decoded by their run-owned registries/cache without that earlier
 awaited duplicate pass. Live and ghost player views still share the run's

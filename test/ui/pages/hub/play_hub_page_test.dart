@@ -75,6 +75,14 @@ void main() {
     );
     await tester.pump();
 
+    final previewFinder = find.byType(
+      FutureBuilder<IdleAnimBundle>,
+      skipOffstage: false,
+    );
+    final idleFutureBeforeTap = tester
+        .widget<FutureBuilder<IdleAnimBundle>>(previewFinder)
+        .future;
+
     final playButtonFinder = find.byWidgetPredicate(
       (widget) => widget is AppButton && widget.label == 'PLAY',
     );
@@ -82,6 +90,10 @@ void main() {
     await tester.pump();
 
     expect(observer.pushedRouteNames, contains(UiRoutes.runBootstrap));
+    expect(
+      tester.widget<FutureBuilder<IdleAnimBundle>>(previewFinder).future,
+      same(idleFutureBeforeTap),
+    );
   });
 }
 

@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:runner_core/players/player_character_definition.dart';
+
 import '../assets/ui_asset_lifecycle.dart';
 
 /// Lightweight UI preview for a character's idle animation.
 ///
 /// Caches animation loads per character to avoid asset churn in menus.
-class PlayerIdlePreview extends StatelessWidget {
+class PlayerIdlePreview extends StatefulWidget {
   const PlayerIdlePreview({
     super.key,
     required this.characterId,
@@ -18,18 +19,48 @@ class PlayerIdlePreview extends StatelessWidget {
   final PlayerCharacterId characterId;
   final double size;
 
+  @override
+  State<PlayerIdlePreview> createState() => _PlayerIdlePreviewState();
+}
+
+class _PlayerIdlePreviewState extends State<PlayerIdlePreview> {
   static final Paint _paint = Paint()..filterQuality = FilterQuality.none;
+  UiAssetLifecycle? _lifecycle;
+  PlayerCharacterId? _characterId;
+  Future<IdleAnimBundle>? _idleFuture;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateFuture(Provider.of<UiAssetLifecycle>(context));
+  }
+
+  @override
+  void didUpdateWidget(PlayerIdlePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.characterId != widget.characterId) {
+      _updateFuture(_lifecycle!);
+    }
+  }
+
+  void _updateFuture(UiAssetLifecycle lifecycle) {
+    if (identical(_lifecycle, lifecycle) &&
+        _idleFuture != null &&
+        _characterId == widget.characterId) {
+      return;
+    }
+    _lifecycle = lifecycle;
+    _characterId = widget.characterId;
+    _idleFuture = lifecycle.getIdle(widget.characterId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final lifecycle = context.read<UiAssetLifecycle>();
-    final future = lifecycle.getIdle(characterId);
-
     return SizedBox(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       child: FutureBuilder<IdleAnimBundle>(
-        future: future,
+        future: _idleFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return _buildPlaceholder();
