@@ -23,7 +23,7 @@ free to browse; discoveries cannot be purchased.
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
 | The Val Outpost | Reach 10,000 in one Competitive run on The Val Outpost | Forest history and current crisis |
 | Field | Reach 10,000 in one Competitive run on Field | Open-land context and the journey |
-| Éloïse's opening journal | Available immediately | The black sky and the expedition's starting premise |
+| Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
 
 Kills accumulate across confirmed Practice, Competitive and Weekly runs, on
 either character. Each enemy type has its own count. Bosses are Bringer of
@@ -59,10 +59,13 @@ explicitly separated; an empty category states that none exist.
 ## Narrative continuity
 
 The PDF timeline supersedes the earlier 200-year proposal. The historical
-overview places this episode approximately six centuries before *Les Soleils
-d'or*. The playable Éloïse is the PDF character, aged seventeen at the black-sky
-episode. The opening journal starts when she sees the black sky above the
-forest; it does not reveal her later fate.
+overview places this episode approximately six centuries before the tabletop
+campaign. The playable Éloïse is the PDF character, aged seventeen at the
+black-sky episode. Her opening journal recounts her birth in Elingen, her
+parents' disappearance, Aldebarant's training, her election and victories
+against the orcs, and her founding of La Main. It ends as the sky darkens,
+without revealing what happens in the forest or her later fate. The in-game
+journal contains no reference to the later campaign.
 
 The user's premise is authoritative for the runner: the forest's cultists and
 associated creatures help the power responsible for the black sky. The PDF

@@ -20,6 +20,32 @@ Current implemented scope includes:
 
 Roadmap work still exists, but AGENTS guidance must describe the code that exists today. Do not write docs that assume future systems already exist.
 
+## Lothringen World and Brand Reference
+
+This repository implements **Lothringen: The Long Run**, the mobile RPG runner
+set in the shared Lothringen world. The companion repository at
+`C:\dev\Lothringen\` holds the world canon, brand guidance, and tabletop material
+for **Lothringen: The Golden Suns**.
+
+Consult the relevant files there when changing world/lore content, naming,
+player-facing tone, visual identity, or gameplay design that expresses the
+setting's themes. Paths below are relative to `C:\dev\Lothringen\`:
+
+- `Brand/Identity.md`: world identity, themes, and core pillars
+- `Brand/CrossMediaExpressionRules.md`: how the runner expresses the shared
+  setting through resource pressure, risk-reward choices, and build adaptation
+- `Brand/VisualIdentity.md` and `Brand/VisuelTokens.md`: art direction, canonical
+  colors, and typography; `lib/ui/theme/ui_world_palette.dart` implements a
+  selection of these color tokens
+- `Brand/Naming&Terminology.md` and `Brand/WorldSnapshot/`: naming conventions,
+  world details, and canon boundaries
+
+These are creative reference documents, not a runtime or build dependency.
+Brand intentions do not establish implemented game behavior; use this repo's
+code and current TDD/GDD documents for that. If the companion folder is
+unavailable, state that limitation when relevant and use existing local
+references without inventing canon or assuming the external documents were read.
+
 ## Read These First
 
 Use the most specific AGENTS file that matches the area you are touching:

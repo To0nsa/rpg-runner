@@ -539,7 +539,8 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
   compact portrait/name cards with progress
   counts inside a trailing bar.
 - Locations: 10,000 points in one Competitive run, separately for The Val Outpost and Field.
-- Journal: Éloïse's black-sky opening, following the PDF timeline.
+- Journal: Éloïse's backstory through the moment the sky darkens, following
+  the PDF timeline and leaving later events unrevealed.
 - Account-wide confirmed progress, locked-entry requirements and readable
   discovered entries. See [Codex rules](codex.md) and
   [persistence contract](../tdd/codex.md).

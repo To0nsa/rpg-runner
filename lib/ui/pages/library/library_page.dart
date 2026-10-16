@@ -67,7 +67,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     _Locations(progress: progress),
                     const CodexReadingView(
                       title: CodexCatalog.openingTitle,
-                      subtitle: 'Éloïse’s expedition • Six centuries before Les Soleils d’or',
+                      subtitle: 'Éloïse of Elingen • Haute-Lothringen',
                       paragraphs: [CodexCatalog.opening],
                     ),
                   ],

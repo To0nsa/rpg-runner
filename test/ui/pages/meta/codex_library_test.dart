@@ -137,7 +137,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Library · Journal'), findsOneWidget);
       expect(find.text(CodexCatalog.opening), findsOneWidget);
-      expect(find.textContaining('Six centuries'), findsOneWidget);
+      expect(find.textContaining('Éloïse of Elingen'), findsOneWidget);
     },
   );
 

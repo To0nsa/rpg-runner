@@ -41,15 +41,23 @@ abstract final class CodexCatalog {
       (progress.competitiveBestScores[id.name] ?? 0) >=
           levelScoreRequirements[id]!;
 
-  static const openingTitle = 'When the sky darkened';
+  static const openingTitle = 'Before the dark sky';
   static const opening =
-      'Éloïse is seventeen when the sky suddenly darkens above the forest. '
-      'The war against the orcs has already concealed another threat: a cult '
-      'working to corrupt the ancient woodland. Its followers now stand '
-      'between her and whoever is responsible for the black sky.\n\n'
-      'She enters the forest. These pages gather what can be learned along '
-      'the way: the enemies she faces, the places she crosses, and the cost '
-      'of reaching further into the darkness.';
+      'Éloïse was born in Elingen, in Haute-Lothringen, the only child of '
+      'Krenth, a respected lord, and Soturi, a warrior from the East. They '
+      'ruled the region through her first ten years. Then they departed on a '
+      'mysterious quest and never returned.\n\n'
+      'Even as a child, Éloïse showed uncommon strength and magical ability. '
+      'After her parents disappeared, Aldebarant, a close friend of Soturi, '
+      'guided her training. Later stories claimed it lasted several lifetimes '
+      'in other dimensions.\n\n'
+      'At thirteen, while orcs from the Ashen mountains pushed the war toward '
+      'Basse-Lothringen, her people chose her to lead them. At fifteen, she '
+      'commanded Lothringen’s forces and drove the invaders back. The war, '
+      'however, had concealed another threat: a demonic cult was corrupting '
+      'the primeval forest. Éloïse founded La Main to purge that corruption.\n\n'
+      'Now she is seventeen, and the sky over the forest has suddenly '
+      'darkened. The danger that grew unseen during the war lies ahead.';
 
   static String enemyLore(EnemyId id) => switch (id) {
     EnemyId.grojib =>
