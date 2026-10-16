@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
@@ -5,10 +7,12 @@ import 'package:flutter/widgets.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 
 import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
 import 'lru_cache.dart';
+import 'enemy_portrait_loader.dart';
 
 class IdleAnimBundle {
   const IdleAnimBundle({required this.animation, required this.anchor});
@@ -29,6 +33,29 @@ class UiAssetLifecycle {
       );
 
   final Images _idleImages = Images();
+  final _enemyPortraits = <EnemyId, ui.Image>{};
+  final _enemyPortraitLoads = <EnemyId, Future<ui.Image>>{};
+  int _portraitGeneration = 0;
+
+  /// At most one static portrait per catalog enemy, shared by lists and details.
+  Future<ui.Image> getEnemyPortrait(EnemyId id) {
+    final cached = _enemyPortraits[id];
+    if (cached != null) return Future.value(cached);
+    return _enemyPortraitLoads.putIfAbsent(id, () async {
+      final generation = _portraitGeneration;
+      try {
+        final image = await loadEnemyPortrait(id);
+        if (generation != _portraitGeneration) {
+          image.dispose();
+          throw StateError('Enemy preview owner was cleared during loading.');
+        }
+        _enemyPortraits[id] = image;
+        return image;
+      } finally {
+        if (generation == _portraitGeneration) _enemyPortraitLoads.remove(id);
+      }
+    });
+  }
 
   final LruCache<String, List<AssetImage>> _hubParallaxCache;
   final LruCache<PlayerCharacterId, IdleAnimBundle> _hubIdleCache;
@@ -110,6 +137,12 @@ class UiAssetLifecycle {
   }
 
   void purgeAll() {
+    _portraitGeneration++;
+    _enemyPortraitLoads.clear();
+    for (final image in _enemyPortraits.values) {
+      image.dispose();
+    }
+    _enemyPortraits.clear();
     _hubParallaxCache.clear();
     _hubIdleCache.clear();
     _hubIdleInFlight.clear();

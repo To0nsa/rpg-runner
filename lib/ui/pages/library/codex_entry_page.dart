@@ -11,6 +11,7 @@ import '../../state/app/app_state.dart';
 import '../../text/ability_text.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_widgets.dart';
+import 'enemy_portrait.dart';
 
 /// Rechecks the current account's gate even when an entry route is already open.
 class CodexEntryPage extends StatelessWidget {
@@ -26,7 +27,9 @@ class CodexEntryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<AppState>().progression.codex;
-    final enemy = enemyId;
+    final enemy = enemyId == null
+        ? null
+        : CodexCatalog.parentBoss(enemyId!) ?? enemyId;
     final title = enemy?.displayName ?? CodexCatalog.levelName(levelId!);
     final unlocked = enemy != null
         ? CodexCatalog.enemyUnlocked(progress, enemy)
@@ -47,7 +50,7 @@ class CodexEntryPage extends StatelessWidget {
                 title: title,
                 subtitle: enemy != null
                     ? (enemy.isBoss ? 'Bestiary • Boss' : 'Bestiary')
-                    : 'Places',
+                    : 'Locations',
                 paragraphs: enemy != null
                     ? []
                     : [CodexCatalog.levelLore(levelId!)],
@@ -59,6 +62,8 @@ class CodexEntryPage extends StatelessWidget {
                           title: 'Field notes',
                           text: CodexCatalog.enemyLore(enemy),
                         ),
+                        for (final summon in CodexCatalog.summonsFor(enemy))
+                          _SummonSection(enemy: summon),
                       ],
               )
             : CodexReadingView(
@@ -72,6 +77,37 @@ class CodexEntryPage extends StatelessWidget {
                 ],
               ),
       ),
+    );
+  }
+}
+
+/// Summons are part of the boss discovery, without a second kill gate.
+class _SummonSection extends StatelessWidget {
+  const _SummonSection({required this.enemy});
+  final EnemyId enemy;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: ui.space.lg),
+        Divider(color: ui.colors.outline),
+        Row(
+          children: [
+            SizedBox(width: 56, height: 56, child: EnemyPortrait(enemy: enemy)),
+            SizedBox(width: ui.space.sm),
+            Expanded(child: Text(enemy.displayName, style: ui.text.title)),
+          ],
+        ),
+        Text('Summoned creature', style: ui.text.body),
+        _EnemyCombat(enemy: enemy),
+        _ReadingSection(
+          title: 'Field notes',
+          text: CodexCatalog.enemyLore(enemy),
+        ),
+      ],
     );
   }
 }

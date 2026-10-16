@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../theme/ui_tokens.dart';
 
+/// A compact name/portrait row with its requirement inside the trailing meter.
 class CodexEntryTile extends StatelessWidget {
   const CodexEntryTile({
     super.key,
     required this.title,
-    required this.category,
+    required this.portrait,
     required this.current,
     required this.requiredProgress,
     required this.progressLabel,
     required this.onPressed,
   });
-  final String title, category, progressLabel;
+  final String title, progressLabel;
+  final Widget portrait;
   final int current, requiredProgress;
   final VoidCallback onPressed;
 
@@ -20,56 +22,97 @@ class CodexEntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final unlocked = current >= requiredProgress;
+    final count = '${codexNumber(current)} / ${codexNumber(requiredProgress)}';
     return Padding(
-      padding: EdgeInsets.only(bottom: ui.space.sm),
-      child: Material(
-        color: ui.colors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(ui.radii.md),
-          side: BorderSide(color: ui.colors.outline),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          child: Padding(
-            padding: EdgeInsets.all(ui.space.md),
-            child: Row(
-              children: [
-                Icon(
-                  unlocked ? Icons.menu_book : Icons.lock_outline,
-                  color: unlocked
-                      ? ui.colors.accentStrong
-                      : ui.colors.textMuted,
+      padding: EdgeInsets.only(bottom: ui.space.xs),
+      child: Semantics(
+        label: '$title, ${unlocked ? 'discovered' : 'locked'}',
+        value: '$count $progressLabel',
+        button: true,
+        onTap: onPressed,
+        child: ExcludeSemantics(
+          child: Material(
+            color: ui.colors.cardBackground,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ui.radii.sm),
+              side: BorderSide(color: ui.colors.outline),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onPressed,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ui.space.xs,
+                  vertical: ui.space.xxs,
                 ),
-                SizedBox(width: ui.space.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: ui.text.headline),
-                      Text(
-                        '$category • ${unlocked ? 'Discovered' : 'Locked'}',
-                        style: ui.text.body.copyWith(
-                          color: ui.colors.textMuted,
-                        ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final barWidth = (constraints.maxWidth * .36).clamp(
+                      100.0,
+                      200.0,
+                    );
+                    return ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 48, height: 48, child: portrait),
+                          SizedBox(width: ui.space.xs),
+                          Expanded(child: Text(title, style: ui.text.headline)),
+                          SizedBox(width: ui.space.sm),
+                          SizedBox(
+                            width: barWidth,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(ui.radii.sm),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Positioned.fill(
+                                    child: ColoredBox(
+                                      color: ui.colors.background,
+                                    ),
+                                  ),
+                                  Positioned.fill(
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: FractionallySizedBox(
+                                        widthFactor:
+                                            (current / requiredProgress).clamp(
+                                              0,
+                                              1,
+                                            ),
+                                        heightFactor: 1,
+                                        child: ColoredBox(
+                                          color: ui.colors.accentStrong
+                                              .withValues(alpha: .35),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: ui.space.xs,
+                                      vertical: ui.space.xs,
+                                    ),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        count,
+                                        style: ui.text.body.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: ui.space.xs),
-                      Text(
-                        '${codexNumber(current)} / ${codexNumber(requiredProgress)} $progressLabel',
-                        style: ui.text.body,
-                      ),
-                      SizedBox(height: ui.space.xs),
-                      LinearProgressIndicator(
-                        value: (current / requiredProgress).clamp(0, 1),
-                        color: ui.colors.accentStrong,
-                        backgroundColor: ui.colors.background,
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-                SizedBox(width: ui.space.xs),
-                const Icon(Icons.chevron_right),
-              ],
+              ),
             ),
           ),
         ),

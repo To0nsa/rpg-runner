@@ -12,6 +12,18 @@ abstract final class CodexCatalog {
   static const regularEnemyKills = 10;
   static const bossKills = 5;
 
+  static Iterable<EnemyId> get bestiaryEntries =>
+      EnemyId.values.where((id) => !id.isBossSummon);
+
+  static EnemyId? parentBoss(EnemyId id) => switch (id) {
+    EnemyId.shoggothMinion => EnemyId.shoggoth,
+    EnemyId.voidTentacle => EnemyId.voidcaller,
+    _ => null,
+  };
+
+  static Iterable<EnemyId> summonsFor(EnemyId boss) =>
+      EnemyId.values.where((id) => parentBoss(id) == boss);
+
   /// Best score in a single validated Competitive run, separately per level.
   static const levelScoreRequirements = <LevelId, int>{
     LevelId.forest: 10000,
@@ -19,9 +31,10 @@ abstract final class CodexCatalog {
   };
 
   static int killsRequired(EnemyId id) =>
-      id.isBoss ? bossKills : regularEnemyKills;
+      (parentBoss(id) ?? id).isBoss ? bossKills : regularEnemyKills;
   static bool enemyUnlocked(CodexProgress progress, EnemyId id) =>
-      (progress.enemyKills[id.name] ?? 0) >= killsRequired(id);
+      (progress.enemyKills[(parentBoss(id) ?? id).name] ?? 0) >=
+      killsRequired(id);
   static bool levelUnlocked(CodexProgress progress, LevelId id) =>
       levelScoreRequirements.containsKey(id) &&
       (progress.competitiveBestScores[id.name] ?? 0) >=

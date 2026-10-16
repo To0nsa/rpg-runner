@@ -4,6 +4,8 @@ import 'package:runner_core/enemies/enemy_id.dart';
 
 import '../../codex/codex_catalog.dart';
 import '../../components/menu_scaffold.dart';
+import '../../components/app_icon_button.dart';
+import 'enemy_portrait.dart';
 import '../../state/app/app_state.dart';
 import '../../state/ownership/codex_progress.dart';
 import '../../theme/ui_tokens.dart';
@@ -11,8 +13,17 @@ import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
 
 /// Reads settled account progress; browsing never grants discoveries locally.
-class LibraryPage extends StatelessWidget {
+class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
+
+  @override
+  State<LibraryPage> createState() => _LibraryPageState();
+}
+
+enum _LibrarySection { bestiary, locations, journal }
+
+class _LibraryPageState extends State<LibraryPage> {
+  _LibrarySection _section = _LibrarySection.bestiary;
 
   @override
   Widget build(BuildContext context) {
@@ -20,44 +31,97 @@ class LibraryPage extends StatelessWidget {
       (app) => app.progression.codex,
     );
     final ui = context.ui;
-    return DefaultTabController(
-      length: 3,
-      child: MenuScaffold(
-        title: 'Library',
-        background: ColoredBox(color: ui.colors.background),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              TabBar(
-                labelColor: ui.colors.textPrimary,
-                unselectedLabelColor: ui.colors.textMuted,
-                indicatorColor: ui.colors.accentStrong,
-                tabs: const [
-                  Tab(text: 'Bestiary'),
-                  Tab(text: 'Places'),
-                  Tab(text: 'Journal'),
-                ],
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _Bestiary(progress: progress),
-                    _Places(progress: progress),
-                    const CodexReadingView(
-                      title: CodexCatalog.openingTitle,
-                      subtitle: 'Éloïse’s expedition • Six centuries before Les Soleils d’or',
-                      paragraphs: [CodexCatalog.opening],
+    return MenuScaffold(
+      title: 'Library',
+      background: ColoredBox(color: ui.colors.background),
+      child: SafeArea(
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final showLabels = constraints.maxWidth >= 480;
+            return Row(
+              children: [
+                SizedBox(
+                  width: showLabels ? 96 : 64,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final section in _LibrarySection.values)
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                vertical: ui.space.xs,
+                              ),
+                              child: Semantics(
+                                selected: section == _section,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: section == _section
+                                        ? ui.colors.cardBackground
+                                        : null,
+                                    border: Border(
+                                      left: BorderSide(
+                                        width: 3,
+                                        color: section == _section
+                                            ? ui.colors.accentStrong
+                                            : Colors.transparent,
+                                      ),
+                                    ),
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: AppIconButton(
+                                      icon: switch (section) {
+                                        _LibrarySection.bestiary => Icons.pets,
+                                        _LibrarySection.locations =>
+                                          Icons.map_outlined,
+                                        _LibrarySection.journal =>
+                                          Icons.auto_stories_outlined,
+                                      },
+                                      tooltip: _sectionName(section),
+                                      label: showLabels
+                                          ? _sectionName(section)
+                                          : null,
+                                      onPressed: () =>
+                                          setState(() => _section = section),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+                Expanded(
+                  child: IndexedStack(
+                    index: _section.index,
+                    children: [
+                      _Bestiary(progress: progress),
+                      _Locations(progress: progress),
+                      const CodexReadingView(
+                        title: CodexCatalog.openingTitle,
+                        subtitle: 'Éloïse’s expedition • Six centuries before Les Soleils d’or',
+                        paragraphs: [CodexCatalog.opening],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
+
+  String _sectionName(_LibrarySection section) => switch (section) {
+    _LibrarySection.bestiary => 'Bestiary',
+    _LibrarySection.locations => 'Locations',
+    _LibrarySection.journal => 'Journal',
+  };
 }
 
 enum _EnemyFilter { all, enemies, bosses }
@@ -75,7 +139,7 @@ class _BestiaryState extends State<_Bestiary> {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final entries = EnemyId.values
+    final entries = CodexCatalog.bestiaryEntries
         .where(
           (id) => switch (_filter) {
             _EnemyFilter.all => true,
@@ -84,22 +148,10 @@ class _BestiaryState extends State<_Bestiary> {
           },
         )
         .toList();
-    final unlocked = EnemyId.values
-        .where((id) => CodexCatalog.enemyUnlocked(widget.progress, id))
-        .length;
     return ListView(
-      padding: EdgeInsets.all(ui.space.md),
+      key: const PageStorageKey('codex-bestiary'),
+      padding: EdgeInsets.all(ui.space.sm),
       children: [
-        Text(
-          '$unlocked / ${EnemyId.values.length} entries discovered',
-          style: ui.text.headline,
-        ),
-        SizedBox(height: ui.space.xs),
-        Text(
-          'Defeat an enemy 10 times, or a boss 5 times. Kills accumulate across validated runs and characters.',
-          style: ui.text.body,
-        ),
-        SizedBox(height: ui.space.sm),
         Wrap(
           spacing: ui.space.xs,
           children: [
@@ -120,11 +172,7 @@ class _BestiaryState extends State<_Bestiary> {
           CodexEntryTile(
             key: ValueKey('codex-enemy-${id.name}'),
             title: id.displayName,
-            category: id.isBoss
-                ? 'Boss'
-                : id.isBossSummon
-                ? 'Summoned creature'
-                : 'Enemy',
+            portrait: EnemyPortrait(enemy: id),
             current: widget.progress.enemyKills[id.name] ?? 0,
             requiredProgress: CodexCatalog.killsRequired(id),
             progressLabel: 'defeated',
@@ -142,28 +190,24 @@ class _BestiaryState extends State<_Bestiary> {
   }
 }
 
-class _Places extends StatelessWidget {
-  const _Places({required this.progress});
+class _Locations extends StatelessWidget {
+  const _Locations({required this.progress});
   final CodexProgress progress;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
     return ListView(
-      padding: EdgeInsets.all(ui.space.md),
+      padding: EdgeInsets.all(ui.space.sm),
       children: [
-        Text('Know the land', style: ui.text.headline),
-        SizedBox(height: ui.space.xs),
-        Text(
-          'Reach the required score in one Competitive run on each level. Your best validated score is kept across seasons.',
-          style: ui.text.body,
-        ),
-        SizedBox(height: ui.space.md),
         for (final id in CodexCatalog.levelScoreRequirements.keys)
           CodexEntryTile(
             key: ValueKey('codex-level-${id.name}'),
             title: CodexCatalog.levelName(id),
-            category: 'Place',
+            portrait: Icon(
+              Icons.landscape_outlined,
+              color: ui.colors.accentStrong,
+            ),
             current: progress.competitiveBestScores[id.name] ?? 0,
             requiredProgress: CodexCatalog.levelScoreRequirements[id]!,
             progressLabel: 'best Competitive score',

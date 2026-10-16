@@ -78,38 +78,58 @@ canonical progression before acknowledging completion, including zero-gold
 rewards; Codex needs no independent mutation or refresh endpoint.
 
 `CodexCatalog` holds presentation policy: ten kills for regular enemies,
-five for Core-classified bosses, and 10,000 best Competitive points for each
-published Forest/Field entry. New authored/development levels do not appear
+five for Core-classified bosses and their nested summon sections, and 10,000
+best Competitive points for each published Forest/Field entry. New authored/development levels do not appear
 automatically. Enemy attack damage composition and resistance values come
 from the current Core catalogs, including secondary damaging attacks sharing
 the archetype's ability namespace. Lore/tactical prose remains UI content.
 
 Routes:
 
-- `/meta/town`: regional map with city-service callouts, pan/zoom and reset.
+- `/meta/town`: city map with city-service callouts, pan/zoom and reset.
 - `/meta/town/store`: the existing store, preserving purchase/refresh behavior.
-- `/meta/town/library`: Bestiary, Places and opening Journal tabs.
+- `/meta/town/library`: Bestiary, Locations and opening Journal sections on a
+  left-side icon rail.
 - Entry routes are pushed within Library and recheck current account progress
   on rebuild, hiding combat/lore content again if the account is replaced.
 
-Only names, categories and requirements are exposed for locked entries. Entry
-details and lists scroll; progress, filters and map controls use the existing
-theme. Returning from Store or Library returns to the map.
+Locked list rows expose names, idle portraits and requirements, with counts
+inside a trailing progress bar. Status remains in accessibility semantics.
+Entry details and lists scroll; the section rail uses the same `AppIconButton`
+as the hub and retains each section’s scroll/filter state. Narrow viewports
+use tooltip-labelled icons; wider views also show labels. Returning from Store
+or Library returns to the map.
 
-## Map provenance
+## Portraits and nested summons
 
-`assets/images/backgrounds/theodonis_region.png` is the original 843 × 596
-embedded raster from physical PDF page 2, image xref 170, in
-`Lothringen - Les Soleils d'or - Guide du maitre.pdf`. The source lives under
-`C:/dev/Lothringen/Lothringen The Golden Suns/Temporary pdfs/`; that folder is
-not a runtime dependency. The original image orientation is retained instead
-of the PDF spread's rotated display.
+`UiAssetLifecycle` owns at most one cropped static portrait for each enemy ID.
+Loads are deduplicated and initiated by the portrait widget’s lifecycle, not
+its `build` method. The loader samples the first catalog `previewAnimKey`
+frame (including Derf’s caster idle), reuses the render-layer strip/composite
+loader, trims transparent padding and releases the temporary sprite sheet.
+Only the small rasterized portrait remains cached. No animation ticker runs.
+Purge disposes portrait images and fences late loads by generation; failed
+loads can retry and show an image placeholder without hiding navigation.
 
-The Théodonis anchor is approximately `(0.125, 0.38)` of the image. Store and
-Library callouts surround that city and share the image's transformation.
-This is a regional navigation reference, not a reconstruction of streets or
-an assertion that every map label existed in Éloïse's era. If loading fails,
-service controls remain available over a city-name fallback.
+Bestiary excludes `isBossSummon` entries. `CodexCatalog.parentBoss` binds
+Shoggoth Minion to Shoggoth and Void Tentacle to Voidcaller. Their complete
+combat/lore sections appear only inside the unlocked parent page. Direct
+construction with a summon ID resolves to the parent page and gate. Stored
+summon kill totals remain compatible evidence but are not independent unlocks.
+No backend migration or kill-credit change is needed.
+
+## City map asset
+
+`assets/Théodonis.jpg` is the supplied 4096 × 3072 city map, registered explicitly
+in `pubspec.yaml`. It replaces the PDF regional extraction, which is no longer
+bundled. `TownMap` uses the image’s 4:3 aspect ratio for both artwork and marker
+geometry. Decode width is capped at 2048 pixels to bound display memory.
+
+Service anchors use image coordinates: Store `(0.35, 0.49)` in the market
+streets and Library `(0.47, 0.405)` at the northeastern courtyard complex.
+Separate callout lines connect to those anchors and transform with the image.
+These placements are navigation choices, not additional world-canon claims.
+If loading fails, the service controls remain available over a city-name fallback.
 
 ## Verification
 
@@ -130,3 +150,10 @@ Flutter state/widget tests. Rendered Town and Library previews were reviewed
 with the real fonts. Follow-up layout checks corrected duplicated top padding,
 large-text store headers and minimum-zoom translation bounds. These are local
 checks, not evidence of a production deployment or physical-device smoke test.
+
+The Library cleanup adds checks for compact row geometry, left-side navigation,
+removed summary/status text, boss-owned summon gates and all ten real idle
+portrait loads (including cache reuse, disposal and late-load fencing). City
+map navigation and zoom checks use the replacement JPEG. Targeted analysis
+and all 15 focused Flutter tests passed. Rendered previews were reviewed at
+normal and small viewport sizes, including enlarged text.

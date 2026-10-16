@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../app/ui_routes.dart';
 import '../../components/menu_scaffold.dart';
 import '../../theme/ui_tokens.dart';
-import 'town_region_map.dart';
+import 'town_map.dart';
 
-/// Town services share the regional map; each service has its own back stack.
+/// Town services share the city map; each service has its own back stack.
 class TownPage extends StatelessWidget {
   const TownPage({super.key});
 
@@ -17,7 +17,7 @@ class TownPage extends StatelessWidget {
       background: ColoredBox(color: ui.colors.background),
       child: SafeArea(
         top: false,
-        child: TownRegionMap(
+        child: TownMap(
           onStorePressed: () =>
               Navigator.of(context).pushNamed(UiRoutes.townStore),
           onLibraryPressed: () =>

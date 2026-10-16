@@ -1,9 +1,10 @@
 # Théodonis and the Codex
 
-Town opens the regional map from the world-reference PDF, with Store and
-Library callouts around Théodonis. The map supports dragging, zooming and
-resetting. These callouts identify city services, not precise buildings on a
-street map. Back from either service returns to Town.
+Town opens the supplied `assets/Théodonis.jpg` city map, with Store and
+Library callouts inside the walled city. The map supports dragging, zooming and
+resetting. The Store points to the market streets and the Library to the large
+northeastern courtyard complex. These are game navigation placements. Back
+from either service returns to Town.
 
 The Store retains its earned-gold offers and refresh rules. The Library is
 free to browse; discoveries cannot be purchased.
@@ -12,27 +13,36 @@ free to browse; discoveries cannot be purchased.
 
 | Entry | Requirement | What becomes readable |
 | --- | --- | --- |
-| Regular enemy, including boss summons | Defeat that enemy type 10 times | Attacks and damage types, resistances, weaknesses, behaviour and field notes |
+| Regular enemy | Defeat that enemy type 10 times | Attacks and damage types, resistances, weaknesses, behaviour and field notes |
 | Boss | Defeat that boss 5 times | The same complete combat and lore entry |
+| Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
 | Forest | Reach 10,000 in one Competitive run on Forest | Forest history and current crisis |
 | Field | Reach 10,000 in one Competitive run on Field | Open-land context and the journey |
 | Éloïse's opening journal | Available immediately | The black sky and the expedition's starting premise |
 
 Kills accumulate across confirmed Practice, Competitive and Weekly runs, on
 either character. Each enemy type has its own count. Bosses are Bringer of
-Death, Voidborn Goddess, Shoggoth and Voidcaller. Their summoned creatures
-use the regular ten-kill rule.
+Death, Voidborn Goddess, Shoggoth and Voidcaller. Shoggoth Minion and Void
+Tentacle appear inside Shoggoth and Voidcaller,
+respectively. They share their parent boss’s five-kill discovery gate and have
+no separate list entries. Summon kills never substitute for boss kills.
 
 Level scores are separate lifetime bests. Practice and Weekly scores do not
-unlock Places. Scores from multiple runs are not added. Discoveries persist
+unlock Locations. Scores from multiple runs are not added. Discoveries persist
 across seasons. Runs must finish and pass replay validation before progress
 appears; pending, rejected and local Developer Practice runs do not count.
 Progress starts with runs processed by the Codex-enabled backend; historical
 runs are not reconstructed.
 
-Bestiary supports All, Enemies and Bosses filters. Locked entries show their
-name, category, current progress and exact requirement. Opening one explains
-its gate without revealing combat details or lore. Unlocked entries expose
+The Library uses a left-side icon rail in the main menu style: Bestiary,
+Locations and Journal. Bestiary supports All, Enemies and Bosses filters and
+lists eight independent entries. Compact cards show an idle enemy portrait,
+name, and a progress bar to the right with the count and target inside it.
+Locations use the same compact layout with landscape icons and competitive
+score progress. Summary totals, introductory instructions and card status
+subtitles are omitted. Locked/discovered status remains available to screen
+readers. Opening a locked entry explains its gate without revealing combat
+details or lore. Unlocked entries expose
 the full page. There are no partial purchases or additional currencies.
 
 Combat information reflects the current game catalogs, including mixed damage
@@ -60,6 +70,6 @@ overview (physical page 3, printed pages 4–5), Éloïse (physical page 31,
 printed pages 60–61), and regional map (physical page 2); companion world
 brand and naming references in `C:/dev/Lothringen/Brand/`.
 
-The regional art provides orientation around Théodonis. Its later-era labels
-do not establish the historical date or street plan of the runner's Town.
+The supplied city map replaces the earlier PDF regional-map extraction. The
+map does not change the PDF-based narrative chronology.
 See [implementation and persistence](../tdd/codex.md).

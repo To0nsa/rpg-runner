@@ -105,7 +105,7 @@ expose this option. See [technical contract](../tdd/developer_practice.md).
 4. **Setup Character Loadout**
 5. **Loadout Lab (Ability Testing)**
 6. **Leaderboards (Browse + Ghost Select)**
-7. **Town (regional map, Store and Library) / Options**
+7. **Town (city map, Store and Library) / Options**
 
 ### 3.2 Navigation Map
 
@@ -131,7 +131,7 @@ expose this option. See [technical contract](../tdd/developer_practice.md).
   - `Edit Loadout` → Setup Character Loadout (route)
   - `Weekly` quick button → starts Weekly Challenge directly **if compatible**; otherwise shows “Update required” (does not change `selectedLevelId` by default)
   - Icons: `Profile`, `Leaderboards`, `Options`, `Town` → open those screens
-  - `Town` → Théodonis regional map → `Town Store` or `Library`
+  - `Town` → Théodonis city map → `Town Store` or `Library`
 - From Setup Character Loadout:
   - `Try on Dummy` → Loadout Lab
   - `Back` → Play Hub
@@ -490,11 +490,11 @@ Provide a dedicated, full-page experience to browse **Competitive/Weekly leaderb
 ### Purpose
 
 Keep the Play Hub focused on starting runs. Town groups the Store and Library
-around Théodonis on the regional map extracted from the world-reference PDF.
+around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 
 ### Layout / Navigation
 
-- `Town` on the Play Hub opens the regional map.
+- `Town` on the Play Hub opens the city map.
 - `Town Store` and `Library` markers around Théodonis open their respective
   screens. They indicate services in the city, not precise street addresses.
 - Drag, zoom in/out and reset controls allow map inspection.
@@ -533,7 +533,10 @@ around Théodonis on the regional map extracted from the world-reference PDF.
 
 - Bestiary: ten kills of each regular enemy, five of each boss; attacks,
   damage types, resistances, weaknesses, behaviour and lore.
-- Places: 10,000 points in one Competitive run, separately for Forest and Field.
+- Summons appear within their parent boss's unlocked entry.
+- Left-side section navigation; compact portrait/name cards with progress
+  counts inside a trailing bar.
+- Locations: 10,000 points in one Competitive run, separately for Forest and Field.
 - Journal: Éloïse's black-sky opening, following the PDF timeline.
 - Account-wide confirmed progress, locked-entry requirements and readable
   discovered entries. See [Codex rules](codex.md) and

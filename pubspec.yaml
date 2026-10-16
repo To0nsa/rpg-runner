@@ -97,6 +97,7 @@ flutter:
 
   assets:
     - assets/navigation/
+    - assets/Théodonis.jpg
     # BEGIN AUTO-ASSETS
     - assets/images/backgrounds/
     - assets/images/backgrounds/medieval_town/

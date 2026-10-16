@@ -28,7 +28,7 @@ void main() {
   });
 
   test('each enemy and boss unlocks at its own exact kill threshold', () {
-    for (final id in EnemyId.values) {
+    for (final id in CodexCatalog.bestiaryEntries) {
       final threshold = id.isBoss ? 5 : 10;
       expect(
         CodexCatalog.enemyUnlocked(
@@ -39,11 +39,44 @@ void main() {
       );
       final progress = CodexProgress(enemyKills: {id.name: threshold});
       expect(CodexCatalog.enemyUnlocked(progress, id), isTrue);
-      for (final other in EnemyId.values.where((other) => other != id)) {
+      for (final other in CodexCatalog.bestiaryEntries.where(
+        (other) => other != id,
+      )) {
         expect(CodexCatalog.enemyUnlocked(progress, other), isFalse);
       }
       expect(CodexCatalog.attacks(id), isNotEmpty);
       expect(CodexCatalog.enemyLore(id), isNotEmpty);
+    }
+  });
+
+  test('summons belong to their boss and share its discovery gate', () {
+    expect(CodexCatalog.bestiaryEntries, hasLength(8));
+    for (final pair in {
+      EnemyId.shoggoth: EnemyId.shoggothMinion,
+      EnemyId.voidcaller: EnemyId.voidTentacle,
+    }.entries) {
+      expect(CodexCatalog.summonsFor(pair.key), [pair.value]);
+      expect(
+        CodexCatalog.enemyUnlocked(
+          CodexProgress(enemyKills: {pair.value.name: 100}),
+          pair.value,
+        ),
+        isFalse,
+      );
+      expect(
+        CodexCatalog.enemyUnlocked(
+          CodexProgress(enemyKills: {pair.key.name: 4}),
+          pair.value,
+        ),
+        isFalse,
+      );
+      expect(
+        CodexCatalog.enemyUnlocked(
+          CodexProgress(enemyKills: {pair.key.name: 5}),
+          pair.value,
+        ),
+        isTrue,
+      );
     }
   });
 

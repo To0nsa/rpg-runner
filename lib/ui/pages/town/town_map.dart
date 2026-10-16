@@ -5,22 +5,22 @@ import 'package:flutter/material.dart';
 import '../../theme/ui_tokens.dart';
 
 /// One transformed scene keeps city-service callouts attached during pan/zoom.
-/// The source is regional: callouts point to the city, not invented buildings.
-class TownRegionMap extends StatefulWidget {
-  const TownRegionMap({
+/// Service callouts share the supplied city map’s fitted image coordinates.
+class TownMap extends StatefulWidget {
+  const TownMap({
     super.key,
     required this.onStorePressed,
     required this.onLibraryPressed,
   });
   final VoidCallback onStorePressed;
   final VoidCallback onLibraryPressed;
-  static const assetPath = 'assets/images/backgrounds/theodonis_region.png';
+  static const assetPath = 'assets/Théodonis.jpg';
 
   @override
-  State<TownRegionMap> createState() => _TownRegionMapState();
+  State<TownMap> createState() => _TownMapState();
 }
 
-class _TownRegionMapState extends State<TownRegionMap> {
+class _TownMapState extends State<TownMap> {
   final _transform = TransformationController();
 
   @override
@@ -55,7 +55,7 @@ class _TownRegionMapState extends State<TownRegionMap> {
               final viewport = constraints.biggest;
               final fitted = applyBoxFit(
                 BoxFit.contain,
-                const Size(843, 596),
+                const Size(4096, 3072),
                 viewport,
               ).destination;
               final rect = Alignment.center.inscribe(
@@ -66,8 +66,8 @@ class _TownRegionMapState extends State<TownRegionMap> {
                 rect.left + rect.width * x,
                 rect.top + rect.height * y,
               );
-              final store = at(.22, .16);
-              final library = at(.24, .64);
+              final store = at(.18, .60);
+              final library = at(.72, .33);
               final markerWidth = math.min(180.0, viewport.width - ui.space.lg);
               return Stack(
                 children: [
@@ -80,8 +80,9 @@ class _TownRegionMapState extends State<TownRegionMap> {
                         fit: StackFit.expand,
                         children: [
                           Image.asset(
-                            TownRegionMap.assetPath,
+                            TownMap.assetPath,
                             fit: BoxFit.contain,
+                            cacheWidth: 2048,
                             excludeFromSemantics: true,
                             errorBuilder: (_, _, _) => Center(
                               child: Text('Théodonis', style: ui.text.display),
@@ -89,8 +90,9 @@ class _TownRegionMapState extends State<TownRegionMap> {
                           ),
                           IgnorePointer(
                             child: CustomPaint(
-                              painter: _CityConnections(
-                                city: at(.125, .38),
+                              painter: _ServiceConnections(
+                                storeSite: at(.35, .49),
+                                librarySite: at(.47, .405),
                                 store: store,
                                 library: library,
                                 color: ui.colors.accentStrong,
@@ -230,35 +232,39 @@ class _MapService extends StatelessWidget {
   }
 }
 
-class _CityConnections extends CustomPainter {
-  const _CityConnections({
-    required this.city,
+class _ServiceConnections extends CustomPainter {
+  const _ServiceConnections({
+    required this.storeSite,
+    required this.librarySite,
     required this.store,
     required this.library,
     required this.color,
     required this.outlineColor,
   });
-  final Offset city, store, library;
+  final Offset storeSite, librarySite, store, library;
   final Color color, outlineColor;
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = outlineColor
       ..strokeWidth = 5;
-    canvas.drawLine(city, store, paint);
-    canvas.drawLine(city, library, paint);
-    canvas.drawCircle(city, 8, paint);
+    canvas.drawLine(storeSite, store, paint);
+    canvas.drawLine(librarySite, library, paint);
+    canvas.drawCircle(storeSite, 8, paint);
+    canvas.drawCircle(librarySite, 8, paint);
     paint
       ..color = color
       ..strokeWidth = 2;
-    canvas.drawLine(city, store, paint);
-    canvas.drawLine(city, library, paint);
-    canvas.drawCircle(city, 5, paint);
+    canvas.drawLine(storeSite, store, paint);
+    canvas.drawLine(librarySite, library, paint);
+    canvas.drawCircle(storeSite, 5, paint);
+    canvas.drawCircle(librarySite, 5, paint);
   }
 
   @override
-  bool shouldRepaint(_CityConnections old) =>
-      city != old.city ||
+  bool shouldRepaint(_ServiceConnections old) =>
+      storeSite != old.storeSite ||
+      librarySite != old.librarySite ||
       store != old.store ||
       library != old.library ||
       color != old.color ||
