@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_trainingcamp_normal_004",
   "id": "forest_trainingcamp_normal_004",
-  "revision": 84,
+  "revision": 85,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -42,7 +42,7 @@
     {
       "prefabId": "rune_rocks_mossy_rock_06",
       "prefabKey": "rune_rocks_mossy_rock_06",
-      "x": 51,
+      "x": 111,
       "y": 202,
       "zIndex": 0,
       "snapToGrid": false
@@ -50,7 +50,7 @@
     {
       "prefabId": "rune_rocks_mossy_rock_04",
       "prefabKey": "rune_rocks_mossy_rock_04",
-      "x": 28,
+      "x": 88,
       "y": 210,
       "zIndex": 0,
       "snapToGrid": false,

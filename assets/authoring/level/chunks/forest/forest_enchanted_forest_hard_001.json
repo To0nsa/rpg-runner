@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_enchanted_forest_hard_001",
   "id": "forest_enchanted_forest_hard_001",
-  "revision": 214,
+  "revision": 77,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,157 +14,100 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "green_woods_tree_trunk_03",
-      "prefabKey": "green_woods_tree_trunk_03",
-      "x": 88,
-      "y": 145,
-      "zIndex": 0,
+      "prefabId": "green_woods_tree_trunk_07",
+      "prefabKey": "green_woods_tree_trunk_07",
+      "x": 48,
+      "y": 199,
+      "zIndex": -22,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_08",
+      "prefabKey": "green_woods_tree_foliage_08",
+      "x": 48,
+      "y": 78,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 0.7
+    },
+    {
+      "prefabId": "green_woods_tree_trunk_05",
+      "prefabKey": "green_woods_tree_trunk_05",
+      "x": 121,
+      "y": 154,
+      "zIndex": -21,
       "snapToGrid": false
     },
     {
       "prefabId": "green_woods_tree_trunk_01",
       "prefabKey": "green_woods_tree_trunk_01",
-      "x": 436,
-      "y": 160,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "rune_rocks_menhir_02",
-      "prefabKey": "rune_rocks_menhir_02",
-      "x": 330,
-      "y": 167,
-      "zIndex": 0,
+      "x": 482,
+      "y": 161,
+      "zIndex": -21,
       "snapToGrid": false,
       "scale": 1.2
     },
     {
-      "prefabId": "rune_rocks_rune_i_01",
-      "prefabKey": "rune_rocks_rune_i_01",
-      "x": 330,
-      "y": 173,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 1.5
-    },
-    {
-      "prefabId": "green_woods_tree_trunk_06",
-      "prefabKey": "green_woods_tree_trunk_06",
-      "x": 539,
-      "y": 191,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "green_woods_tree_trunk_07",
-      "prefabKey": "green_woods_tree_trunk_07",
-      "x": 264,
-      "y": 200,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_pink_flower_01",
-      "prefabKey": "crystal_world_pink_flower_01",
-      "x": 83,
-      "y": 211,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_crystal_world_pink_flower_03",
-      "prefabKey": "crystal_world_crystal_world_pink_flower_03",
-      "x": 465,
-      "y": 215,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_pink_moss_11",
-      "prefabKey": "crystal_world_pink_moss_11",
-      "x": 566,
-      "y": 217,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_crystal_world_pink_flower_05",
-      "prefabKey": "crystal_world_crystal_world_pink_flower_05",
-      "x": 513,
-      "y": 219,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "green_woods_tree_foliage_07",
-      "prefabKey": "green_woods_tree_foliage_07",
-      "x": 544,
-      "y": 93,
-      "zIndex": 1,
-      "snapToGrid": false,
-      "scale": 0.5
-    },
-    {
-      "prefabId": "green_woods_tree_foliage_08",
-      "prefabKey": "green_woods_tree_foliage_08",
-      "x": 262,
-      "y": 111,
-      "zIndex": 1,
-      "snapToGrid": false,
-      "scale": 0.5
-    },
-    {
-      "prefabId": "green_woods_tree_foliage_06",
-      "prefabKey": "green_woods_tree_foliage_06",
-      "x": 88,
-      "y": 120,
-      "zIndex": 1,
-      "snapToGrid": false
-    },
-    {
       "prefabId": "green_woods_tree_foliage_03",
       "prefabKey": "green_woods_tree_foliage_03",
-      "x": 437,
-      "y": 144,
-      "zIndex": 1,
+      "x": 129,
+      "y": 120,
+      "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "crystal_world_pink_moss_01",
-      "prefabKey": "crystal_world_pink_moss_01",
-      "x": 327,
-      "y": 145,
-      "zIndex": 1,
+      "prefabId": "green_woods_tree_foliage_02",
+      "prefabKey": "green_woods_tree_foliage_02",
+      "x": 477,
+      "y": 122,
+      "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "fantasy_environment_green_crystal_04",
-      "prefabKey": "fantasy_environment_green_crystal_04",
-      "x": 355,
-      "y": 213,
+      "prefabId": "rune_rocks_menhir_06",
+      "prefabKey": "rune_rocks_menhir_06",
+      "x": 295,
+      "y": 189,
       "zIndex": 1,
       "snapToGrid": false,
-      "scale": 0.5,
-      "flipX": true
+      "scale": 1.6
     },
     {
-      "prefabId": "rune_rocks_mossy_rock_03",
-      "prefabKey": "rune_rocks_mossy_rock_03",
-      "x": 285,
-      "y": 202,
+      "prefabId": "rune_rocks_rune_r_01",
+      "prefabKey": "rune_rocks_rune_r_01",
+      "x": 305,
+      "y": 181,
       "zIndex": 2,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "crystal_world_crystal_world_pink_flower_04",
-      "prefabKey": "crystal_world_crystal_world_pink_flower_04",
-      "x": 249,
-      "y": 214,
-      "zIndex": 3,
-      "snapToGrid": false
+      "snapToGrid": false,
+      "scale": 1.5
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "unocoDemon",
+      "x": 372,
+      "y": 31,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    },
+    {
+      "markerId": "hashash",
+      "x": 528,
+      "y": 36,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    },
+    {
+      "markerId": "grojib",
+      "x": 530,
+      "y": 114,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "collisionShapes": [
     {
       "shapeId": "ground_001",
@@ -213,51 +156,6 @@
       ],
       "surfaceKind": "ground",
       "materialKey": "grass_dirt"
-    }
-  ],
-  "encounters": [
-    {
-      "id": "encounter",
-      "name": "Rescue encounter",
-      "trigger": {
-        "x": 0,
-        "y": 0,
-        "width": 41,
-        "height": 270
-      },
-      "targetPolicy": "preferEncounterNpcs",
-      "npcs": [
-        {
-          "id": "huntress",
-          "npcId": "huntress",
-          "x": 205,
-          "facing": "right",
-          "placement": "ground"
-        },
-        {
-          "id": "huntress2",
-          "npcId": "huntress2",
-          "x": 158,
-          "facing": "right",
-          "placement": "ground"
-        }
-      ],
-      "enemies": [
-        {
-          "id": "enemy",
-          "enemyId": "hashash",
-          "x": 532,
-          "facing": "right",
-          "placement": "ground"
-        },
-        {
-          "id": "enemy_2",
-          "enemyId": "grojib",
-          "x": 469,
-          "facing": "right",
-          "placement": "ground"
-        }
-      ]
     }
   ]
 }

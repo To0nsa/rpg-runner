@@ -11,7 +11,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
   compilerGeometryVersion: 1,
   authoringPolygonSignatureFormat: "authoring-polygons-v1",
   authoringSeamSignatureFormat: "authoring-seams-v1",
-  authoringSeamSignature: "1cf80b2f46eda7a8d408e486b90ff71129ad0a11709b97031ff079938ff5a8f3",
+  authoringSeamSignature: "54257b2615d5393f4193e70540dbb48568ff141b491ddb1adefb107c017302d6",
   sourceSignatureFormat: "source-v1",
   edgeSignatureFormat: "edges-v1",
   renderEdgeSignatureFormat: "edges-v1",
@@ -396,7 +396,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "field_default_easy_001",
       id: "field_default_easy_001",
-      revision: 23,
+      revision: 25,
       status: "active",
       levelId: "field",
       tileSize: 16,
@@ -404,11 +404,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "easy",
       assemblyGroupId: "default",
-      authoringPolygonSignature: "ef357fe99c14df1740dee1278c475a7f6e9ec4b644ec9c3d053d7964f1993904",
-      sourceSignature: "5ccd4a49c16c61082386d84c9b230812dbb7c7febfbcc9baeaf4038176cd2943",
-      edgeSignature: "8dfd66a5adfd6265592988785db43aeb2446017220de8c37be91716116dbb178",
+      authoringPolygonSignature: "623fd78d2a2d2cb13b3276c79257eeac4879890a1501a49c3c2d4a4932ba57b1",
+      sourceSignature: "99ed819fdfd378addd99784b143f519000c9dd7181792ed3353e8c5989391947",
+      edgeSignature: "19da1f37b95c5bd3c99cd0596299fbf5639fbd72bb2add2e68489420c0a982e7",
       renderEdgeSignature: "be64287e319f0fb5087052af8dfc55a07717e2b855bf2314bfc0d8dc6fc04d49",
-      placementSignature: "61ed5bbd1b4577893e0870dd2455c00f54b6c7203367c15ddda80b3b5a936cb2",
+      placementSignature: "ed914941b5ecbe5f7ba2883e858f352edb2285f39e8b269b8089776a612846ef",
       triangleSignature: "6b3482b6bfe92b41c0aa5e5b8b54a46fc2787afbc835d1383cdfeceffa5c8f09",
       waterRegions: <WaterRegionData>[
         WaterRegionData(
@@ -466,10 +466,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/field/field_default_easy_001.json#placement=tiny_swords_scarecrow_01|390|176|0#prefab=tiny_swords_scarecrow_01#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/field/field_default_easy_001.json#placement=tiny_swords_scarecrow_01|388|181|0#prefab=tiny_swords_scarecrow_01#shape=collision_001",
           id: StagedTerrainSourceId(
             chunkKey: "field_default_easy_001",
-            placementKey: "tiny_swords_scarecrow_01|390|176|0",
+            placementKey: "tiny_swords_scarecrow_01|388|181|0",
             shapeId: "collision_001",
           ),
           sourceVertices: <StagedTerrainPoint>[
@@ -486,43 +486,27 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             StagedTerrainPoint(62, -14),
             StagedTerrainPoint(64, -6),
             StagedTerrainPoint(52, 4),
-            StagedTerrainPoint(20, 0),
-            StagedTerrainPoint(20, 64),
-            StagedTerrainPoint(18, 58),
-            StagedTerrainPoint(10, 66),
-            StagedTerrainPoint(6, 96),
-            StagedTerrainPoint(-4, 96),
-            StagedTerrainPoint(-10, 62),
-            StagedTerrainPoint(-20, 66),
-            StagedTerrainPoint(-20, 0),
+            StagedTerrainPoint(50, 96),
+            StagedTerrainPoint(-52, 96),
             StagedTerrainPoint(-52, 4),
-            StagedTerrainPoint(-50, -4),
           ],
           vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(366592, 177152),
-            StagedTerrainPoint(367616, 173056),
-            StagedTerrainPoint(392192, 172032),
-            StagedTerrainPoint(380928, 155648),
-            StagedTerrainPoint(389120, 153600),
-            StagedTerrainPoint(397312, 137216),
-            StagedTerrainPoint(402432, 137216),
-            StagedTerrainPoint(406528, 152576),
-            StagedTerrainPoint(417792, 151552),
-            StagedTerrainPoint(406528, 172032),
-            StagedTerrainPoint(431104, 173056),
-            StagedTerrainPoint(432128, 177152),
-            StagedTerrainPoint(425984, 182272),
-            StagedTerrainPoint(409600, 180224),
-            StagedTerrainPoint(409600, 212992),
-            StagedTerrainPoint(408576, 209920),
-            StagedTerrainPoint(404480, 214016),
-            StagedTerrainPoint(402432, 229376),
-            StagedTerrainPoint(397312, 229376),
-            StagedTerrainPoint(394240, 211968),
-            StagedTerrainPoint(389120, 214016),
-            StagedTerrainPoint(389120, 180224),
-            StagedTerrainPoint(372736, 182272),
-            StagedTerrainPoint(373760, 178176),
+            StagedTerrainPoint(364544, 182272),
+            StagedTerrainPoint(365568, 178176),
+            StagedTerrainPoint(390144, 177152),
+            StagedTerrainPoint(378880, 160768),
+            StagedTerrainPoint(387072, 158720),
+            StagedTerrainPoint(395264, 142336),
+            StagedTerrainPoint(400384, 142336),
+            StagedTerrainPoint(404480, 157696),
+            StagedTerrainPoint(415744, 156672),
+            StagedTerrainPoint(404480, 177152),
+            StagedTerrainPoint(429056, 178176),
+            StagedTerrainPoint(430080, 182272),
+            StagedTerrainPoint(423936, 187392),
+            StagedTerrainPoint(422912, 234496),
+            StagedTerrainPoint(370688, 234496),
+            StagedTerrainPoint(370688, 187392),
           ],
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
@@ -693,7 +677,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(223232, 229376),
-          end: StagedTerrainPoint(397312, 229376),
+          end: StagedTerrainPoint(370688, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -708,9 +692,17 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          nextId: null,
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_default_easy_001",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 14,
+            subEdgeIndex: 1,
+          ),
           startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.exposed,
+          endJoin: StagedTerrainVertexJoin.connected,
         ),
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
@@ -722,14 +714,22 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 0,
             subEdgeIndex: 2,
           ),
-          start: StagedTerrainPoint(402432, 229376),
+          start: StagedTerrainPoint(423023, 229376),
           end: StagedTerrainPoint(614400, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: "ground",
           materialKey: "grass_dirt",
-          previousId: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "field_default_easy_001",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
@@ -739,7 +739,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          startJoin: StagedTerrainVertexJoin.exposed,
+          startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
         ),
         StagedTerrainEdgeData(
@@ -860,14 +860,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(366592, 177152),
-          end: StagedTerrainPoint(367616, 173056),
+          start: StagedTerrainPoint(364544, 182272),
+          end: StagedTerrainPoint(365568, 178176),
           tangent: StagedTerrainPoint(248, -993),
           outwardNormal: StagedTerrainPoint(-993, -248),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -876,16 +876,16 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 23,
+            localEdgeIndex: 15,
             subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -898,14 +898,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(367616, 173056),
-          end: StagedTerrainPoint(392192, 172032),
+          start: StagedTerrainPoint(365568, 178176),
+          end: StagedTerrainPoint(390144, 177152),
           tangent: StagedTerrainPoint(1023, -43),
           outwardNormal: StagedTerrainPoint(-43, -1023),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -914,7 +914,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -923,7 +923,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -936,14 +936,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(392192, 172032),
-          end: StagedTerrainPoint(380928, 155648),
+          start: StagedTerrainPoint(390144, 177152),
+          end: StagedTerrainPoint(378880, 160768),
           tangent: StagedTerrainPoint(-580, -844),
           outwardNormal: StagedTerrainPoint(-844, 580),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -952,7 +952,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -961,7 +961,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -974,14 +974,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(380928, 155648),
-          end: StagedTerrainPoint(389120, 153600),
+          start: StagedTerrainPoint(378880, 160768),
+          end: StagedTerrainPoint(387072, 158720),
           tangent: StagedTerrainPoint(993, -248),
           outwardNormal: StagedTerrainPoint(-248, -993),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -990,7 +990,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -999,7 +999,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -1012,14 +1012,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(389120, 153600),
-          end: StagedTerrainPoint(397312, 137216),
+          start: StagedTerrainPoint(387072, 158720),
+          end: StagedTerrainPoint(395264, 142336),
           tangent: StagedTerrainPoint(458, -916),
           outwardNormal: StagedTerrainPoint(-916, -458),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1028,7 +1028,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -1037,7 +1037,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -1050,14 +1050,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(397312, 137216),
-          end: StagedTerrainPoint(402432, 137216),
+          start: StagedTerrainPoint(395264, 142336),
+          end: StagedTerrainPoint(400384, 142336),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1066,7 +1066,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -1075,7 +1075,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
@@ -1088,14 +1088,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(402432, 137216),
-          end: StagedTerrainPoint(406528, 152576),
+          start: StagedTerrainPoint(400384, 142336),
+          end: StagedTerrainPoint(404480, 157696),
           tangent: StagedTerrainPoint(264, 989),
           outwardNormal: StagedTerrainPoint(989, -264),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1104,7 +1104,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -1113,7 +1113,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
@@ -1126,14 +1126,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(406528, 152576),
-          end: StagedTerrainPoint(417792, 151552),
+          start: StagedTerrainPoint(404480, 157696),
+          end: StagedTerrainPoint(415744, 156672),
           tangent: StagedTerrainPoint(1020, -93),
           outwardNormal: StagedTerrainPoint(-93, -1020),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1142,7 +1142,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
@@ -1151,7 +1151,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
@@ -1164,14 +1164,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(417792, 151552),
-          end: StagedTerrainPoint(406528, 172032),
+          start: StagedTerrainPoint(415744, 156672),
+          end: StagedTerrainPoint(404480, 177152),
           tangent: StagedTerrainPoint(-493, 897),
           outwardNormal: StagedTerrainPoint(897, 493),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1180,7 +1180,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
@@ -1189,7 +1189,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
@@ -1202,14 +1202,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(406528, 172032),
-          end: StagedTerrainPoint(431104, 173056),
+          start: StagedTerrainPoint(404480, 177152),
+          end: StagedTerrainPoint(429056, 178176),
           tangent: StagedTerrainPoint(1023, 43),
           outwardNormal: StagedTerrainPoint(43, -1023),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1218,7 +1218,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
@@ -1227,7 +1227,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
@@ -1240,14 +1240,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(431104, 173056),
-          end: StagedTerrainPoint(432128, 177152),
+          start: StagedTerrainPoint(429056, 178176),
+          end: StagedTerrainPoint(430080, 182272),
           tangent: StagedTerrainPoint(248, 993),
           outwardNormal: StagedTerrainPoint(993, -248),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1256,7 +1256,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
@@ -1265,7 +1265,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
@@ -1278,14 +1278,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(432128, 177152),
-          end: StagedTerrainPoint(425984, 182272),
+          start: StagedTerrainPoint(430080, 182272),
+          end: StagedTerrainPoint(423936, 187392),
           tangent: StagedTerrainPoint(-787, 656),
           outwardNormal: StagedTerrainPoint(656, 787),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1294,7 +1294,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
@@ -1303,7 +1303,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 12,
@@ -1316,23 +1316,23 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 12,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(425984, 182272),
-          end: StagedTerrainPoint(409600, 180224),
-          tangent: StagedTerrainPoint(-1016, -127),
-          outwardNormal: StagedTerrainPoint(-127, 1016),
+          start: StagedTerrainPoint(423936, 187392),
+          end: StagedTerrainPoint(423023, 229376),
+          tangent: StagedTerrainPoint(-22, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 22),
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
@@ -1341,11 +1341,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
+              placementKey: null,
+              shapeId: "solid_001",
             ),
-            localEdgeIndex: 13,
-            subEdgeIndex: 0,
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
@@ -1354,226 +1354,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 13,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(409600, 180224),
-          end: StagedTerrainPoint(409600, 212992),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 14,
-            subEdgeIndex: 0,
+            subEdgeIndex: 1,
           ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 14,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(409600, 212992),
-          end: StagedTerrainPoint(408576, 209920),
-          tangent: StagedTerrainPoint(-324, -971),
-          outwardNormal: StagedTerrainPoint(-971, 324),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 13,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(408576, 209920),
-          end: StagedTerrainPoint(404480, 214016),
-          tangent: StagedTerrainPoint(-724, 724),
-          outwardNormal: StagedTerrainPoint(724, 724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 14,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 16,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 16,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(404480, 214016),
-          end: StagedTerrainPoint(402432, 229376),
-          tangent: StagedTerrainPoint(-135, 1015),
-          outwardNormal: StagedTerrainPoint(1015, 135),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
-            subEdgeIndex: 0,
-          ),
-          nextId: null,
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.exposed,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 18,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(397312, 229376),
-          end: StagedTerrainPoint(394240, 211968),
-          tangent: StagedTerrainPoint(-178, -1008),
-          outwardNormal: StagedTerrainPoint(-1008, 178),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: null,
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 19,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.exposed,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 19,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(394240, 211968),
-          end: StagedTerrainPoint(389120, 214016),
-          tangent: StagedTerrainPoint(-951, 380),
-          outwardNormal: StagedTerrainPoint(380, 951),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 18,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 20,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 20,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(389120, 214016),
-          end: StagedTerrainPoint(389120, 180224),
+          start: StagedTerrainPoint(370688, 229376),
+          end: StagedTerrainPoint(370688, 187392),
           tangent: StagedTerrainPoint(0, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1582,19 +1370,19 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
+              placementKey: null,
+              shapeId: "solid_001",
             ),
-            localEdgeIndex: 19,
+            localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 21,
+            localEdgeIndex: 15,
             subEdgeIndex: 0,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
@@ -1604,108 +1392,32 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 21,
+            localEdgeIndex: 15,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(389120, 180224),
-          end: StagedTerrainPoint(372736, 182272),
-          tangent: StagedTerrainPoint(-1016, 127),
-          outwardNormal: StagedTerrainPoint(127, 1016),
+          start: StagedTerrainPoint(370688, 187392),
+          end: StagedTerrainPoint(364544, 182272),
+          tangent: StagedTerrainPoint(-787, -656),
+          outwardNormal: StagedTerrainPoint(-656, 787),
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 20,
-            subEdgeIndex: 0,
+            localEdgeIndex: 14,
+            subEdgeIndex: 1,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 22,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 22,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(372736, 182272),
-          end: StagedTerrainPoint(373760, 178176),
-          tangent: StagedTerrainPoint(248, -993),
-          outwardNormal: StagedTerrainPoint(-993, -248),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 21,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 23,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 23,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(373760, 178176),
-          end: StagedTerrainPoint(366592, 177152),
-          tangent: StagedTerrainPoint(-1014, -145),
-          outwardNormal: StagedTerrainPoint(-145, 1014),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 22,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "field_default_easy_001",
-              placementKey: "tiny_swords_scarecrow_01|390|176|0",
+              placementKey: "tiny_swords_scarecrow_01|388|181|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -2067,14 +1779,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
             chunkKey: "field_default_easy_001",
-            placementKey: "tiny_swords_scarecrow_01|390|176|0",
+            placementKey: "tiny_swords_scarecrow_01|388|181|0",
             shapeId: "collision_001",
           ),
           prefabKey: "tiny_swords_scarecrow_01",
           prefabId: "tiny_swords_scarecrow_01",
-          prefabRevision: 2,
-          placementX: 390,
-          placementY: 176,
+          prefabRevision: 15,
+          placementX: 388,
+          placementY: 181,
           scaleTenths: 10,
           flipX: false,
           flipY: false,
@@ -6334,7 +6046,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "field_default_easy_006",
       id: "field_default_easy_006",
-      revision: 43,
+      revision: 58,
       status: "active",
       levelId: "field",
       tileSize: 16,
@@ -6342,7 +6054,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "easy",
       assemblyGroupId: "default",
-      authoringPolygonSignature: "443d84dc1925eaa9707205020dcf1e41681ba2cafdde0b1392cfe42ecdfc65ee",
+      authoringPolygonSignature: "7c5ca07058c3081f95d0b1052ef37350f3fe1f175fa6a1922a76726be971318f",
       sourceSignature: "6307ef53d9cb4087ba9eecf492dffa3a1b2e8d8edbd473c38350eaeb1cfdf4bc",
       edgeSignature: "163424a133b13dccd96dd96caf7e0125992c3f55a60f3936bd1a595c59a76b39",
       renderEdgeSignature: "163424a133b13dccd96dd96caf7e0125992c3f55a60f3936bd1a595c59a76b39",
@@ -6709,7 +6421,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "field_default_easy_007",
       id: "field_default_easy_007",
-      revision: 42,
+      revision: 49,
       status: "active",
       levelId: "field",
       tileSize: 16,
@@ -6717,7 +6429,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "easy",
       assemblyGroupId: "default",
-      authoringPolygonSignature: "c3c89cffb44128419e795d021104c3d688ddb3f3b39bdc4747e18296e3ccfae4",
+      authoringPolygonSignature: "8ed053228108b5979130143a54073162aeda5077680ef48901919bed51570390",
       sourceSignature: "bbb92732e98b9f937ede9ab97edf419a873dd4af17cf6617e2100a62233e4f85",
       edgeSignature: "dd026c84a5fcfd28e742867cf23548096b105704bfa11578b37c8010cf5b6161",
       renderEdgeSignature: "bdafe0fa06e0d4012e8cbe9213482db94af5d07c9c2e0d786b8a3fdb29a74426",
@@ -23511,22 +23223,22 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       ],
     ),
     StagedTerrainChunkData(
-      chunkKey: "forest_enchanted_forest_easy_001",
-      id: "forest_enchanted_forest_easy_001",
-      revision: 106,
+      chunkKey: "forest_enchanted_forest_early_001",
+      id: "forest_enchanted_forest_early_001",
+      revision: 107,
       status: "active",
       levelId: "forest",
       tileSize: 16,
       width: 600,
       height: 270,
-      difficulty: "easy",
+      difficulty: "early",
       assemblyGroupId: "enchanted_forest",
-      authoringPolygonSignature: "b58405d8d39e3b6179bcd662ee96fe34b8bd8b35955ee9aeaa6e148328f6d406",
-      sourceSignature: "5d80b76522da66b32b8b2795b08188621a3afc512010a2ac854868f2488f3b18",
-      edgeSignature: "07782926ee54c479fe3d5f00f9ebb18e900969e165d725c42a73af8ba4a6cdbe",
-      renderEdgeSignature: "707b8575ba88c8ca0cf6a0dcad70c8a154944c908068d869cbd1026ad1e5bc38",
-      placementSignature: "fbc7f059e006aa71ccf5d74ec12876d98faee50bbb280a4801240c30ce990f0e",
-      triangleSignature: "9df2f7fa0fa1748434ec88ce502eed7ac6b691bc4148537a9d2f961653322f80",
+      authoringPolygonSignature: "915d68350fd9528600eaca1db7aa5cf1aee7b2e79b59f98e7c0b354d82d35fc1",
+      sourceSignature: "a80e2b6822edcebd6d1cab8de8fb4ea2551bede2b1366ffb97dae7b55852e1c4",
+      edgeSignature: "fa5e852131a0e6f8c53e9358c385d923aebb38e0a807b8ce64634bb40cb5ea14",
+      renderEdgeSignature: "6ee3261ca3cf435af2cf84442bfec3b33c56bbfc00aeeb3683d5afd4b6da0ef0",
+      placementSignature: "9783b404f97e007b75c861bf421b710e71224454fd048ad33455281452a6ad27",
+      triangleSignature: "f06e5974d75c61dc198164654d281375269b50b1d5bb1661d57ffc972f3441b9",
       waterRegions: <WaterRegionData>[
         WaterRegionData(
           id: "water_1",
@@ -23537,9 +23249,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       ],
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#direct=ground_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_early_001.json#direct=ground_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
+            chunkKey: "forest_enchanted_forest_early_001",
             placementKey: null,
             shapeId: "ground_001",
           ),
@@ -23560,9 +23272,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#direct=solid_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_early_001.json#direct=solid_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
+            chunkKey: "forest_enchanted_forest_early_001",
             placementKey: null,
             shapeId: "solid_001",
           ),
@@ -23583,9 +23295,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#placement=fantasy_environment_green_crystal_04|232|200|0#prefab=fantasy_environment_green_crystal_04#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_early_001.json#placement=fantasy_environment_green_crystal_04|232|200|0#prefab=fantasy_environment_green_crystal_04#shape=collision_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
+            chunkKey: "forest_enchanted_forest_early_001",
             placementKey: "fantasy_environment_green_crystal_04|232|200|0",
             shapeId: "collision_001",
           ),
@@ -23642,9 +23354,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#placement=rune_rocks_menhir_01|259|179|0#prefab=rune_rocks_menhir_01#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_early_001.json#placement=rune_rocks_menhir_01|259|179|0#prefab=rune_rocks_menhir_01#shape=collision_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
+            chunkKey: "forest_enchanted_forest_early_001",
             placementKey: "rune_rocks_menhir_01|259|179|0",
             shapeId: "collision_001",
           ),
@@ -23689,9 +23401,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#placement=rune_rocks_mossy_rock_16|76|202|0#prefab=rune_rocks_mossy_rock_16#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_early_001.json#placement=rune_rocks_mossy_rock_16|76|202|0#prefab=rune_rocks_mossy_rock_16#shape=collision_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
+            chunkKey: "forest_enchanted_forest_early_001",
             placementKey: "rune_rocks_mossy_rock_16|76|202|0",
             shapeId: "collision_001",
           ),
@@ -23732,7 +23444,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
+              chunkKey: "forest_enchanted_forest_early_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -23741,6 +23453,2075 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           start: StagedTerrainPoint(0, 229376),
           end: StagedTerrainPoint(31616, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 1,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          start: StagedTerrainPoint(126557, 229376),
+          end: StagedTerrainPoint(232448, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 18,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 6,
+          ),
+          start: StagedTerrainPoint(281395, 229376),
+          end: StagedTerrainPoint(333824, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(333824, 229376),
+          end: StagedTerrainPoint(333824, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 6,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(333824, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(428032, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(428032, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(428032, 276480),
+          end: StagedTerrainPoint(428032, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(215040, 181248),
+          end: StagedTerrainPoint(237568, 180224),
+          tangent: StagedTerrainPoint(1023, -46),
+          outwardNormal: StagedTerrainPoint(-46, -1023),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 21,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(237568, 180224),
+          end: StagedTerrainPoint(239616, 186368),
+          tangent: StagedTerrainPoint(324, 971),
+          outwardNormal: StagedTerrainPoint(971, -324),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(239616, 186368),
+          end: StagedTerrainPoint(241664, 187392),
+          tangent: StagedTerrainPoint(916, 458),
+          outwardNormal: StagedTerrainPoint(458, -916),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 15,
+            subEdgeIndex: 1,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 18,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(232448, 229376),
+          end: StagedTerrainPoint(224256, 215040),
+          tangent: StagedTerrainPoint(-508, -889),
+          outwardNormal: StagedTerrainPoint(-889, 508),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 19,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 19,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(224256, 215040),
+          end: StagedTerrainPoint(224256, 211968),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 18,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 20,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 20,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(224256, 211968),
+          end: StagedTerrainPoint(216064, 205824),
+          tangent: StagedTerrainPoint(-819, -614),
+          outwardNormal: StagedTerrainPoint(-614, 819),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 19,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 21,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 21,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(216064, 205824),
+          end: StagedTerrainPoint(215040, 181248),
+          tangent: StagedTerrainPoint(-43, -1023),
+          outwardNormal: StagedTerrainPoint(-1023, 43),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 20,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(241664, 182272),
+          end: StagedTerrainPoint(242688, 164864),
+          tangent: StagedTerrainPoint(60, -1022),
+          outwardNormal: StagedTerrainPoint(-1022, -60),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 15,
+            subEdgeIndex: 1,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(242688, 164864),
+          end: StagedTerrainPoint(244736, 162816),
+          tangent: StagedTerrainPoint(724, -724),
+          outwardNormal: StagedTerrainPoint(-724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(244736, 162816),
+          end: StagedTerrainPoint(250880, 146432),
+          tangent: StagedTerrainPoint(360, -959),
+          outwardNormal: StagedTerrainPoint(-959, -360),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(250880, 146432),
+          end: StagedTerrainPoint(256000, 140288),
+          tangent: StagedTerrainPoint(656, -787),
+          outwardNormal: StagedTerrainPoint(-787, -656),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(256000, 140288),
+          end: StagedTerrainPoint(269312, 140288),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(269312, 140288),
+          end: StagedTerrainPoint(282624, 153600),
+          tangent: StagedTerrainPoint(724, 724),
+          outwardNormal: StagedTerrainPoint(724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(282624, 153600),
+          end: StagedTerrainPoint(287744, 162816),
+          tangent: StagedTerrainPoint(497, 895),
+          outwardNormal: StagedTerrainPoint(895, -497),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(287744, 162816),
+          end: StagedTerrainPoint(289792, 168960),
+          tangent: StagedTerrainPoint(324, 971),
+          outwardNormal: StagedTerrainPoint(971, -324),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(289792, 168960),
+          end: StagedTerrainPoint(290816, 184320),
+          tangent: StagedTerrainPoint(68, 1022),
+          outwardNormal: StagedTerrainPoint(1022, -68),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(290816, 184320),
+          end: StagedTerrainPoint(292864, 195584),
+          tangent: StagedTerrainPoint(183, 1007),
+          outwardNormal: StagedTerrainPoint(1007, -183),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(292864, 195584),
+          end: StagedTerrainPoint(292864, 214016),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(292864, 214016),
+          end: StagedTerrainPoint(284672, 227328),
+          tangent: StagedTerrainPoint(-537, 872),
+          outwardNormal: StagedTerrainPoint(872, 537),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(284672, 227328),
+          end: StagedTerrainPoint(281395, 229376),
+          tangent: StagedTerrainPoint(-868, 543),
+          outwardNormal: StagedTerrainPoint(543, 868),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 6,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 15,
+            subEdgeIndex: 1,
+          ),
+          start: StagedTerrainPoint(241664, 187392),
+          end: StagedTerrainPoint(241664, 182272),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_menhir_01|259|179|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(23859, 201626),
+          end: StagedTerrainPoint(27341, 199885),
+          tangent: StagedTerrainPoint(916, -458),
+          outwardNormal: StagedTerrainPoint(-458, -916),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(27341, 199885),
+          end: StagedTerrainPoint(34304, 191181),
+          tangent: StagedTerrainPoint(640, -800),
+          outwardNormal: StagedTerrainPoint(-800, -640),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(34304, 191181),
+          end: StagedTerrainPoint(41267, 187699),
+          tangent: StagedTerrainPoint(916, -458),
+          outwardNormal: StagedTerrainPoint(-458, -916),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(41267, 187699),
+          end: StagedTerrainPoint(62157, 187699),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(62157, 187699),
+          end: StagedTerrainPoint(117862, 203366),
+          tangent: StagedTerrainPoint(986, 277),
+          outwardNormal: StagedTerrainPoint(277, -986),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(117862, 203366),
+          end: StagedTerrainPoint(124826, 210330),
+          tangent: StagedTerrainPoint(724, 724),
+          outwardNormal: StagedTerrainPoint(724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(124826, 210330),
+          end: StagedTerrainPoint(126557, 229376),
+          tangent: StagedTerrainPoint(93, 1020),
+          outwardNormal: StagedTerrainPoint(1020, -93),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 1,
+          ),
+          start: StagedTerrainPoint(31616, 229376),
+          end: StagedTerrainPoint(23859, 219034),
+          tangent: StagedTerrainPoint(-614, -819),
+          outwardNormal: StagedTerrainPoint(-819, 614),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(23859, 219034),
+          end: StagedTerrainPoint(23859, 201626),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 1,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+      ],
+      renderEdges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 229376),
+          end: StagedTerrainPoint(333824, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(333824, 229376),
+          end: StagedTerrainPoint(333824, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(333824, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(428032, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(428032, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(428032, 276480),
+          end: StagedTerrainPoint(428032, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_early_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+      ],
+      triangles: <StagedTerrainTriangleData>[
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: null,
+            shapeId: "ground_001",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: null,
+            shapeId: "ground_001",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: null,
+            shapeId: "solid_001",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: null,
+            shapeId: "solid_001",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
+      ],
+      placementLineage: <StagedTerrainPlacementLineageData>[
+        StagedTerrainPlacementLineageData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+            shapeId: "collision_001",
+          ),
+          prefabKey: "fantasy_environment_green_crystal_04",
+          prefabId: "fantasy_environment_green_crystal_04",
+          prefabRevision: 2,
+          placementX: 232,
+          placementY: 200,
+          scaleTenths: 10,
+          flipX: false,
+          flipY: false,
+        ),
+        StagedTerrainPlacementLineageData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: "rune_rocks_menhir_01|259|179|0",
+            shapeId: "collision_001",
+          ),
+          prefabKey: "rune_rocks_menhir_01",
+          prefabId: "rune_rocks_menhir_01",
+          prefabRevision: 2,
+          placementX: 259,
+          placementY: 179,
+          scaleTenths: 10,
+          flipX: false,
+          flipY: false,
+        ),
+        StagedTerrainPlacementLineageData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_early_001",
+            placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+            shapeId: "collision_001",
+          ),
+          prefabKey: "rune_rocks_mossy_rock_16",
+          prefabId: "rune_rocks_mossy_rock_16",
+          prefabRevision: 8,
+          placementX: 76,
+          placementY: 202,
+          scaleTenths: 17,
+          flipX: true,
+          flipY: false,
+        ),
+      ],
+    ),
+    StagedTerrainChunkData(
+      chunkKey: "forest_enchanted_forest_easy_001",
+      id: "forest_enchanted_forest_easy_001",
+      revision: 95,
+      status: "active",
+      levelId: "forest",
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: "easy",
+      assemblyGroupId: "enchanted_forest",
+      authoringPolygonSignature: "16b2af9df7e00539556005035303acc346b035f001aa1efeabfd199070e77611",
+      sourceSignature: "44ecfa3ebdf7d7e65d3cc19c54f439e7d4a1c6d7dc92d7c8a348b465875d10dc",
+      edgeSignature: "969ed9124162070e420a56eaff3a188b6c0ed05be8ace5c9f903d0110ddab8ec",
+      renderEdgeSignature: "dfbc7141120946baf8fb95649caec4ca56ae3dcca8f15ef42f9919260d3b7009",
+      placementSignature: "101b43064450e5f0b50b27c27a92ba1506e5004701b94dc2c300fbbe730ace90",
+      triangleSignature: "af3acc5ce4cf2c0a1d6e2280617c745082e5b773c1836894a364604c395bd482",
+      waterRegions: <WaterRegionData>[
+        WaterRegionData(
+          id: "water_1",
+          x: 139, y: 224,
+          width: 92, height: 46,
+          materialKey: "biome_water",
+        ),
+        WaterRegionData(
+          id: "water_2",
+          x: 384, y: 224,
+          width: 75, height: 46,
+          materialKey: "biome_water",
+        ),
+      ],
+      polygons: <StagedTerrainPolygonData>[
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#direct=ground_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_easy_001",
+            placementKey: null,
+            shapeId: "ground_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(0, 448),
+            StagedTerrainPoint(278, 448),
+            StagedTerrainPoint(278, 540),
+            StagedTerrainPoint(0, 540),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(0, 229376),
+            StagedTerrainPoint(142336, 229376),
+            StagedTerrainPoint(142336, 276480),
+            StagedTerrainPoint(0, 276480),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+        ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#direct=solid_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_easy_001",
+            placementKey: null,
+            shapeId: "solid_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(918, 448),
+            StagedTerrainPoint(1200, 448),
+            StagedTerrainPoint(1200, 540),
+            StagedTerrainPoint(918, 540),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(470016, 229376),
+            StagedTerrainPoint(614400, 229376),
+            StagedTerrainPoint(614400, 276480),
+            StagedTerrainPoint(470016, 276480),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+        ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#direct=solid_002",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_easy_001",
+            placementKey: null,
+            shapeId: "solid_002",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(462, 448),
+            StagedTerrainPoint(768, 448),
+            StagedTerrainPoint(768, 540),
+            StagedTerrainPoint(462, 540),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(236544, 229376),
+            StagedTerrainPoint(393216, 229376),
+            StagedTerrainPoint(393216, 276480),
+            StagedTerrainPoint(236544, 276480),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+        ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_easy_001.json#placement=rune_rocks_menhir_05|283|185|0#prefab=rune_rocks_menhir_05#shape=collision_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_easy_001",
+            placementKey: "rune_rocks_menhir_05|283|185|0",
+            shapeId: "collision_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(-42, 8),
+            StagedTerrainPoint(-40, -4),
+            StagedTerrainPoint(-38, -14),
+            StagedTerrainPoint(-34, -24),
+            StagedTerrainPoint(-24, -34),
+            StagedTerrainPoint(-8, -36),
+            StagedTerrainPoint(20, -24),
+            StagedTerrainPoint(26, -20),
+            StagedTerrainPoint(40, -6),
+            StagedTerrainPoint(44, 0),
+            StagedTerrainPoint(44, 26),
+            StagedTerrainPoint(40, 30),
+            StagedTerrainPoint(36, 42),
+            StagedTerrainPoint(36, 48),
+            StagedTerrainPoint(-32, 48),
+            StagedTerrainPoint(-40, 34),
+            StagedTerrainPoint(-42, 28),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(253235, 196403),
+            StagedTerrainPoint(254976, 185958),
+            StagedTerrainPoint(256717, 177254),
+            StagedTerrainPoint(260198, 168550),
+            StagedTerrainPoint(268902, 159846),
+            StagedTerrainPoint(282829, 158106),
+            StagedTerrainPoint(307200, 168550),
+            StagedTerrainPoint(312422, 172032),
+            StagedTerrainPoint(324608, 184218),
+            StagedTerrainPoint(328090, 189440),
+            StagedTerrainPoint(328090, 212070),
+            StagedTerrainPoint(324608, 215552),
+            StagedTerrainPoint(321126, 225997),
+            StagedTerrainPoint(321126, 231219),
+            StagedTerrainPoint(261939, 231219),
+            StagedTerrainPoint(254976, 219034),
+            StagedTerrainPoint(253235, 213811),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+        ),
+      ],
+      edges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 229376),
+          end: StagedTerrainPoint(142336, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -23758,82 +25539,6 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 1,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 2,
-          ),
-          start: StagedTerrainPoint(126557, 229376),
-          end: StagedTerrainPoint(232448, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 18,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 6,
-          ),
-          start: StagedTerrainPoint(281395, 229376),
-          end: StagedTerrainPoint(333824, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -23853,8 +25558,8 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(333824, 229376),
-          end: StagedTerrainPoint(333824, 276480),
+          start: StagedTerrainPoint(142336, 229376),
+          end: StagedTerrainPoint(142336, 276480),
           tangent: StagedTerrainPoint(0, 1024),
           outwardNormal: StagedTerrainPoint(1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -23867,7 +25572,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "ground_001",
             ),
             localEdgeIndex: 0,
-            subEdgeIndex: 6,
+            subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -23891,7 +25596,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 2,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(333824, 276480),
+          start: StagedTerrainPoint(142336, 276480),
           end: StagedTerrainPoint(0, 276480),
           tangent: StagedTerrainPoint(-1024, 0),
           outwardNormal: StagedTerrainPoint(0, 1024),
@@ -23967,7 +25672,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(428032, 229376),
+          start: StagedTerrainPoint(470016, 229376),
           end: StagedTerrainPoint(614400, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
@@ -24044,7 +25749,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(614400, 276480),
-          end: StagedTerrainPoint(428032, 276480),
+          end: StagedTerrainPoint(470016, 276480),
           tangent: StagedTerrainPoint(-1024, 0),
           outwardNormal: StagedTerrainPoint(0, 1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -24081,8 +25786,8 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(428032, 276480),
-          end: StagedTerrainPoint(428032, 229376),
+          start: StagedTerrainPoint(470016, 276480),
+          end: StagedTerrainPoint(470016, 229376),
           tangent: StagedTerrainPoint(0, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -24113,111 +25818,35 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
+              placementKey: null,
+              shapeId: "solid_002",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(215040, 181248),
-          end: StagedTerrainPoint(237568, 180224),
-          tangent: StagedTerrainPoint(1023, -46),
-          outwardNormal: StagedTerrainPoint(-46, -1023),
+          start: StagedTerrainPoint(236544, 229376),
+          end: StagedTerrainPoint(260886, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
+              placementKey: null,
+              shapeId: "solid_002",
             ),
-            localEdgeIndex: 21,
+            localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(237568, 180224),
-          end: StagedTerrainPoint(239616, 186368),
-          tangent: StagedTerrainPoint(324, 971),
-          outwardNormal: StagedTerrainPoint(971, -324),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(239616, 186368),
-          end: StagedTerrainPoint(241664, 187392),
-          tangent: StagedTerrainPoint(916, 458),
-          outwardNormal: StagedTerrainPoint(458, -916),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
+            localEdgeIndex: 14,
             subEdgeIndex: 1,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
@@ -24227,14 +25856,660 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          start: StagedTerrainPoint(321126, 229376),
+          end: StagedTerrainPoint(393216, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 18,
+            localEdgeIndex: 12,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(232448, 229376),
-          end: StagedTerrainPoint(224256, 215040),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(393216, 229376),
+          end: StagedTerrainPoint(393216, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(393216, 276480),
+          end: StagedTerrainPoint(236544, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(236544, 276480),
+          end: StagedTerrainPoint(236544, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(253235, 196403),
+          end: StagedTerrainPoint(254976, 185958),
+          tangent: StagedTerrainPoint(168, -1010),
+          outwardNormal: StagedTerrainPoint(-1010, -168),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 16,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(254976, 185958),
+          end: StagedTerrainPoint(256717, 177254),
+          tangent: StagedTerrainPoint(201, -1004),
+          outwardNormal: StagedTerrainPoint(-1004, -201),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(256717, 177254),
+          end: StagedTerrainPoint(260198, 168550),
+          tangent: StagedTerrainPoint(380, -951),
+          outwardNormal: StagedTerrainPoint(-951, -380),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(260198, 168550),
+          end: StagedTerrainPoint(268902, 159846),
+          tangent: StagedTerrainPoint(724, -724),
+          outwardNormal: StagedTerrainPoint(-724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(268902, 159846),
+          end: StagedTerrainPoint(282829, 158106),
+          tangent: StagedTerrainPoint(1016, -127),
+          outwardNormal: StagedTerrainPoint(-127, -1016),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(282829, 158106),
+          end: StagedTerrainPoint(307200, 168550),
+          tangent: StagedTerrainPoint(941, 403),
+          outwardNormal: StagedTerrainPoint(403, -941),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(307200, 168550),
+          end: StagedTerrainPoint(312422, 172032),
+          tangent: StagedTerrainPoint(852, 568),
+          outwardNormal: StagedTerrainPoint(568, -852),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(312422, 172032),
+          end: StagedTerrainPoint(324608, 184218),
+          tangent: StagedTerrainPoint(724, 724),
+          outwardNormal: StagedTerrainPoint(724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(324608, 184218),
+          end: StagedTerrainPoint(328090, 189440),
+          tangent: StagedTerrainPoint(568, 852),
+          outwardNormal: StagedTerrainPoint(852, -568),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(328090, 189440),
+          end: StagedTerrainPoint(328090, 212070),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(328090, 212070),
+          end: StagedTerrainPoint(324608, 215552),
+          tangent: StagedTerrainPoint(-724, 724),
+          outwardNormal: StagedTerrainPoint(724, 724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(324608, 215552),
+          end: StagedTerrainPoint(321126, 225997),
+          tangent: StagedTerrainPoint(-324, 971),
+          outwardNormal: StagedTerrainPoint(971, 324),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(321126, 225997),
+          end: StagedTerrainPoint(321126, 229376),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 14,
+            subEdgeIndex: 1,
+          ),
+          start: StagedTerrainPoint(260886, 229376),
+          end: StagedTerrainPoint(254976, 219034),
           tangent: StagedTerrainPoint(-508, -889),
           outwardNormal: StagedTerrainPoint(-889, 508),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -24244,170 +26519,18 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
               placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 2,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 19,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 19,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(224256, 215040),
-          end: StagedTerrainPoint(224256, 211968),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 18,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 20,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 20,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(224256, 211968),
-          end: StagedTerrainPoint(216064, 205824),
-          tangent: StagedTerrainPoint(-819, -614),
-          outwardNormal: StagedTerrainPoint(-614, 819),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 19,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 21,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 21,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(216064, 205824),
-          end: StagedTerrainPoint(215040, 181248),
-          tangent: StagedTerrainPoint(-43, -1023),
-          outwardNormal: StagedTerrainPoint(-1023, 43),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 20,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
-              shapeId: "collision_001",
+              shapeId: "solid_002",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
+          nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(241664, 182272),
-          end: StagedTerrainPoint(242688, 164864),
-          tangent: StagedTerrainPoint(60, -1022),
-          outwardNormal: StagedTerrainPoint(-1022, -60),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 15,
-            subEdgeIndex: 1,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
@@ -24417,470 +26540,52 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(242688, 164864),
-          end: StagedTerrainPoint(244736, 162816),
-          tangent: StagedTerrainPoint(724, -724),
-          outwardNormal: StagedTerrainPoint(-724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(244736, 162816),
-          end: StagedTerrainPoint(250880, 146432),
-          tangent: StagedTerrainPoint(360, -959),
-          outwardNormal: StagedTerrainPoint(-959, -360),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(250880, 146432),
-          end: StagedTerrainPoint(256000, 140288),
-          tangent: StagedTerrainPoint(656, -787),
-          outwardNormal: StagedTerrainPoint(-787, -656),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(256000, 140288),
-          end: StagedTerrainPoint(269312, 140288),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(269312, 140288),
-          end: StagedTerrainPoint(282624, 153600),
-          tangent: StagedTerrainPoint(724, 724),
-          outwardNormal: StagedTerrainPoint(724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(282624, 153600),
-          end: StagedTerrainPoint(287744, 162816),
-          tangent: StagedTerrainPoint(497, 895),
-          outwardNormal: StagedTerrainPoint(895, -497),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(287744, 162816),
-          end: StagedTerrainPoint(289792, 168960),
-          tangent: StagedTerrainPoint(324, 971),
-          outwardNormal: StagedTerrainPoint(971, -324),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(289792, 168960),
-          end: StagedTerrainPoint(290816, 184320),
-          tangent: StagedTerrainPoint(68, 1022),
-          outwardNormal: StagedTerrainPoint(1022, -68),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(290816, 184320),
-          end: StagedTerrainPoint(292864, 195584),
-          tangent: StagedTerrainPoint(183, 1007),
-          outwardNormal: StagedTerrainPoint(1007, -183),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(292864, 195584),
-          end: StagedTerrainPoint(292864, 214016),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(292864, 214016),
-          end: StagedTerrainPoint(284672, 227328),
-          tangent: StagedTerrainPoint(-537, 872),
-          outwardNormal: StagedTerrainPoint(872, 537),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(284672, 227328),
-          end: StagedTerrainPoint(281395, 229376),
-          tangent: StagedTerrainPoint(-868, 543),
-          outwardNormal: StagedTerrainPoint(543, 868),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 6,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 15,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(254976, 219034),
+          end: StagedTerrainPoint(253235, 213811),
+          tangent: StagedTerrainPoint(-324, -971),
+          outwardNormal: StagedTerrainPoint(-971, 324),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 14,
             subEdgeIndex: 1,
           ),
-          start: StagedTerrainPoint(241664, 187392),
-          end: StagedTerrainPoint(241664, 182272),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 16,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 16,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(253235, 213811),
+          end: StagedTerrainPoint(253235, 196403),
           tangent: StagedTerrainPoint(0, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -24889,358 +26594,16 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 2,
+            localEdgeIndex: 15,
             subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_menhir_01|259|179|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(23859, 201626),
-          end: StagedTerrainPoint(27341, 199885),
-          tangent: StagedTerrainPoint(916, -458),
-          outwardNormal: StagedTerrainPoint(-458, -916),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(27341, 199885),
-          end: StagedTerrainPoint(34304, 191181),
-          tangent: StagedTerrainPoint(640, -800),
-          outwardNormal: StagedTerrainPoint(-800, -640),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(34304, 191181),
-          end: StagedTerrainPoint(41267, 187699),
-          tangent: StagedTerrainPoint(916, -458),
-          outwardNormal: StagedTerrainPoint(-458, -916),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(41267, 187699),
-          end: StagedTerrainPoint(62157, 187699),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(62157, 187699),
-          end: StagedTerrainPoint(117862, 203366),
-          tangent: StagedTerrainPoint(986, 277),
-          outwardNormal: StagedTerrainPoint(277, -986),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(117862, 203366),
-          end: StagedTerrainPoint(124826, 210330),
-          tangent: StagedTerrainPoint(724, 724),
-          outwardNormal: StagedTerrainPoint(724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(124826, 210330),
-          end: StagedTerrainPoint(126557, 229376),
-          tangent: StagedTerrainPoint(93, 1020),
-          outwardNormal: StagedTerrainPoint(1020, -93),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 2,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 1,
-          ),
-          start: StagedTerrainPoint(31616, 229376),
-          end: StagedTerrainPoint(23859, 219034),
-          tangent: StagedTerrainPoint(-614, -819),
-          outwardNormal: StagedTerrainPoint(-819, 614),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(23859, 219034),
-          end: StagedTerrainPoint(23859, 201626),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 1,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_easy_001",
-              placementKey: "rune_rocks_mossy_rock_16|76|202|0",
+              placementKey: "rune_rocks_menhir_05|283|185|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -25262,7 +26625,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(0, 229376),
-          end: StagedTerrainPoint(333824, 229376),
+          end: StagedTerrainPoint(142336, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -25299,8 +26662,8 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(333824, 229376),
-          end: StagedTerrainPoint(333824, 276480),
+          start: StagedTerrainPoint(142336, 229376),
+          end: StagedTerrainPoint(142336, 276480),
           tangent: StagedTerrainPoint(0, 1024),
           outwardNormal: StagedTerrainPoint(1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -25337,7 +26700,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 2,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(333824, 276480),
+          start: StagedTerrainPoint(142336, 276480),
           end: StagedTerrainPoint(0, 276480),
           tangent: StagedTerrainPoint(-1024, 0),
           outwardNormal: StagedTerrainPoint(0, 1024),
@@ -25413,7 +26776,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(428032, 229376),
+          start: StagedTerrainPoint(470016, 229376),
           end: StagedTerrainPoint(614400, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
@@ -25490,7 +26853,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(614400, 276480),
-          end: StagedTerrainPoint(428032, 276480),
+          end: StagedTerrainPoint(470016, 276480),
           tangent: StagedTerrainPoint(-1024, 0),
           outwardNormal: StagedTerrainPoint(0, 1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -25527,8 +26890,8 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(428032, 276480),
-          end: StagedTerrainPoint(428032, 229376),
+          start: StagedTerrainPoint(470016, 276480),
+          end: StagedTerrainPoint(470016, 229376),
           tangent: StagedTerrainPoint(0, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -25548,6 +26911,158 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               chunkKey: "forest_enchanted_forest_easy_001",
               placementKey: null,
               shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(236544, 229376),
+          end: StagedTerrainPoint(393216, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(393216, 229376),
+          end: StagedTerrainPoint(393216, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(393216, 276480),
+          end: StagedTerrainPoint(236544, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(236544, 276480),
+          end: StagedTerrainPoint(236544, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_easy_001",
+              placementKey: null,
+              shapeId: "solid_002",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
@@ -25597,51 +27112,41 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           second: 0,
           third: 1,
         ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_easy_001",
+            placementKey: null,
+            shapeId: "solid_002",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_easy_001",
+            placementKey: null,
+            shapeId: "solid_002",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
       ],
       placementLineage: <StagedTerrainPlacementLineageData>[
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
             chunkKey: "forest_enchanted_forest_easy_001",
-            placementKey: "fantasy_environment_green_crystal_04|232|200|0",
+            placementKey: "rune_rocks_menhir_05|283|185|0",
             shapeId: "collision_001",
           ),
-          prefabKey: "fantasy_environment_green_crystal_04",
-          prefabId: "fantasy_environment_green_crystal_04",
+          prefabKey: "rune_rocks_menhir_05",
+          prefabId: "rune_rocks_menhir_05",
           prefabRevision: 2,
-          placementX: 232,
-          placementY: 200,
-          scaleTenths: 10,
-          flipX: false,
-          flipY: false,
-        ),
-        StagedTerrainPlacementLineageData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
-            placementKey: "rune_rocks_menhir_01|259|179|0",
-            shapeId: "collision_001",
-          ),
-          prefabKey: "rune_rocks_menhir_01",
-          prefabId: "rune_rocks_menhir_01",
-          prefabRevision: 2,
-          placementX: 259,
-          placementY: 179,
-          scaleTenths: 10,
-          flipX: false,
-          flipY: false,
-        ),
-        StagedTerrainPlacementLineageData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_easy_001",
-            placementKey: "rune_rocks_mossy_rock_16|76|202|0",
-            shapeId: "collision_001",
-          ),
-          prefabKey: "rune_rocks_mossy_rock_16",
-          prefabId: "rune_rocks_mossy_rock_16",
-          prefabRevision: 8,
-          placementX: 76,
-          placementY: 202,
+          placementX: 283,
+          placementY: 185,
           scaleTenths: 17,
-          flipX: true,
+          flipX: false,
           flipY: false,
         ),
       ],
@@ -25649,7 +27154,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "forest_enchanted_forest_hard_001",
       id: "forest_enchanted_forest_hard_001",
-      revision: 214,
+      revision: 77,
       status: "active",
       levelId: "forest",
       tileSize: 16,
@@ -25657,11 +27162,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "hard",
       assemblyGroupId: "enchanted_forest",
-      authoringPolygonSignature: "a1e028e74b35803f2e3f7fda50967df76a534bf752384e0ec2993ce214402cf1",
-      sourceSignature: "6f0a5477e0a07d11c2c1ff65d0e74dc65530727200464009aebab8b2054881d2",
-      edgeSignature: "fece30cad68baf5e29d7f2ca4702f1bf25e18193083bc77ea407faea73ad0cb2",
+      authoringPolygonSignature: "5405ddc18217991c9c4841c3e0aae1c6720197e19f27f1cd3053423128f62e50",
+      sourceSignature: "85096d24b6f1c67689df8969c2914e93c50a9a733c3a3f41ff727faa041d6e00",
+      edgeSignature: "5ff024a678130fb73e8cdf77b632299036d6ce97eb3e7aefd22ba58fd747582c",
       renderEdgeSignature: "94472458243f94ca96f53229863febb7a1863e6e706bd4fb0f48c8a509217e64",
-      placementSignature: "9df7ca3943c4bd736c5fc58bf4217f5d440c8faf0285030763f9df52f07b08eb",
+      placementSignature: "e100e18c54dddbfcfa7bf2c5023fb9d6807da3a96335e35679fd4813637dd583",
       triangleSignature: "db186b076a2bda8a86b137d911adf4354cc1bf3bc46aa9f5b8ae17805cf8ca3c",
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
@@ -25711,9 +27216,1373 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_hard_001.json#placement=fantasy_environment_green_crystal_04|355|213|0#prefab=fantasy_environment_green_crystal_04#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_hard_001.json#placement=rune_rocks_menhir_06|295|189|0#prefab=rune_rocks_menhir_06#shape=collision_001",
           id: StagedTerrainSourceId(
             chunkKey: "forest_enchanted_forest_hard_001",
+            placementKey: "rune_rocks_menhir_06|295|189|0",
+            shapeId: "collision_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(-52, -4),
+            StagedTerrainPoint(-50, -16),
+            StagedTerrainPoint(-42, -30),
+            StagedTerrainPoint(-8, -30),
+            StagedTerrainPoint(-6, -34),
+            StagedTerrainPoint(4, -38),
+            StagedTerrainPoint(32, -38),
+            StagedTerrainPoint(36, -34),
+            StagedTerrainPoint(42, -34),
+            StagedTerrainPoint(52, -28),
+            StagedTerrainPoint(52, -2),
+            StagedTerrainPoint(46, 4),
+            StagedTerrainPoint(46, 8),
+            StagedTerrainPoint(38, 16),
+            StagedTerrainPoint(38, 28),
+            StagedTerrainPoint(46, 36),
+            StagedTerrainPoint(46, 44),
+            StagedTerrainPoint(42, 48),
+            StagedTerrainPoint(-48, 48),
+            StagedTerrainPoint(-52, 44),
+            StagedTerrainPoint(-50, 18),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(259482, 190259),
+            StagedTerrainPoint(261120, 180429),
+            StagedTerrainPoint(267674, 168960),
+            StagedTerrainPoint(295526, 168960),
+            StagedTerrainPoint(297165, 165683),
+            StagedTerrainPoint(305357, 162406),
+            StagedTerrainPoint(328294, 162406),
+            StagedTerrainPoint(331571, 165683),
+            StagedTerrainPoint(336486, 165683),
+            StagedTerrainPoint(344678, 170598),
+            StagedTerrainPoint(344678, 191898),
+            StagedTerrainPoint(339763, 196813),
+            StagedTerrainPoint(339763, 200090),
+            StagedTerrainPoint(333210, 206643),
+            StagedTerrainPoint(333210, 216474),
+            StagedTerrainPoint(339763, 223027),
+            StagedTerrainPoint(339763, 229581),
+            StagedTerrainPoint(336486, 232858),
+            StagedTerrainPoint(262758, 232858),
+            StagedTerrainPoint(259482, 229581),
+            StagedTerrainPoint(261120, 208282),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+        ),
+      ],
+      edges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 229376),
+          end: StagedTerrainPoint(142336, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.smooth,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(142336, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.smooth,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(142336, 229376),
+          end: StagedTerrainPoint(259498, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 19,
+            subEdgeIndex: 1,
+          ),
+          startJoin: StagedTerrainVertexJoin.smooth,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          start: StagedTerrainPoint(339763, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 15,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(142336, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.smooth,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(259482, 190259),
+          end: StagedTerrainPoint(261120, 180429),
+          tangent: StagedTerrainPoint(168, -1010),
+          outwardNormal: StagedTerrainPoint(-1010, -168),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 20,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(261120, 180429),
+          end: StagedTerrainPoint(267674, 168960),
+          tangent: StagedTerrainPoint(508, -889),
+          outwardNormal: StagedTerrainPoint(-889, -508),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(267674, 168960),
+          end: StagedTerrainPoint(295526, 168960),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(295526, 168960),
+          end: StagedTerrainPoint(297165, 165683),
+          tangent: StagedTerrainPoint(458, -916),
+          outwardNormal: StagedTerrainPoint(-916, -458),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(297165, 165683),
+          end: StagedTerrainPoint(305357, 162406),
+          tangent: StagedTerrainPoint(951, -380),
+          outwardNormal: StagedTerrainPoint(-380, -951),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(305357, 162406),
+          end: StagedTerrainPoint(328294, 162406),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(328294, 162406),
+          end: StagedTerrainPoint(331571, 165683),
+          tangent: StagedTerrainPoint(724, 724),
+          outwardNormal: StagedTerrainPoint(724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(331571, 165683),
+          end: StagedTerrainPoint(336486, 165683),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(336486, 165683),
+          end: StagedTerrainPoint(344678, 170598),
+          tangent: StagedTerrainPoint(878, 527),
+          outwardNormal: StagedTerrainPoint(527, -878),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(344678, 170598),
+          end: StagedTerrainPoint(344678, 191898),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(344678, 191898),
+          end: StagedTerrainPoint(339763, 196813),
+          tangent: StagedTerrainPoint(-724, 724),
+          outwardNormal: StagedTerrainPoint(724, 724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(339763, 196813),
+          end: StagedTerrainPoint(339763, 200090),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(339763, 200090),
+          end: StagedTerrainPoint(333210, 206643),
+          tangent: StagedTerrainPoint(-724, 724),
+          outwardNormal: StagedTerrainPoint(724, 724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 13,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 13,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(333210, 206643),
+          end: StagedTerrainPoint(333210, 216474),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 14,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 14,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(333210, 216474),
+          end: StagedTerrainPoint(339763, 223027),
+          tangent: StagedTerrainPoint(724, 724),
+          outwardNormal: StagedTerrainPoint(724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 13,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 15,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 15,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(339763, 223027),
+          end: StagedTerrainPoint(339763, 229376),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 14,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 19,
+            subEdgeIndex: 1,
+          ),
+          start: StagedTerrainPoint(259498, 229376),
+          end: StagedTerrainPoint(261120, 208282),
+          tangent: StagedTerrainPoint(79, -1021),
+          outwardNormal: StagedTerrainPoint(-1021, -79),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 20,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 20,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(261120, 208282),
+          end: StagedTerrainPoint(259482, 190259),
+          tangent: StagedTerrainPoint(-93, -1020),
+          outwardNormal: StagedTerrainPoint(-1020, 93),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 19,
+            subEdgeIndex: 1,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: "rune_rocks_menhir_06|295|189|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+      ],
+      renderEdges: <StagedTerrainEdgeData>[
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 229376),
+          end: StagedTerrainPoint(142336, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.smooth,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(142336, 276480),
+          end: StagedTerrainPoint(0, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.smooth,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(0, 276480),
+          end: StagedTerrainPoint(0, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(142336, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.smooth,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(142336, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "solid_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_enchanted_forest_hard_001",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.smooth,
+        ),
+      ],
+      triangles: <StagedTerrainTriangleData>[
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_hard_001",
+            placementKey: null,
+            shapeId: "ground_001",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_hard_001",
+            placementKey: null,
+            shapeId: "ground_001",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_hard_001",
+            placementKey: null,
+            shapeId: "solid_001",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_hard_001",
+            placementKey: null,
+            shapeId: "solid_001",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
+      ],
+      placementLineage: <StagedTerrainPlacementLineageData>[
+        StagedTerrainPlacementLineageData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_hard_001",
+            placementKey: "rune_rocks_menhir_06|295|189|0",
+            shapeId: "collision_001",
+          ),
+          prefabKey: "rune_rocks_menhir_06",
+          prefabId: "rune_rocks_menhir_06",
+          prefabRevision: 2,
+          placementX: 295,
+          placementY: 189,
+          scaleTenths: 16,
+          flipX: false,
+          flipY: false,
+        ),
+      ],
+    ),
+    StagedTerrainChunkData(
+      chunkKey: "forest_enchanted_forest_normal_001",
+      id: "forest_enchanted_forest_normal_001",
+      revision: 215,
+      status: "active",
+      levelId: "forest",
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: "normal",
+      assemblyGroupId: "enchanted_forest",
+      authoringPolygonSignature: "09144d34a2d1e5c0d9c2918ee08656e544f05005af9ca4855806dacd33e5db75",
+      sourceSignature: "d515ba6673be2de8fe33186ba34dcb864df10e1bda8533bd2a6507c2a9c92f74",
+      edgeSignature: "973f46373bdaefbc5267828861a3d6f01af5af670e7d6b61b49012245566a477",
+      renderEdgeSignature: "394b670977fd5caf2271af496ef44a51bf1c2f28d1d64f28c4206ec38673054a",
+      placementSignature: "9bf7f9a4e9d6cc320c3e0b99be0fe6cf7a981afe91858a42ccb37d156e3bcfb3",
+      triangleSignature: "c05f29587174af5840a7627eed14e007ad943f9503e924922ab0abd6316bd300",
+      polygons: <StagedTerrainPolygonData>[
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#direct=ground_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_normal_001",
+            placementKey: null,
+            shapeId: "ground_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(0, 448),
+            StagedTerrainPoint(278, 448),
+            StagedTerrainPoint(278, 540),
+            StagedTerrainPoint(0, 540),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(0, 229376),
+            StagedTerrainPoint(142336, 229376),
+            StagedTerrainPoint(142336, 276480),
+            StagedTerrainPoint(0, 276480),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+        ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#direct=solid_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_normal_001",
+            placementKey: null,
+            shapeId: "solid_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(278, 448),
+            StagedTerrainPoint(1200, 448),
+            StagedTerrainPoint(1200, 540),
+            StagedTerrainPoint(278, 540),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(142336, 229376),
+            StagedTerrainPoint(614400, 229376),
+            StagedTerrainPoint(614400, 276480),
+            StagedTerrainPoint(142336, 276480),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+        ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#placement=fantasy_environment_green_crystal_04|355|213|0#prefab=fantasy_environment_green_crystal_04#shape=collision_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: "fantasy_environment_green_crystal_04|355|213|0",
             shapeId: "collision_001",
           ),
@@ -25770,9 +28639,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_hard_001.json#placement=rune_rocks_menhir_02|330|167|0#prefab=rune_rocks_menhir_02#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#placement=rune_rocks_menhir_02|330|167|0#prefab=rune_rocks_menhir_02#shape=collision_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: "rune_rocks_menhir_02|330|167|0",
             shapeId: "collision_001",
           ),
@@ -25815,9 +28684,9 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_hard_001.json#placement=rune_rocks_mossy_rock_03|285|202|0#prefab=rune_rocks_mossy_rock_03#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#placement=rune_rocks_mossy_rock_03|285|202|0#prefab=rune_rocks_mossy_rock_03#shape=collision_001",
           id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: "rune_rocks_mossy_rock_03|285|202|0",
             shapeId: "collision_001",
           ),
@@ -25856,7 +28725,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25872,7 +28741,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25881,7 +28750,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -25894,7 +28763,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25910,7 +28779,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -25919,7 +28788,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25932,7 +28801,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25948,7 +28817,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25957,7 +28826,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25970,7 +28839,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -25986,7 +28855,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -25995,7 +28864,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26008,7 +28877,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26024,7 +28893,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26033,7 +28902,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26046,7 +28915,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26062,7 +28931,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26071,7 +28940,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26084,7 +28953,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26100,7 +28969,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26109,7 +28978,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -26122,7 +28991,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26138,7 +29007,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26147,7 +29016,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26160,7 +29029,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26176,7 +29045,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26185,7 +29054,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26198,7 +29067,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26214,7 +29083,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26223,7 +29092,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26236,7 +29105,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26252,7 +29121,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26261,7 +29130,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26274,7 +29143,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26290,7 +29159,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26299,7 +29168,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26312,7 +29181,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26328,7 +29197,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26337,7 +29206,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -26350,7 +29219,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26366,7 +29235,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26375,7 +29244,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26388,7 +29257,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26404,7 +29273,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26413,7 +29282,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26426,7 +29295,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26442,7 +29311,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26451,7 +29320,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26464,7 +29333,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26480,7 +29349,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26489,7 +29358,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26502,7 +29371,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26518,7 +29387,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26527,7 +29396,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26540,7 +29409,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26556,7 +29425,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26565,7 +29434,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26578,7 +29447,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26594,7 +29463,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26603,7 +29472,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26616,7 +29485,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26632,7 +29501,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26641,7 +29510,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26654,7 +29523,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26670,7 +29539,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26679,7 +29548,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26692,7 +29561,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26708,7 +29577,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26717,7 +29586,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "fantasy_environment_green_crystal_04|355|213|0",
               shapeId: "collision_001",
             ),
@@ -26730,7 +29599,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26746,7 +29615,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26755,7 +29624,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26768,7 +29637,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26784,7 +29653,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26793,7 +29662,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26806,7 +29675,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26822,7 +29691,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26831,7 +29700,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26844,7 +29713,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26860,7 +29729,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26869,7 +29738,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26882,7 +29751,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26898,7 +29767,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26907,7 +29776,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26920,7 +29789,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26936,7 +29805,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26945,7 +29814,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26958,7 +29827,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26974,7 +29843,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -26983,7 +29852,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_menhir_02|330|167|0",
               shapeId: "collision_001",
             ),
@@ -26996,7 +29865,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -27012,7 +29881,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27021,7 +29890,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: "rune_rocks_mossy_rock_03|285|202|0",
               shapeId: "collision_001",
             ),
@@ -27036,7 +29905,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27052,7 +29921,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27061,7 +29930,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27074,7 +29943,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27090,7 +29959,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27099,7 +29968,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27112,7 +29981,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27128,7 +29997,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27137,7 +30006,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27150,7 +30019,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27166,7 +30035,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27175,7 +30044,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27188,7 +30057,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27204,7 +30073,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27213,7 +30082,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27226,7 +30095,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainEdgeData(
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27242,7 +30111,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "solid_001",
             ),
@@ -27251,7 +30120,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_hard_001",
+              chunkKey: "forest_enchanted_forest_normal_001",
               placementKey: null,
               shapeId: "ground_001",
             ),
@@ -27265,7 +30134,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       triangles: <StagedTerrainTriangleData>[
         StagedTerrainTriangleData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: null,
             shapeId: "ground_001",
           ),
@@ -27275,7 +30144,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
         StagedTerrainTriangleData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: null,
             shapeId: "ground_001",
           ),
@@ -27285,7 +30154,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
         StagedTerrainTriangleData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: null,
             shapeId: "solid_001",
           ),
@@ -27295,7 +30164,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
         StagedTerrainTriangleData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: null,
             shapeId: "solid_001",
           ),
@@ -27307,7 +30176,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       placementLineage: <StagedTerrainPlacementLineageData>[
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: "fantasy_environment_green_crystal_04|355|213|0",
             shapeId: "collision_001",
           ),
@@ -27322,7 +30191,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: "rune_rocks_menhir_02|330|167|0",
             shapeId: "collision_001",
           ),
@@ -27337,7 +30206,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         ),
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_hard_001",
+            chunkKey: "forest_enchanted_forest_normal_001",
             placementKey: "rune_rocks_mossy_rock_03|285|202|0",
             shapeId: "collision_001",
           ),
@@ -27347,1799 +30216,6 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           placementX: 285,
           placementY: 202,
           scaleTenths: 10,
-          flipX: false,
-          flipY: false,
-        ),
-      ],
-    ),
-    StagedTerrainChunkData(
-      chunkKey: "forest_enchanted_forest_normal_001",
-      id: "forest_enchanted_forest_normal_001",
-      revision: 94,
-      status: "active",
-      levelId: "forest",
-      tileSize: 16,
-      width: 600,
-      height: 270,
-      difficulty: "normal",
-      assemblyGroupId: "enchanted_forest",
-      authoringPolygonSignature: "c8cc3817017770186e804907d70074935204d6dc1af8fdd054a01d3033d0ac04",
-      sourceSignature: "ab8e9e95f1ea19d480ebfdbde5574f360aa8256004e2ca35aa658e1ca9c65344",
-      edgeSignature: "e82cc4057f70c35d76c7e58b1811280502e791c1c58e422c70adcc2511658f5f",
-      renderEdgeSignature: "8ca32d760584af15feb12850fda007c8361f426b117b82621bbba5f778ebe24f",
-      placementSignature: "0c0e5ab55934af3298be35b7db1b7e2b997746ee02eca6c28d00b9eb7f48710d",
-      triangleSignature: "bb2566f821287f92254ef4bdb8ae344ccb188b6a2012d82078232b809a49d454",
-      waterRegions: <WaterRegionData>[
-        WaterRegionData(
-          id: "water_1",
-          x: 139, y: 224,
-          width: 92, height: 46,
-          materialKey: "biome_water",
-        ),
-        WaterRegionData(
-          id: "water_2",
-          x: 384, y: 224,
-          width: 75, height: 46,
-          materialKey: "biome_water",
-        ),
-      ],
-      polygons: <StagedTerrainPolygonData>[
-        StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#direct=ground_001",
-          id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "ground_001",
-          ),
-          sourceVertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(0, 448),
-            StagedTerrainPoint(278, 448),
-            StagedTerrainPoint(278, 540),
-            StagedTerrainPoint(0, 540),
-          ],
-          vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(0, 229376),
-            StagedTerrainPoint(142336, 229376),
-            StagedTerrainPoint(142336, 276480),
-            StagedTerrainPoint(0, 276480),
-          ],
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-        ),
-        StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#direct=solid_001",
-          id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "solid_001",
-          ),
-          sourceVertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(918, 448),
-            StagedTerrainPoint(1200, 448),
-            StagedTerrainPoint(1200, 540),
-            StagedTerrainPoint(918, 540),
-          ],
-          vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(470016, 229376),
-            StagedTerrainPoint(614400, 229376),
-            StagedTerrainPoint(614400, 276480),
-            StagedTerrainPoint(470016, 276480),
-          ],
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-        ),
-        StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#direct=solid_002",
-          id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "solid_002",
-          ),
-          sourceVertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(462, 448),
-            StagedTerrainPoint(768, 448),
-            StagedTerrainPoint(768, 540),
-            StagedTerrainPoint(462, 540),
-          ],
-          vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(236544, 229376),
-            StagedTerrainPoint(393216, 229376),
-            StagedTerrainPoint(393216, 276480),
-            StagedTerrainPoint(236544, 276480),
-          ],
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-        ),
-        StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_enchanted_forest_normal_001.json#placement=rune_rocks_menhir_05|283|185|0#prefab=rune_rocks_menhir_05#shape=collision_001",
-          id: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: "rune_rocks_menhir_05|283|185|0",
-            shapeId: "collision_001",
-          ),
-          sourceVertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(-42, 8),
-            StagedTerrainPoint(-40, -4),
-            StagedTerrainPoint(-38, -14),
-            StagedTerrainPoint(-34, -24),
-            StagedTerrainPoint(-24, -34),
-            StagedTerrainPoint(-8, -36),
-            StagedTerrainPoint(20, -24),
-            StagedTerrainPoint(26, -20),
-            StagedTerrainPoint(40, -6),
-            StagedTerrainPoint(44, 0),
-            StagedTerrainPoint(44, 26),
-            StagedTerrainPoint(40, 30),
-            StagedTerrainPoint(36, 42),
-            StagedTerrainPoint(36, 48),
-            StagedTerrainPoint(-32, 48),
-            StagedTerrainPoint(-40, 34),
-            StagedTerrainPoint(-42, 28),
-          ],
-          vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(253235, 196403),
-            StagedTerrainPoint(254976, 185958),
-            StagedTerrainPoint(256717, 177254),
-            StagedTerrainPoint(260198, 168550),
-            StagedTerrainPoint(268902, 159846),
-            StagedTerrainPoint(282829, 158106),
-            StagedTerrainPoint(307200, 168550),
-            StagedTerrainPoint(312422, 172032),
-            StagedTerrainPoint(324608, 184218),
-            StagedTerrainPoint(328090, 189440),
-            StagedTerrainPoint(328090, 212070),
-            StagedTerrainPoint(324608, 215552),
-            StagedTerrainPoint(321126, 225997),
-            StagedTerrainPoint(321126, 231219),
-            StagedTerrainPoint(261939, 231219),
-            StagedTerrainPoint(254976, 219034),
-            StagedTerrainPoint(253235, 213811),
-          ],
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-        ),
-      ],
-      edges: <StagedTerrainEdgeData>[
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(0, 229376),
-          end: StagedTerrainPoint(142336, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(142336, 229376),
-          end: StagedTerrainPoint(142336, 276480),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(142336, 276480),
-          end: StagedTerrainPoint(0, 276480),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(0, 276480),
-          end: StagedTerrainPoint(0, 229376),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(470016, 229376),
-          end: StagedTerrainPoint(614400, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(614400, 229376),
-          end: StagedTerrainPoint(614400, 276480),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(614400, 276480),
-          end: StagedTerrainPoint(470016, 276480),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(470016, 276480),
-          end: StagedTerrainPoint(470016, 229376),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(236544, 229376),
-          end: StagedTerrainPoint(260886, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 14,
-            subEdgeIndex: 1,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 2,
-          ),
-          start: StagedTerrainPoint(321126, 229376),
-          end: StagedTerrainPoint(393216, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(393216, 229376),
-          end: StagedTerrainPoint(393216, 276480),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 2,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(393216, 276480),
-          end: StagedTerrainPoint(236544, 276480),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(236544, 276480),
-          end: StagedTerrainPoint(236544, 229376),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(253235, 196403),
-          end: StagedTerrainPoint(254976, 185958),
-          tangent: StagedTerrainPoint(168, -1010),
-          outwardNormal: StagedTerrainPoint(-1010, -168),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 16,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(254976, 185958),
-          end: StagedTerrainPoint(256717, 177254),
-          tangent: StagedTerrainPoint(201, -1004),
-          outwardNormal: StagedTerrainPoint(-1004, -201),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(256717, 177254),
-          end: StagedTerrainPoint(260198, 168550),
-          tangent: StagedTerrainPoint(380, -951),
-          outwardNormal: StagedTerrainPoint(-951, -380),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(260198, 168550),
-          end: StagedTerrainPoint(268902, 159846),
-          tangent: StagedTerrainPoint(724, -724),
-          outwardNormal: StagedTerrainPoint(-724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(268902, 159846),
-          end: StagedTerrainPoint(282829, 158106),
-          tangent: StagedTerrainPoint(1016, -127),
-          outwardNormal: StagedTerrainPoint(-127, -1016),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(282829, 158106),
-          end: StagedTerrainPoint(307200, 168550),
-          tangent: StagedTerrainPoint(941, 403),
-          outwardNormal: StagedTerrainPoint(403, -941),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(307200, 168550),
-          end: StagedTerrainPoint(312422, 172032),
-          tangent: StagedTerrainPoint(852, 568),
-          outwardNormal: StagedTerrainPoint(568, -852),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(312422, 172032),
-          end: StagedTerrainPoint(324608, 184218),
-          tangent: StagedTerrainPoint(724, 724),
-          outwardNormal: StagedTerrainPoint(724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(324608, 184218),
-          end: StagedTerrainPoint(328090, 189440),
-          tangent: StagedTerrainPoint(568, 852),
-          outwardNormal: StagedTerrainPoint(852, -568),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(328090, 189440),
-          end: StagedTerrainPoint(328090, 212070),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(328090, 212070),
-          end: StagedTerrainPoint(324608, 215552),
-          tangent: StagedTerrainPoint(-724, 724),
-          outwardNormal: StagedTerrainPoint(724, 724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(324608, 215552),
-          end: StagedTerrainPoint(321126, 225997),
-          tangent: StagedTerrainPoint(-324, 971),
-          outwardNormal: StagedTerrainPoint(971, 324),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(321126, 225997),
-          end: StagedTerrainPoint(321126, 229376),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 2,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 14,
-            subEdgeIndex: 1,
-          ),
-          start: StagedTerrainPoint(260886, 229376),
-          end: StagedTerrainPoint(254976, 219034),
-          tangent: StagedTerrainPoint(-508, -889),
-          outwardNormal: StagedTerrainPoint(-889, 508),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(254976, 219034),
-          end: StagedTerrainPoint(253235, 213811),
-          tangent: StagedTerrainPoint(-324, -971),
-          outwardNormal: StagedTerrainPoint(-971, 324),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 14,
-            subEdgeIndex: 1,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 16,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 16,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(253235, 213811),
-          end: StagedTerrainPoint(253235, 196403),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 15,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: "rune_rocks_menhir_05|283|185|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-      ],
-      renderEdges: <StagedTerrainEdgeData>[
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(0, 229376),
-          end: StagedTerrainPoint(142336, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(142336, 229376),
-          end: StagedTerrainPoint(142336, 276480),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(142336, 276480),
-          end: StagedTerrainPoint(0, 276480),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(0, 276480),
-          end: StagedTerrainPoint(0, 229376),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "ground_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(470016, 229376),
-          end: StagedTerrainPoint(614400, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(614400, 229376),
-          end: StagedTerrainPoint(614400, 276480),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(614400, 276480),
-          end: StagedTerrainPoint(470016, 276480),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(470016, 276480),
-          end: StagedTerrainPoint(470016, 229376),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(236544, 229376),
-          end: StagedTerrainPoint(393216, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(393216, 229376),
-          end: StagedTerrainPoint(393216, 276480),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(393216, 276480),
-          end: StagedTerrainPoint(236544, 276480),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(236544, 276480),
-          end: StagedTerrainPoint(236544, 229376),
-          tangent: StagedTerrainPoint(0, -1024),
-          outwardNormal: StagedTerrainPoint(-1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_enchanted_forest_normal_001",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-      ],
-      triangles: <StagedTerrainTriangleData>[
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "ground_001",
-          ),
-          first: 1,
-          second: 2,
-          third: 3,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "ground_001",
-          ),
-          first: 3,
-          second: 0,
-          third: 1,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "solid_001",
-          ),
-          first: 1,
-          second: 2,
-          third: 3,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "solid_001",
-          ),
-          first: 3,
-          second: 0,
-          third: 1,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "solid_002",
-          ),
-          first: 1,
-          second: 2,
-          third: 3,
-        ),
-        StagedTerrainTriangleData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: null,
-            shapeId: "solid_002",
-          ),
-          first: 3,
-          second: 0,
-          third: 1,
-        ),
-      ],
-      placementLineage: <StagedTerrainPlacementLineageData>[
-        StagedTerrainPlacementLineageData(
-          sourceId: StagedTerrainSourceId(
-            chunkKey: "forest_enchanted_forest_normal_001",
-            placementKey: "rune_rocks_menhir_05|283|185|0",
-            shapeId: "collision_001",
-          ),
-          prefabKey: "rune_rocks_menhir_05",
-          prefabId: "rune_rocks_menhir_05",
-          prefabRevision: 2,
-          placementX: 283,
-          placementY: 185,
-          scaleTenths: 17,
           flipX: false,
           flipY: false,
         ),
@@ -61319,7 +62395,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "forest_rocky_grove_normal_003",
       id: "forest_rocky_grove_normal_003",
-      revision: 17,
+      revision: 19,
       status: "active",
       levelId: "forest",
       tileSize: 16,
@@ -61327,12 +62403,12 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "normal",
       assemblyGroupId: "rocky_grove",
-      authoringPolygonSignature: "ddef3653ba995c41992406093dd7ede76f20875e3b16c9f437373f372cefa9a9",
-      sourceSignature: "90dbf8f6871696ffed80a69da4c15f39e668cb9b316d5e322bb74768e3c57afb",
-      edgeSignature: "a35e99781ebd7b3651c1bd66217f65bf6207a330e7a3ab90fc5f27deef535f06",
-      renderEdgeSignature: "feae5891d61bda3e760ffe6410636dd8ffb959285bab311fe5f4a9784fc0b7b6",
+      authoringPolygonSignature: "3551dfb2b1be4bd505b9811e37e1fcaa9c12e2e94b7b588a4c7c6585231b059c",
+      sourceSignature: "94ae3aa0b16030e62232c1927e20cc0c4910f0f1dc62f96c175f1dcf4cf5087a",
+      edgeSignature: "dee99e66b86c99ab71655b8f1fd849dc92f1c5bc8477195338fce753cc0c7bbd",
+      renderEdgeSignature: "45c39acc7c80a364b731b237c44d2a138d420b914030a403e11a351228a695f4",
       placementSignature: "e65c769d14a775c361a3a58ab68921a50acea7a7f36efb9729aada87c779b520",
-      triangleSignature: "a9bdf51e3926f4d5567c305324be4f1a815b5ed81f95f6e4cd9544bb524d3616",
+      triangleSignature: "01f1db3a41aa0d1f65c4405241abb90b3a3777e6116d0fcf5d9663f219f472ab",
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
           sourcePath: "assets/authoring/level/chunks/forest/forest_rocky_grove_normal_003.json#direct=ground_001",
@@ -61370,19 +62446,42 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           sourceVertices: <StagedTerrainPoint>[
             StagedTerrainPoint(976, 448),
-            StagedTerrainPoint(1200, 448),
-            StagedTerrainPoint(1200, 540),
+            StagedTerrainPoint(1160, 448),
+            StagedTerrainPoint(1160, 540),
             StagedTerrainPoint(976, 540),
           ],
           vertices: <StagedTerrainPoint>[
             StagedTerrainPoint(499712, 229376),
-            StagedTerrainPoint(614400, 229376),
-            StagedTerrainPoint(614400, 276480),
+            StagedTerrainPoint(593920, 229376),
+            StagedTerrainPoint(593920, 276480),
             StagedTerrainPoint(499712, 276480),
           ],
           collisionMode: StagedTerrainCollisionMode.none,
           surfaceKind: "ground",
           materialKey: "dirt_hole",
+        ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_rocky_grove_normal_003.json#direct=solid_002",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_rocky_grove_normal_003",
+            placementKey: null,
+            shapeId: "solid_002",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(1160, 448),
+            StagedTerrainPoint(1200, 448),
+            StagedTerrainPoint(1200, 540),
+            StagedTerrainPoint(1160, 540),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(593920, 229376),
+            StagedTerrainPoint(614400, 229376),
+            StagedTerrainPoint(614400, 276480),
+            StagedTerrainPoint(593920, 276480),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
         ),
         StagedTerrainPolygonData(
           sourcePath: "assets/authoring/level/chunks/forest/forest_rocky_grove_normal_003.json#placement=pixel_fantasy_caves_rock_02|189|141|0#prefab=pixel_fantasy_caves_rock_02#shape=collision_001",
@@ -61664,6 +62763,158 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               chunkKey: "forest_rocky_grove_normal_003",
               placementKey: null,
               shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(593920, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(593920, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(593920, 276480),
+          end: StagedTerrainPoint(593920, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
@@ -62585,6 +63836,158 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
         ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(593920, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(614400, 276480),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(614400, 276480),
+          end: StagedTerrainPoint(593920, 276480),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(593920, 276480),
+          end: StagedTerrainPoint(593920, 229376),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_rocky_grove_normal_003",
+              placementKey: null,
+              shapeId: "solid_002",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
       ],
       triangles: <StagedTerrainTriangleData>[
         StagedTerrainTriangleData(
@@ -62642,6 +64045,26 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             chunkKey: "forest_rocky_grove_normal_003",
             placementKey: null,
             shapeId: "solid_001",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_rocky_grove_normal_003",
+            placementKey: null,
+            shapeId: "solid_002",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_rocky_grove_normal_003",
+            placementKey: null,
+            shapeId: "solid_002",
           ),
           first: 3,
           second: 0,
@@ -128585,7 +130008,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "forest_trainingcamp_normal_004",
       id: "forest_trainingcamp_normal_004",
-      revision: 84,
+      revision: 85,
       status: "active",
       levelId: "forest",
       tileSize: 16,
@@ -128593,11 +130016,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "normal",
       assemblyGroupId: "trainingcamp",
-      authoringPolygonSignature: "fcbb2a3ed3c580e2f24097752cdd54e7f098e07a3be2eb06db82cf7f438fcef2",
-      sourceSignature: "0193dea3f76626ddd3e5b8168964567d48f97e84f04fdd664cf4b25fa774ca9c",
-      edgeSignature: "b197889ca882e0ad999e58a6962e329be157c3ca61ad81397e7689285af3e907",
+      authoringPolygonSignature: "ca39ad2df0d4d6be4554642374395aa7e845387bf3e117dcef5e9cc2711618a4",
+      sourceSignature: "18c3bc6893ff56b3a1638aebf207896e5322ea038521cda03d727c42ac75395c",
+      edgeSignature: "9ba4e6375f13f953e6abea80ea953a47e05747d5a5a49da143f0f639b130fc6e",
       renderEdgeSignature: "55fa4c23155a32d17c872ab8cbdba51fae81915e242c8782d1e4a23fd3620476",
-      placementSignature: "6a743bbf02df4fda7d45fce27fe6ed9ce697bb3b639ab050879111b0bcc312ec",
+      placementSignature: "f43772e2c69d7cf569256bcbff5bad2b14a77fad6d232e74d595b109099d2e46",
       triangleSignature: "fad25f3c8c824186a178ecac2c45be5e29a35918cf9fd38b4e0dce7ebd99b166",
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
@@ -128776,10 +130199,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_normal_004.json#placement=rune_rocks_mossy_rock_04|28|210|0#prefab=rune_rocks_mossy_rock_04#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_normal_004.json#placement=rune_rocks_mossy_rock_04|88|210|0#prefab=rune_rocks_mossy_rock_04#shape=collision_001",
           id: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_normal_004",
-            placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+            placementKey: "rune_rocks_mossy_rock_04|88|210|0",
             shapeId: "collision_001",
           ),
           sourceVertices: <StagedTerrainPoint>[
@@ -128797,28 +130220,28 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             StagedTerrainPoint(28, 32),
           ],
           vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(13312, 230400),
-            StagedTerrainPoint(14336, 220160),
-            StagedTerrainPoint(14336, 209920),
-            StagedTerrainPoint(17408, 205824),
-            StagedTerrainPoint(18432, 201728),
-            StagedTerrainPoint(23552, 201728),
-            StagedTerrainPoint(37888, 217088),
-            StagedTerrainPoint(43008, 221184),
-            StagedTerrainPoint(44032, 228352),
-            StagedTerrainPoint(41984, 230400),
-            StagedTerrainPoint(39936, 231424),
-            StagedTerrainPoint(14336, 231424),
+            StagedTerrainPoint(74752, 230400),
+            StagedTerrainPoint(75776, 220160),
+            StagedTerrainPoint(75776, 209920),
+            StagedTerrainPoint(78848, 205824),
+            StagedTerrainPoint(79872, 201728),
+            StagedTerrainPoint(84992, 201728),
+            StagedTerrainPoint(99328, 217088),
+            StagedTerrainPoint(104448, 221184),
+            StagedTerrainPoint(105472, 228352),
+            StagedTerrainPoint(103424, 230400),
+            StagedTerrainPoint(101376, 231424),
+            StagedTerrainPoint(75776, 231424),
           ],
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_normal_004.json#placement=rune_rocks_mossy_rock_06|51|202|0#prefab=rune_rocks_mossy_rock_06#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_normal_004.json#placement=rune_rocks_mossy_rock_06|111|202|0#prefab=rune_rocks_mossy_rock_06#shape=collision_001",
           id: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_normal_004",
-            placementKey: "rune_rocks_mossy_rock_06|51|202|0",
+            placementKey: "rune_rocks_mossy_rock_06|111|202|0",
             shapeId: "collision_001",
           ),
           sourceVertices: <StagedTerrainPoint>[
@@ -128840,22 +130263,22 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             StagedTerrainPoint(-40, 30),
           ],
           vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(31744, 214016),
-            StagedTerrainPoint(35840, 204800),
-            StagedTerrainPoint(37888, 198656),
-            StagedTerrainPoint(43008, 192512),
-            StagedTerrainPoint(44032, 188416),
-            StagedTerrainPoint(48128, 184320),
-            StagedTerrainPoint(56320, 184320),
-            StagedTerrainPoint(58368, 187392),
-            StagedTerrainPoint(63488, 191488),
-            StagedTerrainPoint(73728, 201728),
-            StagedTerrainPoint(73728, 205824),
-            StagedTerrainPoint(76800, 215040),
-            StagedTerrainPoint(75776, 228352),
-            StagedTerrainPoint(71680, 231424),
-            StagedTerrainPoint(39936, 231424),
-            StagedTerrainPoint(31744, 222208),
+            StagedTerrainPoint(93184, 214016),
+            StagedTerrainPoint(97280, 204800),
+            StagedTerrainPoint(99328, 198656),
+            StagedTerrainPoint(104448, 192512),
+            StagedTerrainPoint(105472, 188416),
+            StagedTerrainPoint(109568, 184320),
+            StagedTerrainPoint(117760, 184320),
+            StagedTerrainPoint(119808, 187392),
+            StagedTerrainPoint(124928, 191488),
+            StagedTerrainPoint(135168, 201728),
+            StagedTerrainPoint(135168, 205824),
+            StagedTerrainPoint(138240, 215040),
+            StagedTerrainPoint(137216, 228352),
+            StagedTerrainPoint(133120, 231424),
+            StagedTerrainPoint(101376, 231424),
+            StagedTerrainPoint(93184, 222208),
           ],
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
@@ -129140,7 +130563,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(0, 229376),
-          end: StagedTerrainPoint(13414, 229376),
+          end: StagedTerrainPoint(74854, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -129158,7 +130581,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -129174,48 +130597,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               placementKey: null,
               shapeId: "solid_002",
             ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 4,
-          ),
-          start: StagedTerrainPoint(74411, 229376),
-          end: StagedTerrainPoint(79872, 229376),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: "ground",
-          materialKey: "grass_dirt",
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
             localEdgeIndex: 1,
-            subEdgeIndex: 0,
+            subEdgeIndex: 1,
           ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: null,
-              shapeId: "solid_002",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(79872, 229376),
+          start: StagedTerrainPoint(79872, 231424),
           end: StagedTerrainPoint(79872, 276480),
           tangent: StagedTerrainPoint(0, 1024),
           outwardNormal: StagedTerrainPoint(1024, 0),
@@ -129225,11 +130610,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: null,
-              shapeId: "solid_002",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
+              shapeId: "collision_001",
             ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 4,
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -129267,7 +130652,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "solid_002",
             ),
             localEdgeIndex: 1,
-            subEdgeIndex: 0,
+            subEdgeIndex: 1,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -130653,14 +132038,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 1,
           ),
-          start: StagedTerrainPoint(13414, 229376),
-          end: StagedTerrainPoint(14336, 220160),
+          start: StagedTerrainPoint(74854, 229376),
+          end: StagedTerrainPoint(75776, 220160),
           tangent: StagedTerrainPoint(102, -1019),
           outwardNormal: StagedTerrainPoint(-1019, -102),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -130678,7 +132063,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -130691,14 +132076,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(14336, 220160),
-          end: StagedTerrainPoint(14336, 209920),
+          start: StagedTerrainPoint(75776, 220160),
+          end: StagedTerrainPoint(75776, 209920),
           tangent: StagedTerrainPoint(0, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -130707,7 +132092,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -130716,7 +132101,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -130729,14 +132114,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(14336, 209920),
-          end: StagedTerrainPoint(17408, 205824),
+          start: StagedTerrainPoint(75776, 209920),
+          end: StagedTerrainPoint(78848, 205824),
           tangent: StagedTerrainPoint(614, -819),
           outwardNormal: StagedTerrainPoint(-819, -614),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -130745,7 +132130,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -130754,7 +132139,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -130767,14 +132152,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(17408, 205824),
-          end: StagedTerrainPoint(18432, 201728),
+          start: StagedTerrainPoint(78848, 205824),
+          end: StagedTerrainPoint(79872, 201728),
           tangent: StagedTerrainPoint(248, -993),
           outwardNormal: StagedTerrainPoint(-993, -248),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -130783,7 +132168,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -130792,7 +132177,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -130805,14 +132190,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(18432, 201728),
-          end: StagedTerrainPoint(23552, 201728),
+          start: StagedTerrainPoint(79872, 201728),
+          end: StagedTerrainPoint(84992, 201728),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -130821,7 +132206,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -130830,7 +132215,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -130843,14 +132228,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(23552, 201728),
-          end: StagedTerrainPoint(32801, 211638),
+          start: StagedTerrainPoint(84992, 201728),
+          end: StagedTerrainPoint(94241, 211638),
           tangent: StagedTerrainPoint(699, 749),
           outwardNormal: StagedTerrainPoint(749, -699),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -130859,7 +132244,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -130868,7 +132253,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -130881,482 +132266,26 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 1,
-          ),
-          start: StagedTerrainPoint(32801, 211638),
-          end: StagedTerrainPoint(35840, 204800),
-          tangent: StagedTerrainPoint(416, -936),
-          outwardNormal: StagedTerrainPoint(-936, -416),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_04|28|210|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(35840, 204800),
-          end: StagedTerrainPoint(37888, 198656),
-          tangent: StagedTerrainPoint(324, -971),
-          outwardNormal: StagedTerrainPoint(-971, -324),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 0,
-            subEdgeIndex: 1,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(37888, 198656),
-          end: StagedTerrainPoint(43008, 192512),
-          tangent: StagedTerrainPoint(656, -787),
-          outwardNormal: StagedTerrainPoint(-787, -656),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 1,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(43008, 192512),
-          end: StagedTerrainPoint(44032, 188416),
-          tangent: StagedTerrainPoint(248, -993),
-          outwardNormal: StagedTerrainPoint(-993, -248),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 2,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(44032, 188416),
-          end: StagedTerrainPoint(48128, 184320),
-          tangent: StagedTerrainPoint(724, -724),
-          outwardNormal: StagedTerrainPoint(-724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 3,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(48128, 184320),
-          end: StagedTerrainPoint(56320, 184320),
-          tangent: StagedTerrainPoint(1024, 0),
-          outwardNormal: StagedTerrainPoint(0, -1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 4,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(56320, 184320),
-          end: StagedTerrainPoint(58368, 187392),
-          tangent: StagedTerrainPoint(568, 852),
-          outwardNormal: StagedTerrainPoint(852, -568),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 5,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(58368, 187392),
-          end: StagedTerrainPoint(63488, 191488),
-          tangent: StagedTerrainPoint(800, 640),
-          outwardNormal: StagedTerrainPoint(640, -800),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 6,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(63488, 191488),
-          end: StagedTerrainPoint(73728, 201728),
-          tangent: StagedTerrainPoint(724, 724),
-          outwardNormal: StagedTerrainPoint(724, -724),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 7,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(73728, 201728),
-          end: StagedTerrainPoint(73728, 205824),
-          tangent: StagedTerrainPoint(0, 1024),
-          outwardNormal: StagedTerrainPoint(1024, 0),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 8,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
             subEdgeIndex: 0,
           ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(73728, 205824),
-          end: StagedTerrainPoint(76800, 215040),
-          tangent: StagedTerrainPoint(324, 971),
-          outwardNormal: StagedTerrainPoint(971, -324),
+          start: StagedTerrainPoint(101376, 231424),
+          end: StagedTerrainPoint(79872, 231424),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
           materialKey: null,
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
               shapeId: "collision_001",
             ),
-            localEdgeIndex: 9,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(76800, 215040),
-          end: StagedTerrainPoint(75776, 228352),
-          tangent: StagedTerrainPoint(-79, 1021),
-          outwardNormal: StagedTerrainPoint(1021, 79),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 10,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 12,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(75776, 228352),
-          end: StagedTerrainPoint(74411, 229376),
-          tangent: StagedTerrainPoint(-819, 614),
-          outwardNormal: StagedTerrainPoint(614, 819),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_normal_004",
-              placementKey: "rune_rocks_mossy_rock_06|51|202|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 11,
+            localEdgeIndex: 13,
             subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
@@ -131365,11 +132294,543 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               placementKey: null,
               shapeId: "solid_002",
             ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 1,
+          ),
+          startJoin: StagedTerrainVertexJoin.smooth,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
             localEdgeIndex: 0,
-            subEdgeIndex: 4,
+            subEdgeIndex: 1,
+          ),
+          start: StagedTerrainPoint(94241, 211638),
+          end: StagedTerrainPoint(97280, 204800),
+          tangent: StagedTerrainPoint(416, -936),
+          outwardNormal: StagedTerrainPoint(-936, -416),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(97280, 204800),
+          end: StagedTerrainPoint(99328, 198656),
+          tangent: StagedTerrainPoint(324, -971),
+          outwardNormal: StagedTerrainPoint(-971, -324),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 1,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(99328, 198656),
+          end: StagedTerrainPoint(104448, 192512),
+          tangent: StagedTerrainPoint(656, -787),
+          outwardNormal: StagedTerrainPoint(-787, -656),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(104448, 192512),
+          end: StagedTerrainPoint(105472, 188416),
+          tangent: StagedTerrainPoint(248, -993),
+          outwardNormal: StagedTerrainPoint(-993, -248),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 2,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(105472, 188416),
+          end: StagedTerrainPoint(109568, 184320),
+          tangent: StagedTerrainPoint(724, -724),
+          outwardNormal: StagedTerrainPoint(-724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(109568, 184320),
+          end: StagedTerrainPoint(117760, 184320),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 4,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(117760, 184320),
+          end: StagedTerrainPoint(119808, 187392),
+          tangent: StagedTerrainPoint(568, 852),
+          outwardNormal: StagedTerrainPoint(852, -568),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 5,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(119808, 187392),
+          end: StagedTerrainPoint(124928, 191488),
+          tangent: StagedTerrainPoint(800, 640),
+          outwardNormal: StagedTerrainPoint(640, -800),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 6,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(124928, 191488),
+          end: StagedTerrainPoint(135168, 201728),
+          tangent: StagedTerrainPoint(724, 724),
+          outwardNormal: StagedTerrainPoint(724, -724),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 7,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(135168, 201728),
+          end: StagedTerrainPoint(135168, 205824),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 8,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(135168, 205824),
+          end: StagedTerrainPoint(138240, 215040),
+          tangent: StagedTerrainPoint(324, 971),
+          outwardNormal: StagedTerrainPoint(971, -324),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 9,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(138240, 215040),
+          end: StagedTerrainPoint(137216, 228352),
+          tangent: StagedTerrainPoint(-79, 1021),
+          outwardNormal: StagedTerrainPoint(1021, 79),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(137216, 228352),
+          end: StagedTerrainPoint(133120, 231424),
+          tangent: StagedTerrainPoint(-819, 614),
+          outwardNormal: StagedTerrainPoint(614, 819),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 11,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 13,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 13,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(133120, 231424),
+          end: StagedTerrainPoint(101376, 231424),
+          tangent: StagedTerrainPoint(-1024, 0),
+          outwardNormal: StagedTerrainPoint(0, 1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: null,
+          materialKey: null,
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_06|111|202|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 12,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_normal_004",
+              placementKey: "rune_rocks_mossy_rock_04|88|210|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 10,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.smooth,
         ),
       ],
       renderEdges: <StagedTerrainEdgeData>[
@@ -131822,13 +133283,13 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_normal_004",
-            placementKey: "rune_rocks_mossy_rock_04|28|210|0",
+            placementKey: "rune_rocks_mossy_rock_04|88|210|0",
             shapeId: "collision_001",
           ),
           prefabKey: "rune_rocks_mossy_rock_04",
           prefabId: "rune_rocks_mossy_rock_04",
           prefabRevision: 2,
-          placementX: 28,
+          placementX: 88,
           placementY: 210,
           scaleTenths: 10,
           flipX: true,
@@ -131837,13 +133298,13 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_normal_004",
-            placementKey: "rune_rocks_mossy_rock_06|51|202|0",
+            placementKey: "rune_rocks_mossy_rock_06|111|202|0",
             shapeId: "collision_001",
           ),
           prefabKey: "rune_rocks_mossy_rock_06",
           prefabId: "rune_rocks_mossy_rock_06",
           prefabRevision: 3,
-          placementX: 51,
+          placementX: 111,
           placementY: 202,
           scaleTenths: 10,
           flipX: false,

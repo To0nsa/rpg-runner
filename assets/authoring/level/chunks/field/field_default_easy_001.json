@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_default_easy_001",
   "id": "field_default_easy_001",
-  "revision": 23,
+  "revision": 25,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -13,14 +13,6 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [
-    {
-      "prefabId": "tiny_swords_scarecrow_01",
-      "prefabKey": "tiny_swords_scarecrow_01",
-      "x": 390,
-      "y": 176,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
     {
       "prefabId": "fantasy_environment_wheat_01",
       "prefabKey": "fantasy_environment_wheat_01",
@@ -43,6 +35,14 @@
       "x": 415,
       "y": 211,
       "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_scarecrow_01",
+      "prefabKey": "tiny_swords_scarecrow_01",
+      "x": 388,
+      "y": 181,
+      "zIndex": 21,
       "snapToGrid": false
     }
   ],

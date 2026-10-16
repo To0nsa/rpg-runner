@@ -97,6 +97,20 @@ chunks after Goddess. This becomes the repeating final section: subsequent
 section occurrences select the nine grove layouts again, instead of repeating
 the Goddess arena. Earlier sections, boss milestones and scoring are unchanged.
 
+Forest revision 496 fixes the opening to all 11 distinct default early chunks,
+then adds one early enchanted-forest chunk. Rocky Grove sections on the first
+route now choose 3–6 distinct chunks each; the normal ruin section uses four
+chunks. Bringer of Death moves immediately before the easy enchanted forest,
+and the enchanted-forest chunks also appear during the normal phase and after
+the hard Goddess arena. The normal enchanted-forest chunk carries the rescue
+encounter, while the hard chunk carries ambient enemies. The early and easy
+enchanted-forest chunks have separate water-gap layouts. Field chunks and
+Forest grove scenery also receive authored adjustments. Menhir 06 gains solid
+collision, the scarecrow collision outline is revised, and the normal training
+camp's entry rocks move deeper into the chunk to preserve Grojib's approach.
+These authored changes affect traversal and replay outcomes; source and
+generated content must ship together.
+
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.

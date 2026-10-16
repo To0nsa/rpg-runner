@@ -13030,7 +13030,7 @@
     {
       "prefabKey": "rune_rocks_menhir_06",
       "id": "rune_rocks_menhir_06",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -13039,7 +13039,98 @@
       },
       "anchorXPx": 32,
       "anchorYPx": 24,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -26,
+              "y": -2
+            },
+            {
+              "x": -25,
+              "y": -8
+            },
+            {
+              "x": -21,
+              "y": -15
+            },
+            {
+              "x": -4,
+              "y": -15
+            },
+            {
+              "x": -3,
+              "y": -17
+            },
+            {
+              "x": 2,
+              "y": -19
+            },
+            {
+              "x": 16,
+              "y": -19
+            },
+            {
+              "x": 18,
+              "y": -17
+            },
+            {
+              "x": 21,
+              "y": -17
+            },
+            {
+              "x": 26,
+              "y": -14
+            },
+            {
+              "x": 26,
+              "y": -1
+            },
+            {
+              "x": 23,
+              "y": 2
+            },
+            {
+              "x": 23,
+              "y": 4
+            },
+            {
+              "x": 19,
+              "y": 8
+            },
+            {
+              "x": 19,
+              "y": 14
+            },
+            {
+              "x": 23,
+              "y": 18
+            },
+            {
+              "x": 23,
+              "y": 22
+            },
+            {
+              "x": 21,
+              "y": 24
+            },
+            {
+              "x": -24,
+              "y": 24
+            },
+            {
+              "x": -26,
+              "y": 22
+            },
+            {
+              "x": -25,
+              "y": 9
+            }
+          ]
+        }
+      ],
       "tags": [
         "props",
         "rune_rocks"
@@ -17967,7 +18058,7 @@
     {
       "prefabKey": "tiny_swords_scarecrow_01",
       "id": "tiny_swords_scarecrow_01",
-      "revision": 2,
+      "revision": 15,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -18034,48 +18125,16 @@
               "y": 2
             },
             {
-              "x": 10,
-              "y": 0
-            },
-            {
-              "x": 10,
-              "y": 32
-            },
-            {
-              "x": 9,
-              "y": 29
-            },
-            {
-              "x": 5,
-              "y": 33
-            },
-            {
-              "x": 3,
+              "x": 25,
               "y": 48
             },
             {
-              "x": -2,
+              "x": -26,
               "y": 48
-            },
-            {
-              "x": -5,
-              "y": 31
-            },
-            {
-              "x": -10,
-              "y": 33
-            },
-            {
-              "x": -10,
-              "y": 0
             },
             {
               "x": -26,
               "y": 2
-            },
-            {
-              "x": -25,
-              "y": -2
             }
           ]
         }
