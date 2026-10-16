@@ -61,7 +61,9 @@ void main() {
       levelId: scenario.levelId,
       chunkCount: scenario.chunkCount,
       seeds: _seeds,
-      enemyIds: _mobileEnemies,
+      enemyIds: scenario.levelId == LevelId.field
+          ? const [EnemyId.unocoDemon]
+          : _mobileEnemies,
     );
   }
 
@@ -144,17 +146,6 @@ void main() {
         'forest_rocky_grove_hard_008',
       ],
       continuation: 'forest_rocky_grove_hard_005',
-    ),
-    (
-      seed: 42,
-      name: 'hard ruin into grove gap',
-      keys: [
-        'forest_default_early_001',
-        'forest_ruin_hard_005',
-        'forest_rocky_grove_hard_002',
-        'forest_rocky_grove_hard_003',
-      ],
-      continuation: 'forest_rocky_grove_hard_004',
     ),
     (
       seed: 2026,

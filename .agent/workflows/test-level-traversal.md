@@ -42,20 +42,24 @@ evidence is useful. Do not check transient logs into source control.
 
 The matrix in
 [`level_enemy_traversal_test.dart`](../../packages/runner_core/test/navigation/level_enemy_traversal_test.dart)
-declares each compiled level, seeds `7`, `42`, `2026`, and Grojib, Hashash, Derf, Unoco.
+declares each compiled level and seeds `7`, `42`, `2026`. Forest covers Grojib,
+Hashash, Derf and Unoco; Field covers Unoco.
 A coverage assertion fails when a compiled level lacks an explicit scenario.
 
 | Level | Tested route |
 | --- | --- |
 | Forest | One complete authored assembly, excluding the repeating final section |
-| Field | First 32 production-selected chunks |
+| Field | First 32 production-selected chunks for Unoco |
 
-The retired `new_level` identity is excluded from the build. This is 24 seeded
+The retired `new_level` identity is excluded from the build. This is 15 seeded
 pursuit cases. Four flat controls check the harness, and
 negative controls verify blocked finishes, stall, kill-plane, and total-budget
 failures. Derf traversal starts already transformed, preserving continuous
 movement and actual catalog limits; separate tests cover the caster phase,
 first visibility, transformation and combat.
+Field ground-enemy pursuit and the exact hard ruin-to-grove-gap route through
+`forest_rocky_grove_hard_002` are excluded from this matrix. These routes are
+not established as traversable by the remaining checks.
 
 Bringer of Death is confined to its authored arena and is excluded from route-wide
 pursuit. `packages/runner_core/test/bosses/boss_arena_test.dart` exercises its
