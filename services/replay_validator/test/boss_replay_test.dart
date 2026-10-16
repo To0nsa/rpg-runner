@@ -39,14 +39,15 @@ GameCore _core(
     ),
     noEnemyChunks: 0,
     earlyPatternChunks: 0,
+    easyPatternChunks: 10,
+    normalPatternChunks: 0,
     clearAssembly: true,
     clearFirstChunkKey: true,
     chunkPatternSource: ChunkPatternListSource(
-      easyPatterns: [],
-      normalPatterns: [
+      easyPatterns: [
         ChunkPattern(
-          name: 'field_default_normal_001',
-          chunkKey: 'field_default_normal_001',
+          name: 'field_default_easy_004',
+          chunkKey: 'field_default_easy_004',
           bossArena: BossArenaDefinition(
             id: 'replay_boss',
             enemyId: bossId,
@@ -169,8 +170,8 @@ void main() {
       test(
         '$bossId flies after a real jump and hovers in recovery in replay, $hz Hz',
         () {
-          final direct = _core(hz, bossId: bossId);
-          final replay = _core(hz, bossId: bossId);
+          final direct = _core(hz, bossId: bossId, playerStartX: 380);
+          final replay = _core(hz, bossId: bossId, playerStartX: 380);
           final frames = <ReplayCommandFrameV1>[];
           int? comboTick;
           double? floorY;
@@ -272,8 +273,8 @@ void main() {
       );
     }
     test('Shoggoth follows during melee strikes and replays at $hz Hz', () {
-      final direct = _core(hz, bossId: EnemyId.shoggoth);
-      final replay = _core(hz, bossId: EnemyId.shoggoth);
+      final direct = _core(hz, bossId: EnemyId.shoggoth, playerStartX: 380);
+      final replay = _core(hz, bossId: EnemyId.shoggoth, playerStartX: 380);
       final frames = <ReplayCommandFrameV1>[];
       int? sweepTick;
       var activeTravel = 0.0;

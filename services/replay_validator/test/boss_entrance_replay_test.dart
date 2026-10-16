@@ -80,14 +80,15 @@ GameCore _core(int hz) {
       ),
       noEnemyChunks: 0,
       earlyPatternChunks: 0,
+      easyPatternChunks: 10,
+      normalPatternChunks: 0,
       clearAssembly: true,
       clearFirstChunkKey: true,
       chunkPatternSource: ChunkPatternListSource(
-        easyPatterns: const [],
-        normalPatterns: [
+        easyPatterns: [
           ChunkPattern(
-            name: 'field_default_normal_001',
-            chunkKey: 'field_default_normal_001',
+            name: 'field_default_easy_004',
+            chunkKey: 'field_default_easy_004',
             bossArena: BossArenaDefinition(
               id: 'replay_entrance',
               enemyId: EnemyId.bringerOfDeath,
