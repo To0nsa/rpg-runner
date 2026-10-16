@@ -26,22 +26,22 @@ class CodexEntryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = context.watch<AppState>().progression.codex;
+    final progress = context.watch<AppState>().progression;
     final enemy = enemyId == null
         ? null
         : CodexCatalog.parentBoss(enemyId!) ?? enemyId;
     final title = enemy?.displayName ?? CodexCatalog.levelName(levelId!);
     final unlocked = enemy != null
-        ? CodexCatalog.enemyUnlocked(progress, enemy)
-        : CodexCatalog.levelUnlocked(progress, levelId!);
+        ? CodexCatalog.enemyUnlocked(progress.enemyDefeats, enemy)
+        : CodexCatalog.levelUnlocked(progress.codex, levelId!);
     final current = enemy != null
-        ? progress.enemyKills[enemy.name] ?? 0
-        : progress.competitiveBestScores[levelId!.name] ?? 0;
+        ? progress.enemyDefeats.byEnemy[enemy.name] ?? 0
+        : progress.codex.competitiveBestScores[levelId!.name] ?? 0;
     final target = enemy != null
         ? CodexCatalog.killsRequired(enemy)
         : CodexCatalog.levelScoreRequirements[levelId]!;
     return MenuScaffold(
-      title: title,
+      title: unlocked || enemy == null ? title : 'Bestiary',
       background: ColoredBox(color: context.ui.colors.background),
       child: SafeArea(
         top: false,
@@ -68,12 +68,12 @@ class CodexEntryPage extends StatelessWidget {
               )
             : CodexReadingView(
                 title: 'Entry locked',
-                subtitle: title,
+                subtitle: enemy == null ? title : 'Bestiary',
                 paragraphs: [
                   enemy != null
-                      ? 'Defeat $title ${codexNumber(target)} times to reveal its attacks, resistances and field notes.'
-                      : 'Reach ${codexNumber(target)} points in one Competitive run on $title to reveal its history and context.',
-                  '${codexNumber(current)} / ${codexNumber(target)} ${enemy != null ? 'defeated' : 'best Competitive score'}. Progress is saved after run validation.',
+                      ? 'Defeat ${codexNumber(target)} to reveal its attacks, resistances and field notes.'
+                      : 'Reach ${codexNumber(target)} points in one Competitive run on $title to reveal its history.',
+                  '${codexNumber(current)} / ${codexNumber(target)} ${enemy != null ? 'defeated' : 'best Competitive score'}.',
                 ],
               ),
       ),

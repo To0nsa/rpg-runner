@@ -1,51 +1,52 @@
-/// Account-wide progress read from canonical ownership after run settlement.
-/// Maps use stable catalog names and are detached from decoded JSON.
+/// Validated Competitive best scores used by Library location entries.
 class CodexProgress {
-  const CodexProgress._(this.enemyKills, this.competitiveBestScores);
+  const CodexProgress._(this.competitiveBestScores);
 
-  factory CodexProgress({
-    Map<String, int> enemyKills = const {},
-    Map<String, int> competitiveBestScores = const {},
-  }) => CodexProgress._(
-    Map.unmodifiable(enemyKills),
-    Map.unmodifiable(competitiveBestScores),
-  );
+  factory CodexProgress({Map<String, int> competitiveBestScores = const {}}) =>
+      CodexProgress._(Map.unmodifiable(competitiveBestScores));
 
-  static const empty = CodexProgress._({}, {});
-  final Map<String, int> enemyKills;
+  static const empty = CodexProgress._({});
   final Map<String, int> competitiveBestScores;
 
   factory CodexProgress.fromJson(Object? raw) {
     if (raw == null) return empty;
-    if (raw is! Map || raw['schemaVersion'] != 1) {
+    if (raw is! Map ||
+        (raw['schemaVersion'] != 1 && raw['schemaVersion'] != 2)) {
       throw const FormatException('Unsupported Codex progression.');
     }
+    if (raw['schemaVersion'] == 1) legacyKillsFromJson(raw);
     return CodexProgress(
-      enemyKills: _counts(raw['enemyKills']),
       competitiveBestScores: _counts(raw['competitiveBestScores']),
     );
   }
 
+  /// Reads an old kill map for projection until settlement moves it.
+  static Map<String, int> legacyKillsFromJson(Object? raw) {
+    if (raw is! Map || raw['schemaVersion'] != 1) return const {};
+    return _counts(raw['enemyKills']);
+  }
+
   Map<String, Object?> toJson() => {
-    'schemaVersion': 1,
-    'enemyKills': Map<String, int>.of(enemyKills),
+    'schemaVersion': 2,
     'competitiveBestScores': Map<String, int>.of(competitiveBestScores),
   };
 
   static Map<String, int> _counts(Object? raw) {
-    if (raw is! Map) throw const FormatException('Invalid Codex counts.');
+    if (raw is! Map || raw.length > 64) {
+      throw const FormatException('Invalid Codex counts.');
+    }
     final result = <String, int>{};
+    final idPattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]{0,63}$');
     for (final entry in raw.entries) {
       final value = entry.value;
       if (entry.key is! String ||
-          value is! num ||
-          !value.isFinite ||
+          !idPattern.hasMatch(entry.key as String) ||
+          value is! int ||
           value < 0 ||
-          value > 9007199254740991 ||
-          value != value.roundToDouble()) {
+          value > 9007199254740991) {
         throw const FormatException('Invalid Codex count.');
       }
-      result[entry.key as String] = value.toInt();
+      result[entry.key as String] = value;
     }
     return result;
   }

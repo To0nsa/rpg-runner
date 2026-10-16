@@ -7,6 +7,7 @@ import 'package:runner_core/levels/level_id.dart';
 
 import '../levels/level_id_ui.dart';
 import '../state/ownership/codex_progress.dart';
+import '../state/ownership/enemy_defeats.dart';
 
 /// Presentation and discovery policy; combat values stay in Core's catalogs.
 abstract final class CodexCatalog {
@@ -33,9 +34,8 @@ abstract final class CodexCatalog {
 
   static int killsRequired(EnemyId id) =>
       (parentBoss(id) ?? id).isBoss ? bossKills : regularEnemyKills;
-  static bool enemyUnlocked(CodexProgress progress, EnemyId id) =>
-      (progress.enemyKills[(parentBoss(id) ?? id).name] ?? 0) >=
-      killsRequired(id);
+  static bool enemyUnlocked(EnemyDefeats defeats, EnemyId id) =>
+      (defeats.byEnemy[(parentBoss(id) ?? id).name] ?? 0) >= killsRequired(id);
   static bool levelUnlocked(CodexProgress progress, LevelId id) =>
       levelScoreRequirements.containsKey(id) &&
       (progress.competitiveBestScores[id.name] ?? 0) >=
@@ -114,7 +114,7 @@ abstract final class CodexCatalog {
   };
 
   static String enemyTactics(EnemyId id) => switch (id) {
-    EnemyId.grojib => 'A ground pursuer with a follow-up melee strike. Leave room for the second swing.',
+    EnemyId.grojib => 'A ground pursuer with a follow-up melee strike that can stun on hit. Leave room for the second swing.',
     EnemyId.hashash => 'A mobile assassin with a teleporting ambush. Watch for its return before committing.',
     EnemyId.derf => 'Transforms from a caster into a melee pursuer. Its extended tentacle gives the strike unusual reach.',
     EnemyId.unocoDemon => 'A flying caster that can also strike at close range. Keep moving while its projectile is aimed.',

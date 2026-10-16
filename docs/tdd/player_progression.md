@@ -1,0 +1,73 @@
+# Player progression and combat statistics
+
+## Authority and data flow
+
+Core records actual HP lost in `DamageSystem`'s post-mitigation callback.
+`GameCore` adds it to `RunEndStats.damageDealt100` only when the target is an
+enemy and `DamageCredit.player` owns the hit, or to `damageTaken100` when the
+target is the player. Both fields use integer hundredths of HP. They do not
+affect gameplay or score calculation.
+
+The validator replays Core and includes a typed `ValidatedRun.playerRunStats`
+payload with schema version 1 and both damage counts. This optional
+`PlayerRunStats` contract rejects negative, fractional or non-JavaScript-safe
+values; rejected runs cannot carry it. Old accepted results without it retain
+their reward behavior and earn no XP, run count or damage totals. Existing
+`ValidatedRun.codex` evidence still updates shared enemy defeats.
+
+`settleAcceptedRunSession` reads the validator-owned score and stat evidence
+inside its existing Firestore transaction. The canonical
+`ownership_profiles.progression.playerProgress` subtree contains:
+
+```json
+{
+  "schemaVersion": 1,
+  "totalXp": 225,
+  "acceptedRuns": 3,
+  "runsByLevel": {"forest": {"practice": 1, "competitive": 1, "weekly": 1}},
+  "damageDealt100": 12845,
+  "damageTaken100": 1078
+}
+```
+
+For each accepted result carrying version 1 player-stat evidence, settlement
+adds `floor(score / 100)` XP, one run and both damage totals. The
+`runsByLevel` map records the accepted run under its server-issued level and
+mode in the same transaction. Existing accounts with a version 1 total but no
+map retain the historical `acceptedRuns` total; those runs have no invented
+level or mode breakdown. The Profile derives its mode totals from the map.
+Its separate collapsed Runs by level section reads the same map, including
+Weekly counts, without persisting any second total.
+The separate
+`progression.enemyDefeats.byEnemy` map owns each enemy's lifetime defeat count.
+The existing `ValidatedRun.codex` field carries replay-derived per-enemy
+evidence for compatibility, while `progression.codex` version 2 keeps only
+Competitive best scores.
+All additions must remain non-negative JavaScript-safe integers. Malformed
+evidence aborts the whole transaction. Terminal run-session state fences
+duplicate deliveries; canonical revision advances once with the reward and
+progression write. Old Codex version 1 kills move once to the shared defeat map
+at the first settlement carrying discovery evidence; a present shared map takes
+precedence. The client projects old kills before settlement without storing a
+second copy.
+Missing player progression on an old account starts empty. Account deletion
+removes all progression with canonical ownership.
+
+## Client projection
+
+`ProgressionState.playerProgress` decodes the canonical subtree. The client
+derives level from lifetime XP using `100 + 25 × (L - 1)` XP for the next level;
+level is not stored separately. The existing final-reward canonical refresh
+updates both Profile and Hub. Library enemy gates read
+`ProgressionState.enemyDefeats.byEnemy`; Profile sums that map for total defeats.
+Neither the Library nor Profile stores a second kill count.
+Developer Practice shows no hub XP bar and cannot settle progress.
+
+## Compatibility and release
+
+This feature changes run-result evidence and account progression, not replay
+inputs, gameplay behavior or score rules. Deploy the Functions reader before
+the validator writer and release the client with the coordinated workflow.
+Historical accepted results are not backfilled. Focused checks cover Core
+damage accounting, protocol validation and legacy omission, validator output,
+atomic and duplicate settlement, XP thresholds and both UI surfaces.

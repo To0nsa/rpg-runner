@@ -109,6 +109,8 @@ void _runDeterminismScenario({
   expect(endA.stats.collectibles, endB.stats.collectibles);
   expect(endA.stats.collectibleScore, endB.stats.collectibleScore);
   expect(endA.stats.enemyKillCounts, endB.stats.enemyKillCounts);
+  expect(endA.stats.damageDealt100, endB.stats.damageDealt100);
+  expect(endA.stats.damageTaken100, endB.stats.damageTaken100);
   expect(endA.reason, endB.reason);
   expect(endA.goldEarned, endB.goldEarned);
   expect(endA.stats.rescuedNpcs, endB.stats.rescuedNpcs);

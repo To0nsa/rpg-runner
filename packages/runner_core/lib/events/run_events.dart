@@ -58,6 +58,8 @@ class RunEndStats {
     required this.collectibles,
     required this.collectibleScore,
     required this.enemyKillCounts,
+    this.damageDealt100 = 0,
+    this.damageTaken100 = 0,
     this.rescuedNpcs = 0,
     this.rescuePoints = 0,
     this.excludedScoreTicks = 0,
@@ -83,6 +85,12 @@ class RunEndStats {
   /// **Ordering**: Indices strictly align with [EnemyId.values].
   /// `enemyKillCounts[i]` corresponds to the kills for the enemy at `EnemyId.values[i]`.
   final List<int> enemyKillCounts;
+
+  /// Enemy HP removed by player-credited hits, in hundredths of HP.
+  final int damageDealt100;
+
+  /// Player HP removed by hits, in hundredths of HP. Ability costs are excluded.
+  final int damageTaken100;
 }
 
 /// Event emitted when the game session terminates.

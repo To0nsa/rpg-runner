@@ -2,7 +2,8 @@ import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
-import { applyCodexProgress } from "../ownership/codex_progress.js";
+import { applyRunDiscoveries } from "../ownership/run_discoveries.js";
+import { applyPlayerProgress } from "../ownership/player_progress.js";
 import {
   canonicalMergeWriteData,
   canonicalWriteData,
@@ -154,20 +155,25 @@ export async function settleAcceptedRunSession(args: {
         nowMs,
         settlementGrantId: args.runSessionId,
       });
-      const codexChanged = applyCodexProgress({
+      const discoveriesChanged = applyRunDiscoveries({
         progression: reconciled.canonicalState.progression,
         validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
         session,
       });
-      if (codexChanged && !reconciled.canonicalChanged) {
+      const playerChanged = applyPlayerProgress({
+        progression: reconciled.canonicalState.progression,
+        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+        session,
+      });
+      if ((discoveriesChanged || playerChanged) && !reconciled.canonicalChanged) {
         reconciled.canonicalState.revision += 1;
         reconciled.canonicalChanged = true;
       }
       if (resolvedCanonical.exists && reconciled.canonicalChanged) {
-        tx.set(
+        // Replace canonical object fields so migrated Codex kills disappear.
+        tx.update(
           resolvedCanonical.canonicalRef,
           canonicalMergeWriteData(uid, reconciled.canonicalState),
-          { merge: true },
         );
       } else if (!resolvedCanonical.exists) {
         tx.set(

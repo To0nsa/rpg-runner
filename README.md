@@ -44,6 +44,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
   discoveries after 10 kills (5 for bosses), level lore at 10,000 Competitive
   points per level, and Éloïse's opening journal; progress is replay-validated
   and saved to the account
+- [Player level and lifetime stats](docs/gdd/player_progression.md): validated
+  score grants XP, while one shared per-enemy defeat record serves Library
+  unlocks and Profile totals; Profile also shows runs and damage dealt/taken
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring

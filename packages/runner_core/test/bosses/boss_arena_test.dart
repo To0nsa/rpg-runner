@@ -691,6 +691,7 @@ void main() {
         core.giveUp();
         final end = core.drainEvents().whereType<RunEndedEvent>().single;
         expect(end.stats.enemyKillCounts[EnemyId.bringerOfDeath.index], 1);
+        expect(end.stats.damageDealt100, greaterThan(0));
       },
     );
   }

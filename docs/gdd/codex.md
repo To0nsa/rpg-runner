@@ -7,7 +7,7 @@ zoom and a small reset control remain. Service labels use Mist text and icons
 with dark shadows, without borders or backgrounds. There is no instruction
 footer or plus/minus zoom control. Indicator lines meet the beginning or end
 of each label, with a small gap and no crossing through the icon or name.
-The Store points to the market streets and the Library to the large
+Both service names and their white dot markers open their destinations. The Store points to the market streets and the Library to the large
 northeastern courtyard complex. These are game navigation placements. Back
 from either service returns to Town.
 
@@ -25,8 +25,9 @@ free to browse; discoveries cannot be purchased.
 | Field | Reach 10,000 in one Competitive run on Field | Open-land context and the journey |
 | Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
 
-Kills accumulate across confirmed Practice, Competitive and Weekly runs, on
-either character. Each enemy type has its own count. Bosses are Bringer of
+Defeats accumulate in the account's shared per-enemy record across confirmed
+Practice, Competitive and Weekly runs, on either character. Library discovery
+and Profile totals use that same record. Bosses are Bringer of
 Death, Voidborn Goddess, Shoggoth and Voidcaller. Shoggoth Minion and Void
 Tentacle appear inside Shoggoth and Voidcaller,
 respectively. They share their parent boss’s five-kill discovery gate and have
@@ -43,18 +44,24 @@ The Library shares the main menu's icon column, with identical button sizes
 and spacing: Bestiary, Locations and Journal. Icons use tooltips without
 visible labels or selection boxes. The app bar names the active section beside
 Library. Bestiary lists all eight independent entries together, without category
-filters. Compact cards show an idle enemy portrait,
-name, and a progress bar to the right with the count and target inside it.
+filters. Locked Bestiary cards conceal the enemy name, show "Entry locked",
+and put "Defeat current / target to unlock" inside the bar. The idle portrait
+appears after the first defeat of that type; at zero defeats a lock icon remains.
+Unlocked cards show an idle enemy portrait, name and progress count.
 Locations use the same compact layout with landscape icons and competitive
 score progress. Summary totals, introductory instructions and card status
 subtitles are omitted. Locked/discovered status remains available to screen
-readers. Opening a locked entry explains its gate without revealing combat
+readers. Opening a locked Bestiary entry also conceals the enemy name.
+Locked entries omit validation boilerplate; locked Locations describe their
+history gate without promising other context. Opening a locked entry explains its gate without revealing combat
 details or lore. Unlocked entries expose
 the full page. There are no partial purchases or additional currencies.
 
 Combat information reflects the current game catalogs, including mixed damage
 shares and secondary boss attacks. Innate resistances and weaknesses are
 explicitly separated; an empty category states that none exist.
+Grojib's follow-up attack is shown as Second Strike; its behaviour warns that
+the hit can stun.
 
 ## Narrative continuity
 

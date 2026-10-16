@@ -12,22 +12,26 @@ class CodexEntryTile extends StatelessWidget {
     required this.requiredProgress,
     required this.progressLabel,
     required this.onPressed,
+    this.concealUntilUnlocked = false,
   });
   final String title, progressLabel;
   final Widget portrait;
   final int current, requiredProgress;
   final VoidCallback onPressed;
+  final bool concealUntilUnlocked;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
     final unlocked = current >= requiredProgress;
+    final concealed = concealUntilUnlocked && !unlocked;
     final count = '${codexNumber(current)} / ${codexNumber(requiredProgress)}';
     return Padding(
       padding: EdgeInsets.only(bottom: ui.space.xs),
       child: Semantics(
-        label: '$title, ${unlocked ? 'discovered' : 'locked'}',
-        value: '$count $progressLabel',
+        label:
+            '${concealed ? 'Entry locked' : title}, ${unlocked ? 'discovered' : 'locked'}',
+        value: concealed ? 'Defeat $count to unlock' : '$count $progressLabel',
         button: true,
         onTap: onPressed,
         child: ExcludeSemantics(
@@ -55,9 +59,23 @@ class CodexEntryTile extends StatelessWidget {
                       constraints: const BoxConstraints(minHeight: 48),
                       child: Row(
                         children: [
-                          SizedBox(width: 48, height: 48, child: portrait),
+                          SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: concealed && current == 0
+                                ? Icon(
+                                    Icons.lock_outline,
+                                    color: ui.colors.textMuted,
+                                  )
+                                : portrait,
+                          ),
                           SizedBox(width: ui.space.xs),
-                          Expanded(child: Text(title, style: ui.text.headline)),
+                          Expanded(
+                            child: Text(
+                              concealed ? 'Entry locked' : title,
+                              style: ui.text.headline,
+                            ),
+                          ),
                           SizedBox(width: ui.space.sm),
                           SizedBox(
                             width: barWidth,
@@ -96,7 +114,9 @@ class CodexEntryTile extends StatelessWidget {
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
                                       child: Text(
-                                        count,
+                                        concealed
+                                            ? 'Defeat $count to unlock'
+                                            : count,
                                         style: ui.text.body.copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),

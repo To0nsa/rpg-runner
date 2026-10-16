@@ -174,6 +174,11 @@ test("settlement handoff credits gold once and exposes terminal validation toget
   assert.equal(firstOutcome, "settled");
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   assert.equal(canonical.progression.gold, 75);
+  assert.deepEqual(canonical.progression.playerProgress, {
+    schemaVersion: 1, totalXp: 0, acceptedRuns: 0,
+    runsByLevel: {},
+    damageDealt100: 0, damageTaken100: 0,
+  });
   assert.equal(canonical.revision, 1);
   const session = await db.collection("run_sessions").doc(runSessionId).get();
   const grant = await db.collection("reward_grants").doc(runSessionId).get();
@@ -211,13 +216,15 @@ test("Codex settlement is atomic and concurrent retries count a run once", async
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   assert.equal(canonical.revision, 1);
   assert.deepEqual(canonical.progression.codex, {
-    schemaVersion: 1,
-    enemyKills: { grojib: 10, bringerOfDeath: 5 },
+    schemaVersion: 2,
     competitiveBestScores: { forest: 10000 },
+  });
+  assert.deepEqual(canonical.progression.enemyDefeats, {
+    schemaVersion: 1, byEnemy: { grojib: 10, bringerOfDeath: 5 },
   });
 });
 
-test("Codex accumulates kills across modes and retains per-level competitive best", async () => {
+test("shared defeats accumulate across modes while Codex retains competitive best", async () => {
   for (const [mode, level, score, kills] of [
     ["practice", "forest", 99999, { grojib: 4 }],
     ["weekly", "forest", 99999, { grojib: 3 }],
@@ -230,9 +237,72 @@ test("Codex accumulates kills across modes and retains per-level competitive bes
   }
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   assert.deepEqual(canonical.progression.codex, {
-    schemaVersion: 1,
-    enemyKills: { grojib: 10, bringerOfDeath: 1 },
+    schemaVersion: 2,
     competitiveBestScores: { forest: 10000, field: 9000 },
+  });
+  assert.deepEqual(canonical.progression.enemyDefeats, {
+    schemaVersion: 1, byEnemy: { grojib: 10, bringerOfDeath: 1 },
+  });
+});
+
+test("player stats and score XP settle once across run modes", async () => {
+  for (const [mode, level, score, dealt, taken] of [
+    ["practice", "forest", 10000, 12345, 678],
+    ["competitive", "forest", 10050, 500, 300],
+    ["weekly", "field", 2500, 0, 100],
+  ] as const) {
+    const runSessionId = await seedCodexRun(mode, level, score, {});
+    await db.collection("validated_runs").doc(runSessionId).update({
+      playerRunStats: {
+        schemaVersion: 1, damageDealt100: dealt, damageTaken100: taken,
+      },
+    });
+    const outcomes = await Promise.all([
+      settleAcceptedRunSession({ db, runSessionId, nowMs }),
+      settleAcceptedRunSession({ db, runSessionId, nowMs }),
+    ]);
+    assert.deepEqual(outcomes.sort(), ["already_settled", "settled"]);
+  }
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.deepEqual(canonical.progression.playerProgress, {
+    schemaVersion: 1, totalXp: 225, acceptedRuns: 3,
+    runsByLevel: {
+      forest: { practice: 1, competitive: 1, weekly: 0 },
+      field: { practice: 0, competitive: 0, weekly: 1 },
+    },
+    damageDealt100: 12845, damageTaken100: 1078,
+  });
+  assert.equal(canonical.revision, 3);
+});
+
+test("invalid player stats abort settlement and preserve legacy account state", async () => {
+  const initial = await loadOrCreateCanonicalState({ db, uid });
+  await db.collection("ownership_profiles").doc(`${uid}__${initial.profileId}`).update({
+    "progression.playerProgress": FieldValue.delete(),
+  });
+  const runSessionId = await seedCodexRun("practice", "forest", 10000, { grojib: 1 });
+  await db.collection("validated_runs").doc(runSessionId).update({
+    playerRunStats: { schemaVersion: 1, damageDealt100: -1, damageTaken100: 0 },
+  });
+  assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "invariant_violation");
+  const afterFailure = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(afterFailure.progression.playerProgress, undefined);
+  assert.equal(afterFailure.progression.gold, 0);
+  assert.deepEqual(afterFailure.progression.codex, {
+    schemaVersion: 2, competitiveBestScores: {},
+  });
+  await db.collection("validated_runs").doc(runSessionId).update({
+    playerRunStats: { schemaVersion: 1, damageDealt100: 150, damageTaken100: 25 },
+  });
+  assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "settled");
+  const afterSuccess = await loadOrCreateCanonicalState({ db, uid });
+  assert.deepEqual(afterSuccess.progression.playerProgress, {
+    schemaVersion: 1, totalXp: 100, acceptedRuns: 1,
+    runsByLevel: { forest: { practice: 1, competitive: 0, weekly: 0 } },
+    damageDealt100: 150, damageTaken100: 25,
+  });
+  assert.deepEqual(afterSuccess.progression.enemyDefeats, {
+    schemaVersion: 1, byEnemy: { grojib: 1 },
   });
 });
 
@@ -267,7 +337,7 @@ test("legacy accounts receive Codex progress even with a zero-gold grant", async
   assert.equal(canonical.progression.gold, 0);
   assert.equal(canonical.revision, initial.revision + 1);
   assert.deepEqual(canonical.progression.codex, {
-    schemaVersion: 1, enemyKills: {}, competitiveBestScores: { forest: 10000 },
+    schemaVersion: 2, competitiveBestScores: { forest: 10000 },
   });
 });
 
@@ -279,8 +349,44 @@ test("rejected and pending validation runs cannot credit Codex progress", async 
   }
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   assert.deepEqual(canonical.progression.codex, {
-    schemaVersion: 1, enemyKills: {}, competitiveBestScores: {},
+    schemaVersion: 2, competitiveBestScores: {},
   });
+  assert.deepEqual(canonical.progression.enemyDefeats, {
+    schemaVersion: 1, byEnemy: {},
+  });
+});
+
+test("legacy Codex kills transfer once to the shared defeat map", async () => {
+  const initial = await loadOrCreateCanonicalState({ db, uid });
+  const profileRef = db.collection("ownership_profiles").doc(`${uid}__${initial.profileId}`);
+  await profileRef.update({
+    "progression.codex": {
+      schemaVersion: 1,
+      enemyKills: { grojib: 8, derf: 2 },
+      competitiveBestScores: { forest: 9000 },
+    },
+    "progression.enemyDefeats": FieldValue.delete(),
+  });
+  const runSessionId = await seedCodexRun("competitive", "forest", 10000,
+    { grojib: 2 });
+  await db.collection("validated_runs").doc(runSessionId).update({
+    playerRunStats: { schemaVersion: 1, damageDealt100: 50, damageTaken100: 5 },
+  });
+  assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "settled");
+  assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "already_settled");
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.deepEqual(canonical.progression.codex, {
+    schemaVersion: 2, competitiveBestScores: { forest: 10000 },
+  });
+  assert.deepEqual(canonical.progression.enemyDefeats, {
+    schemaVersion: 1, byEnemy: { grojib: 10, derf: 2 },
+  });
+  assert.deepEqual(canonical.progression.playerProgress, {
+    schemaVersion: 1, totalXp: 100, acceptedRuns: 1,
+    runsByLevel: { forest: { practice: 0, competitive: 1, weekly: 0 } },
+    damageDealt100: 50, damageTaken100: 5,
+  });
+  assert.equal((await profileRef.get()).get("progression.codex.enemyKills"), undefined);
 });
 
 async function seedCodexRun(

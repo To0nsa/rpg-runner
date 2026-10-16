@@ -141,6 +141,26 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                       onPressed: service.$4,
                     ),
                   ),
+                for (final service in [
+                  (at(.35, .49), 'Store marker', widget.onStorePressed),
+                  (at(.47, .405), 'Library marker', widget.onLibraryPressed),
+                ])
+                  Positioned(
+                    left: service.$1.dx - ui.sizes.tapTarget / 2,
+                    top: service.$1.dy - ui.sizes.tapTarget / 2,
+                    child: Semantics(
+                      label: service.$2,
+                      button: true,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: service.$3,
+                        child: SizedBox(
+                          width: ui.sizes.tapTarget,
+                          height: ui.sizes.tapTarget,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

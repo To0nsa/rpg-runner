@@ -145,6 +145,8 @@ void main() {
       }
     }
     expect(end?.reason, RunEndReason.playerDied);
+    expect(end?.stats.damageTaken100, greaterThan(0));
+    expect(end?.stats.damageDealt100, 0);
     expect(end?.deathInfo?.sourceTrap?.trapId, TrapId.spike);
     final frozen = trapRunState(core);
     for (var i = 0; i < 90; i++) {

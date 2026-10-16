@@ -200,6 +200,8 @@ void main() {
       expect(result.stats['rescuedNpcs'], 2);
       expect(result.stats['rescuePoints'], 500);
       expect(result.stats['enemyKillCounts'], ended.stats.enemyKillCounts);
+      expect(result.playerRunStats!.damageDealt100, ended.stats.damageDealt100);
+      expect(result.playerRunStats!.damageTaken100, ended.stats.damageTaken100);
       expect(result.codex!.levelId, replay.levelId);
       expect(result.codex!.enemyKills, {
         for (final id in EnemyId.values)

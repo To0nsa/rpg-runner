@@ -5,6 +5,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Current audits](audit/README.md).
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,
   enemy/level discoveries and Éloïse's opening; [persistence contract](tdd/codex.md).
+- [Player progression](gdd/player_progression.md): account level and lifetime
+  combat stats; [implementation contract](tdd/player_progression.md).
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted
   graph packs, curated Practice routes, on-demand verification and app-owned
   wallet catch-up; [remaining rollout gates](building/reward_verification_latency.md).

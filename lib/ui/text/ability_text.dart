@@ -21,6 +21,8 @@ String _titleCaseSnake(String source) {
 }
 
 const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
+  'grojib.strike2': 'Second Strike',
+
   // Primary: sword arts.
   'eloise.bloodletter_slash': 'Bloodletter Slash',
   'eloise.bloodletter_cleave': 'Bloodletter Cleave',

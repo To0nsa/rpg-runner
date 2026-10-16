@@ -3,23 +3,24 @@ import { RewardGrantInvariantViolationError } from "./reward_grants.js";
 
 const idPattern = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
 
-/** Empty legacy profiles acquire Codex state on their first tracked settlement. */
 export function initialCodexProgress(): JsonObject {
-  return { schemaVersion: 1, enemyKills: {}, competitiveBestScores: {} };
+  return { schemaVersion: 2, competitiveBestScores: {} };
 }
 
-/** Applies validator evidence inside the pending -> validated transaction only.
- * The session terminal state, written atomically with this state, fences retries.
- * Client summaries and legacy ordinal kill arrays are never progression inputs.
- */
-export function applyCodexProgress(args: {
+export function initialEnemyDefeats(): JsonObject {
+  return { schemaVersion: 1, byEnemy: {} };
+}
+
+/** Applies replay-derived discoveries within the terminal settlement transaction. */
+export function applyRunDiscoveries(args: {
   progression: JsonObject;
   validatedRun: Record<string, unknown>;
   session: Record<string, unknown>;
 }): boolean {
+  // The evidence retains its original wire name for already-validated runs.
   const raw = args.validatedRun.codex;
   if (raw === undefined || raw === null) return false;
-  const evidence = record(raw, "Codex evidence");
+  const evidence = record(raw, "run discovery evidence");
   const ticket = record(args.session.runTicket, "run ticket");
   const levelId = evidence.levelId;
   if (
@@ -29,19 +30,32 @@ export function applyCodexProgress(args: {
     !idPattern.test(levelId) ||
     levelId !== ticket.levelId ||
     levelId !== args.session.levelId
-  ) fail("Codex evidence does not match the accepted run ticket.");
+  ) fail("Run discovery evidence does not match the accepted run ticket.");
 
-  const kills = counts(evidence.enemyKills, "Codex evidence kills");
-  const current = args.progression.codex === undefined
+  const runDefeats = counts(evidence.enemyKills, "run enemy defeats");
+  const codex = args.progression.codex === undefined
     ? initialCodexProgress()
     : record(args.progression.codex, "Codex progression");
-  if (current.schemaVersion !== 1) fail("Unsupported Codex progression version.");
-  const enemyKills = counts(current.enemyKills, "Codex lifetime kills");
+  if (codex.schemaVersion !== 1 && codex.schemaVersion !== 2) {
+    fail("Unsupported Codex progression version.");
+  }
   const competitiveBestScores = counts(
-    current.competitiveBestScores, "Codex competitive scores",
+    codex.competitiveBestScores, "Codex competitive scores",
   );
-  for (const [id, count] of Object.entries(kills)) {
-    enemyKills[id] = integer((enemyKills[id] ?? 0) + count, "Codex lifetime kills");
+  const legacyDefeats = codex.schemaVersion === 1
+    ? counts(codex.enemyKills, "legacy Codex kills") : {};
+
+  const existingDefeats = args.progression.enemyDefeats;
+  const defeats = existingDefeats === undefined
+    ? initialEnemyDefeats()
+    : record(existingDefeats, "enemy defeats");
+  if (defeats.schemaVersion !== 1) fail("Unsupported enemy defeats version.");
+  // A present shared map is authoritative; otherwise transfer old Codex kills.
+  const byEnemy = existingDefeats === undefined
+    ? counts(legacyDefeats, "legacy Codex kills")
+    : counts(defeats.byEnemy, "lifetime enemy defeats");
+  for (const [id, count] of Object.entries(runDefeats)) {
+    byEnemy[id] = integer((byEnemy[id] ?? 0) + count, "lifetime enemy defeats");
   }
   if (args.session.mode === "competitive") {
     competitiveBestScores[levelId as string] = Math.max(
@@ -49,7 +63,9 @@ export function applyCodexProgress(args: {
       integer(args.validatedRun.score, "validated score"),
     );
   }
-  args.progression.codex = { schemaVersion: 1, enemyKills, competitiveBestScores };
+
+  args.progression.enemyDefeats = { schemaVersion: 1, byEnemy };
+  args.progression.codex = { schemaVersion: 2, competitiveBestScores };
   return true;
 }
 

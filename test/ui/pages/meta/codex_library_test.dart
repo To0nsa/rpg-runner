@@ -14,6 +14,7 @@ import 'package:rpg_runner/ui/pages/town/town_map.dart';
 import 'package:rpg_runner/ui/pages/town/town_store_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/ownership/codex_progress.dart';
+import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_theme.dart';
@@ -30,7 +31,7 @@ void main() {
     expect(find.textContaining('entries discovered'), findsNothing);
     expect(find.textContaining('Defeat an enemy 10 times'), findsNothing);
     expect(find.text('Enemy • Locked'), findsNothing);
-    expect(find.byIcon(Icons.lock_outline), findsNothing);
+    expect(find.byIcon(Icons.lock_outline), findsWidgets);
     expect(
       find.byKey(const ValueKey('codex-enemy-shoggothMinion')),
       findsNothing,
@@ -42,12 +43,15 @@ void main() {
     final row = find.byKey(const ValueKey('codex-enemy-unocoDemon'));
     expect(
       find.descendant(of: row, matching: find.byType(EnemyPortrait)),
-      findsOneWidget,
+      findsNothing,
     );
     expect(tester.getSize(row).height, lessThanOrEqualTo(72));
-    final nameRect = tester.getRect(find.text('Unoco Demon'));
+    expect(find.text('Unoco Demon'), findsNothing);
+    final nameRect = tester.getRect(
+      find.descendant(of: row, matching: find.text('Entry locked')),
+    );
     final progressRect = tester.getRect(
-      find.descendant(of: row, matching: find.text('0 / 10')),
+      find.descendant(of: row, matching: find.text('Defeat 0 / 10 to unlock')),
     );
     expect(progressRect.left, greaterThan(nameRect.right));
     expect((progressRect.center.dy - nameRect.center.dy).abs(), lessThan(1));
@@ -67,6 +71,42 @@ void main() {
     );
   });
 
+  testWidgets('one defeat reveals the idle frame before unlocking Bestiary', (
+    tester,
+  ) async {
+    final app = _CodexAppState();
+    addTearDown(app.dispose);
+    await tester.pumpWidget(_app(app, const LibraryPage()));
+    final row = find.byKey(const ValueKey('codex-enemy-unocoDemon'));
+    expect(
+      find.descendant(of: row, matching: find.byType(EnemyPortrait)),
+      findsNothing,
+    );
+
+    app.setDefeats({'unocoDemon': 1});
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: row, matching: find.byType(EnemyPortrait)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: row, matching: find.text('Entry locked')),
+      findsOneWidget,
+    );
+    expect(find.text('Unoco Demon'), findsNothing);
+    expect(
+      find.descendant(of: row, matching: find.text('Defeat 1 / 10 to unlock')),
+      findsOneWidget,
+    );
+
+    app.setDefeats({'unocoDemon': 10});
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: row, matching: find.text('Unoco Demon')),
+      findsOneWidget,
+    );
+  });
+
   for (final pair in {
     EnemyId.shoggoth: EnemyId.shoggothMinion,
     EnemyId.voidcaller: EnemyId.voidTentacle,
@@ -76,13 +116,11 @@ void main() {
     ) async {
       final app = _CodexAppState();
       addTearDown(app.dispose);
-      app.setProgress(
-        CodexProgress(enemyKills: {pair.value.name: 10, pair.key.name: 4}),
-      );
+      app.setDefeats({pair.value.name: 10, pair.key.name: 4});
       await tester.pumpWidget(_app(app, CodexEntryPage.enemy(pair.value)));
       expect(find.text('Entry locked'), findsOneWidget);
       expect(find.text(CodexCatalog.enemyLore(pair.value)), findsNothing);
-      app.setProgress(CodexProgress(enemyKills: {pair.key.name: 5}));
+      app.setDefeats({pair.key.name: 5});
       await tester.pumpAndSettle();
       expect(find.text('Entry locked'), findsNothing);
       expect(find.text(pair.value.displayName), findsOneWidget);
@@ -102,14 +140,17 @@ void main() {
     expect(find.text('Entry locked'), findsOneWidget);
     expect(find.text('Attacks'), findsNothing);
     expect(find.text(CodexCatalog.enemyLore(EnemyId.grojib)), findsNothing);
-    app.setProgress(CodexProgress(enemyKills: {'grojib': 10}));
+    app.setDefeats({'grojib': 10});
     await tester.pumpAndSettle();
     expect(find.text('Entry locked'), findsNothing);
     expect(find.text('Attacks'), findsOneWidget);
     expect(find.text('Resistances'), findsOneWidget);
     expect(find.text('Weaknesses'), findsOneWidget);
     expect(find.text(CodexCatalog.enemyLore(EnemyId.grojib)), findsOneWidget);
-    app.setProgress(CodexProgress.empty);
+    expect(find.textContaining('Second Strike • melee'), findsOneWidget);
+    expect(find.textContaining('can stun on hit'), findsOneWidget);
+    expect(find.textContaining('Strike2'), findsNothing);
+    app.setDefeats({});
     await tester.pumpAndSettle();
     expect(find.text('Entry locked'), findsOneWidget);
     expect(find.text('Attacks'), findsNothing);
@@ -155,8 +196,8 @@ void main() {
       find.byKey(const ValueKey('codex-enemy-bringerOfDeath')),
       findsOneWidget,
     );
-    expect(find.text('0 / 5'), findsWidgets);
-    expect(find.text('0 / 10'), findsWidgets);
+    expect(find.text('Defeat 0 / 5 to unlock'), findsWidgets);
+    expect(find.text('Defeat 0 / 10 to unlock'), findsWidgets);
   });
 
   for (final size in [const Size(640, 360), const Size(360, 640)]) {
@@ -177,6 +218,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TownStorePage), findsOneWidget);
       expect(tester.takeException(), isNull);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Library marker'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LibraryPage), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(find.byTooltip('Zoom in'), findsNothing);
@@ -260,6 +306,13 @@ class _CodexAppState extends ChangeNotifier implements AppState {
 
   void setProgress(CodexProgress codex) {
     progression = progression.copyWith(codex: codex);
+    notifyListeners();
+  }
+
+  void setDefeats(Map<String, int> byEnemy) {
+    progression = progression.copyWith(
+      enemyDefeats: EnemyDefeats(byEnemy: byEnemy),
+    );
     notifyListeners();
   }
 

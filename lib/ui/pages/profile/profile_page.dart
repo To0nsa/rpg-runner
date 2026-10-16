@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../codex/codex_catalog.dart';
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_inline_edit_text.dart';
 import '../../components/gold_display.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../components/player_level_bar.dart';
 import '../../profile/display_name_save_error.dart';
 import '../../profile/display_name_policy.dart';
 import '../../state/profile/account_deletion_api.dart';
 import '../../state/app/app_state.dart';
 import '../../state/auth/auth_api.dart';
 import '../../state/profile/user_profile.dart';
+import '../../state/ownership/player_progress.dart';
 import '../../theme/ui_tokens.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -267,6 +270,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final profile = appState.profile;
     final authSession = appState.authSession;
     final gold = appState.progression.gold;
+    final progression = appState.progression;
 
     return MenuScaffold(
       title: 'Profile',
@@ -284,6 +288,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildGoldRow(gold),
                     ],
                   ),
+                ),
+                SizedBox(height: ui.space.md),
+                _ProfileCardPanel(
+                  width: double.infinity,
+                  child: _buildStatsPanel(
+                    progression.playerProgress,
+                    progression.enemyDefeats.total,
+                  ),
+                ),
+                SizedBox(height: ui.space.md),
+                _ProfileCardPanel(
+                  width: double.infinity,
+                  child: _buildRunBreakdown(progression.playerProgress),
                 ),
                 SizedBox(height: ui.space.md),
                 if (_shouldShowPlayGamesUpgrade(authSession)) ...[
@@ -337,6 +354,88 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
+  }
+
+  Widget _buildStatsPanel(PlayerProgress progress, int enemyKills) {
+    final ui = context.ui;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Player stats', style: ui.text.headline),
+        SizedBox(height: ui.space.sm),
+        PlayerLevelBar(progress: progress),
+        SizedBox(height: ui.space.sm),
+        _statRow('Lifetime XP', '${progress.totalXp}'),
+        _statRow('Practice runs played', '${progress.runsInMode('practice')}'),
+        _statRow(
+          'Competitive runs played',
+          '${progress.runsInMode('competitive')}',
+        ),
+        _statRow('Enemies defeated', '$enemyKills'),
+        _statRow('Damage dealt', _hp(progress.damageDealt100)),
+        _statRow('Damage taken', _hp(progress.damageTaken100)),
+      ],
+    );
+  }
+
+  Widget _statRow(String label, String value) {
+    final ui = context.ui;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: ui.space.xxs),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: ui.text.body)),
+          SizedBox(width: ui.space.sm),
+          Text(
+            value,
+            style: ui.text.body.copyWith(color: ui.colors.accentStrong),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _hp(int hundredths) => '${(hundredths / 100).round()} HP';
+
+  Widget _buildRunBreakdown(PlayerProgress progress) {
+    final ui = context.ui;
+    final levels = progress.runsByLevel.keys.toList()..sort();
+    return Material(
+      type: MaterialType.transparency,
+      child: ExpansionTile(
+        title: Text('Runs by level', style: ui.text.headline),
+        childrenPadding: EdgeInsets.only(bottom: ui.space.sm),
+        children: levels.isEmpty
+            ? [Text('No runs recorded by level yet.', style: ui.text.body)]
+            : [
+                for (final level in levels) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(_levelLabel(level), style: ui.text.title),
+                  ),
+                  _statRow(
+                    'Practice',
+                    '${progress.runsByLevel[level]!['practice']}',
+                  ),
+                  _statRow(
+                    'Competitive',
+                    '${progress.runsByLevel[level]!['competitive']}',
+                  ),
+                  _statRow(
+                    'Weekly',
+                    '${progress.runsByLevel[level]!['weekly']}',
+                  ),
+                ],
+              ],
+      ),
+    );
+  }
+
+  String _levelLabel(String raw) {
+    for (final level in CodexCatalog.levelScoreRequirements.keys) {
+      if (level.name == raw) return CodexCatalog.levelName(level);
+    }
+    return raw.replaceAll('_', ' ');
   }
 
   Widget _buildDangerZoneCard() {

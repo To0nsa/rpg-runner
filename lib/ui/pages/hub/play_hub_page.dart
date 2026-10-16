@@ -83,6 +83,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     return MenuScaffold(
       showAppBar: false,
       child: MenuLayout(
+        maxWidth: double.infinity,
         horizontalPadding: ui.space.lg,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -113,6 +114,9 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         ? 'Guest'
                         : profile.displayName,
                     gold: gold,
+                    playerProgress: appState.isDeveloperMode
+                        ? null
+                        : progression.playerProgress,
                   ),
                   SizedBox(height: ui.space.sm),
                   WeeklyBadgeRow(

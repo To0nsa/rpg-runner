@@ -1,4 +1,6 @@
 import 'codex_progress.dart';
+import 'enemy_defeats.dart';
+import 'player_progress.dart';
 
 enum StoreBucket {
   sword,
@@ -321,12 +323,16 @@ class ProgressionState {
     this.store = TownStoreState.initial,
     this.weekly = WeeklyProgressState.initial,
     this.codex = CodexProgress.empty,
+    this.enemyDefeats = EnemyDefeats.empty,
+    this.playerProgress = PlayerProgress.empty,
   });
 
   final int gold;
   final TownStoreState store;
   final WeeklyProgressState weekly;
   final CodexProgress codex;
+  final EnemyDefeats enemyDefeats;
+  final PlayerProgress playerProgress;
 
   static const ProgressionState initial = ProgressionState(
     gold: 0,
@@ -339,12 +345,16 @@ class ProgressionState {
     TownStoreState? store,
     WeeklyProgressState? weekly,
     CodexProgress? codex,
+    EnemyDefeats? enemyDefeats,
+    PlayerProgress? playerProgress,
   }) {
     return ProgressionState(
       gold: gold ?? this.gold,
       store: store ?? this.store,
       weekly: weekly ?? this.weekly,
       codex: codex ?? this.codex,
+      enemyDefeats: enemyDefeats ?? this.enemyDefeats,
+      playerProgress: playerProgress ?? this.playerProgress,
     );
   }
 
@@ -354,6 +364,8 @@ class ProgressionState {
       'store': store.toJson(),
       'weeklyProgress': weekly.toJson(),
       'codex': codex.toJson(),
+      'enemyDefeats': enemyDefeats.toJson(),
+      'playerProgress': playerProgress.toJson(),
     };
   }
 
@@ -381,6 +393,11 @@ class ProgressionState {
       store: store,
       weekly: weekly,
       codex: CodexProgress.fromJson(json['codex']),
+      enemyDefeats: EnemyDefeats.fromJson(
+        json['enemyDefeats'],
+        legacyCodexKills: CodexProgress.legacyKillsFromJson(json['codex']),
+      ),
+      playerProgress: PlayerProgress.fromJson(json['playerProgress']),
     );
   }
 }

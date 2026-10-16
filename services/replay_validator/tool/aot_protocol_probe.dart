@@ -4,6 +4,9 @@ void main() {
   _expectArgumentError(
     () => CodexRunProgress(levelId: 'forest', enemyKills: {'grojib': -1}),
   );
+  _expectArgumentError(
+    () => PlayerRunStats(damageDealt100: -1, damageTaken100: 0),
+  );
   final valid = ReplayBlobV1.withComputedDigest(
     runSessionId: 'aot-protocol-probe',
     tickHz: 60,

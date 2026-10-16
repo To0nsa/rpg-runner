@@ -8,6 +8,8 @@ import '../../components/menu_icon_column.dart';
 import 'enemy_portrait.dart';
 import '../../state/app/app_state.dart';
 import '../../state/ownership/codex_progress.dart';
+import '../../state/ownership/enemy_defeats.dart';
+import '../../state/ownership/progression_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
@@ -27,8 +29,8 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = context.select<AppState, CodexProgress>(
-      (app) => app.progression.codex,
+    final progress = context.select<AppState, ProgressionState>(
+      (app) => app.progression,
     );
     final ui = context.ui;
     return MenuScaffold(
@@ -63,8 +65,8 @@ class _LibraryPageState extends State<LibraryPage> {
                 child: IndexedStack(
                   index: _section.index,
                   children: [
-                    _Bestiary(progress: progress),
-                    _Locations(progress: progress),
+                    _Bestiary(defeats: progress.enemyDefeats),
+                    _Locations(progress: progress.codex),
                     const CodexReadingView(
                       title: CodexCatalog.openingTitle,
                       subtitle: 'Éloïse of Elingen • Haute-Lothringen',
@@ -88,8 +90,8 @@ class _LibraryPageState extends State<LibraryPage> {
 }
 
 class _Bestiary extends StatelessWidget {
-  const _Bestiary({required this.progress});
-  final CodexProgress progress;
+  const _Bestiary({required this.defeats});
+  final EnemyDefeats defeats;
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +105,10 @@ class _Bestiary extends StatelessWidget {
             key: ValueKey('codex-enemy-${id.name}'),
             title: id.displayName,
             portrait: EnemyPortrait(enemy: id),
-            current: progress.enemyKills[id.name] ?? 0,
+            current: defeats.byEnemy[id.name] ?? 0,
             requiredProgress: CodexCatalog.killsRequired(id),
             progressLabel: 'defeated',
+            concealUntilUnlocked: true,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 settings: RouteSettings(

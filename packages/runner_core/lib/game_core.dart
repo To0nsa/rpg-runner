@@ -41,6 +41,7 @@ import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
 import 'combat/damage_credit.dart';
+import 'scoring/run_combat_totals.dart';
 import 'combat/projectile_aim_visibility.dart';
 import 'combat/target_point_surface_query.dart';
 import 'combat/status/status.dart';
@@ -1281,6 +1282,7 @@ class GameCore {
 
   /// Kill counts per enemy type (indexed by [EnemyId.index]).
   final List<int> _enemyKillCounts = List<int>.filled(EnemyId.values.length, 0);
+  final RunCombatTotals _combatTotals = RunCombatTotals();
 
   // ─── Simulation State ───
 
@@ -2053,6 +2055,12 @@ class GameCore {
       queueStatus: _statusSystem.queue,
       onParticipationDamage:
           ({required target, required hpLost100, required credit}) {
+            _combatTotals.recordHpLost(
+              playerTarget: target == _player,
+              enemyTarget: _world.enemy.has(target),
+              credit: credit,
+              hpLost100: hpLost100,
+            );
             _encounters.recordDamage(
               _world,
               target: target,
@@ -2530,6 +2538,8 @@ class GameCore {
     collectibles: collectibles,
     collectibleScore: collectibleScore,
     enemyKillCounts: List<int>.unmodifiable(_enemyKillCounts),
+    damageDealt100: _combatTotals.damageDealt100,
+    damageTaken100: _combatTotals.damageTaken100,
     rescuedNpcs: _encounters.rescuedNpcs,
     rescuePoints: _encounters.rescuePoints,
     excludedScoreTicks: _bossArenas.excludedScoreTicks,

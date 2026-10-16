@@ -4,6 +4,8 @@ import type {
   OwnershipCanonicalState,
 } from "./contracts.js";
 import { normalizeProgressionStore } from "./store_state.js";
+import { initialPlayerProgress } from "./player_progress.js";
+import { initialCodexProgress, initialEnemyDefeats } from "./run_discoveries.js";
 
 export const knownCharacterIds = ["eloise", "eloiseWip"] as const;
 export type KnownCharacterId = (typeof knownCharacterIds)[number];
@@ -112,7 +114,9 @@ export function starterProgression(args: {
   const progression = structuredClone({
     gold: 0,
     awardedRunIds: [],
-    codex: { schemaVersion: 1, enemyKills: {}, competitiveBestScores: {} },
+    codex: initialCodexProgress(),
+    enemyDefeats: initialEnemyDefeats(),
+    playerProgress: initialPlayerProgress(),
   } satisfies JsonObject);
   normalizeProgressionStore({
     progression,

@@ -21,6 +21,7 @@ import 'package:run_protocol/replay_digest.dart';
 import 'package:run_protocol/run_duration.dart';
 import 'package:run_protocol/validated_run.dart';
 import 'package:run_protocol/codex_run_progress.dart';
+import 'package:run_protocol/player_run_stats.dart';
 
 import 'account_deletion_fence.dart';
 import 'board_repository.dart';
@@ -1079,10 +1080,16 @@ class DeterministicValidatorWorker implements ValidatorWorker {
               id.name: runEnded.stats.enemyKillCounts[id.index],
         },
       ),
+      playerRunStats: PlayerRunStats(
+        damageDealt100: runEnded.stats.damageDealt100,
+        damageTaken100: runEnded.stats.damageTaken100,
+      ),
       stats: <String, Object?>{
         'collectibles': runEnded.stats.collectibles,
         'collectibleScore': runEnded.stats.collectibleScore,
         'enemyKillCounts': runEnded.stats.enemyKillCounts,
+        'damageDealt100': runEnded.stats.damageDealt100,
+        'damageTaken100': runEnded.stats.damageTaken100,
         'rescuedNpcs': runEnded.stats.rescuedNpcs,
         'rescuePoints': runEnded.stats.rescuePoints,
         'excludedScoreTicks': runEnded.stats.excludedScoreTicks,

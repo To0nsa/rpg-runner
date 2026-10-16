@@ -1,5 +1,6 @@
 import 'board_key.dart';
 import 'codex_run_progress.dart';
+import 'player_run_stats.dart';
 import 'codecs/json_value_copy.dart';
 import 'codecs/json_value_reader.dart';
 import 'replay_digest.dart';
@@ -26,6 +27,7 @@ final class ValidatedRun {
     this.rejectionReason,
     this.replayStorageGeneration,
     this.codex,
+    this.playerRunStats,
   }) : stats = immutableJsonObject(stats, fieldName: 'stats') {
     _requireNonEmpty(runSessionId, 'runSessionId');
     _requireNonEmpty(uid, 'uid');
@@ -49,6 +51,9 @@ final class ValidatedRun {
       throw ArgumentError(
         'Codex evidence requires an accepted matching level.',
       );
+    }
+    if (playerRunStats != null && !accepted) {
+      throw ArgumentError('Player run stats require an accepted result.');
     }
     if (!accepted && rejectionReason == null) {
       throw ArgumentError('rejected runs must include rejectionReason.');
@@ -116,6 +121,9 @@ final class ValidatedRun {
 
   /// Absent on results produced before Codex tracking was introduced.
   final CodexRunProgress? codex;
+
+  /// Absent on validated results produced before player-stat tracking.
+  final PlayerRunStats? playerRunStats;
   final String replayDigest;
   final String replayStorageRef;
 
@@ -148,6 +156,7 @@ final class ValidatedRun {
       goldEarned: goldEarned,
       stats: stats,
       codex: codex,
+      playerRunStats: playerRunStats,
       replayDigest: replayDigest,
       replayStorageRef: replayStorageRef,
       replayStorageGeneration: replayStorageGeneration,
@@ -173,6 +182,7 @@ final class ValidatedRun {
       'goldEarned': goldEarned,
       'stats': mutableJsonObjectCopy(stats, fieldName: 'stats'),
       if (codex != null) 'codex': codex!.toJson(),
+      if (playerRunStats != null) 'playerRunStats': playerRunStats!.toJson(),
       'replayDigest': replayDigest,
       'replayStorageRef': replayStorageRef,
       if (replayStorageGeneration != null)
@@ -204,6 +214,9 @@ final class ValidatedRun {
         codex: json['codex'] == null
             ? null
             : CodexRunProgress.fromJson(json['codex']),
+        playerRunStats: json['playerRunStats'] == null
+            ? null
+            : PlayerRunStats.fromJson(json['playerRunStats']),
         replayDigest: readRequiredString(json, 'replayDigest'),
         replayStorageRef: readRequiredString(json, 'replayStorageRef'),
         replayStorageGeneration: readOptionalString(

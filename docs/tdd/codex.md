@@ -9,18 +9,22 @@ The account's canonical `ownership_profiles` progression contains:
 
 ```json
 {
-  "codex": {
+  "enemyDefeats": {
     "schemaVersion": 1,
-    "enemyKills": { "grojib": 10, "bringerOfDeath": 5 },
+    "byEnemy": { "grojib": 10, "bringerOfDeath": 5 }
+  },
+  "codex": {
+    "schemaVersion": 2,
     "competitiveBestScores": { "forest": 10000, "field": 10000 }
   }
 }
 ```
 
 Keys are stable Core enum names, never ordinal positions. Counts are
-non-negative JavaScript-safe integers. Missing Codex state on an old account
-reads as empty; the first tracked settlement creates it. Progress is shared
-across characters and retained across sessions, devices and board windows.
+non-negative JavaScript-safe integers. Missing progress starts empty, except
+that old Codex version 1 kills are projected until the first tracked settlement
+moves them into the shared map. Progress is shared across characters and retained
+across sessions, devices and board windows.
 Existing account deletion removes it with canonical ownership.
 
 The validator produces optional `ValidatedRun.codex` evidence:
@@ -47,13 +51,13 @@ their competitive score still counts.
 
 ## Atomic settlement
 
-`settleAcceptedRunSession` applies Codex evidence in the same Firestore
+`settleAcceptedRunSession` applies run discovery evidence in the same Firestore
 transaction as the reward grant, canonical revision and terminal `validated`
-session state. `applyCodexProgress` requires accepted evidence and the same
+session state. `applyRunDiscoveries` requires accepted evidence and the same
 level in both immutable ticket and session. Existing settlement checks bind
 the identity, mode, board and score context.
 
-- All accepted Practice, Competitive and Weekly runs add kills.
+- All accepted Practice, Competitive and Weekly runs add to the shared defeat map.
 - Only Competitive takes the maximum of the prior level best and this run's
   validated score. Scores are never added and lower scores never replace bests.
 - A terminal session returns `already_settled`; concurrent/retried deliveries
@@ -61,8 +65,13 @@ the identity, mode, board and score context.
 - Malformed evidence aborts the whole transaction, including gold and grant
   writes. Pending/rejected runs do not grant progress.
 - The canonical revision advances once for the transaction, including a
-  Codex-only change. Ownership commands preserve the progression subtree.
+  discovery-only change. Ownership commands preserve the progression subtree.
 - Developer Practice has no remote session/submission and earns no progress.
+- Old Codex version 1 kills transfer to `enemyDefeats` at the next settlement
+  carrying discovery evidence. The shared map takes precedence if it already
+  exists, so legacy kills cannot be added twice. Settlement replaces the
+  canonical progression field to remove the old nested Codex kill map in the
+  same transaction.
 
 Legacy accepted results without the optional evidence retain their original
 reward behavior and add no Codex progress. Previously settled runs are not
@@ -72,9 +81,11 @@ compatibility or score calculation changes are introduced by Codex itself.
 
 ## Client and navigation
 
-`ProgressionState.codex` decodes the canonical maps into detached, immutable
-`CodexProgress` values. The existing final-reward receipt flow refreshes all
-canonical progression before acknowledging completion, including zero-gold
+`ProgressionState.enemyDefeats` decodes the shared kill map and
+`ProgressionState.codex` decodes competitive best scores into detached,
+immutable values. Until an old account settles, the client projects its legacy
+Codex kills into `enemyDefeats`. The existing final-reward receipt flow refreshes
+all canonical progression before acknowledging completion, including zero-gold
 rewards; Codex needs no independent mutation or refresh endpoint.
 
 `CodexCatalog` holds presentation policy: ten kills for regular enemies,
@@ -120,7 +131,7 @@ Shoggoth Minion to Shoggoth and Void Tentacle to Voidcaller. Their complete
 combat/lore sections appear only inside the unlocked parent page. Direct
 construction with a summon ID resolves to the parent page and gate. Stored
 summon kill totals remain compatible evidence but are not independent unlocks.
-No backend migration or kill-credit change is needed.
+Moving the kill map out of Codex does not change kill credit or summon gates.
 
 ## City map asset
 

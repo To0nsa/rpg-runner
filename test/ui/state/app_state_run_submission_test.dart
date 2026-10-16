@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/state/ownership/codex_progress.dart';
+import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
+import 'package:rpg_runner/ui/state/ownership/player_progress.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:run_protocol/run_ticket.dart';
@@ -512,8 +514,14 @@ void main() {
         gold: 23,
         revision: 2,
         codex: CodexProgress(
-          enemyKills: {'grojib': 10},
           competitiveBestScores: {'forest': 10000},
+        ),
+        enemyDefeats: EnemyDefeats(byEnemy: {'grojib': 10}),
+        playerProgress: const PlayerProgress(
+          totalXp: 100,
+          acceptedRuns: 1,
+          damageDealt100: 500,
+          damageTaken100: 100,
         ),
       ));
       runSessionApi.setLoadStatus(
@@ -538,8 +546,10 @@ void main() {
 
       expect(status.isRewardFinal, isTrue);
       expect(appState.progression.gold, 23);
-      expect(appState.progression.codex.enemyKills, {'grojib': 10});
+      expect(appState.progression.enemyDefeats.byEnemy, {'grojib': 10});
       expect(appState.progression.codex.competitiveBestScores, {'forest': 10000});
+      expect(appState.progression.playerProgress.totalXp, 100);
+      expect(appState.progression.playerProgress.damageDealt100, 500);
       expect(ownershipApi.loadCanonicalStateCallCount, 2);
     },
   );
@@ -895,12 +905,19 @@ OwnershipCanonicalState _canonicalWithGold({
   required int gold,
   required int revision,
   CodexProgress codex = CodexProgress.empty,
+  EnemyDefeats enemyDefeats = EnemyDefeats.empty,
+  PlayerProgress playerProgress = PlayerProgress.empty,
 }) {
   return OwnershipCanonicalState(
     profileId: 'profile_static',
     revision: revision,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
-    progression: ProgressionState.initial.copyWith(gold: gold, codex: codex),
+    progression: ProgressionState.initial.copyWith(
+      gold: gold,
+      codex: codex,
+      enemyDefeats: enemyDefeats,
+      playerProgress: playerProgress,
+    ),
   );
 }

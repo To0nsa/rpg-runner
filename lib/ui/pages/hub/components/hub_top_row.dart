@@ -4,13 +4,21 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../../../components/gold_display.dart';
+import '../../../components/player_level_bar.dart';
+import '../../../state/ownership/player_progress.dart';
 import '../../../theme/ui_tokens.dart';
 
 class HubTopRow extends StatefulWidget {
-  const HubTopRow({super.key, required this.displayName, required this.gold});
+  const HubTopRow({
+    super.key,
+    required this.displayName,
+    required this.gold,
+    this.playerProgress,
+  });
 
   final String displayName;
   final int gold;
+  final PlayerProgress? playerProgress;
 
   @override
   State<HubTopRow> createState() => _HubTopRowState();
@@ -80,36 +88,46 @@ class _HubTopRowState extends State<HubTopRow> {
     final timeStr =
         '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}';
 
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            widget.displayName,
-            style: ui.text.headline,
-            overflow: TextOverflow.ellipsis,
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: (constraints.maxWidth * .25).clamp(0, 260),
+            ),
+            child: Text(
+              widget.displayName,
+              style: ui.text.headline,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-        SizedBox(width: ui.space.sm),
-        GoldDisplay(gold: widget.gold, variant: GoldDisplayVariant.headline),
-        SizedBox(width: ui.space.md),
-        Container(
-          width: ui.sizes.dividerThickness,
-          height: ui.space.lg,
-          color: ui.colors.textPrimary,
-        ),
-        SizedBox(width: ui.space.xs),
-        Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
-        SizedBox(width: ui.space.xxs),
-        Text('$_batteryLevel%', style: ui.text.body),
-        SizedBox(width: ui.space.md),
-        Icon(
-          Icons.access_time,
-          color: ui.colors.outlineStrong,
-          size: ui.sizes.iconSize.sm,
-        ),
-        SizedBox(width: ui.space.xxs),
-        Text(timeStr, style: ui.text.body),
-      ],
+          if (widget.playerProgress != null) ...[
+            SizedBox(width: ui.space.sm),
+            Expanded(child: PlayerLevelBar(progress: widget.playerProgress!)),
+          ] else
+            const Spacer(),
+          SizedBox(width: ui.space.sm),
+          GoldDisplay(gold: widget.gold, variant: GoldDisplayVariant.headline),
+          SizedBox(width: ui.space.md),
+          Container(
+            width: ui.sizes.dividerThickness,
+            height: ui.space.lg,
+            color: ui.colors.textPrimary,
+          ),
+          SizedBox(width: ui.space.xs),
+          Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
+          SizedBox(width: ui.space.xxs),
+          Text('$_batteryLevel%', style: ui.text.body),
+          SizedBox(width: ui.space.md),
+          Icon(
+            Icons.access_time,
+            color: ui.colors.outlineStrong,
+            size: ui.sizes.iconSize.sm,
+          ),
+          SizedBox(width: ui.space.xxs),
+          Text(timeStr, style: ui.text.body),
+        ],
+      ),
     );
   }
 }

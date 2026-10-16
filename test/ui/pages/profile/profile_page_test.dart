@@ -13,10 +13,12 @@ import 'package:rpg_runner/ui/pages/profile/profile_page.dart';
 import 'package:rpg_runner/ui/state/profile/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
+import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
 import 'package:rpg_runner/ui/state/run/local_replay_artifact_store.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/player_progress.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
@@ -58,7 +60,7 @@ void main() {
         () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
       );
       await tester.pumpWidget(_TestApp(appState: appState));
-      await tester.tap(find.text('Delete account'));
+      await _tapDeleteAccount(tester);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
@@ -99,6 +101,42 @@ void main() {
 
     expect(find.text('Upgrade guest account'), findsOneWidget);
     expect(find.text('Link Play Games'), findsOneWidget);
+  });
+
+  testWidgets('profile shows settled lifetime stats and level progress', (
+    tester,
+  ) async {
+    final appState = AppState(
+      authApi: _StaticAuthApi(session: _anonymousSession()),
+      loadoutOwnershipApi: _NoopOwnershipApi(
+        playerProgress: const PlayerProgress(
+          totalXp: 225,
+          acceptedRuns: 3,
+          runsByLevel: {
+            'forest': {'practice': 1, 'competitive': 1, 'weekly': 1},
+          },
+          damageDealt100: 12845,
+          damageTaken100: 1078,
+        ),
+        enemyDefeats: EnemyDefeats(byEnemy: {'grojib': 10, 'derf': 2}),
+      ),
+    );
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(_TestApp(appState: appState));
+    expect(find.text('Player stats'), findsOneWidget);
+    expect(find.text('LEVEL 3  ·  0 / 150 XP'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('Practice runs played'), findsOneWidget);
+    expect(find.text('Competitive runs played'), findsOneWidget);
+    expect(find.text('128 HP'), findsOneWidget);
+    expect(find.text('11 HP'), findsOneWidget);
+    expect(find.text('Runs by level'), findsOneWidget);
+    expect(find.text('Weekly'), findsNothing);
+    await tester.ensureVisible(find.text('Runs by level'));
+    await tester.tap(find.text('Runs by level'));
+    await tester.pumpAndSettle();
+    expect(find.text('The Val Outpost'), findsOneWidget);
+    expect(find.text('Weekly'), findsOneWidget);
   });
 
   testWidgets('hides Play Games upgrade action for non-anonymous account', (
@@ -202,7 +240,7 @@ void main() {
 
       await tester.pumpWidget(_TestApp(appState: appState));
 
-      await tester.tap(find.text('Delete account'));
+      await _tapDeleteAccount(tester);
       await tester.pumpAndSettle();
       expect(find.text('Delete account and data?'), findsOneWidget);
 
@@ -252,7 +290,7 @@ void main() {
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    await tester.tap(find.text('Delete account'));
+    await _tapDeleteAccount(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
@@ -285,7 +323,7 @@ void main() {
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    await tester.tap(find.text('Delete account'));
+    await _tapDeleteAccount(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
@@ -315,6 +353,13 @@ Finder _dialogButton(String label) {
     of: find.byType(AppDialog),
     matching: find.text(label),
   );
+}
+
+Future<void> _tapDeleteAccount(WidgetTester tester) async {
+  final button = find.text('Delete account');
+  await tester.ensureVisible(button);
+  await tester.pumpAndSettle();
+  await tester.tap(button);
 }
 
 class _TestApp extends StatelessWidget {
@@ -387,16 +432,22 @@ AuthSession _playGamesLinkedSession() {
 }
 
 class _NoopOwnershipApi implements LoadoutOwnershipApi {
-  _NoopOwnershipApi({this.gold = 0});
+  _NoopOwnershipApi({this.gold = 0, this.playerProgress, this.enemyDefeats});
 
   final int gold;
+  final PlayerProgress? playerProgress;
+  final EnemyDefeats? enemyDefeats;
 
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_noop',
     revision: 0,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
-    progression: ProgressionState.initial.copyWith(gold: gold),
+    progression: ProgressionState.initial.copyWith(
+      gold: gold,
+      playerProgress: playerProgress,
+      enemyDefeats: enemyDefeats,
+    ),
   );
 
   OwnershipCommandResult get _accepted => OwnershipCommandResult(

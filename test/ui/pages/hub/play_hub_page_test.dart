@@ -6,6 +6,8 @@ import 'package:run_protocol/submission_status.dart';
 
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
+import 'package:rpg_runner/ui/components/gold_display.dart';
+import 'package:rpg_runner/ui/components/player_level_bar.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_top_row.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
@@ -14,6 +16,7 @@ import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/player_progress.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
@@ -58,6 +61,88 @@ void main() {
 
     final topRow = tester.widget<HubTopRow>(find.byType(HubTopRow));
     expect(topRow.gold, 321);
+    final row = tester.getRect(find.byType(HubTopRow));
+    final gold = tester.getRect(
+      find.descendant(
+        of: find.byType(HubTopRow),
+        matching: find.byType(GoldDisplay),
+      ),
+    );
+    expect(gold.left, greaterThan(row.center.dx));
+  });
+
+  testWidgets('hub shows account level and XP beside player name', (
+    tester,
+  ) async {
+    final appState = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(
+        gold: 0,
+        playerProgress: PlayerProgress(
+          totalXp: 150,
+          acceptedRuns: 2,
+          damageDealt100: 0,
+          damageTaken100: 0,
+        ),
+      ),
+    );
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(_TestApp(appState: appState));
+    await tester.pump();
+    expect(find.text('LEVEL 2  ·  50 / 125 XP'), findsOneWidget);
+    final name = tester.getRect(find.text('Guest'));
+    final level = tester.getRect(find.text('LEVEL 2  ·  50 / 125 XP'));
+    final bar = tester.getRect(find.byType(PlayerLevelBar));
+    final gold = tester.getRect(
+      find.descendant(
+        of: find.byType(HubTopRow),
+        matching: find.byType(GoldDisplay),
+      ),
+    );
+    expect(level.left, greaterThan(name.right));
+    expect((level.center.dy - name.center.dy).abs(), lessThan(2));
+    expect(bar.width, greaterThan(190));
+    expect(bar.right, lessThan(gold.left));
+  });
+
+  testWidgets('hub keeps gold and status at the far right on wide screens', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final appState = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(
+        gold: 321,
+        playerProgress: const PlayerProgress(
+          totalXp: 150,
+          acceptedRuns: 2,
+          damageDealt100: 0,
+          damageTaken100: 0,
+        ),
+      ),
+    );
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(_TestApp(appState: appState));
+    await tester.pump();
+
+    final row = tester.getRect(find.byType(HubTopRow));
+    final time = tester.getRect(
+      find.descendant(
+        of: find.byType(HubTopRow),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              RegExp(r'^\d{2}:\d{2}$').hasMatch(widget.data ?? ''),
+        ),
+      ),
+    );
+    final bar = tester.getRect(find.byType(PlayerLevelBar));
+    expect(row.right, greaterThan(1500));
+    expect((row.right - time.right).abs(), lessThan(1));
+    expect(bar.right, lessThan(time.left));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('play tap transitions immediately to run bootstrap route', (
@@ -203,16 +288,20 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _NoopOwnershipApi implements LoadoutOwnershipApi {
-  _NoopOwnershipApi({required this.gold});
+  _NoopOwnershipApi({required this.gold, this.playerProgress});
 
   final int gold;
+  final PlayerProgress? playerProgress;
 
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_hub',
     revision: 0,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
-    progression: ProgressionState.initial.copyWith(gold: gold),
+    progression: ProgressionState.initial.copyWith(
+      gold: gold,
+      playerProgress: playerProgress,
+    ),
   );
 
   OwnershipCommandResult get _accepted => OwnershipCommandResult(
