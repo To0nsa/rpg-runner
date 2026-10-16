@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_world_palette.dart';
+import 'map_callout.dart';
 
 /// Artwork and service anchors share one pannable scene, including cropped edges.
 class TownMap extends StatelessWidget {
@@ -81,8 +82,13 @@ class _TownMapViewportState extends State<_TownMapViewport> {
     final ui = context.ui;
     final scene = _scene;
     Offset at(double x, double y) => Offset(scene.width * x, scene.height * y);
-    final store = at(.35, .58);
+    final store = at(.25, .61);
     final library = at(.64, .41);
+    final visibleMap = Rect.fromCenter(
+      center: scene.center(Offset.zero),
+      width: widget.viewport.width,
+      height: widget.viewport.height,
+    ).deflate(ui.space.xs);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -106,18 +112,6 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                   errorBuilder: (_, _, _) =>
                       ColoredBox(color: ui.colors.background),
                 ),
-                IgnorePointer(
-                  child: CustomPaint(
-                    painter: _ServiceConnections(
-                      storeSite: at(.35, .49),
-                      librarySite: at(.47, .405),
-                      store: store + const Offset(0, 20),
-                      library: library + const Offset(0, 20),
-                      color: UiWorldPalette.mist200,
-                      outlineColor: UiWorldPalette.ink900,
-                    ),
-                  ),
-                ),
                 for (final service in [
                   (
                     store,
@@ -125,6 +119,7 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                     Icons.storefront,
                     widget.onStorePressed,
                     'town-store-marker',
+                    at(.35, .49),
                   ),
                   (
                     library,
@@ -132,19 +127,18 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                     Icons.menu_book,
                     widget.onLibraryPressed,
                     'town-library-marker',
+                    at(.47, .405),
                   ),
                 ])
-                  Positioned(
-                    left: service.$1.dx,
-                    top: service.$1.dy,
-                    child: FractionalTranslation(
-                      translation: const Offset(-.5, -.5),
-                      child: _MapService(
-                        key: ValueKey(service.$5),
-                        label: service.$2,
-                        icon: service.$3,
-                        onPressed: service.$4,
-                      ),
+                  MapCallout(
+                    anchor: service.$6,
+                    labelCenter: service.$1,
+                    visibleMap: visibleMap,
+                    child: _MapService(
+                      key: ValueKey(service.$5),
+                      label: service.$2,
+                      icon: service.$3,
+                      onPressed: service.$4,
                     ),
                   ),
               ],
@@ -216,43 +210,4 @@ class _MapService extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ServiceConnections extends CustomPainter {
-  const _ServiceConnections({
-    required this.storeSite,
-    required this.librarySite,
-    required this.store,
-    required this.library,
-    required this.color,
-    required this.outlineColor,
-  });
-  final Offset storeSite, librarySite, store, library;
-  final Color color, outlineColor;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = outlineColor
-      ..strokeWidth = 3;
-    canvas.drawLine(storeSite, store, paint);
-    canvas.drawLine(librarySite, library, paint);
-    canvas.drawCircle(storeSite, 4, paint);
-    canvas.drawCircle(librarySite, 4, paint);
-    paint
-      ..color = color
-      ..strokeWidth = 1;
-    canvas.drawLine(storeSite, store, paint);
-    canvas.drawLine(librarySite, library, paint);
-    canvas.drawCircle(storeSite, 2.5, paint);
-    canvas.drawCircle(librarySite, 2.5, paint);
-  }
-
-  @override
-  bool shouldRepaint(_ServiceConnections old) =>
-      storeSite != old.storeSite ||
-      librarySite != old.librarySite ||
-      store != old.store ||
-      library != old.library ||
-      color != old.color ||
-      outlineColor != old.outlineColor;
 }

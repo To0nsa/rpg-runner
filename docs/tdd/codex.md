@@ -133,6 +133,12 @@ at 2048 pixels to bound display memory.
 Service anchors use image coordinates: Store `(0.35, 0.49)` in the market
 streets and Library `(0.47, 0.405)` at the northeastern courtyard complex.
 Separate callout lines connect to those anchors and transform with the image.
+`MapCallout` lays out each label before painting its leader. The line finishes
+horizontally at the nearer side of the measured label, leaving the button's
+transparent padding as a small visual gap. Pins above/below a label route around
+its bounds instead of crossing the icon/text. Labels are clamped to the initial
+visible map area; the same geometry handles font loading and enlarged text.
+Only the label receives taps, so the surrounding map remains draggable.
 Compact transparent text buttons use Mist/Ink palette tokens and retain
 minimum touch targets. Pinch zoom remains; only a reset button is shown.
 No bottom instructions or plus/minus controls consume map space.
