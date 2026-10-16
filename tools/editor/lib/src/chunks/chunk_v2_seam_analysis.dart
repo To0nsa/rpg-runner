@@ -102,11 +102,21 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
   collisionExpansionByChunkKey,
   Map<String, String> sourcePathByChunkKey = const <String, String>{},
 }) {
-  final orderedChunks = List<ChunkV2FileData>.of(
-    chunks.where((chunk) => chunk.status == chunkStatusActive),
-  )..sort(_compareChunks);
-  final orderedLevels = List<LevelDef>.of(levels)
+  final orderedLevels = List<LevelDef>.of(
+    levels.where(
+      (level) =>
+          level.status != levelStatusDeprecated || level.includeInBuild,
+    ),
+  )
     ..sort((left, right) => left.levelId.compareTo(right.levelId));
+  final scheduledLevelIds = orderedLevels.map((level) => level.levelId).toSet();
+  final orderedChunks = List<ChunkV2FileData>.of(
+    chunks.where(
+      (chunk) =>
+          chunk.status == chunkStatusActive &&
+          scheduledLevelIds.contains(chunk.levelId),
+    ),
+  )..sort(_compareChunks);
   final issues = <ValidationIssue>[];
   final leftSignatures = <String, ChunkV2BoundarySignature>{};
   final rightSignatures = <String, ChunkV2BoundarySignature>{};

@@ -144,6 +144,11 @@ or Level; exclusion from a report creates a normal pending Level edit. See
 
 ## Terrain elevation and connection controls
 
+Global editor connection readiness schedules active levels, including excluded
+authoring drafts, and any included deprecated level. A deprecated level that is
+also excluded retains its persisted identity but contributes no route or
+connection diagnostics. Chunk source validation still inspects its files.
+
 Level schema v3 adds required `terrainHeightStepPx` (1–32, default 24). Settings
 show Normal/Raised/High guides and existing edges outside the entered presets;
 changes never move authored coordinates. Copy, Undo, source reconciliation and

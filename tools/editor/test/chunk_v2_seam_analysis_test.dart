@@ -16,6 +16,42 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
+  test('retired excluded levels do not enter global connection readiness', () {
+    final live = _chunk('live', difficulty: chunkDifficultyEarly);
+    final retired = _level(
+      early: 1,
+      easy: 0,
+      normal: 0,
+    ).copyWith(levelId: 'new_level', status: levelStatusDeprecated);
+    final activeExcluded = retired.copyWith(status: levelStatusActive);
+
+    ChunkV2SeamAnalysis analyze(LevelDef other) => analyzeChunkV2Seams(
+      chunks: <ChunkV2FileData>[live],
+      levels: <LevelDef>[
+        _level(early: 1, easy: 0, normal: 0),
+        other,
+      ],
+      collisionExpansionByChunkKey: _flatExpansions(<ChunkV2FileData>[live]),
+    );
+
+    final retiredAnalysis = analyze(retired);
+    expect(
+      retiredAnalysis.issues.where((issue) => issue.ownerKey == 'new_level'),
+      isEmpty,
+    );
+    expect(retiredAnalysis.schedules.keys, <String>['forest']);
+
+    final activeAnalysis = analyze(activeExcluded);
+    expect(
+      activeAnalysis.issues.where(
+        (issue) =>
+            issue.ownerKey == 'new_level' &&
+            issue.code == 'terrain_connection_schedule_dead_end',
+      ),
+      isNotEmpty,
+    );
+  });
+
   group('compiled boundary signatures', () {
     test('accepts matching slope endpoints and explicit empty boundaries', () {
       final left = _signature(
