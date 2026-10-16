@@ -293,7 +293,7 @@ void main() {
   });
 
   // These registered fixtures contain unadorned flat terrain at both ground references.
-  for (final levelId in <LevelId>[LevelId.field, LevelId.new_level]) {
+  for (final levelId in <LevelId>[LevelId.field]) {
     test(
       '$levelId authored flat stream stays deterministic over 1800 ticks',
       () {

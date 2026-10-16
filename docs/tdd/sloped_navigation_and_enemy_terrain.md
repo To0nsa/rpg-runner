@@ -1052,8 +1052,9 @@ accept/skip behavior, upright art, and unchanged cast target/timing/facing.
 
 `packages/runner_core/test/navigation/level_enemy_traversal_test.dart` checks
 continuous mobile-enemy pursuit through three complete seeded Forest assemblies,
-before the final section starts repeating, and explicit 32-chunk prefixes of
-Field and `new_level`. The matrix covers each compiled level. Shared support in
+before the final section starts repeating, and an explicit 32-chunk prefix of
+Field. The retired `new_level` identity is excluded; the matrix covers each
+compiled level. Shared support in
 `test/test_support/level_enemy_traversal.dart` inside the Core package takes a
 level definition, seed, terrain catalog and finite route, deriving graph and
 motion tuning from that level rather than a global Forest configuration.

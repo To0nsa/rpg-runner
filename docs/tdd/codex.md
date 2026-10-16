@@ -79,7 +79,8 @@ rewards; Codex needs no independent mutation or refresh endpoint.
 
 `CodexCatalog` holds presentation policy: ten kills for regular enemies,
 five for Core-classified bosses and their nested summon sections, and 10,000
-best Competitive points for each published Forest/Field entry. New authored/development levels do not appear
+best Competitive points for the published `forest` and `field` IDs, displayed as
+The Val Outpost and Field. New authored/development levels do not appear
 automatically. Enemy attack damage composition and resistance values come
 from the current Core catalogs, including secondary damaging attacks sharing
 the archetype's ability namespace. Lore/tactical prose remains UI content.

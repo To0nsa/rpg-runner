@@ -125,7 +125,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('codex-level-new_level')), findsNothing);
       expect(find.text('0 / 10,000'), findsNWidgets(2));
-      await tester.tap(find.text('Forest'));
+      await tester.tap(find.text('The Val Outpost'));
       await tester.pumpAndSettle();
       expect(find.text('Entry locked'), findsOneWidget);
       app.setProgress(CodexProgress(competitiveBestScores: {'forest': 10000}));

@@ -41,8 +41,8 @@
     },
     {
       "levelId": "forest",
-      "revision": 389,
-      "displayName": "Forest",
+      "revision": 390,
+      "displayName": "The Val Outpost",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "boss_bringer_of_death", "boss_shoggoth", "boss_voidborn_goddess", "boss_voidcaller", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
       "firstChunkKey": "forest_default_early_001",
@@ -312,7 +312,7 @@
     },
     {
       "levelId": "new_level",
-      "revision": 1,
+      "revision": 2,
       "displayName": "New Level",
       "visualThemeId": "new_level",
       "chunkThemeGroups": ["default"],
@@ -324,8 +324,8 @@
       "normalPatternChunks": 15,
       "noEnemyChunks": 3,
       "enumOrdinal": 30,
-      "includeInBuild": true,
-      "status": "active"
+      "includeInBuild": false,
+      "status": "deprecated"
     }
   ]
 }

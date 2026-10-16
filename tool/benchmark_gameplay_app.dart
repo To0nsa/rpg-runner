@@ -54,7 +54,6 @@ class _GameplayBenchmarkState extends State<_GameplayBenchmark> {
             (LevelId.forest, 857469563, PlayerCharacterRegistry.eloise),
             (LevelId.forest, 42, PlayerCharacterRegistry.eloise),
             (LevelId.field, 42, PlayerCharacterRegistry.eloise),
-            (LevelId.new_level, 42, PlayerCharacterRegistry.eloise),
             for (final player in PlayerCharacterRegistry.all)
               if (player.id != PlayerCharacterRegistry.eloise.id)
                 (LevelId.forest, 857469563, player),

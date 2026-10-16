@@ -151,7 +151,8 @@ Pop-Location
 
 It exercises actual navigation, movement and collision for Grojib, Hashash,
 twisted Derf and Unoco on seeds `7`, `42`, `2026`: Forest's complete authored
-assembly and the first 32 chunks of Field and `new_level`. Derf's normal-form
+assembly and the first 32 chunks of Field. The retired `new_level` identity is
+excluded from the build. Derf's normal-form
 explosions, first-visibility transformation and tentacle combat have separate
 checks. See [Derf gameplay](docs/gdd/derf.md). Failures report
 the chunk sequence, movement limits and motion trace. Passing requires crossing

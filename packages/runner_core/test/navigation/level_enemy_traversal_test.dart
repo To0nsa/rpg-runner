@@ -10,7 +10,6 @@ import '../test_support/level_enemy_traversal.dart';
 const _scenarios = [
   (levelId: LevelId.forest, chunkCount: null),
   (levelId: LevelId.field, chunkCount: 32),
-  (levelId: LevelId.new_level, chunkCount: 32),
 ];
 const _seeds = [7, 42, 2026];
 // Arena bosses are confined; boss_arena_test covers their actual combat bounds.

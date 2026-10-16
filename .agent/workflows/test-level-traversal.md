@@ -49,9 +49,9 @@ A coverage assertion fails when a compiled level lacks an explicit scenario.
 | --- | --- |
 | Forest | One complete authored assembly, excluding the repeating final section |
 | Field | First 32 production-selected chunks |
-| `new_level` | First 32 production-selected chunks, including its difficulty ramp |
 
-This is 36 seeded pursuit cases. Four flat controls check the harness, and
+The retired `new_level` identity is excluded from the build. This is 24 seeded
+pursuit cases. Four flat controls check the harness, and
 negative controls verify blocked finishes, stall, kill-plane, and total-budget
 failures. Derf traversal starts already transformed, preserving continuous
 movement and actual catalog limits; separate tests cover the caster phase,

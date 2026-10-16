@@ -27,7 +27,6 @@ class LevelRegistry {
   static const Set<LevelId> compiledLevelIds = <LevelId>{
     LevelId.forest,
     LevelId.field,
-    LevelId.new_level,
   };
 
   static bool isAvailable(LevelId id) => compiledLevelIds.contains(id);
@@ -344,19 +343,7 @@ class LevelRegistry {
           ),
         );
       case LevelId.new_level:
-        return LevelDefinition(
-          id: LevelId.new_level,
-          chunkPatternSource: authoredChunkPatternSourceForLevel(
-            LevelId.new_level.name,
-          ),
-          cameraCenterY: 135.0,
-          groundTopY: 224.0,
-          earlyPatternChunks: 3,
-          easyPatternChunks: 10,
-          normalPatternChunks: 15,
-          noEnemyChunks: 3,
-          visualThemeId: 'new_level',
-        );
+        throw LevelUnavailableException(id);
     }
   }
 }

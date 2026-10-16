@@ -28,7 +28,7 @@ class GeneratedLevelUiMetadata {
 const Map<LevelId, GeneratedLevelUiMetadata> generatedLevelUiMetadataById =
     <LevelId, GeneratedLevelUiMetadata>{
   LevelId.forest: GeneratedLevelUiMetadata(
-    displayName: 'Forest',
+    displayName: 'The Val Outpost',
     status: LevelUiStatus.active,
     visualThemeId: 'forest',
     includeInBuild: true,
@@ -41,16 +41,15 @@ const Map<LevelId, GeneratedLevelUiMetadata> generatedLevelUiMetadataById =
   ),
   LevelId.new_level: GeneratedLevelUiMetadata(
     displayName: 'New Level',
-    status: LevelUiStatus.active,
+    status: LevelUiStatus.deprecated,
     visualThemeId: 'new_level',
-    includeInBuild: true,
+    includeInBuild: false,
   ),
 };
 
 const List<LevelId> generatedSelectableLevelIds = <LevelId>[
   LevelId.forest,
   LevelId.field,
-  LevelId.new_level,
 ];
 
 GeneratedLevelUiMetadata generatedLevelUiMetadataFor(LevelId levelId) {

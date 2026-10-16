@@ -538,7 +538,7 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 - Left-side section navigation reuses the main menu's icon column and sizing;
   compact portrait/name cards with progress
   counts inside a trailing bar.
-- Locations: 10,000 points in one Competitive run, separately for Forest and Field.
+- Locations: 10,000 points in one Competitive run, separately for The Val Outpost and Field.
 - Journal: Éloïse's black-sky opening, following the PDF timeline.
 - Account-wide confirmed progress, locked-entry requirements and readable
   discovered entries. See [Codex rules](codex.md) and

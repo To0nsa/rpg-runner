@@ -21,7 +21,7 @@ free to browse; discoveries cannot be purchased.
 | Regular enemy | Defeat that enemy type 10 times | Attacks and damage types, resistances, weaknesses, behaviour and field notes |
 | Boss | Defeat that boss 5 times | The same complete combat and lore entry |
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
-| Forest | Reach 10,000 in one Competitive run on Forest | Forest history and current crisis |
+| The Val Outpost | Reach 10,000 in one Competitive run on The Val Outpost | Forest history and current crisis |
 | Field | Reach 10,000 in one Competitive run on Field | Open-land context and the journey |
 | Éloïse's opening journal | Available immediately | The black sky and the expedition's starting premise |
 

@@ -22,6 +22,13 @@ Two authored files participate in the workflow:
 materials continue to own terrain rendering material data; neither the Level
 workflow nor a Parallax theme gains terrain or gameplay authority.
 
+The `forest` level's player-facing `displayName` is **The Val Outpost**. The
+level ID, `forest` visual theme, authored chunk keys, and persisted run/board
+identities remain separate from that name. The generated UI metadata projects
+the authored display name into level selection, leaderboards, and other UI.
+This Level value edit advances its authored revision from 389 to 390 without
+changing the runtime assembly.
+
 Generated Dart is output and is never an authoring input. In particular,
 `packages/runner_core/lib/levels/level_registry.dart` is not consulted to admit
 the authored Level/Parallax pair or to regenerate the Parallax registry.
@@ -94,6 +101,10 @@ Persisted Level identities cannot be deleted or have their enum ordinals changed
 new identities append above the highest persisted ordinal. Domain commands and
 compound Save validation enforce this baseline contract, including direct
 candidate and installed-source verification, so exclusion cannot recycle a slot.
+The retired `new_level` record keeps ordinal 30 but is deprecated and excluded
+from generated gameplay content. Its authored starter chunks are removed; the
+empty theme record remains because persisted Levels require a valid theme
+reference. Runtime lookup of the reserved ID reports unavailability.
 
 Build inclusion and deprecation are independent. Included deprecated levels
 remain available to exact registered lookup, while only included active levels

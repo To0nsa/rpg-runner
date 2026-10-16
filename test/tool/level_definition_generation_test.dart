@@ -5,11 +5,22 @@ import 'package:runner_core/track/chunk_pattern_tier.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/levels/level_availability.dart';
 import 'package:rpg_runner/ui/levels/level_id_ui.dart';
 
 import '../../tool/level_definition_generation.dart';
 
 void main() {
+  test('retired New Level keeps its identity without playable content', () {
+    expect(LevelId.values, contains(LevelId.new_level));
+    expect(LevelRegistry.isAvailable(LevelId.new_level), isFalse);
+    expect(LevelId.new_level.isSelectableInStandardUi, isFalse);
+    expect(
+      () => LevelRegistry.byId(LevelId.new_level),
+      throwsA(isA<LevelUnavailableException>()),
+    );
+  });
+
   test(
     'repo level_defs bootstrap matches current runtime metadata and enum order',
     () async {
@@ -28,16 +39,24 @@ void main() {
         final authored = byLevelId[levelId.name];
         expect(authored, isNotNull);
 
-        final runtime = LevelRegistry.byId(levelId);
         expect(authored!.displayName, levelId.displayName);
-        expect(authored.visualThemeId, runtime.visualThemeId);
-        expect(authored.cameraCenterY, runtime.cameraCenterY);
-        expect(authored.groundTopY, runtime.groundTopY);
-        expect(authored.earlyPatternChunks, runtime.earlyPatternChunks);
-        expect(authored.easyPatternChunks, runtime.easyPatternChunks);
-        expect(authored.normalPatternChunks, runtime.normalPatternChunks);
-        expect(authored.noEnemyChunks, runtime.noEnemyChunks);
-        expect(authored.firstChunkKey, runtime.firstChunkKey);
+        expect(LevelRegistry.isAvailable(levelId), authored.includeInBuild);
+        if (authored.includeInBuild) {
+          final runtime = LevelRegistry.byId(levelId);
+          expect(authored.visualThemeId, runtime.visualThemeId);
+          expect(authored.cameraCenterY, runtime.cameraCenterY);
+          expect(authored.groundTopY, runtime.groundTopY);
+          expect(authored.earlyPatternChunks, runtime.earlyPatternChunks);
+          expect(authored.easyPatternChunks, runtime.easyPatternChunks);
+          expect(authored.normalPatternChunks, runtime.normalPatternChunks);
+          expect(authored.noEnemyChunks, runtime.noEnemyChunks);
+          expect(authored.firstChunkKey, runtime.firstChunkKey);
+        } else {
+          expect(
+            () => LevelRegistry.byId(levelId),
+            throwsA(isA<LevelUnavailableException>()),
+          );
+        }
       }
 
       final authoredEnumOrder = result.levels.toList(growable: false)

@@ -5,6 +5,7 @@ import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/levels/level_id.dart';
 
+import '../levels/level_id_ui.dart';
 import '../state/ownership/codex_progress.dart';
 
 /// Presentation and discovery policy; combat values stay in Core's catalogs.
@@ -132,8 +133,7 @@ abstract final class CodexCatalog {
       '${type.name[0].toUpperCase()}${type.name.substring(1)}';
 
   static String levelName(LevelId id) => switch (id) {
-    LevelId.forest => 'Forest',
-    LevelId.field => 'Field',
+    LevelId.forest || LevelId.field => id.displayName,
     _ => throw ArgumentError.value(id, 'id', 'No published Codex entry'),
   };
 

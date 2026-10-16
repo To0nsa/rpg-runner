@@ -1,5 +1,13 @@
 # Level composition
 
+The player-facing name of the `forest` level is **The Val Outpost**. Its route
+still uses forest, grove, ruin and camp content; this name does not change the
+authored assembly or its setting. Authored revision 390 changes this name only.
+
+`New Level` (`new_level`) is retired. It is deprecated and excluded from the
+build, and its two starter chunks have been removed. Its persisted identity and
+ordinal remain reserved so old run and replay references cannot be reassigned.
+
 The `2026.09.9` Forest content revision removes ten ambient enemy placements:
 four in early chunks, one in an easy chunk and five in normal chunks. Authored
 sources and generated runtime content carry this revision together.
@@ -17,7 +25,7 @@ placements and generated collision/sprite records ship together to the client
 and replay worker; scoring rules remain unchanged.
 
 The hard chunk catalog was seeded with copies of all 24 normal chunks across
-Field, Forest and New Level, with distinct chunk keys and hard difficulty.
+Field, Forest and the since-retired New Level, with distinct chunk keys and hard difficulty.
 The original normal chunks remain available for normal sections. Subsequent
 authoring revisions change hard layouts independently. Rocky Grove's hard pool
 contains nine layouts; its three older hard layouts have been removed.
