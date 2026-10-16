@@ -38,7 +38,9 @@ void main() {
                   ),
                 )
               : ancientGodTestCore(EnemyId.voidbornGoddess, hz: hz);
-          final ground = authored ? 224.0 : 222.0;
+          final ground =
+              (authored ? forest : LevelRegistry.byId(LevelId.field))
+                  .groundTopY;
           final hands = <SpellImpactEvent>[];
           double? cornerX;
           Vec2? destination;
