@@ -74,7 +74,16 @@ void main() {
     expect(find.byType(MapLabelButton), findsNWidgets(2));
     expect(find.byKey(const ValueKey('codex-level-forest')), findsOneWidget);
     expect(find.byKey(const ValueKey('codex-level-field')), findsOneWidget);
-    expect(find.text('Veymeringen'), findsOneWidget);
+    expect(find.text('Théodonis'), findsOneWidget);
+    for (final label in [
+      'Quartier Est',
+      'Hagen',
+      'Veymeringen',
+      'Mont aux Étoiles',
+      'Vosga',
+    ]) {
+      expect(find.text(label), findsNothing);
+    }
   });
 
   testWidgets('one defeat reveals the idle frame before unlocking Bestiary', (

@@ -54,12 +54,13 @@ the Library is closed or another section is shown. On an unlock, the count
 changes to "Open" when the fill reaches the requirement. The same increase
 does not replay; already presented unlocked bars show "Open" immediately on
 later visits. Unlocked cards show an idle enemy portrait and name.
-Locations show an unlabelled map of the Théodonis region with Flutter labels
-for its landmarks. Léonards’ farm and Val Outpost have clickable map labels and
-markers. Their icons show locked or open status; tapping either opens a modal
-with the current Competitive best score and discovery requirement, or the full
-location lore after unlock. The map can be panned and zoomed, with a reset
-control. Locked/discovered status remains available to screen readers. Opening
+Locations show an unlabelled map of the Théodonis region. Only Théodonis and
+the two discoverable locations have Flutter labels. Léonards’ farm and Val
+Outpost have clickable map labels and markers. Their icons show locked or open
+status; tapping either opens a modal with the current Competitive best score
+and discovery requirement, or the full location lore after unlock. The map can
+be panned and zoomed, with a reset control. Locked/discovered status remains
+available to screen readers. Opening
 a locked Bestiary entry also conceals the enemy name. Locked entries omit
 validation boilerplate; locked Locations describe their history gate without
 promising other context. There are no partial purchases or additional

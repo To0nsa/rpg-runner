@@ -137,32 +137,6 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                     text: 'Théodonis',
                     width: 160,
                   ),
-                  _MapLabel(
-                    center: at(.35, .035),
-                    text: 'Quartier Est',
-                    width: 170,
-                  ),
-                  _MapLabel(center: at(.31, .43), text: 'Hagen', width: 100),
-                  _MapLabel(
-                    center: at(.39, .545),
-                    text: 'Veymeringen',
-                    width: 180,
-                  ),
-                  _MapLabel(
-                    center: at(.77, .78),
-                    text: 'Mont aux Étoiles',
-                    width: 220,
-                  ),
-                  Positioned(
-                    left: scene.width * .2 - 20,
-                    top: scene.height * .36,
-                    child: const IgnorePointer(
-                      child: RotatedBox(
-                        quarterTurns: 1,
-                        child: _MapText('Vosga', size: 20),
-                      ),
-                    ),
-                  ),
                   for (final place in [
                     (LevelId.field, at(.34, .145), at(.43, .22)),
                     (LevelId.forest, at(.80, .595), at(.68, .52)),

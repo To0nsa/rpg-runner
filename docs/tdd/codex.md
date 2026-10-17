@@ -123,7 +123,7 @@ and accessibility semantics use canonical progress throughout the animation.
 Locations read the canonical Competitive best score directly, including while
 a modal is open. The supplied regional JPEG remains untouched; an unlabelled
 derivative is registered as a Flutter asset. `LocationMap` composes that image
-with Flutter landmark labels and two interactive targets at normalized map
+with a Théodonis label and two interactive targets at normalized map
 coordinates. It uses `InteractiveViewer`, the Town map's `MapCallout`, and the
 shared unframed `MapLabelButton` for pan, zoom and anchored labels. The initial
 framing keeps both locations visible; portrait view fits the full map. The
