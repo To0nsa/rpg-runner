@@ -39,9 +39,8 @@ import 'package:replay_validator/src/validated_replay_archiver.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
-  // These seeds place the rescue after the three safe chunks and before gaps.
-  // Their approaches include the authored rock obstacles.
-  for (final fixture in [(15, 60), (250, 60), (15, 30), (250, 30)]) {
+  // These routes reach the rescue after Field's three safe chunks.
+  for (final fixture in [(182, 60), (235, 60), (182, 30), (235, 30)]) {
     test('authored rescue survives normal scrolling and replays $fixture', () async {
       final (seed, tickHz) = fixture;
       final loadout = {

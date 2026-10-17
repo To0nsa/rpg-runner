@@ -20,8 +20,9 @@ void main() {
   test(
     'prepared and cold stream publications preserve the same world',
     () async {
+      // The opening route stays supported through this fixture's 330 ticks.
       GameCore build() => GameCore(
-        seed: 9127,
+        seed: 1,
         levelDefinition: LevelRegistry.byId(LevelId.field)
             .copyWith(noEnemyChunks: 9999),
         playerCharacter: PlayerCharacterRegistry.eloise,

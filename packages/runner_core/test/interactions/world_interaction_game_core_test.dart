@@ -88,8 +88,9 @@ void main() {
   });
 
   test('falling onto the Field pot grants one blessing and Holy impact', () {
+    // This seed loads the authored pot in the initial streamed window.
     final core = GameCore(
-      seed: 1,
+      seed: 16,
       levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
         noEnemyChunks: 9999,
         tuning: const CoreTuning(camera: CameraTuning(speedLagMulX: 0)),

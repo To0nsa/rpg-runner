@@ -107,7 +107,7 @@ void main() {
     _runDeterministicLevelScript(a, b);
   });
 
-  test('field loops an early chunk and seven distinct easy chunks at 224', () {
+  test('field loops an early chunk and nine distinct easy chunks at 224', () {
     final level = LevelRegistry.byId(LevelId.field);
     expect(level.groundTopY, 224);
     expect(level.noEnemyChunks, 3);
@@ -118,13 +118,13 @@ void main() {
     );
     for (final seed in [7, 42, 2026]) {
       final keys = [
-        for (var index = 0; index < 16; index++)
+        for (var index = 0; index < 20; index++)
           source.explainSelection(seed: seed, chunkIndex: index).chunk.chunkKey,
       ];
-      for (final offset in [0, 8]) {
+      for (final offset in [0, 10]) {
         expect(keys[offset], 'field_default_early_001');
-        expect(keys.sublist(offset + 1, offset + 8).toSet(), {
-          for (var i = 1; i <= 7; i++) 'field_default_easy_00$i',
+        expect(keys.sublist(offset + 1, offset + 10).toSet(), {
+          for (var i = 1; i <= 9; i++) 'field_default_easy_00$i',
         });
       }
     }
