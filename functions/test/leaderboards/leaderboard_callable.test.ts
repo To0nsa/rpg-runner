@@ -32,6 +32,7 @@ const db = getFirestore(app);
 beforeEach(async () => {
   await Promise.all([
     clearCollection(db, "leaderboard_boards"),
+    clearCollection(db, "ownership_profiles"),
   ]);
 });
 
@@ -198,6 +199,32 @@ test("load board returns ranked top entries from player_bests", async () => {
   assert.equal(topEntries[2]?.uid, "uid_3");
   assert.equal(topEntries[2]?.rank, 3);
   assert.equal(topEntries[0]?.ghostAvailable, false);
+});
+
+test("board reads show current account levels, including older bests", async () => {
+  await seedBoardWithEntries(db);
+  const ownershipRef = db.collection("ownership_profiles").doc("uid_1__main");
+  await ownershipRef.set({
+    uid: "uid_1",
+    profileId: "main",
+    progression: { playerProgress: { schemaVersion: 1, totalXp: 100 } },
+  });
+
+  const request = {
+    auth: { uid: "uid_1" },
+    data: {
+      userId: "uid_1",
+      sessionId: "session_1",
+      boardId: "board_competitive_1",
+    },
+  };
+  const first = await handleLeaderboardLoadBoard(request, db);
+  assert.equal(first.board.topEntries[0]?.playerLevel, 2);
+  assert.equal(first.board.topEntries[1]?.playerLevel, undefined);
+
+  await ownershipRef.update({ "progression.playerProgress.totalXp": 224 });
+  const next = await handleLeaderboardLoadBoard(request, db);
+  assert.equal(next.board.topEntries[0]?.playerLevel, 3);
 });
 
 test("load board exposes published ghost availability from the top10 view", async () => {

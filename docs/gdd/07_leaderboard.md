@@ -128,6 +128,8 @@ Score and its breakdown are computed deterministically from run stats.
 ### 5.2 Privacy
 - `displayName` must be safe (length cap, profanity filter later).
 - Avoid exposing raw `playerId`; keep it opaque.
+- Competitive and Weekly rows show the player's current account level beside
+  the display name. Level is informational and does not affect ranking.
 
 ---
 

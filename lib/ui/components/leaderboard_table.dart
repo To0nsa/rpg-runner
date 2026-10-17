@@ -13,6 +13,7 @@ class LeaderboardTable extends StatelessWidget {
     this.showHeader = true,
     this.inset = true,
     this.scrollable = false,
+    this.showPlayerLevelColumn = false,
     this.trailingHeaderLabel,
     this.trailingBuilder,
     this.trailingColumnWidth = 84,
@@ -24,6 +25,7 @@ class LeaderboardTable extends StatelessWidget {
   final bool showHeader;
   final bool inset;
   final bool scrollable;
+  final bool showPlayerLevelColumn;
   final String? trailingHeaderLabel;
   final Widget Function(BuildContext context, int rank, RunResult entry)?
   trailingBuilder;
@@ -31,6 +33,9 @@ class LeaderboardTable extends StatelessWidget {
 
   bool get _showDisplayNameColumn =>
       entries.any((entry) => (entry.displayName ?? '').trim().isNotEmpty);
+
+  bool get _showPlayerLevelColumn =>
+      _showDisplayNameColumn && showPlayerLevelColumn;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +48,7 @@ class LeaderboardTable extends StatelessWidget {
         _LeaderboardHeaderRow(
           spec: spec,
           showDisplayNameColumn: _showDisplayNameColumn,
+          showPlayerLevelColumn: _showPlayerLevelColumn,
           trailingHeaderLabel: trailingHeaderLabel,
           trailingColumnWidth: trailingColumnWidth,
         ),
@@ -64,6 +70,7 @@ class LeaderboardTable extends StatelessWidget {
           hideScore:
               hideScoreForRunId != null && entry.runId == hideScoreForRunId,
           showDisplayNameColumn: _showDisplayNameColumn,
+          showPlayerLevelColumn: _showPlayerLevelColumn,
           trailingChild: trailingBuilder?.call(context, rank, entry),
           trailingColumnWidth: trailingColumnWidth,
         ),
@@ -93,12 +100,14 @@ class _LeaderboardHeaderRow extends StatelessWidget {
   const _LeaderboardHeaderRow({
     required this.spec,
     required this.showDisplayNameColumn,
+    required this.showPlayerLevelColumn,
     required this.trailingHeaderLabel,
     required this.trailingColumnWidth,
   });
 
   final UiLeaderboardSpec spec;
   final bool showDisplayNameColumn;
+  final bool showPlayerLevelColumn;
   final String? trailingHeaderLabel;
   final double trailingColumnWidth;
 
@@ -118,8 +127,15 @@ class _LeaderboardHeaderRow extends StatelessWidget {
         cell('#Rank', spec.columns.rank, TextAlign.left),
         if (showDisplayNameColumn)
           SizedBox(
-            width: _playerNameColumnWidth,
+            width: showPlayerLevelColumn
+                ? _playerNameColumnWidthWithLevel
+                : _playerNameColumnWidth,
             child: Text('Name', style: style, textAlign: TextAlign.left),
+          ),
+        if (showPlayerLevelColumn)
+          SizedBox(
+            width: _playerLevelColumnWidth,
+            child: Text('Lvl', style: style, textAlign: TextAlign.center),
           ),
         cell('Score', spec.columns.score, TextAlign.right),
         cell('Distance', spec.columns.distance, TextAlign.right),
@@ -159,6 +175,7 @@ class _LeaderboardRow extends StatelessWidget {
     required this.highlight,
     required this.hideScore,
     required this.showDisplayNameColumn,
+    required this.showPlayerLevelColumn,
     required this.trailingChild,
     required this.trailingColumnWidth,
   });
@@ -169,6 +186,7 @@ class _LeaderboardRow extends StatelessWidget {
   final bool highlight;
   final bool hideScore;
   final bool showDisplayNameColumn;
+  final bool showPlayerLevelColumn;
   final Widget? trailingChild;
   final double trailingColumnWidth;
 
@@ -196,7 +214,9 @@ class _LeaderboardRow extends StatelessWidget {
         ),
         if (showDisplayNameColumn)
           SizedBox(
-            width: _playerNameColumnWidth,
+            width: showPlayerLevelColumn
+                ? _playerNameColumnWidthWithLevel
+                : _playerNameColumnWidth,
             child: Text(
               (entry.displayName ?? '').trim().isEmpty
                   ? 'Unknown'
@@ -205,6 +225,15 @@ class _LeaderboardRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.left,
+            ),
+          ),
+        if (showPlayerLevelColumn)
+          SizedBox(
+            width: _playerLevelColumnWidth,
+            child: Text(
+              entry.playerLevel?.toString() ?? '—',
+              style: style,
+              textAlign: TextAlign.center,
             ),
           ),
         _LeaderboardColumnCell(
@@ -250,6 +279,8 @@ class _LeaderboardRow extends StatelessWidget {
 }
 
 const double _playerNameColumnWidth = 132;
+const double _playerNameColumnWidthWithLevel = 104;
+const double _playerLevelColumnWidth = 32;
 
 String _formatTime(int totalSeconds) {
   final minutes = totalSeconds ~/ 60;

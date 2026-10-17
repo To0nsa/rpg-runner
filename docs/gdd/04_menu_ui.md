@@ -436,7 +436,7 @@ Provide a dedicated, full-page experience to browse **Competitive/Weekly leaderb
 - **Leaderboard list**
   - Show **Top 10** always, on one page (no pagination for top 10).
   - Also show **Your rank** pinned at the bottom, even if you are outside top 10.
-  - Each row shows: rank, player name, score, time, (optional) character icon.
+  - Each online row shows: rank, player name, current account level (`Lvl`), score, distance, time, and ghost action. If level is temporarily unavailable, show a dash.
   - Each Top-10 row has a **ghost affordance**:
     - `Race` button OR row tap opens a side panel with ghost details.
 - **Ghost details panel (right-side drawer in landscape)**

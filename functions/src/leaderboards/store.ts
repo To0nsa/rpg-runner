@@ -2,6 +2,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import type { DocumentSnapshot, Firestore } from "firebase-admin/firestore";
 
 import type { JsonObject } from "../ownership/contracts.js";
+import { playerLevelFromTotalXp } from "../ownership/player_progress.js";
 
 const leaderboardBoardsCollection = "leaderboard_boards";
 const playerBestsCollection = "player_bests";
@@ -42,7 +43,7 @@ export async function loadLeaderboardBoard(args: {
     .get();
   const top10FromView = decodeTop10View(top10ViewSnap, args.boardId);
   if (top10FromView) {
-    return top10FromView;
+    return withCurrentPlayerLevels(args.db, top10FromView);
   }
 
   const topEntriesSnap = await boardRef
@@ -53,11 +54,11 @@ export async function loadLeaderboardBoard(args: {
   const entries = topEntriesSnap.docs.map((doc, index) =>
     decodeLeaderboardEntry(doc.data(), doc.id, index + 1),
   );
-  return {
+  return withCurrentPlayerLevels(args.db, {
     boardId: args.boardId,
     topEntries: entries,
     updatedAtMs: Date.now(),
-  };
+  });
 }
 
 export async function loadLeaderboardMyRank(args: {
@@ -148,6 +149,7 @@ export async function loadLeaderboardBoardWithMyRank(args: {
       updatedAtMs: Date.now(),
     };
   }
+  board = await withCurrentPlayerLevels(args.db, board);
 
   const totalPlayers = Number(totalPlayersCount.data().count ?? 0);
   if (!playerBestSnap.exists) {
@@ -186,6 +188,45 @@ export async function loadLeaderboardBoardWithMyRank(args: {
       rank,
       totalPlayers,
     },
+  };
+}
+
+async function withCurrentPlayerLevels(
+  db: Firestore,
+  board: LeaderboardBoardResult,
+): Promise<LeaderboardBoardResult> {
+  const uids = [...new Set(board.topEntries.map((entry) => String(entry.uid)))];
+  const levels = new Map(await Promise.all(uids.map(async (uid) => {
+    try {
+      const profiles = await db.collection("ownership_profiles")
+        .where("uid", "==", uid).limit(2).get();
+      if (profiles.size !== 1) return [uid, null] as const;
+      const progression = profiles.docs[0]?.data().progression;
+      if (!progression || typeof progression !== "object") {
+        return [uid, null] as const;
+      }
+      const progress = (progression as Record<string, unknown>).playerProgress;
+      if (!progress || typeof progress !== "object") {
+        return [uid, null] as const;
+      }
+      const value = progress as Record<string, unknown>;
+      const xp = value.totalXp;
+      if (value.schemaVersion !== 1 || typeof xp !== "number" ||
+          !Number.isSafeInteger(xp) || xp < 0) {
+        return [uid, null] as const;
+      }
+      return [uid, playerLevelFromTotalXp(xp)] as const;
+    } catch {
+      // Optional decoration must not prevent the ranked board from loading.
+      return [uid, null] as const;
+    }
+  })));
+  return {
+    ...board,
+    topEntries: board.topEntries.map((entry) => {
+      const level = levels.get(String(entry.uid));
+      return level == null ? entry : { ...entry, playerLevel: level };
+    }),
   };
 }
 

@@ -50,6 +50,9 @@ void main() {
     await tester.tap(find.text('COMPETITIVE'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Lvl'), findsOneWidget);
+    expect(find.text('7'), findsOneWidget);
+
     await tester.tap(find.byTooltip('Race this ghost.').first);
     await tester.pumpAndSettle();
 
@@ -300,6 +303,7 @@ class _StaticLeaderboardApi implements LeaderboardApi {
           runSessionId: 'ghost_run_1',
           uid: 'u_top',
           displayName: 'Top Runner',
+          playerLevel: 7,
           characterId: 'eloise',
           score: 1234,
           distanceMeters: 456,

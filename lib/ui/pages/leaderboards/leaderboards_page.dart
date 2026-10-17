@@ -449,6 +449,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                   : LeaderboardTable(
                       entries: entries,
                       scrollable: true,
+                      showPlayerLevelColumn: true,
                       trailingHeaderLabel: 'VS Ghost',
                       trailingBuilder: (context, rank, _) {
                         final source = topEntries[rank - 1];
@@ -548,6 +549,7 @@ List<RunResult> _toRunResults(List<LeaderboardEntry> entries) {
       durationSeconds: entry.durationSeconds,
       tick: entry.durationSeconds * 60,
       displayName: entry.displayName,
+      playerLevel: entry.playerLevel,
     );
   }, growable: false);
 }

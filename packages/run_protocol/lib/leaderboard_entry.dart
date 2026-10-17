@@ -8,6 +8,7 @@ final class LeaderboardEntry {
     required this.runSessionId,
     required this.uid,
     required this.displayName,
+    this.playerLevel,
     required this.characterId,
     required this.score,
     required this.distanceMeters,
@@ -26,6 +27,13 @@ final class LeaderboardEntry {
     _requireNonEmpty(runSessionId, 'runSessionId');
     _requireNonEmpty(uid, 'uid');
     _requireNonEmpty(displayName, 'displayName');
+    if (playerLevel != null && (playerLevel! < 1 || playerLevel! > 30)) {
+      throw ArgumentError.value(
+        playerLevel,
+        'playerLevel',
+        'must be 1 through 30',
+      );
+    }
     _requireNonEmpty(characterId, 'characterId');
     _requireNonEmpty(sortKey, 'sortKey');
     if (score < 0 ||
@@ -66,6 +74,10 @@ final class LeaderboardEntry {
   final String runSessionId;
   final String uid;
   final String displayName;
+
+  /// Current account level on a callable leaderboard response. Persisted bests
+  /// may omit it because level changes independently of the best run.
+  final int? playerLevel;
   final String characterId;
   final int score;
   final int distanceMeters;
@@ -97,6 +109,7 @@ final class LeaderboardEntry {
       'runSessionId': runSessionId,
       'uid': uid,
       'displayName': displayName,
+      if (playerLevel != null) 'playerLevel': playerLevel,
       'characterId': characterId,
       'score': score,
       'distanceMeters': distanceMeters,
@@ -121,6 +134,7 @@ final class LeaderboardEntry {
       runSessionId: readRequiredString(json, 'runSessionId'),
       uid: readRequiredString(json, 'uid'),
       displayName: readRequiredString(json, 'displayName'),
+      playerLevel: _readPlayerLevel(json),
       characterId: readRequiredString(json, 'characterId'),
       score: readRequiredInt(json, 'score'),
       distanceMeters: readRequiredInt(json, 'distanceMeters'),
@@ -143,5 +157,13 @@ final class LeaderboardEntry {
     if (value.isEmpty) {
       throw ArgumentError.value(value, name, 'must be non-empty');
     }
+  }
+
+  static int? _readPlayerLevel(Map<String, Object?> json) {
+    final level = readOptionalInt(json, 'playerLevel');
+    if (level != null && (level < 1 || level > 30)) {
+      throw const FormatException('playerLevel must be 1 through 30.');
+    }
+    return level;
   }
 }

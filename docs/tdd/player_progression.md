@@ -67,6 +67,15 @@ updates both Profile and Hub. Library enemy gates read
 Neither the Library nor Profile stores a second kill count.
 Developer Practice shows no hub XP bar and cannot settle progress.
 
+Online Competitive and Weekly leaderboard reads add an optional `playerLevel`
+to each returned top entry. The Functions reader looks up each entry's current
+canonical `ownership_profiles.progression.playerProgress.totalXp` and applies
+the same rounded thresholds as the client. Stored player bests and Top-10 views
+do not copy account level because XP can change without a new best run. Missing
+or unreadable progression omits `playerLevel`; the board still loads and the UI
+shows a dash. The field is display-only and does not enter sorting, replay
+validation, or the materialized Top-10 revision.
+
 The hub captures lifetime XP when Run is pressed. When its route becomes current
 again, `PlayerLevelBar` animates that visual value toward canonical
 `ProgressionState.playerProgress.totalXp`; later canonical increases continue

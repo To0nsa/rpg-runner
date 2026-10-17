@@ -14,6 +14,7 @@ class RunResult {
     required this.durationSeconds,
     required this.tick,
     this.displayName,
+    this.playerLevel,
     this.rescuedNpcs = 0,
     this.rescuePoints = 0,
   });
@@ -26,6 +27,7 @@ class RunResult {
   final int durationSeconds;
   final int tick;
   final String? displayName;
+  final int? playerLevel;
   final int rescuedNpcs;
   final int rescuePoints;
 
@@ -39,6 +41,7 @@ class RunResult {
       durationSeconds: durationSeconds,
       tick: tick,
       displayName: displayName ?? this.displayName,
+      playerLevel: playerLevel,
       rescuedNpcs: rescuedNpcs,
       rescuePoints: rescuePoints,
     );
@@ -53,6 +56,7 @@ class RunResult {
     'durationSeconds': durationSeconds,
     'tick': tick,
     'displayName': displayName,
+    if (playerLevel != null) 'playerLevel': playerLevel,
     'rescuedNpcs': rescuedNpcs,
     'rescuePoints': rescuePoints,
   };
@@ -69,6 +73,7 @@ class RunResult {
       durationSeconds: json['durationSeconds'] as int? ?? 0,
       tick: json['tick'] as int? ?? 0,
       displayName: json['displayName'] as String?,
+      playerLevel: json['playerLevel'] as int?,
       rescuedNpcs: json['rescuedNpcs'] as int? ?? 0,
       rescuePoints: json['rescuePoints'] as int? ?? 0,
     );
