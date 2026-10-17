@@ -174,6 +174,10 @@ Reuse re-reads the original Cloud Build status and immutable image result.
 Rebuild deliberately submits another image. The strict 36,000-tick benchmark of
 the final container remains required for coordinated release; it is inexpensive
 and is not removed by this optimization.
+Cloud Build allows 7,200 seconds for image preparation and the strict benchmark.
+The expanded navigation pack exceeded the previous 3,600-second window before
+image publication, so this limit covers preparation without relaxing the
+benchmark or any runtime resource gate.
 
 ## Scoped deployment
 

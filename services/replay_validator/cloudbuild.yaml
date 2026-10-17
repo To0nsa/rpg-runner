@@ -1,5 +1,5 @@
 # Includes offline navigation preparation and the exact final-image benchmark.
-timeout: 3600s
+timeout: 7200s
 steps:
   - name: gcr.io/cloud-builders/docker
     args:
