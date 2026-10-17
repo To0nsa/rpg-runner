@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../codex/codex_catalog.dart';
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_inline_edit_text.dart';
@@ -298,11 +297,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 SizedBox(height: ui.space.md),
-                _ProfileCardPanel(
-                  width: double.infinity,
-                  child: _buildRunBreakdown(progression.playerProgress),
-                ),
-                SizedBox(height: ui.space.md),
                 if (_shouldShowPlayGamesUpgrade(authSession)) ...[
                   _buildPlayGamesUpgradeCard(),
                   SizedBox(height: ui.space.md),
@@ -396,47 +390,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String _hp(int hundredths) => '${(hundredths / 100).round()} HP';
-
-  Widget _buildRunBreakdown(PlayerProgress progress) {
-    final ui = context.ui;
-    final levels = progress.runsByLevel.keys.toList()..sort();
-    return Material(
-      type: MaterialType.transparency,
-      child: ExpansionTile(
-        title: Text('Runs by level', style: ui.text.headline),
-        childrenPadding: EdgeInsets.only(bottom: ui.space.sm),
-        children: levels.isEmpty
-            ? [Text('No runs recorded by level yet.', style: ui.text.body)]
-            : [
-                for (final level in levels) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(_levelLabel(level), style: ui.text.title),
-                  ),
-                  _statRow(
-                    'Practice',
-                    '${progress.runsByLevel[level]!['practice']}',
-                  ),
-                  _statRow(
-                    'Competitive',
-                    '${progress.runsByLevel[level]!['competitive']}',
-                  ),
-                  _statRow(
-                    'Weekly',
-                    '${progress.runsByLevel[level]!['weekly']}',
-                  ),
-                ],
-              ],
-      ),
-    );
-  }
-
-  String _levelLabel(String raw) {
-    for (final level in CodexCatalog.levelScoreRequirements.keys) {
-      if (level.name == raw) return CodexCatalog.levelName(level);
-    }
-    return raw.replaceAll('_', ' ');
-  }
 
   Widget _buildDangerZoneCard() {
     final ui = context.ui;

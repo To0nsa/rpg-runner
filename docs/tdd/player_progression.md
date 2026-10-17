@@ -35,11 +35,10 @@ adds `floor(score / 100)` XP, one run and both damage totals. The
 `runsByLevel` map records the accepted run under its server-issued level and
 mode in the same transaction. Existing accounts with a version 1 total but no
 map retain the historical `acceptedRuns` total; those runs have no invented
-level or mode breakdown. The Profile derives its mode totals from the map.
-Its separate collapsed Runs by level section reads the same map, including
-Weekly counts, without persisting any second total.
-The separate
-`progression.enemyDefeats.byEnemy` map owns each enemy's lifetime defeat count.
+level or mode breakdown. The Profile derives its Practice and Competitive
+totals from the map without displaying the per-level breakdown or persisting
+a second total. The separate `progression.enemyDefeats.byEnemy` map owns each
+enemy's lifetime defeat count.
 The existing `ValidatedRun.codex` field carries replay-derived per-enemy
 evidence for compatibility, while `progression.codex` version 2 keeps only
 Competitive best scores.

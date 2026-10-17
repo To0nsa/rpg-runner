@@ -130,13 +130,8 @@ void main() {
     expect(find.text('Competitive runs played'), findsOneWidget);
     expect(find.text('128 HP'), findsOneWidget);
     expect(find.text('11 HP'), findsOneWidget);
-    expect(find.text('Runs by level'), findsOneWidget);
+    expect(find.text('Runs by level'), findsNothing);
     expect(find.text('Weekly'), findsNothing);
-    await tester.ensureVisible(find.text('Runs by level'));
-    await tester.tap(find.text('Runs by level'));
-    await tester.pumpAndSettle();
-    expect(find.text('The Val Outpost'), findsOneWidget);
-    expect(find.text('Weekly'), findsOneWidget);
   });
 
   testWidgets('hides Play Games upgrade action for non-anonymous account', (

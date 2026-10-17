@@ -19,9 +19,9 @@ validation finishes after the player returns, the bar fills when that XP
 arrives. The Profile page repeats the bar and shows lifetime XP, Practice runs
 played, Competitive runs played, enemies defeated, damage dealt and damage
 taken.
-The separate, collapsed Runs by level section shows Practice, Competitive and
-Weekly counts for each recorded level. Historical runs without a recorded mode
-remain in the account's accepted-run total but do not appear in the mode rows.
+Per-level run counts remain in account progress but are not shown on Profile.
+Historical runs without a recorded mode remain in the account's accepted-run
+total but do not appear in the displayed mode totals.
 
 - Enemies defeated is the sum of the account's shared per-enemy defeat counts,
   including boss summons. Library discovery gates use those same counts.
