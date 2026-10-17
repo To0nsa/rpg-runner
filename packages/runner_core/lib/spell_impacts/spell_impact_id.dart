@@ -10,4 +10,5 @@ enum SpellImpactId {
   goddessEruption,
   voidVerticalBeam,
   voidDiagonalBeam,
+  holyShrineBlessing,
 }

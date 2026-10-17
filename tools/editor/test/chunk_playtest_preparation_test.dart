@@ -701,6 +701,10 @@ void main() {
       scenario: full,
       patterns: [full.draftPattern],
     );
+    expect(
+      keys,
+      contains('assets/images/entities/effects/blessings/holy_01_impact.png'),
+    );
     for (final key in keys) {
       expect(
         (await result.assetBundle!.load(key)).lengthInBytes,

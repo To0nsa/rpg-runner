@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_005",
   "id": "forest_rocky_grove_hard_005",
-  "revision": 23,
+  "revision": 24,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -26,7 +26,7 @@
       "prefabId": "woods_rock_01",
       "prefabKey": "woods_rock_01",
       "x": 161,
-      "y": 120,
+      "y": 116,
       "zIndex": 0,
       "snapToGrid": false,
       "scale": 1.5

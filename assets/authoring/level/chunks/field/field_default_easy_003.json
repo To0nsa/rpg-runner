@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_default_easy_003",
   "id": "field_default_easy_003",
-  "revision": 22,
+  "revision": 38,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -14,28 +14,37 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_ground_platform_02_64x64_platform",
-      "prefabKey": "tiny_swords_ground_platform_02_64x64_platform",
-      "x": 289,
-      "y": 114,
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 382,
+      "y": 102,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
-      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
-      "x": 418,
-      "y": 132,
+      "prefabId": "tiny_swords_ground_platform_02_64x64_platform",
+      "prefabKey": "tiny_swords_ground_platform_02_64x64_platform",
+      "x": 261,
+      "y": 144,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
       "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
-      "x": 172,
-      "y": 151,
+      "x": 162,
+      "y": 167,
       "zIndex": 0,
       "snapToGrid": false
+    },
+    {
+      "prefabId": "country_village_market_01",
+      "prefabKey": "country_village_market_01",
+      "x": 448,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
     }
   ],
   "markers": [],

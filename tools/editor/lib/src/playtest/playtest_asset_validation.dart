@@ -4,6 +4,8 @@ import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/traps/trap_catalog.dart';
 import 'package:runner_core/interactions/world_interaction_catalog.dart';
 import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/spell_impacts/spell_impact_render_catalog.dart';
 import 'package:runner_core/traps/trap_id.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
@@ -49,7 +51,7 @@ Future<List<PlaytestPreparationIssue>> validateCapturedPlaytestAssets({
       );
     }
   }
-  for (final id in WorldInteractionId.values) {
+  for (final id in WorldInteractionAppearanceId.values) {
     final def = WorldInteractionRenderCatalog.get(id);
     for (final path in def.assetPaths) {
       final key = 'assets/images/$path';
@@ -65,6 +67,25 @@ Future<List<PlaytestPreparationIssue>> validateCapturedPlaytestAssets({
           ),
         );
       }
+    }
+  }
+  for (final id in WorldInteractionId.values) {
+    final effectId = WorldInteractionDefinition.get(id).grantEffectId;
+    final impact = const SpellImpactRenderCatalog().get(effectId);
+    final path = impact.sourcesByKey[AnimKey.hit]!;
+    final key = 'assets/images/$path';
+    final size = dimensions[key];
+    if (size == null ||
+        size.width <
+            impact.frameWidth * impact.frameCountsByKey[AnimKey.hit]! ||
+        size.height < impact.frameHeight) {
+      issues.add(
+        PlaytestPreparationIssue(
+          code: 'playtest_interaction_art_invalid',
+          sourcePath: key,
+          message: 'Blessing impact requires every complete frame.',
+        ),
+      );
     }
   }
   final catalog = decodeTerrainMaterialCatalog(

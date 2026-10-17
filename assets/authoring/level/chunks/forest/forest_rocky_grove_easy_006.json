@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_easy_006",
   "id": "forest_rocky_grove_easy_006",
-  "revision": 40,
+  "revision": 45,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -24,8 +24,8 @@
     {
       "prefabId": "pixel_fantasy_caves_small_rock_06",
       "prefabKey": "pixel_fantasy_caves_small_rock_06",
-      "x": 516,
-      "y": 128,
+      "x": 519,
+      "y": 129,
       "zIndex": 0,
       "snapToGrid": false,
       "scale": 1.5
@@ -57,7 +57,7 @@
     {
       "prefabId": "cimetery_bush_01",
       "prefabKey": "cimetery_bush_01",
-      "x": 528,
+      "x": 512,
       "y": 192,
       "zIndex": 0,
       "snapToGrid": true,

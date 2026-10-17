@@ -264,6 +264,9 @@ final class ContentBuildService extends ChangeNotifier {
                     relative.startsWith(
                       'assets/images/entities/effects/world_interactions/',
                     ) ||
+                    relative.startsWith(
+                      'assets/images/entities/effects/blessings/',
+                    ) ||
                     relative.startsWith('assets/images/parallax/')) &&
                 relative.endsWith('.png')) ||
             ((relative.startsWith('tool/') ||

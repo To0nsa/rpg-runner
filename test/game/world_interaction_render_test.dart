@@ -32,12 +32,13 @@ void main() {
     );
     await tester.pumpWidget(GameWidget(game: game));
     await tester.runAsync(() => game.loaded);
-    const id = WorldInteractionId.regenerationShrine;
+    const id = WorldInteractionAppearanceId.emberFlame;
     final def = WorldInteractionRenderCatalog.get(id);
     WorldInteractionSnapshot snapshot({bool active = true, int elapsed = 0}) =>
         WorldInteractionSnapshot(
           instanceId: '2:shrine',
-          interactionId: id,
+          interactionId: WorldInteractionId.regenerationShrine,
+          appearanceId: id,
           x: 60,
           y: 60,
           scale: 1,
@@ -90,6 +91,56 @@ void main() {
       game.world.children.whereType<SpriteComponent>().single.sprite,
       same(registry.frame(id, 3)),
     );
+    views.sync(
+      [
+        const WorldInteractionSnapshot(
+          instanceId: '3:field',
+          interactionId: WorldInteractionId.regenerationShrine,
+          appearanceId: WorldInteractionAppearanceId.blueFlame,
+          x: 60,
+          y: 60,
+          scale: 1.2,
+          zIndex: 1,
+          active: true,
+          elapsedTicks: 0,
+        ),
+      ],
+      tickHz: 60,
+      cameraCenter: Vector2.zero(),
+    );
+    await tester.pump();
+    game.update(0);
+    final blue = game.world.children.whereType<SpriteComponent>().single;
+    expect(
+      blue.sprite,
+      same(registry.frame(WorldInteractionAppearanceId.blueFlame, 0)),
+    );
+    expect(blue.paint.colorFilter, isNotNull);
+    expect(blue.size.x, closeTo(24.12, 0.001));
+    expect(blue.position, Vector2(60, 61));
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    blue.renderTree(canvas);
+    final picture = recorder.endRecording();
+    await tester.runAsync(() async {
+      final rendered = await picture.toImage(128, 128);
+      final pixels = (await rendered.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      var bluePixels = 0;
+      for (var pixel = 0; pixel < 128 * 128; pixel++) {
+        final offset = pixel * 4;
+        if (pixels.getUint8(offset + 3) == 0) continue;
+        expect(
+          pixels.getUint8(offset + 2),
+          greaterThan(pixels.getUint8(offset)),
+        );
+        bluePixels++;
+      }
+      expect(bluePixels, greaterThan(0));
+      rendered.dispose();
+    });
+    picture.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
     images.clearCache();
   });
@@ -144,6 +195,7 @@ void main() {
           WorldInteractionSnapshot(
             instanceId: shrine.instanceId,
             interactionId: shrine.interactionId,
+            appearanceId: shrine.appearanceId,
             x: shrine.x,
             y: shrine.y,
             scale: shrine.scale,
@@ -184,10 +236,10 @@ void main() {
     final images = Images();
     await registry.load(images);
     final def = WorldInteractionRenderCatalog.get(
-      WorldInteractionId.regenerationShrine,
+      WorldInteractionAppearanceId.emberFlame,
     );
     for (var i = 0; i < 4; i++) {
-      final sprite = registry.frame(WorldInteractionId.regenerationShrine, i);
+      final sprite = registry.frame(WorldInteractionAppearanceId.emberFlame, i);
       final bytes = (await sprite.image.toByteData())!;
       var opaque = 0;
       for (var y = 0; y < sprite.image.height; y++) {
@@ -213,7 +265,7 @@ void main() {
       ..drawColor(const ui.Color(0xff19232d), ui.BlendMode.src);
     for (var i = 0; i < 4; i++) {
       registry
-          .frame(WorldInteractionId.regenerationShrine, i)
+          .frame(WorldInteractionAppearanceId.emberFlame, i)
           .render(
             canvas,
             position: Vector2(15 + i * 70, 10),

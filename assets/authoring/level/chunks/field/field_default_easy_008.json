@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "field_default_easy_008",
+  "id": "field_default_easy_008",
+  "revision": 31,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "mondstadt_tree_01",
+      "prefabKey": "mondstadt_tree_01",
+      "x": 479,
+      "y": 131,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "woods_statue_01",
+      "prefabKey": "woods_statue_01",
+      "x": 236,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "gandalf_hardcore_high_garden_pot_02",
+      "prefabKey": "gandalf_hardcore_high_garden_pot_02",
+      "x": 426,
+      "y": 188,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.2
+    },
+    {
+      "prefabId": "pixel_fantasy_caves_small_rock_02",
+      "prefabKey": "pixel_fantasy_caves_small_rock_02",
+      "x": 96,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "fantasy_environment_grass_01",
+      "prefabKey": "fantasy_environment_grass_01",
+      "x": 71,
+      "y": 216,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_grass_01",
+      "prefabKey": "fantasy_environment_grass_01",
+      "x": 122,
+      "y": 216,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 264,
+          "y": 224
+        },
+        {
+          "x": 264,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 359,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 359,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ],
+  "waterRegions": [
+    {
+      "id": "water_1",
+      "x": 264,
+      "y": 224,
+      "width": 95,
+      "height": 46,
+      "materialKey": "biome_water"
+    }
+  ]
+}

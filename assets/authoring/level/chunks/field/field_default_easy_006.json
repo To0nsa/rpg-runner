@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_default_easy_006",
   "id": "field_default_easy_006",
-  "revision": 58,
+  "revision": 89,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -14,20 +14,13 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "tiny_swords_tree_02",
-      "prefabKey": "tiny_swords_tree_02",
-      "x": 205,
-      "y": 136,
+      "prefabId": "summer_scroller_tileset_tree_01",
+      "prefabKey": "summer_scroller_tileset_tree_01",
+      "x": 470,
+      "y": 141,
       "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabId": "tiny_swords_tree_01",
-      "prefabKey": "tiny_swords_tree_01",
-      "x": 440,
-      "y": 153,
-      "zIndex": 0,
-      "snapToGrid": false
+      "snapToGrid": false,
+      "scale": 1.8
     },
     {
       "prefabId": "tiny_swords_sunflower_01",
@@ -78,6 +71,22 @@
       "snapToGrid": false
     },
     {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 132,
+      "y": 193,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 180,
+      "y": 193,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
       "prefabId": "tiny_swords_sunflower_01",
       "prefabKey": "tiny_swords_sunflower_01",
       "x": 93,
@@ -86,18 +95,51 @@
       "snapToGrid": false
     },
     {
-      "prefabId": "high_forest_bush_02",
-      "prefabKey": "high_forest_bush_02",
-      "x": 197,
-      "y": 201,
+      "prefabId": "tiny_swords_sunflower_01",
+      "prefabKey": "tiny_swords_sunflower_01",
+      "x": 144,
+      "y": 194,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
-      "prefabId": "high_forest_bush_02",
-      "prefabKey": "high_forest_bush_02",
-      "x": 532,
-      "y": 201,
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 155,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_01",
+      "prefabKey": "tiny_swords_sunflower_01",
+      "x": 169,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 191,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_sunflower_02",
+      "prefabKey": "tiny_swords_sunflower_02",
+      "x": 202,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "summer_scroller_tileset_bush_05",
+      "prefabKey": "summer_scroller_tileset_bush_05",
+      "x": 448,
+      "y": 203,
       "zIndex": 0,
       "snapToGrid": false
     }

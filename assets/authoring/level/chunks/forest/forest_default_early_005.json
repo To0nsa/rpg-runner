@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_default_early_005",
   "id": "forest_default_early_005",
-  "revision": 86,
+  "revision": 89,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -16,8 +16,8 @@
     {
       "prefabId": "fantasy_environment_mushrooms_02",
       "prefabKey": "fantasy_environment_mushrooms_02",
-      "x": 66,
-      "y": 216,
+      "x": 69,
+      "y": 218,
       "zIndex": -1,
       "snapToGrid": false
     },
@@ -56,8 +56,8 @@
     {
       "prefabId": "fantasy_environment_mushrooms_01",
       "prefabKey": "fantasy_environment_mushrooms_01",
-      "x": 64,
-      "y": 215,
+      "x": 58,
+      "y": 216,
       "zIndex": 0,
       "snapToGrid": false
     },
@@ -73,7 +73,7 @@
       "prefabId": "gandalf_hardcore_tall_grass_01",
       "prefabKey": "gandalf_hardcore_tall_grass_01",
       "x": 68,
-      "y": 220,
+      "y": 222,
       "zIndex": 0,
       "snapToGrid": false,
       "scale": 0.3

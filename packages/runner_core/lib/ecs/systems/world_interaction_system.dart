@@ -1,4 +1,6 @@
+import '../../events/game_event.dart';
 import '../../interactions/world_interaction_catalog.dart';
+import '../../spell_impacts/player_followed_impact.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -14,6 +16,7 @@ final class WorldInteractionSystem {
     required EntityId player,
     required int tick,
     required int? geometryVersion,
+    required void Function(GameEvent) emit,
   }) {
     final hi = world.health.tryIndexOf(player);
     if (hi == null ||
@@ -42,12 +45,23 @@ final class WorldInteractionSystem {
             contact.supportPointXTicks[ci] >= state.leftTicks &&
             contact.supportPointXTicks[ci] <= state.rightTicks) {
           world.interactions.activate(state, tick);
-          world.levelBlessings.grant(
+          final definition = WorldInteractionDefinition.get(
+            state.binding.interactionId,
+          );
+          final granted = world.levelBlessings.grant(
             player,
-            WorldInteractionDefinition.get(state.binding.interactionId)
-                .blessing,
+            definition.blessing,
             tick: tick,
           );
+          if (granted) {
+            final effect = playerFollowedImpact(
+              world,
+              player: player,
+              tick: tick,
+              impactId: definition.grantEffectId,
+            );
+            if (effect != null) emit(effect);
+          }
         }
       }
       final activated = state.activationTick;

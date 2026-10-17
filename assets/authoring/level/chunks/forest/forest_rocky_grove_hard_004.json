@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_hard_004",
   "id": "forest_rocky_grove_hard_004",
-  "revision": 31,
+  "revision": 33,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -24,8 +24,8 @@
     {
       "prefabId": "pixel_fantasy_caves_small_rock_01",
       "prefabKey": "pixel_fantasy_caves_small_rock_01",
-      "x": 97,
-      "y": 140,
+      "x": 101,
+      "y": 129,
       "zIndex": 0,
       "snapToGrid": false,
       "scale": 1.2

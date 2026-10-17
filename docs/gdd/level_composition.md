@@ -1,8 +1,8 @@
 # Level composition
 
-The player-facing name of the `forest` level is **The Val Outpost**. Its route
-still uses forest, grove, ruin and camp content; this name does not change the
-authored assembly or its setting. Authored revision 390 changes this name only.
+The player-facing names are **Val Outpost** for `forest` and **Léonards’ farm**
+for `field`. Their stable level IDs and authored routes are unchanged by these
+names. The `forest` route still uses forest, grove, ruin and camp content.
 
 `New Level` (`new_level`) is retired. It is deprecated and excluded from the
 build, and its two starter chunks have been removed. Its persisted identity and

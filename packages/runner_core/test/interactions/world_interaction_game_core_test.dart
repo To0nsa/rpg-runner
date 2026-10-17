@@ -1,5 +1,13 @@
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/game_core.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/spell_impacts/spell_impact_id.dart';
+import 'package:runner_core/tuning/camera_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:test/test.dart';
 
 import '../test_support/world_interaction_run_fixture.dart';
@@ -77,5 +85,41 @@ void main() {
       }
     }
     expect(landed, isTrue);
+  });
+
+  test('falling onto the Field pot grants one blessing and Holy impact', () {
+    final core = GameCore(
+      seed: 1,
+      levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(
+        noEnemyChunks: 9999,
+        tuning: const CoreTuning(camera: CameraTuning(speedLagMulX: 0)),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      equippedLoadoutOverride: const EquippedLoadoutDef(),
+    );
+    final pot = core.buildSnapshot().interactions.single;
+    core.setPlayerPosXYUnsafeForTest(pot.x, pot.y - 80);
+    final impacts = <SpellImpactEvent>[];
+    for (var tick = 1; tick <= 180; tick++) {
+      core.applyCommands(const []);
+      core.stepOneTick();
+      impacts.addAll(core.drainEvents().whereType<SpellImpactEvent>());
+      if (core.buildSnapshot().hud.blessings.isNotEmpty) break;
+    }
+    final support = core.buildTerrainPlayerDebugSnapshot()!;
+    expect(support.grounded, isTrue);
+    expect(support.supportPointYTicks, 176 * 1024);
+    expect(
+      support.supportEdgeId!.placementKey,
+      contains('gandalf_hardcore_high_garden_pot_02'),
+    );
+    expect(core.buildSnapshot().interactions.single.active, isTrue);
+    expect(core.buildSnapshot().hud.blessings, hasLength(1));
+    expect(
+      impacts.where(
+        (event) => event.impactId == SpellImpactId.holyShrineBlessing,
+      ),
+      hasLength(1),
+    );
   });
 }

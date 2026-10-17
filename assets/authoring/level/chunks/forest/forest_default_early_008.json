@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_default_early_008",
   "id": "forest_default_early_008",
-  "revision": 57,
+  "revision": 62,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -13,6 +13,15 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [
+    {
+      "prefabId": "pixel_fantasy_caves_tree_02",
+      "prefabKey": "pixel_fantasy_caves_tree_02",
+      "x": 296,
+      "y": 31,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 2.5
+    },
     {
       "prefabId": "tiny_swords_cimetery_statue_05",
       "prefabKey": "tiny_swords_cimetery_statue_05",

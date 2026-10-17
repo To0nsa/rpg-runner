@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flame/components.dart';
 import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
 import 'package:runner_core/snapshots/world_interaction_snapshot.dart';
@@ -23,9 +25,9 @@ final class WorldInteractionRenderSystem {
     for (final interaction in interactions) {
       if (!interaction.active) continue;
       seen.add(interaction.instanceId);
-      final def = WorldInteractionRenderCatalog.get(interaction.interactionId);
+      final def = WorldInteractionRenderCatalog.get(interaction.appearanceId);
       final sprite = registry.frame(
-        interaction.interactionId,
+        interaction.appearanceId,
         def.frameAtTick(interaction.elapsedTicks, tickHz),
       );
       final view = _views.putIfAbsent(interaction.instanceId, () {
@@ -35,6 +37,9 @@ final class WorldInteractionRenderSystem {
             def.anchor.y / def.source.height,
           ),
         );
+        if (def.colorMatrix case final matrix?) {
+          component.paint.colorFilter = ui.ColorFilter.matrix(matrix);
+        }
         world.add(component);
         return component;
       });

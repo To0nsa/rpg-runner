@@ -5,8 +5,11 @@ import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/systems/resource_regen_system.dart';
 import 'package:runner_core/ecs/systems/world_interaction_system.dart';
 import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/interactions/level_blessing.dart';
 import 'package:runner_core/interactions/world_interaction_catalog.dart';
+import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
+import 'package:runner_core/spell_impacts/spell_impact_id.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:runner_core/track/staged_terrain_catalog.dart';
 import 'package:runner_core/track/track_streamer.dart';
@@ -19,12 +22,66 @@ void main() {
       f.world.interactions.synchronize([
         _chunk(0, key: binding.chunkKey),
       ], f.catalog);
-      expect(f.world.interactions.states, hasLength(1));
+      final state = f.world.interactions.states.single;
+      expect(state.binding.key, binding.key);
+      expect(state.binding.appearanceId, binding.appearanceId);
+      final flame = WorldInteractionRenderCatalog.get(binding.appearanceId);
+      expect(
+        flame.source.width * flame.worldScale * state.scale,
+        lessThanOrEqualTo((state.rightTicks - state.leftTicks) / 1024),
+      );
+      if (binding.key == 'forest_regeneration_vasque') {
+        expect(state.leftTicks, 222 * 1024);
+        expect(state.rightTicks, 257 * 1024);
+        expect(state.topTicks, 160 * 1024);
+      } else {
+        expect(state.leftTicks, 414 * 1024);
+        expect(state.rightTicks / 1024, closeTo(439.2, 0.01));
+        expect(state.topTicks, 176 * 1024);
+      }
     }
-    final state = f.world.interactions.states.single;
-    expect(state.leftTicks, 222 * 1024);
-    expect(state.rightTicks, 257 * 1024);
-    expect(state.topTicks, 160 * 1024);
+  });
+
+  test('Field pot lights separately but shares the nonstacking blessing', () {
+    final f = _Fixture();
+    f.world.interactions.synchronize([
+      _chunk(0),
+      _chunk(1, key: 'field_default_easy_008'),
+    ], f.catalog);
+    f.support(tick: 1);
+    f.step(1);
+    f.support(tick: 2, stateIndex: 1);
+    f.step(2);
+
+    final states = f.world.interactions.states;
+    expect(states.map((state) => state.activationTick), [1, 2]);
+    expect(
+      states[1].binding.appearanceId,
+      WorldInteractionAppearanceId.blueFlame,
+    );
+    expect(f.world.levelBlessings.healthRegen100.single, 10);
+    final impacts = f.events.whereType<SpellImpactEvent>().toList();
+    expect(impacts, hasLength(1));
+    expect(impacts.single.impactId, SpellImpactId.holyShrineBlessing);
+    expect(impacts.single.followEntityId, f.player);
+    expect(impacts.single.tick, 1);
+    expect(f.world.levelBlessings.snapshots(f.player).single.grantedAtTick, 1);
+    final blue = f.world.interactions.buildSnapshots().last;
+    expect(blue.appearanceId, WorldInteractionAppearanceId.blueFlame);
+    expect(blue.active, isTrue);
+  });
+
+  test('Field pot grants the blessing impact when it is contacted first', () {
+    final f = _Fixture();
+    f.world.interactions.synchronize([
+      _chunk(0, key: 'field_default_easy_008'),
+    ], f.catalog);
+    f.support(tick: 1);
+    f.step(1);
+    final impact = f.events.whereType<SpellImpactEvent>().single;
+    expect(impact.impactId, SpellImpactId.holyShrineBlessing);
+    expect(impact.followEntityId, f.player);
+    expect(f.world.levelBlessings.snapshots(f.player), hasLength(1));
   });
 
   for (final invalid in [
@@ -83,6 +140,7 @@ void main() {
     f.step(3);
     expect(f.world.levelBlessings.snapshots(f.player).single.grantedAtTick, 2);
     expect(f.world.levelBlessings.healthRegen100.single, 10);
+    expect(f.events.whereType<SpellImpactEvent>(), hasLength(1));
   });
 
   for (final hz in [30, 60, 120]) {
@@ -169,6 +227,7 @@ void main() {
               prefabKey: 'missing',
               shapeId: 'collision_001',
               interactionId: WorldInteractionId.regenerationShrine,
+              appearanceId: WorldInteractionAppearanceId.emberFlame,
             ),
           ],
         ),
@@ -208,11 +267,13 @@ class _Fixture {
       const StaminaDef(stamina: 5000, staminaMax: 10000, regenPerSecond100: 0),
     );
     world.terrainContact.add(player);
+    world.transform.add(player, posX: 240, posY: 160, velX: 0, velY: 0);
     world.interactions.synchronize([_chunk(0)], catalog);
   }
   final world = EcsWorld();
   late final player = world.createEntity();
   final catalog = StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain);
+  final events = <GameEvent>[];
 
   void support({required int tick, int? entity, int stateIndex = 0}) {
     final state = world.interactions.states[stateIndex];
@@ -238,5 +299,6 @@ class _Fixture {
     player: player,
     tick: tick,
     geometryVersion: 1,
+    emit: events.add,
   );
 }

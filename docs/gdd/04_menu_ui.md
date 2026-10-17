@@ -538,7 +538,7 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 - Left-side section navigation reuses the main menu's icon column and sizing;
   compact portrait/name cards with progress
   counts inside a trailing bar.
-- Locations: 10,000 points in one Competitive run, separately for The Val Outpost and Field.
+- Locations: 10,000 points in one Competitive run, separately for Val Outpost and Léonards’ farm.
 - Journal: Éloïse's backstory through the moment the sky darkens, following
   the PDF timeline and leaving later events unrevealed.
 - Account-wide confirmed progress, locked-entry requirements and readable

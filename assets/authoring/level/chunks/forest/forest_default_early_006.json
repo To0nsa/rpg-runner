@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_default_early_006",
   "id": "forest_default_early_006",
-  "revision": 39,
+  "revision": 47,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -32,24 +32,24 @@
     {
       "prefabId": "pixel_fantasy_caves_small_rock_02",
       "prefabKey": "pixel_fantasy_caves_small_rock_02",
-      "x": 478,
-      "y": 203,
+      "x": 486,
+      "y": 192,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "crystal_world_pink_moss_11",
       "prefabKey": "crystal_world_pink_moss_11",
-      "x": 442,
-      "y": 228,
+      "x": 445,
+      "y": 218,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "dark_forest_green_moss_01",
       "prefabKey": "dark_forest_green_moss_01",
-      "x": 410,
-      "y": 233,
+      "x": 419,
+      "y": 222,
       "zIndex": 0,
       "snapToGrid": false,
       "flipX": true
@@ -57,16 +57,16 @@
     {
       "prefabId": "dark_forest_green_moss_02",
       "prefabKey": "dark_forest_green_moss_02",
-      "x": 467,
-      "y": 234,
+      "x": 466,
+      "y": 223,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "dark_forest_green_moss_01",
       "prefabKey": "dark_forest_green_moss_01",
-      "x": 552,
-      "y": 234,
+      "x": 554,
+      "y": 223,
       "zIndex": 0,
       "snapToGrid": false
     }

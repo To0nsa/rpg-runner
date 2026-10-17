@@ -85,6 +85,16 @@ void main() {
       expect(anim.frames.last.sprite.srcPosition, Vector2(720, 0));
       expect(entry.animSet.anchorFor(AnimKey.hit), Anchor.bottomCenter);
       expect(entry.renderScale, Vector2.all(2));
+      expect(
+        registry.assetPaths,
+        contains('entities/effects/blessings/holy_01_impact.png'),
+      );
+      final shrine = registry.entryFor(SpellImpactId.holyShrineBlessing)!;
+      final shrineFrames = shrine.animSet.animations[AnimKey.hit]!.frames;
+      expect(shrineFrames, hasLength(7));
+      expect(shrineFrames.last.sprite.srcPosition, Vector2(192, 0));
+      expect(shrine.animSet.anchorFor(AnimKey.hit), Anchor.bottomCenter);
+      expect(shrine.renderScale, Vector2.all(2));
       var pos = const Vec2(120, 224);
       final component = CameraSpaceSnappedSpriteAnimation(
         animation: anim,

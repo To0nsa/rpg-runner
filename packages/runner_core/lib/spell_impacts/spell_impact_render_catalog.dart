@@ -84,6 +84,18 @@ class SpellImpactRenderCatalog {
           frameCountsByKey: {AnimKey.hit: 16},
           stepTimeSecondsByKey: {AnimKey.hit: .05},
         );
+      case SpellImpactId.holyShrineBlessing:
+        return const RenderAnimSetDefinition(
+          frameWidth: 32,
+          frameHeight: 32,
+          anchorPoint: Vec2(16, 32),
+          sourcesByKey: {
+            AnimKey.hit: 'entities/effects/blessings/holy_01_impact.png',
+          },
+          gridColumnsByKey: {AnimKey.hit: 7},
+          frameCountsByKey: {AnimKey.hit: 7},
+          stepTimeSecondsByKey: {AnimKey.hit: .07},
+        );
     }
   }
 }

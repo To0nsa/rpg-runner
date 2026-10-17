@@ -123,7 +123,8 @@ final class WorldInteractionStore {
                 old.leftTicks != candidate.leftTicks ||
                 old.rightTicks != candidate.rightTicks ||
                 old.topTicks != candidate.topTicks ||
-                old.binding.interactionId != binding.interactionId)) {
+                old.binding.interactionId != binding.interactionId ||
+                old.binding.appearanceId != binding.appearanceId)) {
           throw StateError('An active interaction cannot change within a run.');
         }
         next.add(old ?? candidate);
@@ -147,6 +148,7 @@ final class WorldInteractionStore {
       WorldInteractionSnapshot(
         instanceId: state.instanceId,
         interactionId: state.binding.interactionId,
+        appearanceId: state.binding.appearanceId,
         x:
             (state.leftTicks + state.rightTicks) /
             (2 * terrainPhysicsTicksPerWorldUnit),

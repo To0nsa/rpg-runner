@@ -159,7 +159,7 @@ abstract final class CodexCatalog {
       'Open land is part of what Lothringen must struggle to preserve. '
           'Beyond its settlements, a journey depends on exposed routes and '
           'the ability to keep moving when safety falls behind.\n\n'
-          'The Field presents that pressure in open terrain. Distance provides '
+          'Léonards’ farm presents that pressure in open terrain. Distance provides '
           'time to read what lies ahead, but reaching further still requires '
           'care with resources, obstacles and enemies. In Éloïse’s time, '
           'the region’s struggle with the cult is still unfolding.',

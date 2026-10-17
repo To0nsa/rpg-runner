@@ -7,6 +7,7 @@ final class WorldInteractionSnapshot {
   const WorldInteractionSnapshot({
     required this.instanceId,
     required this.interactionId,
+    required this.appearanceId,
     required this.x,
     required this.y,
     required this.scale,
@@ -17,6 +18,7 @@ final class WorldInteractionSnapshot {
 
   final String instanceId;
   final WorldInteractionId interactionId;
+  final WorldInteractionAppearanceId appearanceId;
 
   /// World-space midpoint of the activation surface, in world units.
   final double x, y;

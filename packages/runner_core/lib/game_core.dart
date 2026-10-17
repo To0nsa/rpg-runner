@@ -2218,6 +2218,7 @@ class GameCore {
       player: _player,
       tick: tick,
       geometryVersion: _worldMotionAuthority.terrainGeometryVersion,
+      emit: _events.add,
     );
     _resourceRegenSystem.step(_world);
 

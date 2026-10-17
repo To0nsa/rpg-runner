@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_enchanted_forest_early_001",
   "id": "forest_enchanted_forest_early_001",
-  "revision": 107,
+  "revision": 109,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -38,22 +38,22 @@
       "snapToGrid": false
     },
     {
+      "prefabId": "rune_rocks_mossy_rock_16",
+      "prefabKey": "rune_rocks_mossy_rock_16",
+      "x": 64,
+      "y": 198,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.7,
+      "flipX": true
+    },
+    {
       "prefabId": "fantasy_environment_green_crystal_04",
       "prefabKey": "fantasy_environment_green_crystal_04",
       "x": 232,
       "y": 200,
       "zIndex": 0,
       "snapToGrid": false
-    },
-    {
-      "prefabId": "rune_rocks_mossy_rock_16",
-      "prefabKey": "rune_rocks_mossy_rock_16",
-      "x": 76,
-      "y": 202,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 1.7,
-      "flipX": true
     },
     {
       "prefabId": "crystal_world_crystal_world_pink_flower_06",

@@ -637,6 +637,15 @@ content alter deterministic replay inputs. Existing tickets retain their
 original version and cannot be replayed against this catalog; the ranked
 rules, score, ghost, replay, and command formats are unchanged.
 
+Prepared gameplay compatibility `2026.10.17` adds the bound regeneration
+shrine in Field's `field_default_easy_008` to the regenerated authored
+catalog. Both Forest and Field shrines use the same persistent, nonstacking
+blessing and emit Holy VFX 01 Impact only on the first grant. Appearance is
+placement-specific in snapshots; it does not affect collision or reward math.
+The new Field content and grant outcomes require matching client, Functions,
+and replay-worker versions. Replay, command, ruleset, score, and ghost formats
+remain unchanged.
+
 Rescue encounters ship as game compatibility `2026.09.8` and scoring `score-v2`.
 The subsequent Forest spawn revision uses gameplay `2026.09.9`; removing enemy
 placements changes deterministic replay outcomes and requires matching client

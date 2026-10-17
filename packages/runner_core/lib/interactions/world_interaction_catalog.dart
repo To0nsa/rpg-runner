@@ -1,16 +1,26 @@
+import '../spell_impacts/spell_impact_id.dart';
 import 'level_blessing.dart';
 
 enum WorldInteractionId { regenerationShrine }
 
+/// Appearance is selected by the authored placement, independently of the
+/// gameplay preset shared by shrines in different levels.
+enum WorldInteractionAppearanceId { emberFlame, blueFlame }
+
 /// Reusable top-contact behavior, separate from the prefab providing collision.
 /// Activations are player-only, once per occurrence, and persist for the attempt.
 final class WorldInteractionDefinition {
-  const WorldInteractionDefinition({required this.blessing});
+  const WorldInteractionDefinition({
+    required this.blessing,
+    required this.grantEffectId,
+  });
   final LevelBlessingId blessing;
+  final SpellImpactId grantEffectId;
 
   static WorldInteractionDefinition get(WorldInteractionId id) => switch (id) {
     WorldInteractionId.regenerationShrine => const WorldInteractionDefinition(
       blessing: LevelBlessingId.regeneration,
+      grantEffectId: SpellImpactId.holyShrineBlessing,
     ),
   };
 }
@@ -27,6 +37,7 @@ final class WorldInteractionBinding {
     required this.prefabKey,
     required this.shapeId,
     required this.interactionId,
+    required this.appearanceId,
     this.placementKey,
     this.zIndex = 1,
   });
@@ -37,6 +48,7 @@ final class WorldInteractionBinding {
   final String shapeId;
   final String? placementKey;
   final WorldInteractionId interactionId;
+  final WorldInteractionAppearanceId appearanceId;
 
   /// Depth relative to terrain, on the same scale as static prefab snapshots.
   final int zIndex;
@@ -52,6 +64,15 @@ abstract final class WorldInteractionCatalog {
       prefabKey: 'tiny_swords_fire_vasque_01',
       shapeId: 'collision_001',
       interactionId: WorldInteractionId.regenerationShrine,
+      appearanceId: WorldInteractionAppearanceId.emberFlame,
+    ),
+    WorldInteractionBinding(
+      key: 'field_regeneration_pot',
+      chunkKey: 'field_default_easy_008',
+      prefabKey: 'gandalf_hardcore_high_garden_pot_02',
+      shapeId: 'collision_001',
+      interactionId: WorldInteractionId.regenerationShrine,
+      appearanceId: WorldInteractionAppearanceId.blueFlame,
     ),
   ];
 }

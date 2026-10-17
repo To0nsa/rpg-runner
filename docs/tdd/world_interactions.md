@@ -1,17 +1,19 @@
 # World interactions
 
 World interactions are deterministic, player-only top-contact activations.
-The first preset grants a level regeneration blessing and displays a looping
-fire on the Forest vasque. Gameplay is in `runner_core`; Flame and the HUD
+The regeneration preset grants a level blessing and displays a looping fire
+on the bound prefab. Gameplay is in `runner_core`; Flame and the HUD
 consume immutable snapshots. Traps keep their existing attack/cooldown policy.
 
 ## Manual authoring
 
 `packages/runner_core/lib/interactions/world_interaction_catalog.dart` is the
 manual attachment catalog. Each record identifies a chunk, prefab key, collision
-shape, interaction preset, stable binding key, and visual depth relative to
-terrain. The shipped record selects `tiny_swords_fire_vasque_01` /
-`collision_001` in `forest_default_early_008`.
+shape, interaction preset, appearance, stable binding key, and visual depth
+relative to terrain. The Forest record selects `tiny_swords_fire_vasque_01` /
+`collision_001` in `forest_default_early_008`; the Field record selects
+`gandalf_hardcore_high_garden_pot_02` / `collision_001` in
+`field_default_easy_008`. Both grant the same nonstacking regeneration blessing.
 
 Without an exact `placementKey`, one matching prefab/shape must exist in the
 chunk's admitted placement lineage. This follows ordinary editor moves and
@@ -65,8 +67,9 @@ effect is never written to a profile, ticket, loadout, or account persistence.
 
 ## Rendering and assets
 
-`GameStateSnapshot.interactions` contains occurrence identity, active state,
-surface position, scale, depth, and simulation elapsed ticks. The renderer can
+`GameStateSnapshot.interactions` contains occurrence identity, interaction and
+appearance IDs, active state, surface position, scale, depth, and simulation
+elapsed ticks. The renderer can
 mount an already-lit occurrence without an activation event. It samples the
 four-frame loop at 10 frames/second using integer tick arithmetic; renderer
 elapsed time has no authority and pause/death freeze retain the last frame.
@@ -74,16 +77,29 @@ elapsed time has no authority and pause/death freeze retain the last frame.
 `WorldInteractionRenderCatalog` defines a shared `(586,586,134,156)` source crop
 and `(67,154)` pivot for all four supplied Fogo frames. Their bytes are preserved
 under `assets/images/entities/effects/world_interactions/fire_01.png` through
-`fire_04.png`. Display scale is 0.2 times prefab scale; the base sits one world
-unit below the top surface. This retains source alignment and all opaque pixels.
+`fire_04.png`. The Forest flame renders at 0.2 times prefab scale; the Field
+flame renders at 0.15 times prefab scale with an RGBA transform that maps the
+orange edge and yellow core to blue and pale cyan without duplicating images.
+The base sits one world unit below the top surface. This retains source
+alignment and all opaque pixels.
 The registry validates image bounds, joins the run-owned awaited registry loading,
 and uses the existing camera-space pixel snapping and prefab depth scale.
 
-Captured editor Play includes all four exact images, rejects missing/corrupt or
-undersized frames, and the editor build watcher fingerprints this asset folder.
+Captured editor Play includes the four exact flame images and the blessing
+impact strip, rejects missing/corrupt or undersized frames, and the editor
+build watcher fingerprints both asset folders.
 HUD blessing snapshots retain grant ticks: the initial two-second message and
 persistent indicator use simulation time, so pause and remount do not create
 timers or duplicate gameplay effects.
+
+On the first grant of the regeneration blessing, Core emits one
+`SpellImpactEvent` with `SpellImpactId.holyShrineBlessing`. The impact uses the
+seven 32x32 frames from `Holy VFX 01 Impact.png`, copied byte-for-byte to
+`assets/images/entities/effects/blessings/holy_01_impact.png`. The existing
+spell-impact registry plays it at the player's collider feet, follows player
+movement, and samples animation from Core ticks. A second shrine can light
+independently but cannot replay the grant effect while this blessing is active.
+Both shrine and boss triggers share the followed-player impact anchor helper.
 
 The [boss victory blessing](boss_arenas.md#victory-blessing) shares the Dames de
 la forêt attribution but has separate state: current local tuning refills each
@@ -94,11 +110,13 @@ It neither grants nor replaces this shrine's persistent regeneration modifier.
 ## Compatibility and checks
 
 Game compatibility `2026.10.4` introduced equal flat regeneration bonuses of
-0.10 health, mana, and stamina per second. Current `2026.10.8` source retains
-those rates across the client, Functions issuance defaults, and validator. The HUD names it
-“Bénédiction des Dames de la forêt”. The worker rejects prior gameplay versions,
-including `2026.10.7`, because current Core also includes the mandatory boss
-encounter, shared attack knockback and victory resource restoration.
+0.10 health, mana, and stamina per second. Current source retains those rates
+across the client, Functions issuance defaults, and validator. The HUD names it
+“Bénédiction des Dames de la forêt”. The worker rejects prior gameplay versions
+because terrain and blessing grants are replay-sensitive.
+The Field binding and first-grant visual are prepared under gameplay
+compatibility `2026.10.17`; production remains on `2026.10.16` until a
+coordinated release.
 Command/replay encoding is unchanged, and current ranked scoring uses `score-v4`.
 Ship matching client, Functions, and worker through the coordinated
 [release workflow](deployment_workflow.md).
@@ -107,5 +125,9 @@ Focused checks cover actual landings on generated Forest terrain for both
 characters at 30/60/120 Hz, normal versus captured Level Play, protocol replay,
 invalid contacts, nonstacking grants, stream retirement/reentry, entity teardown,
 restart, exact resource totals, clamps, fire frame/pivot/crop, and HUD feedback.
+Field checks resolve the new binding against generated terrain, land a real
+player on its collision top, exercise first grant and nonstacking behavior,
+verify the blue flame fits that top and recolors rendered pixels, and load all
+seven Holy impact frames through the run and captured Play registries.
 The airborne-start integration fixture isolates the mechanic; it does not
 claim traversal of the preceding chunks, combat balance, or live release smoke.

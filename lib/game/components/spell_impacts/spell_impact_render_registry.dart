@@ -92,6 +92,10 @@ class SpellImpactRenderRegistry {
           id: SpellImpactId.holyBlessing,
           renderScale: Vector2.all(2),
         ),
+        SpellImpactId.holyShrineBlessing: SpellImpactRenderEntry(
+          id: SpellImpactId.holyShrineBlessing,
+          renderScale: Vector2.all(2),
+        ),
         SpellImpactId.deathPillar: SpellImpactRenderEntry(
           id: SpellImpactId.deathPillar,
           renderScale: Vector2.all(1.5),

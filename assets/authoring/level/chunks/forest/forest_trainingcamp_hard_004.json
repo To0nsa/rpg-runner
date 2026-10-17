@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_trainingcamp_hard_004",
   "id": "forest_trainingcamp_hard_004",
-  "revision": 99,
+  "revision": 100,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -26,7 +26,7 @@
       "prefabId": "gandalf_hardcore_large_tent_01",
       "prefabKey": "gandalf_hardcore_large_tent_01",
       "x": 336,
-      "y": 128,
+      "y": 123,
       "zIndex": 0,
       "snapToGrid": true
     },

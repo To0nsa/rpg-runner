@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "field_default_easy_009",
+  "id": "field_default_easy_009",
+  "revision": 31,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "rune_rocks_menhir_05",
+      "prefabKey": "rune_rocks_menhir_05",
+      "x": 487,
+      "y": 193,
+      "zIndex": -1,
+      "snapToGrid": false,
+      "scale": 1.5
+    },
+    {
+      "prefabId": "summer_scroller_tileset_tree_01",
+      "prefabKey": "summer_scroller_tileset_tree_01",
+      "x": 54,
+      "y": 144,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.7,
+      "flipX": true
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 344,
+      "y": 158,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_rune_g_01",
+      "prefabKey": "rune_rocks_rune_g_01",
+      "x": 473,
+      "y": 184,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 215,
+      "y": 185,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_rune_g_01",
+      "prefabKey": "rune_rocks_rune_g_01",
+      "x": 489,
+      "y": 190,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "summer_scroller_tileset_bush_01",
+      "prefabKey": "summer_scroller_tileset_bush_01",
+      "x": 106,
+      "y": 194,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_08_32x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_08_32x32_platform",
+      "x": 300,
+      "y": 223,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 178,
+          "y": 224
+        },
+        {
+          "x": 178,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 178,
+          "y": 224
+        },
+        {
+          "x": 380,
+          "y": 224
+        },
+        {
+          "x": 380,
+          "y": 270
+        },
+        {
+          "x": 178,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 380,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 380,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

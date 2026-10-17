@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_default_easy_007",
   "id": "field_default_easy_007",
-  "revision": 49,
+  "revision": 52,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -13,14 +13,6 @@
   "tags": [],
   "tileLayers": [],
   "prefabs": [
-    {
-      "prefabId": "gandalf_hardcore_willow_tree_01",
-      "prefabKey": "gandalf_hardcore_willow_tree_01",
-      "x": 431,
-      "y": 126,
-      "zIndex": 0,
-      "snapToGrid": false
-    },
     {
       "prefabId": "tiny_swords_hay_01",
       "prefabKey": "tiny_swords_hay_01",

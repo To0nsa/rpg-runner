@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_default_easy_005",
   "id": "field_default_easy_005",
-  "revision": 5,
+  "revision": 16,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -14,18 +14,50 @@
   "tileLayers": [],
   "prefabs": [
     {
+      "prefabId": "tiny_swords_ground_platform_04_64x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_04_64x32_platform",
+      "x": 329,
+      "y": 97,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
       "prefabId": "pixel_fantasy_caves_small_rock_06",
       "prefabKey": "pixel_fantasy_caves_small_rock_06",
-      "x": 479,
-      "y": 162,
+      "x": 474,
+      "y": 160,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "pixel_fantasy_caves_small_rock_02",
       "prefabKey": "pixel_fantasy_caves_small_rock_02",
-      "x": 171,
-      "y": 196,
+      "x": 167,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_grass_01",
+      "prefabKey": "fantasy_environment_grass_01",
+      "x": 138,
+      "y": 216,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_grass_01",
+      "prefabKey": "fantasy_environment_grass_01",
+      "x": 193,
+      "y": 216,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_grass_01",
+      "prefabKey": "fantasy_environment_grass_01",
+      "x": 473,
+      "y": 217,
       "zIndex": 0,
       "snapToGrid": false
     }

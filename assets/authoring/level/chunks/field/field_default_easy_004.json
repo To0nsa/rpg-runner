@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_default_easy_004",
   "id": "field_default_easy_004",
-  "revision": 19,
+  "revision": 42,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -12,7 +12,16 @@
   "assemblyGroupId": "default",
   "tags": [],
   "tileLayers": [],
-  "prefabs": [],
+  "prefabs": [
+    {
+      "prefabId": "gandalf_hardcore_fruit_tree_01",
+      "prefabKey": "gandalf_hardcore_fruit_tree_01",
+      "x": 293,
+      "y": 121,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
   "markers": [],
   "collisionShapes": [
     {
@@ -70,8 +79,8 @@
       "enemies": [
         {
           "id": "enemy",
-          "enemyId": "hashash",
-          "x": 507,
+          "enemyId": "unocoDemon",
+          "x": 514,
           "facing": "right",
           "placement": "ground"
         },

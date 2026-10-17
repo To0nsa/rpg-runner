@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_rocky_grove_normal_002",
   "id": "forest_rocky_grove_normal_002",
-  "revision": 21,
+  "revision": 26,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -25,23 +25,23 @@
       "prefabId": "pixel_fantasy_caves_small_rock_09",
       "prefabKey": "pixel_fantasy_caves_small_rock_09",
       "x": 256,
-      "y": 160,
-      "zIndex": 0,
-      "snapToGrid": true
-    },
-    {
-      "prefabId": "high_forest_bush_02",
-      "prefabKey": "high_forest_bush_02",
-      "x": 125,
-      "y": 164,
+      "y": 161,
       "zIndex": 0,
       "snapToGrid": false
     },
     {
       "prefabId": "pixel_fantasy_caves_small_rock_06",
       "prefabKey": "pixel_fantasy_caves_small_rock_06",
-      "x": 543,
-      "y": 169,
+      "x": 544,
+      "y": 162,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "high_forest_bush_02",
+      "prefabKey": "high_forest_bush_02",
+      "x": 125,
+      "y": 164,
       "zIndex": 0,
       "snapToGrid": false
     },
@@ -57,7 +57,7 @@
       "prefabId": "pixel_fantasy_caves_small_rock_05",
       "prefabKey": "pixel_fantasy_caves_small_rock_05",
       "x": 520,
-      "y": 201,
+      "y": 194,
       "zIndex": 1,
       "snapToGrid": false,
       "flipX": true

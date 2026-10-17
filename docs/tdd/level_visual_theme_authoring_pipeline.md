@@ -22,12 +22,12 @@ Two authored files participate in the workflow:
 materials continue to own terrain rendering material data; neither the Level
 workflow nor a Parallax theme gains terrain or gameplay authority.
 
-The `forest` level's player-facing `displayName` is **The Val Outpost**. The
-level ID, `forest` visual theme, authored chunk keys, and persisted run/board
-identities remain separate from that name. The generated UI metadata projects
-the authored display name into level selection, leaderboards, and other UI.
-This Level value edit advances its authored revision from 389 to 390 without
-changing the runtime assembly.
+The `forest` level's player-facing `displayName` is **Val Outpost**, and the
+`field` level's is **Léonards’ farm**. Their level IDs, visual themes, authored
+chunk keys, and persisted run/board identities remain separate from those names.
+Generated UI metadata projects the authored display names into level selection,
+leaderboards, and other UI. The name edits advance their authored revisions to
+497 and 16, respectively, without changing the runtime assembly.
 
 Generated Dart is output and is never an authoring input. In particular,
 `packages/runner_core/lib/levels/level_registry.dart` is not consulted to admit

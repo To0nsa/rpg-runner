@@ -3,8 +3,8 @@
   "levels": [
     {
       "levelId": "field",
-      "revision": 15,
-      "displayName": "Field",
+      "revision": 17,
+      "displayName": "Léonards’ farm",
       "visualThemeId": "field",
       "chunkThemeGroups": ["default", "cimetery", "field", "grove", "rocky_grove", "ruins"],
       "cameraCenterY": 135,
@@ -32,8 +32,8 @@
             "segmentId": "default_2",
             "groupId": "default",
             "difficulty": "easy",
-            "minChunkCount": 7,
-            "maxChunkCount": 7,
+            "minChunkCount": 9,
+            "maxChunkCount": 9,
             "requireDistinctChunks": true
           }
         ]
@@ -41,8 +41,8 @@
     },
     {
       "levelId": "forest",
-      "revision": 496,
-      "displayName": "The Val Outpost",
+      "revision": 497,
+      "displayName": "Val Outpost",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "boss_bringer_of_death", "boss_shoggoth", "boss_voidborn_goddess", "boss_voidcaller", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
       "firstChunkKey": "forest_default_early_001",

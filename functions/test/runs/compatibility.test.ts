@@ -5,7 +5,7 @@ import { assertSupportedGameCompatVersion, currentGameCompatVersion,
   resolveSupportedGameCompatVersions } from "../../src/runs/compatibility.js";
 
 test("gameplay release client, board default and worker share one compatibility", () => {
-  assert.equal(currentGameCompatVersion, "2026.10.16");
+  assert.equal(currentGameCompatVersion, "2026.10.17");
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.11.1", resolveSupportedGameCompatVersions({})));
 
   assert.deepEqual([...resolveSupportedGameCompatVersions({})], [currentGameCompatVersion]);
@@ -29,6 +29,7 @@ test("gameplay release client, board default and worker share one compatibility"
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.8", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.9", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.10", resolveSupportedGameCompatVersions({})));
+  assert.throws(() => assertSupportedGameCompatVersion("2026.10.16", resolveSupportedGameCompatVersions({})));
 
   const provisioning = readFileSync("src/boards/provisioning.ts", "utf8");
   assert.ok(provisioning.includes('defaultScoreVersion = "score-v4"'));

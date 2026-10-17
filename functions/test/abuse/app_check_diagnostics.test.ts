@@ -102,7 +102,7 @@ test("diagnostics never enter parsed command, profile or run authority inputs", 
   const profile = { userId: "uid_1", sessionId: "session_1" };
   const run = {
     ...profile, clientRequestId: "run-1", mode: "practice",
-    levelId: "forest", gameCompatVersion: "2026.10.16",
+    levelId: "forest", gameCompatVersion: "2026.10.17",
   };
   assert.deepEqual(parseExecuteCommandRequest({ ...ownership, clientDiagnostics }),
     parseExecuteCommandRequest(ownership));

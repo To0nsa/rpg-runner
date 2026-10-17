@@ -28,13 +28,13 @@ class GeneratedLevelUiMetadata {
 const Map<LevelId, GeneratedLevelUiMetadata> generatedLevelUiMetadataById =
     <LevelId, GeneratedLevelUiMetadata>{
   LevelId.forest: GeneratedLevelUiMetadata(
-    displayName: 'The Val Outpost',
+    displayName: 'Val Outpost',
     status: LevelUiStatus.active,
     visualThemeId: 'forest',
     includeInBuild: true,
   ),
   LevelId.field: GeneratedLevelUiMetadata(
-    displayName: 'Field',
+    displayName: 'Léonards’ farm',
     status: LevelUiStatus.active,
     visualThemeId: 'field',
     includeInBuild: true,

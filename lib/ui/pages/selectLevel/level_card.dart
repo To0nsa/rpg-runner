@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:runner_core/levels/level_id.dart';
 import '../../levels/level_id_ui.dart';
-import '../../components/level_parallax_preview.dart';
+import '../../components/level_card_artwork.dart';
 import '../../theme/ui_tokens.dart';
 
 /// A card widget displaying a level with its full parallax background.
@@ -68,16 +68,7 @@ class LevelCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                LevelParallaxPreview(
-                  visualThemeId: levelId.visualThemeId,
-                  alignment: Alignment.center,
-                ),
-                if (!selected)
-                  Positioned.fill(
-                    child: ColoredBox(
-                      color: ui.colors.shadow.withValues(alpha: 0.60),
-                    ),
-                  ),
+                LevelCardArtwork(levelId: levelId, unselected: !selected),
                 Center(
                   child: Text(
                     levelId.displayName.toUpperCase(),

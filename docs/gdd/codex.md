@@ -21,8 +21,8 @@ free to browse; discoveries cannot be purchased.
 | Regular enemy | Defeat that enemy type 10 times | Attacks and damage types, resistances, weaknesses, behaviour and field notes |
 | Boss | Defeat that boss 5 times | The same complete combat and lore entry |
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
-| The Val Outpost | Reach 10,000 in one Competitive run on The Val Outpost | Forest history and current crisis |
-| Field | Reach 10,000 in one Competitive run on Field | Open-land context and the journey |
+| Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Forest history and current crisis |
+| Léonards’ farm | Reach 10,000 in one Competitive run on Léonards’ farm | Open-land context and the journey |
 | Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
 
 Defeats accumulate in the account's shared per-enemy record across confirmed

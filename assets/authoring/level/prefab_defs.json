@@ -1421,9 +1421,9 @@
       "id": "fantasy_environment_grass_01",
       "sourceImagePath": "assets/images/level/atlases/fantasy_environment/mixed_biomes.png",
       "x": 288,
-      "y": 80,
+      "y": 88,
       "width": 128,
-      "height": 32,
+      "height": 24,
       "tags": [
         "fantasy_environment",
         "mixed_biomes"
@@ -2347,7 +2347,7 @@
       "x": 464,
       "y": 64,
       "width": 176,
-      "height": 144,
+      "height": 140,
       "tags": [
         "green_woods",
         "trees"
@@ -3064,10 +3064,10 @@
     {
       "id": "rune_rocks_menhir_05",
       "sourceImagePath": "assets/images/level/atlases/rune_rocks/props.png",
-      "x": 160,
-      "y": 160,
-      "width": 48,
-      "height": 48,
+      "x": 164,
+      "y": 164,
+      "width": 44,
+      "height": 44,
       "tags": [
         "props",
         "rune_rocks"
@@ -3809,9 +3809,9 @@
       "id": "summer_scroller_tileset_bush_05",
       "sourceImagePath": "assets/images/level/atlases/summer_scroller_tileset/tiles_summer.png",
       "x": 336,
-      "y": 448,
+      "y": 456,
       "width": 240,
-      "height": 64,
+      "height": 56,
       "tags": [
         "summer_scroller_tileset",
         "tiles_summer"
@@ -6610,7 +6610,7 @@
     {
       "prefabKey": "country_village_market_01",
       "id": "country_village_market_01",
-      "revision": 1,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -6619,7 +6619,42 @@
       },
       "anchorXPx": 56,
       "anchorYPx": 32,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -39,
+              "y": 32
+            },
+            {
+              "x": -32,
+              "y": 0
+            },
+            {
+              "x": -23,
+              "y": -3
+            },
+            {
+              "x": -19,
+              "y": -14
+            },
+            {
+              "x": 25,
+              "y": -14
+            },
+            {
+              "x": 42,
+              "y": -8
+            },
+            {
+              "x": 43,
+              "y": 32
+            }
+          ]
+        }
+      ],
       "tags": [
         "country_village",
         "props"
@@ -10438,7 +10473,7 @@
     {
       "prefabKey": "gandalf_hardcore_high_garden_pot_02",
       "id": "gandalf_hardcore_high_garden_pot_02",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -10447,7 +10482,70 @@
       },
       "anchorXPx": 16,
       "anchorYPx": 32,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -13,
+              "y": 29
+            },
+            {
+              "x": -10,
+              "y": 12
+            },
+            {
+              "x": -8,
+              "y": 8
+            },
+            {
+              "x": -6,
+              "y": 5
+            },
+            {
+              "x": -10,
+              "y": -1
+            },
+            {
+              "x": -10,
+              "y": -10
+            },
+            {
+              "x": 11,
+              "y": -10
+            },
+            {
+              "x": 11,
+              "y": -1
+            },
+            {
+              "x": 7,
+              "y": 5
+            },
+            {
+              "x": 11,
+              "y": 8
+            },
+            {
+              "x": 11,
+              "y": 12
+            },
+            {
+              "x": 14,
+              "y": 29
+            },
+            {
+              "x": 14,
+              "y": 32
+            },
+            {
+              "x": -13,
+              "y": 32
+            }
+          ]
+        }
+      ],
       "tags": [
         "Garden Decorations",
         "gandalf_hardcore"
@@ -11578,7 +11676,7 @@
     {
       "prefabKey": "pixel_fantasy_caves_caves_rock_03",
       "id": "pixel_fantasy_caves_caves_rock_03",
-      "revision": 5,
+      "revision": 7,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -11766,7 +11864,7 @@
     {
       "prefabKey": "pixel_fantasy_caves_rock_02",
       "id": "pixel_fantasy_caves_rock_02",
-      "revision": 11,
+      "revision": 13,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -11857,12 +11955,8 @@
               "y": 96
             },
             {
-              "x": -147,
-              "y": 95
-            },
-            {
-              "x": -142,
-              "y": 68
+              "x": -159,
+              "y": 96
             }
           ]
         }
@@ -12937,7 +13031,7 @@
     {
       "prefabKey": "rune_rocks_menhir_05",
       "id": "rune_rocks_menhir_05",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -12952,72 +13046,72 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -21,
-              "y": 4
-            },
-            {
-              "x": -20,
-              "y": -2
-            },
-            {
-              "x": -19,
-              "y": -7
-            },
-            {
-              "x": -17,
-              "y": -12
-            },
-            {
-              "x": -12,
-              "y": -17
-            },
-            {
-              "x": -4,
-              "y": -18
-            },
-            {
-              "x": 10,
-              "y": -12
-            },
-            {
-              "x": 13,
-              "y": -10
-            },
-            {
-              "x": 20,
-              "y": -3
-            },
-            {
-              "x": 22,
+              "x": -24,
               "y": 0
             },
             {
-              "x": 22,
-              "y": 13
+              "x": -23,
+              "y": -6
             },
             {
-              "x": 20,
-              "y": 15
-            },
-            {
-              "x": 18,
-              "y": 21
-            },
-            {
-              "x": 18,
-              "y": 24
-            },
-            {
-              "x": -16,
-              "y": 24
+              "x": -22,
+              "y": -11
             },
             {
               "x": -20,
+              "y": -16
+            },
+            {
+              "x": -15,
+              "y": -21
+            },
+            {
+              "x": -7,
+              "y": -22
+            },
+            {
+              "x": 7,
+              "y": -16
+            },
+            {
+              "x": 10,
+              "y": -14
+            },
+            {
+              "x": 17,
+              "y": -7
+            },
+            {
+              "x": 19,
+              "y": -4
+            },
+            {
+              "x": 19,
+              "y": 9
+            },
+            {
+              "x": 17,
+              "y": 11
+            },
+            {
+              "x": 15,
               "y": 17
             },
             {
-              "x": -21,
-              "y": 14
+              "x": 15,
+              "y": 20
+            },
+            {
+              "x": -19,
+              "y": 20
+            },
+            {
+              "x": -23,
+              "y": 13
+            },
+            {
+              "x": -24,
+              "y": 10
             }
           ]
         }
@@ -16132,7 +16226,7 @@
     {
       "prefabKey": "tiny_swords_cart_01",
       "id": "tiny_swords_cart_01",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -16141,7 +16235,38 @@
       },
       "anchorXPx": 48,
       "anchorYPx": 32,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -46,
+              "y": -10
+            },
+            {
+              "x": 17,
+              "y": -10
+            },
+            {
+              "x": 17,
+              "y": 9
+            },
+            {
+              "x": 48,
+              "y": 9
+            },
+            {
+              "x": 48,
+              "y": 26
+            },
+            {
+              "x": -46,
+              "y": 26
+            }
+          ]
+        }
+      ],
       "tags": [
         "tiny_swords",
         "village_props"
@@ -18058,7 +18183,7 @@
     {
       "prefabKey": "tiny_swords_scarecrow_01",
       "id": "tiny_swords_scarecrow_01",
-      "revision": 15,
+      "revision": 23,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -18073,16 +18198,12 @@
           "collisionMode": "solid",
           "vertices": [
             {
-              "x": -32,
-              "y": -3
-            },
-            {
               "x": -31,
               "y": -7
             },
             {
-              "x": -7,
-              "y": -8
+              "x": -18,
+              "y": -7
             },
             {
               "x": -18,
@@ -18109,32 +18230,20 @@
               "y": -28
             },
             {
-              "x": 7,
-              "y": -8
+              "x": 18,
+              "y": -7
             },
             {
               "x": 31,
               "y": -7
             },
             {
-              "x": 32,
-              "y": -3
-            },
-            {
-              "x": 26,
-              "y": 2
-            },
-            {
-              "x": 25,
+              "x": 31,
               "y": 48
             },
             {
-              "x": -26,
+              "x": -31,
               "y": 48
-            },
-            {
-              "x": -26,
-              "y": 2
             }
           ]
         }

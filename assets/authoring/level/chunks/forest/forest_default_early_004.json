@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_default_early_004",
   "id": "forest_default_early_004",
-  "revision": 38,
+  "revision": 40,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -24,8 +24,8 @@
     {
       "prefabId": "pixel_fantasy_caves_caves_rock_04",
       "prefabKey": "pixel_fantasy_caves_caves_rock_04",
-      "x": 430,
-      "y": 172,
+      "x": 441,
+      "y": 160,
       "zIndex": 0,
       "snapToGrid": false,
       "scale": 0.5

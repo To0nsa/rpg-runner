@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_enchanted_forest_easy_001",
   "id": "forest_enchanted_forest_easy_001",
-  "revision": 95,
+  "revision": 96,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -41,8 +41,8 @@
     {
       "prefabId": "rune_rocks_menhir_05",
       "prefabKey": "rune_rocks_menhir_05",
-      "x": 283,
-      "y": 185,
+      "x": 289,
+      "y": 190,
       "zIndex": -21,
       "snapToGrid": false,
       "scale": 1.7

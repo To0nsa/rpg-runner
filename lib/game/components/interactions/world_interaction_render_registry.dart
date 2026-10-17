@@ -5,13 +5,14 @@ import 'package:runner_core/interactions/world_interaction_render_catalog.dart';
 
 /// Loads the complete frame set before gameplay, including captured editor Play.
 final class WorldInteractionRenderRegistry {
-  final Map<WorldInteractionId, List<Sprite>> _frames = {};
+  final Map<WorldInteractionAppearanceId, List<Sprite>> _frames = {};
   Iterable<String> get assetPaths => WorldInteractionRenderCatalog.assetPaths;
 
-  Sprite frame(WorldInteractionId id, int index) => _frames[id]![index];
+  Sprite frame(WorldInteractionAppearanceId id, int index) =>
+      _frames[id]![index];
 
   Future<void> load(Images images) async {
-    for (final id in WorldInteractionId.values) {
+    for (final id in WorldInteractionAppearanceId.values) {
       final def = WorldInteractionRenderCatalog.get(id);
       final rect = def.source;
       final frames = <Sprite>[];

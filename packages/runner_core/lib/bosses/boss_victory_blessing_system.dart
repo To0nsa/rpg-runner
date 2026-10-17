@@ -1,4 +1,3 @@
-import '../ecs/collider_aabb_utils.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/resource_restoration.dart';
 import '../ecs/stores/restoration_item_store.dart';
@@ -6,11 +5,11 @@ import '../ecs/world.dart';
 import '../events/game_event.dart';
 import '../snapshots/boss_victory_blessing_snapshot.dart';
 import '../snapshots/enums.dart';
+import '../spell_impacts/player_followed_impact.dart';
 import '../spell_impacts/spell_impact_id.dart';
 import '../spell_impacts/spell_impact_render_catalog.dart';
 import '../tuning/utils/anim_tuning.dart';
 import '../track/chunk_pattern_tier.dart';
-import '../util/vec2.dart';
 
 /// Reusable victory reward configuration, independent of enemy identity.
 final class BossVictoryBlessingDefinition {
@@ -100,31 +99,19 @@ final class BossVictoryBlessingSystem {
         percentBp: reward.restorationBp,
       );
     }
-    final ci = world.colliderAabb.tryIndexOf(player);
-    final offset = ci == null
-        ? Vec2.zero
-        : Vec2(
-            world.colliderAabb.offsetX[ci] * colliderFacingSign(world, player),
-            world.colliderAabb.offsetY[ci] + world.colliderAabb.halfY[ci],
-          );
     _presentation = BossVictoryBlessingSnapshot(
       id: definition.id,
       restorationBp: reward.restorationBp,
       startTick: tick,
       durationTicks: _durationTicks,
     );
-    emit(
-      SpellImpactEvent(
-        tick: tick,
-        impactId: definition.effectId,
-        pos: Vec2(
-          world.transform.posX[ti] + offset.x,
-          world.transform.posY[ti] + offset.y,
-        ),
-        followEntityId: player,
-        followOffset: offset,
-      ),
+    final effect = playerFollowedImpact(
+      world,
+      player: player,
+      tick: tick,
+      impactId: definition.effectId,
     );
+    if (effect != null) emit(effect);
   }
 
   BossVictoryBlessingSnapshot? snapshot(int tick) {
