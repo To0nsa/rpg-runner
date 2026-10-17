@@ -21,7 +21,7 @@ free to browse; discoveries cannot be purchased.
 | Regular enemy | Defeat that enemy type 10 times | Attacks and damage types, resistances, weaknesses, behaviour and field notes |
 | Boss | Defeat that boss 5 times | The same complete combat and lore entry |
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
-| Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Its road watch, patrols, training and shelter for travelers in the Forêt des Moyen-Ducs |
+| Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Its road watch, patrols, training and shelter for travelers in the Long-Eared Owls’ Forest |
 | Léonards’ farm | Reach 10,000 in one Competitive run on Léonards’ farm | Open-land context and the journey |
 | Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
 
@@ -85,8 +85,9 @@ journal contains no reference to the later campaign.
 
 Val Outpost already exists in the runner's earlier period and serves the same
 road-patrol and survival-training purpose it has in the later campaign. It is
-in the Forêt des Moyen-Ducs near Théodonis. That forest has no black sky: the
-darkened ancient forest is at least 50 km farther north. The Val Outpost
+in the Forêt des Moyen-Ducs near Théodonis. The English entry calls this the
+Long-Eared Owls’ Forest, after the bird species. That forest has no black sky:
+the darkened ancient forest is at least 50 km farther north. The Val Outpost
 location entry describes the outpost in Éloïse's time, not the later campaign's
 captain, medic, injured soldier or caravan survivors.
 

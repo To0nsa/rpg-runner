@@ -147,7 +147,7 @@ abstract final class CodexCatalog {
 
   static String levelLore(LevelId id) => switch (id) {
     LevelId.forest =>
-      'Val Outpost stands beside the road through the Forêt des Moyen-Ducs. '
+      'Val Outpost stands beside the road through the Long-Eared Owls’ Forest. '
           'Its soldiers patrol the wooded route, train for the forest’s '
           'hazards, and carry warnings of danger back to Théodonis. Travelers '
           'can rest under their guard before continuing their journey.',
