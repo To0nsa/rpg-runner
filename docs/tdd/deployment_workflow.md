@@ -178,6 +178,9 @@ Cloud Build allows 7,200 seconds for image preparation and the strict benchmark.
 The expanded navigation pack exceeded the previous 3,600-second window before
 image publication, so this limit covers preparation without relaxing the
 benchmark or any runtime resource gate.
+The Dockerfile resolves its pinned distroless runtime base before the long
+navigation compilation. This avoids fetching that public registry manifest
+after an hour-long build, when the build's registry credential may have expired.
 
 ## Scoped deployment
 
