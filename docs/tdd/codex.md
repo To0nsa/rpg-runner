@@ -109,11 +109,15 @@ Locked Bestiary rows conceal names; their idle portraits appear after the first
 defeat. Locations show their names. Both show requirements inside a trailing
 progress bar. Each `CodexEntryTile` owns a presentation-only
 `UiProgressAnimator`, shared with the hub XP bar for count interpolation and
-timing. `LibraryPage` passes whether its Bestiary or Locations section is
-active, so the `IndexedStack` can retain scroll state while bars restart from
-zero on entry. Confirmed increases while active animate from the current visual
-value; decreases snap to the new value. The fill caps at the requirement and
-an unlocked row displays "Open" only after reaching it. Unlock checks and
+timing. A session-only `LibraryProgressTracker` on `AppState` records the last
+presented value per entry and resets its history when the active account key
+changes. `LibraryPage` passes whether its Bestiary or Locations section is
+active, so the `IndexedStack` retains scroll state. First observations appear
+immediately. Confirmed increases animate when next visible, including across
+Library route disposal; the target is recorded when that animation starts so
+the same increase does not replay. Decreases snap to the new value. The fill
+caps at the requirement, so an unlocked row displays "Open" after a visible
+increase reaches it and remains open on later visits. Unlock checks and
 accessibility semantics use canonical progress throughout the animation.
 Entry details and lists scroll; Library and `HubMenuIconColumn` share
 `MenuIconColumn`, which owns the icon-only `AppIconButton` sizing and spacing.

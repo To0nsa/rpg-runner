@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../components/ui_progress_animator.dart';
+import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
 
 /// A compact name/portrait row with its requirement inside the trailing meter.
@@ -13,6 +14,9 @@ class CodexEntryTile extends StatefulWidget {
     required this.requiredProgress,
     required this.progressLabel,
     required this.active,
+    required this.tracker,
+    required this.accountKey,
+    required this.progressKey,
     required this.onPressed,
     this.concealUntilUnlocked = false,
   });
@@ -20,6 +24,8 @@ class CodexEntryTile extends StatefulWidget {
   final Widget portrait;
   final int current, requiredProgress;
   final bool active;
+  final LibraryProgressTracker tracker;
+  final String accountKey, progressKey;
   final VoidCallback onPressed;
   final bool concealUntilUnlocked;
 
@@ -38,22 +44,40 @@ class _CodexEntryTileState extends State<CodexEntryTile>
     super.initState();
     _progressAnimation = UiProgressAnimator(vsync: this, initialValue: _target);
     if (widget.active) {
-      _progressAnimation.animateFrom(0, _target);
+      final previous = widget.tracker.consume(
+        widget.accountKey,
+        widget.progressKey,
+        _target,
+      );
+      if (previous < _target) {
+        _progressAnimation.animateFrom(previous, _target);
+      }
     }
   }
 
   @override
   void didUpdateWidget(CodexEntryTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.active) {
-      if (oldWidget.active || _target != _progressAnimation.target) {
+    if (widget.accountKey != oldWidget.accountKey ||
+        widget.progressKey != oldWidget.progressKey ||
+        widget.tracker != oldWidget.tracker) {
+      if (widget.active) {
+        widget.tracker.consume(widget.accountKey, widget.progressKey, _target);
+      }
+      _progressAnimation.jumpTo(_target);
+    } else if (!widget.active) {
+      if (_target != _progressAnimation.target || oldWidget.active) {
         _progressAnimation.jumpTo(_target);
       }
-    } else if (!oldWidget.active) {
-      _progressAnimation.animateFrom(0, _target);
-    } else if (_target != _progressAnimation.target) {
-      if (_target > _progressAnimation.target) {
-        _progressAnimation.animateFrom(_progressAnimation.value, _target);
+    } else if (!oldWidget.active || _target != _progressAnimation.target) {
+      final previous = widget.tracker.consume(
+        widget.accountKey,
+        widget.progressKey,
+        _target,
+      );
+      final from = oldWidget.active ? _progressAnimation.value : previous;
+      if (_target > from) {
+        _progressAnimation.animateFrom(from, _target);
       } else {
         _progressAnimation.jumpTo(_target);
       }

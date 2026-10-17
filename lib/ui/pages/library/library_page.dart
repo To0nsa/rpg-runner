@@ -10,6 +10,7 @@ import '../../state/app/app_state.dart';
 import '../../state/ownership/codex_progress.dart';
 import '../../state/ownership/enemy_defeats.dart';
 import '../../state/ownership/progression_state.dart';
+import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
@@ -29,9 +30,11 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final app = context.read<AppState>();
     final progress = context.select<AppState, ProgressionState>(
       (app) => app.progression,
     );
+    final accountKey = '${app.authSession.userId}:${app.profileId}';
     final ui = context.ui;
     return MenuScaffold(
       title: 'Library · ${_sectionName(_section)}',
@@ -68,10 +71,14 @@ class _LibraryPageState extends State<LibraryPage> {
                     _Bestiary(
                       defeats: progress.enemyDefeats,
                       active: _section == _LibrarySection.bestiary,
+                      tracker: app.libraryProgressTracker,
+                      accountKey: accountKey,
                     ),
                     _Locations(
                       progress: progress.codex,
                       active: _section == _LibrarySection.locations,
+                      tracker: app.libraryProgressTracker,
+                      accountKey: accountKey,
                     ),
                     const CodexReadingView(
                       title: CodexCatalog.openingTitle,
@@ -96,9 +103,16 @@ class _LibraryPageState extends State<LibraryPage> {
 }
 
 class _Bestiary extends StatelessWidget {
-  const _Bestiary({required this.defeats, required this.active});
+  const _Bestiary({
+    required this.defeats,
+    required this.active,
+    required this.tracker,
+    required this.accountKey,
+  });
   final EnemyDefeats defeats;
   final bool active;
+  final LibraryProgressTracker tracker;
+  final String accountKey;
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +130,9 @@ class _Bestiary extends StatelessWidget {
             requiredProgress: CodexCatalog.killsRequired(id),
             progressLabel: 'defeated',
             active: active,
+            tracker: tracker,
+            accountKey: accountKey,
+            progressKey: 'enemy:${id.name}',
             concealUntilUnlocked: true,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -132,9 +149,16 @@ class _Bestiary extends StatelessWidget {
 }
 
 class _Locations extends StatelessWidget {
-  const _Locations({required this.progress, required this.active});
+  const _Locations({
+    required this.progress,
+    required this.active,
+    required this.tracker,
+    required this.accountKey,
+  });
   final CodexProgress progress;
   final bool active;
+  final LibraryProgressTracker tracker;
+  final String accountKey;
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +178,9 @@ class _Locations extends StatelessWidget {
             requiredProgress: CodexCatalog.levelScoreRequirements[id]!,
             progressLabel: 'best Competitive score',
             active: active,
+            tracker: tracker,
+            accountKey: accountKey,
+            progressKey: 'level:${id.name}',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 settings: RouteSettings(

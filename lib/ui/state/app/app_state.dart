@@ -53,6 +53,7 @@ import '../ownership/progression_state.dart';
 import '../ownership/selection_state.dart';
 import '../profile/user_profile.dart';
 import '../profile/user_profile_remote_api.dart';
+import '../presentation/library_progress_tracker.dart';
 import '../developer/developer_profile_store.dart';
 
 part 'controllers/controller_base.dart';
@@ -117,6 +118,10 @@ final class _RunTicketPrefetchKey {
 }
 
 class AppState extends ChangeNotifier {
+  /// Session-only Library presentation history, scoped to the active account.
+  final LibraryProgressTracker libraryProgressTracker =
+      LibraryProgressTracker();
+
   /// Creates a debug-only local profile with no authentication or ownership API.
   /// The caller must bootstrap it before exposing it to menu routes.
   factory AppState.developer({required DeveloperProfileStore store}) {

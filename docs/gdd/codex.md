@@ -47,11 +47,13 @@ Library. Bestiary lists all eight independent entries together, without category
 filters. Locked Bestiary cards conceal the enemy name, show "Entry locked",
 and put "Defeat current / target to unlock" inside the bar. The idle portrait
 appears after the first defeat of that type; at zero defeats a lock icon remains.
-On entering Bestiary or Locations, each bar fills from zero to the account's
-confirmed progress over 1.2 seconds. A newly confirmed increase fills from the
-value currently displayed. An unlocked bar changes its count to "Open" when
-the fill reaches the requirement; switching sections and returning replays the
-fill. Unlocked cards show an idle enemy portrait and name.
+On first viewing Bestiary or Locations in an app session, each bar shows
+confirmed progress immediately. After that, newly confirmed increases fill
+from the last presented value over 1.2 seconds, including progress earned while
+the Library is closed or another section is shown. On an unlock, the count
+changes to "Open" when the fill reaches the requirement. The same increase
+does not replay; already presented unlocked bars show "Open" immediately on
+later visits. Unlocked cards show an idle enemy portrait and name.
 Locations use the same compact layout with landscape icons and competitive
 score progress. Summary totals, introductory instructions and card status
 subtitles are omitted. Locked/discovered status remains available to screen

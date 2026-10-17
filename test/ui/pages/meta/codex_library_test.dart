@@ -13,10 +13,12 @@ import 'package:rpg_runner/ui/pages/town/town_page.dart';
 import 'package:rpg_runner/ui/pages/town/town_map.dart';
 import 'package:rpg_runner/ui/pages/town/town_store_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
+import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/codex_progress.dart';
 import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
+import 'package:rpg_runner/ui/state/presentation/library_progress_tracker.dart';
 import 'package:rpg_runner/ui/theme/ui_theme.dart';
 
 void main() {
@@ -119,7 +121,7 @@ void main() {
   });
 
   testWidgets(
-    'Bestiary and Locations fill on entry and show Open at the gate',
+    'settled Open entries stay open when switching Library sections',
     (tester) async {
       final app = _CodexAppState();
       addTearDown(app.dispose);
@@ -129,16 +131,6 @@ void main() {
 
       final enemy = find.byKey(const ValueKey('codex-enemy-unocoDemon'));
       expect(
-        find.descendant(of: enemy, matching: find.text('0 / 10')),
-        findsOneWidget,
-      );
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(
-        find.descendant(of: enemy, matching: find.text('Open')),
-        findsNothing,
-      );
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(
         find.descendant(of: enemy, matching: find.text('Open')),
         findsOneWidget,
       );
@@ -147,11 +139,6 @@ void main() {
       await tester.pump();
       final location = find.byKey(const ValueKey('codex-level-forest'));
       expect(
-        find.descendant(of: location, matching: find.text('0 / 10,000')),
-        findsOneWidget,
-      );
-      await tester.pump(const Duration(milliseconds: 1200));
-      expect(
         find.descendant(of: location, matching: find.text('Open')),
         findsOneWidget,
       );
@@ -159,11 +146,103 @@ void main() {
       await tester.tap(find.byTooltip('Bestiary'));
       await tester.pump();
       expect(
-        find.descendant(of: enemy, matching: find.text('0 / 10')),
+        find.descendant(of: enemy, matching: find.text('Open')),
         findsOneWidget,
       );
     },
   );
+
+  testWidgets('a visible Location increase fills once, then stays Open', (
+    tester,
+  ) async {
+    final app = _CodexAppState();
+    addTearDown(app.dispose);
+    app.setProgress(CodexProgress(competitiveBestScores: {'forest': 4000}));
+    await tester.pumpWidget(_app(app, const LibraryPage()));
+    await tester.tap(find.byTooltip('Locations'));
+    await tester.pump();
+    final location = find.byKey(const ValueKey('codex-level-forest'));
+    expect(
+      find.descendant(of: location, matching: find.text('4,000 / 10,000')),
+      findsOneWidget,
+    );
+
+    app.setProgress(CodexProgress(competitiveBestScores: {'forest': 12000}));
+    await tester.pump();
+    expect(
+      find.descendant(of: location, matching: find.text('4,000 / 10,000')),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: location, matching: find.text('Open')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Journal'));
+    await tester.pump();
+    app.setProgress(
+      CodexProgress(competitiveBestScores: {'forest': 12000, 'field': 10000}),
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('Locations'));
+    await tester.pump();
+    expect(
+      find.descendant(of: location, matching: find.text('Open')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('codex-level-field')),
+        matching: find.text('0 / 10,000'),
+      ),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('codex-level-field')),
+        matching: find.text('Open'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an increase earned away from Library fills once on return', (
+    tester,
+  ) async {
+    final app = _CodexAppState();
+    addTearDown(app.dispose);
+    app.setProgress(CodexProgress(competitiveBestScores: {'forest': 4000}));
+    await tester.pumpWidget(_app(app, const LibraryPage()));
+    await tester.tap(find.byTooltip('Locations'));
+    await tester.pump();
+    await tester.pumpWidget(_app(app, const SizedBox()));
+
+    app.setProgress(CodexProgress(competitiveBestScores: {'forest': 10000}));
+    await tester.pumpWidget(_app(app, const LibraryPage()));
+    await tester.tap(find.byTooltip('Locations'));
+    await tester.pump();
+    final location = find.byKey(const ValueKey('codex-level-forest'));
+    expect(
+      find.descendant(of: location, matching: find.text('4,000 / 10,000')),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: location, matching: find.text('Open')),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(_app(app, const SizedBox()));
+    await tester.pumpWidget(_app(app, const LibraryPage()));
+    await tester.tap(find.byTooltip('Locations'));
+    await tester.pump();
+    expect(
+      find.descendant(of: location, matching: find.text('Open')),
+      findsOneWidget,
+    );
+  });
 
   for (final pair in {
     EnemyId.shoggoth: EnemyId.shoggothMinion,
@@ -357,6 +436,16 @@ Widget _app(AppState app, Widget home, {double textScale = 1}) => MultiProvider(
 );
 
 class _CodexAppState extends ChangeNotifier implements AppState {
+  @override
+  final LibraryProgressTracker libraryProgressTracker =
+      LibraryProgressTracker();
+
+  @override
+  AuthSession get authSession => AuthSession.unauthenticated;
+
+  @override
+  String get profileId => 'main';
+
   @override
   SelectionState get selection => SelectionState.defaults;
   @override
