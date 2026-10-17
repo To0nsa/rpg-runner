@@ -124,7 +124,7 @@ void main() {
     await appState.bootstrap(force: true);
     await tester.pumpWidget(_TestApp(appState: appState));
     expect(find.text('Player stats'), findsOneWidget);
-    expect(find.text('LEVEL 3  ·  0 / 150 XP'), findsOneWidget);
+    expect(find.text('LEVEL 3  ·  1 / 154 XP'), findsOneWidget);
     expect(find.text('12'), findsOneWidget);
     expect(find.text('Practice runs played'), findsOneWidget);
     expect(find.text('Competitive runs played'), findsOneWidget);
@@ -132,6 +132,27 @@ void main() {
     expect(find.text('11 HP'), findsOneWidget);
     expect(find.text('Runs by level'), findsNothing);
     expect(find.text('Weekly'), findsNothing);
+  });
+
+  testWidgets('profile shows maximum level while lifetime XP keeps growing', (
+    tester,
+  ) async {
+    final appState = AppState(
+      authApi: _StaticAuthApi(session: _anonymousSession()),
+      loadoutOwnershipApi: _NoopOwnershipApi(
+        playerProgress: const PlayerProgress(
+          totalXp: 212995,
+          acceptedRuns: 1,
+          damageDealt100: 0,
+          damageTaken100: 0,
+        ),
+      ),
+    );
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    expect(find.text('LEVEL 30  ·  MAX LEVEL'), findsOneWidget);
+    expect(find.text('212995'), findsOneWidget);
   });
 
   testWidgets('hides Play Games upgrade action for non-anonymous account', (

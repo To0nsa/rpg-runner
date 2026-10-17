@@ -45,8 +45,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
   points per level, and Éloïse's opening journal; progress is replay-validated
   and saved to the account
 - [Player level and lifetime stats](docs/gdd/player_progression.md): validated
-  score grants XP, while one shared per-enemy defeat record serves Library
-  unlocks and Profile totals; Profile also shows runs and damage dealt/taken
+  score grants XP toward an accelerating level curve capped at 30, while one
+  shared per-enemy defeat record serves Library unlocks and Profile totals;
+  Profile also shows runs and damage dealt/taken
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring

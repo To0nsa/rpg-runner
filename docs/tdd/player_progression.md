@@ -22,7 +22,7 @@ inside its existing Firestore transaction. The canonical
 ```json
 {
   "schemaVersion": 1,
-  "totalXp": 225,
+  "totalXp": 112,
   "acceptedRuns": 3,
   "runsByLevel": {"forest": {"practice": 1, "competitive": 1, "weekly": 1}},
   "damageDealt100": 12845,
@@ -31,7 +31,7 @@ inside its existing Firestore transaction. The canonical
 ```
 
 For each accepted result carrying version 1 player-stat evidence, settlement
-adds `floor(score / 100)` XP, one run and both damage totals. The
+adds `floor(score / 200)` XP, one run and both damage totals. The
 `runsByLevel` map records the accepted run under its server-issued level and
 mode in the same transaction. Existing accounts with a version 1 total but no
 map retain the historical `acceptedRuns` total; those runs have no invented
@@ -55,8 +55,13 @@ removes all progression with canonical ownership.
 ## Client projection
 
 `ProgressionState.playerProgress` decodes the canonical subtree. The client
-derives level from lifetime XP using `100 + 25 × (L - 1)` XP for the next level;
-level is not stored separately. The existing final-reward canonical refresh
+derives level from lifetime XP. For levels 1–29, the XP needed for level `L` to
+`L + 1` is `round(100 × 1.24^(L - 1))`; round each cost before summing the
+cumulative thresholds. Level 30 starts at 212,895 XP and is the display cap.
+At the cap, `xpInLevel` and `xpForNextLevel` are zero, and the bar shows a full
+`MAX LEVEL` state instead of dividing by a next-level cost. Settlement still
+adds lifetime XP after the cap and continues all other run statistics; level is
+not stored separately. The existing final-reward canonical refresh
 updates both Profile and Hub. Library enemy gates read
 `ProgressionState.enemyDefeats.byEnemy`; Profile sums that map for total defeats.
 Neither the Library nor Profile stores a second kill count.

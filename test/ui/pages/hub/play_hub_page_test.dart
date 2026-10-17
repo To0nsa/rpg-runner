@@ -89,9 +89,9 @@ void main() {
     await appState.bootstrap(force: true);
     await tester.pumpWidget(_TestApp(appState: appState));
     await tester.pump();
-    expect(find.text('LEVEL 2  ·  50 / 125 XP'), findsOneWidget);
+    expect(find.text('LEVEL 2  ·  50 / 124 XP'), findsOneWidget);
     final name = tester.getRect(find.text('Guest'));
-    final level = tester.getRect(find.text('LEVEL 2  ·  50 / 125 XP'));
+    final level = tester.getRect(find.text('LEVEL 2  ·  50 / 124 XP'));
     final bar = tester.getRect(find.byType(PlayerLevelBar));
     final gold = tester.getRect(
       find.descendant(
@@ -148,9 +148,12 @@ void main() {
     await tester.pump();
     expect(find.text('LEVEL 1  ·  90 / 100 XP'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.textContaining(RegExp(r'LEVEL 2  ·  \d+ / 125 XP')), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'LEVEL 2  ·  \d+ / 124 XP')),
+      findsOneWidget,
+    );
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.text('LEVEL 3  ·  35 / 150 XP'), findsOneWidget);
+    expect(find.text('LEVEL 3  ·  36 / 154 XP'), findsOneWidget);
   });
 
   testWidgets('XP arriving after hub return fills from the previous total', (
@@ -196,7 +199,7 @@ void main() {
     await tester.pump();
     expect(find.text('LEVEL 1  ·  90 / 100 XP'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1200));
-    expect(find.text('LEVEL 2  ·  10 / 125 XP'), findsOneWidget);
+    expect(find.text('LEVEL 2  ·  10 / 124 XP'), findsOneWidget);
   });
 
   testWidgets('hub keeps gold and status at the far right on wide screens', (

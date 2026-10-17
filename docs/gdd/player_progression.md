@@ -5,12 +5,17 @@ characters. It grants no combat power, equipment, currency or leaderboard
 advantage.
 
 Each accepted, replay-validated Practice, Competitive or Weekly run earns
-`floor(validatedScore / 100)` XP. A zero-score run earns zero XP but still counts
+`floor(validatedScore / 200)` XP. A zero-score run earns zero XP but still counts
 as a played run. Developer Practice, pending runs and rejected runs earn none.
 XP is awarded once after settlement, even if a submission is delivered again.
 
-Level starts at 1. Advancing from level `L` requires `100 + 25 × (L - 1)` XP;
-surplus XP carries into following levels. The hub shows level and progress
+Level starts at 1. Advancing from level `L` (1–29) requires
+`round(100 × 1.24^(L - 1))` XP. Each level cost is rounded before it is added
+to the cumulative threshold, and surplus XP carries into following levels.
+Level 30 begins at 212,895 lifetime XP and is the maximum. A 30,000-point run
+earns 150 XP; level 19 to 20 costs 4,804 XP, about 33 such runs from an empty
+bar. Validated runs keep adding to lifetime XP at level 30, while the bar stays
+full and displays `MAX LEVEL`. The hub shows level and progress
 on the same line as the player's name, with level and XP inside the bar. The
 bar fills the available space before gold, battery and time at the far right
 of the hub. After a run, the hub bar counts up from the XP shown before play to

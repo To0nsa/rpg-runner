@@ -7,10 +7,15 @@ void main() {
     for (final (xp, level, inLevel, next) in [
       (0, 1, 0, 100),
       (99, 1, 99, 100),
-      (100, 2, 0, 125),
-      (224, 2, 124, 125),
-      (225, 3, 0, 150),
-      (400, 4, 25, 175),
+      (100, 2, 0, 124),
+      (223, 2, 123, 124),
+      (224, 3, 0, 154),
+      (378, 4, 0, 191),
+      (19600, 19, 0, 4804),
+      (24404, 20, 0, 5957),
+      (212894, 29, 41285, 41286),
+      (212895, 30, 0, 0),
+      (300000, 30, 0, 0),
     ]) {
       final progress = PlayerProgress(
         totalXp: xp,
@@ -21,6 +26,7 @@ void main() {
       expect(progress.level, level);
       expect(progress.xpInLevel, inLevel);
       expect(progress.xpForNextLevel, next);
+      expect(progress.isMaxLevel, level == PlayerProgress.maxLevel);
     }
   });
 

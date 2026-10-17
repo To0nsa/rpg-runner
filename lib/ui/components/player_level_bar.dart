@@ -76,8 +76,9 @@ class _PlayerLevelBarState extends State<PlayerLevelBar>
         final earned = displayed.xpInLevel;
         final needed = displayed.xpForNextLevel;
         return Semantics(
-          label:
-              'Level ${widget.progress.level}, ${widget.progress.xpInLevel} of ${widget.progress.xpForNextLevel} XP to next level',
+          label: widget.progress.isMaxLevel
+              ? 'Level ${PlayerProgress.maxLevel}, maximum level reached'
+              : 'Level ${widget.progress.level}, ${widget.progress.xpInLevel} of ${widget.progress.xpForNextLevel} XP to next level',
           child: ExcludeSemantics(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,7 +96,9 @@ class _PlayerLevelBarState extends State<PlayerLevelBar>
                         Align(
                           alignment: Alignment.centerLeft,
                           child: FractionallySizedBox(
-                            widthFactor: earned / needed,
+                            widthFactor: displayed.isMaxLevel
+                                ? 1
+                                : earned / needed,
                             heightFactor: 1,
                             child: ColoredBox(color: ui.colors.accentStrong),
                           ),
@@ -109,7 +112,9 @@ class _PlayerLevelBarState extends State<PlayerLevelBar>
                               horizontal: ui.space.xxs,
                             ),
                             child: Text(
-                              'LEVEL ${displayed.level}  ·  $earned / $needed XP',
+                              displayed.isMaxLevel
+                                  ? 'LEVEL ${displayed.level}  ·  MAX LEVEL'
+                                  : 'LEVEL ${displayed.level}  ·  $earned / $needed XP',
                               style: ui.text.label.copyWith(
                                 color: ui.colors.textPrimary,
                               ),

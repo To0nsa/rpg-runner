@@ -265,7 +265,7 @@ test("player stats and score XP settle once across run modes", async () => {
   }
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   assert.deepEqual(canonical.progression.playerProgress, {
-    schemaVersion: 1, totalXp: 225, acceptedRuns: 3,
+    schemaVersion: 1, totalXp: 112, acceptedRuns: 3,
     runsByLevel: {
       forest: { practice: 1, competitive: 1, weekly: 0 },
       field: { practice: 0, competitive: 0, weekly: 1 },
@@ -297,7 +297,7 @@ test("invalid player stats abort settlement and preserve legacy account state", 
   assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "settled");
   const afterSuccess = await loadOrCreateCanonicalState({ db, uid });
   assert.deepEqual(afterSuccess.progression.playerProgress, {
-    schemaVersion: 1, totalXp: 100, acceptedRuns: 1,
+    schemaVersion: 1, totalXp: 50, acceptedRuns: 1,
     runsByLevel: { forest: { practice: 1, competitive: 0, weekly: 0 } },
     damageDealt100: 150, damageTaken100: 25,
   });
@@ -382,7 +382,7 @@ test("legacy Codex kills transfer once to the shared defeat map", async () => {
     schemaVersion: 1, byEnemy: { grojib: 10, derf: 2 },
   });
   assert.deepEqual(canonical.progression.playerProgress, {
-    schemaVersion: 1, totalXp: 100, acceptedRuns: 1,
+    schemaVersion: 1, totalXp: 50, acceptedRuns: 1,
     runsByLevel: { forest: { practice: 0, competitive: 1, weekly: 0 } },
     damageDealt100: 50, damageTaken100: 5,
   });

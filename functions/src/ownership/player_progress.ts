@@ -1,6 +1,9 @@
 import type { JsonObject } from "./contracts.js";
 import { RewardGrantInvariantViolationError } from "./reward_grants.js";
 
+/** One XP per 200 validated score points keeps 30,000-point runs at 150 XP. */
+const xpScoreDivisor = 200;
+
 /** Account-wide totals begin with runs carrying versioned validator evidence. */
 export function initialPlayerProgress(): JsonObject {
   return {
@@ -45,7 +48,7 @@ export function applyPlayerProgress(args: {
   };
   args.progression.playerProgress = {
     schemaVersion: 1,
-    totalXp: add(current.totalXp, Math.floor(score / 100), "lifetime XP"),
+    totalXp: add(current.totalXp, Math.floor(score / xpScoreDivisor), "lifetime XP"),
     acceptedRuns: add(current.acceptedRuns, 1, "accepted runs"),
     runsByLevel,
     damageDealt100: add(current.damageDealt100, dealt, "lifetime damage dealt"),

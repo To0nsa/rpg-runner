@@ -1,8 +1,19 @@
+import 'dart:math' as math;
+
 /// Account-wide totals earned from accepted, replay-validated runs.
 ///
 /// Damage is stored in hundredths of HP. Level is a display-only value derived
 /// from lifetime XP, so an account cannot hold conflicting XP and level values.
 final class PlayerProgress {
+  /// Highest displayed account level; lifetime XP can continue to grow.
+  static const maxLevel = 30;
+
+  static const _firstLevelXp = 100;
+  // A 24% step puts level 19 -> 20 above 30 runs at 150 XP per good run.
+  static const _xpGrowthFactor = 1.24;
+
+  static final List<int> _xpBeforeLevels = _buildXpThresholds();
+
   const PlayerProgress({
     required this.totalXp,
     required this.acceptedRuns,
@@ -21,6 +32,7 @@ final class PlayerProgress {
 
   final int totalXp;
   final int acceptedRuns;
+
   /// Settled runs indexed by level, then mode. Older totals have no breakdown.
   final Map<String, Map<String, int>> runsByLevel;
   final int damageDealt100;
@@ -32,27 +44,19 @@ final class PlayerProgress {
   );
 
   /// XP earned since the current level began.
-  int get xpInLevel => totalXp - _xpBeforeLevel(level);
+  int get xpInLevel => isMaxLevel ? 0 : totalXp - _xpBeforeLevels[level - 1];
 
   /// XP required to advance from the current level.
-  int get xpForNextLevel => 100 + 25 * (level - 1);
+  int get xpForNextLevel =>
+      isMaxLevel ? 0 : _xpBeforeLevels[level] - _xpBeforeLevels[level - 1];
+
+  bool get isMaxLevel => level == maxLevel;
 
   int get level {
-    var low = 1;
-    var high = 2;
-    while (_xpBeforeLevel(high) <= totalXp) {
-      low = high;
-      high *= 2;
+    for (var candidate = 2; candidate <= maxLevel; candidate++) {
+      if (totalXp < _xpBeforeLevels[candidate - 1]) return candidate - 1;
     }
-    while (high - low > 1) {
-      final middle = low + (high - low) ~/ 2;
-      if (_xpBeforeLevel(middle) <= totalXp) {
-        low = middle;
-      } else {
-        high = middle;
-      }
-    }
-    return low;
+    return maxLevel;
   }
 
   factory PlayerProgress.fromJson(Object? raw) {
@@ -78,9 +82,15 @@ final class PlayerProgress {
     'damageTaken100': damageTaken100,
   };
 
-  static int _xpBeforeLevel(int level) {
-    final completed = level - 1;
-    return 100 * completed + 25 * completed * (completed - 1) ~/ 2;
+  static List<int> _buildXpThresholds() {
+    final thresholds = <int>[0];
+    for (var level = 1; level < maxLevel; level++) {
+      // Round each level's cost before accumulating so carry matches the bar.
+      final cost = (_firstLevelXp * math.pow(_xpGrowthFactor, level - 1))
+          .round();
+      thresholds.add(thresholds.last + cost);
+    }
+    return List<int>.unmodifiable(thresholds);
   }
 
   static int _count(Object? raw) {
@@ -95,14 +105,19 @@ final class PlayerProgress {
     if (raw is! Map) {
       throw const FormatException('Invalid runs by level.');
     }
-    return Map.unmodifiable(raw.map((key, value) {
-      if (key is! String || key.isEmpty || value is! Map) {
-        throw const FormatException('Invalid runs by level.');
-      }
-      return MapEntry(key, Map<String, int>.unmodifiable({
-        for (final mode in ['practice', 'competitive', 'weekly'])
-          mode: _count(value[mode]),
-      }));
-    }));
+    return Map.unmodifiable(
+      raw.map((key, value) {
+        if (key is! String || key.isEmpty || value is! Map) {
+          throw const FormatException('Invalid runs by level.');
+        }
+        return MapEntry(
+          key,
+          Map<String, int>.unmodifiable({
+            for (final mode in ['practice', 'competitive', 'weekly'])
+              mode: _count(value[mode]),
+          }),
+        );
+      }),
+    );
   }
 }
