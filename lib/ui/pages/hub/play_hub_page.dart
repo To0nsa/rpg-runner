@@ -26,14 +26,32 @@ class PlayHubPage extends StatefulWidget {
 class _PlayHubPageState extends State<PlayHubPage> {
   bool _preparingRunStart = false;
   _RunStartSource? _runStartSource;
+  bool? _wasCurrentRoute;
+  int? _xpBeforeRun;
+  int? _animateXpFrom;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isCurrent = ModalRoute.isCurrentOf(context);
+    if (_wasCurrentRoute == false &&
+        isCurrent == true &&
+        _xpBeforeRun != null) {
+      _animateXpFrom = _xpBeforeRun;
+      _xpBeforeRun = null;
+    }
+    _wasCurrentRoute = isCurrent;
+  }
 
   Future<void> _startRun({
     _RunStartSource source = _RunStartSource.main,
   }) async {
     if (_preparingRunStart) return;
+    _xpBeforeRun = context.read<AppState>().progression.playerProgress.totalXp;
     setState(() {
       _preparingRunStart = true;
       _runStartSource = source;
+      _animateXpFrom = null;
     });
     try {
       if (!mounted) return;
@@ -117,6 +135,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                     playerProgress: appState.isDeveloperMode
                         ? null
                         : progression.playerProgress,
+                    animateXpFrom: _animateXpFrom,
                   ),
                   SizedBox(height: ui.space.sm),
                   WeeklyBadgeRow(

@@ -63,6 +63,17 @@ updates both Profile and Hub. Library enemy gates read
 Neither the Library nor Profile stores a second kill count.
 Developer Practice shows no hub XP bar and cannot settle progress.
 
+The hub captures lifetime XP when Run is pressed. When its route becomes current
+again, `PlayerLevelBar` animates that visual value toward canonical
+`ProgressionState.playerProgress.totalXp`; later canonical increases continue
+from the currently displayed value. The bar derives each intermediate level
+from lifetime XP, so crossing a threshold fills the prior level and begins the
+next. The Profile bar and initial hub load display canonical progress
+immediately. The UI's `UiProgressAnimator` owns only count interpolation and
+ticker lifetime; `PlayerLevelBar` decides when to start and how to derive level
+from the displayed XP. Animation state never changes account progress or the
+server settlement flow.
+
 ## Compatibility and release
 
 This feature changes run-result evidence and account progression, not replay

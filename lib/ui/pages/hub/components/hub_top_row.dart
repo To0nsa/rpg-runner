@@ -14,11 +14,13 @@ class HubTopRow extends StatefulWidget {
     required this.displayName,
     required this.gold,
     this.playerProgress,
+    this.animateXpFrom,
   });
 
   final String displayName;
   final int gold;
   final PlayerProgress? playerProgress;
+  final int? animateXpFrom;
 
   @override
   State<HubTopRow> createState() => _HubTopRowState();
@@ -103,7 +105,12 @@ class _HubTopRowState extends State<HubTopRow> {
           ),
           if (widget.playerProgress != null) ...[
             SizedBox(width: ui.space.sm),
-            Expanded(child: PlayerLevelBar(progress: widget.playerProgress!)),
+            Expanded(
+              child: PlayerLevelBar(
+                progress: widget.playerProgress!,
+                animateFromTotalXp: widget.animateXpFrom,
+              ),
+            ),
           ] else
             const Spacer(),
           SizedBox(width: ui.space.sm),

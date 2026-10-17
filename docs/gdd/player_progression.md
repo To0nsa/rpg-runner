@@ -13,9 +13,12 @@ Level starts at 1. Advancing from level `L` requires `100 + 25 × (L - 1)` XP;
 surplus XP carries into following levels. The hub shows level and progress
 on the same line as the player's name, with level and XP inside the bar. The
 bar fills the available space before gold, battery and time at the far right
-of the hub. The
-Profile page repeats the bar and shows lifetime XP, Practice runs played,
-Competitive runs played, enemies defeated, damage dealt and damage taken.
+of the hub. After a run, the hub bar counts up from the XP shown before play to
+the newly settled total, filling and resetting at each crossed level. If
+validation finishes after the player returns, the bar fills when that XP
+arrives. The Profile page repeats the bar and shows lifetime XP, Practice runs
+played, Competitive runs played, enemies defeated, damage dealt and damage
+taken.
 The separate, collapsed Runs by level section shows Practice, Competitive and
 Weekly counts for each recorded level. Historical runs without a recorded mode
 remain in the account's accepted-run total but do not appear in the mode rows.

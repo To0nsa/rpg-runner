@@ -105,6 +105,100 @@ void main() {
     expect(bar.right, lessThan(gold.left));
   });
 
+  testWidgets('XP catches up through a level when returning from a run', (
+    tester,
+  ) async {
+    final ownership = _NoopOwnershipApi(
+      gold: 0,
+      playerProgress: const PlayerProgress(
+        totalXp: 90,
+        acceptedRuns: 1,
+        damageDealt100: 0,
+        damageTaken100: 0,
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: ownership,
+    );
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(
+      _RoutedTestApp(
+        appState: appState,
+        observer: _RecordingNavigatorObserver(),
+      ),
+    );
+    await tester.pump();
+
+    final play = find.byWidgetPredicate(
+      (widget) => widget is AppButton && widget.label == 'PLAY',
+    );
+    await tester.tap(play.last);
+    await tester.pump();
+    ownership.playerProgress = const PlayerProgress(
+      totalXp: 260,
+      acceptedRuns: 2,
+      damageDealt100: 0,
+      damageTaken100: 0,
+    );
+    await appState.bootstrap(force: true);
+    await tester.pump();
+
+    Navigator.of(tester.element(find.text('Run Bootstrap Placeholder'))).pop();
+    await tester.pump();
+    expect(find.text('LEVEL 1  ·  90 / 100 XP'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.textContaining(RegExp(r'LEVEL 2  ·  \d+ / 125 XP')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('LEVEL 3  ·  35 / 150 XP'), findsOneWidget);
+  });
+
+  testWidgets('XP arriving after hub return fills from the previous total', (
+    tester,
+  ) async {
+    final ownership = _NoopOwnershipApi(
+      gold: 0,
+      playerProgress: const PlayerProgress(
+        totalXp: 90,
+        acceptedRuns: 1,
+        damageDealt100: 0,
+        damageTaken100: 0,
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: ownership,
+    );
+    await appState.bootstrap(force: true);
+    await tester.pumpWidget(
+      _RoutedTestApp(
+        appState: appState,
+        observer: _RecordingNavigatorObserver(),
+      ),
+    );
+    await tester.pump();
+
+    final play = find.byWidgetPredicate(
+      (widget) => widget is AppButton && widget.label == 'PLAY',
+    );
+    await tester.tap(play.last);
+    await tester.pump();
+    await tester.pump();
+    Navigator.of(tester.element(find.text('Run Bootstrap Placeholder'))).pop();
+    await tester.pump();
+    ownership.playerProgress = const PlayerProgress(
+      totalXp: 110,
+      acceptedRuns: 2,
+      damageDealt100: 0,
+      damageTaken100: 0,
+    );
+    await appState.bootstrap(force: true);
+    await tester.pump();
+    expect(find.text('LEVEL 1  ·  90 / 100 XP'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(find.text('LEVEL 2  ·  10 / 125 XP'), findsOneWidget);
+  });
+
   testWidgets('hub keeps gold and status at the far right on wide screens', (
     tester,
   ) async {
@@ -291,7 +385,7 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   _NoopOwnershipApi({required this.gold, this.playerProgress});
 
   final int gold;
-  final PlayerProgress? playerProgress;
+  PlayerProgress? playerProgress;
 
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_hub',
