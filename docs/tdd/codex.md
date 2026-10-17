@@ -105,8 +105,15 @@ Routes:
 - Entry routes are pushed within Library and recheck current account progress
   on rebuild, hiding combat/lore content again if the account is replaced.
 
-Locked list rows expose names, idle portraits and requirements, with counts
-inside a trailing progress bar. Status remains in accessibility semantics.
+Locked Bestiary rows conceal names; their idle portraits appear after the first
+defeat. Locations show their names. Both show requirements inside a trailing
+progress bar. Each `CodexEntryTile` owns a presentation-only
+controller. `LibraryPage` passes whether its Bestiary or Locations section is
+active, so the `IndexedStack` can retain scroll state while bars restart from
+zero on entry. Confirmed increases while active animate from the current visual
+value; decreases snap to the new value. The fill caps at the requirement and
+an unlocked row displays "Open" only after reaching it. Unlock checks and
+accessibility semantics use canonical progress throughout the animation.
 Entry details and lists scroll; Library and `HubMenuIconColumn` share
 `MenuIconColumn`, which owns the icon-only `AppIconButton` sizing and spacing.
 Library retains section scroll state and exposes selection through semantics

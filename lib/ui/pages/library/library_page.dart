@@ -65,8 +65,14 @@ class _LibraryPageState extends State<LibraryPage> {
                 child: IndexedStack(
                   index: _section.index,
                   children: [
-                    _Bestiary(defeats: progress.enemyDefeats),
-                    _Locations(progress: progress.codex),
+                    _Bestiary(
+                      defeats: progress.enemyDefeats,
+                      active: _section == _LibrarySection.bestiary,
+                    ),
+                    _Locations(
+                      progress: progress.codex,
+                      active: _section == _LibrarySection.locations,
+                    ),
                     const CodexReadingView(
                       title: CodexCatalog.openingTitle,
                       subtitle: 'Éloïse of Elingen • Haute-Lothringen',
@@ -90,8 +96,9 @@ class _LibraryPageState extends State<LibraryPage> {
 }
 
 class _Bestiary extends StatelessWidget {
-  const _Bestiary({required this.defeats});
+  const _Bestiary({required this.defeats, required this.active});
   final EnemyDefeats defeats;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -108,6 +115,7 @@ class _Bestiary extends StatelessWidget {
             current: defeats.byEnemy[id.name] ?? 0,
             requiredProgress: CodexCatalog.killsRequired(id),
             progressLabel: 'defeated',
+            active: active,
             concealUntilUnlocked: true,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -124,8 +132,9 @@ class _Bestiary extends StatelessWidget {
 }
 
 class _Locations extends StatelessWidget {
-  const _Locations({required this.progress});
+  const _Locations({required this.progress, required this.active});
   final CodexProgress progress;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +153,7 @@ class _Locations extends StatelessWidget {
             current: progress.competitiveBestScores[id.name] ?? 0,
             requiredProgress: CodexCatalog.levelScoreRequirements[id]!,
             progressLabel: 'best Competitive score',
+            active: active,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 settings: RouteSettings(

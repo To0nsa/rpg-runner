@@ -84,6 +84,11 @@ void main() {
     );
 
     app.setDefeats({'unocoDemon': 1});
+    await tester.pump();
+    expect(
+      find.descendant(of: row, matching: find.text('Defeat 0 / 10 to unlock')),
+      findsOneWidget,
+    );
     await tester.pumpAndSettle();
     expect(
       find.descendant(of: row, matching: find.byType(EnemyPortrait)),
@@ -100,12 +105,65 @@ void main() {
     );
 
     app.setDefeats({'unocoDemon': 10});
+    await tester.pump();
+    expect(find.descendant(of: row, matching: find.text('Open')), findsNothing);
     await tester.pumpAndSettle();
     expect(
       find.descendant(of: row, matching: find.text('Unoco Demon')),
       findsOneWidget,
     );
+    expect(
+      find.descendant(of: row, matching: find.text('Open')),
+      findsOneWidget,
+    );
   });
+
+  testWidgets(
+    'Bestiary and Locations fill on entry and show Open at the gate',
+    (tester) async {
+      final app = _CodexAppState();
+      addTearDown(app.dispose);
+      app.setDefeats({'unocoDemon': 10});
+      app.setProgress(CodexProgress(competitiveBestScores: {'forest': 12000}));
+      await tester.pumpWidget(_app(app, const LibraryPage()));
+
+      final enemy = find.byKey(const ValueKey('codex-enemy-unocoDemon'));
+      expect(
+        find.descendant(of: enemy, matching: find.text('0 / 10')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(
+        find.descendant(of: enemy, matching: find.text('Open')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(
+        find.descendant(of: enemy, matching: find.text('Open')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byTooltip('Locations'));
+      await tester.pump();
+      final location = find.byKey(const ValueKey('codex-level-forest'));
+      expect(
+        find.descendant(of: location, matching: find.text('0 / 10,000')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 1200));
+      expect(
+        find.descendant(of: location, matching: find.text('Open')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byTooltip('Bestiary'));
+      await tester.pump();
+      expect(
+        find.descendant(of: enemy, matching: find.text('0 / 10')),
+        findsOneWidget,
+      );
+    },
+  );
 
   for (final pair in {
     EnemyId.shoggoth: EnemyId.shoggothMinion,
