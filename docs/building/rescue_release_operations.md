@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.16` was deployed October 17, 2026 UTC from frozen commit `709c9d42`;
-see [current production evidence](../verification/game-compat-2026.10.16-production.md).
+Status: `2026.10.17` was deployed October 17, 2026 UTC from frozen commit `21b60c70`;
+see [current production evidence](../verification/game-compat-2026.10.17-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.16](../verification/game-compat-2026.10.16-production.md),
 [2026.10.12](../verification/game-compat-2026.10.12-production.md),
 [2026.10.11.1](../verification/game-compat-2026.10.11.1-production.md),
 [2026.10.11](../verification/game-compat-2026.10.11-production.md),
@@ -17,6 +18,33 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed release: 2026.10.17
+
+The owner authorized this coordinated release and cancellation of only verified
+unsubmitted tickets. The detached release recipe excluded 15 owner-accepted
+Forest enemy-traversal failures. Those cases remain unresolved; no authored
+chunk or repository test source was changed to make them pass. The
+[release verification](../verification/game-compat-2026.10.17-production.md)
+records the frozen source, build history, cutover evidence, and coverage limits.
+
+- [x] Freeze `21b60c70`; pass all ten required preparation components,
+  generated-content freshness, production dependency audit, and web build.
+- [x] Build the immutable worker image in Cloud Build
+  `59ccbd5f-2a83-4cbe-8b99-c446e2f519d0` and pass the strict exact-image
+  36,000-tick benchmark at one CPU / 512 MiB.
+- [x] Pause issuance and inspect the drain. Verify and conditionally cancel
+  exactly six unsubmitted old-version tickets; retain their records and all
+  330 accepted validations and settled grants.
+- [x] Deploy 25 non-issuer Functions, Firestore rules/indexes, worker revision
+  `replay-validator-00056-qnw`, six boards, and Hosting. Verify the live worker
+  digest and web bytes against prepared artifacts.
+- [x] Resume both queues and issuance. Verify all 26 Functions ACTIVE, worker
+  and issuer serving 100%, all six boards present, zero active sessions, and
+  no pending or quarantined settlement.
+- [ ] Complete controlled signed-in Play Games issuance, accepted replay,
+  once-only settlement, wallet catch-up, leaderboard/ghost and retired-version
+  smoke, plus target-device performance checks.
 
 ## Deployed release: 2026.10.16
 
