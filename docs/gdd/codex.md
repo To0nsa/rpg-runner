@@ -22,7 +22,7 @@ free to browse; discoveries cannot be purchased.
 | Boss | Defeat that boss 5 times | The same complete combat and lore entry |
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
 | Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Its road watch, patrols, training and shelter for travelers in the Long-Eared Owls’ Forest |
-| Léonards’ farm | Reach 10,000 in one Competitive run on Léonards’ farm | Open-land context and the journey |
+| Léonards’ farm | Reach 10,000 in one Competitive run on Léonards’ farm | The largest agricultural estate around Théodonis, overseen by a powerful family |
 | Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
 
 Defeats accumulate in the account's shared per-enemy record across confirmed
