@@ -147,14 +147,10 @@ abstract final class CodexCatalog {
 
   static String levelLore(LevelId id) => switch (id) {
     LevelId.forest =>
-      'The ancient forest is the heart of the present crisis. While the '
-          'region fought the orcs, a demonic cult used the conflict to conceal '
-          'its corruption of the woodland. Now the sky above it has gone black.\n\n'
-          'Éloïse enters a place whose paths are held by followers of that '
-          'hidden power. Each clearing offers a little more knowledge of the '
-          'threat, and demands another confrontation before she can continue. '
-          'The forest’s older history reaches back to the Dames de la forêt '
-          'and the fair folk, long before humanoid settlement.',
+      'Val Outpost stands beside the road through the Forêt des Moyen-Ducs. '
+          'Its soldiers patrol the wooded route, train for the forest’s '
+          'hazards, and carry warnings of danger back to Théodonis. Travelers '
+          'can rest under their guard before continuing their journey.',
     LevelId.field =>
       'Open land is part of what Lothringen must struggle to preserve. '
           'Beyond its settlements, a journey depends on exposed routes and '

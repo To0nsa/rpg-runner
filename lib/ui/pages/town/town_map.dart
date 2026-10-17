@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../components/map_label_button.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_world_palette.dart';
 import 'map_callout.dart';
@@ -134,7 +135,7 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                     anchor: service.$6,
                     labelCenter: service.$1,
                     visibleMap: visibleMap,
-                    child: _MapService(
+                    child: MapLabelButton(
                       key: ValueKey(service.$5),
                       label: service.$2,
                       icon: service.$3,
@@ -176,58 +177,12 @@ class _TownMapViewportState extends State<_TownMapViewport> {
               icon: const Icon(
                 Icons.center_focus_strong,
                 color: UiWorldPalette.mist200,
-                shadows: _mapShadows,
+                shadows: mapLabelShadows,
               ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-const _mapShadows = [
-  Shadow(color: UiWorldPalette.ink900, blurRadius: 3),
-  Shadow(color: UiWorldPalette.ink900, blurRadius: 2, offset: Offset(0, 1)),
-];
-
-class _MapService extends StatelessWidget {
-  const _MapService({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        foregroundColor: UiWorldPalette.mist200,
-        minimumSize: Size(ui.sizes.tapTarget, ui.sizes.tapTarget),
-        padding: EdgeInsets.symmetric(horizontal: ui.space.xs),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 22, shadows: _mapShadows),
-          SizedBox(width: ui.space.xxs),
-          Text(
-            label,
-            style: ui.text.headline.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: UiWorldPalette.mist200,
-              shadows: _mapShadows,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

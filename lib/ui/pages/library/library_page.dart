@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/levels/level_id.dart';
 
 import '../../codex/codex_catalog.dart';
 import '../../components/menu_scaffold.dart';
@@ -14,6 +17,7 @@ import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
+import 'location_map.dart';
 
 /// Reads settled account progress; browsing never grants discoveries locally.
 class LibraryPage extends StatefulWidget {
@@ -74,12 +78,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       tracker: app.libraryProgressTracker,
                       accountKey: accountKey,
                     ),
-                    _Locations(
-                      progress: progress.codex,
-                      active: _section == _LibrarySection.locations,
-                      tracker: app.libraryProgressTracker,
-                      accountKey: accountKey,
-                    ),
+                    _Locations(progress: progress.codex),
                     const CodexReadingView(
                       title: CodexCatalog.openingTitle,
                       subtitle: 'Éloïse of Elingen • Haute-Lothringen',
@@ -149,48 +148,40 @@ class _Bestiary extends StatelessWidget {
 }
 
 class _Locations extends StatelessWidget {
-  const _Locations({
-    required this.progress,
-    required this.active,
-    required this.tracker,
-    required this.accountKey,
-  });
+  const _Locations({required this.progress});
   final CodexProgress progress;
-  final bool active;
-  final LibraryProgressTracker tracker;
-  final String accountKey;
 
   @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    return ListView(
-      padding: EdgeInsets.all(ui.space.sm),
-      children: [
-        for (final id in CodexCatalog.levelScoreRequirements.keys)
-          CodexEntryTile(
-            key: ValueKey('codex-level-${id.name}'),
-            title: CodexCatalog.levelName(id),
-            portrait: Icon(
-              Icons.landscape_outlined,
-              color: ui.colors.accentStrong,
-            ),
-            current: progress.competitiveBestScores[id.name] ?? 0,
-            requiredProgress: CodexCatalog.levelScoreRequirements[id]!,
-            progressLabel: 'best Competitive score',
-            active: active,
-            tracker: tracker,
-            accountKey: accountKey,
-            progressKey: 'level:${id.name}',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                settings: RouteSettings(
-                  name: '/meta/town/library/level/${id.name}',
+  Widget build(BuildContext context) => LocationMap(
+    progress: progress,
+    onLocationPressed: (id) => _showLocation(context, id),
+  );
+
+  void _showLocation(BuildContext context, LevelId id) {
+    final viewport = MediaQuery.sizeOf(context);
+    showDialog<void>(
+      context: context,
+      routeSettings: RouteSettings(name: '/meta/town/library/level/${id.name}'),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: dialogContext.ui.colors.background,
+        child: SizedBox(
+          width: math.min(720, viewport.width - 48),
+          height: math.min(560, viewport.height - 48),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: 'Close location',
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  icon: const Icon(Icons.close),
                 ),
-                builder: (_) => CodexEntryPage.level(id),
               ),
-            ),
+              Expanded(child: CodexLevelDetails(levelId: id)),
+            ],
           ),
-      ],
+        ),
+      ),
     );
   }
 }

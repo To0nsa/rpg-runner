@@ -102,23 +102,32 @@ Routes:
 - `/meta/town/store`: the existing store, preserving purchase/refresh behavior.
 - `/meta/town/library`: Bestiary, Locations and opening Journal sections on a
   left-side icon rail.
-- Entry routes are pushed within Library and recheck current account progress
-  on rebuild, hiding combat/lore content again if the account is replaced.
+- Enemy entry routes are pushed within Library. The Locations map opens modal
+  details using the same `CodexLevelDetails` as the level entry route. Both
+  recheck current account progress on rebuild, hiding lore again if the account
+  is replaced.
 
 Locked Bestiary rows conceal names; their idle portraits appear after the first
-defeat. Locations show their names. Both show requirements inside a trailing
-progress bar. Each `CodexEntryTile` owns a presentation-only
+defeat. Each `CodexEntryTile` owns a presentation-only
 `UiProgressAnimator`, shared with the hub XP bar for count interpolation and
 timing. A session-only `LibraryProgressTracker` on `AppState` records the last
 presented value per entry and resets its history when the active account key
-changes. `LibraryPage` passes whether its Bestiary or Locations section is
-active, so the `IndexedStack` retains scroll state. First observations appear
+changes. `LibraryPage` passes whether Bestiary is active, so the `IndexedStack`
+retains scroll and map state. First observations appear
 immediately. Confirmed increases animate when next visible, including across
 Library route disposal; the target is recorded when that animation starts so
 the same increase does not replay. Decreases snap to the new value. The fill
-caps at the requirement, so an unlocked row displays "Open" after a visible
-increase reaches it and remains open on later visits. Unlock checks and
-accessibility semantics use canonical progress throughout the animation.
+caps at the requirement, so an unlocked Bestiary row displays "Open" after a
+visible increase reaches it and remains open on later visits. Unlock checks
+and accessibility semantics use canonical progress throughout the animation.
+Locations read the canonical Competitive best score directly, including while
+a modal is open. The supplied regional JPEG remains untouched; an unlabelled
+derivative is registered as a Flutter asset. `LocationMap` composes that image
+with Flutter landmark labels and two interactive targets at normalized map
+coordinates. It uses `InteractiveViewer`, the Town map's `MapCallout`, and the
+shared unframed `MapLabelButton` for pan, zoom and anchored labels. The initial
+framing keeps both locations visible; portrait view fits the full map. The
+modal reuses the location reading surface and its live unlock gate.
 Entry details and lists scroll; Library and `HubMenuIconColumn` share
 `MenuIconColumn`, which owns the icon-only `AppIconButton` sizing and spacing.
 Library retains section scroll state and exposes selection through semantics

@@ -26,57 +26,77 @@ class CodexEntryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (levelId case final id?) {
+      return MenuScaffold(
+        title: CodexCatalog.levelName(id),
+        background: ColoredBox(color: context.ui.colors.background),
+        child: SafeArea(top: false, child: CodexLevelDetails(levelId: id)),
+      );
+    }
     final progress = context.watch<AppState>().progression;
-    final enemy = enemyId == null
-        ? null
-        : CodexCatalog.parentBoss(enemyId!) ?? enemyId;
-    final title = enemy?.displayName ?? CodexCatalog.levelName(levelId!);
-    final unlocked = enemy != null
-        ? CodexCatalog.enemyUnlocked(progress.enemyDefeats, enemy)
-        : CodexCatalog.levelUnlocked(progress.codex, levelId!);
-    final current = enemy != null
-        ? progress.enemyDefeats.byEnemy[enemy.name] ?? 0
-        : progress.codex.competitiveBestScores[levelId!.name] ?? 0;
-    final target = enemy != null
-        ? CodexCatalog.killsRequired(enemy)
-        : CodexCatalog.levelScoreRequirements[levelId]!;
+    final enemy = CodexCatalog.parentBoss(enemyId!) ?? enemyId!;
+    final unlocked = CodexCatalog.enemyUnlocked(progress.enemyDefeats, enemy);
+    final current = progress.enemyDefeats.byEnemy[enemy.name] ?? 0;
+    final target = CodexCatalog.killsRequired(enemy);
     return MenuScaffold(
-      title: unlocked || enemy == null ? title : 'Bestiary',
+      title: unlocked ? enemy.displayName : 'Bestiary',
       background: ColoredBox(color: context.ui.colors.background),
       child: SafeArea(
         top: false,
         child: unlocked
             ? CodexReadingView(
-                title: title,
-                subtitle: enemy != null
-                    ? (enemy.isBoss ? 'Bestiary • Boss' : 'Bestiary')
-                    : 'Locations',
-                paragraphs: enemy != null
-                    ? []
-                    : [CodexCatalog.levelLore(levelId!)],
-                children: enemy == null
-                    ? []
-                    : [
-                        _EnemyCombat(enemy: enemy),
-                        _ReadingSection(
-                          title: 'Field notes',
-                          text: CodexCatalog.enemyLore(enemy),
-                        ),
-                        for (final summon in CodexCatalog.summonsFor(enemy))
-                          _SummonSection(enemy: summon),
-                      ],
+                title: enemy.displayName,
+                subtitle: enemy.isBoss ? 'Bestiary • Boss' : 'Bestiary',
+                paragraphs: const [],
+                children: [
+                  _EnemyCombat(enemy: enemy),
+                  _ReadingSection(
+                    title: 'Field notes',
+                    text: CodexCatalog.enemyLore(enemy),
+                  ),
+                  for (final summon in CodexCatalog.summonsFor(enemy))
+                    _SummonSection(enemy: summon),
+                ],
               )
             : CodexReadingView(
                 title: 'Entry locked',
-                subtitle: enemy == null ? title : 'Bestiary',
+                subtitle: 'Bestiary',
                 paragraphs: [
-                  enemy != null
-                      ? 'Defeat ${codexNumber(target)} to reveal its attacks, resistances and field notes.'
-                      : 'Reach ${codexNumber(target)} points in one Competitive run on $title to reveal its history.',
-                  '${codexNumber(current)} / ${codexNumber(target)} ${enemy != null ? 'defeated' : 'best Competitive score'}.',
+                  'Defeat ${codexNumber(target)} to reveal its attacks, resistances and field notes.',
+                  '${codexNumber(current)} / ${codexNumber(target)} defeated.',
                 ],
               ),
       ),
+    );
+  }
+}
+
+/// Uses current account progress in both the Library map dialog and entry route.
+class CodexLevelDetails extends StatelessWidget {
+  const CodexLevelDetails({super.key, required this.levelId});
+
+  final LevelId levelId;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = context.watch<AppState>().progression.codex;
+    final title = CodexCatalog.levelName(levelId);
+    final target = CodexCatalog.levelScoreRequirements[levelId]!;
+    final current = progress.competitiveBestScores[levelId.name] ?? 0;
+    if (CodexCatalog.levelUnlocked(progress, levelId)) {
+      return CodexReadingView(
+        title: title,
+        subtitle: 'Locations',
+        paragraphs: [CodexCatalog.levelLore(levelId)],
+      );
+    }
+    return CodexReadingView(
+      title: 'Entry locked',
+      subtitle: title,
+      paragraphs: [
+        'Reach ${codexNumber(target)} points in one Competitive run on $title to reveal its history.',
+        '${codexNumber(current)} / ${codexNumber(target)} best Competitive score.',
+      ],
     );
   }
 }

@@ -21,7 +21,7 @@ free to browse; discoveries cannot be purchased.
 | Regular enemy | Defeat that enemy type 10 times | Attacks and damage types, resistances, weaknesses, behaviour and field notes |
 | Boss | Defeat that boss 5 times | The same complete combat and lore entry |
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
-| Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Forest history and current crisis |
+| Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Its road watch, patrols, training and shelter for travelers in the Forêt des Moyen-Ducs |
 | Léonards’ farm | Reach 10,000 in one Competitive run on Léonards’ farm | Open-land context and the journey |
 | Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
 
@@ -47,21 +47,23 @@ Library. Bestiary lists all eight independent entries together, without category
 filters. Locked Bestiary cards conceal the enemy name, show "Entry locked",
 and put "Defeat current / target to unlock" inside the bar. The idle portrait
 appears after the first defeat of that type; at zero defeats a lock icon remains.
-On first viewing Bestiary or Locations in an app session, each bar shows
+On first viewing Bestiary in an app session, each bar shows
 confirmed progress immediately. After that, newly confirmed increases fill
 from the last presented value over 1.2 seconds, including progress earned while
 the Library is closed or another section is shown. On an unlock, the count
 changes to "Open" when the fill reaches the requirement. The same increase
 does not replay; already presented unlocked bars show "Open" immediately on
 later visits. Unlocked cards show an idle enemy portrait and name.
-Locations use the same compact layout with landscape icons and competitive
-score progress. Summary totals, introductory instructions and card status
-subtitles are omitted. Locked/discovered status remains available to screen
-readers. Opening a locked Bestiary entry also conceals the enemy name.
-Locked entries omit validation boilerplate; locked Locations describe their
-history gate without promising other context. Opening a locked entry explains its gate without revealing combat
-details or lore. Unlocked entries expose
-the full page. There are no partial purchases or additional currencies.
+Locations show an unlabelled map of the Théodonis region with Flutter labels
+for its landmarks. Léonards’ farm and Val Outpost have clickable map labels and
+markers. Their icons show locked or open status; tapping either opens a modal
+with the current Competitive best score and discovery requirement, or the full
+location lore after unlock. The map can be panned and zoomed, with a reset
+control. Locked/discovered status remains available to screen readers. Opening
+a locked Bestiary entry also conceals the enemy name. Locked entries omit
+validation boilerplate; locked Locations describe their history gate without
+promising other context. There are no partial purchases or additional
+currencies.
 
 Combat information reflects the current game catalogs, including mixed damage
 shares and secondary boss attacks. Innate resistances and weaknesses are
@@ -80,13 +82,20 @@ against the orcs, and her founding of La Main. It ends as the sky darkens,
 without revealing what happens in the forest or her later fate. The in-game
 journal contains no reference to the later campaign.
 
-The user's premise is authoritative for the runner: the forest's cultists and
-associated creatures help the power responsible for the black sky. The PDF
-also describes a demonic cult corrupting the ancient forest behind the
-diversion of the orc war. Enemy field notes connect present encounters to that
-crisis. Exact remote origins of bosses are left unknown where the references
-do not establish them; these encounter descriptions do not invent a separate
-pantheon or transplant later-era named townspeople into this period.
+Val Outpost already exists in the runner's earlier period and serves the same
+road-patrol and survival-training purpose it has in the later campaign. It is
+in the Forêt des Moyen-Ducs near Théodonis. That forest has no black sky: the
+darkened ancient forest is at least 50 km farther north. The Val Outpost
+location entry describes the outpost in Éloïse's time, not the later campaign's
+captain, medic, injured soldier or caravan survivors.
+
+The user's premise is authoritative for the runner: the northern ancient
+forest's cultists and associated creatures help the power responsible for the
+black sky. The PDF also describes a demonic cult corrupting that forest while
+the orc war diverts attention. Enemy field notes connect present encounters to
+that crisis. Exact remote origins of bosses remain unknown where the references
+do not establish them. These descriptions do not invent a separate pantheon or
+transplant later-era named townspeople into this period.
 
 References: *Lothringen - Les Soleils d'or - Guide du maitre.pdf*, historical
 overview (physical page 3, printed pages 4–5), Éloïse (physical page 31,

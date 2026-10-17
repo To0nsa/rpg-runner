@@ -196,6 +196,7 @@ flutter:
     - assets/images/level/atlases/village/
     - assets/images/level/atlases/weird_nature/
     - assets/images/level/atlases/woods/
+    - assets/images/maps/
     - assets/images/parallax/ancient_forest/
     - assets/images/parallax/cave/
     - assets/images/parallax/country_village/
