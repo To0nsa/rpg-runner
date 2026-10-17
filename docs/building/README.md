@@ -30,15 +30,11 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): frozen `18d00737`
-  deployed as `2026.10.8`/`score-v4` to Functions, Cloud Run, and web Hosting on
-  October 7 (Helsinki time). Checks and the exact-image benchmark passed.
-  No runs required cancellation;
-  live gameplay smoke still needs a linked
-  Play Games account. Browser file-I/O bootstrap remains unsupported.
-  The earlier [ghost cache client fix](../verification/ghost-cache-client-2026-10-03.md)
-  passed 876 client tests and was published to Hosting and installed on Android;
-  ghost launch, cache reuse, and rendering were subsequently verified on the phone.
+- [Rescue release operations](rescue_release_operations.md): frozen `709c9d42`
+  deployed as `2026.10.16`/`score-v4` to Functions, Cloud Run, and web Hosting
+  on October 17 UTC. Required checks and the exact-image benchmark passed;
+  15 reviewed unsubmitted tickets were cancelled while all 318 accepted runs
+  and rewards were preserved. Signed-in Play Games production smoke remains open.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

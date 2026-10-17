@@ -1,8 +1,9 @@
 # Rescue release operations
 
-Status: `2026.10.12` was deployed October 12, 2026 UTC from frozen commit `77525d31`;
-see [current production evidence](../verification/game-compat-2026.10.12-production.md).
+Status: `2026.10.16` was deployed October 17, 2026 UTC from frozen commit `709c9d42`;
+see [current production evidence](../verification/game-compat-2026.10.16-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.12](../verification/game-compat-2026.10.12-production.md),
 [2026.10.11.1](../verification/game-compat-2026.10.11.1-production.md),
 [2026.10.11](../verification/game-compat-2026.10.11-production.md),
 [2026.10.10](../verification/boss-combat-corrections-2026-10-08.md#production-release),
@@ -16,6 +17,35 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed release: 2026.10.16
+
+The owner authorized the coordinated release of the updated authored Field
+and Forest content and shared `2026.10.16` gameplay compatibility. The owner
+requested removal of tests tied to authored gap changes instead of changing
+those chunks, approved the required release checks, and authorized cancelling
+unsubmitted runs when needed for cutover. The removed traversal, streaming and
+terrain-order cases are documented as coverage limits in the
+[release verification](../verification/game-compat-2026.10.16-production.md).
+
+- [x] Freeze `709c9d42`, prepare and verify all ten required components, 1,474
+  Flutter tests, 2,241 Core tests, generated-content freshness, and the
+  production web artifact.
+- [x] Build the 93,050-graph worker image and pass the strict exact-image
+  benchmark in Cloud Build `017dd2a8-c129-4e3b-be56-d4b78db81b67`.
+- [x] Pause issuance, verify zero pending/quarantined settlement, and cancel
+  exactly 15 guarded unsubmitted `2026.10.12` tickets. Preserve all 318
+  accepted validations and settled grants; do not reset data.
+- [x] Deploy Functions, Firestore rules/indexes, worker revision
+  `replay-validator-00055-795`, six new-version boards, and Hosting. Verify
+  live worker digest and web bytes against the prepared artifacts.
+- [x] Restore both queues and normal issuance. Verify all 26 Functions ACTIVE,
+  healthy issuer revision `runsessioncreate-00062-wbd` serving 100% without
+  the pause gate, worker serving 100%, no active sessions, and no pending or
+  quarantined settlement.
+- [ ] Complete controlled signed-in Play Games issuance, accepted replay,
+  once-only settlement, wallet catch-up, leaderboard/ghost and retired-version
+  smoke, plus target-device performance checks.
 
 ## Deployed release: 2026.10.12
 
