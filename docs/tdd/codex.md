@@ -108,7 +108,8 @@ Routes:
 Locked Bestiary rows conceal names; their idle portraits appear after the first
 defeat. Locations show their names. Both show requirements inside a trailing
 progress bar. Each `CodexEntryTile` owns a presentation-only
-controller. `LibraryPage` passes whether its Bestiary or Locations section is
+`UiProgressAnimator`, shared with the hub XP bar for count interpolation and
+timing. `LibraryPage` passes whether its Bestiary or Locations section is
 active, so the `IndexedStack` can retain scroll state while bars restart from
 zero on entry. Confirmed increases while active animate from the current visual
 value; decreases snap to the new value. The fill caps at the requirement and

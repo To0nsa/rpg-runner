@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../components/ui_progress_animator.dart';
 import '../../theme/ui_tokens.dart';
 
 /// A compact name/portrait row with its requirement inside the trailing meter.
@@ -28,29 +29,16 @@ class CodexEntryTile extends StatefulWidget {
 
 class _CodexEntryTileState extends State<CodexEntryTile>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late int _startProgress;
-  late int _endProgress;
+  late final UiProgressAnimator _progressAnimation;
 
   int get _target => widget.current.clamp(0, widget.requiredProgress);
-
-  int get _displayedProgress =>
-      (_startProgress +
-              (_endProgress - _startProgress) *
-                  Curves.easeInOutCubic.transform(_controller.value))
-          .round();
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      // Match the hub XP fill while leaving time to read the changing count.
-      duration: const Duration(milliseconds: 1200),
-    );
-    _startProgress = _endProgress = _target;
+    _progressAnimation = UiProgressAnimator(vsync: this, initialValue: _target);
     if (widget.active) {
-      _animateFrom(0, _target);
+      _progressAnimation.animateFrom(0, _target);
     }
   }
 
@@ -58,40 +46,23 @@ class _CodexEntryTileState extends State<CodexEntryTile>
   void didUpdateWidget(CodexEntryTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.active) {
-      if (oldWidget.active || _target != _endProgress) {
-        _showImmediately(_target);
+      if (oldWidget.active || _target != _progressAnimation.target) {
+        _progressAnimation.jumpTo(_target);
       }
     } else if (!oldWidget.active) {
-      _animateFrom(0, _target);
-    } else if (_target != _endProgress) {
-      if (_target > _endProgress) {
-        _animateFrom(_displayedProgress, _target);
+      _progressAnimation.animateFrom(0, _target);
+    } else if (_target != _progressAnimation.target) {
+      if (_target > _progressAnimation.target) {
+        _progressAnimation.animateFrom(_progressAnimation.value, _target);
       } else {
-        _showImmediately(_target);
+        _progressAnimation.jumpTo(_target);
       }
-    }
-  }
-
-  void _showImmediately(int target) {
-    _controller.stop();
-    _startProgress = _endProgress = target;
-    _controller.value = 1;
-  }
-
-  void _animateFrom(int from, int target) {
-    _controller.stop();
-    _startProgress = from;
-    _endProgress = target;
-    if (from < target) {
-      _controller.forward(from: 0);
-    } else {
-      _controller.value = 1;
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _progressAnimation.dispose();
     super.dispose();
   }
 
@@ -160,9 +131,9 @@ class _CodexEntryTileState extends State<CodexEntryTile>
                           SizedBox(
                             width: barWidth,
                             child: AnimatedBuilder(
-                              animation: _controller,
+                              animation: _progressAnimation.animation,
                               builder: (context, _) {
-                                final shown = _displayedProgress;
+                                final shown = _progressAnimation.value;
                                 final shownCount =
                                     '${codexNumber(shown)} / ${codexNumber(widget.requiredProgress)}';
                                 final open =
