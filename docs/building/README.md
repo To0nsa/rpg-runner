@@ -30,11 +30,12 @@
   authoring, scoring and production content delivered. M7 retains signed-in
   production verification; the owner stopped further benchmarks before release.
 
-- [Rescue release operations](rescue_release_operations.md): frozen `709c9d42`
-  deployed as `2026.10.16`/`score-v4` to Functions, Cloud Run, and web Hosting
-  on October 17 UTC. Required checks and the exact-image benchmark passed;
-  15 reviewed unsubmitted tickets were cancelled while all 318 accepted runs
-  and rewards were preserved. Signed-in Play Games production smoke remains open.
+- [Rescue release operations](rescue_release_operations.md): the leaderboard
+  level patch from frozen `1a8e899c` was deployed October 18 UTC to Functions,
+  Cloud Run, and web Hosting under `2026.10.17`/`score-v4`. Required checks
+  and the exact-image benchmark passed; one reviewed unsubmitted ticket was
+  cancelled while all 333 accepted runs and rewards were preserved. Signed-in
+  Play Games production smoke remains open.
 
 - [Completed trap implementation](../archive/2026-09-24/building/traps/plan.md)
   and [validation](../archive/2026-09-24/verification/traps.md), deployed in `2026.09.8`.

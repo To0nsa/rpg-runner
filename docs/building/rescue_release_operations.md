@@ -1,8 +1,10 @@
 # Rescue release operations
 
-Status: `2026.10.17` was deployed October 17, 2026 UTC from frozen commit `21b60c70`;
-see [current production evidence](../verification/game-compat-2026.10.17-production.md).
+Status: the leaderboard level patch was deployed October 18, 2026 UTC from
+frozen commit `1a8e899c` under gameplay `2026.10.17`; see
+[current production evidence](../verification/leaderboard-level-2026-10-18-production.md).
 Linked Play Games production smoke remains outstanding. Earlier releases:
+[2026.10.17 base release](../verification/game-compat-2026.10.17-production.md),
 [2026.10.16](../verification/game-compat-2026.10.16-production.md),
 [2026.10.12](../verification/game-compat-2026.10.12-production.md),
 [2026.10.11.1](../verification/game-compat-2026.10.11.1-production.md),
@@ -18,6 +20,33 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed leaderboard level patch: 2026.10.17
+
+Only the leaderboard contract, backend enrichment, and online board UI were
+carried forward from `master` onto the preceding production source. The owner
+authorized the coordinated cutover and separately approved cancellation of
+the one reviewed ticket only if it remained unsubmitted. See the
+[release verification](../verification/leaderboard-level-2026-10-18-production.md)
+for the exact source, receipts, immutable artifacts, and live checks.
+
+- [x] Freeze `1a8e899c` with only the leaderboard diff; pass all ten required
+  preparation components, current dependency audit, generated-content
+  freshness, and production web build.
+- [x] Build the 93,840-graph worker image in Cloud Build
+  `151c4339-65d6-4df5-b40a-68910d25cd20` and pass all six strict
+  exact-image benchmark gates.
+- [x] Pause issuance; review and conditionally cancel exactly one unsubmitted
+  ticket. Preserve all 333 accepted validations and settled grants.
+- [x] Deploy Functions, Firestore rules/indexes, worker revision
+  `replay-validator-00057-7jb`, and Hosting; verify six boards and byte-matching
+  live worker and web artifacts.
+- [x] Restore both queues and issuance; verify all 26 Functions ACTIVE, healthy
+  worker and issuer revisions serving 100%, no pause gate, and no pending or
+  quarantined settlement.
+- [ ] Complete controlled signed-in Play Games leaderboard level display,
+  accepted replay, once-only settlement, wallet catch-up, ghost playback, and
+  target-device performance checks.
 
 ## Deployed release: 2026.10.17
 

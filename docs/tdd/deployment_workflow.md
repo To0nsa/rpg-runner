@@ -9,21 +9,22 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is gameplay `2026.10.16`, deployed October 17,
-2026 UTC from frozen commit `709c9d42`. Its ranked tuple is `rules-v2`,
-`score-v4`, and `ghost-v1`; replay and command formats remain 1. See the
-[production evidence](../verification/game-compat-2026.10.16-production.md)
-for the verified preparation, immutable worker image, guarded cancellation of
-15 unsubmitted old-version tickets, coordinated cutover, live artifact checks
-and remaining test coverage limits. All 318 accepted validations and settled
-grants were preserved. The previous issuer image was missing, so the existing
-paused-rebuild recovery path was used. Both queues and normal issuance are
-restored, with all six new-version boards ready.
+The current production release is the October 18, 2026 UTC leaderboard level
+patch from frozen commit `1a8e899c`, based on the preceding
+[`2026.10.17` release](../verification/game-compat-2026.10.17-production.md).
+Its ranked tuple remains `2026.10.17` / `rules-v2` / `score-v4` /
+`ghost-v1`; replay and command formats remain 1. See the
+[patch evidence](../verification/leaderboard-level-2026-10-18-production.md)
+for the isolated source, preparation, immutable worker image, guarded
+cancellation of one unsubmitted ticket, coordinated cutover, live artifact
+checks, and remaining coverage limits. All 333 accepted validations and
+settled grants were preserved. Both queues and normal issuance are restored,
+with all six expected boards ready.
 
 Controlled signed-in gameplay remains unverified. The
 [release checklist](../building/rescue_release_operations.md) retains linked
 Play Games smoke checks; no native package was built or installed. The previous
-[`2026.10.12` release](../verification/game-compat-2026.10.12-production.md)
+[`2026.10.16` release](../verification/game-compat-2026.10.16-production.md)
 remains historical evidence.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
