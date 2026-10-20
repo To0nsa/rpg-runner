@@ -138,7 +138,8 @@ while allowing the incomplete composition to be saved.
 
 Equal minimum and maximum counts produce a fixed length. A range lets the seed
 choose the length. Sections can be duplicated and reordered; duplication keeps
-their settings and assigns a new section identity.
+their settings and assigns a new section identity. **Move earlier** and
+**Move later** keep the section selected and scroll Flow to follow it.
 
 After the final section, the author chooses either to repeat the full composition
 or to continue repeating the final section. Both keep the run going. Each

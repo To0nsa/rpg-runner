@@ -22,6 +22,81 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('Flow follows the selected section when moving earlier or later', (
+    tester,
+  ) async {
+    final document = _initialDocument.copyWith(
+      levels: [
+        for (final level in _initialDocument.levels)
+          if (level.levelId == 'forest')
+            level.copyWith(
+              assembly: LevelAssemblyDef(
+                segments: [
+                  for (var index = 0; index < 24; index++)
+                    LevelAssemblySegmentDef(
+                      segmentId: 'section_$index',
+                      groupId: 'default',
+                      minChunkCount: 1,
+                      maxChunkCount: 1,
+                      requireDistinctChunks: false,
+                    ),
+                ],
+              ),
+            )
+          else
+            level,
+      ],
+    );
+    final controller = await _mountLevelPage(
+      tester,
+      plugin: _InMemoryLevelPlugin(document),
+    );
+    await tester.binding.setSurfaceSize(const Size(1800, 1000));
+    await _showTab(tester, 'Flow');
+    final section = find.byKey(
+      const ValueKey<String>('level_section_section_0'),
+    );
+    final flow = find.byKey(const PageStorageKey<String>('level_flow_scroll'));
+    final scrollable = find
+        .descendant(of: flow, matching: find.byType(Scrollable))
+        .first;
+    await tester.scrollUntilVisible(section, 200, scrollable: scrollable);
+    await tester.tap(section);
+    await tester.pumpAndSettle();
+    final position = tester.state<ScrollableState>(scrollable).position;
+    final initialOffset = position.pixels;
+
+    Future<void> move(String label, int expectedIndex) async {
+      final button = find.widgetWithText(OutlinedButton, label);
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      final segments = (controller.scene as LevelScene).levels
+          .firstWhere((level) => level.levelId == 'forest')
+          .assembly!
+          .segments;
+      expect(segments[expectedIndex].segmentId, 'section_0');
+      expect(section.hitTestable(), findsOneWidget);
+      final viewport = tester.getRect(flow);
+      final bounds = tester.getRect(section);
+      expect(bounds.top, greaterThanOrEqualTo(viewport.top));
+      expect(bounds.bottom, lessThanOrEqualTo(viewport.bottom));
+      expect(tester.takeException(), isNull);
+    }
+
+    for (var index = 1; index < 24; index++) {
+      await move('Move later', index);
+    }
+    expect(position.pixels, greaterThan(initialOffset));
+    // The target can be unmounted if the author scrolls away before moving it.
+    position.jumpTo(position.minScrollExtent);
+    await tester.pumpAndSettle();
+    expect(section, findsNothing);
+    for (var index = 22; index >= 0; index--) {
+      await move('Move earlier', index);
+    }
+  });
+
   testWidgets(
     'section Advanced expands while a range edit commits on focus loss',
     (tester) async {

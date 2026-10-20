@@ -224,7 +224,8 @@ tab, viewport, undo/redo history, and pending diff.
    then set **At least** and **At most** to `3` for exactly three chunks. Leave
    **Use each chunk at most once in this section** enabled for no repeats.
    **Duplicate section** copies its settings; drag or use **Move earlier/later**
-   to arrange the sequence. Flow shows chunk positions and matching pool counts.
+   to arrange the sequence. Flow scrolls with the selected section as it moves.
+   Flow shows chunk positions and matching pool counts.
    Explicit difficulty requires matching active chunks without tier fallback;
    incomplete but structurally valid sequences can be saved before adding their
    missing content. Runtime capacity and seam errors still block Play.
