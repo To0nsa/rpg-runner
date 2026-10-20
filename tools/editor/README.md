@@ -723,9 +723,10 @@ selector, which swaps only the domain's sections; it never replaces or rebuilds
 the scene or filters Diagnostics. Owner, authoring, visual-stack, and
 Diagnostics sections start folded and retain presentation-only expansion state
 while mounted. Tab changes preserve the viewport and each
-domain's last selection. Active source gestures and retained dialogs lock the
-tabs until that operation is finished or cancelled. Merely selecting a Prefab
-or expanding its inline editor does not lock the workspace.
+domain's last selection. Changing chunks keeps the active tab and clears
+selections belonging to the previous chunk. Active source gestures and retained
+dialogs lock the tabs until that operation is finished or cancelled. Merely
+selecting a Prefab or expanding its inline editor does not lock the workspace.
 
 The scene tabs make primary input explicit. The Prefabs domain has Select,
 Place, and Move tools backed by a persistent visual-library section at the top

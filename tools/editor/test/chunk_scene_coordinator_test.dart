@@ -67,9 +67,37 @@ void main() {
       buildChunkPlacedMarkerSelections(chunk.markers).single,
     );
     coordinator.bindOwner();
-    expect(coordinator.domain, ChunkSceneDomain.terrain);
+    expect(coordinator.domain, ChunkSceneDomain.markers);
+    expect(coordinator.selection, isNull);
+    coordinator.setSourceDomain(ChunkSceneDomain.prefabs);
     expect(coordinator.selection, isNull);
   });
+
+  for (final domain in ChunkSceneDomain.values.where(
+    (domain) => domain != ChunkSceneDomain.compiledEdgeInspection,
+  )) {
+    test('owner binding preserves $domain and exits edge inspection', () {
+      final coordinator = ChunkSceneCoordinator()..setSourceDomain(domain);
+      coordinator.bindOwner();
+      expect(coordinator.domain, domain);
+      expect(coordinator.sourceDomain, domain);
+
+      coordinator.setCompiledEdgeInspection(true);
+      coordinator.selectCompiledEdge(
+        TerrainEdgeId(
+          chunkIndex: 0,
+          chunkKey: 'old_chunk',
+          shapeId: 'ground',
+          localEdgeIndex: 0,
+        ),
+      );
+      coordinator.bindOwner();
+      expect(coordinator.domain, domain);
+      expect(coordinator.sourceDomain, domain);
+      expect(coordinator.selectedCompiledEdgeId, isNull);
+      expect(coordinator.selection, isNull);
+    });
+  }
 
   test(
     'overlapping marker hit testing uses reverse canonical source order',

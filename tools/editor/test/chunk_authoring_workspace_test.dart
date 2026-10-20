@@ -49,6 +49,68 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('changing chunks retains every authoring tab', (tester) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final harness = await _buildHarness(
+      additionalChunks: [
+        _chunkData(
+          chunkKey: 'forest_neighbor',
+          levelId: 'forest',
+          shapeId: 'neighbor_ground',
+        ),
+      ],
+    );
+    addTearDown(harness.dispose);
+    final key = GlobalKey<ChunkAuthoringWorkspaceState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: ChunkAuthoringWorkspace(key: key, controller: harness.session),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openSection(
+      tester,
+      toggleKey: 'chunk_owner_section_toggle',
+      bodyKey: 'chunk_owner_preview_forest_chunk',
+    );
+    final selector = find.byKey(
+      const ValueKey<String>('chunk_scene_domain_selector'),
+    );
+    final domains = tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(selector)
+        .segments
+        .map((segment) => segment.value)
+        .toList();
+    for (final domain in domains) {
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(selector)
+          .onSelectionChanged!({domain});
+      await tester.pumpAndSettle();
+      for (final chunkKey in ['forest_neighbor', 'forest_chunk']) {
+        final owner = find.byKey(
+          ValueKey<String>('chunk_polygon_owner_$chunkKey'),
+        );
+        await tester.ensureVisible(owner);
+        await tester.tap(owner);
+        await tester.pumpAndSettle();
+        expect(key.currentState!.selectedChunkKey, chunkKey);
+        expect(key.currentState!.navigationLocation.domain, domain);
+        expect(
+          tester.widget<SegmentedButton<ChunkSceneDomain>>(selector).selected,
+          {domain},
+        );
+        expect(tester.takeException(), isNull);
+      }
+    }
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+  });
+
   testWidgets(
     'Connections opens a neighbor and restores the original Chunk view',
     (tester) async {
