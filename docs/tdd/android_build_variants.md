@@ -81,15 +81,20 @@ Games. Before the first online dev launch:
 1. Register the workstation debug certificate's SHA-1 and SHA-256 on the dev
    Firebase Android app. These were registered for this workstation on
    2026-10-21. Other workstations may have different debug certificates.
-2. In the existing game's Play Console **Play Games Services > Setup and
-   management > Configuration**, add an Android credential for
+2. In the existing game's Play Console **Grow users > Play Games services >
+   Setup and management > Configuration**, add an Android credential for
    `com.example.rpg_runner.dev` and that certificate's SHA-1. Link it to the
    existing game and preserve the release credentials and server OAuth client.
    For this workstation the SHA-1 is
    `74:B0:81:6A:97:FE:84:86:35:C8:BD:30:F9:70:A9:18:E3:EB:6A:6E`.
+   Create its Android OAuth client in the linked Google Cloud project using
+   this local signing certificate; the Play Console helper may suggest the
+   Play Store signing certificate instead. Leave the existing credential's
+   **Use for new installs** selection unchanged.
 3. Keep the phone's Google account on the Play Games tester list while the
    configuration is unpublished. Refresh the debug JSON after credential
-   changes and rebuild.
+   changes. Rebuild if generated runtime resources change; linking a matching
+   credential can also fix sign-in for an already installed APK.
 4. Register the dev installation's App Check debug token on the **dev Firebase
    app**, not the release app. Obtain it from local device logs after launch;
    never check debug tokens into the repository. Release/profile continue to
@@ -98,12 +103,17 @@ Games. Before the first online dev launch:
 The Firebase app and certificate registration are complete. The connected
 CPH2465 phone's dev App Check token was registered on 2026-10-21; a fresh dev
 launch confirmed `tokenAcquisition: available` with `failureReason: none`.
-Other installations need their own debug token registration. Play Console
-credential linking remains outstanding: the phone's Play Games service reports
-`APP NOT CORRECTLY CONFIGURED` / `DEVELOPER_ERROR` after profile selection.
-The downloaded dev configuration currently has the shared web OAuth client but
-no Android OAuth client for the dev package. Normal startup remains fail-closed
-until Play Games sign-in succeeds; this setup does not add an auth bypass.
+Other installations need their own debug token registration.
+
+Play Console credential **Long Run Dev** was linked on 2026-10-21 to Android
+OAuth client **Long Run Dev - Windows debug**:
+`964001571974-clto6jp9c5a1g46jmoiahanmlcodggbt.apps.googleusercontent.com`.
+It authorizes `com.example.rpg_runner.dev` with the workstation certificate
+above. The credential remains in draft, like the existing game configuration;
+the release credentials, new-install selection and server OAuth client were
+preserved. The refreshed debug JSON includes this Android client and the
+existing shared web client. Normal startup remains fail-closed until Play Games
+sign-in succeeds; this setup does not add an auth bypass.
 
 ## Validation
 
@@ -118,10 +128,16 @@ Connected-phone verification on 2026-10-21 installed the debug APK on a CPH2465
 alongside the existing release. Both packages remain installed; the release's
 package path, version, install timestamps and private-data directory identities
 match the pre-install baseline. Release opens its existing level 14 profile.
-Dev startup selects the dev Firebase registration and acquires an App Check
-token, but cannot pass Play Games sign-in until the credential setup above is
-complete. Developer Practice and persistence across a dev update therefore
-remain unverified on this phone.
+After the credential was linked, a fresh launch of the existing dev APK
+selected the dev Firebase registration, acquired an App Check token, received a
+Play Games server auth code and opened the hub with the same level 14 account.
+This resolves the earlier `APP NOT CORRECTLY CONFIGURED` / `DEVELOPER_ERROR`.
+Both packages remain installed. Developer Practice and persistence across a
+dev update remain unverified on this phone.
+
+The refreshed JSON passes `:app:processDebugGoogleServices`; its generated
+debug Firebase resources are byte-for-byte unchanged, so the verified existing
+APK did not need rebuilding or reinstalling for this credential change.
 
 The existing release also reports a Play Integrity `attestation_rejected`
 startup diagnostic despite reaching its hub. Opening the hub does not establish
