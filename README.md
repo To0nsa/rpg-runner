@@ -83,6 +83,15 @@ flutter pub get
 flutter run
 ```
 
+On Android, debug builds install as **rpg_runner Dev**
+(`com.example.rpg_runner.dev`) alongside **rpg_runner**
+(`com.example.rpg_runner`). `flutter run --release` and `--profile` still use
+the existing release app identity. Each installation has separate local data;
+the first dev install needs its own sign-in and Developer mode setup. Both
+connect to the same Firebase backend, so the same Play Games account shares
+online progression. See [Android build identities](docs/tdd/android_build_variants.md)
+for build commands and the dev package's Firebase/Play Games setup.
+
 For gameplay iteration on a connected phone, use a debug launch
 (`flutter run -d <device-id>`), sign in, and enable **Options > Settings > Developer mode**.
 This switches the existing screens to a local profile with all playable gear
@@ -109,9 +118,10 @@ loader. Initialization and player-data failures remain on the loader with an
 explicit retry; the hub opens only after bootstrap and required name setup.
 See [startup and authentication](docs/tdd/authentication_flow_and_authorization.md).
 
-Normal Android account startup requires Play Games sign-in. On a new workstation, register
-the debug signing certificate in Firebase and Play Games; a regenerated
-debug keystore has a different SHA-1. See
+Normal Android account startup requires Play Games sign-in. Register each
+package/signing-certificate combination in Firebase and Play Games, including
+`com.example.rpg_runner.dev` for debug builds; a regenerated debug keystore
+has a different SHA-1. See
 [local Android sign-in troubleshooting](docs/tdd/authentication_flow_and_authorization.md#local-android-sign-in-troubleshooting)
 for credential and tester setup checks.
 

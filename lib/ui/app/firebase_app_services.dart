@@ -27,7 +27,11 @@ AppServices createFirebaseAppServices() => AppServices(
     // App Check can fail after Firebase succeeds; retry that stage safely.
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
+        // Android selects its registered Firebase app through the build's
+        // google-services.json; Dart must not override it with the release ID.
+        options: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+            ? null
+            : DefaultFirebaseOptions.currentPlatform,
       );
     }
     await activateFirebaseAppCheck();

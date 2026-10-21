@@ -4,6 +4,12 @@ Developer mode is an explicit debug-build option for testing current local
 gameplay on a connected device. It is not a public offline mode and does not
 automatically activate after a connection failure.
 
+Android debug builds install as **rpg_runner Dev**, separately from
+release/profile. The first dev install starts with fresh preferences and still
+requires normal sign-in before enabling Developer mode in Options. Existing
+release preferences are not copied. See [Android build identities](android_build_variants.md)
+for the package-specific sign-in setup.
+
 ## Profile ownership and startup
 
 `createFirebaseAppServices` supplies `SharedPrefsDeveloperProfileStore` only

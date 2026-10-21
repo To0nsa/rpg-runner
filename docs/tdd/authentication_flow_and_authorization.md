@@ -156,8 +156,17 @@ UI entry point:
 
 ### Local Android sign-in troubleshooting
 
+Debug builds use `com.example.rpg_runner.dev`, a separate installation and
+Firebase Android registration from release/profile's `com.example.rpg_runner`.
+See [Android build identities](android_build_variants.md) for the configuration
+files, credential setup and first-install behavior. Android Firebase startup
+loads the selected build's native resources; other platforms continue to use
+the generated Dart options.
+
 The native bridge resolves `play_games_server_client_id` first, then falls back
-to the `default_web_client_id` generated from `android/app/google-services.json`.
+to the `default_web_client_id` generated from the selected build's
+`google-services.json` (`android/app/src/debug/` for debug, `android/app/` for
+release/profile).
 Both resources are looked up by name with `getIdentifier()`. The resource keep
 rules in `android/app/src/main/res/raw/com_example_rpg_runner_auth_keep.xml`
 preserve these values when present so release resource shrinking cannot remove
@@ -177,7 +186,7 @@ certificate SHA-1. A new workstation or regenerated debug keystore can change
 the certificate even when the package name is unchanged. Register the current
 debug certificate in Firebase and link its Android OAuth credential in Play
 Console; retain credentials needed by other builds. Refresh
-`android/app/google-services.json` after updating Firebase configuration.
+the affected build's `google-services.json` after updating Firebase configuration.
 
 For unpublished Play Games configuration, enable the device's Google account
 as a Play Games tester. Check the game server credential and Firebase Play
