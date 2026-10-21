@@ -450,7 +450,7 @@ it never selects the opening chunks again. At startup and on later stream
 changes, marker requests are captured in authored order, the matching complete
 terrain candidate is built/published, then enemies are applied before
 collectibles/restoration items as before. Marker rolls remain keyed by seed,
-chunk, marker index, and salt. Collectible/restoration count draws, candidate
+chunk, marker index, and salt. Collectible count draws and per-chunk item candidate
 draws, salts, snapping, spacing, and attempt limits are unchanged. The terrain
 authority validates each already-created candidate through a mutation-free
 placement request that consumes no RNG. Terrain rejection consumes the existing
@@ -462,6 +462,36 @@ collision from attracting the pickup through a visual hole. This deterministic
 placement change is included in game compatibility `2026.10.6`;
 count/candidate RNG and attempt consumption remain unchanged. An invalid placement cannot
 shift any later marker roll or candidate sequence.
+
+### Ambient restoration gem cadence
+
+`TrackSpawnedChunk.tier` captures the scheduler's resolved selected difficulty,
+including explicit section overrides and automatic fallback. `TrackManager`
+passes this tier with each deferred item batch after terrain publication;
+camera/player position and later section selection do not determine the bonus.
+Item batches consume each streamed chunk exactly once in increasing index order.
+
+`SpawnService` owns a run-lifetime integer spawn accumulator. Each eligible chunk
+adds 10,000 units, plus `RestorationItemTuning.easySpawnRateBonusBp` (default
+2,000) for `easy`. Every `spawnEveryChunks * 10,000` units earns one placement
+attempt. The remainder survives section, difficulty and batch boundaries.
+The seeded phase initializes the first eligible chunk so routes with no easy
+bonus preserve the previous modulo cadence exactly. Disabled spawning, a
+nonpositive interval and chunks before `spawnStartChunkIndex` earn no credit.
+
+Placement consumes an earned opportunity even when all terrain candidates fail;
+failures never defer credit into later chunks. The first gem's candidate stream
+retains the existing seed/chunk salt. Custom intervals that earn multiple gems
+in one chunk use ordinal-derived independent candidate streams, and placement
+rejects overlap with both coins and existing gems. Resource selection, 30%
+restoration, collection ordering and boss-owned supply remain unchanged.
+
+This changes replayed resource outcomes and joins the prepared, undeployed
+`2026.10.21` gameplay compatibility release. Both client and worker consume the
+same Core implementation; wire/score versions and `stepOneTick` order do not
+change. The coordinated release must ship matching source and artifacts.
+
+### Terminal lifecycle
 
 Player death may enter a death-animation freeze: only animation advances until
 the terminal `RunEndedEvent` is emitted. Any terminal end freezes normal

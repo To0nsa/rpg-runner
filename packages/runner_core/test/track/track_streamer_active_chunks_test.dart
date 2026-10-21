@@ -46,7 +46,17 @@ void main() {
         noEnemyChunks: 0,
       );
 
-      streamer.step(cameraLeft: 0.0, cameraRight: 1800.0, spawnEnemy: (_) {});
+      final step = streamer.step(
+        cameraLeft: 0.0,
+        cameraRight: 1800.0,
+        spawnEnemy: (_) {},
+      );
+      expect(step.spawnedChunks.map((chunk) => chunk.tier), [
+        ChunkPatternTier.early,
+        ChunkPatternTier.easy,
+        ChunkPatternTier.normal,
+        ChunkPatternTier.hard,
+      ]);
 
       expect(streamer.dynamicVisualSprites.map((s) => s.x), [
         7,
@@ -119,5 +129,26 @@ void main() {
 
     expect(streamer.activeChunks.single.chunkKey, isNull);
     expect(streamer.difficultyAtWorldX(0.0), ChunkPatternTier.hard);
+  });
+
+  test('deferred item batches capture the selected fallback difficulty', () {
+    final streamer = TrackStreamer(
+      seed: 42,
+      tuning: const TrackTuning(spawnAheadMargin: 0),
+      groundTopY: 220,
+      patternSource: const ChunkPatternListSource(
+        earlyPatterns: [ChunkPattern(name: 'opening')],
+        easyPatterns: [],
+      ),
+      earlyPatternChunks: 0,
+      easyPatternChunks: 100,
+      noEnemyChunks: 100,
+    );
+    final step = streamer.step(
+      cameraLeft: 0,
+      cameraRight: 0,
+      spawnEnemy: (_) {},
+    );
+    expect(step.spawnedChunks.single.tier, ChunkPatternTier.early);
   });
 }

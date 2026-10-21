@@ -2,8 +2,8 @@
 ///
 /// Centralizes all entity creation logic (enemies, collectibles, restoration
 /// items) with deterministic placement algorithms. Determinism is critical
-/// for replay consistency—given the same seed and chunk index, the same
-/// entities spawn at the same positions.
+/// for replay consistency: the same seed and ordered chunk difficulties produce
+/// the same spawn schedule and candidate positions.
 ///
 /// ## Architecture
 ///
@@ -51,6 +51,7 @@ import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'navigation/terrain_spawn_placement.dart';
 import 'snapshots/enums.dart';
+import 'track/chunk_pattern_tier.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
 import 'players/player_tuning.dart';
@@ -160,6 +161,9 @@ class SpawnService {
   final TerrainItemSpawnPlacementProfile _restorationPlacementProfile;
   final int _seed;
   final AbilityResolver abilities;
+
+  // Run-owned fractional progress survives section and difficulty boundaries.
+  int? _restorationSpawnCreditBp;
 
   // ─── Scratch buffers (reused to avoid allocation) ───
 
@@ -430,17 +434,20 @@ class SpawnService {
 
   /// Spawns a restoration item for a chunk if eligible.
   ///
-  /// Restoration items spawn on a periodic schedule (e.g., every N chunks)
-  /// with a phase offset derived from the seed to avoid predictable timing.
+  /// Call once per streamed chunk in increasing index order, after terrain
+  /// publication. The seeded base cadence accelerates when [difficulty] is easy;
+  /// fractional progress survives section/difficulty changes. Failed placement
+  /// consumes its opportunity, so geometry cannot shift later spawn timing.
   ///
   /// The item type is determined by [lowestResourceStat], which should
   /// return the player's most depleted resource (health, mana, or stamina).
   ///
   /// Placement follows the same rejection-sampling algorithm as collectibles,
-  /// with an additional check to avoid overlapping existing collectibles.
+  /// rejecting overlap with existing coins and restoration gems.
   void spawnRestorationItemForChunk({
     required int chunkIndex,
     required double chunkStartX,
+    required ChunkPatternTier difficulty,
     required RestorationStat Function() lowestResourceStat,
   }) {
     final tuning = _restorationItemTuning;
@@ -450,10 +457,37 @@ class SpawnService {
     if (chunkIndex < tuning.spawnStartChunkIndex) return;
     if (tuning.spawnEveryChunks <= 0) return;
 
-    // ─── Periodic spawn check (with seeded phase offset) ───
+    // Preserve the original seeded cadence when no easy bonus is earned.
     final phase =
         seedFrom(_seed, _restorationPhaseSalt) % tuning.spawnEveryChunks;
-    if ((chunkIndex - phase) % tuning.spawnEveryChunks != 0) return;
+    final thresholdBp = tuning.spawnEveryChunks * 10000;
+    var creditBp =
+        _restorationSpawnCreditBp ??
+        ((chunkIndex - phase - 1) % tuning.spawnEveryChunks) * 10000;
+    creditBp += 10000;
+    if (difficulty == ChunkPatternTier.easy) {
+      creditBp += tuning.easySpawnRateBonusBp;
+    }
+    final spawnCount = creditBp ~/ thresholdBp;
+    _restorationSpawnCreditBp = creditBp % thresholdBp;
+
+    for (var ordinal = 0; ordinal < spawnCount; ordinal++) {
+      _placeRestorationItemForChunk(
+        chunkIndex: chunkIndex,
+        chunkStartX: chunkStartX,
+        lowestResourceStat: lowestResourceStat,
+        ordinal: ordinal,
+      );
+    }
+  }
+
+  void _placeRestorationItemForChunk({
+    required int chunkIndex,
+    required double chunkStartX,
+    required RestorationStat Function() lowestResourceStat,
+    required int ordinal,
+  }) {
+    final tuning = _restorationItemTuning;
 
     // ─── Compute valid X range ───
     final minX = chunkStartX + tuning.chunkEdgeMarginX;
@@ -466,6 +500,8 @@ class SpawnService {
 
     // ─── Spawn with rejection sampling ───
     var rngState = seedFrom(_seed, chunkIndex ^ _restorationSpawnSalt);
+    // Very short custom intervals can earn multiple gems in one chunk.
+    if (ordinal > 0) rngState = seedFrom(rngState, ordinal);
     final halfSize = tuning.itemSize * 0.5;
 
     for (var attempt = 0; attempt < tuning.maxAttemptsPerSpawn; attempt += 1) {
@@ -489,13 +525,20 @@ class SpawnService {
       final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
       final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
 
-      // Reject if overlapping existing collectibles.
-      if (_overlapsAnyCollectible(
-        centerX: bodyX,
-        centerY: bodyY,
-        halfSize: halfSize,
-        margin: tuning.noSpawnMargin,
-      )) {
+      if (_overlapsPickups(
+            entities: _world.collectible.denseEntities,
+            centerX: bodyX,
+            centerY: bodyY,
+            halfSize: halfSize,
+            margin: tuning.noSpawnMargin,
+          ) ||
+          _overlapsPickups(
+            entities: _world.restorationItem.denseEntities,
+            centerX: bodyX,
+            centerY: bodyY,
+            halfSize: halfSize,
+            margin: tuning.noSpawnMargin,
+          )) {
         continue;
       }
 
@@ -518,28 +561,24 @@ class SpawnService {
     return (x / grid).roundToDouble() * grid;
   }
 
-  /// Checks if an AABB overlaps any existing collectible entity.
-  ///
-  /// Used by restoration item spawning to avoid stacking pickups.
-  bool _overlapsAnyCollectible({
+  /// Prevents restoration gems from stacking with coins or other gems.
+  bool _overlapsPickups({
+    required List<EntityId> entities,
     required double centerX,
     required double centerY,
     required double halfSize,
     required double margin,
   }) {
-    final collectibles = _world.collectible;
-    if (collectibles.denseEntities.isEmpty) return false;
+    if (entities.isEmpty) return false;
 
     final minX = centerX - halfSize - margin;
     final maxX = centerX + halfSize + margin;
     final minY = centerY - halfSize - margin;
     final maxY = centerY + halfSize + margin;
 
-    for (var ci = 0; ci < collectibles.denseEntities.length; ci += 1) {
-      final e = collectibles.denseEntities[ci];
+    for (final e in entities) {
       if (!(_world.transform.has(e) && _world.colliderAabb.has(e))) continue;
 
-      // Read collectible's world-space AABB.
       final ti = _world.transform.indexOf(e);
       final ai = _world.colliderAabb.indexOf(e);
       final cx = colliderCenterX(
