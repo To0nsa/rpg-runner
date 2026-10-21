@@ -66,7 +66,8 @@ import 'viewport/viewport_metrics.dart';
 /// continues, and defeating the boss restores ordinary route progression.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
-/// resolution fitted to the available screen.
+/// resolution fitted to the available screen. During play, left/top off-screen
+/// actor markers use that same fitted/cropped view and ignore pointer input.
 class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
@@ -713,22 +714,22 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final session = _session;
-            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-            final metrics = computeViewportMetrics(
-              constraints,
-              devicePixelRatio,
-              virtualWidth,
-              virtualHeight,
-              widget.viewportMode,
-              alignment: widget.viewportAlignment,
-            );
-            Widget gameView = GameViewport(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final session = _session;
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final metrics = computeViewportMetrics(
+          constraints,
+          devicePixelRatio,
+          virtualWidth,
+          virtualHeight,
+          widget.viewportMode,
+          alignment: widget.viewportAlignment,
+        );
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            GameViewport(
               metrics: metrics,
               child: GameWidget(
                 key: ValueKey(_game),
@@ -738,91 +739,92 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 errorBuilder: (_, error) =>
                     _RunLoadFailureReporter(session: session, error: error),
               ),
-            );
-
-            return gameView;
-          },
-        ),
-        AnimatedBuilder(
-          animation: _session,
-          builder: (context, _) {
-            final runLoaded = _session.isReady;
-            return AnimatedBuilder(
-              animation: _controller,
+            ),
+            AnimatedBuilder(
+              animation: _session,
               builder: (context, _) {
-                final uiState = _buildUiState(runLoaded: runLoaded);
-                if (uiState.showLoadingOverlay) {
-                  return _RunLoadingView(
-                    message: _session.loadingMessage,
-                    errorMessage: _session.errorMessage,
-                    onRetry: _loadingRetryInFlight ? null : _retryLoading,
-                    onExit: widget.showExitButton ? widget.onExit : null,
-                  );
-                }
-                if (uiState.gameOver) {
-                  final runEndedEvent = _controller.lastRunEndedEvent;
-                  final runEndKey =
-                      runEndedEvent?.tick ?? _controller.snapshot.tick;
-                  return GameOverOverlay(
-                    key: ValueKey(
-                      'gameOver-$_runSessionId-$runEndKey-${runEndedEvent?.reason}',
-                    ),
-                    visible: true,
-                    onRestart: _onRestartPressed,
-                    restartInProgress: _restartInFlight,
-                    onExit: widget.onExit,
-                    showExitButton: widget.showExitButton,
-                    levelId: _controller.snapshot.levelIdentity
-                        .requireRegisteredId(),
-                    runMode: _runMode,
-                    isDeveloperPractice: _descriptor.isDeveloperPractice,
-                    runEndedEvent: runEndedEvent,
-                    scoreTuning: _controller.scoreTuning,
-                    tickHz: _controller.tickHz,
-                    provisionalGoldEarned: _provisionalGoldEarned,
-                    verifiedGold: _verifiedGoldForGameOver(),
-                    runSubmissionStatus: _runSubmissionStatus,
-                    replaySubmissionJournaled: _runReplayJournaled,
-                    replaySubmissionJournalError: _runReplayJournalError,
-                    onRetryReplayJournal: _runReplayJournalInFlight
-                        ? null
-                        : () {
-                            final event = _controller.lastRunEndedEvent;
-                            if (event == null) return;
-                            setState(() {
-                              _runReplayJournalInFlight = true;
-                              _runReplayJournalError = null;
-                            });
-                            unawaited(_journalReplayForSubmission(event));
-                          },
-                  );
-                }
-                return GameOverlay(
-                  movementInputEpoch: _movementInputEpoch,
-                  movementControlMode: widget.movementControlMode,
-                  controller: _controller,
-                  input: _actions,
-                  projectileAimPreview: _projectileAimPreview,
-                  meleeAimPreview: _meleeAimPreview,
-                  aimCancelHitboxRect: _aimCancelHitboxRect,
-                  forceAimCancelSignal: _forceAimCancelSignal,
-                  playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
-                  uiState: uiState,
-                  onStart: _startGame,
-                  onTogglePause: _togglePause,
-                  showExitButton: widget.showExitButton,
-                  onExit: uiState.started && !uiState.gameOver
-                      ? _openExitConfirm
-                      : widget.onExit,
-                  exitConfirmOpen: _exitConfirmOpen,
-                  onExitConfirmResume: () => _closeExitConfirm(resume: true),
-                  onExitConfirmExit: _confirmExitGiveUp,
+                final runLoaded = _session.isReady;
+                return AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    final uiState = _buildUiState(runLoaded: runLoaded);
+                    if (uiState.showLoadingOverlay) {
+                      return _RunLoadingView(
+                        message: _session.loadingMessage,
+                        errorMessage: _session.errorMessage,
+                        onRetry: _loadingRetryInFlight ? null : _retryLoading,
+                        onExit: widget.showExitButton ? widget.onExit : null,
+                      );
+                    }
+                    if (uiState.gameOver) {
+                      final runEndedEvent = _controller.lastRunEndedEvent;
+                      final runEndKey =
+                          runEndedEvent?.tick ?? _controller.snapshot.tick;
+                      return GameOverOverlay(
+                        key: ValueKey(
+                          'gameOver-$_runSessionId-$runEndKey-${runEndedEvent?.reason}',
+                        ),
+                        visible: true,
+                        onRestart: _onRestartPressed,
+                        restartInProgress: _restartInFlight,
+                        onExit: widget.onExit,
+                        showExitButton: widget.showExitButton,
+                        levelId: _controller.snapshot.levelIdentity
+                            .requireRegisteredId(),
+                        runMode: _runMode,
+                        isDeveloperPractice: _descriptor.isDeveloperPractice,
+                        runEndedEvent: runEndedEvent,
+                        scoreTuning: _controller.scoreTuning,
+                        tickHz: _controller.tickHz,
+                        provisionalGoldEarned: _provisionalGoldEarned,
+                        verifiedGold: _verifiedGoldForGameOver(),
+                        runSubmissionStatus: _runSubmissionStatus,
+                        replaySubmissionJournaled: _runReplayJournaled,
+                        replaySubmissionJournalError: _runReplayJournalError,
+                        onRetryReplayJournal: _runReplayJournalInFlight
+                            ? null
+                            : () {
+                                final event = _controller.lastRunEndedEvent;
+                                if (event == null) return;
+                                setState(() {
+                                  _runReplayJournalInFlight = true;
+                                  _runReplayJournalError = null;
+                                });
+                                unawaited(_journalReplayForSubmission(event));
+                              },
+                      );
+                    }
+                    return GameOverlay(
+                      indicatorFrames: _game.offscreenIndicators,
+                      viewportMetrics: metrics,
+                      movementInputEpoch: _movementInputEpoch,
+                      movementControlMode: widget.movementControlMode,
+                      controller: _controller,
+                      input: _actions,
+                      projectileAimPreview: _projectileAimPreview,
+                      meleeAimPreview: _meleeAimPreview,
+                      aimCancelHitboxRect: _aimCancelHitboxRect,
+                      forceAimCancelSignal: _forceAimCancelSignal,
+                      playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
+                      uiState: uiState,
+                      onStart: _startGame,
+                      onTogglePause: _togglePause,
+                      showExitButton: widget.showExitButton,
+                      onExit: uiState.started && !uiState.gameOver
+                          ? _openExitConfirm
+                          : widget.onExit,
+                      exitConfirmOpen: _exitConfirmOpen,
+                      onExitConfirmResume: () =>
+                          _closeExitConfirm(resume: true),
+                      onExitConfirmExit: _confirmExitGiveUp,
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

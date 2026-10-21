@@ -48,6 +48,8 @@ import 'runner_flame/live_world_sync_system.dart';
 import 'runner_flame/load_state.dart';
 import 'runner_flame/run_asset_preloader.dart';
 import 'runner_flame/render_constants.dart';
+import 'spatial/offscreen_indicators.dart';
+import 'spatial/world_view_transform.dart';
 import 'themes/parallax_theme_registry.dart';
 import 'themes/parallax_theme.dart';
 import 'themes/terrain_material_registry.dart';
@@ -134,6 +136,10 @@ class RunnerFlameGame extends FlameGame {
   /// UI-driven aim preview (render-only).
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
+
+  /// Frame-clock HUD feed; UI owns viewport fitting and label placement.
+  final ValueNotifier<OffscreenIndicatorFrame?> offscreenIndicators =
+      ValueNotifier(null);
 
   final _bossArenaBarriers = BossArenaBarriers();
   final _teleportDestinationCues = TeleportDestinationCues();
@@ -466,6 +472,17 @@ class RunnerFlameGame extends FlameGame {
       _cameraBaseCenterScratch.y + _cameraShakeOffsetScratch.y,
     );
     camera.viewfinder.position = _cameraCenterScratch;
+    offscreenIndicators.value = OffscreenIndicatorFrame.fromSnapshots(
+      current: currSnapshot,
+      previousById: _prevEntitiesById,
+      alpha: alpha,
+      camera: WorldViewTransform(
+        cameraCenterX: _cameraBaseCenterScratch.x,
+        cameraCenterY: _cameraBaseCenterScratch.y,
+        viewWidth: currSnapshot.camera.viewWidth,
+        viewHeight: currSnapshot.camera.viewHeight,
+      ),
+    );
     _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
     _trapViews.sync(currSnapshot.traps, cameraCenter: _cameraCenterScratch);
     _interactionViews.sync(
@@ -598,6 +615,7 @@ class RunnerFlameGame extends FlameGame {
   @override
   void onDispose() {
     _removed = true;
+    offscreenIndicators.dispose();
     loadState.dispose();
     super.onDispose();
   }

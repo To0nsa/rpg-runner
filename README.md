@@ -50,7 +50,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
   Profile also shows runs and damage dealt/taken
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
-- In-game HUD, pause, game-over, and scoring
+- In-game HUD, pause, game-over, and scoring, with left/top off-screen player
+  and enemy markers showing distance back to the visible area
 - Options with Settings/Controls tabs and saved arrows, floating joystick, or
   fixed joystick movement; the floating center stays within the left 33% of the
   run screen, and all controls use identical full-strength directional input

@@ -39,6 +39,8 @@ import 'state/ownership/selection_state.dart';
 /// holds entrance controls and later resumes normal running after the fight.
 /// [movementControlMode] selects arrows, floating joystick, or fixed joystick;
 /// all emit the same full-strength movement commands. The host owns persistence.
+/// Running HUD includes left/top off-screen actor markers with distance back
+/// to the visible game area; these indicators do not intercept controls.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,

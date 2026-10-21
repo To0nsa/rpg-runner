@@ -7,6 +7,8 @@
 // parallelism. Runtime readiness holds missing publications before simulation;
 // failure recovery retries within the same run and recorder.
 // Boss entrances and arena completion remain inside that same run session.
+// The running HUD includes left/top off-screen actor markers measured from the
+// visible viewport; indicators remain presentation-only and pass touches through.
 // Hosts can choose MovementControlMode.arrows, .joystick (floating), or
 // .fixedJoystick via the widget/route. All emit identical digital movement;
 // the host owns preference persistence.

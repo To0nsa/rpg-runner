@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
+import '../../../game/spatial/offscreen_indicators.dart';
 import '../../../game/input/aim_preview.dart';
 import '../../../game/input/runner_gameplay_action.dart';
 import '../../../game/input/runner_semantic_action_dispatcher.dart';
@@ -14,6 +15,8 @@ import 'package:runner_core/abilities/ability_def.dart';
 import '../../controls/control_resource_usage.dart';
 
 import '../../runner_game_ui_state.dart';
+import '../../viewport/viewport_metrics.dart';
+import 'offscreen_indicator_overlay.dart';
 import 'pause_overlay.dart';
 import 'terrain_loading_overlay.dart';
 import 'ready_overlay.dart';
@@ -45,11 +48,15 @@ class GameOverlay extends StatefulWidget {
     required this.onExitConfirmExit,
     this.movementControlMode = MovementControlMode.arrows,
     this.movementInputEpoch = 0,
+    this.indicatorFrames,
+    this.viewportMetrics,
   });
 
   final GameController controller;
   final MovementControlMode movementControlMode;
   final int movementInputEpoch;
+  final ValueListenable<OffscreenIndicatorFrame?>? indicatorFrames;
+  final ViewportMetrics? viewportMetrics;
   final RunnerSemanticActionDispatcher input;
   final AimPreviewModel projectileAimPreview;
   final AimPreviewModel meleeAimPreview;
@@ -71,6 +78,8 @@ class GameOverlay extends StatefulWidget {
   Widget _buildOverlay(
     BuildContext context,
     ValueNotifier<ControlResourceUsage> warnings,
+    GlobalKey hudRowKey,
+    GlobalKey bossPanelKey,
   ) {
     final hud = controller.snapshot.hud;
     final projectileAffordable =
@@ -99,6 +108,15 @@ class GameOverlay extends StatefulWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
+        if (uiState.isRunning &&
+            indicatorFrames != null &&
+            viewportMetrics != null)
+          OffscreenIndicatorOverlay(
+            frames: indicatorFrames!,
+            metrics: viewportMetrics!,
+            movementControlMode: movementControlMode,
+            hudObstacles: [hudRowKey, bossPanelKey],
+          ),
         IgnorePointer(
           ignoring:
               !uiState.isRunning ||
@@ -245,6 +263,7 @@ class GameOverlay extends StatefulWidget {
             padding: const EdgeInsets.all(8),
             child: LayoutBuilder(
               builder: (context, constraints) => Row(
+                key: hudRowKey,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TopLeftHudOverlay(
@@ -273,7 +292,7 @@ class GameOverlay extends StatefulWidget {
             ),
           ),
         ),
-        BossArenaHud(controller: controller),
+        BossArenaHud(controller: controller, panelKey: bossPanelKey),
         AimCancelButtonOverlay(
           projectileAimPreview: projectileAimPreview,
           meleeAimPreview: meleeAimPreview,
@@ -292,6 +311,8 @@ class GameOverlay extends StatefulWidget {
 }
 
 class _GameOverlayState extends State<GameOverlay> {
+  final _hudRowKey = GlobalKey();
+  final _bossPanelKey = GlobalKey();
   final _warnings = ValueNotifier<ControlResourceUsage>(
     ControlResourceUsage.none,
   );
@@ -304,5 +325,5 @@ class _GameOverlayState extends State<GameOverlay> {
 
   @override
   Widget build(BuildContext context) =>
-      widget._buildOverlay(context, _warnings);
+      widget._buildOverlay(context, _warnings, _hudRowKey, _bossPanelKey);
 }

@@ -13,6 +13,7 @@ import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/run/runner_run_session.dart';
 import 'package:rpg_runner/ui/runner_game_widget.dart';
+import 'package:rpg_runner/ui/hud/game/offscreen_indicator_overlay.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
@@ -166,14 +167,18 @@ void main() {
     );
     expect(find.text('Tap to start'), findsNothing);
     expect(find.text('Preparing replay recorder...'), findsOneWidget);
+    expect(find.byType(OffscreenIndicatorOverlay), findsNothing);
     expect(session.controller.tick, 0);
     pending.complete(recorder);
     await tester.pump();
     expect(find.text('Tap to start'), findsOneWidget);
+    expect(find.byType(OffscreenIndicatorOverlay), findsNothing);
     await tester.tap(find.text('Tap to start'));
     await tester.pump(const Duration(milliseconds: 40));
     expect(session.controller.tick, greaterThan(0));
     expect(recorder.frames.first.tick, 1);
+    expect(find.byType(OffscreenIndicatorOverlay), findsOneWidget);
+    expect(session.game.offscreenIndicators.value, isNotNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     expect(recorder.closed, isTrue);
@@ -195,6 +200,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
     expect(session.controller.snapshot.paused, isTrue);
     expect(session.controller.tick, pausedTick);
+    expect(find.byType(OffscreenIndicatorOverlay), findsNothing);
 
     _resume(tester);
     expect(session.controller.snapshot.paused, isFalse);
@@ -202,6 +208,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
     expect(session.controller.tick, greaterThan(pausedTick));
     expect(recorder.frames.last.moveAxis, isNull);
+    expect(find.byType(OffscreenIndicatorOverlay), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
