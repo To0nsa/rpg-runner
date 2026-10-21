@@ -19,7 +19,7 @@ another cooldown cycle. All authoring times scale from 60 Hz using the existing
 ability timing conversion; distance comparisons are calibrated at production 60 Hz.
 
 For a first press at tick 1 and an eight-tick burst, movement occurs on ticks
-1â€“8, and a second press may commit on ticks 9â€“38 inclusive. Early presses are
+1–8, and a second press may commit on ticks 9–38 inclusive. Early presses are
 rejected without buffering. The existing simulation order is unchanged:
 activation runs before player movement, then mobility execution, gravity and
 terrain integration. Activation therefore permits the final remaining movement
