@@ -1426,6 +1426,7 @@ class AbilityActivationSystem {
     var bestDist2 = double.infinity;
     var bestInterceptSeconds = double.infinity;
     var bestHasIntercept = false;
+    var bestHasClearSight = false;
     var bestAimX = 0.0;
     var bestAimY = 0.0;
     var bestEntity = -1;
@@ -1512,28 +1513,37 @@ class AbilityActivationSystem {
         take = closer || betterTie;
       }
 
-      if (take) {
-        if (hasProjectileLead && projectileAimPathClear != null) {
-          final aimLength = sqrt(candidateAimLen2);
-          final originX =
-              sourceExecuteX +
-              candidateAimX / aimLength * projectileOriginOffset;
-          final originY =
-              sourceExecuteY +
-              candidateAimY / aimLength * projectileOriginOffset;
-          final targetX = sourceExecuteX + candidateAimX;
-          final targetY = sourceExecuteY + candidateAimY;
-          if (!projectileAimPathClear!(originX, originY, targetX, targetY)) {
-            continue;
-          }
-        }
-        bestEntity = target;
-        bestDist2 = relDist2;
-        bestInterceptSeconds = candidateInterceptSeconds;
-        bestHasIntercept = candidateHasIntercept;
-        bestAimX = candidateAimX;
-        bestAimY = candidateAimY;
+      // A clear shot can beat a better-ranked blocked prediction. Once a clear
+      // shot wins, worse-ranked candidates cannot improve it and need no raycast.
+      if (!take && bestHasClearSight) continue;
+
+      var candidateHasClearSight = true;
+      if (hasProjectileLead && projectileAimPathClear != null) {
+        final aimLength = sqrt(candidateAimLen2);
+        final originX =
+            sourceExecuteX + candidateAimX / aimLength * projectileOriginOffset;
+        final originY =
+            sourceExecuteY + candidateAimY / aimLength * projectileOriginOffset;
+        final targetX = sourceExecuteX + candidateAimX;
+        final targetY = sourceExecuteY + candidateAimY;
+        candidateHasClearSight = projectileAimPathClear!(
+          originX,
+          originY,
+          targetX,
+          targetY,
+        );
       }
+      // Velocity-only lead can cross terrain before an actor actually lands.
+      // Preserve a hostile-directed fallback when every prediction is blocked.
+      if (!candidateHasClearSight && (bestHasClearSight || !take)) continue;
+
+      bestEntity = target;
+      bestDist2 = relDist2;
+      bestInterceptSeconds = candidateInterceptSeconds;
+      bestHasIntercept = candidateHasIntercept;
+      bestHasClearSight = candidateHasClearSight;
+      bestAimX = candidateAimX;
+      bestAimY = candidateAimY;
     }
 
     if (bestEntity == -1) return null;

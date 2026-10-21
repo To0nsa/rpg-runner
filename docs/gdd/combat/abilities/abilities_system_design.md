@@ -65,14 +65,19 @@ Targeting models used in current content:
 - `homing`
 
 Éloïse's `snap_shot` uses tap-to-fire auto aim. At commit, it considers living
-hostile targets within the equipped projectile's travel reach and excludes
-targets hidden by solid terrain or the blocking side of one-way terrain. It
-predicts the target's position after windup and leads moving targets from the
+hostile targets within the equipped projectile's travel reach and prefers
+predicted shots clear of solid terrain and the blocking side of one-way terrain.
+It predicts the target's position after windup and leads moving targets from the
 projectile's offset launch point. Among reachable intercepts it favors the
-shortest flight time; if none can be intercepted, it favors the nearest visible
-target in reach. Equal scores use stable entity IDs. With no eligible target,
-the shot uses current aim or movement/facing direction. The projectile follows
-its committed path and can still miss or be dodged.
+shortest flight time; if none can be intercepted, it favors the nearest projected
+target in reach. Clear shots take priority over blocked predictions. If every
+predicted shot is blocked, it still aims toward the best-ranked enemy, including
+enemies behind the player, instead of reverting to the player's facing.
+Prediction uses current velocities and can cross terrain that would stop an
+actor's motion; terrain collision still blocks actual projectiles. Equal scores
+use stable entity IDs. With no eligible target, the shot uses current aim or
+movement/facing direction. The projectile follows its committed path and can
+still miss or be dodged.
 
 ## Timing and Cooldown Policy
 

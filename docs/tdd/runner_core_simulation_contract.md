@@ -233,13 +233,20 @@ equipped projectile's speed-times-lifetime reach, and predicts windup and
 flight using current velocities. The intercept equation includes the same
 directional cast offset used by projectile spawning. Feasible intercepts rank
 by flight time; remaining candidates rank by projected distance, with entity
-ID as the final tie-break. Only candidates that would improve the current
-choice query the published terrain edge index for an unobstructed sightline.
+ID as the final tie-break. An unobstructed predicted sightline takes priority
+over a blocked one. If every predicted sightline is blocked, the best-ranked
+hostile still supplies the committed aim; only absence of an eligible hostile
+permits the manual-aim or movement/facing fallback. This avoids losing a rear
+target when velocity-only prediction projects its landing through terrain.
+After finding a clear candidate, only candidates that improve its intercept or
+distance rank query the published terrain edge index. Until then, any eligible
+candidate can win by having a clear sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
-These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release. The `2026.10.1` release also includes surviving
-NPC section combat, refreshed Forest generated content,
+The blocked-sightline fallback changes replayed target selection and requires a
+new coordinated client/worker/issuer game-compatibility release before deployment;
+tick ordering and command/replay formats are unchanged. The `2026.10.1` release
+also includes surviving NPC section combat, refreshed Forest generated content,
 and the contiguous walkable-support placement correction. These changes affect
 replay outcomes and must ship with matching client, Functions and worker artifacts.
 They were excluded from the October 1 `2026.09.10` deployment at frozen `6bfda4c8`.
