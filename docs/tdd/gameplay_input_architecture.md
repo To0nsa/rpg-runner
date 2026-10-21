@@ -1,15 +1,15 @@
 # Gameplay Input Architecture
 
-Status: Implemented shared input boundary; the Windows Chunk and Level Creators
-mount the tooling-only desktop host, while the product game does not yet mount it.
+Status: Implemented shared touch/desktop input in the product game and the
+Windows Chunk and Level Creator playtest hosts.
 
-Last updated: October 14, 2026
+Last updated: October 21, 2026
 
 ## Purpose
 
 This document defines how touch and desktop device input becomes deterministic
 runner commands. It fixes ownership for semantic action modes, physical device
-state, focus, aim conversion, and cancellation so future editor and Windows
+state, focus, aim conversion, and cancellation so editor and product
 game hosts reuse the same behavior without importing each other's UI.
 
 ## Implemented dependency direction
@@ -17,7 +17,7 @@ game hosts reuse the same behavior without importing each other's UI.
 ```text
 touch controls -> GameOverlay ------------------+
                                                   |
-Windows keyboard/mouse adapter -----------------+--> semantic dispatcher
+Desktop keyboard/mouse adapter -----------------+--> semantic dispatcher
                                                           |
                                                           v
                                                  RunnerInputRouter
@@ -37,9 +37,12 @@ Windows keyboard/mouse adapter -----------------+--> semantic dispatcher
 - `GameController` coalesces scheduled commands into deterministic input
   frames. Neither UI adapter constructs a Core command.
 
-`RunnerGameWidget` routes its existing touch controls through the semantic
-dispatcher, but it deliberately does not mount `RunnerDesktopInputAdapter`.
-`RunnerPlaytestHost` is the desktop consumer, mounted by the standalone editor's
+`RunnerGameWidget` selects one touch or desktop input surface through the same
+semantic dispatcher. `RunnerControlScheme.automatic` resolves Windows, Linux
+and macOS (including their browsers) to desktop; Android, iOS and Fuchsia use
+touch. `RunnerGameWidget` and `createRunnerGameRoute` accept explicit overrides.
+Touch movement preferences remain independent from this host choice.
+`RunnerPlaytestHost` also mounts the desktop adapter in the standalone editor's
 Windows Chunk and Level Creators through the narrow
 `package:rpg_runner/playtest.dart` tooling entrypoint. Both entry points share
 the host lifecycle and input handling; their focused Chunk and seeded Level
@@ -240,6 +243,11 @@ owns that action.
 
 Only `KeyDownEvent` adds a key and `KeyUpEvent` removes it. `KeyRepeatEvent`
 and duplicate downs are handled without producing another semantic begin.
+Flutter mouse chords update their button masks through pointer-move events;
+the adapter translates those edges as well as down/up. Cancellation blocks the
+currently pressed mouse buttons until release, so a move or partial chord
+release after resume cannot restart a cancelled ability.
+
 Bindings use `PhysicalKeyboardKey`, so keyboard layout does not change the
 documented Windows positions.
 
@@ -291,17 +299,21 @@ Positions outside the fitted viewport and zero-length cursor/player deltas
 clear aim. Moving into letterbox space clears pointer-derived aim without
 altering keyboard movement or held keys.
 
-The controller retains the last valid pointer direction while the cursor stays
-inside the viewport and reapplies it at each ability transition. This is
-required because an aimed release commit deliberately clears the router's aim;
-a second keyboard action must still use the unchanged cursor direction without
-requiring a synthetic mouse move.
+The controller retains the last valid local cursor position and reprojects it
+against current player/camera/viewport geometry at each action transition.
+The product host also refreshes it on controller notifications. An aimed release
+commit can clear router aim, so subsequent actions reapply the current direction
+even without mouse movement. Leaving the aim domain clears the stored position.
+Charge interruption cancels ability sources without a release commit, preserving
+held movement keys; an ability needs a fresh physical press afterward.
 
 Aim presentation is optional and supplied through `onAimChanged`,
 `onAimCleared`, and `onCancelPresentation`; the device-neutral dispatcher does
 not depend on `AimPreviewModel` or Flutter.
+`RunnerGameWidget` omits `onAimChanged` on Windows so mouse aim still reaches the
+dispatcher without activating the aim ray. Touch preview wiring is unchanged.
 
-## Fixed Windows gameplay bindings
+## Fixed desktop gameplay bindings
 
 | Action | Bindings |
 | --- | --- |
@@ -331,8 +343,32 @@ A desktop host must:
 6. keep host shortcuts outside the gameplay binding table
 
 The adapter has no editor, backend, replay, reward, or Firebase dependency.
-Adding it to a future production Windows game is host composition; it must not
-change Core commands or duplicate semantic mode mapping.
+The product host owns its adapter beside the session and recreates it on loading
+retry or run restart. It disposes the adapter before the old session. Control
+scheme changes cancel input and pause without replacing the session or renderer.
+
+Product host policy:
+
+- Only the game surface is wrapped by the pointer adapter; the HUD and overlays
+  are siblings. Interactive HUD elements and the desktop status bar consume
+  their own pointer hits. Running HUD buttons cannot steal keyboard focus.
+- Enter starts a ready run or resumes a paused one. Escape/P toggles pause;
+  Escape dismisses exit confirmation without approving exit. Repeat/up events
+  never toggle twice. Host shortcuts remain outside the gameplay bindings.
+- Loading, ready, pause, game over, exit confirmation, restart preparation,
+  backgrounding and terrain failure disable gameplay translation. Terrain waits
+  keep input mounted so holds can release during preparation.
+- Focus loss and every non-resumed app state cancel physical and semantic input
+  before pausing. Desktop return never resumes automatically; touch retains its
+  existing lifecycle resume policy. Explicit Start/Resume requests gameplay focus.
+- The desktop HUD replaces touch controls with snapshot-derived bindings, slot
+  availability, cooldown seconds, mobility follow-up and charge progress. It has
+  no gameplay authority. Offscreen indicators avoid the actual bar bounds.
+- `ScopedGameContextMenu` suppresses browser context menus for a mounted desktop
+  run, using serialized reference-counted leases and restoring the prior state
+  after the final host leaves. Native platforms perform no browser calls.
+
+These policies do not change Core commands, ticket fields or replay encoding.
 
 ## Verification
 
@@ -343,6 +379,9 @@ The executable contract is covered by:
 - `test/ui/input/desktop/runner_desktop_bindings_test.dart`
 - `test/ui/input/desktop/runner_desktop_aim_geometry_test.dart`
 - `test/ui/input/desktop/runner_desktop_input_adapter_test.dart`
+- `test/ui/runner_game_widget_desktop_test.dart`
+- `test/ui/scoped/scoped_game_context_menu_test.dart` (browser-operation fakes)
+- `integration_test/runner_desktop_controls_test.dart` (native Windows engine)
 - `test/playtest/runner_chunk_playtest_host_test.dart`
 - `tools/editor/test/chunk_playtest_editor_integration_test.dart`
 - `tools/editor/test/level_playtest_editor_integration_test.dart`
@@ -355,5 +394,28 @@ release orders, opposing directions, alternate sources, OS repeat, mouse
 chords/cancel, letterbox/zero aim, repeated unchanged cursor aim, focus loss,
 pause, disposal, touch-pointer exclusion, resize and non-unit device-pixel
 ratios, every app deactivation state, repeated Play/Stop cycles, and a native
-Windows-engine lifecycle pass. Product desktop composition remains a separate
-follow-on.
+Windows-engine lifecycle pass for the editor. Product widget tests cover keyboard
+and mouse commands, HUD isolation, explicit resume, focus/lifecycle cancellation,
+control-scheme changes, recorder gating, startup retry and game-over restart.
+Browser menu tests verify overlapping hosts, prior disabled state, disposal
+during suppression and rapid replacement using injected browser operations.
+Widget tests are not
+a physical keyboard or native product-window acceptance pass.
+
+
+Run the product Windows smoke test with:
+
+```powershell
+flutter test --no-pub -d windows integration_test/runner_desktop_controls_test.dart
+```
+
+It uses local Developer Practice without backend sessions, synthetic engine
+input/lifecycle events, and two sizes/DPI settings. PNG evidence is saved under
+`build/desktop_controls_validation/screenshots/`. It does not automate physical
+Alt+Tab, keyboard rollover hardware or an online replay submission.
+
+Browser menu lease coverage does not require a browser renderer:
+
+```powershell
+flutter test --no-pub test/ui/scoped/scoped_game_context_menu_test.dart
+```

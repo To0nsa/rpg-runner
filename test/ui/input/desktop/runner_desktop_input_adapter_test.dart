@@ -17,6 +17,147 @@ import '../../../support/test_level.dart';
 import '../../../test_tunings.dart';
 
 void main() {
+  testWidgets(
+    'Flutter mouse chord moves commit once and cannot revive cancelled holds',
+    (tester) async {
+      final harness = _DesktopHarness(
+        modes: {
+          RunnerGameplayAction.projectile: AbilityInputMode.holdAimRelease,
+        },
+      );
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: RunnerDesktopInputAdapter(
+            controller: harness.adapter,
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+      harness.adapter.requestFocus();
+      await tester.pump();
+      const position = Offset(300, 100);
+      await tester.sendEventToBinding(
+        const PointerDownEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+          buttons: kPrimaryMouseButton,
+        ),
+      );
+      expect(harness.advance().strikePressed, isTrue);
+      await tester.sendEventToBinding(
+        const PointerMoveEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+          buttons: kPrimaryMouseButton | kSecondaryMouseButton,
+        ),
+      );
+      expect(
+        harness.advance().abilitySlotHeldValueMask,
+        1 << AbilitySlot.projectile.index,
+      );
+      await tester.sendEventToBinding(
+        const PointerMoveEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+          buttons: kPrimaryMouseButton,
+        ),
+      );
+      expect(harness.advance().projectilePressed, isTrue);
+      await tester.sendEventToBinding(
+        const PointerMoveEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+          buttons: kPrimaryMouseButton | kSecondaryMouseButton,
+        ),
+      );
+      harness.advance();
+      harness.adapter.cancelForPause();
+      await tester.sendEventToBinding(
+        const PointerMoveEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+          buttons: kPrimaryMouseButton | kSecondaryMouseButton,
+        ),
+      );
+      final cancelled = harness.advance();
+      expect(cancelled.pressedMask, 0);
+      expect(cancelled.abilitySlotHeldValueMask, 0);
+      await tester.sendEventToBinding(
+        const PointerMoveEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+          buttons: kSecondaryMouseButton,
+        ),
+      );
+      expect(harness.advance().projectilePressed, isFalse);
+      await tester.sendEventToBinding(
+        const PointerUpEvent(
+          pointer: 7,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+        ),
+      );
+      expect(harness.advance().pressedMask, 0);
+      await tester.pumpWidget(const SizedBox());
+      harness.adapter.dispose();
+    },
+  );
+
+  test(
+    'stationary cursor uses fresh player and viewport geometry on commit',
+    () {
+      final harness = _DesktopHarness();
+      harness.adapter.handlePointerPosition(const Offset(300, 100));
+      harness.aimGeometry = const RunnerDesktopAimGeometry(
+        viewportRect: Rect.fromLTWH(0, 0, 400, 200),
+        playerPosition: Offset(300, 150),
+      );
+      harness.keyDown(PhysicalKeyboardKey.keyE);
+      final aimed = harness.advance();
+      expect(aimed.aimDirX, 0);
+      expect(aimed.aimDirY, -1);
+      harness.keyUp(PhysicalKeyboardKey.keyE);
+      harness.aimGeometry = const RunnerDesktopAimGeometry(
+        viewportRect: Rect.fromLTWH(0, 0, 200, 100),
+        playerPosition: Offset(100, 50),
+      );
+      harness.keyDown(PhysicalKeyboardKey.keyE);
+      expect(harness.advance().aimDirX, isNull);
+      harness.adapter.dispose();
+    },
+  );
+
+  test(
+    'charge interruption preserves movement and prevents release commit',
+    () {
+      final harness = _DesktopHarness(
+        modes: {
+          RunnerGameplayAction.projectile: AbilityInputMode.holdAimRelease,
+        },
+      );
+      harness.keyDown(PhysicalKeyboardKey.keyD);
+      harness.keyDown(PhysicalKeyboardKey.keyK);
+      harness.advance();
+      harness.adapter.cancelAbilityActions();
+      harness.keyUp(PhysicalKeyboardKey.keyK);
+      final cancelled = harness.advance();
+      expect(cancelled.moveAxis, 1);
+      expect(cancelled.projectilePressed, isFalse);
+      expect(cancelled.abilitySlotHeldValueMask, 0);
+      harness.keyDown(PhysicalKeyboardKey.keyK);
+      harness.keyUp(PhysicalKeyboardKey.keyK);
+      expect(harness.advance().projectilePressed, isTrue);
+      harness.adapter.dispose();
+    },
+  );
+
   test('physical mappings emit their semantic tap actions', () {
     final expected = <PhysicalKeyboardKey, int>{
       PhysicalKeyboardKey.space: ReplayCommandFrameV1.pressedJumpBit,
@@ -122,6 +263,26 @@ void main() {
     harness.adapter.setEnabled(true);
     expect(harness.keyDown(PhysicalKeyboardKey.keyJ), KeyEventResult.handled);
     expect(harness.advance().strikePressed, isTrue);
+  });
+
+  test('dragging from letterbox space cannot begin an attack', () {
+    final harness = _DesktopHarness();
+    harness.adapter.handlePointerDown(
+      const Offset(-10, 100),
+      kPrimaryMouseButton,
+    );
+    harness.adapter.handlePointerMove(
+      const Offset(300, 100),
+      kPrimaryMouseButton,
+    );
+    harness.adapter.handlePointerUp(const Offset(300, 100), 0);
+    expect(harness.advance().pressedMask, 0);
+    harness.adapter.handlePointerDown(
+      const Offset(300, 100),
+      kPrimaryMouseButton,
+    );
+    expect(harness.advance().strikePressed, isTrue);
+    harness.adapter.dispose();
   });
 
   test('mouse and keyboard references share one action lifecycle', () {

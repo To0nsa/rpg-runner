@@ -20,12 +20,14 @@ class OffscreenIndicatorOverlay extends StatefulWidget {
     required this.metrics,
     required this.movementControlMode,
     this.hudObstacles = const [],
+    this.touchControlsVisible = true,
   });
 
   final ValueListenable<OffscreenIndicatorFrame?> frames;
   final ViewportMetrics metrics;
   final MovementControlMode movementControlMode;
   final List<GlobalKey> hudObstacles;
+  final bool touchControlsVisible;
 
   @override
   State<OffscreenIndicatorOverlay> createState() =>
@@ -74,6 +76,7 @@ class _OffscreenIndicatorOverlayState extends State<OffscreenIndicatorOverlay> {
           theme: context.hudTheme,
           hudBounds: _hudBounds,
           movementMode: widget.movementControlMode,
+          touchControlsVisible: widget.touchControlsVisible,
         ),
       ),
     ),
@@ -90,6 +93,7 @@ class _IndicatorPainter extends CustomPainter {
     required this.theme,
     required this.hudBounds,
     required this.movementMode,
+    required this.touchControlsVisible,
   }) : super(repaint: frames);
 
   final ValueListenable<OffscreenIndicatorFrame?> frames;
@@ -100,6 +104,7 @@ class _IndicatorPainter extends CustomPainter {
   final UiHudTheme theme;
   final List<Rect> Function() hudBounds;
   final MovementControlMode movementMode;
+  final bool touchControlsVisible;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -138,7 +143,10 @@ class _IndicatorPainter extends CustomPainter {
       indicators: indicators,
       viewport: viewport,
       safeBounds: safePadding.deflateRect(Offset.zero & size),
-      exclusions: [...hudBounds(), ..._controlBounds(size, movementMode)],
+      exclusions: [
+        ...hudBounds(),
+        if (touchControlsVisible) ..._controlBounds(size, movementMode),
+      ],
       measure: (value) {
         final painter = label(value);
         return Size(painter.width + 34, math.max(22, painter.height + 6));

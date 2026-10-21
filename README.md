@@ -58,6 +58,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring, with left/top off-screen player
   and enemy markers showing distance back to the visible area
+- Desktop keyboard/mouse controls in the main run, with automatic platform
+  selection, mouse aim, ability status/bindings, Enter start/resume and Escape/P
+  pause; see [controls](docs/gdd/01_controls.md#desktop-keyboard-and-mouse)
 - Options with Settings/Controls tabs and saved arrows, floating joystick, or
   fixed joystick movement; the floating center stays within the left 33% of the
   run screen, and all controls use identical full-strength directional input

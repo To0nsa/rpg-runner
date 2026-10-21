@@ -128,6 +128,11 @@ The run route is a UI-owned assembly of lower layers:
   mounted for hold releases; failure cancels input and offers same-run retry.
   Do not route runtime recovery through startup session replacement.
 - HUD and controls read snapshots and send input through the existing router/controller path
+- `RunnerControlScheme` selects one touch/desktop surface in the product host.
+  Desktop pointers wrap only gameplay, with HUD as a sibling; focus/lifecycle
+  cancellation precedes pause and desktop return requires explicit resume.
+  Dispose the desktop controller before its session and keep browser context
+  menu suppression scoped. See `docs/tdd/gameplay_input_architecture.md`.
 - Movement presentation is selected by `MovementControlMode`; arrows, floating
   joystick and fixed joystick must emit the same digital -1/0/1 axis. Keep
   preferences outside gameplay/replay descriptors, and preserve pointer

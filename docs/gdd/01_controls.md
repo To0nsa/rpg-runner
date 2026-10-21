@@ -19,6 +19,44 @@
 
 ## 2. Input schema overview
 
+### Desktop keyboard and mouse
+
+The main game automatically uses desktop controls on Windows, macOS and Linux,
+including desktop browsers. Mobile keeps the touch scheme below. Embedded hosts
+can explicitly select either scheme; the current device movement preference
+only selects the touch movement widget.
+
+| Action | Fixed bindings |
+| --- | --- |
+| Move | A/D or Left/Right arrows |
+| Jump | Space, W or Up arrow |
+| Mobility | Either Shift |
+| Primary | Left mouse button or J |
+| Projectile | Right mouse button or K |
+| Secondary | Q |
+| Spell | E or L |
+| Start / resume | Enter |
+| Pause / resume | Escape or P |
+
+Bindings use physical key positions. The cursor aims relative to the player
+inside the game view; letterbox space does not supply aim. Aimed and charged
+abilities use the equipped ability's press/hold/release behavior. Escape pauses
+and cancels pending actions without firing them. Alternate bindings for one
+action share a hold; opposing movement keys produce neutral movement.
+
+Windows mouse aiming does not show an aim ray. Touch aiming keeps its preview.
+
+The bottom ability bar shows bindings, availability, cooldowns, resource
+shortfalls, mobility follow-ups and charge progress. Its clicks and the HUD's
+pause/exit buttons never fire attacks. Right click works without a browser menu
+while the desktop run is mounted.
+
+Losing gameplay focus or switching away pauses and clears held inputs. Returning
+requires explicit resume and fresh presses, preventing stuck movement or a cast
+from an old release. Switching the host's control scheme also pauses and clears
+input while preserving the same run. Keys are fixed; remapping and gamepads are
+not implemented.
+
 ### Left thumb: Movement
 
 - **Arrows, Floating joystick or Fixed joystick**, selected in Options → Controls.

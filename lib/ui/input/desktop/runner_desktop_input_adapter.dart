@@ -11,7 +11,7 @@ import 'runner_desktop_bindings.dart';
 /// Supplies the current fitted viewport and rendered player point for aim.
 typedef RunnerDesktopAimGeometryResolver = RunnerDesktopAimGeometry? Function();
 
-/// Owns local Windows keyboard, mouse, focus, and pressed-source state.
+/// Owns local desktop keyboard, mouse, focus, and pressed-source state.
 ///
 /// The controller translates only physical device transitions. Gameplay mode
 /// semantics remain in [RunnerSemanticActionDispatcher], while pause/stop and
@@ -50,7 +50,8 @@ final class RunnerDesktopInputController {
   final FocusNode focusNode;
 
   int _mouseButtons = 0;
-  Offset? _pointerAimDirection;
+  int _blockedMouseButtons = 0;
+  Offset? _pointerPosition;
   bool _hadFocus = false;
   bool _focusRequestPending = false;
   bool _enabled = true;
@@ -95,8 +96,9 @@ final class RunnerDesktopInputController {
   void cancelAll() {
     if (_disposed) return;
     _pressedKeys.clear();
+    _blockedMouseButtons |= _mouseButtons;
     _mouseButtons = 0;
-    _pointerAimDirection = null;
+    _pointerPosition = null;
     _dispatcher.cancelAll();
     _onCancelPresentation?.call();
   }
@@ -147,10 +149,13 @@ final class RunnerDesktopInputController {
     if (_disposed) return;
     final geometry = _resolveAimGeometry();
     if (geometry == null || !geometry.contains(localPosition)) {
+      _blockedMouseButtons |= buttons & _boundMouseButtonMask;
       _clearPointerAim();
       return;
     }
     requestFocus();
+    // A down starts a new pointer sequence; chord transitions arrive as moves.
+    _blockedMouseButtons = _enabled ? 0 : buttons & _boundMouseButtonMask;
     if (!_enabled) return;
     _updateAim(localPosition, geometry: geometry);
     _updateMouseButtons(buttons, cancelReleased: false);
@@ -158,7 +163,21 @@ final class RunnerDesktopInputController {
 
   /// Releases mouse actions, preserving other keys/buttons for the same action.
   void handlePointerUp(Offset localPosition, int buttons) {
+    _blockedMouseButtons &= buttons;
     if (_disposed || !_enabled) return;
+    _updateAim(localPosition);
+    _updateMouseButtons(buttons, cancelReleased: false);
+  }
+
+  /// Handles cursor motion and chord edges from Flutter's button-mask moves.
+  /// Cancelled buttons stay blocked until released, even after a quick resume.
+  void handlePointerMove(Offset localPosition, int buttons) {
+    if (_disposed) return;
+    _blockedMouseButtons &= buttons;
+    if (!_enabled) {
+      _blockedMouseButtons |= buttons & _boundMouseButtonMask;
+      return;
+    }
     _updateAim(localPosition);
     _updateMouseButtons(buttons, cancelReleased: false);
   }
@@ -199,25 +218,48 @@ final class RunnerDesktopInputController {
       _clearPointerAim();
       return;
     }
-    _pointerAimDirection = direction;
+    _pointerPosition = localPosition;
     _dispatcher.setAimDir(direction.dx, direction.dy);
     _onAimChanged?.call(direction.dx, direction.dy);
   }
 
   void _clearPointerAim() {
-    _pointerAimDirection = null;
+    _pointerPosition = null;
     _dispatcher.clearAimDir();
     _onAimCleared?.call();
   }
 
-  void _applyPointerAim() {
-    final direction = _pointerAimDirection;
-    if (direction == null) return;
-    _dispatcher.setAimDir(direction.dx, direction.dy);
+  /// Reprojects a stationary cursor after the player, camera or viewport moves.
+  /// Hosts can refresh on controller updates; action edges always refresh too.
+  void refreshPointerAim() {
+    if (_disposed || !_enabled) return;
+    final position = _pointerPosition;
+    if (position != null) _updateAim(position);
   }
 
+  void _applyPointerAim() => refreshPointerAim();
+
+  /// Drops held abilities without committing, while preserving movement keys.
+  /// Used when Core interrupts charge through damage or a hold timeout.
+  void cancelAbilityActions() {
+    if (_disposed) return;
+    final before = _activeSourceActions();
+    _pressedKeys.removeWhere((key) => !_isMovement(_keyActions[key]));
+    _blockedMouseButtons |= _mouseButtons;
+    _mouseButtons = 0;
+    for (final action in before.where((action) => !_isMovement(action))) {
+      _dispatcher.cancelAction(action);
+    }
+    _clearPointerAim();
+    _onCancelPresentation?.call();
+  }
+
+  bool _isMovement(RunnerGameplayAction? action) =>
+      action == RunnerGameplayAction.moveLeft ||
+      action == RunnerGameplayAction.moveRight;
+
   void _updateMouseButtons(int buttons, {required bool cancelReleased}) {
-    final nextButtons = buttons & _boundMouseButtonMask;
+    final nextButtons = buttons & _boundMouseButtonMask & ~_blockedMouseButtons;
     if (nextButtons == _mouseButtons) return;
     final before = _activeSourceActions();
     _mouseButtons = nextButtons;
@@ -316,7 +358,7 @@ class RunnerDesktopInputAdapter extends StatelessWidget {
           },
           onPointerMove: (event) {
             if (event.kind == PointerDeviceKind.mouse) {
-              controller.handlePointerPosition(event.localPosition);
+              controller.handlePointerMove(event.localPosition, event.buttons);
             }
           },
           onPointerUp: (event) {

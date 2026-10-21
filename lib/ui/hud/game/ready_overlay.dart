@@ -3,9 +3,15 @@ import 'package:flutter/widgets.dart';
 import '../../theme/ui_tokens.dart';
 
 class ReadyOverlay extends StatelessWidget {
-  const ReadyOverlay({super.key, required this.visible, required this.onTap});
+  const ReadyOverlay({
+    super.key,
+    required this.visible,
+    required this.onTap,
+    this.desktop = false,
+  });
 
   final bool visible;
+  final bool desktop;
   final VoidCallback onTap;
 
   @override
@@ -23,7 +29,7 @@ class ReadyOverlay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Tap to start',
+                desktop ? 'Click or press Enter to start' : 'Tap to start',
                 style: ui.text.title.copyWith(
                   color: ui.colors.textPrimary,
                   fontSize: 28,
