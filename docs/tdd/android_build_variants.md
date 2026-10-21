@@ -95,9 +95,12 @@ Games. Before the first online dev launch:
    never check debug tokens into the repository. Release/profile continue to
    use Play Integrity. See [App Check diagnostics](callable_abuse_controls.md#app-check-diagnostics-and-troubleshooting).
 
-The Firebase app and certificate registration are complete. Play Console
-credential linking and the phone-specific App Check token registration still
-require verification; they are not established by a successful APK build.
+The Firebase app and certificate registration are complete. The connected
+CPH2465 phone's dev App Check token was registered on 2026-10-21; a fresh dev
+launch confirmed `tokenAcquisition: available` with `failureReason: none`.
+Other installations need their own debug token registration. Play Console
+credential linking remains outstanding: the phone's Play Games service reports
+`APP NOT CORRECTLY CONFIGURED` / `DEVELOPER_ERROR` after profile selection.
 The downloaded dev configuration currently has the shared web OAuth client but
 no Android OAuth client for the dev package. Normal startup remains fail-closed
 until Play Games sign-in succeeds; this setup does not add an auth bypass.
@@ -109,7 +112,21 @@ Firebase app ID, server OAuth client and signing certificate match the dev
 registration. Targeted release/profile manifest and resource tasks pass using
 cached arm64 dependencies, retaining the original identities. Dart analysis of
 the service factory and all 28 focused startup/Developer Practice tests pass.
-No full release/profile APK or connected-phone sign-in check was performed.
+No full release/profile APK build was performed.
+
+Connected-phone verification on 2026-10-21 installed the debug APK on a CPH2465
+alongside the existing release. Both packages remain installed; the release's
+package path, version, install timestamps and private-data directory identities
+match the pre-install baseline. Release opens its existing level 14 profile.
+Dev startup selects the dev Firebase registration and acquires an App Check
+token, but cannot pass Play Games sign-in until the credential setup above is
+complete. Developer Practice and persistence across a dev update therefore
+remain unverified on this phone.
+
+The existing release also reports a Play Integrity `attestation_rejected`
+startup diagnostic despite reaching its hub. Opening the hub does not establish
+that release attestation or all online operations work. No release package or
+attestation configuration was changed.
 
 Build the debug APK and inspect its packaged manifest/resources: package
 `com.example.rpg_runner.dev`, label `rpg_runner Dev`, dev `google_app_id` and the
