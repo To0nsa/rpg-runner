@@ -552,9 +552,11 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 The header uses the shared compact selector, as on Leaderboards, with
 **Settings** and **Controls** tabs. Settings is the initial tab and contains
 the existing debug-only Developer mode switch. Controls is available in all
-builds and offers **Arrows** (default) or **Joystick** for backward/forward
-movement. The choice is saved on the device and changes the in-run control's
-presentation only; both send identical full-strength directional input.
+builds and offers **Arrows** (default), **Floating joystick** or **Fixed joystick**
+for backward/forward movement, with a short explanation of the selected mode.
+The floating base stays within the left 33% of the run screen; the fixed base
+stays at the lower-left movement position. The choice is saved on the device and
+changes presentation only; all send identical full-strength directional input.
 
 **Scope**
 

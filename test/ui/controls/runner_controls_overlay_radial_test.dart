@@ -117,7 +117,7 @@ void main() {
       await pumpOverlay();
       expect(
         tester.getRect(find.byType(MoveJoystick)),
-        const Rect.fromLTWH(0, 160, 240, 160),
+        const Rect.fromLTWH(0, 160, 158.4, 160),
       );
       final finger = await tester.startGesture(
         const Offset(60, 220),
@@ -126,6 +126,12 @@ void main() {
       await finger.moveTo(const Offset(400, 220));
       await tester.pump();
       expect(harness.movementAxes.last, 1);
+      expect(
+        tester
+            .getCenter(find.byKey(const ValueKey('movement_joystick_base')))
+            .dx,
+        closeTo(480 * 0.33, 0.001),
+      );
       await tester.tap(
         find.ancestor(
           of: find.bySemanticsLabel('Jump'),
@@ -153,6 +159,70 @@ void main() {
       expect(harness.movementAxes.last, 0);
       await arrow.up();
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'floating center stays in the left 33% across overdrag and resize',
+    (tester) async {
+      final harness = _OverlayHarness()
+        ..movementMode = MovementControlMode.joystick;
+      addTearDown(harness.dispose);
+      Future<void> pumpWidth(double width) => tester.pumpWidget(
+        _testHost(
+          width: width,
+          child: harness.buildOverlay(tuning: ControlsTuning.fixed),
+        ),
+      );
+      await pumpWidth(800);
+      final base = find.byKey(const ValueKey('movement_joystick_base'));
+      const start = Offset(800 * 0.33 - 1, 220);
+      final finger = await tester.startGesture(start);
+      await tester.pump();
+      expect(tester.getCenter(base), start);
+      expect(harness.movementAxes, isEmpty);
+      await finger.moveTo(const Offset(760, 220));
+      await tester.pump();
+      expect(tester.getCenter(base).dx, closeTo(800 * 0.33, 0.001));
+      expect(harness.movementAxes.last, 1);
+      await pumpWidth(480);
+      expect(tester.getCenter(base).dx, closeTo(480 * 0.33, 0.001));
+      await finger.moveTo(const Offset(480 * 0.33, 220));
+      expect(harness.movementAxes.last, 0);
+      await finger.moveBy(const Offset(-9, 0));
+      expect(harness.movementAxes.last, -1);
+      await finger.cancel();
+      await tester.pump();
+      expect(harness.movementAxes.last, 0);
+      expect(tester.getCenter(base), const Offset(80, 256));
+    },
+  );
+
+  testWidgets(
+    'fixed joystick uses the lower-left anchor and leaves actions usable',
+    (tester) async {
+      final harness = _OverlayHarness()
+        ..movementMode = MovementControlMode.fixedJoystick;
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
+      expect(
+        tester.getRect(find.byType(MoveJoystick)),
+        const Rect.fromLTWH(32, 208, 96, 96),
+      );
+      await tester.tapAt(const Offset(160, 190));
+      expect(harness.movementAxes, isEmpty);
+      final finger = await tester.startGesture(
+        const Offset(100, 256),
+        pointer: 1,
+      );
+      expect(harness.movementAxes.last, 1);
+      await tester.tap(find.bySemanticsLabel('Jump'), pointer: 2);
+      expect(harness.gameplayEdges, contains('jump.press'));
+      expect(harness.movementAxes.last, 1);
+      await finger.up();
+      expect(harness.movementAxes.last, 0);
     },
   );
 
@@ -537,9 +607,11 @@ void main() {
   });
 }
 
-Widget _testHost({required Widget child}) {
+Widget _testHost({required Widget child, double width = 480}) {
   return MaterialApp(
-    home: Scaffold(body: SizedBox(width: 480, height: 320, child: child)),
+    home: Scaffold(
+      body: SizedBox(width: width, height: 320, child: child),
+    ),
   );
 }
 

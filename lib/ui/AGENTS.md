@@ -123,9 +123,10 @@ The run route is a UI-owned assembly of lower layers:
   mounted for hold releases; failure cancels input and offers same-run retry.
   Do not route runtime recovery through startup session replacement.
 - HUD and controls read snapshots and send input through the existing router/controller path
-- Movement presentation is selected by `MovementControlMode`; arrows and the
-  horizontal joystick must emit the same digital -1/0/1 axis. Keep preferences
-  outside gameplay/replay descriptors, and preserve pointer cancellation epochs.
+- Movement presentation is selected by `MovementControlMode`; arrows, floating
+  joystick and fixed joystick must emit the same digital -1/0/1 axis. Keep
+  preferences outside gameplay/replay descriptors, and preserve pointer
+  cancellation epochs.
 - boss entrance haptics use the run-owned binding under `haptics/`; dispose it
   before replacing or disposing its controller, and retain pulse deduplication
   across pause/resume

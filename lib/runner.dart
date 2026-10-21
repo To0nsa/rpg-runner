@@ -7,8 +7,9 @@
 // parallelism. Runtime readiness holds missing publications before simulation;
 // failure recovery retries within the same run and recorder.
 // Boss entrances and arena completion remain inside that same run session.
-// Hosts can choose MovementControlMode.arrows or .joystick via the widget/route;
-// both emit identical digital movement. The host owns preference persistence.
+// Hosts can choose MovementControlMode.arrows, .joystick (floating), or
+// .fixedJoystick via the widget/route. All emit identical digital movement;
+// the host owns preference persistence.
 //
 // Host apps should import only this file:
 // `import 'package:rpg_runner/runner.dart';`

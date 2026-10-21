@@ -170,7 +170,8 @@ choice. `AppServices` owns `ControlSettings` separately from `AppState`, so
 profile replacement does not reset device preferences. Production injects
 `SharedPrefsControlSettingsStore`; initialization restores the choice before
 ready routes, including Developer Practice. The key is
-`controls.movement_mode.v1`, with stable `arrows` / `joystick` values. Missing,
+`controls.movement_mode.v1`, with stable `arrows` / `joystick` / `fixedJoystick`
+values. The existing `joystick` value still selects floating mode. Missing,
 unknown or malformed values fall back to arrows. Writes are serialized by a
 saving guard, publish only after success, and surface failure in Options while
 retaining the previous selection. Hosts without a store use in-memory settings.
@@ -185,22 +186,31 @@ and replay contracts.
 `MovementControl` selects `MoveButtons` or `MoveJoystick`, sharing the movement
 callback and palette. Arrows use `HudPanel`; the joystick uses `HudMedallion`
 with a single rim on its base and a dark thumb grip. This decoration
-does not change its hit region or input mapping. Both emit **only -1, 0, 1**.
-The floating joystick uses a
+does not change its hit region or input mapping. All modes emit **only -1, 0, 1**.
+Both joystick modes use a
 96-pixel base, a 40-pixel thumb and an 8-pixel horizontal neutral deadzone (all
-logical pixels, in `MoveJoystickTuning`). Its stationary hit region covers the
-lower-left quarter of the overlay; action controls are stacked above it. On
-touch-down the base centers under that pointer with neutral input. Horizontal
-displacement is clamped to the thumb's 28-pixel travel radius, and excess travel
-moves the base. The base follows the pointer's Y directly, so vertical drag
-only moves the artwork. Beyond the horizontal deadzone the displacement's sign
-produces full-strength input; reversal is relative to the current base.
+logical pixels, in `MoveJoystickTuning`). The floating mode's stationary hit
+region covers the left 33% of the overlay's lower half; action controls are
+stacked above it. On touch-down the base centers under that pointer with neutral
+input. Horizontal displacement is clamped to the thumb's 28-pixel travel radius,
+and excess travel moves the base, clamped between the activation area's left
+and right edges. The same clamp applies when layout constraints change during
+a gesture, keeping the center at or before 33% of the current overlay width.
+The base follows the pointer's Y directly, so vertical drag only moves the
+artwork. Beyond the horizontal deadzone the displacement's sign produces
+full-strength input; reversal is relative to the current bounded base.
+
+Fixed mode uses a 96-by-96-pixel stationary touch target at the existing
+left/bottom movement insets. Its base never follows a touch. Touch-down and
+drag both resolve displacement relative to the resting center, so pressing
+off-center immediately emits the corresponding direction. Overdrag only clamps
+the thumb; vertical displacement is ignored.
 
 The listener stays stationary while the artwork can paint beyond its activation
 area, preserving a stable coordinate space and pointer capture during overdrag.
 The first pointer owns the stick until up/cancel; other pointers cannot take it
 over or interfere with action controls. Release/cancel restores the idle base
-at the existing movement insets. Both presentation modes retain the same
+at the existing movement insets. All presentation modes retain the same
 `MovementControl` element so switching still neutralizes an active gesture.
 
 The existing semantic dispatcher and router still schedule all movement.

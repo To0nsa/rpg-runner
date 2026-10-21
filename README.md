@@ -51,8 +51,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring
-- Options with Settings/Controls tabs and a saved arrows-or-joystick movement
-  choice; both controls use identical full-strength directional input
+- Options with Settings/Controls tabs and saved arrows, floating joystick, or
+  fixed joystick movement; the floating center stays within the left 33% of the
+  run screen, and all controls use identical full-strength directional input
 - App-owned background reward completion, curated Practice routes and
   [trusted prepared navigation](docs/tdd/prepared_navigation.md). Before a mobile
   release build, run `dart run packages/runner_core/tool/prepare_navigation.dart --client`.

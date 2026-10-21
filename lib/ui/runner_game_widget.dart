@@ -127,8 +127,8 @@ class RunnerGameWidget extends StatefulWidget {
   /// Debug-only local Practice, without recording, rewards or leaderboard writes.
   final bool isDeveloperPractice;
 
-  /// Touch movement presentation, retained on restart. Both modes emit only
-  /// -1, 0 or 1; hosts may select a mode without providing app settings services.
+  /// Arrows, floating joystick, or fixed joystick, retained on restart. All emit
+  /// only -1, 0 or 1; hosts can select without app settings services.
   final MovementControlMode movementControlMode;
 
   final VoidCallback? onExit;

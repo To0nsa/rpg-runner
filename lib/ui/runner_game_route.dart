@@ -37,8 +37,8 @@ import 'state/ownership/selection_state.dart';
 /// reward verification can finish and refresh ownership on subsequent screens.
 /// Mandatory boss arenas keep this route and its run session alive while Core
 /// holds entrance controls and later resumes normal running after the fight.
-/// [movementControlMode] selects touch presentation; both modes emit the same
-/// full-strength movement commands. The host owns persistence of this choice.
+/// [movementControlMode] selects arrows, floating joystick, or fixed joystick;
+/// all emit the same full-strength movement commands. The host owns persistence.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,

@@ -214,8 +214,9 @@ class RunnerControlsOverlay extends StatelessWidget {
           child: Align(
             alignment: Alignment.bottomLeft,
             child: FractionallySizedBox(
+              // Keep activation and the base center within the run's left 33%.
               widthFactor: movementControlMode == MovementControlMode.joystick
-                  ? 0.5
+                  ? 0.33
                   : null,
               heightFactor: movementControlMode == MovementControlMode.joystick
                   ? 0.5

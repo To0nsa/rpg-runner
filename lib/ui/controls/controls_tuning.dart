@@ -115,7 +115,7 @@ class MoveButtonsTuning {
   final Color foregroundColor;
 }
 
-/// Floating horizontal joystick geometry in logical pixels. The deadzone only
+/// Horizontal joystick geometry in logical pixels. The deadzone only
 /// selects neutral versus full-strength movement; it never scales speed.
 @immutable
 class MoveJoystickTuning {
