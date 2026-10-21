@@ -145,6 +145,25 @@ center until release. Both bosses preserve cast timing and released trajectories
 Shared projectile intents default body-relative X/Y offsets to zero, preserving
 other casters. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 
+## Player horizontal movement tuning
+
+`eloiseTuning.movement` in `players/characters/eloise.dart` supplies both
+registered player characters. Its base target speed is 200 world units/second,
+acceleration is 600 world units/second², and neutral-input deceleration is 1200
+world units/second². `PlayerMovementSystem` uses acceleration for every nonzero
+target, including reversal, and deceleration for a zero target. Neutral input
+snaps remaining speed at or below 5 world units/second to zero.
+
+Grounded and airborne horizontal control share these rates. Gear and status
+movement multipliers scale target speed and both rates; slope multipliers affect
+only target speed. Swimming additionally scales target speed by 0.8,
+acceleration by 0.5, and deceleration by 0.45. Active mobility actions retain
+their separate velocity handling.
+
+The increase from 400 to 1200 deceleration changes replayed trajectories and
+requires a coordinated gameplay compatibility release with matching client and
+worker Core builds. Command encoding and tick ordering are unchanged.
+
 ## Tick ordering
 
 `GameCore.stepOneTick` ordering is gameplay behavior, not an implementation

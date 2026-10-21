@@ -50,6 +50,14 @@
   held movement; resuming requires a new movement touch.
 - Continuous axis is scheduled ahead with a small input lead/buffer (see §7).
 
+**Movement feel**
+
+Both selectable characters share a base running speed of 200 world units/second.
+Neutral input brakes at 1200 world units/second², stopping from base speed in
+about 0.17 seconds to keep release drift short. Starting and reversing direction
+use 600 world units/second². The same horizontal control applies in the air;
+[swimming](swimming.md) retains its slower movement multipliers.
+
 ### Right thumb: Actions
 
 Six action buttons/slots:
